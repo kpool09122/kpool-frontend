@@ -1,0 +1,68 @@
+version: "3"
+
+tasks:
+  install:
+    desc: Install dependencies with pnpm
+    cmds:
+      - pnpm install
+
+  setup:
+    desc: Alias for install
+    cmds:
+      - task: install
+
+  dev:
+    desc: Start the Next.js development server
+    cmds:
+      - pnpm dev
+
+  build:
+    desc: Build the application
+    cmds:
+      - pnpm build
+
+  start:
+    desc: Start the production server
+    cmds:
+      - pnpm start
+
+  lint:
+    desc: Run ESLint
+    cmds:
+      - pnpm lint
+
+  test:
+    desc: Run unit and E2E tests
+    cmds:
+      - pnpm test
+
+  test:unit:
+    desc: Run Vitest unit tests
+    cmds:
+      - pnpm test:unit
+
+  test:unit:watch:
+    desc: Run Vitest in watch mode
+    cmds:
+      - pnpm test:unit:watch
+
+  test:coverage:
+    desc: Run unit tests with coverage
+    cmds:
+      - pnpm test:coverage
+
+  test:e2e:
+    desc: Run Playwright end-to-end tests
+    cmds:
+      - pnpm test:e2e
+
+  test:e2e:ui:
+    desc: Run Playwright with the interactive UI
+    cmds:
+      - pnpm test:e2e:ui
+
+  check:
+    desc: Run the project's default checks
+    cmds:
+      - task: lint
+      - task: test:unit
