@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import { type WikiSection } from "@/types/wiki-detail";
-import { useId } from "react";
+import { useId, useState } from "react";
 
-import { getSectionOffset, getWikiBasicFields, sortWikiSections } from "./wikiDetailView";
+import { getWikiBasicFields, sortWikiSections } from "./wikiDetailView";
 import { useWikiDetail } from "./useWikiDetail";
 
 type WikiDetailPageProps = {
-  wikiId: string;
+  slug: string;
 };
 
 function EditIcon() {
@@ -51,7 +51,6 @@ function SectionAccordion({ section }: { section: WikiSection }) {
     <details
       className="section-accordion rounded-[1.75rem] border border-stroke-subtle bg-surface-raised shadow-soft"
       data-testid={`section-${section.sectionIdentifier}`}
-      style={{ marginLeft: `${getSectionOffset(section.depth)}px` }}
     >
       <summary
         className="flex list-none items-center gap-3 cursor-pointer p-5 text-left"
@@ -90,9 +89,10 @@ function SectionAccordion({ section }: { section: WikiSection }) {
   );
 }
 
-export function WikiDetailPage({ wikiId }: WikiDetailPageProps) {
-  const wikiDetail = useWikiDetail(wikiId);
+export function WikiDetailPage({ slug }: WikiDetailPageProps) {
+  const wikiDetail = useWikiDetail(slug);
   const flipCardId = useId();
+  const [isFlipped, setIsFlipped] = useState(false);
 
   if (wikiDetail.status === "loading") {
     return (
@@ -166,9 +166,10 @@ export function WikiDetailPage({ wikiId }: WikiDetailPageProps) {
           <div className="grid gap-5 lg:hidden">
             <div className="space-y-4">
               <input
-                className="peer sr-only"
+                className="sr-only"
                 data-testid="wiki-flip-input"
                 id={flipCardId}
+                onChange={(event) => setIsFlipped(event.currentTarget.checked)}
                 type="checkbox"
               />
               <div
@@ -179,7 +180,9 @@ export function WikiDetailPage({ wikiId }: WikiDetailPageProps) {
               >
                 <div className="relative h-[34rem] [perspective:1400px]">
                   <div
-                    className="relative h-full rounded-[2rem] shadow-soft transition duration-700 [transform-style:preserve-3d] peer-checked:[transform:rotateY(180deg)]"
+                    className={`relative h-full rounded-[2rem] shadow-soft transition duration-700 [transform-style:preserve-3d] ${
+                      isFlipped ? "[transform:rotateY(180deg)]" : ""
+                    }`}
                     data-testid="wiki-flip-card"
                   >
                     <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised [backface-visibility:hidden]">
@@ -208,13 +211,18 @@ export function WikiDetailPage({ wikiId }: WikiDetailPageProps) {
                     </div>
                     <label
                       aria-label="Flip wiki card to basic details"
-                      className="absolute inset-0 z-30 cursor-pointer rounded-[2rem]"
+                      className={`absolute inset-0 z-30 rounded-[2rem] ${
+                        isFlipped ? "pointer-events-none" : "cursor-pointer"
+                      }`}
                       data-testid="wiki-flip-front-toggle"
                       htmlFor={flipCardId}
                     />
 
                     <div
-                      className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] pointer-events-none peer-checked:pointer-events-auto"
+                      className={`absolute inset-0 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
+                        isFlipped ? "pointer-events-auto" : "pointer-events-none"
+                      }`}
+                      onClick={() => setIsFlipped(false)}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
@@ -225,15 +233,11 @@ export function WikiDetailPage({ wikiId }: WikiDetailPageProps) {
                             Group profile
                           </p>
                         </div>
-                        <label
-                          aria-label="Flip wiki card to image side"
-                          className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-medium text-text-strong"
-                          htmlFor={flipCardId}
-                        >
-                          Flip back
-                        </label>
                       </div>
-                      <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+                      <div
+                        className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <dl className="grid gap-4">
                         {basicFields.map((field) => (
                           <div
@@ -256,10 +260,10 @@ export function WikiDetailPage({ wikiId }: WikiDetailPageProps) {
               </div>
 
               <p className="text-center text-sm text-text-muted">
-                <span className="peer-checked:hidden">
+                <span className={isFlipped ? "hidden" : ""}>
                   Tap anywhere on the card to flip to the basic details.
                 </span>
-                <span className="hidden peer-checked:inline">
+                <span className={isFlipped ? "inline" : "hidden"}>
                   Tap the card again to return to the cover image.
                 </span>
               </p>

@@ -18,10 +18,10 @@ const heroImageDataUri =
     </svg>
   `);
 
-export const createMockWikiDetail = (wikiId: string): WikiDetail =>
+export const createMockWikiDetail = (slug: string): WikiDetail =>
   wikiDetailSchema.parse({
-    wikiIdentifier: wikiId,
-    slug: wikiId,
+    wikiIdentifier: slug,
+    slug,
     language: "ja",
     resourceType: "group",
     version: 3,
