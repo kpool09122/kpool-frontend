@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ThemeToggle } from "./ThemeToggle";
 import { getThemePaletteSections } from "./themePalette";
 
@@ -22,6 +24,17 @@ export default function Home() {
               The palette avoids aqua-led branding and establishes reusable
               tokens for future product UI.
             </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link
+                className="inline-flex items-center rounded-full bg-brand-secondary px-5 py-3 text-sm font-semibold text-[#15243b] transition hover:brightness-105"
+                href="/wiki/aurora-echo"
+              >
+                Open Wiki Detail Demo
+              </Link>
+              <p className="text-sm text-white/72">
+                Jump straight to the public wiki detail prototype.
+              </p>
+            </div>
           </div>
 
           <div className="grid gap-6 px-6 py-6 text-sm text-text-muted sm:px-10 lg:grid-cols-[1.3fr_0.7fr]">
