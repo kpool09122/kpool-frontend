@@ -4,11 +4,16 @@ test("wiki detail page shows the public layout and flip interaction", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/wiki/aurora-echo");
+  await page.goto("/wiki/aurora-echo?themeColor=%234c5cff");
 
   await expect(
     page.getByRole("heading", { name: /Aurora Echo/i }),
   ).toBeVisible();
+  await expect(page.getByTestId("wiki-theme-badge")).toHaveText("Theme #4C5CFF");
+  await expect(page.getByTestId("wiki-theme-root")).toHaveAttribute(
+    "style",
+    /--wiki-header-background-light:/,
+  );
   const flipInput = page.getByTestId("wiki-flip-input");
   const flipButton = page.getByTestId("wiki-flip-front-toggle");
   const flipCard = page.getByTestId("wiki-flip-card");

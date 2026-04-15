@@ -29,3 +29,18 @@ test("home page shows the theme preview content", async ({ page }) => {
     page.getByRole("heading", { name: /Aurora Echo/i }),
   ).toBeVisible();
 });
+
+test("home page demo links open the wiki detail page with a theme color override", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page.getByTestId("wiki-theme-demo-rose-stage").click();
+
+  await expect(page).toHaveURL(/themeColor=%23d94f70/);
+  await expect(page.getByTestId("wiki-theme-badge")).toHaveText("Theme #D94F70");
+  await expect(page.getByTestId("wiki-theme-root")).toHaveAttribute(
+    "style",
+    /--wiki-page-background-light:/,
+  );
+});

@@ -84,6 +84,47 @@ body {
   font-family: var(--font-sans);
 }
 
+.wiki-theme-scope {
+  --wiki-page-background: var(--wiki-page-background-light);
+  --wiki-header-background: var(--wiki-header-background-light);
+  --wiki-header-text: var(--wiki-header-text-light);
+  --wiki-hero-overlay: var(--wiki-hero-overlay-light);
+  --wiki-hero-accent: var(--wiki-hero-accent-light);
+  --wiki-card-background: var(--wiki-card-background-light);
+  --wiki-card-background-muted: var(--wiki-card-background-muted-light);
+  --wiki-card-border: var(--wiki-card-border-light);
+  --wiki-accent-background: var(--wiki-accent-background-light);
+  --wiki-accent-text: var(--wiki-accent-text-light);
+}
+
+:root[data-theme="dark"] .wiki-theme-scope {
+  --wiki-page-background: var(--wiki-page-background-dark);
+  --wiki-header-background: var(--wiki-header-background-dark);
+  --wiki-header-text: var(--wiki-header-text-dark);
+  --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
+  --wiki-hero-accent: var(--wiki-hero-accent-dark);
+  --wiki-card-background: var(--wiki-card-background-dark);
+  --wiki-card-background-muted: var(--wiki-card-background-muted-dark);
+  --wiki-card-border: var(--wiki-card-border-dark);
+  --wiki-accent-background: var(--wiki-accent-background-dark);
+  --wiki-accent-text: var(--wiki-accent-text-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .wiki-theme-scope {
+    --wiki-page-background: var(--wiki-page-background-dark);
+    --wiki-header-background: var(--wiki-header-background-dark);
+    --wiki-header-text: var(--wiki-header-text-dark);
+    --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
+    --wiki-hero-accent: var(--wiki-hero-accent-dark);
+    --wiki-card-background: var(--wiki-card-background-dark);
+    --wiki-card-background-muted: var(--wiki-card-background-muted-dark);
+    --wiki-card-border: var(--wiki-card-border-dark);
+    --wiki-accent-background: var(--wiki-accent-background-dark);
+    --wiki-accent-text: var(--wiki-accent-text-dark);
+  }
+}
+
 .section-accordion[open] > summary .section-accordion__chevron {
   transform: rotate(180deg);
 }

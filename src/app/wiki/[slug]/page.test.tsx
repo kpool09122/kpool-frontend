@@ -19,6 +19,7 @@ const successState: WikiDetailState = {
     language: "ja",
     resourceType: "group",
     version: 3,
+    themeColor: null,
     heroImage: {
       src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%233560a3'/%3E%3C/svg%3E",
       alt: "Aurora Echo hero image",
@@ -74,6 +75,7 @@ describe("WikiDetailPage", () => {
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Members")).toBeInTheDocument();
     expect(screen.getAllByLabelText(/Edit section/i)).toHaveLength(2);
+    expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
   });
 
   it("renders sections as closed accordions by default", () => {
@@ -101,6 +103,30 @@ describe("WikiDetailPage", () => {
       screen.getAllByText("Tap the card again to return to the cover image.")[0],
     ).toBeInTheDocument();
     expect(screen.getAllByText("Group profile")[0]).toBeInTheDocument();
+  });
+
+  it("injects theme css variables and badges when themeColor is provided", () => {
+    mockedUseWikiDetail.mockReturnValue({
+      ...successState,
+      data: {
+        ...successState.data,
+        themeColor: "#d94f70",
+      },
+    });
+
+    const { container } = render(
+      React.createElement(WikiDetailPage, { slug: "aurora-echo" }),
+    );
+
+    expect(screen.getByTestId("wiki-theme-badge")).toHaveTextContent(
+      "Theme #D94F70",
+    );
+    const rootStyle = container
+      .querySelector('[data-testid="wiki-theme-root"]')
+      ?.getAttribute("style");
+
+    expect(rootStyle).toContain("--wiki-page-background-light:");
+    expect(rootStyle).toContain("--wiki-header-background-dark:");
   });
 
   it("renders the empty state", () => {

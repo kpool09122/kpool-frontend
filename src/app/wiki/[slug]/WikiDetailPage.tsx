@@ -5,10 +5,45 @@ import { type WikiSection } from "@/types/wiki-detail";
 import { useId, useState } from "react";
 
 import { getWikiBasicFields, sortWikiSections } from "./wikiDetailView";
+import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 import { useWikiDetail } from "./useWikiDetail";
 
 type WikiDetailPageProps = {
   slug: string;
+  themeColor?: string;
+};
+
+const mainBackgroundStyle = {
+  backgroundColor: "var(--background)",
+  backgroundImage:
+    "var(--wiki-page-background, radial-gradient(circle at top, rgba(255,214,194,0.85), transparent 38%), linear-gradient(180deg, var(--background) 0%, #fff 100%))",
+};
+
+const cardSurfaceStyle = {
+  backgroundColor: "var(--wiki-card-background, var(--surface-raised))",
+  borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
+};
+
+const cardSurfaceMutedStyle = {
+  backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
+  borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
+};
+
+const transparentFrameStyle = {
+  backgroundColor: "transparent",
+  borderColor: "transparent",
+  boxShadow: "none",
+};
+
+const heroOverlayStyle = {
+  backgroundImage:
+    "var(--wiki-hero-overlay, linear-gradient(to bottom, rgba(21, 36, 59, 0.05), transparent 55%, rgba(21, 36, 59, 0.92)))",
+};
+
+const accentBadgeStyle = {
+  backgroundColor: "var(--wiki-accent-background, rgba(255, 214, 194, 0.3))",
+  color: "var(--wiki-accent-text, var(--text-strong))",
+  borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
 };
 
 function EditIcon() {
@@ -51,12 +86,16 @@ function SectionAccordion({ section }: { section: WikiSection }) {
     <details
       className="section-accordion rounded-[1.75rem] border border-stroke-subtle bg-surface-raised shadow-soft"
       data-testid={`section-${section.sectionIdentifier}`}
+      style={cardSurfaceStyle}
     >
       <summary
         className="flex list-none items-center gap-3 cursor-pointer p-5 text-left"
         data-testid={`section-toggle-${section.sectionIdentifier}`}
       >
-        <span className="rounded-full border border-stroke-subtle p-2 text-text-muted">
+        <span
+          className="rounded-full border border-stroke-subtle p-2 text-text-muted"
+          style={cardSurfaceMutedStyle}
+        >
           <ChevronIcon />
         </span>
         <span className="min-w-0 flex-1">
@@ -68,12 +107,16 @@ function SectionAccordion({ section }: { section: WikiSection }) {
           aria-label={`Edit section ${section.title}`}
           className="rounded-full border border-stroke-subtle p-3 text-text-strong transition group-hover:bg-brand-highlight/30"
           role="img"
+          style={cardSurfaceMutedStyle}
         >
           <EditIcon />
         </span>
       </summary>
 
-      <div className="border-t border-stroke-subtle px-5 pb-5 pt-4">
+      <div
+        className="border-t border-stroke-subtle px-5 pb-5 pt-4"
+        style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
+      >
         <p className="max-w-3xl text-sm leading-7 text-text-muted">
           {section.body}
         </p>
@@ -89,8 +132,8 @@ function SectionAccordion({ section }: { section: WikiSection }) {
   );
 }
 
-export function WikiDetailPage({ slug }: WikiDetailPageProps) {
-  const wikiDetail = useWikiDetail(slug);
+export function WikiDetailPage({ slug, themeColor }: WikiDetailPageProps) {
+  const wikiDetail = useWikiDetail(slug, { themeColor });
   const flipCardId = useId();
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -142,27 +185,40 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
   const { data } = wikiDetail;
   const basicFields = getWikiBasicFields(data.basic);
   const sections = sortWikiSections(data.sections);
+  const themeStyles = buildWikiThemeCssVariables(data.themeColor);
+  const themeLabel = data.themeColor?.toUpperCase();
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,214,194,0.85),_transparent_38%),linear-gradient(180deg,_var(--background)_0%,_#fff_100%)] px-5 py-6 text-text-strong sm:px-8 sm:py-10">
+    <main
+      className="wiki-theme-scope min-h-screen px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+      data-testid="wiki-theme-root"
+      style={{
+        ...themeStyles,
+        ...mainBackgroundStyle,
+      }}
+    >
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <header className="lg:hidden">
-          <h1 className="text-4xl font-semibold tracking-[-0.05em] text-text-strong">
-            {data.basic.name}
-          </h1>
+        <header>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-4xl font-semibold tracking-[-0.05em] text-text-strong lg:text-5xl">
+              {data.basic.name}
+            </h1>
+            {themeLabel ? (
+              <span
+                className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]"
+                data-testid="wiki-theme-badge"
+                style={accentBadgeStyle}
+              >
+                Theme {themeLabel}
+              </span>
+            ) : null}
+          </div>
         </header>
 
-        <section className="lg:overflow-hidden lg:rounded-[2rem] lg:border lg:border-stroke-subtle lg:bg-surface-raised lg:shadow-soft">
-          <div className="hidden border-b border-stroke-subtle bg-brand-primary px-6 py-6 text-white sm:px-8 lg:block">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="mt-3 hidden text-4xl font-semibold tracking-[-0.05em] lg:block lg:text-5xl">
-                  {data.basic.name}
-                </h1>
-              </div>
-            </div>
-          </div>
-
+        <section
+          className="lg:rounded-[2rem]"
+          style={transparentFrameStyle}
+        >
           <div className="grid gap-5 lg:hidden">
             <div className="space-y-4">
               <input
@@ -185,7 +241,10 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
                     }`}
                     data-testid="wiki-flip-card"
                   >
-                    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised [backface-visibility:hidden]">
+                    <div
+                      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised [backface-visibility:hidden]"
+                      style={cardSurfaceStyle}
+                    >
                       <div className="relative h-full w-full">
                         <Image
                           alt={data.heroImage.alt}
@@ -195,9 +254,12 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
                           src={data.heroImage.src}
                         />
                       </div>
-                      <div className="absolute inset-0 bg-gradient-to-b from-[#15243b]/5 via-transparent via-55% to-[#15243b]/92" />
+                      <div className="absolute inset-0" style={heroOverlayStyle} />
                       <div className="absolute inset-x-0 bottom-0 px-5 py-6 text-white">
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-highlight">
+                        <p
+                          className="text-xs font-semibold uppercase tracking-[0.28em]"
+                          style={{ color: "var(--wiki-hero-accent, var(--brand-highlight))" }}
+                        >
                           Tap The Card
                         </p>
                         <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
@@ -223,6 +285,7 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
                         isFlipped ? "pointer-events-auto" : "pointer-events-none"
                       }`}
                       onClick={() => setIsFlipped(false)}
+                      style={cardSurfaceStyle}
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>
@@ -239,19 +302,20 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
                         onClick={(event) => event.stopPropagation()}
                       >
                         <dl className="grid gap-4">
-                        {basicFields.map((field) => (
-                          <div
-                            key={field.label}
-                            className="rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-3"
-                          >
-                            <dt className="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
-                              {field.label}
-                            </dt>
-                            <dd className="mt-1 text-sm leading-6 text-text-strong">
-                              {field.value}
-                            </dd>
-                          </div>
-                        ))}
+                          {basicFields.map((field) => (
+                            <div
+                              key={field.label}
+                              className="rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-3"
+                              style={cardSurfaceMutedStyle}
+                            >
+                              <dt className="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
+                                {field.label}
+                              </dt>
+                              <dd className="mt-1 text-sm leading-6 text-text-strong">
+                                {field.value}
+                              </dd>
+                            </div>
+                          ))}
                         </dl>
                       </div>
                     </div>
@@ -270,9 +334,12 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
             </div>
           </div>
 
-          <div className="hidden gap-6 px-6 py-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="overflow-hidden rounded-[1.75rem] border border-stroke-subtle">
-              <div className="relative min-h-[30rem]">
+          <div className="hidden gap-6 py-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
+            <div
+              className="h-full overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
+              style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
+            >
+              <div className="relative h-full min-h-[30rem]">
                 <Image
                   alt={data.heroImage.alt}
                   className="object-cover"
@@ -283,7 +350,10 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-stroke-subtle bg-surface-base p-6">
+            <div
+              className="rounded-[1.75rem] border border-stroke-subtle bg-surface-base p-6"
+              style={cardSurfaceMutedStyle}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
@@ -297,6 +367,7 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
                   aria-label="Edit basic"
                   type="button"
                   className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+                  style={cardSurfaceStyle}
                 >
                   <EditIcon />
                 </button>
@@ -306,6 +377,7 @@ export function WikiDetailPage({ slug }: WikiDetailPageProps) {
                   <div
                     key={field.label}
                     className="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3"
+                    style={cardSurfaceStyle}
                   >
                     <dt className="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
                       {field.label}
