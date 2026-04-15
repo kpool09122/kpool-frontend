@@ -24,12 +24,12 @@ export type WikiDetailState =
   | WikiDetailEmptyState
   | WikiDetailSuccessState;
 
-export const useWikiDetail = (wikiId: string): WikiDetailState => {
-  if (wikiId === "loading") {
+export const useWikiDetail = (slug: string): WikiDetailState => {
+  if (slug === "loading") {
     return { status: "loading" };
   }
 
-  if (wikiId === "error") {
+  if (slug === "error") {
     return {
       status: "error",
       message:
@@ -37,12 +37,12 @@ export const useWikiDetail = (wikiId: string): WikiDetailState => {
     };
   }
 
-  if (wikiId === "empty") {
+  if (slug === "empty") {
     return { status: "empty" };
   }
 
   return {
     status: "success",
-    data: createMockWikiDetail(wikiId),
+    data: createMockWikiDetail(slug),
   };
 };

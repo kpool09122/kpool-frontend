@@ -2,12 +2,12 @@ import { WikiDetailPage } from "./WikiDetailPage";
 
 type WikiDetailRouteProps = {
   params: Promise<{
-    wikiId: string;
+    slug: string;
   }>;
 };
 
 export default async function Page({ params }: WikiDetailRouteProps) {
-  const { wikiId } = await params;
+  const { slug } = await params;
 
-  return <WikiDetailPage wikiId={wikiId} />;
+  return <WikiDetailPage slug={slug} />;
 }
