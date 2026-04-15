@@ -1,26 +1,85 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fffbf7;
+  --foreground: #28456b;
+  --brand-primary: #3560a3;
+  --brand-secondary: #f1a81f;
+  --brand-highlight: #ffd6c2;
+  --surface-base: #fffbf7;
+  --surface-raised: #ffffff;
+  --text-strong: #1d2f49;
+  --text-muted: #667a95;
+  --stroke-subtle: rgba(53, 96, 163, 0.16);
+  --status-success: #5ea66c;
+  --status-warning: #da8420;
+  --status-danger: #cd5650;
+  --shadow-soft:
+    0 24px 60px rgba(29, 47, 73, 0.08),
+    0 10px 24px rgba(29, 47, 73, 0.05);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-highlight: var(--brand-highlight);
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-text-strong: var(--text-strong);
+  --color-text-muted: var(--text-muted);
+  --color-stroke-subtle: var(--stroke-subtle);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --shadow-soft: var(--shadow-soft);
   --font-sans: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+:root[data-theme="dark"] {
+  --background: #16223a;
+  --foreground: #fff7ef;
+  --brand-primary: #9fc0f2;
+  --brand-secondary: #ffc85a;
+  --brand-highlight: #4a6492;
+  --surface-base: #16223a;
+  --surface-raised: #21304b;
+  --text-strong: #fff7ef;
+  --text-muted: #d9e3f4;
+  --stroke-subtle: rgba(255, 246, 234, 0.12);
+  --status-success: #95db9d;
+  --status-warning: #ffc96f;
+  --status-danger: #f6a098;
+  --shadow-soft:
+    0 28px 72px rgba(0, 0, 0, 0.35),
+    0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme]) {
+    --background: #16223a;
+    --foreground: #fff7ef;
+    --brand-primary: #9fc0f2;
+    --brand-secondary: #ffc85a;
+    --brand-highlight: #4a6492;
+    --surface-base: #16223a;
+    --surface-raised: #21304b;
+    --text-strong: #fff7ef;
+    --text-muted: #d9e3f4;
+    --stroke-subtle: rgba(255, 246, 234, 0.12);
+    --status-success: #95db9d;
+    --status-warning: #ffc96f;
+    --status-danger: #f6a098;
+    --shadow-soft:
+      0 28px 72px rgba(0, 0, 0, 0.35),
+      0 12px 28px rgba(0, 0, 0, 0.28);
   }
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text-strong);
   font-family: var(--font-sans);
 }

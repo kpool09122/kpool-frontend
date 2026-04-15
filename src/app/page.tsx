@@ -1,103 +1,120 @@
-import Image from "next/image";
+import { ThemeToggle } from "./ThemeToggle";
+import { getThemePaletteSections } from "./themePalette";
+
+const paletteSections = getThemePaletteSections();
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10">
+        <section className="overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised shadow-soft">
+          <div className="bg-brand-primary px-6 py-10 text-white sm:px-10">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-brand-highlight">
+                K-Pool Theme
+              </p>
+              <ThemeToggle />
+            </div>
+            <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
+              Trust-forward colors for a calm, premium first impression.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/78">
+              The palette avoids aqua-led branding and establishes reusable
+              tokens for future product UI.
+            </p>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <div className="grid gap-6 px-6 py-6 text-sm text-text-muted sm:px-10 lg:grid-cols-[1.3fr_0.7fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-strong">
+                Direction
+              </p>
+              <p className="mt-3 max-w-2xl leading-7">
+                Deep navy carries the brand, muted neutrals support long-form
+                reading, and warm gold handles emphasis without competing for
+                attention.
+              </p>
+              <p className="mt-3 leading-7">
+                A manual theme switch is available in the hero so the dark
+                palette can be reviewed without changing OS settings.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-stroke-subtle bg-brand-highlight/40 p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-text-strong">
+                Primary Usage
+              </p>
+              <ul className="mt-3 space-y-2 leading-6">
+                <li>Navigation, headings, and key actions use `brand-primary`.</li>
+                <li>Highlights and badges use `brand-secondary`.</li>
+                <li>Background hierarchy comes from surface and text tokens.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="palette-heading" className="space-y-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-text-muted">
+                Palette
+              </p>
+              <h2
+                id="palette-heading"
+                className="text-3xl font-semibold tracking-[-0.03em]"
+              >
+                Theme token preview
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-6 text-text-muted">
+              Each swatch exposes the CSS variable name and intended usage so
+              future components can adopt the same tokens directly from
+              `globals.css`.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {paletteSections.map((section) => (
+              <section
+                key={section.title}
+                aria-label={`${section.title} palette`}
+                className="rounded-[1.75rem] border border-stroke-subtle bg-surface-raised p-6 shadow-soft"
+              >
+                <div>
+                  <h3 className="text-xl font-semibold tracking-[-0.02em]">
+                    {section.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-text-muted">
+                    {section.description}
+                  </p>
+                </div>
+
+                <ul className="mt-6 space-y-4">
+                  {section.items.map((item) => (
+                    <li
+                      key={item.cssVar}
+                      className="flex items-center gap-4 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
+                    >
+                      <div
+                        aria-hidden="true"
+                        className="h-14 w-14 shrink-0 rounded-2xl border border-black/5"
+                        style={{ backgroundColor: item.value }}
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-text-strong">{item.name}</p>
+                        <p className="text-sm text-text-muted">{item.role}</p>
+                        <code className="mt-1 block text-xs text-text-muted">
+                          {item.cssVar}
+                        </code>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
