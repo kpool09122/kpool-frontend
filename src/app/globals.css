@@ -83,3 +83,7 @@ body {
   color: var(--text-strong);
   font-family: var(--font-sans);
 }
+
+.section-accordion[open] > summary .section-accordion__chevron {
+  transform: rotate(180deg);
+}

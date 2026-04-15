@@ -30,5 +30,10 @@ describe("Home", () => {
         name: /toggle color theme/i,
       }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: /Open Wiki Detail Demo/i,
+      }),
+    ).toHaveAttribute("href", "/wiki/aurora-echo");
   });
 });

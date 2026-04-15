@@ -15,9 +15,17 @@ test("home page shows the theme preview content", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText("--brand-primary")).toBeVisible();
   await expect(page.getByText("Deep Harbor")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Open Wiki Detail Demo/i }),
+  ).toBeVisible();
 
   await expect(page.getByTestId("theme-mode-label")).toHaveText(/light|dark/i);
   await page.getByRole("button", { name: /toggle color theme/i }).click();
   await expect(page.getByTestId("theme-mode-label")).toHaveText("Dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  await page.getByRole("link", { name: /Open Wiki Detail Demo/i }).click();
+  await expect(
+    page.getByRole("heading", { name: /Aurora Echo/i }),
+  ).toBeVisible();
 });
