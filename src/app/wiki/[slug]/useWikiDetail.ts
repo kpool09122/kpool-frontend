@@ -24,7 +24,14 @@ export type WikiDetailState =
   | WikiDetailEmptyState
   | WikiDetailSuccessState;
 
-export const useWikiDetail = (slug: string): WikiDetailState => {
+type UseWikiDetailOptions = {
+  themeColor?: string;
+};
+
+export const useWikiDetail = (
+  slug: string,
+  options?: UseWikiDetailOptions,
+): WikiDetailState => {
   if (slug === "loading") {
     return { status: "loading" };
   }
@@ -43,6 +50,6 @@ export const useWikiDetail = (slug: string): WikiDetailState => {
 
   return {
     status: "success",
-    data: createMockWikiDetail(slug),
+    data: createMockWikiDetail(slug, { themeColor: options?.themeColor }),
   };
 };

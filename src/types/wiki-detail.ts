@@ -41,6 +41,7 @@ export const wikiDetailSchema = z.object({
   language: z.string(),
   resourceType: z.literal("group"),
   version: z.number().int(),
+  themeColor: z.string().nullable().optional(),
   heroImage: z.object({
     src: z.string(),
     alt: z.string(),

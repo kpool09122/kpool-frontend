@@ -18,13 +18,21 @@ const heroImageDataUri =
     </svg>
   `);
 
-export const createMockWikiDetail = (slug: string): WikiDetail =>
+type CreateMockWikiDetailOptions = {
+  themeColor?: string;
+};
+
+export const createMockWikiDetail = (
+  slug: string,
+  options?: CreateMockWikiDetailOptions,
+): WikiDetail =>
   wikiDetailSchema.parse({
     wikiIdentifier: slug,
     slug,
     language: "ja",
     resourceType: "group",
     version: 3,
+    themeColor: options?.themeColor ?? null,
     heroImage: {
       src: heroImageDataUri,
       alt: "Stage lights washing over a concert crowd in blue and gold",

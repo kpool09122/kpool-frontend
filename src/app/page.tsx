@@ -4,6 +4,32 @@ import { ThemeToggle } from "./ThemeToggle";
 import { getThemePaletteSections } from "./themePalette";
 
 const paletteSections = getThemePaletteSections();
+const wikiThemeDemos = [
+  {
+    name: "Default",
+    description: "Current fixed palette without themeColor",
+    href: "/wiki/aurora-echo",
+    swatch: "linear-gradient(135deg, #3560a3 0%, #f1a81f 100%)",
+  },
+  {
+    name: "Rose Stage",
+    description: "Warm magenta tint with brighter accents",
+    href: "/wiki/aurora-echo?themeColor=%23d94f70",
+    swatch: "#d94f70",
+  },
+  {
+    name: "Signal Mint",
+    description: "High-chroma green stress case",
+    href: "/wiki/aurora-echo?themeColor=%2300d084",
+    swatch: "#00d084",
+  },
+  {
+    name: "Night Pulse",
+    description: "Deep blue-purple for dark theme checks",
+    href: "/wiki/aurora-echo?themeColor=%234c5cff",
+    swatch: "#4c5cff",
+  },
+];
 
 export default function Home() {
   return (
@@ -63,6 +89,55 @@ export default function Home() {
                 <li>Background hierarchy comes from surface and text tokens.</li>
               </ul>
             </div>
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="wiki-theme-demo-heading"
+          className="rounded-[2rem] border border-stroke-subtle bg-surface-raised p-6 shadow-soft sm:p-8"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-text-muted">
+                Demo
+              </p>
+              <h2
+                id="wiki-theme-demo-heading"
+                className="text-3xl font-semibold tracking-[-0.03em]"
+              >
+                Wiki theme color checks
+              </h2>
+            </div>
+            <p className="max-w-2xl text-sm leading-6 text-text-muted">
+              Each shortcut opens the same Wiki detail page with a different
+              `themeColor` payload so gradients, cards, and contrast can be
+              reviewed quickly.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-4">
+            {wikiThemeDemos.map((demo) => (
+              <Link
+                key={demo.name}
+                className="group rounded-[1.5rem] border border-stroke-subtle bg-surface-base p-4 transition hover:-translate-y-0.5 hover:shadow-soft"
+                data-testid={`wiki-theme-demo-${demo.name.toLowerCase().replace(/\s+/g, "-")}`}
+                href={demo.href}
+              >
+                <div
+                  aria-hidden="true"
+                  className="h-24 rounded-[1.25rem] border border-black/5"
+                  style={{
+                    background: demo.swatch,
+                  }}
+                />
+                <p className="mt-4 text-lg font-semibold tracking-[-0.02em] text-text-strong">
+                  {demo.name}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-text-muted">
+                  {demo.description}
+                </p>
+              </Link>
+            ))}
           </div>
         </section>
 
