@@ -5,14 +5,30 @@ import { describe, expect, it } from "vitest";
 import Home from "./page";
 
 describe("Home", () => {
-  it("renders the getting started copy", () => {
+  it("renders the theme preview copy and palette sections", () => {
     render(React.createElement(Home));
 
-    expect(screen.getByText(/Get started by editing/i)).toBeInTheDocument();
     expect(
-      screen.getByRole("link", {
-        name: /Read our docs/i,
+      screen.getByRole("heading", {
+        name: /Trust-forward colors for a calm, premium first impression/i,
       }),
-    ).toHaveAttribute("href", expect.stringContaining("nextjs.org/docs"));
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: /Theme token preview/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Brand palette/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("--brand-primary"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Deep Harbor/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /toggle color theme/i,
+      }),
+    ).toBeInTheDocument();
   });
 });
