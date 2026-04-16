@@ -37,8 +37,6 @@ export const createMockWikiDetail = (
       src: heroImageDataUri,
       alt: "Stage lights washing over a concert crowd in blue and gold",
     },
-    summary:
-      "Five-member performance group blending precision choreography with live band arrangements and a city-pop visual language.",
     basic: {
       name: "Aurora Echo",
       normalizedName: "aurora-echo",
@@ -55,53 +53,187 @@ export const createMockWikiDetail = (
     },
     sections: [
       {
+        type: "section",
         sectionIdentifier: "sec-discography",
         title: "Discography",
         displayOrder: 30,
         depth: 1,
-        body: "The group balances brisk digital singles with a smaller number of concept-heavy mini albums.",
+        contents: [
+          {
+            blockIdentifier: "block-discography-text",
+            blockType: "text",
+            displayOrder: 10,
+            content:
+              "The group balances brisk digital singles with a smaller number of concept-heavy mini albums.",
+          },
+          {
+            blockIdentifier: "block-discography-image",
+            blockType: "image",
+            displayOrder: 20,
+            imageIdentifier: "img-discography-stage",
+            imageSrc: heroImageDataUri,
+            caption: "Editable discography image",
+            alt: "Concert stage image for Discography",
+          },
+          {
+            blockIdentifier: "block-discography-gallery",
+            blockType: "image_gallery",
+            displayOrder: 30,
+            images: [
+              {
+                imageIdentifier: "img-gallery-one",
+                imageSrc: heroImageDataUri,
+                alt: "Gallery image one",
+              },
+              {
+                imageIdentifier: "img-gallery-two",
+                imageSrc: heroImageDataUri,
+                alt: "Gallery image two",
+              },
+            ],
+            caption: "Editable gallery",
+          },
+          {
+            blockIdentifier: "block-discography-embed",
+            blockType: "embed",
+            displayOrder: 40,
+            provider: "youtube",
+            embedId: "low-tide-high-lights",
+            caption: "Stage video",
+          },
+          {
+            blockIdentifier: "block-discography-quote",
+            blockType: "quote",
+            displayOrder: 50,
+            content: "A dusk-to-dawn pop sequence.",
+            source: "K-Pool editorial",
+          },
+          {
+            blockIdentifier: "block-discography-list",
+            blockType: "list",
+            displayOrder: 60,
+            listType: "bullet",
+            items: ["Low Tide, High Lights", "Pearl Signal"],
+          },
+          {
+            blockIdentifier: "block-discography-table",
+            blockType: "table",
+            displayOrder: 70,
+            headers: ["Release", "Year"],
+            rows: [["Low Tide, High Lights", "2022"]],
+          },
+          {
+            blockIdentifier: "block-discography-profiles",
+            blockType: "profile_card_list",
+            displayOrder: 80,
+            wikiIdentifiers: ["aurora-echo"],
+            title: "Related profiles",
+          },
+        ],
         children: [
           {
+            type: "section",
             sectionIdentifier: "sec-discography-highlights",
             title: "Highlights",
             displayOrder: 20,
             depth: 2,
-            body: "The breakout single 'Low Tide, High Lights' established their retro-synth identity and remains their signature stage opener.",
+            contents: [
+              {
+                blockIdentifier: "block-discography-highlights-text",
+                blockType: "text",
+                displayOrder: 10,
+                content:
+                  "The breakout single 'Low Tide, High Lights' established their retro-synth identity and remains their signature stage opener.",
+              },
+              {
+                type: "section",
+                sectionIdentifier: "sec-discography-highlights-chart",
+                title: "Chart notes",
+                displayOrder: 20,
+                depth: 3,
+                contents: [
+                  {
+                    blockIdentifier: "block-discography-highlights-chart-text",
+                    blockType: "text",
+                    displayOrder: 10,
+                    content:
+                      "Depth three content is editable but cannot receive a child section.",
+                  },
+                ],
+                children: [],
+              },
+            ],
             children: [],
           },
           {
+            type: "section",
             sectionIdentifier: "sec-discography-albums",
             title: "Mini Albums",
             displayOrder: 10,
             depth: 2,
-            body: "Their first two mini albums framed a dusk-to-dawn narrative and expanded the live arrangement palette with brass and guitar sections.",
+            contents: [
+              {
+                blockIdentifier: "block-discography-albums-text",
+                blockType: "text",
+                displayOrder: 10,
+                content:
+                  "Their first two mini albums framed a dusk-to-dawn narrative and expanded the live arrangement palette with brass and guitar sections.",
+              },
+            ],
             children: [],
           },
         ],
       },
       {
+        type: "section",
         sectionIdentifier: "sec-overview",
         title: "Overview",
         displayOrder: 10,
         depth: 1,
-        body: "Aurora Echo debuted with a performance style built around fluid formations, layered harmonies, and warm retro production.",
+        contents: [
+          {
+            blockIdentifier: "block-overview-text",
+            blockType: "text",
+            displayOrder: 10,
+            content:
+              "Aurora Echo debuted with a performance style built around fluid formations, layered harmonies, and warm retro production.",
+          },
+        ],
         children: [
           {
+            type: "section",
             sectionIdentifier: "sec-overview-style",
             title: "Style",
             displayOrder: 10,
             depth: 2,
-            body: "The visual direction mixes marine tailoring, brushed metal details, and sunset-toned lighting for a polished but lived-in stage mood.",
+            contents: [
+              {
+                blockIdentifier: "block-overview-style-text",
+                blockType: "text",
+                displayOrder: 10,
+                content:
+                  "The visual direction mixes marine tailoring, brushed metal details, and sunset-toned lighting for a polished but lived-in stage mood.",
+              },
+            ],
             children: [],
           },
         ],
       },
       {
+        type: "section",
         sectionIdentifier: "sec-members",
         title: "Members",
         displayOrder: 20,
         depth: 1,
-        body: "The lineup consists of five members handling a rotating balance of vocal, rap, and dance center duties.",
+        contents: [
+          {
+            blockIdentifier: "block-members-text",
+            blockType: "text",
+            displayOrder: 10,
+            content:
+              "The lineup consists of five members handling a rotating balance of vocal, rap, and dance center duties.",
+          },
+        ],
         children: [],
       },
     ],
