@@ -44,3 +44,30 @@ test("home page demo links open the wiki detail page with a theme color override
     /--wiki-page-background-light:/,
   );
 });
+
+test("mobile header menu shows the login link", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page.getByRole("link", { name: "K-Pool" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "ログイン" })).toBeHidden();
+
+  const menuButton = page.getByRole("button", {
+    name: "ナビゲーションメニュー",
+  });
+  await expect(menuButton).toBeVisible();
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+
+  await expect(async () => {
+    await menuButton.click();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "true", {
+      timeout: 1000,
+    });
+  }).toPass();
+  await expect(
+    page.getByRole("navigation", { name: "モバイルメニュー" }).getByRole("link", {
+      name: "ログイン",
+    }),
+  ).toBeVisible();
+});

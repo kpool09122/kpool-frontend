@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 
 import "./globals.css";
+import { Header } from "./Header";
 import { themeStorageKey } from "./themeMode";
 
 export const metadata: Metadata = {
@@ -61,6 +62,7 @@ export default function RootLayout({
     applyTheme(nextTheme, true);
   });
 })();`}</Script>
+        <Header />
         {children}
       </body>
     </html>
