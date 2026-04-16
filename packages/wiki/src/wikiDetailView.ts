@@ -1,4 +1,4 @@
-import type { WikiBasic, WikiSection } from "@/types/wiki-detail";
+import type { WikiBasic, WikiSection } from "./types/wiki";
 
 export type WikiBasicField = {
   label: string;

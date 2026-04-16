@@ -1,4 +1,4 @@
-import { wikiDetailSchema, type WikiDetail } from "@/types/wiki-detail";
+import { wikiDetailSchema, type WikiDetail } from "./types/wiki";
 
 const heroImageDataUri =
   "data:image/svg+xml;utf8," +

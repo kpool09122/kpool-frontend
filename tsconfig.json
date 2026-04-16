@@ -23,6 +23,18 @@
       }
     ],
     "paths": {
+      "@kpool/types": [
+        "./packages/types/src/index.ts"
+      ],
+      "@kpool/types/*": [
+        "./packages/types/src/*"
+      ],
+      "@kpool/wiki": [
+        "./packages/wiki/src/index.ts"
+      ],
+      "@kpool/wiki/*": [
+        "./packages/wiki/src/*"
+      ],
       "@/*": [
         "./src/*"
       ]

@@ -1,10 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { type WikiSection } from "@/types/wiki-detail";
+import {
+  getWikiBasicFields,
+  sortWikiSections,
+  type WikiSection,
+} from "@kpool/wiki";
 import { useId, useState } from "react";
 
-import { getWikiBasicFields, sortWikiSections } from "./wikiDetailView";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 import { useWikiDetail } from "./useWikiDetail";
 
