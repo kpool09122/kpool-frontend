@@ -1,0 +1,14 @@
+{
+  "name": "@kpool/types",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./account-api": "./src/account-api.ts",
+    "./identity-api": "./src/identity-api.ts",
+    "./monetization-api": "./src/monetization-api.ts",
+    "./webhook-api": "./src/webhook-api.ts",
+    "./wiki-private-api": "./src/wiki-private-api.ts"
+  }
+}

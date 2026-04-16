@@ -16,6 +16,8 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@kpool/types": "workspace:*",
+    "@kpool/wiki": "workspace:*",
     "@zodios/core": "10.9.6",
     "next": "16.2.3",
     "react": "19.2.5",

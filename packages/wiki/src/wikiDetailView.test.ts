@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type WikiBasic, type WikiSection } from "@/types/wiki-detail";
+import { type WikiBasic, type WikiSection } from "./types/wiki";
 
 import {
   getSectionOffset,
