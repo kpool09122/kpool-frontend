@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addWikiBlock,
   addWikiSection,
+  createWikiBlock,
   deleteWikiContent,
   getWikiContentEditorId,
   toWikiSectionContentPayload,
@@ -65,6 +66,14 @@ describe("wikiEditModel", () => {
       }),
     );
     expect(editId).toMatch(/^block:/);
+  });
+
+  it("creates new text blocks with empty content", () => {
+    expect(createWikiBlock("text", 10)).toMatchObject({
+      blockType: "text",
+      content: "",
+      displayOrder: 10,
+    });
   });
 
   it("updates and deletes section content without mutating sibling items", () => {

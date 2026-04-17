@@ -11,7 +11,7 @@ import {
 } from "@kpool/wiki";
 
 import { getString } from "../editing";
-import { EditIcon, TrashIcon } from "../icons";
+import { ChevronIcon, EditIcon, TrashIcon } from "../icons";
 import { WikiAddContentControls } from "../WikiAddContentControls";
 import { WikiBlockEditorItem } from "../WikiBlockEditorItem";
 import { WikiFormActions } from "../WikiFormActions";
@@ -73,8 +73,14 @@ export function WikiSectionEditor({
   const sectionEditorId: WikiContentEditorId = `section:${section.sectionIdentifier}`;
 
   return (
-    <details className="rounded-[1.75rem] border border-stroke-subtle shadow-soft" data-testid={`wiki-edit-section-${section.sectionIdentifier}`} open style={cardSurfaceStyle}>
-      <summary className="flex list-none items-start gap-3 p-5 text-left">
+    <details className="section-accordion rounded-[1.75rem] border border-stroke-subtle shadow-soft" data-testid={`wiki-edit-section-${section.sectionIdentifier}`} open style={cardSurfaceStyle}>
+      <summary className="flex list-none items-center gap-3 p-5 text-left">
+        <span
+          className="section-accordion__chevron rounded-full border border-stroke-subtle p-2 text-text-muted transition-transform"
+          style={cardSurfaceMutedStyle}
+        >
+          <ChevronIcon />
+        </span>
         <span className="min-w-0 flex-1">
           <span className="block text-2xl font-semibold tracking-[-0.03em] text-text-strong">{section.title}</span>
         </span>

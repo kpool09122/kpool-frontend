@@ -58,7 +58,7 @@ export function ChevronIcon() {
   return (
     <svg
       aria-hidden="true"
-      className="section-accordion__chevron h-4 w-4 transition-transform"
+      className="h-4 w-4"
       fill="none"
       stroke="currentColor"
       strokeLinecap="round"

@@ -126,7 +126,7 @@ export const createWikiBlock = (
         blockIdentifier,
         blockType,
         displayOrder,
-        content: "New text block",
+        content: "",
       };
     case "image":
       return {

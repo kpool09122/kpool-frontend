@@ -35,6 +35,7 @@ describe("wikiThemePalette", () => {
       ),
     ).toBeGreaterThanOrEqual(4.5);
     expect(lightPalette.pageBackground).toContain("radial-gradient");
+    expect(lightPalette.pageBackground).toContain("linear-gradient");
     expect(darkPalette.pageBackground).toContain("linear-gradient");
   });
 
