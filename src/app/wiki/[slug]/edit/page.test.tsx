@@ -72,6 +72,35 @@ describe("WikiEditPage", () => {
     expect(screen.getByLabelText("Quote")).toBeInTheDocument();
   });
 
+  it("shows the formatting toolbar only while editing a text block", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit text block" })[0]);
+
+    expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Italic" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Insert link" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Strike" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Link destination")).not.toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByRole("button", { name: "Insert link" }));
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
+
+    expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Cancel" }).at(-1)!);
+
+    expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit quote block" })[0]);
+
+    expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
+  });
+
   it("clears draft changes back to the loaded wiki", () => {
     mockedUseWikiDetail.mockReturnValue(successState);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);

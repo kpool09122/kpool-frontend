@@ -83,11 +83,58 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByText("Saved")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
 
   const overviewAddControls = page.getByTestId("wiki-edit-add-section-sec-overview");
   await overviewAddControls.getByText("+ Block").click();
   await overviewAddControls.getByRole("button", { name: "Quote" }).click();
   await expect(page.getByRole("textbox", { name: "Quote" })).toBeVisible();
+
+  const overviewTextBlock = page.getByTestId("wiki-edit-block-block-overview-text");
+  await overviewTextBlock.getByRole("button", { name: "Edit text block" }).click();
+  await expect(page.getByRole("button", { name: "Bold" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Insert link" })).toBeVisible();
+  const textEditor = page.getByRole("textbox", { name: "Text" });
+  await textEditor.evaluate((node: HTMLElement) => {
+    const selection = window.getSelection();
+    const findFirstTextNode = (current: Node): Text | null => {
+      if (current.nodeType === Node.TEXT_NODE) {
+        return current as Text;
+      }
+
+      for (const child of current.childNodes) {
+        const textNode = findFirstTextNode(child);
+
+        if (textNode) {
+          return textNode;
+        }
+      }
+
+      return null;
+    };
+    const firstTextNode = findFirstTextNode(node);
+
+    if (!selection || !firstTextNode) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.setStart(firstTextNode, 0);
+    range.setEnd(firstTextNode, Math.min(6, firstTextNode.textContent?.length ?? 0));
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  await page.getByRole("button", { name: "Insert link" }).click();
+  await page.getByLabel("Link destination").fill("https://example.com");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("button", { name: "Bold" })).toHaveCount(0);
+  await expect(
+    overviewTextBlock.getByRole("link", { name: "Aurora" }),
+  ).toHaveAttribute("href", "https://example.com");
+  await expect(
+    overviewTextBlock.getByRole("link", { name: "Aurora" }),
+  ).toHaveAttribute("target", "_blank");
 
   await expect(
     page.getByTestId("wiki-edit-add-section-sec-discography-highlights-chart"),

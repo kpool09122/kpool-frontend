@@ -58,4 +58,60 @@ describe("WikiBlockDisplay", () => {
 
     expect(screen.getByText("Main visual")).toBeInTheDocument();
   });
+
+  it("renders supported inline markdown inside text blocks", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "text-1",
+          blockType: "text",
+          content:
+            "**bold** _italic_ ~~strike~~ [site](https://example.com)",
+          displayOrder: 10,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("bold", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("italic", { selector: "em" })).toBeInTheDocument();
+    expect(screen.getByText("strike", { selector: "del" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "site" })).toHaveAttribute(
+      "href",
+      "https://example.com",
+    );
+    expect(screen.getByRole("link", { name: "site" })).toHaveAttribute("target", "_blank");
+  });
+
+  it("shows invalid markdown as plain text", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "text-2",
+          blockType: "text",
+          content: "Broken [link](not a url",
+          displayOrder: 20,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Broken [link](not a url")).toBeInTheDocument();
+  });
+
+  it("renders line breaks inside text blocks", () => {
+    const { container } = render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "text-3",
+          blockType: "text",
+          content: "first line\nsecond line",
+          displayOrder: 30,
+        }}
+      />,
+    );
+    const textBlock = container.querySelector("p");
+
+    expect(textBlock).not.toBeNull();
+    expect(textBlock).toHaveTextContent("first linesecond line");
+    expect(container.querySelector("br")).not.toBeNull();
+  });
 });
