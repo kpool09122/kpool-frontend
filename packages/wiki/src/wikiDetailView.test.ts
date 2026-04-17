@@ -25,36 +25,40 @@ const basic: WikiBasic = {
 
 const sections: WikiSection[] = [
   {
+    type: "section",
     sectionIdentifier: "second",
     title: "Second",
     displayOrder: 20,
     depth: 1,
-    body: "second",
+    contents: [],
     children: [
       {
+        type: "section",
         sectionIdentifier: "child-b",
         title: "Child B",
         displayOrder: 20,
         depth: 2,
-        body: "child-b",
+        contents: [],
         children: [],
       },
       {
+        type: "section",
         sectionIdentifier: "child-a",
         title: "Child A",
         displayOrder: 10,
         depth: 2,
-        body: "child-a",
+        contents: [],
         children: [],
       },
     ],
   },
   {
+    type: "section",
     sectionIdentifier: "first",
     title: "First",
     displayOrder: 10,
     depth: 1,
-    body: "first",
+    contents: [],
     children: [],
   },
 ];
@@ -77,34 +81,38 @@ describe("wikiDetailView", () => {
   it("sorts sections recursively by display order", () => {
     expect(sortWikiSections(sections)).toEqual([
       {
+        type: "section",
         sectionIdentifier: "first",
         title: "First",
         displayOrder: 10,
         depth: 1,
-        body: "first",
+        contents: [],
         children: [],
       },
       {
+        type: "section",
         sectionIdentifier: "second",
         title: "Second",
         displayOrder: 20,
         depth: 1,
-        body: "second",
+        contents: [],
         children: [
           {
+            type: "section",
             sectionIdentifier: "child-a",
             title: "Child A",
             displayOrder: 10,
             depth: 2,
-            body: "child-a",
+            contents: [],
             children: [],
           },
           {
+            type: "section",
             sectionIdentifier: "child-b",
             title: "Child B",
             displayOrder: 20,
             depth: 2,
-            body: "child-b",
+            contents: [],
             children: [],
           },
         ],

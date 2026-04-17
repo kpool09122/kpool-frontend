@@ -24,7 +24,6 @@ const successState: WikiDetailState = {
       src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%233560a3'/%3E%3C/svg%3E",
       alt: "Aurora Echo hero image",
     },
-    summary: "Aurora Echo summary",
     basic: {
       name: "Aurora Echo",
       normalizedName: "aurora-echo",
@@ -41,19 +40,50 @@ const successState: WikiDetailState = {
     },
     sections: [
       {
+        type: "section",
         sectionIdentifier: "members",
         title: "Members",
         displayOrder: 20,
         depth: 1,
-        body: "Members body",
+        contents: [
+          {
+            blockIdentifier: "members-text",
+            blockType: "text",
+            displayOrder: 10,
+            content: "Members body",
+          },
+          {
+            blockIdentifier: "members-profiles",
+            blockType: "profile_card_list",
+            displayOrder: 20,
+            wikiIdentifiers: ["aurora-echo"],
+            title: "Related profiles",
+          },
+        ],
         children: [],
       },
       {
+        type: "section",
         sectionIdentifier: "overview",
         title: "Overview",
         displayOrder: 10,
         depth: 1,
-        body: "Overview body",
+        contents: [
+          {
+            blockIdentifier: "overview-text",
+            blockType: "text",
+            displayOrder: 10,
+            content: "Overview body",
+          },
+          {
+            blockIdentifier: "overview-embed",
+            blockType: "embed",
+            displayOrder: 20,
+            provider: "youtube",
+            embedId: "abc123",
+            caption: "Overview video",
+          },
+        ],
         children: [],
       },
     ],
@@ -74,6 +104,15 @@ describe("WikiDetailPage", () => {
     expect(screen.getAllByText("Aurora Echo")[0]).toBeInTheDocument();
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Members")).toBeInTheDocument();
+    expect(screen.getByText("Overview body")).toBeInTheDocument();
+    expect(screen.getByTitle("YouTube embed: Overview video")).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/abc123",
+    );
+    expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
+      "href",
+      "/wiki/aurora-echo",
+    );
     expect(screen.getAllByLabelText(/Edit section/i)).toHaveLength(2);
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
   });
