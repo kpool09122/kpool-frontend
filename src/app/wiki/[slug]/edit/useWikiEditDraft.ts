@@ -5,6 +5,8 @@ import {
   addWikiSection,
   deleteWikiContent,
   normalizeWikiSectionsForEditing,
+  parseWikiSectionsFromCode,
+  serializeWikiSectionsToCode,
   toWikiEditPayload,
   updateWikiBlock,
   updateWikiSection,
@@ -55,12 +57,17 @@ const createInitialDraft = (wiki: WikiDetail): WikiDetail => ({
   sections: normalizeWikiSectionsForEditing(wiki.sections),
 });
 
+const getCodeFromSections = (sections: WikiDetail["sections"]): string =>
+  serializeWikiSectionsToCode(sections);
+
 export const useWikiEditDraft = (
   wiki: WikiDetail,
   options?: WikiEditDraftOptions,
 ) => {
   const initialDraft = useMemo(() => createInitialDraft(wiki), [wiki]);
   const [draft, setDraft] = useState<WikiDetail>(initialDraft);
+  const [code, setCode] = useState(() => getCodeFromSections(initialDraft.sections));
+  const [codeParseError, setCodeParseError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<WikiContentEditorId | "basic" | "hero" | null>(
     null,
   );
@@ -72,10 +79,12 @@ export const useWikiEditDraft = (
   const saveAdapter = options?.saveAdapter ?? optimisticActionAdapter;
   const submitAdapter = options?.submitAdapter ?? optimisticActionAdapter;
 
-  const commitDraft = (nextDraft: WikiDetail) => {
+  const commitDraft = (nextDraft: WikiDetail, nextCode = getCodeFromSections(nextDraft.sections)) => {
     const payload = toWikiEditPayload(nextDraft);
 
     setDraft(nextDraft);
+    setCode(nextCode);
+    setCodeParseError(null);
     setSaveState({
       status: "dirty",
       message: "Unsaved changes",
@@ -105,6 +114,8 @@ export const useWikiEditDraft = (
 
   const clearDraft = () => {
     setDraft(initialDraft);
+    setCode(getCodeFromSections(initialDraft.sections));
+    setCodeParseError(null);
     setEditingId(null);
     setSaveState({
       status: "saved",
@@ -134,6 +145,9 @@ export const useWikiEditDraft = (
   };
 
   return {
+    canPersist: !codeParseError,
+    code,
+    codeParseError,
     draft,
     editingId,
     saveState,
@@ -141,6 +155,28 @@ export const useWikiEditDraft = (
     requestPublication,
     saveDraft,
     setEditingId,
+    updateCode: (nextCode: string) => {
+      setCode(nextCode);
+      const parsed = parseWikiSectionsFromCode(nextCode);
+
+      if (!parsed.ok) {
+        setCodeParseError(parsed.message);
+        setSaveState({
+          status: "dirty",
+          message: "Unsaved changes",
+          payload: toWikiEditPayload(draft),
+        });
+        return;
+      }
+
+      commitDraft(
+        {
+          ...draft,
+          sections: parsed.sections,
+        },
+        nextCode,
+      );
+    },
     updateBasic: (basic: WikiDetail["basic"]) =>
       commitDraft({
         ...draft,

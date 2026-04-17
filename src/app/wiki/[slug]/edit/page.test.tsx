@@ -37,6 +37,8 @@ describe("WikiEditPage", () => {
     expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Submit wiki for review" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "gui" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "code" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo");
     expect(screen.getByRole("group", { name: "Preview mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
@@ -134,6 +136,59 @@ describe("WikiEditPage", () => {
 
     expect(screen.getByLabelText("Quote")).toBeInTheDocument();
     expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved wiki changes?");
+
+    confirmSpy.mockRestore();
+  });
+
+  it("switches to code mode and reflects valid edits back into gui mode", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+    fireEvent.change(screen.getByLabelText("Wiki code"), {
+      target: {
+        value: [
+          "= Overview =",
+          "",
+          "Updated overview from code mode.",
+          "",
+          "== Style Guide ==",
+          "",
+          "A new nested section.",
+        ].join("\n"),
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "gui" }));
+
+    expect(screen.getByText("Overview")).toBeInTheDocument();
+    expect(screen.getByText("Style Guide")).toBeInTheDocument();
+    expect(screen.getByText("Updated overview from code mode.")).toBeInTheDocument();
+  });
+
+  it("shows a parse error for invalid code and clears back to the last loaded draft", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+    fireEvent.change(screen.getByLabelText("Wiki code"), {
+      target: {
+        value: ["= Overview =", "", "[[image|id:cover]"].join("\n"),
+      },
+    });
+
+    expect(screen.getByTestId("wiki-code-error")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear invalid code" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved wiki changes?");
+    expect(screen.queryByTestId("wiki-code-error")).not.toBeInTheDocument();
+    expect((screen.getByLabelText("Wiki code") as HTMLTextAreaElement).value).toContain(
+      "= Overview =",
+    );
 
     confirmSpy.mockRestore();
   });

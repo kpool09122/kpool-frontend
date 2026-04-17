@@ -6,6 +6,8 @@ import {
   createWikiBlock,
   deleteWikiContent,
   getWikiContentEditorId,
+  parseWikiSectionsFromCode,
+  serializeWikiSectionsToCode,
   toWikiSectionContentPayload,
   updateWikiBlock,
   updateWikiSection,
@@ -129,5 +131,120 @@ describe("wikiEditModel", () => {
 
     expect(getWikiContentEditorId(section)).toBe("section:sec-root");
     expect(getWikiContentEditorId(block)).toBe("block:block-root-text");
+  });
+
+  it("round-trips structured sections through code mode into a stable canonical code form", () => {
+    const wiki = createMockWikiDetail("aurora-echo");
+    const code = serializeWikiSectionsToCode(wiki.sections);
+    const parsed = parseWikiSectionsFromCode(code);
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      return;
+    }
+
+    expect(serializeWikiSectionsToCode(parsed.sections)).toBe(code);
+    expect(code).toContain("[[image|id:img-discography-stage|src:");
+    expect(code).toContain("== Highlights ==");
+  });
+
+  it("parses namu-like headings, lists, tables, and unknown macros as editable content", () => {
+    const parsed = parseWikiSectionsFromCode([
+      "= Overview =",
+      "",
+      "Aurora Echo keeps a fast release cycle.",
+      "",
+      "[[분류:테스트]]",
+      "",
+      "* Debut single",
+      "* Follow-up single",
+      "",
+      "== Highlights ==",
+      "",
+      "|| !Release || !Year ||",
+      "|| Low Tide, High Lights || 2022 ||",
+    ].join("\n"));
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      return;
+    }
+
+    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+      {
+        type: "section",
+        title: "Overview",
+        display_order: 10,
+        contents: [
+          {
+            block_type: "text",
+            display_order: 10,
+            content: "Aurora Echo keeps a fast release cycle.",
+          },
+          {
+            block_type: "text",
+            display_order: 20,
+            content: "[[분류:테스트]]",
+          },
+          {
+            block_type: "list",
+            display_order: 30,
+            list_type: "bullet",
+            items: ["Debut single", "Follow-up single"],
+          },
+          {
+            type: "section",
+            title: "Highlights",
+            display_order: 40,
+            contents: [
+              {
+                block_type: "table",
+                display_order: 10,
+                headers: ["Release", "Year"],
+                rows: [["Low Tide, High Lights", "2022"]],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("returns a parse error when headings skip levels or exceed the supported depth", () => {
+    expect(
+      parseWikiSectionsFromCode(["= Overview =", "", "=== Broken ==="].join("\n")),
+    ).toEqual({
+      ok: false,
+      message: "Heading depth cannot skip levels. Add the missing parent section first.",
+    });
+
+    expect(
+      parseWikiSectionsFromCode([
+        "= Overview =",
+        "",
+        "== Style ==",
+        "",
+        "==== Too Deep ====",
+      ].join("\n")),
+    ).toEqual({
+      ok: false,
+      message: "Code mode supports headings up to depth 3.",
+    });
+  });
+
+  it("returns a parse error for malformed structured macros", () => {
+    expect(
+      parseWikiSectionsFromCode([
+        "= Overview =",
+        "",
+        "[[image|id:cover|src:https://example.com/image.png",
+      ].join("\n")),
+    ).toEqual({
+      ok: false,
+      message:
+        "Code mode could not parse a structured block. Fix the macro syntax or clear the draft.",
+    });
   });
 });

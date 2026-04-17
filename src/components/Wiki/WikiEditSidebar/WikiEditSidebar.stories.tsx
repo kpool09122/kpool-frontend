@@ -8,8 +8,11 @@ const meta = {
   title: "Wiki/WikiEditSidebar",
   component: WikiEditSidebar,
   args: {
+    canPersist: true,
+    editorMode: "gui",
     isBusy: false,
     isOpen: true,
+    onEditorModeChange: noop,
     onClear: noop,
     onPreviewModeChange: noop,
     onSave: noop,
@@ -34,6 +37,7 @@ export const Default: Story = {
   args: {},
   render: (args) => {
     function StoryComponent() {
+      const [editorMode, setEditorMode] = useState(args.editorMode);
       const [isOpen, setIsOpen] = useState(args.isOpen);
       const [previewMode, setPreviewMode] = useState(args.previewMode);
       const [slug, setSlug] = useState(args.slug);
@@ -42,8 +46,11 @@ export const Default: Story = {
       return (
         <div className="min-h-screen bg-background">
           <WikiEditSidebar
+            canPersist={args.canPersist}
+            editorMode={editorMode}
             isBusy={args.isBusy}
             isOpen={isOpen}
+            onEditorModeChange={setEditorMode}
             onClear={() => {
               setSlug(wikiStoryDetail.slug);
               setThemeColor(wikiStoryDetail.themeColor);

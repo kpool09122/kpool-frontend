@@ -1,6 +1,7 @@
 import { type WikiBlockType } from "@kpool/wiki";
 
 export type WikiPreviewMode = "light" | "dark";
+export type WikiEditorMode = "gui" | "code";
 
 export const blockTypes: WikiBlockType[] = [
   "text",

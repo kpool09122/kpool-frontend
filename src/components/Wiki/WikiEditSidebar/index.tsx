@@ -2,7 +2,7 @@
 
 import { type WikiDetail } from "@kpool/wiki";
 
-import { type WikiPreviewMode, themeColorOptions } from "../editing";
+import { type WikiEditorMode, type WikiPreviewMode, themeColorOptions } from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
@@ -49,8 +49,11 @@ function WikiSubmitButton({
 }
 
 type WikiEditSidebarProps = {
+  canPersist: boolean;
+  editorMode: WikiEditorMode;
   isBusy: boolean;
   isOpen: boolean;
+  onEditorModeChange: (mode: WikiEditorMode) => void;
   onClear: () => void;
   onPreviewModeChange: (mode: WikiPreviewMode) => void;
   onSave: () => void;
@@ -63,8 +66,11 @@ type WikiEditSidebarProps = {
 };
 
 export function WikiEditSidebar({
+  canPersist,
+  editorMode,
   isBusy,
   isOpen,
+  onEditorModeChange,
   onClear,
   onPreviewModeChange,
   onSave,
@@ -76,6 +82,7 @@ export function WikiEditSidebar({
   themeColor,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
+  const isActionDisabled = isBusy || !canPersist;
 
   return (
     <aside
@@ -100,8 +107,8 @@ export function WikiEditSidebar({
       <div className="relative h-full overflow-y-auto border border-r-0 border-stroke-subtle p-4 shadow-soft" style={cardSurfaceStyle}>
         <div className={isOpen ? "block" : "pointer-events-none invisible"}>
           <div className="grid gap-2">
-            <WikiSaveButton disabled={isBusy} onSave={onSave} />
-            <WikiSubmitButton disabled={isBusy} onSubmit={onSubmit} />
+            <WikiSaveButton disabled={isActionDisabled} onSave={onSave} />
+            <WikiSubmitButton disabled={isActionDisabled} onSubmit={onSubmit} />
             <button
               aria-label="Clear wiki changes"
               className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
@@ -114,6 +121,23 @@ export function WikiEditSidebar({
           </div>
 
           <div className="mt-5 grid gap-4 border-t border-stroke-subtle pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-semibold text-text-strong">Editor mode</legend>
+              <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke-subtle bg-surface-base p-1">
+                {(["gui", "code"] as const).map((mode) => (
+                  <button
+                    aria-pressed={editorMode === mode}
+                    className="rounded-full px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-text-muted transition aria-pressed:bg-surface-raised aria-pressed:text-text-strong aria-pressed:shadow-soft"
+                    key={mode}
+                    onClick={() => onEditorModeChange(mode)}
+                    type="button"
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
             <fieldset className="grid gap-2">
               <legend className="text-sm font-semibold text-text-strong">Preview mode</legend>
               <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke-subtle bg-surface-base p-1">
