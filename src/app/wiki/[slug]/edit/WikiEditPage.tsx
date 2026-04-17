@@ -4,8 +4,10 @@ import { useId, useState } from "react";
 import { type WikiDetail } from "@kpool/wiki";
 
 import {
+  type WikiEditorMode,
   type WikiPreviewMode,
   WikiBasicPanel,
+  WikiCodeEditor,
   WikiEditSidebar,
   WikiHeroBasicFlipCard,
   WikiHeroPanel,
@@ -26,9 +28,13 @@ type WikiEditPageProps = {
 function WikiEditContent({ data }: { data: WikiDetail }) {
   const flipCardId = useId();
   const [isBasicFlipped, setIsBasicFlipped] = useState(false);
+  const [editorMode, setEditorMode] = useState<WikiEditorMode>("gui");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [previewMode, setPreviewMode] = useState<WikiPreviewMode>("light");
   const {
+    canPersist,
+    code,
+    codeParseError,
     draft,
     editingId,
     saveState,
@@ -36,6 +42,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
     requestPublication,
     saveDraft,
     setEditingId,
+    updateCode,
     updateBasic,
     updateHeroImage,
     updateSettings,
@@ -139,41 +146,53 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
             </div>
           </section>
 
-          <section className="space-y-5">
-            {draft.sections.map((section) => (
-              <WikiSectionEditor
-                editingId={editingId}
-                key={section.sectionIdentifier}
-                onAddBlock={addBlock}
-                onAddSection={addSection}
-                onCancel={closeEditor}
-                onDeleteContent={deleteContent}
-                onEdit={setEditingId}
-                onSaveBlock={(blockIdentifier, changes) => {
-                  updateBlock(blockIdentifier, changes);
-                  closeEditor();
-                }}
-                onSaveSection={(sectionIdentifier, changes) => {
-                  updateSection(sectionIdentifier, changes);
-                  closeEditor();
-                }}
-                section={section}
-              />
-            ))}
-            <button
-              className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
-              onClick={() => addSection()}
-              style={cardSurfaceStyle}
-              type="button"
-            >
-              + Section
-            </button>
-          </section>
+          {editorMode === "gui" ? (
+            <section className="space-y-5">
+              {draft.sections.map((section) => (
+                <WikiSectionEditor
+                  editingId={editingId}
+                  key={section.sectionIdentifier}
+                  onAddBlock={addBlock}
+                  onAddSection={addSection}
+                  onCancel={closeEditor}
+                  onDeleteContent={deleteContent}
+                  onEdit={setEditingId}
+                  onSaveBlock={(blockIdentifier, changes) => {
+                    updateBlock(blockIdentifier, changes);
+                    closeEditor();
+                  }}
+                  onSaveSection={(sectionIdentifier, changes) => {
+                    updateSection(sectionIdentifier, changes);
+                    closeEditor();
+                  }}
+                  section={section}
+                />
+              ))}
+              <button
+                className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
+                onClick={() => addSection()}
+                style={cardSurfaceStyle}
+                type="button"
+              >
+                + Section
+              </button>
+            </section>
+          ) : (
+            <WikiCodeEditor
+              code={code}
+              errorMessage={codeParseError}
+              onChange={updateCode}
+              onClear={clearChanges}
+            />
+          )}
         </div>
 
         <WikiEditSidebar
+          canPersist={canPersist}
+          editorMode={editorMode}
           isBusy={isBusy}
           isOpen={isSidebarOpen}
+          onEditorModeChange={setEditorMode}
           onClear={clearChanges}
           onPreviewModeChange={setPreviewMode}
           onSave={saveDraft}

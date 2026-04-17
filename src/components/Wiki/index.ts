@@ -4,6 +4,7 @@ export { WikiBasicPanel } from "./WikiBasicPanel/index";
 export { WikiBlockDisplay } from "./WikiBlockDisplay/index";
 export { WikiBlockEditorItem } from "./WikiBlockEditorItem/index";
 export { WikiBlockForm } from "./WikiBlockForm/index";
+export { WikiCodeEditor } from "./WikiCodeEditor/index";
 export { WikiEditSidebar } from "./WikiEditSidebar/index";
 export { WikiHeroBasicFlipCard } from "./WikiHeroBasicFlipCard/index";
 export { WikiHeroPanel } from "./WikiHeroPanel/index";

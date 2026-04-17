@@ -2,6 +2,7 @@ import type {
   WikiBlock,
   WikiBlockType,
   WikiDetail,
+  WikiEmbedProvider,
   WikiSection,
   WikiSectionContent,
 } from "./types/wiki";
@@ -50,8 +51,667 @@ export type WikiEditPayload = {
   contents: WikiSectionContentPayload[];
 };
 
+export type WikiCodeParseResult =
+  | {
+      ok: true;
+      sections: WikiSection[];
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+const DISPLAY_ORDER_STEP = 10;
+
+const escapeCodeValue = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll(",", "\\,");
+
+const encodeCodeUri = (value: string): string => encodeURIComponent(value);
+
+const decodeCodeUri = (value: string): string => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const unescapeCodeValue = (value: string): string => {
+  let unescaped = "";
+  let isEscaped = false;
+
+  for (const character of value) {
+    if (isEscaped) {
+      unescaped += character;
+      isEscaped = false;
+      continue;
+    }
+
+    if (character === "\\") {
+      isEscaped = true;
+      continue;
+    }
+
+    unescaped += character;
+  }
+
+  if (isEscaped) {
+    unescaped += "\\";
+  }
+
+  return unescaped;
+};
+
+const splitEscaped = (value: string, delimiter: string): string[] => {
+  const parts: string[] = [];
+  let current = "";
+  let isEscaped = false;
+
+  for (const character of value) {
+    if (isEscaped) {
+      current += character;
+      isEscaped = false;
+      continue;
+    }
+
+    if (character === "\\") {
+      isEscaped = true;
+      continue;
+    }
+
+    if (character === delimiter) {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+
+    current += character;
+  }
+
+  if (isEscaped) {
+    current += "\\";
+  }
+
+  parts.push(current);
+
+  return parts;
+};
+
+const headingPattern = /^(=+)\s*(.*?)\s*\1$/;
+
+const getHeadingDepth = (line: string): number | null => {
+  const match = line.match(headingPattern);
+
+  if (!match) {
+    return null;
+  }
+
+  return match[1].length;
+};
+
+const getHeadingTitle = (line: string): string | null => {
+  const match = line.match(headingPattern);
+
+  return match?.[2]?.trim() ?? null;
+};
+
+const serializeCodeMacro = (name: string, values: string[]): string =>
+  `[[${name}${values.length > 0 ? `|${values.join("|")}` : ""}]]`;
+
+const serializeCodeField = (key: string, value: string | null | undefined): string | null =>
+  value == null ? null : `${key}:${escapeCodeValue(value)}`;
+
+const serializeTableRow = (cells: string[], isHeader = false): string =>
+  `|| ${cells.map((cell) => `${isHeader ? "!" : ""}${cell}`).join(" || ")} ||`;
+
+const serializeWikiBlockToCode = (block: WikiBlock): string => {
+  switch (block.blockType) {
+    case "text":
+      return block.content;
+    case "image":
+      return serializeCodeMacro("image", [
+        `id:${escapeCodeValue(block.imageIdentifier)}`,
+        `src:${encodeCodeUri(block.imageSrc)}`,
+        serializeCodeField("caption", block.caption),
+        serializeCodeField("alt", block.alt),
+      ].filter((value): value is string => Boolean(value)));
+    case "image_gallery":
+      return serializeCodeMacro("gallery", [
+        `images:${block.images
+          .map((image) =>
+            [
+              escapeCodeValue(image.imageIdentifier),
+              encodeCodeUri(image.imageSrc),
+              escapeCodeValue(image.alt ?? ""),
+            ].join("@"),
+          )
+          .join(",")}`,
+        serializeCodeField("caption", block.caption),
+      ].filter((value): value is string => Boolean(value)));
+    case "embed":
+      return serializeCodeMacro("embed", [
+        `provider:${escapeCodeValue(block.provider)}`,
+        `id:${escapeCodeValue(block.embedId)}`,
+        serializeCodeField("caption", block.caption),
+      ].filter((value): value is string => Boolean(value)));
+    case "quote":
+      return [
+        ...block.content.split("\n").map((line) => `> ${line}`),
+        ...(block.source ? [`> -- ${block.source}`] : []),
+      ].join("\n");
+    case "list":
+      return block.items
+        .map((item, index) =>
+          block.listType === "numbered" ? `${index + 1}. ${item}` : `* ${item}`,
+        )
+        .join("\n");
+    case "table":
+      return [
+        ...(block.headers ? [serializeTableRow(block.headers, true)] : []),
+        ...block.rows.map((row) => serializeTableRow(row)),
+      ].join("\n");
+    case "profile_card_list":
+      return serializeCodeMacro("profiles", [
+        `ids:${block.wikiIdentifiers.map(escapeCodeValue).join(",")}`,
+        serializeCodeField("title", block.title),
+      ].filter((value): value is string => Boolean(value)));
+  }
+};
+
+const serializeWikiSectionToCode = (section: WikiSection): string => {
+  const normalizedSection = normalizeWikiSectionContents(section);
+  const heading = `${"=".repeat(normalizedSection.depth)} ${normalizedSection.title} ${"=".repeat(normalizedSection.depth)}`;
+  const sortedContents = sortWikiSectionContents(normalizedSection.contents);
+  const contents = [
+    ...sortedContents
+      .filter(isWikiBlock)
+      .map(serializeWikiBlockToCode),
+    ...sortedContents
+      .filter(isWikiSection)
+      .map(serializeWikiSectionToCode),
+  ];
+
+  return [heading, ...contents.filter(Boolean)].join("\n\n");
+};
+
+export const serializeWikiSectionsToCode = (sections: WikiSection[]): string =>
+  sortWikiSectionContents(sections)
+    .map(serializeWikiSectionToCode)
+    .join("\n\n")
+    .trim();
+
+const parseTableCells = (line: string): string[] =>
+  line
+    .trim()
+    .replace(/^(\|\|)\s*/, "")
+    .replace(/\s*(\|\|)$/, "")
+    .split("||")
+    .map((cell) => cell.trim());
+
+const createParseError = (message: string): WikiCodeParseResult => ({
+  ok: false,
+  message,
+});
+
+const parseCodeField = (part: string): [string, string] | null => {
+  const dividerIndex = part.indexOf(":");
+
+  if (dividerIndex <= 0) {
+    return null;
+  }
+
+  return [
+    part.slice(0, dividerIndex).trim(),
+    part.slice(dividerIndex + 1).trim(),
+  ];
+};
+
+const parseCodeMacro = (
+  line: string,
+): { name: string; fields: Record<string, string> } | null => {
+  if (!line.startsWith("[[")) {
+    return null;
+  }
+
+  if (!line.endsWith("]]")) {
+    return { name: "__invalid__", fields: {} };
+  }
+
+  const rawContent = line.slice(2, -2).trim();
+  const [name, ...parts] = splitEscaped(rawContent, "|");
+  const fields = parts.reduce<Record<string, string>>((result, part) => {
+    const field = parseCodeField(part);
+
+    if (!field) {
+      return result;
+    }
+
+    result[field[0]] = field[1];
+    return result;
+  }, {});
+
+  return { name: name.trim(), fields };
+};
+
+type WikiCodeBlocksParseResult =
+  | {
+      ok: true;
+      blocks: WikiBlock[];
+    }
+  | {
+      ok: false;
+      message: string;
+    };
+
+const createBlockParseError = (message: string): WikiCodeBlocksParseResult => ({
+  ok: false,
+  message,
+});
+
+const isSupportedCodeMacro = (name: string): boolean =>
+  ["image", "gallery", "embed", "profiles"].includes(name);
+
+const isListLine = (line: string): boolean =>
+  /^\*\s+/.test(line.trim()) || /^\d+\.\s+/.test(line.trim());
+
+const isQuoteLine = (line: string): boolean => line.trim().startsWith(">");
+
+const isTableLine = (line: string): boolean => line.trim().startsWith("||");
+
+const isStructuredMacroLine = (line: string): boolean => {
+  const macro = parseCodeMacro(line.trim());
+
+  return Boolean(
+    macro && (macro.name === "__invalid__" || isSupportedCodeMacro(macro.name)),
+  );
+};
+
+const isStructuredBlockStart = (line: string): boolean =>
+  isStructuredMacroLine(line) ||
+  isQuoteLine(line) ||
+  isListLine(line) ||
+  isTableLine(line);
+
+const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
+  const blocks: WikiBlock[] = [];
+  let cursor = 0;
+
+  const addBlock = (block: Record<string, unknown> & { blockType: WikiBlockType }) => {
+    blocks.push({
+      ...block,
+      blockIdentifier: createIdentifier(`block-${block.blockType.replaceAll("_", "-")}`),
+      displayOrder: (blocks.length + 1) * DISPLAY_ORDER_STEP,
+    } as WikiBlock);
+  };
+
+  while (cursor < lines.length) {
+    const line = lines[cursor];
+    const trimmedLine = line.trim();
+
+    if (!trimmedLine) {
+      cursor += 1;
+      continue;
+    }
+
+    if (isQuoteLine(line)) {
+      const quoteLines: string[] = [];
+
+      while (cursor < lines.length && isQuoteLine(lines[cursor])) {
+        quoteLines.push(lines[cursor].trim().replace(/^>\s?/, ""));
+        cursor += 1;
+      }
+
+      const maybeSource = quoteLines.at(-1)?.match(/^--\s+(.+)$/)?.[1] ?? null;
+      const contentLines = maybeSource ? quoteLines.slice(0, -1) : quoteLines;
+
+      addBlock({
+        blockType: "quote",
+        content: contentLines.join("\n"),
+        source: maybeSource,
+      });
+      continue;
+    }
+
+    if (isListLine(line)) {
+      const isNumbered = /^\d+\.\s+/.test(trimmedLine);
+      const items: string[] = [];
+
+      while (
+        cursor < lines.length &&
+        (isNumbered
+          ? /^\d+\.\s+/.test(lines[cursor].trim())
+          : /^\*\s+/.test(lines[cursor].trim()))
+      ) {
+        items.push(
+          lines[cursor]
+            .trim()
+            .replace(isNumbered ? /^\d+\.\s+/ : /^\*\s+/, ""),
+        );
+        cursor += 1;
+      }
+
+      addBlock({
+        blockType: "list",
+        items,
+        listType: isNumbered ? "numbered" : "bullet",
+      });
+      continue;
+    }
+
+    if (isTableLine(line)) {
+      const rows: string[][] = [];
+
+      while (cursor < lines.length && isTableLine(lines[cursor])) {
+        rows.push(parseTableCells(lines[cursor]));
+        cursor += 1;
+      }
+
+      const firstRow = rows[0] ?? [];
+      const hasHeaders = firstRow.length > 0 && firstRow.every((cell) => cell.startsWith("!"));
+
+      addBlock({
+        blockType: "table",
+        headers: hasHeaders ? firstRow.map((cell) => cell.slice(1).trim()) : null,
+        rows: (hasHeaders ? rows.slice(1) : rows).map((row) =>
+          row.map((cell) => cell.trim()),
+        ),
+      });
+      continue;
+    }
+
+    if (isStructuredMacroLine(line)) {
+      const macro = parseCodeMacro(trimmedLine);
+
+      if (macro?.name === "__invalid__") {
+        return createBlockParseError(
+          "Code mode could not parse a structured block. Fix the macro syntax or clear the draft.",
+        );
+      }
+
+      if (macro && isSupportedCodeMacro(macro.name)) {
+        if (macro.name === "image") {
+          if (!macro.fields.id || !macro.fields.src) {
+            return createBlockParseError("Image blocks require both id and src.");
+          }
+
+          addBlock({
+            blockType: "image",
+            alt: macro.fields.alt ? unescapeCodeValue(macro.fields.alt) : null,
+            caption: macro.fields.caption ? unescapeCodeValue(macro.fields.caption) : null,
+            imageIdentifier: unescapeCodeValue(macro.fields.id),
+            imageSrc: decodeCodeUri(macro.fields.src),
+          });
+          cursor += 1;
+          continue;
+        }
+
+        if (macro.name === "gallery") {
+          const rawImages = macro.fields.images;
+
+          if (!rawImages) {
+            return createBlockParseError("Gallery blocks require at least one image entry.");
+          }
+
+          const images = splitEscaped(rawImages, ",").map((entry) => {
+            const [imageIdentifier, imageSrc, alt = ""] = splitEscaped(entry, "@");
+
+            if (!imageIdentifier || !imageSrc) {
+              return null;
+            }
+
+            return {
+              alt: alt ? unescapeCodeValue(alt) : null,
+              imageIdentifier: unescapeCodeValue(imageIdentifier),
+              imageSrc: decodeCodeUri(imageSrc),
+            };
+          });
+
+          if (images.some((image) => image == null)) {
+            return createBlockParseError(
+              "Gallery image entries must include both identifier and src.",
+            );
+          }
+
+          addBlock({
+            blockType: "image_gallery",
+            caption: macro.fields.caption ? unescapeCodeValue(macro.fields.caption) : null,
+            images: images.filter((image) => image != null),
+          });
+          cursor += 1;
+          continue;
+        }
+
+        if (macro.name === "embed") {
+          if (!macro.fields.provider || !macro.fields.id) {
+            return createBlockParseError("Embed blocks require provider and id.");
+          }
+
+          addBlock({
+            blockType: "embed",
+            caption: macro.fields.caption ? unescapeCodeValue(macro.fields.caption) : null,
+            embedId: unescapeCodeValue(macro.fields.id),
+            provider: unescapeCodeValue(macro.fields.provider) as WikiEmbedProvider,
+          });
+          cursor += 1;
+          continue;
+        }
+
+        const identifiers = (macro.fields.ids ?? "")
+          .split(",")
+          .map(unescapeCodeValue)
+          .filter(Boolean);
+
+        addBlock({
+          blockType: "profile_card_list",
+          title: macro.fields.title ? unescapeCodeValue(macro.fields.title) : null,
+          wikiIdentifiers: identifiers,
+        });
+        cursor += 1;
+        continue;
+      }
+    }
+
+    const textLines: string[] = [];
+
+    while (cursor < lines.length) {
+      const currentLine = lines[cursor];
+
+      if (!currentLine.trim()) {
+        break;
+      }
+
+      if (isStructuredBlockStart(currentLine)) {
+        break;
+      }
+
+      textLines.push(currentLine);
+      cursor += 1;
+    }
+
+    addBlock({
+      blockType: "text",
+      content: textLines.join("\n"),
+    });
+  }
+
+  return {
+    ok: true,
+    blocks,
+  };
+};
+
+const appendBlocksToSection = (
+  section: WikiSection,
+  blocks: WikiBlock[],
+): WikiSection => {
+  const existingCount = section.contents.length;
+  const normalizedBlocks = blocks.map((block, index) => ({
+    ...block,
+    displayOrder: (existingCount + index + 1) * DISPLAY_ORDER_STEP,
+  }));
+
+  return {
+    ...section,
+    contents: [...section.contents, ...normalizedBlocks],
+  };
+};
+
+export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => {
+  const normalizedCode = code.replaceAll("\r\n", "\n");
+
+  if (!normalizedCode.trim()) {
+    return {
+      ok: true,
+      sections: [],
+    };
+  }
+
+  const lines = normalizedCode.split("\n");
+  const rootSections: WikiSection[] = [];
+  let sectionStack: WikiSection[] = [];
+  let pendingLines: string[] = [];
+
+  const replaceSectionInStack = (nextSection: WikiSection) => {
+    const depthIndex = nextSection.depth - 1;
+    sectionStack = sectionStack.map((section, index) =>
+      index === depthIndex ? nextSection : section,
+    );
+
+    if (nextSection.depth === 1) {
+      const rootIndex = rootSections.findIndex(
+        (section) => section.sectionIdentifier === nextSection.sectionIdentifier,
+      );
+
+      if (rootIndex >= 0) {
+        rootSections[rootIndex] = nextSection;
+      }
+
+      return;
+    }
+
+    const parent = sectionStack[depthIndex - 1];
+
+    if (!parent) {
+      return;
+    }
+
+    const nextParent = {
+      ...parent,
+      children: parent.children.map((child) =>
+        child.sectionIdentifier === nextSection.sectionIdentifier ? nextSection : child,
+      ),
+      contents: parent.contents.map((content) =>
+        isWikiSection(content) && content.sectionIdentifier === nextSection.sectionIdentifier
+          ? nextSection
+          : content,
+      ),
+    };
+
+    replaceSectionInStack(nextParent);
+  };
+
+  const flushPendingLines = (): WikiCodeParseResult | null => {
+    const currentSection = sectionStack.at(-1);
+
+    if (!currentSection || pendingLines.every((line) => !line.trim())) {
+      pendingLines = [];
+      return null;
+    }
+
+    const parsedBlocks = parseCodeBlocks(pendingLines);
+
+    if (!parsedBlocks.ok) {
+      return createParseError(parsedBlocks.message);
+    }
+
+    replaceSectionInStack(appendBlocksToSection(currentSection, parsedBlocks.blocks));
+    pendingLines = [];
+    return null;
+  };
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    const headingDepth = getHeadingDepth(trimmedLine);
+
+    if (headingDepth) {
+      const flushResult = flushPendingLines();
+
+      if (flushResult) {
+        return flushResult;
+      }
+
+      if (headingDepth > WIKI_SECTION_MAX_DEPTH) {
+        return createParseError(
+          `Code mode supports headings up to depth ${WIKI_SECTION_MAX_DEPTH}.`,
+        );
+      }
+
+      if (headingDepth > sectionStack.length + 1) {
+        return createParseError(
+          "Heading depth cannot skip levels. Add the missing parent section first.",
+        );
+      }
+
+      const title = getHeadingTitle(trimmedLine);
+
+      if (!title) {
+        return createParseError("Section headings must include a title.");
+      }
+
+      sectionStack = sectionStack.slice(0, headingDepth - 1);
+      const parent = sectionStack.at(-1);
+      const nextSection: WikiSection = {
+        type: "section",
+        sectionIdentifier: createIdentifier("section"),
+        title,
+        displayOrder: getNextDisplayOrder(parent ? parent.contents : rootSections),
+        depth: headingDepth,
+        contents: [],
+        children: [],
+      };
+
+      if (parent) {
+        const nextParent = {
+          ...parent,
+          children: [...parent.children, nextSection],
+          contents: [...parent.contents, nextSection],
+        };
+
+        replaceSectionInStack(nextParent);
+      } else {
+        rootSections.push(nextSection);
+      }
+
+      sectionStack = [...sectionStack, nextSection];
+      continue;
+    }
+
+    if (!sectionStack.length && trimmedLine) {
+      return createParseError(
+        "Add a top-level heading like = Overview = before writing section content.",
+      );
+    }
+
+    if (sectionStack.length) {
+      pendingLines.push(line);
+    }
+  }
+
+  const flushResult = flushPendingLines();
+
+  if (flushResult) {
+    return flushResult;
+  }
+
+  return {
+    ok: true,
+    sections: normalizeWikiSectionsForEditing(rootSections),
+  };
+};
+
 const getNextDisplayOrder = (contents: WikiSectionContent[]): number =>
-  contents.reduce((max, content) => Math.max(max, content.displayOrder), 0) + 10;
+  contents.reduce((max, content) => Math.max(max, content.displayOrder), 0) +
+  DISPLAY_ORDER_STEP;
 
 const createIdentifier = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

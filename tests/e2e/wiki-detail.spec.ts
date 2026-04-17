@@ -83,6 +83,37 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByText("Saved")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
+
+  await page.getByRole("button", { name: "code" }).click();
+  await expect(page.getByTestId("wiki-code-editor")).toBeVisible();
+  await page.getByLabel("Wiki code").fill(
+    [
+      "= Overview =",
+      "",
+      "Updated overview from code mode.",
+      "",
+      "== Style Guide ==",
+      "",
+      "A new nested section.",
+      "",
+      "= Members =",
+      "",
+      "The lineup consists of five members handling a rotating balance of vocal, rap, and dance center duties.",
+    ].join("\n"),
+  );
+  await page.getByRole("button", { name: "gui" }).click();
+  await expect(page.getByText("Style Guide")).toBeVisible();
+  await expect(page.getByText("Updated overview from code mode.")).toBeVisible();
+
+  await page.getByRole("button", { name: "code" }).click();
+  await page.getByLabel("Wiki code").fill("= Overview =\n\n[[image|id:cover]");
+  await expect(page.getByTestId("wiki-code-error")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save wiki changes" })).toBeDisabled();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Clear wiki changes" }).click();
+  await expect(page.getByTestId("wiki-code-error")).toHaveCount(0);
+  await expect(page.getByLabel("Wiki code")).toHaveValue(/= Overview =/);
+  await page.getByRole("button", { name: "gui" }).click();
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
 
   const overviewAddControls = page.getByTestId("wiki-edit-add-section-sec-overview");

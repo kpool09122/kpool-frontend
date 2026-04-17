@@ -7,6 +7,7 @@ import { WikiEditSidebar } from "./index";
 
 describe("WikiEditSidebar", () => {
   it("fires sidebar actions and setting updates", () => {
+    const onEditorModeChange = vi.fn();
     const onClear = vi.fn();
     const onPreviewModeChange = vi.fn();
     const onSave = vi.fn();
@@ -16,8 +17,11 @@ describe("WikiEditSidebar", () => {
 
     render(
       <WikiEditSidebar
+        canPersist
+        editorMode="gui"
         isBusy={false}
         isOpen
+        onEditorModeChange={onEditorModeChange}
         onClear={onClear}
         onPreviewModeChange={onPreviewModeChange}
         onSave={onSave}
@@ -33,6 +37,7 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
     fireEvent.click(screen.getByRole("button", { name: "Clear wiki changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.click(screen.getByRole("button", { name: "Dark" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
     fireEvent.change(screen.getByLabelText("Slug"), {
@@ -42,6 +47,7 @@ describe("WikiEditSidebar", () => {
     expect(onSave).toHaveBeenCalled();
     expect(onSubmit).toHaveBeenCalled();
     expect(onClear).toHaveBeenCalled();
+    expect(onEditorModeChange).toHaveBeenCalledWith("code");
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
     expect(onToggle).toHaveBeenCalled();
     expect(onUpdateSettings).toHaveBeenCalledWith({ slug: "new-slug" });
