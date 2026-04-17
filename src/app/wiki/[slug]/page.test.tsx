@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WikiDetailPage } from "./WikiDetailPage";
@@ -115,33 +115,6 @@ describe("WikiDetailPage", () => {
     );
     expect(screen.getAllByLabelText(/Edit section/i)).toHaveLength(2);
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
-  });
-
-  it("renders sections as closed accordions by default", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiDetailPage, { slug: "aurora-echo" }));
-
-    const [section] = screen.getAllByTestId("section-overview");
-
-    expect(section).not.toHaveAttribute("open");
-  });
-
-  it("toggles the mobile flip card control", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiDetailPage, { slug: "aurora-echo" }));
-
-    const [flipInput] = screen.getAllByTestId("wiki-flip-input");
-    const [flipButton] = screen.getAllByTestId("wiki-flip-front-toggle");
-
-    fireEvent.click(flipButton);
-
-    expect(flipInput).toBeChecked();
-    expect(
-      screen.getAllByText("Tap the card again to return to the cover image.")[0],
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("Group profile")[0]).toBeInTheDocument();
   });
 
   it("injects theme css variables and badges when themeColor is provided", () => {

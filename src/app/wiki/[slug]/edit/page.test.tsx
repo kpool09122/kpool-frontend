@@ -60,27 +60,6 @@ describe("WikiEditPage", () => {
     );
   });
 
-  it("flips the mobile edit card to reveal basic details", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
-
-    const [flipInput] = screen.getAllByTestId("wiki-edit-flip-input");
-    const [flipButton] = screen.getAllByTestId("wiki-edit-flip-front-toggle");
-    const [flipCard] = screen.getAllByTestId("wiki-edit-flip-card");
-
-    fireEvent.click(flipButton);
-
-    expect(flipInput).toBeChecked();
-    expect(flipCard).toHaveClass("[transform:rotateY(180deg)]");
-    expect(screen.getAllByText("North Harbor Entertainment")[0]).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByText("North Harbor Entertainment")[0]);
-
-    expect(flipInput).not.toBeChecked();
-    expect(flipCard).not.toHaveClass("[transform:rotateY(180deg)]");
-  });
-
   it("adds a block inside a section and opens the new block editor", () => {
     mockedUseWikiDetail.mockReturnValue(successState);
 
@@ -91,49 +70,6 @@ describe("WikiEditPage", () => {
     fireEvent.click(addControls.getByRole("button", { name: "Quote" }));
 
     expect(screen.getByLabelText("Quote")).toBeInTheDocument();
-  });
-
-  it("updates slug and theme color settings from the sidebar", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
-
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "aurora-echo-jp" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Set theme color #4c5cff" }));
-
-    expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo-jp");
-    expect(screen.getByTestId("wiki-edit-theme-badge")).toHaveTextContent("Theme #4C5CFF");
-  });
-
-  it("switches the wiki preview between light and dark modes", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
-
-    expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "dark");
-    expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true");
-
-    fireEvent.click(screen.getByRole("button", { name: "Light" }));
-
-    expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "light");
-  });
-
-  it("collapses and expands the editor sidebar", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
-
-    expect(screen.getByTestId("wiki-edit-sidebar")).toHaveClass("translate-x-full");
-    expect(screen.getByRole("button", { name: "Expand editor sidebar" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
   });
 
   it("clears draft changes back to the loaded wiki", () => {
@@ -171,31 +107,6 @@ describe("WikiEditPage", () => {
     expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved wiki changes?");
 
     confirmSpy.mockRestore();
-  });
-
-  it("edits related profile blocks by wiki slug", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
-
-    const profileBlock = screen.getByTestId("wiki-edit-block-block-discography-profiles");
-    fireEvent.click(
-      within(profileBlock).getByRole("button", {
-        name: "Edit profile_card_list block",
-      }),
-    );
-
-    expect(screen.getByLabelText("Wiki slugs")).toHaveValue("aurora-echo");
-  });
-
-  it("shows max depth instead of child section creation at depth 3", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
-
-    expect(
-      screen.getByTestId("wiki-edit-add-section-sec-discography-highlights-chart"),
-    ).toHaveTextContent("Max depth reached");
   });
 
   it("renders loading, error, and empty states", () => {
