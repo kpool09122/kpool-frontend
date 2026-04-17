@@ -34,8 +34,18 @@ describe("WikiEditPage", () => {
 
     expect(screen.getByRole("heading", { name: "Aurora Echo" })).toBeInTheDocument();
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Save wiki changes" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit wiki for review" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo");
+    expect(screen.getByRole("group", { name: "Preview mode" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Theme color" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse editor sidebar" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "light");
     expect(screen.getAllByTestId("wiki-edit-flip-input")[0]).not.toBeChecked();
     expect(screen.getAllByText("Editable image").length).toBeGreaterThan(0);
     expect(screen.getByTestId("wiki-edit-section-sec-overview")).toBeInTheDocument();
@@ -81,6 +91,49 @@ describe("WikiEditPage", () => {
     fireEvent.click(addControls.getByRole("button", { name: "Quote" }));
 
     expect(screen.getByLabelText("Quote")).toBeInTheDocument();
+  });
+
+  it("updates slug and theme color settings from the sidebar", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "aurora-echo-jp" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set theme color #4c5cff" }));
+
+    expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo-jp");
+    expect(screen.getByTestId("wiki-edit-theme-badge")).toHaveTextContent("Theme #4C5CFF");
+  });
+
+  it("switches the wiki preview between light and dark modes", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
+
+    expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "dark");
+    expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Light" }));
+
+    expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "light");
+  });
+
+  it("collapses and expands the editor sidebar", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
+
+    expect(screen.getByTestId("wiki-edit-sidebar")).toHaveClass("translate-x-full");
+    expect(screen.getByRole("button", { name: "Expand editor sidebar" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it("clears draft changes back to the loaded wiki", () => {

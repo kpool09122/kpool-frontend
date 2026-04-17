@@ -29,6 +29,8 @@ type WikiEditPageProps = {
   themeColor?: string;
 };
 
+type WikiPreviewMode = "light" | "dark";
+
 const blockTypes: WikiBlockType[] = [
   "text",
   "image",
@@ -50,6 +52,15 @@ const blockTypeLabels: Record<WikiBlockType, string> = {
   table: "Table",
   profile_card_list: "Profiles",
 };
+
+const themeColorOptions = [
+  "#d94f70",
+  "#00d084",
+  "#4c5cff",
+  "#f1a81f",
+  "#1f9a8a",
+  "#7c3aed",
+];
 
 const mainBackgroundStyle = {
   backgroundColor: "var(--background)",
@@ -106,6 +117,23 @@ function TrashIcon() {
   );
 }
 
+function ChevronLeftIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+      viewBox="0 0 24 24"
+    >
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
 function ImageEditableOverlay() {
   return (
     <span className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
@@ -156,28 +184,155 @@ function WikiSaveButton({
   );
 }
 
-function WikiTopActions({
-  isSaving,
-  onClear,
-  onSave,
+function WikiSubmitButton({
+  disabled,
+  onSubmit,
 }: {
-  isSaving: boolean;
-  onClear: () => void;
-  onSave: () => void;
+  disabled: boolean;
+  onSubmit: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <WikiSaveButton disabled={isSaving} onSave={onSave} />
+    <button
+      aria-label="Submit wiki for review"
+      className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+      disabled={disabled}
+      onClick={onSubmit}
+      style={cardSurfaceStyle}
+      type="button"
+    >
+      Submit for review
+    </button>
+  );
+}
+
+function WikiEditSidebar({
+  isBusy,
+  isOpen,
+  onClear,
+  onPreviewModeChange,
+  onSave,
+  onSubmit,
+  onToggle,
+  onUpdateSettings,
+  previewMode,
+  slug,
+  themeColor,
+}: {
+  isBusy: boolean;
+  isOpen: boolean;
+  onClear: () => void;
+  onPreviewModeChange: (mode: WikiPreviewMode) => void;
+  onSave: () => void;
+  onSubmit: () => void;
+  onToggle: () => void;
+  onUpdateSettings: (settings: Partial<Pick<WikiDetail, "slug" | "themeColor">>) => void;
+  previewMode: WikiPreviewMode;
+  slug: string;
+  themeColor: string | null | undefined;
+}) {
+  const customColorValue = themeColor ?? themeColorOptions[2];
+
+  return (
+    <aside
+      className={`fixed bottom-0 right-0 top-20 z-30 w-72 max-w-[calc(100vw-2rem)] transition-transform duration-300 ${
+        isOpen ? "translate-x-0" : "translate-x-full"
+      }`}
+      data-testid="wiki-edit-sidebar"
+    >
       <button
-        aria-label="Clear wiki changes"
-        className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
-        onClick={onClear}
+        aria-label={isOpen ? "Collapse editor sidebar" : "Expand editor sidebar"}
+        aria-expanded={isOpen}
+        className="absolute -left-11 top-6 z-10 grid h-20 w-11 place-items-center rounded-l-2xl border-y border-l border-stroke-subtle text-text-strong shadow-soft transition hover:bg-brand-highlight/20"
+        onClick={onToggle}
         style={cardSurfaceStyle}
         type="button"
       >
-        Clear
+        <span className={`transition-transform ${isOpen ? "" : "rotate-180"}`}>
+          <ChevronLeftIcon />
+        </span>
       </button>
-    </div>
+
+      <div className="relative h-full overflow-y-auto border border-r-0 border-stroke-subtle p-4 shadow-soft" style={cardSurfaceStyle}>
+        <div className={isOpen ? "block" : "pointer-events-none invisible"}>
+          <div className="grid gap-2">
+            <WikiSaveButton disabled={isBusy} onSave={onSave} />
+            <WikiSubmitButton disabled={isBusy} onSubmit={onSubmit} />
+            <button
+              aria-label="Clear wiki changes"
+              className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
+              onClick={onClear}
+              style={cardSurfaceMutedStyle}
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-4 border-t border-stroke-subtle pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-semibold text-text-strong">Preview mode</legend>
+              <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke-subtle bg-surface-base p-1">
+                {(["light", "dark"] as const).map((mode) => (
+                  <button
+                    aria-pressed={previewMode === mode}
+                    className="rounded-full px-3 py-2 text-sm font-semibold text-text-muted transition aria-pressed:bg-surface-raised aria-pressed:text-text-strong aria-pressed:shadow-soft"
+                    key={mode}
+                    onClick={() => onPreviewModeChange(mode)}
+                    type="button"
+                  >
+                    {mode === "light" ? "Light" : "Dark"}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="grid gap-2 text-sm font-semibold text-text-strong">
+              Slug
+              <input
+                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+                onChange={(event) => onUpdateSettings({ slug: event.currentTarget.value })}
+                value={slug}
+              />
+            </label>
+
+            <fieldset className="grid gap-3">
+              <legend className="text-sm font-semibold text-text-strong">Theme color</legend>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  aria-pressed={!themeColor}
+                  className="h-9 rounded-xl border border-stroke-subtle bg-surface-base text-xs font-semibold text-text-muted"
+                  onClick={() => onUpdateSettings({ themeColor: null })}
+                  type="button"
+                >
+                  Default
+                </button>
+                {themeColorOptions.map((color) => (
+                  <button
+                    aria-label={`Set theme color ${color}`}
+                    aria-pressed={themeColor?.toLowerCase() === color}
+                    className="h-9 rounded-xl border border-stroke-subtle ring-offset-2 ring-offset-surface-raised aria-pressed:ring-2 aria-pressed:ring-text-strong"
+                    key={color}
+                    onClick={() => onUpdateSettings({ themeColor: color })}
+                    style={{ backgroundColor: color }}
+                    type="button"
+                  />
+                ))}
+              </div>
+              <label className="grid gap-2 text-sm font-semibold text-text-strong">
+                Custom color
+                <input
+                  aria-label="Theme color"
+                  className="h-11 w-full rounded-xl border border-stroke-subtle bg-surface-base p-1"
+                  onChange={(event) => onUpdateSettings({ themeColor: event.currentTarget.value })}
+                  type="color"
+                  value={customColorValue}
+                />
+              </label>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -918,15 +1073,19 @@ function StatePanel({ title, message }: { title: string; message: string }) {
 function WikiEditContent({ data }: { data: WikiDetail }) {
   const flipCardId = useId();
   const [isBasicFlipped, setIsBasicFlipped] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [previewMode, setPreviewMode] = useState<WikiPreviewMode>("light");
   const {
     draft,
     editingId,
     saveState,
     clearDraft,
+    requestPublication,
     saveDraft,
     setEditingId,
     updateBasic,
     updateHeroImage,
+    updateSettings,
     updateSection,
     updateBlock,
     addSection,
@@ -944,7 +1103,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
     setIsBasicFlipped(true);
     setEditingId("basic");
   };
-  const isSaving = saveState.status === "saving";
+  const isBusy = saveState.status === "saving" || saveState.status === "submitting";
   const clearChanges = () => {
     if (!window.confirm("Discard unsaved wiki changes?")) {
       return;
@@ -955,113 +1114,123 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
   };
 
   return (
-    <main
-      className="wiki-theme-scope min-h-screen px-5 py-6 text-text-strong sm:px-8 sm:py-10"
-      data-testid="wiki-edit-root"
-      style={{
+      <main
+        className="wiki-theme-scope min-h-screen px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+        data-theme={previewMode}
+        data-testid="wiki-edit-root"
+        style={{
         ...themeStyles,
         ...mainBackgroundStyle,
       }}
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <header className="flex flex-wrap items-start justify-between gap-4">
+        <header>
           <div>
             <h1 className="text-4xl font-semibold tracking-[-0.05em] text-text-strong lg:text-5xl">
               {draft.basic.name}
             </h1>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {themeLabel ? (
+        </header>
+
+        <div className="flex min-w-0 flex-col gap-8">
+          {themeLabel ? (
+            <div>
               <span className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]" data-testid="wiki-edit-theme-badge" style={cardSurfaceStyle}>
                 Theme {themeLabel}
               </span>
-            ) : null}
-            <WikiTopActions
-              isSaving={isSaving}
-              onClear={clearChanges}
-              onSave={saveDraft}
-            />
-          </div>
-        </header>
+            </div>
+          ) : null}
 
-        <section>
-          <HeroBasicFlipCard
-            basic={draft.basic}
-            flipCardId={flipCardId}
-            heroImage={draft.heroImage}
-            isBasicEditing={editingId === "basic"}
-            isFlipped={isBasicFlipped}
-            isHeroEditing={editingId === "hero"}
-            onCancel={closeEditor}
-            onEditBasic={editBasic}
-            onEditHero={editHeroImage}
-            onFlipChange={setIsBasicFlipped}
-            onSaveBasic={(basic) => {
-              updateBasic(basic);
-              closeEditor();
-            }}
-            onSaveHero={(heroImage) => {
-              updateHeroImage(heroImage);
-              closeEditor();
-            }}
-          />
-          <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-            <HeroPanel
+          <section>
+            <HeroBasicFlipCard
+              basic={draft.basic}
+              flipCardId={flipCardId}
               heroImage={draft.heroImage}
-              isEditing={editingId === "hero"}
+              isBasicEditing={editingId === "basic"}
+              isFlipped={isBasicFlipped}
+              isHeroEditing={editingId === "hero"}
               onCancel={closeEditor}
-              onEdit={editHeroImage}
-              onSave={(heroImage) => {
+              onEditBasic={editBasic}
+              onEditHero={editHeroImage}
+              onFlipChange={setIsBasicFlipped}
+              onSaveBasic={(basic) => {
+                updateBasic(basic);
+                closeEditor();
+              }}
+              onSaveHero={(heroImage) => {
                 updateHeroImage(heroImage);
                 closeEditor();
               }}
             />
-            <BasicPanel
-              basic={draft.basic}
-              isEditing={editingId === "basic"}
-              onCancel={closeEditor}
-              onEdit={editBasic}
-              onSave={(basic) => {
-                updateBasic(basic);
-                closeEditor();
-              }}
-            />
-          </div>
-        </section>
+            <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
+              <HeroPanel
+                heroImage={draft.heroImage}
+                isEditing={editingId === "hero"}
+                onCancel={closeEditor}
+                onEdit={editHeroImage}
+                onSave={(heroImage) => {
+                  updateHeroImage(heroImage);
+                  closeEditor();
+                }}
+              />
+              <BasicPanel
+                basic={draft.basic}
+                isEditing={editingId === "basic"}
+                onCancel={closeEditor}
+                onEdit={editBasic}
+                onSave={(basic) => {
+                  updateBasic(basic);
+                  closeEditor();
+                }}
+              />
+            </div>
+          </section>
 
-        <section className="space-y-5">
-          {draft.sections.map((section) => (
-            <SectionEditor
-              editingId={editingId}
-              key={section.sectionIdentifier}
-              onAddBlock={addBlock}
-              onAddSection={addSection}
-              onCancel={closeEditor}
-              onDeleteContent={deleteContent}
-              onEdit={setEditingId}
-              onSaveBlock={(blockIdentifier, changes) => {
-                updateBlock(blockIdentifier, changes);
-                closeEditor();
-              }}
-              onSaveSection={(sectionIdentifier, changes) => {
-                updateSection(sectionIdentifier, changes);
-                closeEditor();
-              }}
-              section={section}
-            />
-          ))}
-          <button
-            className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
-            onClick={() => addSection()}
-            style={cardSurfaceStyle}
-            type="button"
-          >
-            + Section
-          </button>
-          <div className="flex justify-end">
-            <WikiSaveButton disabled={isSaving} onSave={saveDraft} />
-          </div>
-        </section>
+          <section className="space-y-5">
+            {draft.sections.map((section) => (
+              <SectionEditor
+                editingId={editingId}
+                key={section.sectionIdentifier}
+                onAddBlock={addBlock}
+                onAddSection={addSection}
+                onCancel={closeEditor}
+                onDeleteContent={deleteContent}
+                onEdit={setEditingId}
+                onSaveBlock={(blockIdentifier, changes) => {
+                  updateBlock(blockIdentifier, changes);
+                  closeEditor();
+                }}
+                onSaveSection={(sectionIdentifier, changes) => {
+                  updateSection(sectionIdentifier, changes);
+                  closeEditor();
+                }}
+                section={section}
+              />
+            ))}
+            <button
+              className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
+              onClick={() => addSection()}
+              style={cardSurfaceStyle}
+              type="button"
+            >
+              + Section
+            </button>
+          </section>
+        </div>
+
+        <WikiEditSidebar
+          isBusy={isBusy}
+          isOpen={isSidebarOpen}
+          onClear={clearChanges}
+          onPreviewModeChange={setPreviewMode}
+          onSave={saveDraft}
+          onSubmit={requestPublication}
+          onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+          onUpdateSettings={updateSettings}
+          previewMode={previewMode}
+          slug={draft.slug}
+          themeColor={draft.themeColor}
+        />
       </div>
     </main>
   );

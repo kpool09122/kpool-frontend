@@ -53,8 +53,20 @@ test("wiki edit page supports inline edits and nested content controls", async (
     "Theme #4C5CFF",
   );
   await expect(page.getByText("Saved")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Clear wiki changes" })).toBeVisible();
+  await expect(page.getByLabel("Slug")).toHaveValue("aurora-echo");
+  await expect(page.getByRole("group", { name: "Preview mode" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Default" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Theme color" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Collapse editor sidebar" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await page.getByRole("button", { name: "Dark" }).click();
+  await expect(page.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByText("Editable image").first()).toBeVisible();
@@ -69,7 +81,8 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/aurora-echo/edit?themeColor=%234c5cff");
   await expect(page.getByText("Saved")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
 
   const overviewAddControls = page.getByTestId("wiki-edit-add-section-sec-overview");
   await overviewAddControls.getByText("+ Block").click();

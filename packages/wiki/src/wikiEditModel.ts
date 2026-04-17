@@ -41,6 +41,7 @@ export type WikiEditPayload = {
   slug: string;
   language: string;
   version: number;
+  theme_color?: string | null;
   hero_image: {
     src: string;
     alt: string;
@@ -347,6 +348,7 @@ export const toWikiEditPayload = (wiki: WikiDetail): WikiEditPayload => ({
   slug: wiki.slug,
   language: wiki.language,
   version: wiki.version,
+  theme_color: wiki.themeColor ?? null,
   hero_image: wiki.heroImage,
   basic: wiki.basic,
   contents: toWikiSectionContentPayload(wiki.sections),

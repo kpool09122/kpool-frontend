@@ -125,6 +125,52 @@ body {
   }
 }
 
+.wiki-theme-scope[data-theme="light"] {
+  --background: #fffbf7;
+  --foreground: #28456b;
+  --brand-primary: #3560a3;
+  --brand-secondary: #f1a81f;
+  --brand-highlight: #ffd6c2;
+  --surface-base: #fffbf7;
+  --surface-raised: #ffffff;
+  --text-strong: #1d2f49;
+  --text-muted: #667a95;
+  --stroke-subtle: rgba(53, 96, 163, 0.16);
+  --wiki-page-background: var(--wiki-page-background-light);
+  --wiki-header-background: var(--wiki-header-background-light);
+  --wiki-header-text: var(--wiki-header-text-light);
+  --wiki-hero-overlay: var(--wiki-hero-overlay-light);
+  --wiki-hero-accent: var(--wiki-hero-accent-light);
+  --wiki-card-background: var(--wiki-card-background-light);
+  --wiki-card-background-muted: var(--wiki-card-background-muted-light);
+  --wiki-card-border: var(--wiki-card-border-light);
+  --wiki-accent-background: var(--wiki-accent-background-light);
+  --wiki-accent-text: var(--wiki-accent-text-light);
+}
+
+.wiki-theme-scope[data-theme="dark"] {
+  --background: #16223a;
+  --foreground: #fff7ef;
+  --brand-primary: #9fc0f2;
+  --brand-secondary: #ffc85a;
+  --brand-highlight: #4a6492;
+  --surface-base: #16223a;
+  --surface-raised: #21304b;
+  --text-strong: #fff7ef;
+  --text-muted: #d9e3f4;
+  --stroke-subtle: rgba(255, 246, 234, 0.12);
+  --wiki-page-background: var(--wiki-page-background-dark);
+  --wiki-header-background: var(--wiki-header-background-dark);
+  --wiki-header-text: var(--wiki-header-text-dark);
+  --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
+  --wiki-hero-accent: var(--wiki-hero-accent-dark);
+  --wiki-card-background: var(--wiki-card-background-dark);
+  --wiki-card-background-muted: var(--wiki-card-background-muted-dark);
+  --wiki-card-border: var(--wiki-card-border-dark);
+  --wiki-accent-background: var(--wiki-accent-background-dark);
+  --wiki-accent-text: var(--wiki-accent-text-dark);
+}
+
 .section-accordion[open] > summary .section-accordion__chevron {
   transform: rotate(180deg);
 }

@@ -33,6 +33,11 @@ type WikiSaveState =
       payload: WikiEditPayload;
     }
   | {
+      status: "submitting";
+      message: string;
+      payload: WikiEditPayload;
+    }
+  | {
       status: "failed";
       message: string;
       payload: WikiEditPayload;
@@ -40,9 +45,10 @@ type WikiSaveState =
 
 type WikiEditDraftOptions = {
   saveAdapter?: (payload: WikiEditPayload) => { ok: true } | { ok: false };
+  submitAdapter?: (payload: WikiEditPayload) => { ok: true } | { ok: false };
 };
 
-const optimisticSaveAdapter = () => ({ ok: true }) as const;
+const optimisticActionAdapter = () => ({ ok: true }) as const;
 
 const createInitialDraft = (wiki: WikiDetail): WikiDetail => ({
   ...wiki,
@@ -63,7 +69,8 @@ export const useWikiEditDraft = (
     message: "Saved",
     payload: toWikiEditPayload(initialDraft),
   });
-  const saveAdapter = options?.saveAdapter ?? optimisticSaveAdapter;
+  const saveAdapter = options?.saveAdapter ?? optimisticActionAdapter;
+  const submitAdapter = options?.submitAdapter ?? optimisticActionAdapter;
 
   const commitDraft = (nextDraft: WikiDetail) => {
     const payload = toWikiEditPayload(nextDraft);
@@ -106,11 +113,32 @@ export const useWikiEditDraft = (
     });
   };
 
+  const requestPublication = () => {
+    const payload = toWikiEditPayload(draft);
+
+    setSaveState({
+      status: "submitting",
+      message: "Submitting for review",
+      payload,
+    });
+
+    queueMicrotask(() => {
+      const result = submitAdapter(payload);
+
+      setSaveState({
+        status: result.ok ? "saved" : "failed",
+        message: result.ok ? "Submitted for review" : "Submit failed",
+        payload,
+      });
+    });
+  };
+
   return {
     draft,
     editingId,
     saveState,
     clearDraft,
+    requestPublication,
     saveDraft,
     setEditingId,
     updateBasic: (basic: WikiDetail["basic"]) =>
@@ -122,6 +150,11 @@ export const useWikiEditDraft = (
       commitDraft({
         ...draft,
         heroImage,
+      }),
+    updateSettings: (settings: Partial<Pick<WikiDetail, "slug" | "themeColor">>) =>
+      commitDraft({
+        ...draft,
+        ...settings,
       }),
     updateSection: (
       sectionIdentifier: string,
