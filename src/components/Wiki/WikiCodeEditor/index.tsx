@@ -5,6 +5,7 @@ import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 type WikiCodeEditorProps = {
   code: string;
   errorMessage: string | null;
+  warnings: string[];
   onChange: (value: string) => void;
   onClear: () => void;
 };
@@ -12,6 +13,7 @@ type WikiCodeEditorProps = {
 export function WikiCodeEditor({
   code,
   errorMessage,
+  warnings,
   onChange,
   onClear,
 }: WikiCodeEditorProps) {
@@ -29,11 +31,11 @@ export function WikiCodeEditor({
           <p className="max-w-3xl text-sm text-text-muted">
             Edit the whole section tree with headings like
             {" "}
-            <code>= Overview =</code>
+            <code>== Overview ==</code>
             {" "}
             and
             {" "}
-            <code>== Style ==</code>
+            <code>=== Style ===</code>
             .
           </p>
         </div>
@@ -58,13 +60,30 @@ export function WikiCodeEditor({
           {errorMessage}
         </div>
       ) : (
-        <div
-          className="mt-4 rounded-2xl border border-stroke-subtle px-4 py-3 text-sm text-text-muted"
-          style={cardSurfaceMutedStyle}
-        >
-          Supported blocks: plain text, quotes with <code>&gt;</code>, lists, tables,
-          and structured macros for image, gallery, embed, and profiles.
-        </div>
+        <>
+          <div
+            className="mt-4 rounded-2xl border border-stroke-subtle px-4 py-3 text-sm text-text-muted"
+            style={cardSurfaceMutedStyle}
+          >
+            Supported blocks: plain text, quotes with <code>&gt;</code>, lists, tables,
+            and structured macros for image, gallery, embed, and profiles.
+          </div>
+          {warnings.length > 0 ? (
+            <div
+              className="mt-4 rounded-2xl border border-status-warning/30 px-4 py-3 text-sm text-text-strong"
+              data-testid="wiki-code-warnings"
+              role="status"
+              style={cardSurfaceMutedStyle}
+            >
+              <p className="font-semibold text-status-warning">Compatibility notes</p>
+              <ul className="mt-2 list-disc pl-5">
+                {warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
       )}
 
       <label className="mt-4 grid gap-2 text-sm font-semibold text-text-strong">

@@ -22,4 +22,50 @@ describe("getWikiDetailState", () => {
       },
     });
   });
+
+  it("returns a dedicated TWICE namuwiki compatibility demo mock", () => {
+    const state = getWikiDetailState("twice");
+
+    expect(state).toMatchObject({
+      status: "success",
+      data: {
+        slug: "twice",
+        basic: {
+          name: "TWICE",
+        },
+      },
+    });
+
+    if (state.status !== "success") {
+      return;
+    }
+
+    expect(state.data.sections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Overview",
+        }),
+        expect.objectContaining({
+          title: "Members",
+        }),
+        expect.objectContaining({
+          title: "History",
+        }),
+      ]),
+    );
+  });
+
+  it("returns dedicated TWICE member mocks for related profile cards", () => {
+    const state = getWikiDetailState("nayeon-twice");
+
+    expect(state).toMatchObject({
+      status: "success",
+      data: {
+        slug: "nayeon-twice",
+        basic: {
+          name: "나연",
+        },
+      },
+    });
+  });
 });

@@ -24,6 +24,11 @@ export type WikiEmbedProvider = "youtube" | "spotify" | "x" | "tiktok";
 
 export type WikiListType = "bullet" | "numbered";
 
+export type WikiTableCell = {
+  content: string;
+  colspan?: number;
+};
+
 export type WikiTextBlock = {
   blockIdentifier: string;
   blockType: "text";
@@ -84,6 +89,9 @@ export type WikiTableBlock = {
   displayOrder: number;
   headers: string[] | null;
   rows: string[][];
+  headerCells?: WikiTableCell[] | null;
+  rowCells?: WikiTableCell[][];
+  tableWidth?: number | null;
 };
 
 export type WikiProfileCardListBlock = {
@@ -154,6 +162,26 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
     blockType: z.literal("table"),
     headers: z.array(z.string()).nullable(),
     rows: z.array(z.array(z.string())),
+    headerCells: z
+      .array(
+        z.object({
+          content: z.string(),
+          colspan: z.number().int().positive().optional(),
+        }),
+      )
+      .nullable()
+      .optional(),
+    rowCells: z
+      .array(
+        z.array(
+          z.object({
+            content: z.string(),
+            colspan: z.number().int().positive().optional(),
+          }),
+        ),
+      )
+      .optional(),
+    tableWidth: z.number().int().positive().nullable().optional(),
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("profile_card_list"),

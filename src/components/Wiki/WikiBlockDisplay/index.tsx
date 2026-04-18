@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import Image from "next/image";
-import { type WikiBlock } from "@kpool/wiki";
+import { type WikiBlock, type WikiTableCell } from "@kpool/wiki";
 
 import { WikiEmbedFrame } from "../../../app/wiki/[slug]/WikiEmbedFrame";
 import { WikiRelatedProfiles } from "../../../app/wiki/[slug]/WikiRelatedProfiles";
@@ -20,6 +20,47 @@ export function WikiBlockDisplay({
   showEditableImageOverlay = false,
   textClassName = "text-sm leading-7 text-text-strong",
 }: WikiBlockDisplayProps) {
+  const renderPlainTextWithNamuLinks = (text: string, keyPrefix: string) => {
+    const pattern = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+    const nodes: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null = pattern.exec(text);
+
+    while (match) {
+      const [raw, targetValue, displayValue] = match;
+      const target = targetValue?.trim() ?? "";
+
+      if (match.index > lastIndex) {
+        nodes.push(text.slice(lastIndex, match.index));
+      }
+
+      if (target.startsWith("분류:") || target.startsWith("파일:")) {
+        nodes.push(raw);
+      } else {
+        nodes.push(
+          <a
+            className="text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800"
+            href={`/wiki/${encodeURIComponent(target)}`}
+            key={`${keyPrefix}-namu-link-${match.index}`}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {displayValue?.trim() || target}
+          </a>,
+        );
+      }
+
+      lastIndex = match.index + raw.length;
+      match = pattern.exec(text);
+    }
+
+    if (lastIndex < text.length) {
+      nodes.push(text.slice(lastIndex));
+    }
+
+    return nodes;
+  };
+
   const renderInlineTokens = (content: string | ReturnType<typeof parseInlineMarkdown>) => {
     const tokens = typeof content === "string" ? parseInlineMarkdown(content) : content;
 
@@ -43,13 +84,33 @@ export function WikiBlockDisplay({
               {renderInlineTokens(token.children)}
             </a>
           );
+        case "footnote":
+          return (
+            <sup
+              aria-label={`Footnote: ${token.content}`}
+              className="ml-1 text-xs font-semibold text-text-muted"
+              key={`footnote-${index}`}
+              title={token.content}
+            >
+              [*]
+            </sup>
+          );
+        case "include":
+          return (
+            <span
+              className="inline-flex rounded-full border border-stroke-subtle px-2 py-0.5 text-xs font-semibold text-text-muted"
+              key={`include-${index}`}
+            >
+              Included from {token.target}
+            </span>
+          );
         case "text":
           return (
             <Fragment key={`text-${index}`}>
               {token.text.split("\n").map((line, lineIndex) => (
                 <Fragment key={`text-${index}-line-${lineIndex}`}>
                   {lineIndex > 0 ? <br /> : null}
-                  {line}
+                  {renderPlainTextWithNamuLinks(line, `text-${index}-line-${lineIndex}`)}
                 </Fragment>
               ))}
             </Fragment>
@@ -111,17 +172,45 @@ export function WikiBlockDisplay({
         </ul>
       );
     case "table":
+      const headerCells: WikiTableCell[] | null =
+        block.headerCells ?? block.headers?.map((header) => ({ content: header })) ?? null;
+      const rowCells: WikiTableCell[][] =
+        block.rowCells ?? block.rows.map((row) => row.map((cell) => ({ content: cell })));
+
       return (
         <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            {block.headers ? (
+          <table
+            className="min-w-full text-left text-sm"
+            style={block.tableWidth ? { width: `${block.tableWidth}px` } : undefined}
+          >
+            {headerCells ? (
               <thead>
-                <tr>{block.headers.map((header) => <th className="border-b border-stroke-subtle px-3 py-2" key={header}>{header}</th>)}</tr>
+                <tr>
+                  {headerCells.map((header, index) => (
+                    <th
+                      className="border-b border-stroke-subtle px-3 py-2"
+                      colSpan={header.colspan ?? 1}
+                      key={`${header.content}-${index}`}
+                    >
+                      {header.content}
+                    </th>
+                  ))}
+                </tr>
               </thead>
             ) : null}
             <tbody>
-              {block.rows.map((row) => (
-                <tr key={row.join("|")}>{row.map((cell) => <td className="border-b border-stroke-subtle px-3 py-2 text-text-strong" key={cell}>{cell}</td>)}</tr>
+              {rowCells.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`}>
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      className="border-b border-stroke-subtle px-3 py-2 text-text-strong"
+                      colSpan={cell.colspan ?? 1}
+                      key={`${cell.content}-${cellIndex}`}
+                    >
+                      {cell.content}
+                    </td>
+                  ))}
+                </tr>
               ))}
             </tbody>
           </table>

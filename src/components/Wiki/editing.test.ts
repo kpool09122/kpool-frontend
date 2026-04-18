@@ -102,9 +102,36 @@ describe("parseInlineMarkdown", () => {
     ]);
   });
 
+  it("parses supported namuwiki inline syntax", () => {
+    expect(
+      parseInlineMarkdown(
+        "[[문서|대표 문서]] [* 주석 예시] [include(틀:Discography)] [br]next",
+      ),
+    ).toEqual([
+      {
+        children: [{ kind: "text", text: "대표 문서" }],
+        href: "/wiki/%EB%AC%B8%EC%84%9C",
+        kind: "link",
+      },
+      { kind: "text", text: " " },
+      { content: "주석 예시", kind: "footnote" },
+      { kind: "text", text: " " },
+      { kind: "include", target: "틀:Discography" },
+      { kind: "text", text: " " },
+      { kind: "text", text: "\n" },
+      { kind: "text", text: "next" },
+    ]);
+  });
+
   it("keeps invalid markdown as plain text", () => {
     expect(parseInlineMarkdown("Broken [link](not a url")).toEqual([
       { kind: "text", text: "Broken [link](not a url" },
+    ]);
+  });
+
+  it("keeps category syntax as plain text for now", () => {
+    expect(parseInlineMarkdown("[[분류:테스트]]")).toEqual([
+      { kind: "text", text: "[[분류:테스트]]" },
     ]);
   });
 });

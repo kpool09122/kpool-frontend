@@ -9,6 +9,8 @@ import {
   type WikiBlock,
   type WikiEmbedProvider,
   type WikiListType,
+  type WikiTableBlock,
+  type WikiTableCell,
   type WikiTextBlock,
 } from "@kpool/wiki";
 
@@ -32,6 +34,562 @@ type TextBlockFormProps = {
   onCancel: () => void;
   onSave: (changes: Partial<WikiBlock>) => void;
 };
+
+type TableBlockFormProps = {
+  block: WikiTableBlock;
+  onCancel: () => void;
+  onSave: (changes: Partial<WikiBlock>) => void;
+};
+
+type TableEditorState = {
+  hasHeaderRow: boolean;
+  headerCells: WikiTableCell[];
+  rowCells: WikiTableCell[][];
+  tableWidth: string;
+};
+
+type TableCellSelection =
+  | {
+      kind: "header";
+      cellIndexes: number[];
+    }
+  | {
+      kind: "body";
+      rowIndex: number;
+      cellIndexes: number[];
+    };
+
+const getRenderedColumnCount = (cells: WikiTableCell[]): number =>
+  cells.reduce((count, cell) => count + Math.max(1, cell.colspan ?? 1), 0);
+
+const createEmptyTableCell = (): WikiTableCell => ({ content: "" });
+
+const createEmptyTableRow = (columnCount: number): WikiTableCell[] =>
+  Array.from({ length: Math.max(1, columnCount) }, () => createEmptyTableCell());
+
+const getTableColumnCount = (headerCells: WikiTableCell[], rowCells: WikiTableCell[][]): number =>
+  Math.max(
+    1,
+    getRenderedColumnCount(headerCells),
+    ...rowCells.map((row) => getRenderedColumnCount(row)),
+  );
+
+const clampCellColspan = (
+  row: WikiTableCell[],
+  cellIndex: number,
+  requestedColspan: number,
+  columnCount: number,
+): number => {
+  const renderedBefore = row
+    .slice(0, cellIndex)
+    .reduce((count, cell) => count + Math.max(1, cell.colspan ?? 1), 0);
+  const trailingCellCount = row.length - cellIndex - 1;
+  const maxColspan = Math.max(1, columnCount - renderedBefore - trailingCellCount);
+
+  return Math.max(1, Math.min(requestedColspan, maxColspan));
+};
+
+const normalizeTableRow = (row: WikiTableCell[], columnCount: number): WikiTableCell[] => {
+  const safeRow = row.length > 0 ? row : [createEmptyTableCell()];
+  const normalized = safeRow.map((cell, cellIndex) => ({
+    content: cell.content,
+    ...(clampCellColspan(
+      safeRow,
+      cellIndex,
+      Math.max(1, cell.colspan ?? 1),
+      columnCount,
+    ) > 1
+      ? {
+          colspan: clampCellColspan(
+            safeRow,
+            cellIndex,
+            Math.max(1, cell.colspan ?? 1),
+            columnCount,
+          ),
+        }
+      : {}),
+  }));
+  const renderedColumns = getRenderedColumnCount(normalized);
+
+  if (renderedColumns >= columnCount) {
+    return normalized;
+  }
+
+  return [
+    ...normalized,
+    ...Array.from({ length: columnCount - renderedColumns }, () => createEmptyTableCell()),
+  ];
+};
+
+const normalizeTableEditorState = (state: TableEditorState): TableEditorState => {
+  const baseColumnCount = getTableColumnCount(
+    state.hasHeaderRow ? state.headerCells : [],
+    state.rowCells,
+  );
+  const rowCells =
+    state.rowCells.length > 0
+      ? state.rowCells.map((row) => normalizeTableRow(row, baseColumnCount))
+      : [createEmptyTableRow(baseColumnCount)];
+  const columnCount = getTableColumnCount(state.hasHeaderRow ? state.headerCells : [], rowCells);
+
+  return {
+    ...state,
+    headerCells: state.hasHeaderRow
+      ? normalizeTableRow(state.headerCells, columnCount)
+      : [],
+    rowCells: rowCells.map((row) => normalizeTableRow(row, columnCount)),
+  };
+};
+
+const createTableEditorState = (block: WikiTableBlock): TableEditorState =>
+  normalizeTableEditorState({
+    hasHeaderRow: Boolean((block.headerCells ?? block.headers)?.length),
+    headerCells:
+      block.headerCells ??
+      block.headers?.map((header) => ({
+        content: header,
+      })) ??
+      [],
+    rowCells:
+      block.rowCells ??
+      block.rows.map((row) =>
+        row.map((cell) => ({
+          content: cell,
+        })),
+      ),
+    tableWidth: block.tableWidth?.toString() ?? "",
+  });
+
+const toLegacyTableArrays = (cells: WikiTableCell[][]): string[][] =>
+  cells.map((row) => row.map((cell) => cell.content.trim()));
+
+const getSortedUniqueIndexes = (cellIndexes: number[]): number[] =>
+  [...new Set(cellIndexes)].sort((left, right) => left - right);
+
+const createSelectionRange = (startIndex: number, endIndex: number): number[] =>
+  Array.from(
+    { length: Math.abs(endIndex - startIndex) + 1 },
+    (_, offset) => Math.min(startIndex, endIndex) + offset,
+  );
+
+const connectCells = (row: WikiTableCell[], selectedIndexes: number[]): WikiTableCell[] => {
+  const indexes = getSortedUniqueIndexes(selectedIndexes);
+
+  if (indexes.length < 2) {
+    return row;
+  }
+
+  const [firstIndex] = indexes;
+
+  if (firstIndex == null) {
+    return row;
+  }
+
+  const firstCell = row[firstIndex];
+
+  if (!firstCell) {
+    return row;
+  }
+
+  const mergedColspan = indexes.length;
+
+  return row.flatMap((cell, cellIndex) => {
+    if (!indexes.includes(cellIndex)) {
+      return [cell];
+    }
+
+    if (cellIndex !== firstIndex) {
+      return [];
+    }
+
+    return [
+      {
+        ...firstCell,
+        ...(mergedColspan > 1 ? { colspan: mergedColspan } : {}),
+      },
+    ];
+  });
+};
+
+const cancelConnectedCell = (row: WikiTableCell[], cellIndex: number): WikiTableCell[] => {
+  const cell = row[cellIndex];
+  const colspan = cell?.colspan ?? 1;
+
+  if (!cell || colspan <= 1) {
+    return row;
+  }
+
+  return row.flatMap((currentCell, currentIndex) => {
+    if (currentIndex !== cellIndex) {
+      return [currentCell];
+    }
+
+    return [
+      {
+        content: currentCell.content,
+      },
+      ...Array.from({ length: colspan - 1 }, () => createEmptyTableCell()),
+    ];
+  });
+};
+
+function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
+  const [tableState, setTableState] = useState<TableEditorState>(() => createTableEditorState(block));
+  const [selection, setSelection] = useState<TableCellSelection | null>(null);
+  const columnCount = getTableColumnCount(
+    tableState.hasHeaderRow ? tableState.headerCells : [],
+    tableState.rowCells,
+  );
+
+  const updateState = (updater: (current: TableEditorState) => TableEditorState) => {
+    setTableState((current) => normalizeTableEditorState(updater(current)));
+  };
+
+  const isSelectedCell = (nextSelection: TableCellSelection | null): boolean => {
+    if (!selection || !nextSelection || selection.kind !== nextSelection.kind) {
+      return false;
+    }
+
+    if (selection.kind === "body" && nextSelection.kind === "body" && selection.rowIndex !== nextSelection.rowIndex) {
+      return false;
+    }
+
+    return nextSelection.cellIndexes.some((cellIndex) => selection.cellIndexes.includes(cellIndex));
+  };
+
+  const selectCell = (
+    nextSelection:
+      | {
+          kind: "header";
+          cellIndex: number;
+        }
+      | {
+          kind: "body";
+          rowIndex: number;
+          cellIndex: number;
+        },
+    useRangeSelection: boolean,
+  ) => {
+    setSelection((current) => {
+      if (!useRangeSelection || !current || current.kind !== nextSelection.kind) {
+        return nextSelection.kind === "header"
+          ? { kind: "header", cellIndexes: [nextSelection.cellIndex] }
+          : { kind: "body", rowIndex: nextSelection.rowIndex, cellIndexes: [nextSelection.cellIndex] };
+      }
+
+      if (current.kind === "body" && nextSelection.kind === "body" && current.rowIndex !== nextSelection.rowIndex) {
+        return { kind: "body", rowIndex: nextSelection.rowIndex, cellIndexes: [nextSelection.cellIndex] };
+      }
+
+      const anchorIndex = current.cellIndexes[0] ?? nextSelection.cellIndex;
+      const cellIndexes = createSelectionRange(anchorIndex, nextSelection.cellIndex);
+
+      return nextSelection.kind === "header"
+        ? { kind: "header", cellIndexes }
+        : { kind: "body", rowIndex: nextSelection.rowIndex, cellIndexes };
+    });
+  };
+
+  const updateHeaderCell = (cellIndex: number, content: string) => {
+    updateState((current) => ({
+      ...current,
+      headerCells: current.headerCells.map((cell, index) =>
+        index === cellIndex ? { ...cell, content } : cell,
+      ),
+    }));
+  };
+
+  const updateBodyCell = (rowIndex: number, cellIndex: number, content: string) => {
+    updateState((current) => ({
+      ...current,
+      rowCells: current.rowCells.map((row, currentRowIndex) =>
+        currentRowIndex === rowIndex
+          ? row.map((cell, currentCellIndex) =>
+              currentCellIndex === cellIndex ? { ...cell, content } : cell,
+            )
+          : row,
+      ),
+    }));
+  };
+
+  const addColumn = () => {
+    updateState((current) => ({
+      ...current,
+      headerCells: current.hasHeaderRow
+        ? [...current.headerCells, createEmptyTableCell()]
+        : current.headerCells,
+      rowCells: current.rowCells.map((row) => [...row, createEmptyTableCell()]),
+    }));
+    setSelection(null);
+  };
+
+  const addRow = () => {
+    updateState((current) => ({
+      ...current,
+      rowCells: [...current.rowCells, createEmptyTableRow(columnCount)],
+    }));
+    setSelection(null);
+  };
+
+  const toggleHeaderRow = () => {
+    updateState((current) => ({
+      ...current,
+      hasHeaderRow: !current.hasHeaderRow,
+      headerCells: current.hasHeaderRow
+        ? []
+        : createEmptyTableRow(getTableColumnCount([], current.rowCells)),
+    }));
+    setSelection(null);
+  };
+
+  const selectedRow =
+    selection == null
+      ? null
+      : selection.kind === "header"
+        ? tableState.headerCells
+        : tableState.rowCells[selection.rowIndex] ?? null;
+  const selectedIndexes = selection ? getSortedUniqueIndexes(selection.cellIndexes) : [];
+  const hasConnectAction =
+    selectedRow != null &&
+    selectedIndexes.length > 1 &&
+    selectedIndexes.every((cellIndex, index) => {
+      const cell = selectedRow[cellIndex];
+      const previousIndex = selectedIndexes[index - 1];
+
+      return (
+        cell != null &&
+        (cell.colspan ?? 1) === 1 &&
+        (previousIndex == null || cellIndex === previousIndex + 1)
+      );
+    });
+  const hasCancelConnectAction =
+    selectedRow != null &&
+    selectedIndexes.length === 1 &&
+    ((selectedRow[selectedIndexes[0] ?? -1]?.colspan ?? 1) > 1);
+
+  const connectSelection = () => {
+    if (!selection || !hasConnectAction) {
+      return;
+    }
+
+    if (selection.kind === "header") {
+      updateState((current) => ({
+        ...current,
+        headerCells: connectCells(current.headerCells, selection.cellIndexes),
+      }));
+      setSelection({
+        kind: "header",
+        cellIndexes: [Math.min(...selection.cellIndexes)],
+      });
+      return;
+    }
+
+    updateState((current) => ({
+      ...current,
+      rowCells: current.rowCells.map((row, rowIndex) =>
+        rowIndex === selection.rowIndex ? connectCells(row, selection.cellIndexes) : row,
+      ),
+    }));
+    setSelection({
+      kind: "body",
+      rowIndex: selection.rowIndex,
+      cellIndexes: [Math.min(...selection.cellIndexes)],
+    });
+  };
+
+  const cancelConnectedSelection = () => {
+    if (!selection || !hasCancelConnectAction) {
+      return;
+    }
+
+    const selectedIndex = selection.cellIndexes[0];
+
+    if (selectedIndex == null) {
+      return;
+    }
+
+    if (selection.kind === "header") {
+      updateState((current) => ({
+        ...current,
+        headerCells: cancelConnectedCell(current.headerCells, selectedIndex),
+      }));
+      setSelection({
+        kind: "header",
+        cellIndexes: createSelectionRange(
+          selectedIndex,
+          selectedIndex + ((tableState.headerCells[selectedIndex]?.colspan ?? 1) - 1),
+        ),
+      });
+      return;
+    }
+
+    const selectedRowCell = tableState.rowCells[selection.rowIndex]?.[selectedIndex];
+    const colspan = selectedRowCell?.colspan ?? 1;
+
+    updateState((current) => ({
+      ...current,
+      rowCells: current.rowCells.map((row, rowIndex) =>
+        rowIndex === selection.rowIndex ? cancelConnectedCell(row, selectedIndex) : row,
+      ),
+    }));
+    setSelection({
+      kind: "body",
+      rowIndex: selection.rowIndex,
+      cellIndexes: createSelectionRange(selectedIndex, selectedIndex + (colspan - 1)),
+    });
+  };
+
+  const submitTable = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedState = normalizeTableEditorState(tableState);
+    const headerCells = normalizedState.hasHeaderRow ? normalizedState.headerCells : null;
+    const rowCells = normalizedState.rowCells;
+
+    onSave({
+      headerCells,
+      headers: headerCells ? headerCells.map((cell) => cell.content.trim()) : null,
+      rowCells,
+      rows: toLegacyTableArrays(rowCells),
+      tableWidth: normalizedState.tableWidth ? Number(normalizedState.tableWidth) : null,
+    });
+  };
+
+  return (
+    <form className="grid gap-4" onSubmit={submitTable}>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="grid gap-2 text-sm font-semibold text-text-strong">
+          Table width
+          <input
+            className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+            min="1"
+            onChange={(event) =>
+              setTableState((current) => ({
+                ...current,
+                tableWidth: event.target.value,
+              }))
+            }
+            type="number"
+            value={tableState.tableWidth}
+          />
+        </label>
+        <button
+          className="rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong"
+          onClick={toggleHeaderRow}
+          type="button"
+        >
+          {tableState.hasHeaderRow ? "Remove header row" : "Add header row"}
+        </button>
+        <button
+          className="rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong"
+          onClick={addRow}
+          type="button"
+        >
+          + Row
+        </button>
+        <button
+          className="rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong"
+          onClick={addColumn}
+          type="button"
+        >
+          + Column
+        </button>
+        {hasConnectAction ? (
+          <button
+            className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-semibold text-text-strong"
+            onClick={connectSelection}
+            type="button"
+          >
+            + Connect
+          </button>
+        ) : null}
+        {hasCancelConnectAction ? (
+          <button
+            className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-semibold text-text-strong"
+            onClick={cancelConnectedSelection}
+            type="button"
+          >
+            + Cancel connect
+          </button>
+        ) : null}
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
+        <table
+          className="min-w-full border-collapse text-left text-sm"
+          style={tableState.tableWidth ? { width: `${tableState.tableWidth}px` } : undefined}
+        >
+          {tableState.hasHeaderRow ? (
+            <thead>
+              <tr>
+                {tableState.headerCells.map((cell, cellIndex) => (
+                  <th
+                    className={`min-w-40 border-b border-stroke-subtle bg-surface-muted/60 align-top ${
+                      isSelectedCell({ kind: "header", cellIndexes: [cellIndex] })
+                        ? "ring-2 ring-text-strong/20 ring-inset"
+                        : ""
+                    }`}
+                    colSpan={cell.colspan ?? 1}
+                    key={`header-${cellIndex}`}
+                  >
+                    <div className="grid gap-2 p-3">
+                      <label className="grid gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+                        Header {cellIndex + 1}
+                        <input
+                          aria-label={`Header cell ${cellIndex + 1}`}
+                          className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong"
+                          onClick={(event) =>
+                            selectCell({ kind: "header", cellIndex }, event.shiftKey)
+                          }
+                          onChange={(event) => updateHeaderCell(cellIndex, event.target.value)}
+                          value={cell.content}
+                        />
+                      </label>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          ) : null}
+          <tbody>
+            {tableState.rowCells.map((row, rowIndex) => (
+              <tr key={`row-${rowIndex}`}>
+                {row.map((cell, cellIndex) => (
+                  <td
+                    className={`min-w-40 border-b border-stroke-subtle align-top ${
+                      isSelectedCell({ kind: "body", rowIndex, cellIndexes: [cellIndex] })
+                        ? "bg-surface-muted/40 ring-2 ring-text-strong/15 ring-inset"
+                        : ""
+                    }`}
+                    colSpan={cell.colspan ?? 1}
+                    key={`row-${rowIndex}-cell-${cellIndex}`}
+                  >
+                    <div className="p-3">
+                      <input
+                        aria-label={`Row ${rowIndex + 1} cell ${cellIndex + 1}`}
+                        className="w-full rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm font-normal text-text-strong outline-none transition focus:border-stroke-subtle focus:bg-surface-base"
+                        onClick={(event) =>
+                          selectCell({ kind: "body", rowIndex, cellIndex }, event.shiftKey)
+                        }
+                        onChange={(event) =>
+                          updateBodyCell(rowIndex, cellIndex, event.target.value)
+                        }
+                        placeholder="Value"
+                        value={cell.content}
+                      />
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <WikiFormActions onCancel={onCancel} />
+    </form>
+  );
+}
 
 function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
   const editorLabelId = `wiki-text-label-${block.blockIdentifier}`;
@@ -300,13 +858,7 @@ export function WikiBlockForm({
         </form>
       );
     case "table":
-      return (
-        <form onSubmit={(event) => submit(event, (data) => ({ headers: getLines(data, "headers"), rows: getLines(data, "rows").map((row) => row.split(",").map((cell) => cell.trim())) }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">Headers<textarea className="min-h-20 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={(block.headers ?? []).join("\n")} name="headers" /></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Rows<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.rows.map((row) => row.join(", ")).join("\n")} name="rows" /></label>
-          <WikiFormActions onCancel={onCancel} />
-        </form>
-      );
+      return <WikiTableBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "profile_card_list":
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ title: getString(data, "title") || null, wikiIdentifiers: getLines(data, "wikiIdentifiers") }))}>
