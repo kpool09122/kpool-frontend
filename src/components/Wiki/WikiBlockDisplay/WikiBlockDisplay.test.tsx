@@ -23,14 +23,17 @@ describe("WikiBlockDisplay", () => {
   });
 
   it("renders table blocks", () => {
-    render(
+    const { container } = render(
       <WikiBlockDisplay
         block={{
           blockIdentifier: "table-1",
           blockType: "table",
           displayOrder: 20,
           headers: ["Role", "Member"],
+          headerCells: [{ content: "Role" }, { content: "Member" }],
           rows: [["Leader", "Mina"]],
+          rowCells: [[{ content: "Leader" }, { content: "Mina" }]],
+          tableWidth: 320,
         }}
       />,
     );
@@ -38,6 +41,26 @@ describe("WikiBlockDisplay", () => {
     expect(screen.getByText("Role")).toBeInTheDocument();
     expect(screen.getByText("Leader")).toBeInTheDocument();
     expect(screen.getByText("Mina")).toBeInTheDocument();
+    expect(container.querySelector("table")).toHaveStyle({ width: "320px" });
+  });
+
+  it("renders table cell colspan when present", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "table-2",
+          blockType: "table",
+          displayOrder: 20,
+          headers: ["Release", "Year"],
+          headerCells: [{ content: "Release" }, { content: "Year" }],
+          rows: [["Aurora Echo"]],
+          rowCells: [[{ content: "Aurora Echo", colspan: 2 }]],
+          tableWidth: 320,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Aurora Echo", { selector: "td" })).toHaveAttribute("colspan", "2");
   });
 
   it("renders image captions when present", () => {

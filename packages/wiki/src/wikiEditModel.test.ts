@@ -146,24 +146,29 @@ describe("wikiEditModel", () => {
 
     expect(serializeWikiSectionsToCode(parsed.sections)).toBe(code);
     expect(code).toContain("[[image|id:img-discography-stage|src:");
-    expect(code).toContain("== Highlights ==");
+    expect(code).toContain("=== Highlights ===");
+    expect(parsed.warnings).toEqual([]);
   });
 
-  it("parses namu-like headings, lists, tables, and unknown macros as editable content", () => {
+  it("parses namuwiki-like headings, lists, tables, and fallback syntax as editable content", () => {
     const parsed = parseWikiSectionsFromCode([
-      "= Overview =",
+      "== Overview ==",
       "",
       "Aurora Echo keeps a fast release cycle.",
       "",
       "[[분류:테스트]]",
       "",
+      "[* 주석 예시]",
+      "",
       "* Debut single",
       "* Follow-up single",
       "",
-      "== Highlights ==",
+      "=== Highlights ===",
       "",
       "|| !Release || !Year ||",
       "|| Low Tide, High Lights || 2022 ||",
+      "",
+      "[include(틀:Discography)]",
     ].join("\n"));
 
     expect(parsed.ok).toBe(true);
@@ -189,32 +194,46 @@ describe("wikiEditModel", () => {
             content: "[[분류:테스트]]",
           },
           {
-            block_type: "list",
+            block_type: "text",
             display_order: 30,
+            content: "[* 주석 예시]",
+          },
+          {
+            block_type: "list",
+            display_order: 40,
             list_type: "bullet",
             items: ["Debut single", "Follow-up single"],
           },
           {
             type: "section",
             title: "Highlights",
-            display_order: 40,
+            display_order: 50,
             contents: [
               {
                 block_type: "table",
                 display_order: 10,
                 headers: ["Release", "Year"],
+                header_cells: [{ content: "Release" }, { content: "Year" }],
                 rows: [["Low Tide, High Lights", "2022"]],
+                row_cells: [[{ content: "Low Tide, High Lights" }, { content: "2022" }]],
+                table_width: null,
+              },
+              {
+                block_type: "text",
+                display_order: 20,
+                content: "[include(틀:Discography)]",
               },
             ],
           },
         ],
       },
     ]);
+    expect(parsed.warnings).toEqual([]);
   });
 
   it("returns a parse error when headings skip levels or exceed the supported depth", () => {
     expect(
-      parseWikiSectionsFromCode(["= Overview =", "", "=== Broken ==="].join("\n")),
+      parseWikiSectionsFromCode(["== Overview ==", "", "==== Broken ===="].join("\n")),
     ).toEqual({
       ok: false,
       message: "Heading depth cannot skip levels. Add the missing parent section first.",
@@ -222,11 +241,11 @@ describe("wikiEditModel", () => {
 
     expect(
       parseWikiSectionsFromCode([
-        "= Overview =",
+        "== Overview ==",
         "",
-        "== Style ==",
+        "=== Style ===",
         "",
-        "==== Too Deep ====",
+        "===== Too Deep =====",
       ].join("\n")),
     ).toEqual({
       ok: false,
@@ -237,7 +256,7 @@ describe("wikiEditModel", () => {
   it("returns a parse error for malformed structured macros", () => {
     expect(
       parseWikiSectionsFromCode([
-        "= Overview =",
+        "== Overview ==",
         "",
         "[[image|id:cover|src:https://example.com/image.png",
       ].join("\n")),
@@ -246,5 +265,97 @@ describe("wikiEditModel", () => {
       message:
         "Code mode could not parse a structured block. Fix the macro syntax or clear the draft.",
     });
+  });
+
+  it("warns when extended table syntax is preserved as plain cell text", () => {
+    const parsed = parseWikiSectionsFromCode([
+      "== Overview ==",
+      "",
+      "||<tablebgcolor=#222> !Name || !Year ||",
+      "||<width=200> Aurora Echo || 2024 ||",
+    ].join("\n"));
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      return;
+    }
+
+    expect(parsed.warnings).toEqual([
+      "Extended table syntax was preserved as plain cell text because the GUI table editor cannot model merged cells or attributes yet.",
+    ]);
+    expect(serializeWikiSectionsToCode(parsed.sections)).toContain("|| !Name || !Year ||");
+  });
+
+  it("converts supported media include macros into embed blocks", () => {
+    const parsed = parseWikiSectionsFromCode([
+      "== Overview ==",
+      "",
+      "[include(틀:영상 정렬, url=jNQXAC9IVRw)]",
+    ].join("\n"));
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      return;
+    }
+
+    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+      {
+        type: "section",
+        title: "Overview",
+        display_order: 10,
+        contents: [
+          {
+            block_type: "embed",
+            display_order: 10,
+            provider: "youtube",
+            embed_id: "jNQXAC9IVRw",
+            caption: null,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("parses supported table width and colspan syntax into structured table cells", () => {
+    const parsed = parseWikiSectionsFromCode([
+      "== Highlights ==",
+      "",
+      "|| !<tablewidth=320> !Release || !Year ||",
+      "|| <-2> Aurora Echo ||  ||",
+    ].join("\n"));
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      return;
+    }
+
+    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+      {
+        type: "section",
+        title: "Highlights",
+        display_order: 10,
+        contents: [
+          {
+            block_type: "table",
+            display_order: 10,
+            headers: ["Release", "Year"],
+            header_cells: [{ content: "Release" }, { content: "Year" }],
+            rows: [["Aurora Echo"]],
+            row_cells: [[{ content: "Aurora Echo", colspan: 2 }]],
+            table_width: 320,
+          },
+        ],
+      },
+    ]);
+    expect(parsed.warnings).toEqual([]);
+    expect(serializeWikiSectionsToCode(parsed.sections)).toContain(
+      "|| <tablewidth=320> !Release || !Year ||",
+    );
+    expect(serializeWikiSectionsToCode(parsed.sections)).toContain(
+      "|| <-2> Aurora Echo ||",
+    );
   });
 });

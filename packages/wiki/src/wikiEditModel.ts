@@ -2,6 +2,7 @@ import type {
   WikiBlock,
   WikiBlockType,
   WikiDetail,
+  WikiEmbedBlock,
   WikiEmbedProvider,
   WikiSection,
   WikiSectionContent,
@@ -33,6 +34,9 @@ export type WikiSectionContentPayload =
       items?: string[];
       rows?: string[][];
       headers?: string[] | null;
+      row_cells?: Array<Array<{ content: string; colspan?: number }>>;
+      header_cells?: Array<{ content: string; colspan?: number }> | null;
+      table_width?: number | null;
       wiki_identifiers?: string[];
       title?: string | null;
     };
@@ -55,6 +59,7 @@ export type WikiCodeParseResult =
   | {
       ok: true;
       sections: WikiSection[];
+      warnings: string[];
     }
   | {
       ok: false;
@@ -161,8 +166,42 @@ const serializeCodeMacro = (name: string, values: string[]): string =>
 const serializeCodeField = (key: string, value: string | null | undefined): string | null =>
   value == null ? null : `${key}:${escapeCodeValue(value)}`;
 
-const serializeTableRow = (cells: string[], isHeader = false): string =>
-  `|| ${cells.map((cell) => `${isHeader ? "!" : ""}${cell}`).join(" || ")} ||`;
+const serializeTableCell = (
+  cell: { content: string; colspan?: number },
+  options?: { isHeader?: boolean; tableWidth?: number | null },
+): string => {
+  const attributes = [
+    options?.tableWidth ? `<tablewidth=${options.tableWidth}>` : null,
+    cell.colspan && cell.colspan > 1 ? `<-${cell.colspan}>` : null,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join("");
+
+  const content = `${options?.isHeader ? "!" : ""}${cell.content}`.trimEnd();
+
+  return [attributes, content].filter(Boolean).join(attributes && content ? " " : "");
+};
+
+const serializeTableRow = (
+  cells: string[],
+  isHeader = false,
+  options?: { structuredCells?: Array<{ content: string; colspan?: number }>; tableWidth?: number | null },
+): string => {
+  const sourceCells =
+    options?.structuredCells ??
+    cells.map((cell) => ({
+      content: cell,
+    }));
+
+  return `|| ${sourceCells
+    .map((cell, index) =>
+      serializeTableCell(cell, {
+        isHeader,
+        tableWidth: index === 0 ? options?.tableWidth : null,
+      }),
+    )
+    .join(" || ")} ||`;
+};
 
 const serializeWikiBlockToCode = (block: WikiBlock): string => {
   switch (block.blockType) {
@@ -207,8 +246,19 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
         .join("\n");
     case "table":
       return [
-        ...(block.headers ? [serializeTableRow(block.headers, true)] : []),
-        ...block.rows.map((row) => serializeTableRow(row)),
+        ...(block.headers
+          ? [
+              serializeTableRow(block.headers, true, {
+                structuredCells: block.headerCells ?? undefined,
+                tableWidth: block.tableWidth,
+              }),
+            ]
+          : []),
+        ...block.rows.map((row, index) =>
+          serializeTableRow(row, false, {
+            structuredCells: block.rowCells?.[index],
+          }),
+        ),
       ].join("\n");
     case "profile_card_list":
       return serializeCodeMacro("profiles", [
@@ -220,7 +270,8 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
 
 const serializeWikiSectionToCode = (section: WikiSection): string => {
   const normalizedSection = normalizeWikiSectionContents(section);
-  const heading = `${"=".repeat(normalizedSection.depth)} ${normalizedSection.title} ${"=".repeat(normalizedSection.depth)}`;
+  const headingDepth = normalizedSection.depth + 1;
+  const heading = `${"=".repeat(headingDepth)} ${normalizedSection.title} ${"=".repeat(headingDepth)}`;
   const sortedContents = sortWikiSectionContents(normalizedSection.contents);
   const contents = [
     ...sortedContents
@@ -248,9 +299,95 @@ const parseTableCells = (line: string): string[] =>
     .split("||")
     .map((cell) => cell.trim());
 
+const parseTableCell = (
+  rawCell: string,
+): {
+  cell: { content: string; colspan?: number };
+  isHeader: boolean;
+  tableWidth: number | null;
+  hasUnsupportedAttributes: boolean;
+} => {
+  let value = rawCell.trim();
+  let isHeader = false;
+  let tableWidth: number | null = null;
+  let colspan: number | undefined;
+  let hasUnsupportedAttributes = false;
+
+  if (value.startsWith("!")) {
+    isHeader = true;
+    value = value.slice(1).trimStart();
+  }
+
+  while (value.startsWith("<")) {
+    const endIndex = value.indexOf(">");
+
+    if (endIndex < 0) {
+      break;
+    }
+
+    const attribute = value.slice(1, endIndex).trim();
+
+    if (/^tablewidth=\d+$/i.test(attribute)) {
+      tableWidth = Number(attribute.split("=")[1]);
+    } else if (/^-\d+$/.test(attribute)) {
+      colspan = Number(attribute.slice(1));
+    } else {
+      hasUnsupportedAttributes = true;
+    }
+
+    value = value.slice(endIndex + 1).trimStart();
+  }
+
+  if (value.startsWith("!")) {
+    isHeader = true;
+    value = value.slice(1).trimStart();
+  }
+
+  return {
+    cell: {
+      content: value,
+      ...(colspan && colspan > 1 ? { colspan } : {}),
+    },
+    hasUnsupportedAttributes,
+    isHeader,
+    tableWidth,
+  };
+};
+
+const countRenderedColumns = (cells: Array<{ colspan?: number }>): number =>
+  cells.reduce((sum, cell) => sum + (cell.colspan ?? 1), 0);
+
+const trimOverflowCells = (
+  cells: Array<{ content: string; colspan?: number }>,
+  columnCount: number,
+): Array<{ content: string; colspan?: number }> => {
+  const trimmed = [...cells];
+
+  while (countRenderedColumns(trimmed) > columnCount) {
+    const lastCell = trimmed.at(-1);
+
+    if (!lastCell || lastCell.content.trim() || (lastCell.colspan ?? 1) > 1) {
+      break;
+    }
+
+    trimmed.pop();
+  }
+
+  return trimmed;
+};
+
 const createParseError = (message: string): WikiCodeParseResult => ({
   ok: false,
   message,
+});
+
+const createParseSuccess = (
+  sections: WikiSection[],
+  warnings: string[] = [],
+): WikiCodeParseResult => ({
+  ok: true,
+  sections,
+  warnings,
 });
 
 const parseCodeField = (part: string): [string, string] | null => {
@@ -293,10 +430,52 @@ const parseCodeMacro = (
   return { name: name.trim(), fields };
 };
 
+const parseNamuIncludeMacro = (
+  line: string,
+): { name: string; params: Record<string, string> } | null => {
+  const trimmedLine = line.trim();
+
+  if (!trimmedLine.startsWith("[include(") || !trimmedLine.endsWith(")]")) {
+    return null;
+  }
+
+  const rawContent = trimmedLine.slice(9, -2).trim();
+  const [rawName, ...rawParts] = splitEscaped(rawContent, ",");
+  const name = rawName?.trim();
+
+  if (!name) {
+    return null;
+  }
+
+  const params = rawParts.reduce<Record<string, string>>((result, part) => {
+    const dividerIndex = part.indexOf("=");
+
+    if (dividerIndex < 0) {
+      return result;
+    }
+
+    const key = part.slice(0, dividerIndex).trim();
+
+    if (!key) {
+      return result;
+    }
+
+    result[key] = unescapeCodeValue(part.slice(dividerIndex + 1).trim());
+
+    return result;
+  }, {});
+
+  return {
+    name,
+    params,
+  };
+};
+
 type WikiCodeBlocksParseResult =
   | {
       ok: true;
       blocks: WikiBlock[];
+      warnings: string[];
     }
   | {
       ok: false;
@@ -332,8 +511,98 @@ const isStructuredBlockStart = (line: string): boolean =>
   isListLine(line) ||
   isTableLine(line);
 
+const detectTextFallbackWarnings = (content: string): string[] => {
+  const warnings = new Set<string>();
+
+  if (/\[\[(파일|File):[^[\]]+\]\]/.test(content)) {
+    warnings.add("File link syntax is still preserved as plain text in the GUI editor.");
+  }
+
+  return [...warnings];
+};
+
+const hasExtendedTableSyntax = (cells: string[]): boolean =>
+  cells.some((cell) =>
+    /^<[^>]+>/.test(cell.trim()) &&
+    !/^<(tablewidth=\d+|-\d+)>/i.test(cell.trim()),
+  );
+
+const includeTemplateToEmbedProvider = (
+  name: string,
+): WikiEmbedProvider | null => {
+  const normalizedName = name.trim().toLowerCase();
+
+  if (["틀:영상 정렬", "틀:youtube", "틀:유튜브"].includes(normalizedName)) {
+    return "youtube";
+  }
+
+  if (["틀:x", "틀:twitter", "틀:트위터", "틀:tweet", "틀:트윗"].includes(normalizedName)) {
+    return "x";
+  }
+
+  if (["틀:spotify", "틀:스포티파이"].includes(normalizedName)) {
+    return "spotify";
+  }
+
+  if (["틀:tiktok", "틀:틱톡"].includes(normalizedName)) {
+    return "tiktok";
+  }
+
+  return null;
+};
+
+const getIncludeEmbedId = (
+  provider: WikiEmbedProvider,
+  params: Record<string, string>,
+): string | null => {
+  const candidates = (() => {
+    switch (provider) {
+      case "youtube":
+        return [params.url, params.주소, params.id, params.video];
+      case "x":
+        return [params.url, params.주소, params.id, params.tweetId, params.vid];
+      case "spotify":
+        return [params.url, params.주소, params.id];
+      case "tiktok":
+        return [params.url, params.주소, params.id, params.video];
+    }
+  })();
+
+  return candidates.find((candidate) => candidate?.trim())?.trim() ?? null;
+};
+
+const parseIncludeEmbedBlock = (
+  line: string,
+): Omit<WikiEmbedBlock, "blockIdentifier" | "displayOrder"> | null => {
+  const includeMacro = parseNamuIncludeMacro(line);
+
+  if (!includeMacro) {
+    return null;
+  }
+
+  const provider = includeTemplateToEmbedProvider(includeMacro.name);
+
+  if (!provider) {
+    return null;
+  }
+
+  const embedId = getIncludeEmbedId(provider, includeMacro.params);
+
+  if (!embedId) {
+    return null;
+  }
+
+  return {
+    blockType: "embed",
+    caption: includeMacro.params.caption?.trim() || includeMacro.params.내용?.trim() || null,
+    embedId,
+    provider,
+  };
+};
+
 const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
   const blocks: WikiBlock[] = [];
+  const warnings = new Set<string>();
   let cursor = 0;
 
   const addBlock = (block: Record<string, unknown> & { blockType: WikiBlockType }) => {
@@ -400,21 +669,46 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
 
     if (isTableLine(line)) {
       const rows: string[][] = [];
+      const rowCells: Array<Array<{ content: string; colspan?: number }>> = [];
+      let headerCells: Array<{ content: string; colspan?: number }> | null = null;
+      let tableWidth: number | null = null;
 
       while (cursor < lines.length && isTableLine(lines[cursor])) {
-        rows.push(parseTableCells(lines[cursor]));
+        const parsedCells = parseTableCells(lines[cursor]).map(parseTableCell);
+        const cells = parsedCells.map(({ cell }) => cell);
+
+        if (
+          hasExtendedTableSyntax(parseTableCells(lines[cursor])) ||
+          parsedCells.some(({ hasUnsupportedAttributes }) => hasUnsupportedAttributes)
+        ) {
+          warnings.add(
+            "Extended table syntax was preserved as plain cell text because the GUI table editor cannot model merged cells or attributes yet.",
+          );
+        }
+
+        tableWidth ??= parsedCells.find(({ tableWidth: width }) => width != null)?.tableWidth ?? null;
+        rowCells.push(cells);
+        rows.push(cells.map((cell) => cell.content));
         cursor += 1;
       }
 
-      const firstRow = rows[0] ?? [];
-      const hasHeaders = firstRow.length > 0 && firstRow.every((cell) => cell.startsWith("!"));
+      const firstStructuredRow = rowCells[0] ?? [];
+      const firstRawRow = parseTableCells(lines[cursor - rowCells.length] ?? "").map(parseTableCell);
+      const hasHeaders = firstRawRow.length > 0 && firstRawRow.every((cell) => cell.isHeader);
+      const columnCount = countRenderedColumns(hasHeaders ? firstStructuredRow : rowCells[0] ?? []);
+      const normalizedBodyRows = (hasHeaders ? rowCells.slice(1) : rowCells).map((row) =>
+        trimOverflowCells(row, columnCount),
+      );
+
+      headerCells = hasHeaders ? trimOverflowCells(firstStructuredRow, columnCount) : null;
 
       addBlock({
         blockType: "table",
-        headers: hasHeaders ? firstRow.map((cell) => cell.slice(1).trim()) : null,
-        rows: (hasHeaders ? rows.slice(1) : rows).map((row) =>
-          row.map((cell) => cell.trim()),
-        ),
+        headerCells,
+        headers: headerCells ? headerCells.map((cell) => cell.content.trim()) : null,
+        rowCells: normalizedBodyRows,
+        rows: normalizedBodyRows.map((row) => row.map((cell) => cell.content.trim())),
+        tableWidth,
       });
       continue;
     }
@@ -511,6 +805,14 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
       }
     }
 
+    const includeEmbedBlock = parseIncludeEmbedBlock(line);
+
+    if (includeEmbedBlock) {
+      addBlock(includeEmbedBlock);
+      cursor += 1;
+      continue;
+    }
+
     const textLines: string[] = [];
 
     while (cursor < lines.length) {
@@ -528,15 +830,22 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
       cursor += 1;
     }
 
+    const textContent = textLines.join("\n");
+
+    for (const warning of detectTextFallbackWarnings(textContent)) {
+      warnings.add(warning);
+    }
+
     addBlock({
       blockType: "text",
-      content: textLines.join("\n"),
+      content: textContent,
     });
   }
 
   return {
     ok: true,
     blocks,
+    warnings: [...warnings],
   };
 };
 
@@ -560,16 +869,15 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
   const normalizedCode = code.replaceAll("\r\n", "\n");
 
   if (!normalizedCode.trim()) {
-    return {
-      ok: true,
-      sections: [],
-    };
+    return createParseSuccess([]);
   }
 
   const lines = normalizedCode.split("\n");
   const rootSections: WikiSection[] = [];
   let sectionStack: WikiSection[] = [];
   let pendingLines: string[] = [];
+  let headingBaseDepth: number | null = null;
+  const warnings = new Set<string>();
 
   const replaceSectionInStack = (nextSection: WikiSection) => {
     const depthIndex = nextSection.depth - 1;
@@ -624,6 +932,10 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
       return createParseError(parsedBlocks.message);
     }
 
+    for (const warning of parsedBlocks.warnings) {
+      warnings.add(warning);
+    }
+
     replaceSectionInStack(appendBlocksToSection(currentSection, parsedBlocks.blocks));
     pendingLines = [];
     return null;
@@ -640,13 +952,16 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
         return flushResult;
       }
 
-      if (headingDepth > WIKI_SECTION_MAX_DEPTH) {
+      headingBaseDepth ??= headingDepth >= 2 ? 2 : 1;
+      const normalizedHeadingDepth = headingDepth - headingBaseDepth + 1;
+
+      if (normalizedHeadingDepth < 1 || normalizedHeadingDepth > WIKI_SECTION_MAX_DEPTH) {
         return createParseError(
           `Code mode supports headings up to depth ${WIKI_SECTION_MAX_DEPTH}.`,
         );
       }
 
-      if (headingDepth > sectionStack.length + 1) {
+      if (normalizedHeadingDepth > sectionStack.length + 1) {
         return createParseError(
           "Heading depth cannot skip levels. Add the missing parent section first.",
         );
@@ -658,14 +973,14 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
         return createParseError("Section headings must include a title.");
       }
 
-      sectionStack = sectionStack.slice(0, headingDepth - 1);
+      sectionStack = sectionStack.slice(0, normalizedHeadingDepth - 1);
       const parent = sectionStack.at(-1);
       const nextSection: WikiSection = {
         type: "section",
         sectionIdentifier: createIdentifier("section"),
         title,
         displayOrder: getNextDisplayOrder(parent ? parent.contents : rootSections),
-        depth: headingDepth,
+        depth: normalizedHeadingDepth,
         contents: [],
         children: [],
       };
@@ -703,10 +1018,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
     return flushResult;
   }
 
-  return {
-    ok: true,
-    sections: normalizeWikiSectionsForEditing(rootSections),
-  };
+  return createParseSuccess(normalizeWikiSectionsForEditing(rootSections), [...warnings]);
 };
 
 const getNextDisplayOrder = (contents: WikiSectionContent[]): number =>
@@ -845,7 +1157,10 @@ export const createWikiBlock = (
         blockType,
         displayOrder,
         headers: ["Column 1", "Column 2"],
+        headerCells: [{ content: "Column 1" }, { content: "Column 2" }],
         rows: [["Value 1", "Value 2"]],
+        rowCells: [[{ content: "Value 1" }, { content: "Value 2" }]],
+        tableWidth: null,
       };
     case "profile_card_list":
       return {
@@ -1076,6 +1391,9 @@ const toWikiContentPayload = (
         display_order: content.displayOrder,
         rows: content.rows,
         headers: content.headers,
+        row_cells: content.rowCells,
+        header_cells: content.headerCells ?? null,
+        table_width: content.tableWidth ?? null,
       };
     case "profile_card_list":
       return {

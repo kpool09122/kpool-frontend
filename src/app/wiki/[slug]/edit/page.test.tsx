@@ -149,11 +149,11 @@ describe("WikiEditPage", () => {
     fireEvent.change(screen.getByLabelText("Wiki code"), {
       target: {
         value: [
-          "= Overview =",
+          "== Overview ==",
           "",
           "Updated overview from code mode.",
           "",
-          "== Style Guide ==",
+          "=== Style Guide ===",
           "",
           "A new nested section.",
         ].join("\n"),
@@ -175,7 +175,7 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.change(screen.getByLabelText("Wiki code"), {
       target: {
-        value: ["= Overview =", "", "[[image|id:cover]"].join("\n"),
+        value: ["== Overview ==", "", "[[image|id:cover]"].join("\n"),
       },
     });
 
@@ -187,10 +187,82 @@ describe("WikiEditPage", () => {
     expect(confirmSpy).toHaveBeenCalledWith("Discard unsaved wiki changes?");
     expect(screen.queryByTestId("wiki-code-error")).not.toBeInTheDocument();
     expect((screen.getByLabelText("Wiki code") as HTMLTextAreaElement).value).toContain(
-      "= Overview =",
+      "== Overview ==",
     );
 
     confirmSpy.mockRestore();
+  });
+
+  it("shows compatibility warnings for namuwiki syntax that falls back to text blocks", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+    fireEvent.change(screen.getByLabelText("Wiki code"), {
+      target: {
+        value: [
+          "== Overview ==",
+          "",
+          "[[문서|대표 문서]]",
+          "",
+          "[[분류:테스트]]",
+          "",
+          "[* 주석 예시]",
+          "",
+          "[include(틀:Discography)]",
+        ].join("\n"),
+      },
+    });
+
+    expect(screen.queryByTestId("wiki-code-warnings")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("wiki-code-error")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "gui" }));
+
+    expect(document.querySelector('a[href="/wiki/%EB%AC%B8%EC%84%9C"]')).not.toBeNull();
+    expect(screen.getByLabelText("Footnote: 주석 예시")).toBeInTheDocument();
+    expect(screen.getByText("Included from 틀:Discography")).toBeInTheDocument();
+  });
+
+  it("shows compatibility warnings immediately for the dedicated namuwiki demo mock", () => {
+    mockedUseWikiDetail.mockReturnValue({
+      status: "success",
+      data: createMockWikiDetail("twice"),
+    });
+
+    render(React.createElement(WikiEditPage, { slug: "twice" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+
+    expect(screen.queryByTestId("wiki-code-warnings")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "gui" }));
+    expect(document.querySelector('a[href="/wiki/nayeon-twice"]')).not.toBeNull();
+    expect(screen.getByText("TWICE Members")).toBeInTheDocument();
+  });
+
+  it("maps supported media include macros into embed blocks in gui mode", () => {
+    mockedUseWikiDetail.mockReturnValue(successState);
+
+    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+    fireEvent.change(screen.getByLabelText("Wiki code"), {
+      target: {
+        value: [
+          "== Overview ==",
+          "",
+          "[include(틀:영상 정렬, url=jNQXAC9IVRw)]",
+        ].join("\n"),
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "gui" }));
+
+    expect(screen.getByTitle("YouTube embed")).toHaveAttribute(
+      "src",
+      "https://www.youtube-nocookie.com/embed/jNQXAC9IVRw",
+    );
   });
 
   it("renders loading, error, and empty states", () => {

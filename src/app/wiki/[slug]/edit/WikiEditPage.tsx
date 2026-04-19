@@ -35,6 +35,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
     canPersist,
     code,
     codeParseError,
+    codeWarnings,
     draft,
     editingId,
     saveState,
@@ -181,6 +182,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
             <WikiCodeEditor
               code={code}
               errorMessage={codeParseError}
+              warnings={codeWarnings}
               onChange={updateCode}
               onClear={clearChanges}
             />

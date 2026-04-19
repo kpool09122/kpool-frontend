@@ -58,7 +58,9 @@ export type InlineMarkdownToken =
   | { kind: "strong"; children: InlineMarkdownToken[] }
   | { kind: "emphasis"; children: InlineMarkdownToken[] }
   | { kind: "strikethrough"; children: InlineMarkdownToken[] }
-  | { kind: "link"; children: InlineMarkdownToken[]; href: string };
+  | { kind: "link"; children: InlineMarkdownToken[]; href: string }
+  | { kind: "footnote"; content: string }
+  | { kind: "include"; target: string };
 
 const markdownWrapMap: Record<Exclude<InlineMarkdownFormat, "link">, string> = {
   bold: "**",
@@ -164,6 +166,100 @@ const parseLinkToken = (content: string, startIndex: number): { node: InlineMark
   };
 };
 
+const parseNamuLinkToken = (
+  content: string,
+  startIndex: number,
+): { node: InlineMarkdownToken; nextIndex: number } | null => {
+  if (!content.startsWith("[[", startIndex)) {
+    return null;
+  }
+
+  const endIndex = content.indexOf("]]", startIndex + 2);
+
+  if (endIndex < 0) {
+    return null;
+  }
+
+  const rawValue = content.slice(startIndex + 2, endIndex).trim();
+
+  if (!rawValue || rawValue.startsWith("분류:") || rawValue.startsWith("파일:")) {
+    return null;
+  }
+
+  const [target, display = target] = rawValue.split("|");
+
+  if (!target?.trim()) {
+    return null;
+  }
+
+  return {
+    nextIndex: endIndex + 2,
+    node: {
+      children: parseInlineMarkdown(display.trim()),
+      href: `/wiki/${encodeURIComponent(target.trim())}`,
+      kind: "link",
+    },
+  };
+};
+
+const parseFootnoteToken = (
+  content: string,
+  startIndex: number,
+): { node: InlineMarkdownToken; nextIndex: number } | null => {
+  if (!content.startsWith("[*", startIndex)) {
+    return null;
+  }
+
+  const endIndex = content.indexOf("]", startIndex + 2);
+
+  if (endIndex < 0) {
+    return null;
+  }
+
+  const rawValue = content.slice(startIndex + 2, endIndex).trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  return {
+    nextIndex: endIndex + 1,
+    node: {
+      content: rawValue,
+      kind: "footnote",
+    },
+  };
+};
+
+const parseIncludeToken = (
+  content: string,
+  startIndex: number,
+): { node: InlineMarkdownToken; nextIndex: number } | null => {
+  if (!content.startsWith("[include(", startIndex)) {
+    return null;
+  }
+
+  const endIndex = content.indexOf(")]", startIndex + 9);
+
+  if (endIndex < 0) {
+    return null;
+  }
+
+  const rawValue = content.slice(startIndex + 9, endIndex).trim();
+
+  if (!rawValue) {
+    return null;
+  }
+
+  return {
+    nextIndex: endIndex + 2,
+    node: {
+      kind: "include",
+      target: rawValue,
+    },
+  };
+};
+
 const parseWrappedToken = (
   content: string,
   startIndex: number,
@@ -203,6 +299,16 @@ export const parseInlineMarkdown = (content: string): InlineMarkdownToken[] => {
   while (cursor < content.length) {
     const slice = content.slice(cursor);
     const token =
+      (slice.startsWith("[[") && parseNamuLinkToken(content, cursor)) ||
+      (slice.startsWith("[*") && parseFootnoteToken(content, cursor)) ||
+      (slice.startsWith("[include(") && parseIncludeToken(content, cursor)) ||
+      (slice.startsWith("[br]") && {
+        nextIndex: cursor + 4,
+        node: {
+          kind: "text" as const,
+          text: "\n",
+        },
+      }) ||
       (slice.startsWith("**") && parseWrappedToken(content, cursor, "**", "strong")) ||
       (slice.startsWith("~~") && parseWrappedToken(content, cursor, "~~", "strikethrough")) ||
       (slice.startsWith("_") && parseWrappedToken(content, cursor, "_", "emphasis")) ||
@@ -258,6 +364,10 @@ const inlineTokensToHtml = (tokens: InlineMarkdownToken[]): string =>
           return `<del>${inlineTokensToHtml(token.children)}</del>`;
         case "link":
           return `<a href="${escapeHtml(token.href)}">${inlineTokensToHtml(token.children)}</a>`;
+        case "footnote":
+          return `<sup title="${escapeHtml(token.content)}">[*]</sup>`;
+        case "include":
+          return `<span>[include(${escapeHtml(token.target)})]</span>`;
       }
     })
     .join("");

@@ -22,11 +22,426 @@ type CreateMockWikiDetailOptions = {
   themeColor?: string;
 };
 
+const createNamuCompatibilitySections = (): WikiDetail["sections"] => [
+  {
+    type: "section",
+    sectionIdentifier: "sec-namu-overview",
+    title: "Overview",
+    displayOrder: 10,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-namu-overview-text",
+        blockType: "text",
+        displayOrder: 10,
+        content: [
+          "Aurora Echo keeps a fast release cycle.",
+          "",
+          "[[문서|대표 문서]]",
+          "",
+          "[[분류:테스트]]",
+          "",
+          "[* 주석 예시]",
+          "",
+          "[include(틀:Discography)]",
+          "",
+          "[br]",
+        ].join("\n"),
+      },
+      {
+        blockIdentifier: "block-namu-overview-list",
+        blockType: "list",
+        displayOrder: 20,
+        listType: "bullet",
+        items: ["Debut single", "Follow-up single"],
+      },
+      {
+        blockIdentifier: "block-namu-overview-embed",
+        blockType: "embed",
+        displayOrder: 30,
+        provider: "youtube",
+        embedId: "a0bc6Ownyt0",
+        caption: "Supported media include demo",
+      },
+    ],
+    children: [
+      {
+        type: "section",
+        sectionIdentifier: "sec-namu-overview-highlights",
+        title: "Highlights",
+        displayOrder: 10,
+        depth: 2,
+        contents: [
+          {
+            blockIdentifier: "block-namu-overview-highlights-table",
+            blockType: "table",
+            displayOrder: 10,
+            headers: ["Release", "Year"],
+            headerCells: [{ content: "Release" }, { content: "Year" }],
+            rowCells: [[{ content: "Aurora Echo", colspan: 2 }]],
+            rows: [["Aurora Echo"]],
+            tableWidth: 320,
+          },
+        ],
+        children: [],
+      },
+    ],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-namu-members",
+    title: "Members",
+    displayOrder: 20,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-namu-members-text",
+        blockType: "text",
+        displayOrder: 10,
+        content:
+          "The lineup consists of five members handling a rotating balance of vocal, rap, and dance center duties.",
+      },
+    ],
+    children: [],
+  },
+];
+
+const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-overview",
+    title: "Overview",
+    displayOrder: 10,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-overview-text",
+        blockType: "text",
+        displayOrder: 10,
+        content: [
+          "TWICE는 SIXTEEN을 통해 결성된 9인조 다국적 걸그룹이다.",
+          "",
+          "팀명은 귀로 한 번, 눈으로 한 번 감동을 준다는 의미를 담고 있다.",
+          "",
+          "[[나연(TWICE)|나연]] · [[정연(TWICE)|정연]] · [[모모(TWICE)|모모]] · [[사나(TWICE)|사나]] · [[지효|지효]] · [[미나(TWICE)|미나]] · [[다현|다현]] · [[채영|채영]] · [[쯔위|쯔위]]",
+          "",
+          "[* 오디션 프로그램 SIXTEEN을 통해 결성되었다.]",
+          "",
+          "[[분류:TWICE]]",
+          "",
+          "[br]",
+        ].join("\n"),
+      },
+      {
+        blockIdentifier: "block-twice-overview-embed",
+        blockType: "embed",
+        displayOrder: 20,
+        provider: "youtube",
+        embedId: "c7rCyll5AeY",
+        caption: "TWICE \"CHEER UP\" M/V",
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-members",
+    title: "Members",
+    displayOrder: 20,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-members-profiles",
+        blockType: "profile_card_list",
+        displayOrder: 10,
+        wikiIdentifiers: [
+          "nayeon-twice",
+          "jeongyeon-twice",
+          "momo-twice",
+          "sana-twice",
+          "jihyo",
+          "mina-twice",
+          "dahyun",
+          "chaeyoung",
+          "tzuyu",
+        ],
+        title: "TWICE Members",
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-history",
+    title: "History",
+    displayOrder: 30,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-history-text",
+        blockType: "text",
+        displayOrder: 10,
+        content:
+          "2015년 데뷔 이후 한국과 일본을 중심으로 활동을 이어 왔으며, 대표곡으로는 \"CHEER UP\", \"TT\", \"FANCY\" 등이 있다.",
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-discography",
+    title: "Discography",
+    displayOrder: 40,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-discography-text",
+        blockType: "text",
+        displayOrder: 10,
+        content:
+          "한국 및 일본 음반 전개가 모두 큰 비중을 차지하며, 정규/미니/싱글/베스트 앨범 축이 나뉘어 전개된다.",
+      },
+      {
+        blockIdentifier: "block-twice-discography-include",
+        blockType: "text",
+        displayOrder: 20,
+        content: "[include(틀:TWICE/음반)]",
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-activities",
+    title: "Activities",
+    displayOrder: 50,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-activities-text",
+        blockType: "text",
+        displayOrder: 10,
+        content:
+          "한국 활동, 일본 활동, 월드투어, 유닛 및 솔로 활동이 병렬적으로 정리되는 편이며 시기별 정리와 하위 문서 분리가 잦다.",
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-records",
+    title: "Records",
+    displayOrder: 60,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-records-text",
+        blockType: "text",
+        displayOrder: 10,
+        content:
+          "음원과 음반 양쪽에서 강한 성과를 남긴 팀으로 평가되며, 나무위키에서는 관련 기록 틀을 별도로 끼워 넣는 구조가 자주 보인다.",
+      },
+      {
+        blockIdentifier: "block-twice-records-include",
+        blockType: "text",
+        displayOrder: 20,
+        content: "[include(틀:TWICE의 기록)]",
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: "sec-twice-media",
+    title: "Media",
+    displayOrder: 70,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: "block-twice-media-text",
+        blockType: "text",
+        displayOrder: 10,
+        content:
+          "뮤직비디오, 리얼리티, 광고, 화보, SNS 활동 등이 방대한 편이라 관련 하위 문서나 목록성 서술로 분리되는 경우가 많다.",
+      },
+    ],
+    children: [],
+  },
+];
+
+const twiceMemberProfiles = [
+  {
+    slug: "nayeon-twice",
+    name: "나연",
+    normalizedName: "nayeon-twice",
+    emoji: "🐰",
+    symbol: "Pastel microphone",
+    colors: ["Sky Blue", "Ivory"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/4/45/251120_NAYEON.png",
+    heroImageAlt: "나연 promotional image",
+    overview:
+      "TWICE의 맏언니이자 리드보컬 포지션으로 널리 알려져 있으며, 솔로 활동도 전개하고 있다.",
+  },
+  {
+    slug: "jeongyeon-twice",
+    name: "정연",
+    normalizedName: "jeongyeon-twice",
+    emoji: "🐶",
+    symbol: "Mint spotlight",
+    colors: ["Mint", "White"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/260306_Twice_Hamilton_Jeongyeon_%ED%8A%B8%EC%99%80%EC%9D%B4%EC%8A%A4_%EC%A0%95%EC%97%B0_%287%29_%28cropped%29.jpg/250px-260306_Twice_Hamilton_Jeongyeon_%ED%8A%B8%EC%99%80%EC%9D%B4%EC%8A%A4_%EC%A0%95%EC%97%B0_%287%29_%28cropped%29.jpg",
+    heroImageAlt: "ジョンヨン portrait image",
+    overview:
+      "TWICE의 보컬 라인을 담당하는 멤버로, 안정적인 무대 소화력과 중저음 톤으로 평가된다.",
+  },
+  {
+    slug: "momo-twice",
+    name: "모모",
+    normalizedName: "momo-twice",
+    emoji: "🍑",
+    symbol: "Dance line marker",
+    colors: ["Peach", "Black"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/TWICE_MOMO_April_2024.jpg/960px-TWICE_MOMO_April_2024.jpg",
+    heroImageAlt: "모모 portrait image",
+    overview:
+      "TWICE의 메인댄서로 널리 인식되며, 퍼포먼스 중심 서술에서 비중이 크다.",
+  },
+  {
+    slug: "sana-twice",
+    name: "사나",
+    normalizedName: "sana-twice",
+    emoji: "🫧",
+    symbol: "Soft pink ribbon",
+    colors: ["Soft Pink", "Cream"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Sana_Minatozaki_%E6%B9%8A%EF%A8%91_%E7%B4%97%E5%A4%8F_20250118_07.jpg/250px-Sana_Minatozaki_%E6%B9%8A%EF%A8%91_%E7%B4%97%E5%A4%8F_20250118_07.jpg",
+    heroImageAlt: "サナ portrait image",
+    overview:
+      "표정 연기와 예능감, 무대 장악력으로 자주 언급되는 TWICE의 일본인 멤버다.",
+  },
+  {
+    slug: "jihyo",
+    name: "지효",
+    normalizedName: "jihyo",
+    emoji: "🌟",
+    symbol: "Leader badge",
+    colors: ["Goldenrod", "Black"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/ja/thumb/4/4c/251127_Park_Jihyo.PNG/250px-251127_Park_Jihyo.PNG",
+    heroImageAlt: "ジヒョ portrait image",
+    overview:
+      "TWICE의 리더이자 메인보컬로, 그룹 활동과 별개로 솔로 커리어도 갖고 있다.",
+  },
+  {
+    slug: "mina-twice",
+    name: "미나",
+    normalizedName: "mina-twice",
+    emoji: "🦢",
+    symbol: "Ballet line",
+    colors: ["Teal", "White"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Mina_H%26M_Rokh_2.jpg/250px-Mina_H%26M_Rokh_2.jpg",
+    heroImageAlt: "ミナ portrait image",
+    overview:
+      "우아한 퍼포먼스와 차분한 이미지로 알려진 일본인 멤버이며 미성 보컬로도 자주 언급된다.",
+  },
+  {
+    slug: "dahyun",
+    name: "다현",
+    normalizedName: "dahyun",
+    emoji: "🤍",
+    symbol: "White piano key",
+    colors: ["White", "Piano Black"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Dahyun_at_press_conference_for_You_Are_the_Apple_of_My_Eye_02_%28cropped%29.png/250px-Dahyun_at_press_conference_for_You_Are_the_Apple_of_My_Eye_02_%28cropped%29.png",
+    heroImageAlt: "ダヒョン portrait image",
+    overview:
+      "랩과 예능, 무대 리액션에서 존재감이 큰 멤버로, 최근에는 연기 활동도 병행한다.",
+  },
+  {
+    slug: "chaeyoung",
+    name: "채영",
+    normalizedName: "chaeyoung",
+    emoji: "🍓",
+    symbol: "Sketch marker",
+    colors: ["Strawberry Red", "Charcoal"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/241204_Chaeyoung_at_Rokh_H%26M_%281%29.png/250px-241204_Chaeyoung_at_Rokh_H%26M_%281%29.png",
+    heroImageAlt: "チェヨン portrait image",
+    overview:
+      "랩과 작사 참여, 개성적인 비주얼로 자주 언급되는 TWICE의 멤버다.",
+  },
+  {
+    slug: "tzuyu",
+    name: "쯔위",
+    normalizedName: "tzuyu",
+    emoji: "🧊",
+    symbol: "Blue prism",
+    colors: ["Blue", "Silver"],
+    debutDate: "2015-10-20",
+    heroImageSrc:
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tzuyu_at_Gucci_Ancora_on_05032024_%283%29.png/506px-Tzuyu_at_Gucci_Ancora_on_05032024_%283%29.png",
+    heroImageAlt: "ツウィ portrait image",
+    overview:
+      "비주얼과 피지컬 비중이 큰 서술과 함께, 솔로 및 개별 활동도 병행하는 TWICE의 막내다.",
+  },
+] as const;
+
+const createTwiceMemberSections = (name: string, overview: string): WikiDetail["sections"] => [
+  {
+    type: "section",
+    sectionIdentifier: `sec-${name}-overview`,
+    title: "Overview",
+    displayOrder: 10,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: `block-${name}-overview-text`,
+        blockType: "text",
+        displayOrder: 10,
+        content: overview,
+      },
+    ],
+    children: [],
+  },
+  {
+    type: "section",
+    sectionIdentifier: `sec-${name}-related`,
+    title: "Related",
+    displayOrder: 20,
+    depth: 1,
+    contents: [
+      {
+        blockIdentifier: `block-${name}-related-profiles`,
+        blockType: "profile_card_list",
+        displayOrder: 10,
+        wikiIdentifiers: ["twice"],
+        title: "Group",
+      },
+    ],
+    children: [],
+  },
+];
+
 export const createMockWikiDetail = (
   slug: string,
   options?: CreateMockWikiDetailOptions,
-): WikiDetail =>
-  wikiDetailSchema.parse({
+): WikiDetail => {
+  const isTwiceGroupSlug = slug === "namu-compat-demo" || slug === "twice";
+  const twiceMember = twiceMemberProfiles.find((member) => member.slug === slug);
+
+  return wikiDetailSchema.parse({
     wikiIdentifier: slug,
     slug,
     language: "ja",
@@ -34,24 +449,64 @@ export const createMockWikiDetail = (
     version: 3,
     themeColor: options?.themeColor ?? null,
     heroImage: {
-      src: heroImageDataUri,
-      alt: "Stage lights washing over a concert crowd in blue and gold",
+      src: twiceMember?.heroImageSrc ?? heroImageDataUri,
+      alt:
+        twiceMember?.heroImageAlt ??
+        (isTwiceGroupSlug
+          ? "Pink and apricot concert lights inspired by a TWICE stage"
+          : "Stage lights washing over a concert crowd in blue and gold"
+        ),
     },
-    basic: {
-      name: "Aurora Echo",
-      normalizedName: "aurora-echo",
-      resourceType: "group",
-      groupType: "Girl Group",
-      status: "Active",
-      generation: "5th",
-      debutDate: "2022-03-14",
-      fandomName: "Daybreak",
-      emoji: "🌅",
-      representativeSymbol: "Solar wave",
-      officialColors: ["Solar Gold", "Midnight Blue", "Pearl Mist"],
-      agencyName: "North Harbor Entertainment",
-    },
-    sections: [
+    basic:
+      isTwiceGroupSlug
+        ? {
+            name: "TWICE",
+            normalizedName: "twice",
+            resourceType: "group",
+            groupType: "Girl Group",
+            status: "Active",
+            generation: "3rd",
+            debutDate: "2015-10-20",
+            fandomName: "ONCE",
+            emoji: "🍭",
+            representativeSymbol: "Candy bong",
+            officialColors: ["Apricot", "Neon Magenta"],
+            agencyName: "JYP Entertainment",
+          }
+        : twiceMember
+          ? {
+              name: twiceMember.name,
+              normalizedName: twiceMember.normalizedName,
+              resourceType: "group",
+              groupType: "Girl Group Member",
+              status: "Active",
+              generation: "3rd",
+              debutDate: twiceMember.debutDate,
+              fandomName: "ONCE",
+              emoji: twiceMember.emoji,
+              representativeSymbol: twiceMember.symbol,
+              officialColors: [...twiceMember.colors],
+              agencyName: "JYP Entertainment",
+            }
+        : {
+            name: "Aurora Echo",
+            normalizedName: "aurora-echo",
+            resourceType: "group",
+            groupType: "Girl Group",
+            status: "Active",
+            generation: "5th",
+            debutDate: "2022-03-14",
+            fandomName: "Daybreak",
+            emoji: "🌅",
+            representativeSymbol: "Solar wave",
+            officialColors: ["Solar Gold", "Midnight Blue", "Pearl Mist"],
+            agencyName: "North Harbor Entertainment",
+          },
+    sections: isTwiceGroupSlug
+      ? createTwiceCompatibilitySections()
+      : twiceMember
+        ? createTwiceMemberSections(twiceMember.normalizedName, twiceMember.overview)
+      : [
       {
         type: "section",
         sectionIdentifier: "sec-discography",
@@ -238,3 +693,4 @@ export const createMockWikiDetail = (
       },
     ],
   });
+};

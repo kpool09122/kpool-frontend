@@ -60,14 +60,22 @@ const createInitialDraft = (wiki: WikiDetail): WikiDetail => ({
 const getCodeFromSections = (sections: WikiDetail["sections"]): string =>
   serializeWikiSectionsToCode(sections);
 
+const getWarningsFromCode = (code: string): string[] => {
+  const parsed = parseWikiSectionsFromCode(code);
+
+  return parsed.ok ? parsed.warnings : [];
+};
+
 export const useWikiEditDraft = (
   wiki: WikiDetail,
   options?: WikiEditDraftOptions,
 ) => {
   const initialDraft = useMemo(() => createInitialDraft(wiki), [wiki]);
+  const initialCode = useMemo(() => getCodeFromSections(initialDraft.sections), [initialDraft]);
   const [draft, setDraft] = useState<WikiDetail>(initialDraft);
-  const [code, setCode] = useState(() => getCodeFromSections(initialDraft.sections));
+  const [code, setCode] = useState(initialCode);
   const [codeParseError, setCodeParseError] = useState<string | null>(null);
+  const [codeWarnings, setCodeWarnings] = useState(() => getWarningsFromCode(initialCode));
   const [editingId, setEditingId] = useState<WikiContentEditorId | "basic" | "hero" | null>(
     null,
   );
@@ -80,11 +88,13 @@ export const useWikiEditDraft = (
   const submitAdapter = options?.submitAdapter ?? optimisticActionAdapter;
 
   const commitDraft = (nextDraft: WikiDetail, nextCode = getCodeFromSections(nextDraft.sections)) => {
+    const parsedCode = parseWikiSectionsFromCode(nextCode);
     const payload = toWikiEditPayload(nextDraft);
 
     setDraft(nextDraft);
     setCode(nextCode);
     setCodeParseError(null);
+    setCodeWarnings(parsedCode.ok ? parsedCode.warnings : []);
     setSaveState({
       status: "dirty",
       message: "Unsaved changes",
@@ -116,6 +126,7 @@ export const useWikiEditDraft = (
     setDraft(initialDraft);
     setCode(getCodeFromSections(initialDraft.sections));
     setCodeParseError(null);
+    setCodeWarnings([]);
     setEditingId(null);
     setSaveState({
       status: "saved",
@@ -148,6 +159,7 @@ export const useWikiEditDraft = (
     canPersist: !codeParseError,
     code,
     codeParseError,
+    codeWarnings,
     draft,
     editingId,
     saveState,
@@ -161,6 +173,7 @@ export const useWikiEditDraft = (
 
       if (!parsed.ok) {
         setCodeParseError(parsed.message);
+        setCodeWarnings([]);
         setSaveState({
           status: "dirty",
           message: "Unsaved changes",
