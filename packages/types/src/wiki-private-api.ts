@@ -201,8 +201,7 @@ const DraftWikiSummary = z
   .passthrough();
 const CreateWikiRequestBody = WikiAssociationTargets;
 const DraftWikiHeroImage = z
-  .object({ imageIdentifier: KPool_Common_Uuid })
-  .partial()
+  .object({ imageIdentifier: KPool_Common_Uuid.nullable() })
   .passthrough();
 const AgencyDraftWikiBasic = z
   .object({

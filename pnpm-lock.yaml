@@ -39,7 +39,7 @@ importers:
         specifier: 19.2.5
         version: 19.2.5(react@19.2.5)
       zod:
-        specifier: ^3.25.76
+        specifier: 3.25.76
         version: 3.25.76
     devDependencies:
       '@playwright/test':
