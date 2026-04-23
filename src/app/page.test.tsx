@@ -34,7 +34,7 @@ describe("Home", () => {
       screen.getByRole("link", {
         name: /Open Wiki Detail Demo/i,
       }),
-    ).toHaveAttribute("href", "/wiki/aurora-echo");
+    ).toHaveAttribute("href", "/wiki/ja/gr-aurora-echo");
     expect(
       screen.getByRole("heading", {
         name: /Wiki theme color checks/i,
@@ -44,11 +44,11 @@ describe("Home", () => {
       screen.getByRole("link", {
         name: /Rose Stage Warm magenta tint with brighter accents/i,
       }),
-    ).toHaveAttribute("href", "/wiki/aurora-echo?themeColor=%23d94f70");
+    ).toHaveAttribute("href", "/wiki/ja/gr-aurora-echo?themeColor=%23d94f70");
     expect(
       screen.getByRole("link", {
         name: /Signal Mint High-chroma green stress case/i,
       }),
-    ).toHaveAttribute("href", "/wiki/aurora-echo?themeColor=%2300d084");
+    ).toHaveAttribute("href", "/wiki/ja/gr-aurora-echo?themeColor=%2300d084");
   });
 });

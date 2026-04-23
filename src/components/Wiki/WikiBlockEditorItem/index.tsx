@@ -10,6 +10,7 @@ import { cardSurfaceMutedStyle } from "../styles";
 type WikiBlockEditorItemProps = {
   block: WikiBlock;
   isEditing: boolean;
+  language: string;
   onEdit: () => void;
   onCancel: () => void;
   onSave: (changes: Partial<WikiBlock>) => void;
@@ -19,6 +20,7 @@ type WikiBlockEditorItemProps = {
 export function WikiBlockEditorItem({
   block,
   isEditing,
+  language,
   onEdit,
   onCancel,
   onSave,
@@ -47,7 +49,7 @@ export function WikiBlockEditorItem({
       <div className="absolute right-0 top-0 z-10 flex gap-2 rounded-full bg-surface-raised/90 p-1 shadow-soft opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
         {controls}
       </div>
-      <WikiBlockDisplay block={block} showEditableImageOverlay />
+      <WikiBlockDisplay block={block} language={language} showEditableImageOverlay />
     </article>
   );
 }

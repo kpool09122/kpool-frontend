@@ -8,25 +8,25 @@ const wikiThemeDemos = [
   {
     name: "Default",
     description: "Current fixed palette without themeColor",
-    href: "/wiki/aurora-echo",
+    href: "/wiki/ja/gr-aurora-echo",
     swatch: "linear-gradient(135deg, #3560a3 0%, #f1a81f 100%)",
   },
   {
     name: "Rose Stage",
     description: "Warm magenta tint with brighter accents",
-    href: "/wiki/aurora-echo?themeColor=%23d94f70",
+    href: "/wiki/ja/gr-aurora-echo?themeColor=%23d94f70",
     swatch: "#d94f70",
   },
   {
     name: "Signal Mint",
     description: "High-chroma green stress case",
-    href: "/wiki/aurora-echo?themeColor=%2300d084",
+    href: "/wiki/ja/gr-aurora-echo?themeColor=%2300d084",
     swatch: "#00d084",
   },
   {
     name: "Night Pulse",
     description: "Deep blue-purple for dark theme checks",
-    href: "/wiki/aurora-echo?themeColor=%234c5cff",
+    href: "/wiki/ja/gr-aurora-echo?themeColor=%234c5cff",
     swatch: "#4c5cff",
   },
 ];
@@ -53,7 +53,7 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 className="inline-flex items-center rounded-full bg-brand-secondary px-5 py-3 text-sm font-semibold text-[#15243b] transition hover:brightness-105"
-                href="/wiki/aurora-echo"
+                href="/wiki/ja/gr-aurora-echo"
               >
                 Open Wiki Detail Demo
               </Link>

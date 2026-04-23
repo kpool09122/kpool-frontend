@@ -15,6 +15,7 @@ describe("WikiSectionEditor", () => {
     render(
       <WikiSectionEditor
         editingId={null}
+        language="ja"
         onAddBlock={() => {}}
         onAddSection={() => {}}
         onCancel={() => {}}
@@ -37,6 +38,7 @@ describe("WikiSectionEditor", () => {
     render(
       <WikiSectionEditor
         editingId={`section:${wikiStorySection.sectionIdentifier}`}
+        language="ja"
         onAddBlock={() => {}}
         onAddSection={() => {}}
         onCancel={() => {}}

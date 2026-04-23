@@ -16,16 +16,19 @@ import {
   cardSurfaceStyle,
   mainBackgroundStyle,
 } from "../../../../components/Wiki";
+import { getWikiResourceLabel, type WikiResourceType } from "../../wikiRouting";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
-import { useWikiDetail } from "../useWikiDetail";
+import { type loadDraftWikiState } from "../../draftWiki";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 type WikiEditPageProps = {
+  language: string;
   slug: string;
   themeColor?: string;
+  wikiState: Awaited<ReturnType<typeof loadDraftWikiState>>;
 };
 
-function WikiEditContent({ data }: { data: WikiDetail }) {
+function WikiEditContent({ data, language }: { data: WikiDetail; language: string }) {
   const flipCardId = useId();
   const [isBasicFlipped, setIsBasicFlipped] = useState(false);
   const [editorMode, setEditorMode] = useState<WikiEditorMode>("gui");
@@ -53,6 +56,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
     addBlock,
     deleteContent,
   } = useWikiEditDraft(data);
+  const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const themeLabel = draft.themeColor?.toUpperCase();
   const closeEditor = () => setEditingId(null);
@@ -118,6 +122,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
                 updateBasic(basic);
                 closeEditor();
               }}
+              profileLabel={`${resourceLabel} profile`}
               onSaveHero={(heroImage) => {
                 updateHeroImage(heroImage);
                 closeEditor();
@@ -153,6 +158,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
                 <WikiSectionEditor
                   editingId={editingId}
                   key={section.sectionIdentifier}
+                  language={language}
                   onAddBlock={addBlock}
                   onAddSection={addSection}
                   onCancel={closeEditor}
@@ -202,6 +208,7 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
           onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
           onUpdateSettings={updateSettings}
           previewMode={previewMode}
+          resourceType={draft.resourceType}
           slug={draft.slug}
           themeColor={draft.themeColor}
         />
@@ -210,23 +217,12 @@ function WikiEditContent({ data }: { data: WikiDetail }) {
   );
 }
 
-export function WikiEditPage({ slug, themeColor }: WikiEditPageProps) {
-  const wikiDetail = useWikiDetail(slug, { themeColor });
-
-  if (wikiDetail.status === "loading") {
-    return (
-      <WikiStatePanel
-        message="Preparing the wiki editor..."
-        title="Loading Wiki Editor"
-      />
-    );
+export function WikiEditPage({ language, themeColor, wikiState }: WikiEditPageProps) {
+  if (wikiState.status === "error") {
+    return <WikiStatePanel message={wikiState.message} title="Unable to load wiki" tone="danger" />;
   }
 
-  if (wikiDetail.status === "error") {
-    return <WikiStatePanel message={wikiDetail.message} title="Unable to load wiki" tone="danger" />;
-  }
-
-  if (wikiDetail.status === "empty") {
+  if (wikiState.status === "empty") {
     return (
       <WikiStatePanel
         message="This resource does not have a wiki draft to edit at the moment."
@@ -235,5 +231,13 @@ export function WikiEditPage({ slug, themeColor }: WikiEditPageProps) {
     );
   }
 
-  return <WikiEditContent data={wikiDetail.data} />;
+  return (
+    <WikiEditContent
+      data={{
+        ...wikiState.data,
+        themeColor: themeColor ?? wikiState.data.themeColor,
+      }}
+      language={language}
+    />
+  );
 }

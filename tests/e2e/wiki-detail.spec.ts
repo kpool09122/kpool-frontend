@@ -4,7 +4,7 @@ test("wiki detail page shows the public layout and flip interaction", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/wiki/aurora-echo?themeColor=%234c5cff");
+  await page.goto("/wiki/ja/gr-aurora-echo?themeColor=%234c5cff");
 
   await expect(
     page.getByRole("heading", { name: /Aurora Echo/i }),
@@ -37,7 +37,7 @@ test("wiki detail page shows the public layout and flip interaction", async ({
 });
 
 test("wiki detail page shows the empty state", async ({ page }) => {
-  await page.goto("/wiki/empty");
+  await page.goto("/wiki/ja/empty");
 
   await expect(page.getByText("No public wiki yet")).toBeVisible();
 });
@@ -46,7 +46,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/aurora-echo/edit?themeColor=%234c5cff");
+  await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
 
   await expect(page.getByRole("heading", { name: "Aurora Echo" })).toBeVisible();
   await expect(page.getByTestId("wiki-edit-theme-badge")).toHaveText(
@@ -56,7 +56,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Clear wiki changes" })).toBeVisible();
-  await expect(page.getByLabel("Slug")).toHaveValue("aurora-echo");
+  await expect(page.getByLabel("Slug")).toHaveValue("gr-aurora-echo");
   await expect(page.getByRole("group", { name: "Preview mode" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Default" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Theme color" })).toBeVisible();
@@ -79,7 +79,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(editFlipCard.getByText("North Harbor Entertainment")).toBeVisible();
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/aurora-echo/edit?themeColor=%234c5cff");
+  await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
   await expect(page.getByText("Saved")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
@@ -130,7 +130,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await page.getByRole("button", { name: "gui" }).click();
   await expect(page.locator("a", { hasText: "대표 문서" })).toHaveAttribute(
     "href",
-    "/wiki/%EB%AC%B8%EC%84%9C",
+    "/wiki/ja/%EB%AC%B8%EC%84%9C",
   );
   await expect(page.getByLabel("Footnote: 주석 예시")).toBeVisible();
   await expect(page.getByText("Included from 틀:Discography")).toBeVisible();
@@ -198,7 +198,7 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/twice/edit");
+  await page.goto("/wiki/ja/gr-twice/edit");
 
   await expect(page.getByRole("heading", { name: "TWICE", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "code" }).click();
@@ -206,10 +206,10 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   await expect(page.getByLabel("Wiki code")).toHaveValue(/== Overview ==/);
   await expect(page.getByLabel("Wiki code")).toHaveValue(/\[\[나연\(TWICE\)\|나연\]\]/);
   await page.getByRole("button", { name: "gui" }).click();
-  await expect(page.locator('a[href="/wiki/%EB%82%98%EC%97%B0(TWICE)"]')).toHaveCount(1);
-  await expect(page.locator('a[href="/wiki/nayeon-twice"]')).toHaveAttribute(
+  await expect(page.locator('a[href="/wiki/ja/%EB%82%98%EC%97%B0(TWICE)"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/wiki/ja/tl-nayeon-twice"]')).toHaveAttribute(
     "href",
-    "/wiki/nayeon-twice",
+    "/wiki/ja/tl-nayeon-twice",
   );
   await expect(page.getByLabel("Footnote: 오디션 프로그램 SIXTEEN을 통해 결성되었다.")).toBeVisible();
   await expect(page.getByText("Included from 틀:TWICE/음반")).toBeVisible();
@@ -217,15 +217,18 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
     "src",
     "https://www.youtube-nocookie.com/embed/c7rCyll5AeY",
   );
-  await expect(page.locator('a[href="/wiki/momo-twice"]')).toHaveAttribute("href", "/wiki/momo-twice");
+  await expect(page.locator('a[href="/wiki/ja/tl-momo-twice"]')).toHaveAttribute(
+    "href",
+    "/wiki/ja/tl-momo-twice",
+  );
 });
 
 test("twice member profile cards open the member wiki pages", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/twice/edit");
+  await page.goto("/wiki/ja/gr-twice/edit");
 
-  await page.locator('a[href="/wiki/nayeon-twice"]').click();
-  await expect(page).toHaveURL(/\/wiki\/nayeon-twice$/);
+  await page.locator('a[href="/wiki/ja/tl-nayeon-twice"]').click();
+  await expect(page).toHaveURL(/\/wiki\/ja\/tl-nayeon-twice$/);
   await expect(page.getByRole("heading", { name: "나연" })).toBeVisible();
   await page.getByTestId("section-toggle-sec-nayeon-twice-overview").click({ force: true });
   await expect(page.getByText(/TWICE의 맏언니이자 리드보컬 포지션/)).toBeVisible();
@@ -235,7 +238,7 @@ test("wiki edit page converts supported media includes into embeds", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/aurora-echo/edit");
+  await page.goto("/wiki/ja/gr-aurora-echo/edit");
 
   await page.getByRole("button", { name: "code" }).click();
   await page.getByLabel("Wiki code").fill(

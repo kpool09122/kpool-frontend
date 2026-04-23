@@ -13,6 +13,7 @@ describe("WikiBlockEditorItem", () => {
       <WikiBlockEditorItem
         block={wikiStoryTextBlock}
         isEditing={false}
+        language="ja"
         onCancel={() => {}}
         onDelete={() => {}}
         onEdit={() => {}}
@@ -32,6 +33,7 @@ describe("WikiBlockEditorItem", () => {
       <WikiBlockEditorItem
         block={wikiStoryTextBlock}
         isEditing={false}
+        language="ja"
         onCancel={() => {}}
         onDelete={onDelete}
         onEdit={onEdit}

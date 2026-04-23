@@ -2,6 +2,15 @@
 
 import { type WikiDetail } from "@kpool/wiki";
 
+import {
+  getWikiResourceTypeFromSlug,
+  normalizeWikiSlugForResourceType,
+  stripWikiResourcePrefix,
+  type WikiResourceType,
+  getWikiResourceLabel,
+  wikiResourceTypes,
+  wikiResourceTypePrefixes,
+} from "../../../app/wiki/wikiRouting";
 import { type WikiEditorMode, type WikiPreviewMode, themeColorOptions } from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
@@ -59,8 +68,11 @@ type WikiEditSidebarProps = {
   onSave: () => void;
   onSubmit: () => void;
   onToggle: () => void;
-  onUpdateSettings: (settings: Partial<Pick<WikiDetail, "slug" | "themeColor">>) => void;
+  onUpdateSettings: (
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor">>,
+  ) => void;
   previewMode: WikiPreviewMode;
+  resourceType: WikiDetail["resourceType"];
   slug: string;
   themeColor: string | null | undefined;
 };
@@ -78,11 +90,18 @@ export function WikiEditSidebar({
   onToggle,
   onUpdateSettings,
   previewMode,
+  resourceType,
   slug,
   themeColor,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
   const isActionDisabled = isBusy || !canPersist;
+  const resolvedResourceType =
+    (resourceType as WikiResourceType | undefined) ??
+    getWikiResourceTypeFromSlug(slug) ??
+    "group";
+  const slugPrefix = wikiResourceTypePrefixes[resolvedResourceType];
+  const slugSuffix = stripWikiResourcePrefix(slug);
 
   return (
     <aside
@@ -156,12 +175,44 @@ export function WikiEditSidebar({
             </fieldset>
 
             <label className="grid gap-2 text-sm font-semibold text-text-strong">
-              Slug
-              <input
+              Resource type
+              <select
                 className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
-                onChange={(event) => onUpdateSettings({ slug: event.currentTarget.value })}
-                value={slug}
-              />
+                onChange={(event) =>
+                  onUpdateSettings({
+                    resourceType: event.currentTarget.value as WikiResourceType,
+                  })
+                }
+                value={resolvedResourceType}
+              >
+                {wikiResourceTypes.map((nextResourceType) => (
+                  <option key={nextResourceType} value={nextResourceType}>
+                    {getWikiResourceLabel(nextResourceType)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-text-strong">
+              Slug
+              <div className="flex overflow-hidden rounded-xl border border-stroke-subtle bg-surface-base">
+                <span className="border-r border-stroke-subtle bg-surface-raised px-3 py-2 text-text-muted">
+                  {slugPrefix}
+                </span>
+                <input
+                  aria-label="Slug"
+                  className="min-w-0 flex-1 bg-transparent px-3 py-2"
+                  onChange={(event) =>
+                    onUpdateSettings({
+                      slug: normalizeWikiSlugForResourceType(
+                        event.currentTarget.value,
+                        resolvedResourceType,
+                      ),
+                    })
+                  }
+                  value={slugSuffix}
+                />
+              </div>
             </label>
 
             <fieldset className="grid gap-3">

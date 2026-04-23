@@ -15,7 +15,7 @@ const successState: WikiDetailState = {
   status: "success",
   data: {
     wikiIdentifier: "aurora-echo",
-    slug: "aurora-echo",
+    slug: "gr-aurora-echo",
     language: "ja",
     resourceType: "group",
     version: 3,
@@ -56,7 +56,7 @@ const successState: WikiDetailState = {
             blockIdentifier: "members-profiles",
             blockType: "profile_card_list",
             displayOrder: 20,
-            wikiIdentifiers: ["aurora-echo"],
+            wikiIdentifiers: ["gr-aurora-echo"],
             title: "Related profiles",
           },
         ],
@@ -98,7 +98,7 @@ describe("WikiDetailPage", () => {
   it("renders the public wiki detail view", () => {
     mockedUseWikiDetail.mockReturnValue(successState);
 
-    render(React.createElement(WikiDetailPage, { slug: "aurora-echo" }));
+    render(React.createElement(WikiDetailPage, { language: "ja", slug: "gr-aurora-echo" }));
 
     expect(screen.getAllByRole("heading", { name: "Aurora Echo" })[0]).toBeInTheDocument();
     expect(screen.getAllByText("Aurora Echo")[0]).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe("WikiDetailPage", () => {
     );
     expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
       "href",
-      "/wiki/aurora-echo",
+      "/wiki/ja/gr-aurora-echo",
     );
     expect(screen.getAllByLabelText(/Edit section/i)).toHaveLength(2);
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
@@ -127,7 +127,10 @@ describe("WikiDetailPage", () => {
     });
 
     const { container } = render(
-      React.createElement(WikiDetailPage, { slug: "aurora-echo" }),
+      React.createElement(WikiDetailPage, {
+        language: "ja",
+        slug: "gr-aurora-echo",
+      }),
     );
 
     expect(screen.getByTestId("wiki-theme-badge")).toHaveTextContent(
@@ -144,7 +147,7 @@ describe("WikiDetailPage", () => {
   it("renders the empty state", () => {
     mockedUseWikiDetail.mockReturnValue({ status: "empty" });
 
-    render(React.createElement(WikiDetailPage, { slug: "empty" }));
+    render(React.createElement(WikiDetailPage, { language: "ja", slug: "empty" }));
 
     expect(screen.getByText("No public wiki yet")).toBeInTheDocument();
     expect(

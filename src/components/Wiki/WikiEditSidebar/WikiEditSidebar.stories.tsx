@@ -20,6 +20,7 @@ const meta = {
     onToggle: noop,
     onUpdateSettings: noop,
     previewMode: "light",
+    resourceType: wikiStoryDetail.resourceType,
     slug: wikiStoryDetail.slug,
     themeColor: wikiStoryDetail.themeColor,
   },
@@ -68,6 +69,7 @@ export const Default: Story = {
               }
             }}
             previewMode={previewMode}
+            resourceType={args.resourceType}
             slug={slug}
             themeColor={themeColor}
           />

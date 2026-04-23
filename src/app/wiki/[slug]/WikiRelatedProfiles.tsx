@@ -6,6 +6,7 @@ import {
   getWikiDetailState,
   type WikiProfileCardListBlock,
 } from "@kpool/wiki";
+import { buildWikiPath } from "../wikiRouting";
 
 const profileCardStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
@@ -22,7 +23,7 @@ type RelatedProfile = {
 };
 
 function getRelatedProfile(slug: string): RelatedProfile | null {
-  const state = getWikiDetailState(slug);
+  const state = getWikiDetailState(slug, { language: "ja" });
 
   if (state.status !== "success") {
     return null;
@@ -37,8 +38,10 @@ function getRelatedProfile(slug: string): RelatedProfile | null {
 
 export function WikiRelatedProfiles({
   block,
+  language,
 }: {
   block: WikiProfileCardListBlock;
+  language: string;
 }) {
   const profiles = block.wikiIdentifiers
     .map((slug) => getRelatedProfile(slug.trim()))
@@ -57,7 +60,7 @@ export function WikiRelatedProfiles({
         {profiles.map((profile) => (
           <Link
             className="group overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 hover:shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
-            href={`/wiki/${profile.slug}`}
+            href={buildWikiPath(language, profile.slug)}
             key={profile.slug}
             style={profileCardStyle}
           >

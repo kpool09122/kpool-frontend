@@ -17,12 +17,14 @@ type WikiPublicHeroBasicSectionProps = {
   basic: WikiBasic;
   heroImage: WikiDetail["heroImage"];
   flipCardId: string;
+  profileLabel?: string;
 };
 
 export function WikiPublicHeroBasicSection({
   basic,
   heroImage,
   flipCardId,
+  profileLabel = "Basic profile",
 }: WikiPublicHeroBasicSectionProps) {
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -102,7 +104,7 @@ export function WikiPublicHeroBasicSection({
                         Basic
                       </p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                        Group profile
+                        {profileLabel}
                       </p>
                     </div>
                   </div>
@@ -159,7 +161,7 @@ export function WikiPublicHeroBasicSection({
                 Basic
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                Group profile
+                {profileLabel}
               </p>
             </div>
             <button

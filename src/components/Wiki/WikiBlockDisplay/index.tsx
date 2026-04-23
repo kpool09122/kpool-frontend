@@ -6,17 +6,20 @@ import { type WikiBlock, type WikiTableCell } from "@kpool/wiki";
 
 import { WikiEmbedFrame } from "../../../app/wiki/[slug]/WikiEmbedFrame";
 import { WikiRelatedProfiles } from "../../../app/wiki/[slug]/WikiRelatedProfiles";
+import { buildWikiPath } from "../../../app/wiki/wikiRouting";
 import { parseInlineMarkdown } from "../editing";
 import { ImageEditableOverlay } from "../icons";
 
 type WikiBlockDisplayProps = {
   block: WikiBlock;
+  language?: string;
   showEditableImageOverlay?: boolean;
   textClassName?: string;
 };
 
 export function WikiBlockDisplay({
   block,
+  language = "ja",
   showEditableImageOverlay = false,
   textClassName = "text-sm leading-7 text-text-strong",
 }: WikiBlockDisplayProps) {
@@ -40,7 +43,7 @@ export function WikiBlockDisplay({
         nodes.push(
           <a
             className="text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800"
-            href={`/wiki/${encodeURIComponent(target)}`}
+            href={buildWikiPath(language, target)}
             key={`${keyPrefix}-namu-link-${match.index}`}
             rel="noopener noreferrer"
             target="_blank"
@@ -73,10 +76,17 @@ export function WikiBlockDisplay({
         case "strikethrough":
           return <del key={`del-${index}`}>{renderInlineTokens(token.children)}</del>;
         case "link":
+          const href = token.href.startsWith("/wiki/")
+            ? buildWikiPath(
+                language,
+                decodeURIComponent(token.href.slice("/wiki/".length)),
+              )
+            : token.href;
+
           return (
             <a
               className="text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800"
-              href={token.href}
+              href={href}
               key={`link-${index}`}
               rel="noopener noreferrer"
               target="_blank"
@@ -217,6 +227,6 @@ export function WikiBlockDisplay({
         </div>
       );
     case "profile_card_list":
-      return <WikiRelatedProfiles block={block} />;
+      return <WikiRelatedProfiles block={block} language={language} />;
   }
 }

@@ -2,6 +2,10 @@
 
 import { type WikiBasic } from "@kpool/wiki";
 
+import {
+  getWikiResourceLabel,
+  type WikiResourceType,
+} from "../../../app/wiki/wikiRouting";
 import { getLines, getString } from "../editing";
 import { EditIcon } from "../icons";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
@@ -11,6 +15,7 @@ import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 type WikiBasicPanelProps = {
   basic: WikiBasic;
   isEditing: boolean;
+  profileLabel?: string;
   onEdit: () => void;
   onCancel: () => void;
   onSave: (basic: WikiBasic) => void;
@@ -19,6 +24,7 @@ type WikiBasicPanelProps = {
 export function WikiBasicPanel({
   basic,
   isEditing,
+  profileLabel = `${getWikiResourceLabel(basic.resourceType as WikiResourceType)} profile`,
   onEdit,
   onCancel,
   onSave,
@@ -84,7 +90,11 @@ export function WikiBasicPanel({
           </label>
           <label className="grid gap-2 text-sm font-semibold text-text-strong md:col-span-2">
             Official Colors
-            <textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2" defaultValue={basic.officialColors.join("\n")} name="officialColors" />
+            <textarea
+              className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2"
+              defaultValue={(basic.officialColors ?? []).join("\n")}
+              name="officialColors"
+            />
           </label>
         </div>
         <WikiFormActions onCancel={onCancel} />
@@ -100,7 +110,7 @@ export function WikiBasicPanel({
             Basic
           </p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-            Group profile
+            {profileLabel}
           </p>
         </div>
         <button

@@ -17,7 +17,7 @@ describe("getWikiDetailState", () => {
     expect(getWikiDetailState("aurora-echo", { themeColor: "#4c5cff" })).toMatchObject({
       status: "success",
       data: {
-        slug: "aurora-echo",
+        slug: "gr-aurora-echo",
         themeColor: "#4c5cff",
       },
     });
@@ -29,7 +29,7 @@ describe("getWikiDetailState", () => {
     expect(state).toMatchObject({
       status: "success",
       data: {
-        slug: "twice",
+        slug: "gr-twice",
         basic: {
           name: "TWICE",
         },
@@ -61,7 +61,7 @@ describe("getWikiDetailState", () => {
     expect(state).toMatchObject({
       status: "success",
       data: {
-        slug: "nayeon-twice",
+        slug: "tl-nayeon-twice",
         basic: {
           name: "나연",
         },

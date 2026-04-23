@@ -15,6 +15,7 @@ type WikiHeroBasicFlipCardProps = {
   flipCardId: string;
   isHeroEditing: boolean;
   isBasicEditing: boolean;
+  profileLabel?: string;
   onFlipChange: (isFlipped: boolean) => void;
   onEditHero: () => void;
   onEditBasic: () => void;
@@ -30,6 +31,7 @@ export function WikiHeroBasicFlipCard({
   flipCardId,
   isHeroEditing,
   isBasicEditing,
+  profileLabel = "Basic profile",
   onFlipChange,
   onEditHero,
   onEditBasic,
@@ -101,6 +103,7 @@ export function WikiHeroBasicFlipCard({
                     isEditing={isBasicEditing}
                     onCancel={onCancel}
                     onEdit={onEditBasic}
+                    profileLabel={profileLabel}
                     onSave={onSaveBasic}
                   />
                 </div>
@@ -112,7 +115,7 @@ export function WikiHeroBasicFlipCard({
                         Basic
                       </p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                        Group profile
+                        {profileLabel}
                       </p>
                     </div>
                     <button

@@ -13,16 +13,18 @@ import {
   accentBadgeStyle,
   mainBackgroundStyle,
 } from "../../../components/Wiki";
+import { getWikiResourceLabel } from "../wikiRouting";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 import { useWikiDetail } from "./useWikiDetail";
 
 type WikiDetailPageProps = {
+  language: string;
   slug: string;
   themeColor?: string;
 };
 
-export function WikiDetailPage({ slug, themeColor }: WikiDetailPageProps) {
-  const wikiDetail = useWikiDetail(slug, { themeColor });
+export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPageProps) {
+  const wikiDetail = useWikiDetail(slug, { language, themeColor });
   const flipCardId = useId();
 
   if (wikiDetail.status === "loading") {
@@ -89,12 +91,17 @@ export function WikiDetailPage({ slug, themeColor }: WikiDetailPageProps) {
           basic={data.basic}
           flipCardId={flipCardId}
           heroImage={data.heroImage}
+          profileLabel={`${getWikiResourceLabel(data.resourceType)} profile`}
         />
 
         <section className="space-y-5">
           <div className="space-y-4">
             {sections.map((section) => (
-              <WikiSectionAccordion key={section.sectionIdentifier} section={section} />
+              <WikiSectionAccordion
+                key={section.sectionIdentifier}
+                language={language}
+                section={section}
+              />
             ))}
           </div>
         </section>

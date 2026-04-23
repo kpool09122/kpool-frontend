@@ -22,90 +22,6 @@ type CreateMockWikiDetailOptions = {
   themeColor?: string;
 };
 
-const createNamuCompatibilitySections = (): WikiDetail["sections"] => [
-  {
-    type: "section",
-    sectionIdentifier: "sec-namu-overview",
-    title: "Overview",
-    displayOrder: 10,
-    depth: 1,
-    contents: [
-      {
-        blockIdentifier: "block-namu-overview-text",
-        blockType: "text",
-        displayOrder: 10,
-        content: [
-          "Aurora Echo keeps a fast release cycle.",
-          "",
-          "[[문서|대표 문서]]",
-          "",
-          "[[분류:테스트]]",
-          "",
-          "[* 주석 예시]",
-          "",
-          "[include(틀:Discography)]",
-          "",
-          "[br]",
-        ].join("\n"),
-      },
-      {
-        blockIdentifier: "block-namu-overview-list",
-        blockType: "list",
-        displayOrder: 20,
-        listType: "bullet",
-        items: ["Debut single", "Follow-up single"],
-      },
-      {
-        blockIdentifier: "block-namu-overview-embed",
-        blockType: "embed",
-        displayOrder: 30,
-        provider: "youtube",
-        embedId: "a0bc6Ownyt0",
-        caption: "Supported media include demo",
-      },
-    ],
-    children: [
-      {
-        type: "section",
-        sectionIdentifier: "sec-namu-overview-highlights",
-        title: "Highlights",
-        displayOrder: 10,
-        depth: 2,
-        contents: [
-          {
-            blockIdentifier: "block-namu-overview-highlights-table",
-            blockType: "table",
-            displayOrder: 10,
-            headers: ["Release", "Year"],
-            headerCells: [{ content: "Release" }, { content: "Year" }],
-            rowCells: [[{ content: "Aurora Echo", colspan: 2 }]],
-            rows: [["Aurora Echo"]],
-            tableWidth: 320,
-          },
-        ],
-        children: [],
-      },
-    ],
-  },
-  {
-    type: "section",
-    sectionIdentifier: "sec-namu-members",
-    title: "Members",
-    displayOrder: 20,
-    depth: 1,
-    contents: [
-      {
-        blockIdentifier: "block-namu-members-text",
-        blockType: "text",
-        displayOrder: 10,
-        content:
-          "The lineup consists of five members handling a rotating balance of vocal, rap, and dance center duties.",
-      },
-    ],
-    children: [],
-  },
-];
-
 const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   {
     type: "section",
@@ -155,15 +71,15 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
         blockType: "profile_card_list",
         displayOrder: 10,
         wikiIdentifiers: [
-          "nayeon-twice",
-          "jeongyeon-twice",
-          "momo-twice",
-          "sana-twice",
-          "jihyo",
-          "mina-twice",
-          "dahyun",
-          "chaeyoung",
-          "tzuyu",
+          "tl-nayeon-twice",
+          "tl-jeongyeon-twice",
+          "tl-momo-twice",
+          "tl-sana-twice",
+          "tl-jihyo",
+          "tl-mina-twice",
+          "tl-dahyun",
+          "tl-chaeyoung",
+          "tl-tzuyu",
         ],
         title: "TWICE Members",
       },
@@ -271,7 +187,7 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
 
 const twiceMemberProfiles = [
   {
-    slug: "nayeon-twice",
+    slug: "tl-nayeon-twice",
     name: "나연",
     normalizedName: "nayeon-twice",
     emoji: "🐰",
@@ -285,7 +201,7 @@ const twiceMemberProfiles = [
       "TWICE의 맏언니이자 리드보컬 포지션으로 널리 알려져 있으며, 솔로 활동도 전개하고 있다.",
   },
   {
-    slug: "jeongyeon-twice",
+    slug: "tl-jeongyeon-twice",
     name: "정연",
     normalizedName: "jeongyeon-twice",
     emoji: "🐶",
@@ -299,7 +215,7 @@ const twiceMemberProfiles = [
       "TWICE의 보컬 라인을 담당하는 멤버로, 안정적인 무대 소화력과 중저음 톤으로 평가된다.",
   },
   {
-    slug: "momo-twice",
+    slug: "tl-momo-twice",
     name: "모모",
     normalizedName: "momo-twice",
     emoji: "🍑",
@@ -313,7 +229,7 @@ const twiceMemberProfiles = [
       "TWICE의 메인댄서로 널리 인식되며, 퍼포먼스 중심 서술에서 비중이 크다.",
   },
   {
-    slug: "sana-twice",
+    slug: "tl-sana-twice",
     name: "사나",
     normalizedName: "sana-twice",
     emoji: "🫧",
@@ -327,7 +243,7 @@ const twiceMemberProfiles = [
       "표정 연기와 예능감, 무대 장악력으로 자주 언급되는 TWICE의 일본인 멤버다.",
   },
   {
-    slug: "jihyo",
+    slug: "tl-jihyo",
     name: "지효",
     normalizedName: "jihyo",
     emoji: "🌟",
@@ -341,7 +257,7 @@ const twiceMemberProfiles = [
       "TWICE의 리더이자 메인보컬로, 그룹 활동과 별개로 솔로 커리어도 갖고 있다.",
   },
   {
-    slug: "mina-twice",
+    slug: "tl-mina-twice",
     name: "미나",
     normalizedName: "mina-twice",
     emoji: "🦢",
@@ -355,7 +271,7 @@ const twiceMemberProfiles = [
       "우아한 퍼포먼스와 차분한 이미지로 알려진 일본인 멤버이며 미성 보컬로도 자주 언급된다.",
   },
   {
-    slug: "dahyun",
+    slug: "tl-dahyun",
     name: "다현",
     normalizedName: "dahyun",
     emoji: "🤍",
@@ -369,7 +285,7 @@ const twiceMemberProfiles = [
       "랩과 예능, 무대 리액션에서 존재감이 큰 멤버로, 최근에는 연기 활동도 병행한다.",
   },
   {
-    slug: "chaeyoung",
+    slug: "tl-chaeyoung",
     name: "채영",
     normalizedName: "chaeyoung",
     emoji: "🍓",
@@ -383,7 +299,7 @@ const twiceMemberProfiles = [
       "랩과 작사 참여, 개성적인 비주얼로 자주 언급되는 TWICE의 멤버다.",
   },
   {
-    slug: "tzuyu",
+    slug: "tl-tzuyu",
     name: "쯔위",
     normalizedName: "tzuyu",
     emoji: "🧊",
@@ -426,7 +342,7 @@ const createTwiceMemberSections = (name: string, overview: string): WikiDetail["
         blockIdentifier: `block-${name}-related-profiles`,
         blockType: "profile_card_list",
         displayOrder: 10,
-        wikiIdentifiers: ["twice"],
+        wikiIdentifiers: ["gr-twice"],
         title: "Group",
       },
     ],
@@ -434,18 +350,34 @@ const createTwiceMemberSections = (name: string, overview: string): WikiDetail["
   },
 ];
 
+const legacySlugAliases: Record<string, string> = {
+  "aurora-echo": "gr-aurora-echo",
+  twice: "gr-twice",
+  "namu-compat-demo": "gr-twice",
+  "nayeon-twice": "tl-nayeon-twice",
+  "jeongyeon-twice": "tl-jeongyeon-twice",
+  "momo-twice": "tl-momo-twice",
+  "sana-twice": "tl-sana-twice",
+  jihyo: "tl-jihyo",
+  "mina-twice": "tl-mina-twice",
+  dahyun: "tl-dahyun",
+  chaeyoung: "tl-chaeyoung",
+  tzuyu: "tl-tzuyu",
+};
+
 export const createMockWikiDetail = (
   slug: string,
   options?: CreateMockWikiDetailOptions,
 ): WikiDetail => {
-  const isTwiceGroupSlug = slug === "namu-compat-demo" || slug === "twice";
-  const twiceMember = twiceMemberProfiles.find((member) => member.slug === slug);
+  const normalizedSlug = legacySlugAliases[slug] ?? slug;
+  const isTwiceGroupSlug = normalizedSlug === "gr-twice";
+  const twiceMember = twiceMemberProfiles.find((member) => member.slug === normalizedSlug);
 
   return wikiDetailSchema.parse({
-    wikiIdentifier: slug,
-    slug,
+    wikiIdentifier: normalizedSlug,
+    slug: normalizedSlug,
     language: "ja",
-    resourceType: "group",
+    resourceType: twiceMember ? "talent" : "group",
     version: 3,
     themeColor: options?.themeColor ?? null,
     heroImage: {
@@ -477,8 +409,7 @@ export const createMockWikiDetail = (
           ? {
               name: twiceMember.name,
               normalizedName: twiceMember.normalizedName,
-              resourceType: "group",
-              groupType: "Girl Group Member",
+              resourceType: "talent",
               status: "Active",
               generation: "3rd",
               debutDate: twiceMember.debutDate,
@@ -487,6 +418,8 @@ export const createMockWikiDetail = (
               representativeSymbol: twiceMember.symbol,
               officialColors: [...twiceMember.colors],
               agencyName: "JYP Entertainment",
+              realName: twiceMember.name,
+              position: "Member",
             }
         : {
             name: "Aurora Echo",
@@ -581,7 +514,7 @@ export const createMockWikiDetail = (
             blockIdentifier: "block-discography-profiles",
             blockType: "profile_card_list",
             displayOrder: 80,
-            wikiIdentifiers: ["aurora-echo"],
+            wikiIdentifiers: ["gr-aurora-echo"],
             title: "Related profiles",
           },
         ],
