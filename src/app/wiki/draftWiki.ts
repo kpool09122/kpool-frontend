@@ -19,6 +19,8 @@ const draftWikiApiResponseSchema = z.union([
 
 type DraftWikiApiClient = ReturnType<typeof createApiClient>;
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
+type EditWikiRequestBody = z.infer<typeof schemas.UpdateWikiDraftRequestBody>;
+type DraftWikiSummary = z.infer<typeof schemas.DraftWikiSummary>;
 
 type DraftWikiState =
   | { status: "success"; data: WikiDetail }
@@ -226,6 +228,19 @@ export const fetchDraftWiki = async (
 
   return adaptDraftWikiResponse(draftWikiApiResponseSchema.parse(response));
 };
+
+export const saveDraftWiki = async (
+  client: DraftWikiApiClient,
+  wikiId: string,
+  body: EditWikiRequestBody,
+): Promise<DraftWikiSummary> =>
+  schemas.DraftWikiSummary.parse(
+    await client.WikiOperations_editWiki(body, {
+      params: {
+        wikiId,
+      },
+    }),
+  );
 
 export const createDraftWikiApiClient = (
   baseUrl: string = defaultApiBaseUrl ?? "",

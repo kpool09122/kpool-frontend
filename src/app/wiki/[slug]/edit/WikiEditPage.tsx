@@ -19,6 +19,7 @@ import {
 import { getWikiResourceLabel, type WikiResourceType } from "../../wikiRouting";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
 import { type loadDraftWikiState } from "../../draftWiki";
+import { saveWikiDraft, type WikiSaveResult } from "./saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 type WikiEditPageProps = {
@@ -26,9 +27,18 @@ type WikiEditPageProps = {
   slug: string;
   themeColor?: string;
   wikiState: Awaited<ReturnType<typeof loadDraftWikiState>>;
+  saveAdapter?: (draft: WikiDetail) => Promise<WikiSaveResult>;
 };
 
-function WikiEditContent({ data, language }: { data: WikiDetail; language: string }) {
+function WikiEditContent({
+  data,
+  language,
+  saveAdapter,
+}: {
+  data: WikiDetail;
+  language: string;
+  saveAdapter: (draft: WikiDetail) => Promise<WikiSaveResult>;
+}) {
   const flipCardId = useId();
   const [isBasicFlipped, setIsBasicFlipped] = useState(false);
   const [editorMode, setEditorMode] = useState<WikiEditorMode>("gui");
@@ -55,7 +65,7 @@ function WikiEditContent({ data, language }: { data: WikiDetail; language: strin
     addSection,
     addBlock,
     deleteContent,
-  } = useWikiEditDraft(data);
+  } = useWikiEditDraft(data, { saveAdapter });
   const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const themeLabel = draft.themeColor?.toUpperCase();
@@ -94,6 +104,14 @@ function WikiEditContent({ data, language }: { data: WikiDetail; language: strin
             <h1 className="text-4xl font-semibold tracking-[-0.05em] text-text-strong lg:text-5xl">
               {draft.basic.name}
             </h1>
+            {saveState.showMessage ? (
+              <p
+                className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
+                data-testid="wiki-edit-save-state"
+              >
+                {saveState.message}
+              </p>
+            ) : null}
           </div>
         </header>
 
@@ -217,7 +235,12 @@ function WikiEditContent({ data, language }: { data: WikiDetail; language: strin
   );
 }
 
-export function WikiEditPage({ language, themeColor, wikiState }: WikiEditPageProps) {
+export function WikiEditPage({
+  language,
+  themeColor,
+  wikiState,
+  saveAdapter = saveWikiDraft,
+}: WikiEditPageProps) {
   if (wikiState.status === "error") {
     return <WikiStatePanel message={wikiState.message} title="Unable to load wiki" tone="danger" />;
   }
@@ -238,6 +261,7 @@ export function WikiEditPage({ language, themeColor, wikiState }: WikiEditPagePr
         themeColor: themeColor ?? wikiState.data.themeColor,
       }}
       language={language}
+      saveAdapter={saveAdapter}
     />
   );
 }

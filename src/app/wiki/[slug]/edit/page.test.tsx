@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMockWikiDetail } from "@kpool/wiki";
@@ -18,10 +18,12 @@ const renderPage = (
   } | {
     status: "empty";
   } = successState,
+  saveAdapter = vi.fn().mockResolvedValue({ ok: true }),
 ) =>
   render(
     React.createElement(WikiEditPage, {
       language: "ja",
+      saveAdapter,
       slug: "gr-aurora-echo",
       wikiState,
     }),
@@ -187,6 +189,48 @@ describe("WikiEditPage", () => {
     );
 
     confirmSpy.mockRestore();
+  });
+
+  it("saves the loaded draft through the injected save adapter", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(successState, saveAdapter);
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "custom-title" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    expect(screen.getByText("Saving changes")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
+    expect(saveAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slug: "gr-custom-title",
+        wikiIdentifier: "gr-aurora-echo",
+      }),
+    );
+  });
+
+  it("shows save failure and allows retrying", async () => {
+    const saveAdapter = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true });
+
+    renderPage(successState, saveAdapter);
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "retry-title" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(screen.getByText("Save failed")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
+    expect(saveAdapter).toHaveBeenCalledTimes(2);
   });
 
   it("shows compatibility warnings for namuwiki syntax that falls back to text blocks", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   adaptDraftWikiResponse,
@@ -6,6 +6,7 @@ import {
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
   loadDraftWikiState,
+  saveDraftWiki,
 } from "./draftWiki";
 
 describe("draftWiki", () => {
@@ -147,5 +148,34 @@ describe("draftWiki", () => {
         },
       }),
     ).toBe("backend exploded");
+  });
+
+  it("saves a draft wiki with the wiki identifier as the edit path param", async () => {
+    const client = {
+      WikiOperations_editWiki: vi.fn().mockResolvedValue({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "draft",
+      }),
+    };
+    const body = {
+      resourceType: "group",
+      basic: { name: "Aurora Echo" },
+      sections: [],
+      themeColor: "#4c5cff",
+    };
+
+    await expect(saveDraftWiki(client as never, "wiki-1", body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "draft",
+    });
+    expect(client.WikiOperations_editWiki).toHaveBeenCalledWith(body, {
+      params: {
+        wikiId: "wiki-1",
+      },
+    });
   });
 });
