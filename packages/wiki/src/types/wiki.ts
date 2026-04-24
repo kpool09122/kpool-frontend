@@ -29,6 +29,8 @@ export type WikiTableCell = {
   colspan?: number;
 };
 
+export type WikiResourceType = "agency" | "group" | "song" | "talent";
+
 export type WikiTextBlock = {
   blockIdentifier: string;
   blockType: "text";
@@ -205,23 +207,41 @@ const wikiSectionSchema: z.ZodType<WikiSection> = z.lazy(() =>
 export const wikiBasicSchema = z.object({
   name: z.string(),
   normalizedName: z.string(),
-  resourceType: z.literal("group"),
-  groupType: z.string(),
-  status: z.string(),
-  generation: z.string(),
-  debutDate: z.string(),
-  fandomName: z.string(),
-  emoji: z.string(),
-  representativeSymbol: z.string(),
-  officialColors: z.array(z.string()),
-  agencyName: z.string().nullable(),
+  resourceType: z.enum(["agency", "group", "song", "talent"]),
+  groupType: z.string().optional(),
+  status: z.string().optional(),
+  generation: z.string().optional(),
+  debutDate: z.string().optional(),
+  fandomName: z.string().optional(),
+  emoji: z.string().optional(),
+  representativeSymbol: z.string().optional(),
+  officialColors: z.array(z.string()).optional(),
+  agencyName: z.string().nullable().optional(),
+  ceo: z.string().optional(),
+  officialWebsite: z.string().optional(),
+  socialLinks: z.array(z.string()).optional(),
+  songType: z.string().optional(),
+  genres: z.array(z.string()).optional(),
+  releaseDate: z.string().optional(),
+  albumName: z.string().optional(),
+  lyricist: z.string().optional(),
+  composer: z.string().optional(),
+  arranger: z.string().optional(),
+  realName: z.string().optional(),
+  birthday: z.string().optional(),
+  position: z.string().optional(),
+  mbti: z.string().optional(),
+  zodiacSign: z.string().optional(),
+  englishLevel: z.string().optional(),
+  height: z.number().int().optional(),
+  bloodType: z.string().optional(),
 });
 
 export const wikiDetailSchema = z.object({
   wikiIdentifier: z.string(),
   slug: z.string(),
   language: z.string(),
-  resourceType: z.literal("group"),
+  resourceType: z.enum(["agency", "group", "song", "talent"]),
   version: z.number().int(),
   themeColor: z.string().nullable().optional(),
   heroImage: z.object({

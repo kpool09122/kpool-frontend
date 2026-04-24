@@ -7,7 +7,7 @@ import { WikiSectionAccordion } from "./index";
 
 describe("WikiSectionAccordion", () => {
   it("renders the section summary closed by default", () => {
-    render(<WikiSectionAccordion section={wikiStorySection} />);
+    render(<WikiSectionAccordion language="ja" section={wikiStorySection} />);
 
     const section = screen.getByTestId(`section-${wikiStorySection.sectionIdentifier}`);
 
@@ -16,7 +16,7 @@ describe("WikiSectionAccordion", () => {
   });
 
   it("renders the section body content", () => {
-    render(<WikiSectionAccordion section={wikiStorySection} />);
+    render(<WikiSectionAccordion language="ja" section={wikiStorySection} />);
 
     expect(
       screen.getAllByText(

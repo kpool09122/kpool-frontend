@@ -66,7 +66,6 @@ const sections: WikiSection[] = [
 describe("wikiDetailView", () => {
   it("builds a compact list of basic fields", () => {
     expect(getWikiBasicFields(basic)).toEqual([
-      { label: "Resource Type", value: "group" },
       { label: "Group Type", value: "Girl Group" },
       { label: "Status", value: "Active" },
       { label: "Generation", value: "5th" },

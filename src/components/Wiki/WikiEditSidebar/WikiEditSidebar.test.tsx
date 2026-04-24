@@ -29,6 +29,7 @@ describe("WikiEditSidebar", () => {
         onToggle={onToggle}
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
+        resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
       />,
@@ -40,6 +41,10 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.click(screen.getByRole("button", { name: "Dark" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
+    expect(screen.getByText("gr-")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Resource type"), {
+      target: { value: "song" },
+    });
     fireEvent.change(screen.getByLabelText("Slug"), {
       target: { value: "new-slug" },
     });
@@ -50,6 +55,7 @@ describe("WikiEditSidebar", () => {
     expect(onEditorModeChange).toHaveBeenCalledWith("code");
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
     expect(onToggle).toHaveBeenCalled();
-    expect(onUpdateSettings).toHaveBeenCalledWith({ slug: "new-slug" });
+    expect(onUpdateSettings).toHaveBeenCalledWith({ resourceType: "song" });
+    expect(onUpdateSettings).toHaveBeenCalledWith({ slug: "gr-new-slug" });
   });
 });

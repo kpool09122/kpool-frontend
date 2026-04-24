@@ -30,6 +30,23 @@ task dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Environment Variables
+
+Wiki edit pages fetch backend draft data via `KPOOL_WIKI_PRIVATE_API_BASE_URL`.
+For local development, create `.env.local` from the example and point it at the backend:
+
+```bash
+cp .env.example .env.local
+```
+
+Example:
+
+```bash
+KPOOL_WIKI_PRIVATE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+After updating `.env.local`, restart `pnpm dev` or `task dev`.
+
 ## Available Tasks
 
 ```bash

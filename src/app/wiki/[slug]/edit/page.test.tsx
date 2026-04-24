@@ -1,36 +1,39 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMockWikiDetail } from "@kpool/wiki";
 
-import { useWikiDetail, type WikiDetailState } from "../useWikiDetail";
 import { WikiEditPage } from "./WikiEditPage";
 
-vi.mock("../useWikiDetail", () => ({
-  useWikiDetail: vi.fn(),
-}));
-
-const mockedUseWikiDetail = vi.mocked(useWikiDetail);
-
-const successState: WikiDetailState = {
+const successState = {
   status: "success",
-  data: createMockWikiDetail("aurora-echo"),
-};
+  data: createMockWikiDetail("gr-aurora-echo"),
+} as const;
+
+const renderPage = (
+  wikiState: { status: "success"; data: ReturnType<typeof createMockWikiDetail> } | {
+    status: "error";
+    message: string;
+  } | {
+    status: "empty";
+  } = successState,
+) =>
+  render(
+    React.createElement(WikiEditPage, {
+      language: "ja",
+      slug: "gr-aurora-echo",
+      wikiState,
+    }),
+  );
 
 describe("WikiEditPage", () => {
   afterEach(() => {
     cleanup();
   });
 
-  beforeEach(() => {
-    mockedUseWikiDetail.mockReset();
-  });
-
   it("renders the editable wiki layout with image overlays and save state", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     expect(screen.getByRole("heading", { name: "Aurora Echo" })).toBeInTheDocument();
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
@@ -39,6 +42,8 @@ describe("WikiEditPage", () => {
     expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "gui" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "code" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByLabelText("Resource type")).toHaveValue("group");
+    expect(screen.getByText("gr-")).toBeInTheDocument();
     expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo");
     expect(screen.getByRole("group", { name: "Preview mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
@@ -58,14 +63,12 @@ describe("WikiEditPage", () => {
     );
     expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
       "href",
-      "/wiki/aurora-echo",
+      "/wiki/ja/gr-aurora-echo",
     );
   });
 
   it("adds a block inside a section and opens the new block editor", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview"));
     fireEvent.click(addControls.getByText("+ Block"));
@@ -75,9 +78,7 @@ describe("WikiEditPage", () => {
   });
 
   it("shows the formatting toolbar only while editing a text block", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
 
@@ -104,10 +105,9 @@ describe("WikiEditPage", () => {
   });
 
   it("clears draft changes back to the loaded wiki", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview"));
     fireEvent.click(addControls.getByText("+ Block"));
@@ -124,10 +124,9 @@ describe("WikiEditPage", () => {
   });
 
   it("keeps draft changes when clear is canceled", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
 
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview"));
     fireEvent.click(addControls.getByText("+ Block"));
@@ -141,9 +140,7 @@ describe("WikiEditPage", () => {
   });
 
   it("switches to code mode and reflects valid edits back into gui mode", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.change(screen.getByLabelText("Wiki code"), {
@@ -167,10 +164,9 @@ describe("WikiEditPage", () => {
   });
 
   it("shows a parse error for invalid code and clears back to the last loaded draft", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.change(screen.getByLabelText("Wiki code"), {
@@ -194,9 +190,7 @@ describe("WikiEditPage", () => {
   });
 
   it("shows compatibility warnings for namuwiki syntax that falls back to text blocks", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.change(screen.getByLabelText("Wiki code"), {
@@ -221,31 +215,29 @@ describe("WikiEditPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "gui" }));
 
-    expect(document.querySelector('a[href="/wiki/%EB%AC%B8%EC%84%9C"]')).not.toBeNull();
+    expect(
+      document.querySelector('a[href="/wiki/ja/%EB%AC%B8%EC%84%9C"]'),
+    ).not.toBeNull();
     expect(screen.getByLabelText("Footnote: 주석 예시")).toBeInTheDocument();
     expect(screen.getByText("Included from 틀:Discography")).toBeInTheDocument();
   });
 
   it("shows compatibility warnings immediately for the dedicated namuwiki demo mock", () => {
-    mockedUseWikiDetail.mockReturnValue({
+    renderPage({
       status: "success",
-      data: createMockWikiDetail("twice"),
+      data: createMockWikiDetail("gr-twice"),
     });
-
-    render(React.createElement(WikiEditPage, { slug: "twice" }));
 
     fireEvent.click(screen.getByRole("button", { name: "code" }));
 
     expect(screen.queryByTestId("wiki-code-warnings")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "gui" }));
-    expect(document.querySelector('a[href="/wiki/nayeon-twice"]')).not.toBeNull();
+    expect(document.querySelector('a[href="/wiki/ja/tl-nayeon-twice"]')).not.toBeNull();
     expect(screen.getByText("TWICE Members")).toBeInTheDocument();
   });
 
   it("maps supported media include macros into embed blocks in gui mode", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiEditPage, { slug: "aurora-echo" }));
+    renderPage();
 
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.change(screen.getByLabelText("Wiki code"), {
@@ -265,20 +257,34 @@ describe("WikiEditPage", () => {
     );
   });
 
-  it("renders loading, error, and empty states", () => {
-    mockedUseWikiDetail.mockReturnValue({ status: "loading" });
-    const { rerender } = render(
-      React.createElement(WikiEditPage, { slug: "loading" }),
-    );
+  it("moves resource type editing into the sidebar and keeps slug prefixes in sync", () => {
+    renderPage();
 
-    expect(screen.getByText("Loading Wiki Editor")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Resource type"), {
+      target: { value: "song" },
+    });
 
-    mockedUseWikiDetail.mockReturnValue({ status: "error", message: "Broken" });
-    rerender(React.createElement(WikiEditPage, { slug: "error" }));
+    expect(screen.getByText("sg-")).toBeInTheDocument();
+    expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo");
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "custom-title" },
+    });
+
+    expect(screen.getByLabelText("Slug")).toHaveValue("custom-title");
+  });
+
+  it("renders error and empty states", () => {
+    const { rerender } = renderPage({ status: "error", message: "Broken" });
     expect(screen.getByText("Broken")).toBeInTheDocument();
 
-    mockedUseWikiDetail.mockReturnValue({ status: "empty" });
-    rerender(React.createElement(WikiEditPage, { slug: "empty" }));
+    rerender(
+      React.createElement(WikiEditPage, {
+        language: "ja",
+        slug: "gr-aurora-echo",
+        wikiState: { status: "empty" },
+      }),
+    );
     expect(screen.getByText("No wiki draft")).toBeInTheDocument();
   });
 });

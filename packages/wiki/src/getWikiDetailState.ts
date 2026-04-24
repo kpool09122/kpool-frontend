@@ -27,6 +27,7 @@ export type WikiDetailState =
   | WikiDetailSuccessState;
 
 type GetWikiDetailStateOptions = {
+  language?: string;
   themeColor?: string;
 };
 
@@ -52,6 +53,9 @@ export const getWikiDetailState = (
 
   return {
     status: "success",
-    data: createMockWikiDetail(slug, { themeColor: options?.themeColor }),
+    data: {
+      ...createMockWikiDetail(slug, { themeColor: options?.themeColor }),
+      language: options?.language ?? "ja",
+    },
   };
 };

@@ -11,6 +11,7 @@ const meta = {
   args: {
     section: wikiStorySection,
     editingId: null,
+    language: "ja",
     onAddBlock: noop,
     onAddSection: noop,
     onCancel: noop,
@@ -41,6 +42,7 @@ export const Default: Story = {
         <div className="max-w-4xl">
           <WikiSectionEditor
             editingId={editingId}
+            language={args.language}
             onAddBlock={() => {}}
             onAddSection={() => {}}
             onCancel={() => setEditingId(null)}

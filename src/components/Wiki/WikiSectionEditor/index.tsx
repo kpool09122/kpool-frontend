@@ -18,8 +18,9 @@ import { WikiFormActions } from "../WikiFormActions";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiSectionEditorProps = {
-  section: WikiSection;
   editingId: string | null;
+  language: string;
+  section: WikiSection;
   onEdit: (id: WikiContentEditorId) => void;
   onCancel: () => void;
   onSaveSection: (sectionIdentifier: string, changes: Pick<WikiSection, "title">) => void;
@@ -59,8 +60,9 @@ function WikiSectionForm({
 }
 
 export function WikiSectionEditor({
-  section,
   editingId,
+  language,
+  section,
   onEdit,
   onCancel,
   onSaveSection,
@@ -102,6 +104,7 @@ export function WikiSectionEditor({
               block={content}
               isEditing={editingId === `block:${content.blockIdentifier}`}
               key={content.blockIdentifier}
+              language={language}
               onCancel={onCancel}
               onDelete={() => onDeleteContent(content.blockIdentifier)}
               onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
@@ -111,6 +114,7 @@ export function WikiSectionEditor({
             <WikiSectionEditor
               editingId={editingId}
               key={content.sectionIdentifier}
+              language={language}
               onAddBlock={onAddBlock}
               onAddSection={onAddSection}
               onCancel={onCancel}

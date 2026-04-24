@@ -10,6 +10,7 @@ const meta = {
   args: {
     block: wikiStoryTextBlock,
     isEditing: false,
+    language: "ja",
     onCancel: noop,
     onDelete: noop,
     onEdit: noop,
@@ -26,6 +27,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+  args: {},
   render: (args) => {
     function StoryComponent() {
       const [isEditing, setIsEditing] = useState(args.isEditing);
@@ -35,6 +37,7 @@ export const Default: Story = {
           <WikiBlockEditorItem
             block={args.block}
             isEditing={isEditing}
+            language={args.language}
             onCancel={() => setIsEditing(false)}
             onDelete={() => {}}
             onEdit={() => setIsEditing(true)}

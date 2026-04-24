@@ -1,7 +1,8 @@
-import { WikiDetailPage } from "./WikiDetailPage";
+import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
 
 type WikiDetailRouteProps = {
   params: Promise<{
+    language: string;
     slug: string;
   }>;
   searchParams: Promise<{
@@ -13,8 +14,14 @@ const getThemeColor = (value: string | string[] | undefined): string | undefined
   Array.isArray(value) ? value[0] : value;
 
 export default async function Page({ params, searchParams }: WikiDetailRouteProps) {
-  const { slug } = await params;
+  const { language, slug } = await params;
   const { themeColor } = await searchParams;
 
-  return <WikiDetailPage slug={slug} themeColor={getThemeColor(themeColor)} />;
+  return (
+    <WikiDetailPage
+      language={language}
+      slug={slug}
+      themeColor={getThemeColor(themeColor)}
+    />
+  );
 }

@@ -1,6 +1,7 @@
 import { getWikiDetailState, type WikiDetailState } from "@kpool/wiki";
 
 type UseWikiDetailOptions = {
+  language: string;
   themeColor?: string;
 };
 

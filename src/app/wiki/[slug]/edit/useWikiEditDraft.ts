@@ -18,6 +18,11 @@ import {
 } from "@kpool/wiki";
 import { useMemo, useState } from "react";
 
+import {
+  normalizeWikiSlugForResourceType,
+  type WikiResourceType,
+} from "../../wikiRouting";
+
 type WikiSaveState =
   | {
       status: "dirty";
@@ -194,17 +199,38 @@ export const useWikiEditDraft = (
       commitDraft({
         ...draft,
         basic,
+        resourceType: basic.resourceType,
+        slug: normalizeWikiSlugForResourceType(
+          draft.slug,
+          basic.resourceType as WikiResourceType,
+        ),
       }),
     updateHeroImage: (heroImage: WikiDetail["heroImage"]) =>
       commitDraft({
         ...draft,
         heroImage,
       }),
-    updateSettings: (settings: Partial<Pick<WikiDetail, "slug" | "themeColor">>) =>
+    updateSettings: (
+      settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor">>,
+    ) => {
+      const nextResourceType =
+        (settings.resourceType as WikiResourceType | undefined) ??
+        (draft.resourceType as WikiResourceType);
+
       commitDraft({
         ...draft,
         ...settings,
-      }),
+        resourceType: nextResourceType,
+        basic: {
+          ...draft.basic,
+          resourceType: nextResourceType,
+        },
+        slug: normalizeWikiSlugForResourceType(
+          settings.slug ?? draft.slug,
+          nextResourceType,
+        ),
+      });
+    },
     updateSection: (
       sectionIdentifier: string,
       changes: Parameters<typeof updateWikiSection>[2],

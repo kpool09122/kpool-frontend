@@ -12,10 +12,11 @@ import { ChevronIcon, EditIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 
 type WikiSectionAccordionProps = {
+  language: string;
   section: WikiSection;
 };
 
-export function WikiSectionAccordion({ section }: WikiSectionAccordionProps) {
+export function WikiSectionAccordion({ language, section }: WikiSectionAccordionProps) {
   const contents = sortWikiSectionContents(section.contents);
 
   return (
@@ -58,10 +59,15 @@ export function WikiSectionAccordion({ section }: WikiSectionAccordionProps) {
             <WikiBlockDisplay
               block={content}
               key={content.blockIdentifier}
+              language={language}
               textClassName="max-w-3xl text-sm leading-7 text-text-muted"
             />
           ) : isWikiSection(content) ? (
-            <WikiSectionAccordion key={content.sectionIdentifier} section={content} />
+            <WikiSectionAccordion
+              key={content.sectionIdentifier}
+              language={language}
+              section={content}
+            />
           ) : null,
         )}
       </div>
