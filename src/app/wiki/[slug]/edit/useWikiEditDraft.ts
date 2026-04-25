@@ -28,33 +28,39 @@ type WikiSaveState =
       status: "dirty";
       message: string;
       payload: WikiEditPayload;
+      showMessage: boolean;
     }
   | {
       status: "saved";
       message: string;
       payload: WikiEditPayload;
+      showMessage: boolean;
     }
   | {
       status: "saving";
       message: string;
       payload: WikiEditPayload;
+      showMessage: boolean;
     }
   | {
       status: "submitting";
       message: string;
       payload: WikiEditPayload;
+      showMessage: boolean;
     }
   | {
       status: "failed";
       message: string;
       payload: WikiEditPayload;
+      showMessage: boolean;
     };
 
 type WikiEditDraftOptions = {
-  saveAdapter?: (payload: WikiEditPayload) => { ok: true } | { ok: false };
+  saveAdapter?: (draft: WikiDetail) => Promise<{ ok: true } | { ok: false }>;
   submitAdapter?: (payload: WikiEditPayload) => { ok: true } | { ok: false };
 };
 
+const optimisticSaveAdapter = async () => ({ ok: true }) as const;
 const optimisticActionAdapter = () => ({ ok: true }) as const;
 
 const createInitialDraft = (wiki: WikiDetail): WikiDetail => ({
@@ -88,8 +94,9 @@ export const useWikiEditDraft = (
     status: "saved",
     message: "Saved",
     payload: toWikiEditPayload(initialDraft),
+    showMessage: false,
   });
-  const saveAdapter = options?.saveAdapter ?? optimisticActionAdapter;
+  const saveAdapter = options?.saveAdapter ?? optimisticSaveAdapter;
   const submitAdapter = options?.submitAdapter ?? optimisticActionAdapter;
 
   const commitDraft = (nextDraft: WikiDetail, nextCode = getCodeFromSections(nextDraft.sections)) => {
@@ -104,27 +111,37 @@ export const useWikiEditDraft = (
       status: "dirty",
       message: "Unsaved changes",
       payload,
+      showMessage: true,
     });
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     const payload = toWikiEditPayload(draft);
 
     setSaveState({
       status: "saving",
       message: "Saving changes",
       payload,
+      showMessage: true,
     });
 
-    queueMicrotask(() => {
-      const result = saveAdapter(payload);
+    try {
+      const result = await saveAdapter(draft);
 
       setSaveState({
         status: result.ok ? "saved" : "failed",
         message: result.ok ? "Saved" : "Save failed",
         payload,
+        showMessage: true,
       });
-    });
+    } catch {
+      setSaveState({
+        status: "failed",
+        message: "Save failed",
+        payload,
+        showMessage: true,
+      });
+    }
   };
 
   const clearDraft = () => {
@@ -137,6 +154,7 @@ export const useWikiEditDraft = (
       status: "saved",
       message: "Saved",
       payload: toWikiEditPayload(initialDraft),
+      showMessage: false,
     });
   };
 
@@ -147,6 +165,7 @@ export const useWikiEditDraft = (
       status: "submitting",
       message: "Submitting for review",
       payload,
+      showMessage: true,
     });
 
     queueMicrotask(() => {
@@ -156,6 +175,7 @@ export const useWikiEditDraft = (
         status: result.ok ? "saved" : "failed",
         message: result.ok ? "Submitted for review" : "Submit failed",
         payload,
+        showMessage: true,
       });
     });
   };
@@ -183,6 +203,7 @@ export const useWikiEditDraft = (
           status: "dirty",
           message: "Unsaved changes",
           payload: toWikiEditPayload(draft),
+          showMessage: true,
         });
         return;
       }

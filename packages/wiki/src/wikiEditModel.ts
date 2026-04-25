@@ -55,6 +55,13 @@ export type WikiEditPayload = {
   contents: WikiSectionContentPayload[];
 };
 
+export type WikiEditRequestPayload = {
+  resourceType: WikiDetail["resourceType"];
+  basic: WikiDetail["basic"];
+  sections: WikiSectionContentPayload[];
+  themeColor: string | null;
+};
+
 export type WikiCodeParseResult =
   | {
       ok: true;
@@ -1327,6 +1334,13 @@ export const toWikiEditPayload = (wiki: WikiDetail): WikiEditPayload => ({
   hero_image: wiki.heroImage,
   basic: wiki.basic,
   contents: toWikiSectionContentPayload(wiki.sections),
+});
+
+export const toWikiEditRequestPayload = (wiki: WikiDetail): WikiEditRequestPayload => ({
+  resourceType: wiki.resourceType,
+  basic: wiki.basic,
+  sections: toWikiSectionContentPayload(wiki.sections),
+  themeColor: wiki.themeColor ?? null,
 });
 
 const toWikiContentPayload = (

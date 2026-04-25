@@ -8,6 +8,7 @@ import {
   getWikiContentEditorId,
   parseWikiSectionsFromCode,
   serializeWikiSectionsToCode,
+  toWikiEditRequestPayload,
   toWikiSectionContentPayload,
   updateWikiBlock,
   updateWikiSection,
@@ -123,6 +124,24 @@ describe("wikiEditModel", () => {
         }),
       ]),
     );
+  });
+
+  it("creates the EditWiki request body without legacy top-level snake_case fields", () => {
+    const wiki = createMockWikiDetail("gr-aurora-echo", {
+      themeColor: "#4c5cff",
+    });
+
+    const payload = toWikiEditRequestPayload(wiki);
+
+    expect(payload).toEqual({
+      resourceType: "group",
+      basic: wiki.basic,
+      sections: toWikiSectionContentPayload(wiki.sections),
+      themeColor: "#4c5cff",
+    });
+    expect(payload).not.toHaveProperty("wiki_identifier");
+    expect(payload).not.toHaveProperty("theme_color");
+    expect(payload).not.toHaveProperty("contents");
   });
 
   it("creates stable editor ids for sections and blocks", () => {

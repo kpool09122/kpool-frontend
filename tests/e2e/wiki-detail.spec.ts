@@ -45,6 +45,22 @@ test("wiki detail page shows the empty state", async ({ page }) => {
 test("wiki edit page supports inline edits and nested content controls", async ({
   page,
 }) => {
+  const saveRequests: unknown[] = [];
+
+  await page.route("**/api/wiki/drafts/*", async (route) => {
+    saveRequests.push(route.request().postDataJSON());
+    await route.fulfill({
+      contentType: "application/json",
+      status: 201,
+      body: JSON.stringify({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "draft",
+      }),
+    });
+  });
+
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
 
@@ -192,6 +208,25 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(
     page.getByTestId("wiki-edit-add-section-sec-discography-highlights-chart"),
   ).toContainText("Max depth reached");
+
+  await page.getByRole("button", { name: "Expand editor sidebar" }).click();
+  await page.getByRole("button", { name: "Save wiki changes" }).click();
+  await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Saved");
+  expect(saveRequests).toContainEqual(
+    expect.objectContaining({
+      resourceType: "group",
+      themeColor: "#4c5cff",
+      basic: expect.objectContaining({
+        name: "Aurora Echo",
+      }),
+      sections: expect.arrayContaining([
+        expect.objectContaining({
+          type: "section",
+          title: "Overview",
+        }),
+      ]),
+    }),
+  );
 });
 
 test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async ({

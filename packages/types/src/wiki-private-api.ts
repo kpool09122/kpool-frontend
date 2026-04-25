@@ -374,7 +374,16 @@ const TalentDraftWikiDetail = z
   })
   .passthrough();
 const WikiWorkflowRequestBody = WikiAssociationTargets;
-const UpdateWikiDraftRequestBody = WikiAssociationTargets;
+const UpdateWikiDraftRequestBody = WikiAssociationTargets.and(
+  z
+    .object({
+      resourceType: z.string(),
+      basic: z.record(z.unknown()),
+      sections: z.array(z.unknown()).optional(),
+      themeColor: z.string().nullable().optional(),
+    })
+    .passthrough(),
+);
 const PublishWikiRequestBody = WikiAssociationTargets;
 const PublishedWikiSummary = z
   .object({
