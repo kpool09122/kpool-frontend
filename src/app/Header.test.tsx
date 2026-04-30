@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Header } from "./Header";
 
@@ -23,6 +23,24 @@ describe("Header", () => {
     });
     expect(desktopLoginLink).toHaveAttribute("href", "/login");
     expect(desktopLoginLink).toHaveClass("hidden", "sm:inline-flex");
+  });
+
+  it("renders the desktop mypage and logout links when authenticated", () => {
+    render(<Header initialIsAuthenticated />);
+
+    const desktopMyPageLink = screen.getByRole("link", {
+      name: "マイページ",
+    });
+    expect(desktopMyPageLink).toHaveAttribute("href", "/mypage");
+    expect(
+      screen.queryByRole("link", {
+        name: "ログイン",
+      }),
+    ).not.toBeInTheDocument();
+    const logoutButton = screen.getByRole("button", {
+      name: "ログアウト",
+    });
+    expect(logoutButton).toHaveClass("hidden", "sm:inline-flex");
   });
 
   it("opens and closes the mobile login menu from the hamburger button", () => {
@@ -61,5 +79,50 @@ describe("Header", () => {
         name: "モバイルメニュー",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the mypage link in the mobile menu when authenticated", () => {
+    render(<Header initialIsAuthenticated />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "ナビゲーションメニュー",
+      }),
+    );
+
+    const mobileNavigation = screen.getByRole("navigation", {
+      name: "モバイルメニュー",
+    });
+    expect(
+      within(mobileNavigation).getByRole("link", {
+        name: "マイページ",
+      }),
+    ).toHaveAttribute("href", "/mypage");
+    expect(
+      within(mobileNavigation).getByRole("button", {
+        name: "ログアウト",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("logs out and navigates back to login", async () => {
+    const logoutAdapter = vi.fn().mockResolvedValue(undefined);
+    const clearAuthenticated = vi.fn();
+    const navigate = vi.fn();
+
+    render(
+      <Header
+        initialIsAuthenticated
+        logoutAdapter={logoutAdapter}
+        clearAuthenticated={clearAuthenticated}
+        navigate={navigate}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+
+    await vi.waitFor(() => expect(logoutAdapter).toHaveBeenCalled());
+    expect(clearAuthenticated).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/login");
   });
 });

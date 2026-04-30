@@ -71,3 +71,99 @@ test("mobile header menu shows the login link", async ({ page }) => {
     }),
   ).toBeVisible();
 });
+
+test("guest header login link opens the login page", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("link", { name: "ログイン" }).click();
+
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(
+    page.getByRole("heading", { name: "ログイン", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Googleでログイン" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "メールアドレスでログイン" }),
+  ).toBeVisible();
+});
+
+test("authenticated mobile header menu shows the mypage link", async ({ page }) => {
+  await page.route("**/api/identity/auth/logout", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({}),
+    });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem("kpool.authenticated", "true");
+  });
+  await page.goto("/");
+
+  const menuButton = page.getByRole("button", {
+    name: "ナビゲーションメニュー",
+  });
+  await expect(menuButton).toBeVisible();
+  await menuButton.click();
+
+  const myPageLink = page
+    .getByRole("navigation", { name: "モバイルメニュー" })
+    .getByRole("link", {
+      name: "マイページ",
+  });
+  await expect(myPageLink).toBeVisible();
+
+  const logoutButton = page
+    .getByRole("navigation", { name: "モバイルメニュー" })
+    .getByRole("button", {
+      name: "ログアウト",
+    });
+  await expect(logoutButton).toBeVisible();
+  await logoutButton.click();
+  await expect(page).toHaveURL(/\/login$/);
+});
+
+test("login page starts SSO redirect through the Identity API proxy", async ({
+  page,
+}) => {
+  await page.route("**/api/identity/auth/social/google/redirect", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ redirectUrl: "/mypage?sso=google" }),
+    });
+  });
+  await page.goto("/login");
+
+  await page.getByRole("button", { name: "Googleでログイン" }).click();
+
+  await expect(page).toHaveURL(/\/mypage\?sso=google$/);
+});
+
+test("login page submits email credentials through the Identity API proxy", async ({
+  page,
+}) => {
+  await page.route("**/api/identity/auth/login", async (route) => {
+    const requestBody = route.request().postDataJSON();
+
+    expect(requestBody).toEqual({
+      email: "member@example.com",
+      password: "secret-password",
+    });
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        username: "member",
+        email: "member@example.com",
+        language: "ja",
+      }),
+    });
+  });
+  await page.goto("/login");
+
+  await page.getByLabel("メールアドレス").fill("member@example.com");
+  await page.getByLabel("パスワード").fill("secret-password");
+  await page.getByRole("button", { name: "メールアドレスでログイン" }).click();
+
+  await expect(page).toHaveURL(/\/mypage$/);
+});
