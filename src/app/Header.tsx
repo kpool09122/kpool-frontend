@@ -4,12 +4,56 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-// Auth is not implemented yet; keep the intended route explicit instead of "#".
-const loginHref = "/login";
+import {
+  clearAuthenticated as clearAuthenticatedSession,
+  useAuthSession,
+} from "./authSession";
+
+type HeaderProps = {
+  initialIsAuthenticated?: boolean;
+  logoutAdapter?: () => Promise<void>;
+  clearAuthenticated?: () => void;
+  navigate?: (url: string) => void;
+};
+
+const guestNavigation = {
+  href: "/login",
+  label: "ログイン",
+};
 const mobileNavigationId = "mobile-navigation";
 
-export function Header() {
+const logoutFromIdentity = async (): Promise<void> => {
+  await fetch("/api/identity/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+};
+
+const navigateTo = (url: string): void => {
+  window.location.assign(url);
+};
+
+export function Header({
+  initialIsAuthenticated = false,
+  logoutAdapter = logoutFromIdentity,
+  clearAuthenticated = clearAuthenticatedSession,
+  navigate = navigateTo,
+}: HeaderProps = {}) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const browserAuthSession = useAuthSession();
+  const isAuthenticated = initialIsAuthenticated || browserAuthSession;
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    try {
+      await logoutAdapter();
+    } finally {
+      clearAuthenticated();
+      navigate("/login");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-stroke-subtle bg-surface-raised/95 text-text-strong shadow-[0_8px_30px_rgba(29,47,73,0.06)] backdrop-blur">
@@ -28,12 +72,31 @@ export function Header() {
           />
         </Link>
 
-        <Link
-          className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 sm:inline-flex"
-          href={loginHref}
-        >
-          ログイン
-        </Link>
+        {isAuthenticated ? (
+          <div className="hidden items-center gap-2 sm:flex">
+            <Link
+              className="inline-flex items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
+              href="/mypage"
+            >
+              マイページ
+            </Link>
+            <button
+              type="button"
+              className="hidden items-center rounded-full border border-stroke-subtle bg-surface-base px-5 py-2.5 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 sm:inline-flex disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={isLoggingOut}
+              onClick={() => void handleLogout()}
+            >
+              {isLoggingOut ? "ログアウト中" : "ログアウト"}
+            </button>
+          </div>
+        ) : (
+          <Link
+            className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 sm:inline-flex"
+            href={guestNavigation.href}
+          >
+            {guestNavigation.label}
+          </Link>
+        )}
 
         <button
           type="button"
@@ -57,12 +120,31 @@ export function Header() {
           aria-label="モバイルメニュー"
           className="border-t border-stroke-subtle bg-surface-raised px-6 py-4 sm:hidden"
         >
-          <Link
-            className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
-            href={loginHref}
-          >
-            ログイン
-          </Link>
+          {isAuthenticated ? (
+            <div className="grid gap-3">
+              <Link
+                className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
+                href="/mypage"
+              >
+                マイページ
+              </Link>
+              <button
+                type="button"
+                className="flex items-center rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={isLoggingOut}
+                onClick={() => void handleLogout()}
+              >
+                {isLoggingOut ? "ログアウト中" : "ログアウト"}
+              </button>
+            </div>
+          ) : (
+            <Link
+              className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
+              href={guestNavigation.href}
+            >
+              {guestNavigation.label}
+            </Link>
+          )}
         </nav>
       ) : null}
     </header>
