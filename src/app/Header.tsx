@@ -2,18 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-import {
-  clearAuthenticated as clearAuthenticatedSession,
-  useAuthSession,
-} from "./authSession";
 
 type HeaderProps = {
   initialIsAuthenticated?: boolean;
   logoutAdapter?: () => Promise<void>;
-  clearAuthenticated?: () => void;
   navigate?: (url: string) => void;
+  refresh?: () => void;
 };
 
 const guestNavigation = {
@@ -29,20 +25,16 @@ const logoutFromIdentity = async (): Promise<void> => {
   });
 };
 
-const navigateTo = (url: string): void => {
-  window.location.assign(url);
-};
-
 export function Header({
   initialIsAuthenticated = false,
   logoutAdapter = logoutFromIdentity,
-  clearAuthenticated = clearAuthenticatedSession,
-  navigate = navigateTo,
+  navigate,
+  refresh,
 }: HeaderProps = {}) {
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const browserAuthSession = useAuthSession();
-  const isAuthenticated = initialIsAuthenticated || browserAuthSession;
+  const isAuthenticated = initialIsAuthenticated;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -50,8 +42,13 @@ export function Header({
     try {
       await logoutAdapter();
     } finally {
-      clearAuthenticated();
-      navigate("/login");
+      if (navigate) {
+        navigate("/login");
+      } else {
+        router.replace("/login");
+        router.refresh();
+      }
+      refresh?.();
     }
   };
 

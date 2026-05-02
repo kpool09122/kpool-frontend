@@ -107,14 +107,12 @@ describe("Header", () => {
 
   it("logs out and navigates back to login", async () => {
     const logoutAdapter = vi.fn().mockResolvedValue(undefined);
-    const clearAuthenticated = vi.fn();
     const navigate = vi.fn();
 
     render(
       <Header
         initialIsAuthenticated
         logoutAdapter={logoutAdapter}
-        clearAuthenticated={clearAuthenticated}
         navigate={navigate}
       />,
     );
@@ -122,7 +120,6 @@ describe("Header", () => {
     fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
 
     await vi.waitFor(() => expect(logoutAdapter).toHaveBeenCalled());
-    expect(clearAuthenticated).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith("/login");
   });
 });

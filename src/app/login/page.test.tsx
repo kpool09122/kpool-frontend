@@ -43,15 +43,13 @@ describe("LoginPage", () => {
     expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/oauth");
   });
 
-  it("logs in with email and password, stores auth state, and opens mypage", async () => {
+  it("logs in with email and password and opens mypage", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({ ok: true });
-    const markAuthenticated = vi.fn();
     const navigate = vi.fn();
 
     render(
       <LoginPage
         loginAdapter={loginAdapter}
-        markAuthenticated={markAuthenticated}
         navigate={navigate}
       />,
     );
@@ -70,7 +68,6 @@ describe("LoginPage", () => {
         password: "secret-password",
       }),
     );
-    expect(markAuthenticated).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith("/mypage");
   });
 
