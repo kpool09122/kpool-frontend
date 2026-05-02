@@ -6,3 +6,11 @@ vi.mock("next/image", () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) =>
     React.createElement("img", props),
 }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));

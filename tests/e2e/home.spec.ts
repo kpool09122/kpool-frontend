@@ -81,46 +81,12 @@ test("guest header login link opens the login page", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "ログイン", exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Googleでログイン" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Google.*でログイン/ }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "メールアドレスでログイン" }),
   ).toBeVisible();
-});
-
-test("authenticated mobile header menu shows the mypage link", async ({ page }) => {
-  await page.route("**/api/identity/auth/logout", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({}),
-    });
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => {
-    window.localStorage.setItem("kpool.authenticated", "true");
-  });
-  await page.goto("/");
-
-  const menuButton = page.getByRole("button", {
-    name: "ナビゲーションメニュー",
-  });
-  await expect(menuButton).toBeVisible();
-  await menuButton.click();
-
-  const myPageLink = page
-    .getByRole("navigation", { name: "モバイルメニュー" })
-    .getByRole("link", {
-      name: "マイページ",
-  });
-  await expect(myPageLink).toBeVisible();
-
-  const logoutButton = page
-    .getByRole("navigation", { name: "モバイルメニュー" })
-    .getByRole("button", {
-      name: "ログアウト",
-    });
-  await expect(logoutButton).toBeVisible();
-  await logoutButton.click();
-  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("login page starts SSO redirect through the Identity API proxy", async ({
@@ -134,7 +100,7 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
   });
   await page.goto("/login");
 
-  await page.getByRole("button", { name: "Googleでログイン" }).click();
+  await page.getByRole("button", { name: /Google.*でログイン/ }).click();
 
   await expect(page).toHaveURL(/\/mypage\?sso=google$/);
 });

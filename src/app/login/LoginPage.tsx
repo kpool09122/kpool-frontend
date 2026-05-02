@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
-import { markAuthenticated as markAuthenticatedSession } from "../authSession";
 import {
   identityProviders,
   loginWithEmail,
@@ -17,8 +17,8 @@ import {
 type LoginPageProps = {
   loginAdapter?: LoginAdapter;
   socialRedirectAdapter?: SocialRedirectAdapter;
-  markAuthenticated?: () => void;
   navigate?: (url: string) => void;
+  refresh?: () => void;
   returnTo?: string | null;
 };
 
@@ -48,10 +48,11 @@ const getCurrentReturnTo = (): string | null => {
 export function LoginPage({
   loginAdapter = loginWithEmail,
   socialRedirectAdapter = requestSocialRedirect,
-  markAuthenticated = markAuthenticatedSession,
-  navigate = defaultNavigate,
+  navigate,
+  refresh,
   returnTo,
 }: LoginPageProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -69,8 +70,13 @@ export function LoginPage({
     const result = await loginAdapter({ email, password });
 
     if (result.ok) {
-      markAuthenticated();
-      navigate(destination);
+      if (navigate) {
+        navigate(destination);
+      } else {
+        router.replace(destination);
+        router.refresh();
+      }
+      refresh?.();
       return;
     }
 
@@ -85,7 +91,11 @@ export function LoginPage({
     const result = await socialRedirectAdapter(provider);
 
     if (result.ok) {
-      navigate(result.redirectUrl);
+      if (navigate) {
+        navigate(result.redirectUrl);
+      } else {
+        defaultNavigate(result.redirectUrl);
+      }
       return;
     }
 
