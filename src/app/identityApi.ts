@@ -4,6 +4,9 @@ import { z } from "zod";
 export type IdentityLoginRequest = z.infer<typeof schemas.LoginRequestBody>;
 export type IdentitySummary = z.infer<typeof schemas.IdentitySummary>;
 export type RedirectUrlResult = z.infer<typeof schemas.RedirectUrlResult>;
+export type CreateIdentityRequest = z.infer<typeof schemas.CreateIdentityRequestBody>;
+export type VerifyEmailRequest = z.infer<typeof schemas.VerifyEmailRequestBody>;
+export type VerifyEmailResult = z.infer<typeof schemas.VerifyEmailResult>;
 
 type IdentityApiEnv = Record<string, string | undefined>;
 
@@ -75,3 +78,12 @@ export const parseIdentitySummary = (body: unknown): IdentitySummary =>
 
 export const parseRedirectUrlResult = (body: unknown): RedirectUrlResult =>
   schemas.RedirectUrlResult.parse(body);
+
+export const parseCreateIdentityRequest = (body: unknown): CreateIdentityRequest =>
+  schemas.CreateIdentityRequestBody.parse(body);
+
+export const parseVerifyEmailRequest = (body: unknown): VerifyEmailRequest =>
+  schemas.VerifyEmailRequestBody.parse(body);
+
+export const parseVerifyEmailResult = (body: unknown): VerifyEmailResult =>
+  schemas.VerifyEmailResult.parse(body);

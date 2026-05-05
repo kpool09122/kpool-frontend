@@ -128,8 +128,109 @@ test("login page submits email credentials through the Identity API proxy", asyn
   await page.goto("/login");
 
   await page.getByLabel("メールアドレス").fill("member@example.com");
-  await page.getByLabel("パスワード").fill("secret-password");
+  await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
   await page.getByRole("button", { name: "メールアドレスでログイン" }).click();
+
+  await expect(page).toHaveURL(/\/mypage$/);
+});
+
+test("login page links to signup and completes the signup flow through API proxies", async ({
+  page,
+}) => {
+  await page.route("**/api/account/accounts", async (route) => {
+    const requestBody = route.request().postDataJSON();
+
+    expect(requestBody).toEqual({
+      email: "new-member@example.com",
+      accountName: "New Member Account",
+      accountType: "individual",
+      identityIdentifier: null,
+    });
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "new-member@example.com",
+        type: "individual",
+        name: "New Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }),
+    });
+  });
+  await page.route("**/api/identity/auth/verify-email", async (route) => {
+    const requestBody = route.request().postDataJSON();
+
+    expect(requestBody).toEqual({
+      email: "new-member@example.com",
+      authCode: "123456",
+    });
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        email: "new-member@example.com",
+        verifiedAt: "2026-05-05T00:00:00+00:00",
+      }),
+    });
+  });
+  await page.route("**/api/identity/auth/register", async (route) => {
+    const requestBody = route.request().postDataJSON();
+
+    expect(requestBody).toEqual({
+      username: "New Member Account",
+      email: "new-member@example.com",
+      password: "secret-password",
+      confirmedPassword: "secret-password",
+      base64EncodedImage: null,
+      invitationToken: null,
+      requestLanguage: "ja",
+    });
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        username: "New Member Account",
+        email: "new-member@example.com",
+        language: "ja",
+      }),
+    });
+  });
+
+  await page.goto("/login");
+  await page.getByRole("link", { name: "アカウント登録へ" }).click();
+
+  await expect(page).toHaveURL(/\/signup$/);
+  await expect(page.getByRole("heading", { name: "アカウント登録" })).toBeVisible();
+
+  await page.getByLabel("登録用メールアドレス").fill("new-member@example.com");
+  await page.getByLabel("アカウント名").fill("New Member Account");
+  await page.getByLabel("言語").selectOption("ja");
+  await page.getByRole("button", { name: "認証コードを送信" }).click();
+
+  await expect(page.getByRole("heading", { name: "認証コード入力" })).toBeVisible();
+  await expect(
+    page.getByRole("listitem", { name: "アカウント情報入力: 完了" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("listitem", { name: "認証コード入力: 入力中" }),
+  ).toBeVisible();
+
+  await page.getByLabel("認証コード", { exact: true }).fill("123456");
+  await page.getByRole("button", { name: "認証コードを確認" }).click();
+
+  await expect(page.getByRole("heading", { name: "登録情報設定" })).toBeVisible();
+  await expect(
+    page.getByRole("listitem", { name: "認証コード入力: 完了" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("listitem", { name: "登録情報設定: 入力中" }),
+  ).toBeVisible();
+
+  await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
+  await page.getByLabel("確認用パスワード").fill("secret-password");
+  await page.getByRole("button", { name: "登録を完了" }).click();
 
   await expect(page).toHaveURL(/\/mypage$/);
 });

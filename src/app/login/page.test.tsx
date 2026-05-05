@@ -19,6 +19,11 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
     expect(screen.getByLabelText("パスワード")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "メールアドレスでログイン" })).toBeInTheDocument();
+    expect(screen.getByText("アカウントをお持ちでない方は")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "アカウント登録へ" })).toHaveAttribute(
+      "href",
+      "/signup",
+    );
   });
 
   it("requests an SSO redirect URL and navigates to it", async () => {
