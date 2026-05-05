@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 
@@ -204,6 +205,16 @@ export function LoginPage({
                 ? "ログインしています"
                 : "メールアドレスでログイン"}
             </button>
+
+            <p className="text-center text-sm text-text-muted">
+              アカウントをお持ちでない方は{" "}
+              <Link
+                href="/signup"
+                className="font-semibold text-brand-primary underline-offset-4 hover:underline"
+              >
+                アカウント登録へ
+              </Link>
+            </p>
           </form>
         </section>
       </div>
