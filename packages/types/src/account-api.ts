@@ -74,6 +74,17 @@ const CreateAccountRequestBody = z
     identityIdentifier: KPool_Common_Uuid.nullish(),
   })
   .passthrough();
+const CreateAccountResult = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    email: z.string(),
+    type: z.string(),
+    name: z.string(),
+    status: z.string(),
+    accountCategory: z.string(),
+  })
+  .partial()
+  .passthrough();
 const AccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -83,7 +94,6 @@ const AccountSummary = z
     status: z.string(),
   })
   .passthrough();
-const CreatedAccountSummary = AccountSummary;
 const AffiliationTermsSummary = z
   .object({
     revenueSharePercentage: z.number().int(),
@@ -203,6 +213,7 @@ const InvitationSummary = z
     createdAt: KPool_Common_Timestamp,
   })
   .passthrough();
+const CreatedAccountSummary = AccountSummary;
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -216,8 +227,8 @@ export const schemas = {
   ApproveVerificationRequestBody,
   RejectVerificationRequestBody,
   CreateAccountRequestBody,
+  CreateAccountResult,
   AccountSummary,
-  CreatedAccountSummary,
   AffiliationTermsSummary,
   RequestAffiliationRequestBody,
   AffiliationSummary,
@@ -236,6 +247,7 @@ export const schemas = {
   MutateIdentityGroupMemberRequestBody,
   CreateInvitationRequestBody,
   InvitationSummary,
+  CreatedAccountSummary,
 };
 
 const endpoints = makeApi([
@@ -368,16 +380,11 @@ const endpoints = makeApi([
         schema: CreateAccountRequestBody,
       },
     ],
-    response: CreatedAccountSummary,
+    response: CreateAccountResult,
     errors: [
       {
         status: 401,
         description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 409,
-        description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
