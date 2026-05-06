@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import "./globals.css";
 import { fetchAuthenticatedIdentity } from "./authIdentity";
 import { Header } from "./Header";
+import { I18nProvider } from "./i18n/I18nProvider";
+import { localeCookieName, resolveLocale } from "./i18n/locales";
 import { ThemeInitializer } from "./ThemeInitializer";
 
 export const metadata: Metadata = {
@@ -18,16 +20,26 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
+  const headerStore = await headers();
   const authenticatedIdentity = await fetchAuthenticatedIdentity({
     cookieHeader: cookieStore.toString(),
   });
+  const locale = resolveLocale({
+    identityLanguage: authenticatedIdentity?.language,
+    savedLocale: cookieStore.get(localeCookieName)?.value,
+    country: headerStore.get("x-vercel-ip-country"),
+  });
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
-        <ThemeInitializer />
-        <Header initialIsAuthenticated={authenticatedIdentity !== null} />
-        {children}
+        <I18nProvider initialLocale={locale}>
+          <ThemeInitializer />
+          <Header
+            initialIsAuthenticated={authenticatedIdentity !== null}
+          />
+          {children}
+        </I18nProvider>
       </body>
     </html>
   );

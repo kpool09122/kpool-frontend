@@ -16,6 +16,7 @@ import {
   cardSurfaceStyle,
   mainBackgroundStyle,
 } from "../../../../components/Wiki";
+import { useI18n } from "../../../i18n/I18nProvider";
 import { getWikiResourceLabel, type WikiResourceType } from "../../wikiRouting";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
 import { type loadDraftWikiState } from "../../draftWiki";
@@ -39,6 +40,8 @@ function WikiEditContent({
   language: string;
   saveAdapter: (draft: WikiDetail) => Promise<WikiSaveResult>;
 }) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki;
   const flipCardId = useId();
   const [isBasicFlipped, setIsBasicFlipped] = useState(false);
   const [editorMode, setEditorMode] = useState<WikiEditorMode>("gui");
@@ -80,7 +83,7 @@ function WikiEditContent({
   };
   const isBusy = saveState.status === "saving" || saveState.status === "submitting";
   const clearChanges = () => {
-    if (!window.confirm("Discard unsaved wiki changes?")) {
+    if (!window.confirm(t.discardChanges)) {
       return;
     }
 
@@ -119,7 +122,7 @@ function WikiEditContent({
           {themeLabel ? (
             <div>
               <span className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]" data-testid="wiki-edit-theme-badge" style={cardSurfaceStyle}>
-                Theme {themeLabel}
+                {t.theme} {themeLabel}
               </span>
             </div>
           ) : null}
@@ -140,7 +143,7 @@ function WikiEditContent({
                 updateBasic(basic);
                 closeEditor();
               }}
-              profileLabel={`${resourceLabel} profile`}
+              profileLabel={`${resourceLabel} ${t.profileSuffix}`}
               onSaveHero={(heroImage) => {
                 updateHeroImage(heroImage);
                 closeEditor();
@@ -199,7 +202,7 @@ function WikiEditContent({
                 style={cardSurfaceStyle}
                 type="button"
               >
-                + Section
+                {t.addSection}
               </button>
             </section>
           ) : (
@@ -241,15 +244,18 @@ export function WikiEditPage({
   wikiState,
   saveAdapter = saveWikiDraft,
 }: WikiEditPageProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki;
+
   if (wikiState.status === "error") {
-    return <WikiStatePanel message={wikiState.message} title="Unable to load wiki" tone="danger" />;
+    return <WikiStatePanel message={wikiState.message} title={t.loadErrorTitle} tone="danger" />;
   }
 
   if (wikiState.status === "empty") {
     return (
       <WikiStatePanel
-        message="This resource does not have a wiki draft to edit at the moment."
-        title="No wiki draft"
+        message={t.emptyDraftMessage}
+        title={t.emptyDraftTitle}
       />
     );
   }

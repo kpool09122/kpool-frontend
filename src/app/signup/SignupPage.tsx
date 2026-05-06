@@ -13,7 +13,9 @@ import {
   type SignupPhase,
   type SignupStepId,
   type SignupStepState,
-} from "./signupFlow";
+	} from "./signupFlow";
+import { useI18n } from "../i18n/I18nProvider";
+import { localeLabels, type Locale } from "../i18n/locales";
 
 type SignupPageProps = {
   signupAdapter?: SignupAdapter;
@@ -21,36 +23,17 @@ type SignupPageProps = {
   refresh?: () => void;
 };
 
-const initialValues: SignupAccountFormValues = {
+const getInitialValues = (language: Locale): SignupAccountFormValues => ({
   email: "",
   accountName: "",
   accountType: "individual",
-  language: "ja",
+  language,
   username: "",
   password: "",
   confirmedPassword: "",
   base64EncodedImage: "",
   invitationToken: "",
-};
-
-const accountTypeOptions = [
-  { value: "individual", label: "個人", panelId: "individual-account-panel" },
-  { value: "corporation", label: "法人", panelId: "corporation-account-panel" },
-];
-
-const languageOptions = [
-  { value: "ja", label: "日本語" },
-  { value: "en", label: "English" },
-  { value: "ko", label: "한국어" },
-];
-
-const stepStateLabel: Record<SignupStepState, string> = {
-  pending: "待機中",
-  active: "入力中",
-  processing: "処理中",
-  complete: "完了",
-  error: "エラー",
-};
+});
 
 const stepStateClassName: Record<SignupStepState, string> = {
   pending: "bg-stroke-subtle",
@@ -71,7 +54,11 @@ export function SignupPage({
   refresh,
 }: SignupPageProps) {
   const router = useRouter();
-  const [values, setValues] = useState<SignupAccountFormValues>(initialValues);
+  const { locale, dictionary, setLocale } = useI18n();
+  const t = dictionary.signup;
+  const [values, setValues] = useState<SignupAccountFormValues>(() =>
+    getInitialValues(locale),
+  );
   const [authCode, setAuthCode] = useState("");
   const [phase, setPhase] = useState<SignupPhase>("account");
   const [pending, setPending] = useState(false);
@@ -79,6 +66,10 @@ export function SignupPage({
   const [errorStep, setErrorStep] = useState<SignupStepId | null>(null);
 
   const setField = (field: keyof SignupAccountFormValues, value: string): void => {
+    if (field === "language") {
+      setLocale(value as Locale);
+    }
+
     setValues((current) => ({ ...current, [field]: value }));
   };
 
@@ -160,6 +151,10 @@ export function SignupPage({
   const isAccountPhase = phase === "account";
   const isVerificationPhase = phase === "verification";
   const isIdentityPhase = phase === "identity";
+  const accountTypeOptions = [
+    { value: "individual", label: t.individual, panelId: "individual-account-panel" },
+    { value: "corporation", label: t.corporation, panelId: "corporation-account-panel" },
+  ];
   const selectedAccountType = accountTypeOptions.find(
     (option) => option.value === values.accountType,
   ) ?? accountTypeOptions[0];
@@ -169,11 +164,11 @@ export function SignupPage({
       <div className="mx-auto max-w-3xl space-y-7">
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
-            K-Pool Account
+            {dictionary.common.accountBrand}
           </p>
-          <h1 className="text-3xl font-bold sm:text-4xl">アカウント登録</h1>
+          <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
           <p className="max-w-2xl text-sm leading-6 text-text-muted">
-            メールアドレスでアカウントを作成し、届いた認証コードで登録を完了します。
+            {t.description}
           </p>
         </div>
 
@@ -182,7 +177,7 @@ export function SignupPage({
             <form className="space-y-5" onSubmit={(event) => void handleAccountSubmit(event)}>
               <div
                 role="tablist"
-                aria-label="アカウント種別"
+                aria-label={t.accountType}
                 className="-mx-6 -mt-6 mb-5 flex border-b border-stroke-subtle px-6"
               >
                 {accountTypeOptions.map((option) => {
@@ -217,7 +212,7 @@ export function SignupPage({
                 className="grid gap-4 sm:grid-cols-2"
               >
                 <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
-                  <span>登録用メールアドレス</span>
+                  <span>{t.email}</span>
                   <input
                     type="email"
                     autoComplete="email"
@@ -229,7 +224,7 @@ export function SignupPage({
                 </label>
 
                 <label className="block space-y-2 text-sm font-semibold">
-                  <span>アカウント名</span>
+                  <span>{t.accountName}</span>
                   <input
                     type="text"
                     autoComplete="organization"
@@ -241,16 +236,16 @@ export function SignupPage({
                 </label>
 
                 <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
-                  <span>言語</span>
+                  <span>{t.language}</span>
                   <select
                     required
                     value={values.language}
                     onChange={(event) => setField("language", event.target.value)}
                     className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight"
                   >
-                    {languageOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                    {Object.entries(localeLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
                       </option>
                     ))}
                   </select>
@@ -271,7 +266,7 @@ export function SignupPage({
                 className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={pending}
               >
-                {pending ? "認証コードを送信しています" : "認証コードを送信"}
+                {pending ? t.sendingCode : t.sendCode}
               </button>
             </form>
           ) : null}
@@ -282,14 +277,14 @@ export function SignupPage({
               onSubmit={(event) => void handleVerificationSubmit(event)}
             >
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold">認証コード入力</h2>
+                <h2 className="text-lg font-semibold">{t.verificationTitle}</h2>
                 <p className="text-sm leading-6 text-text-muted">
-                  {values.email} に届いた認証コードを入力してください。
+                  {t.verificationDescription(values.email)}
                 </p>
               </div>
 
               <label className="block space-y-2 text-sm font-semibold">
-                <span>認証コード</span>
+                <span>{t.authCode}</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -315,7 +310,7 @@ export function SignupPage({
                 className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={pending}
               >
-                {pending ? "認証コードを確認しています" : "認証コードを確認"}
+                {pending ? t.verifyingCode : t.verifyCode}
               </button>
             </form>
           ) : null}
@@ -323,15 +318,15 @@ export function SignupPage({
           {isIdentityPhase ? (
             <form className="space-y-5" onSubmit={(event) => void handleIdentitySubmit(event)}>
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold">登録情報設定</h2>
+                <h2 className="text-lg font-semibold">{t.identityTitle}</h2>
                 <p className="text-sm leading-6 text-text-muted">
-                  ログインに使うパスワードを設定してください。
+                  {t.identityDescription}
                 </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-2 text-sm font-semibold">
-                  <span>パスワード</span>
+                  <span>{t.password}</span>
                   <input
                     type="password"
                     autoComplete="new-password"
@@ -343,7 +338,7 @@ export function SignupPage({
                 </label>
 
                 <label className="block space-y-2 text-sm font-semibold">
-                  <span>確認用パスワード</span>
+                  <span>{t.confirmedPassword}</span>
                   <input
                     type="password"
                     autoComplete="new-password"
@@ -369,18 +364,18 @@ export function SignupPage({
                 className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
                 disabled={pending}
               >
-                {pending ? "登録を完了しています" : "登録を完了"}
+                {pending ? t.completing : t.complete}
               </button>
             </form>
           ) : null}
         </section>
 
-        <ol className="grid grid-cols-3 gap-2" aria-label="登録ステップ">
+        <ol className="grid grid-cols-3 gap-2" aria-label={t.steps}>
           {steps.map((step) => (
             <li
               key={step.id}
               className={`h-1.5 rounded-full transition-colors ${stepStateClassName[step.state]}`}
-              aria-label={`${step.label}: ${stepStateLabel[step.state]}`}
+              aria-label={`${step.label}: ${t.stepState[step.state]}`}
             />
           ))}
         </ol>

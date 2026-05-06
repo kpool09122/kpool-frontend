@@ -1,4 +1,15 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+const useJapaneseLocale = async (page: Page) => {
+  await page.context().addCookies([
+    {
+      name: "kpool-locale",
+      value: "ja",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+};
 
 test("home page shows the theme preview content", async ({ page }) => {
   await page.goto("/");
@@ -45,7 +56,22 @@ test("home page demo links open the wiki detail page with a theme color override
   );
 });
 
+test("guest locale defaults to English and persists language switching", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+
+  await page.getByLabel("Language").selectOption("ja");
+  await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
+});
+
 test("mobile header menu shows the login link", async ({ page }) => {
+  await useJapaneseLocale(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
@@ -73,6 +99,7 @@ test("mobile header menu shows the login link", async ({ page }) => {
 });
 
 test("guest header login link opens the login page", async ({ page }) => {
+  await useJapaneseLocale(page);
   await page.goto("/");
 
   await page.getByRole("link", { name: "ログイン" }).click();
@@ -92,6 +119,7 @@ test("guest header login link opens the login page", async ({ page }) => {
 test("login page starts SSO redirect through the Identity API proxy", async ({
   page,
 }) => {
+  await useJapaneseLocale(page);
   await page.route("**/api/identity/auth/social/google/redirect", async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -108,6 +136,7 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
 test("login page submits email credentials through the Identity API proxy", async ({
   page,
 }) => {
+  await useJapaneseLocale(page);
   await page.route("**/api/identity/auth/login", async (route) => {
     const requestBody = route.request().postDataJSON();
 
@@ -137,6 +166,7 @@ test("login page submits email credentials through the Identity API proxy", asyn
 test("login page links to signup and completes the signup flow through API proxies", async ({
   page,
 }) => {
+  await useJapaneseLocale(page);
   await page.route("**/api/account/accounts", async (route) => {
     const requestBody = route.request().postDataJSON();
 
@@ -206,7 +236,7 @@ test("login page links to signup and completes the signup flow through API proxi
 
   await page.getByLabel("登録用メールアドレス").fill("new-member@example.com");
   await page.getByLabel("アカウント名").fill("New Member Account");
-  await page.getByLabel("言語").selectOption("ja");
+  await page.getByRole("main").getByLabel("言語").selectOption("ja");
   await page.getByRole("button", { name: "認証コードを送信" }).click();
 
   await expect(page.getByRole("heading", { name: "認証コード入力" })).toBeVisible();

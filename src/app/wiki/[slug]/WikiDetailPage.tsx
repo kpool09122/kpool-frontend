@@ -13,6 +13,7 @@ import {
   accentBadgeStyle,
   mainBackgroundStyle,
 } from "../../../components/Wiki";
+import { useI18n } from "../../i18n/I18nProvider";
 import { getWikiResourceLabel } from "../wikiRouting";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 import { useWikiDetail } from "./useWikiDetail";
@@ -24,14 +25,16 @@ type WikiDetailPageProps = {
 };
 
 export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPageProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki;
   const wikiDetail = useWikiDetail(slug, { language, themeColor });
   const flipCardId = useId();
 
   if (wikiDetail.status === "loading") {
     return (
       <WikiStatePanel
-        message="Preparing the public detail view..."
-        title="Loading Wiki"
+        message={t.loadingMessage}
+        title={t.loadingTitle}
       />
     );
   }
@@ -40,7 +43,7 @@ export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPagePro
     return (
       <WikiStatePanel
         message={wikiDetail.message}
-        title="Unable to load wiki"
+        title={t.loadErrorTitle}
         tone="danger"
       />
     );
@@ -49,8 +52,8 @@ export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPagePro
   if (wikiDetail.status === "empty") {
     return (
       <WikiStatePanel
-        message="This resource does not have a public wiki detail page at the moment."
-        title="No public wiki yet"
+        message={t.emptyPublicMessage}
+        title={t.emptyPublicTitle}
       />
     );
   }
@@ -81,7 +84,7 @@ export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPagePro
                 data-testid="wiki-theme-badge"
                 style={accentBadgeStyle}
               >
-                Theme {themeLabel}
+                {t.theme} {themeLabel}
               </span>
             ) : null}
           </div>
@@ -91,7 +94,7 @@ export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPagePro
           basic={data.basic}
           flipCardId={flipCardId}
           heroImage={data.heroImage}
-          profileLabel={`${getWikiResourceLabel(data.resourceType)} profile`}
+          profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}
         />
 
         <section className="space-y-5">
