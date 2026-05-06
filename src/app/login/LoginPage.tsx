@@ -14,6 +14,7 @@ import {
   type LoginAdapter,
   type SocialRedirectAdapter,
 } from "./authFlow";
+import { useI18n } from "../i18n/I18nProvider";
 
 type LoginPageProps = {
   loginAdapter?: LoginAdapter;
@@ -52,8 +53,10 @@ export function LoginPage({
   navigate,
   refresh,
   returnTo,
-}: LoginPageProps) {
+	}: LoginPageProps) {
   const router = useRouter();
+  const { dictionary } = useI18n();
+  const t = dictionary.login;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -112,7 +115,7 @@ export function LoginPage({
             <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
               K-Pool Account
             </p>
-            <h1 className="text-3xl font-bold sm:text-4xl">ログイン</h1>
+	            <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
           </div>
 
           <div className="grid gap-3">
@@ -139,13 +142,13 @@ export function LoginPage({
                     />
                   </span>
                   {isPending ? (
-                    <span>ログインを開始しています</span>
+	                    <span>{t.socialPending}</span>
                   ) : (
                     <span>
                       <span className="inline-block min-w-[3.25rem] text-left">
                         {provider.label}
                       </span>
-                      <span>でログイン</span>
+	                      <span>{t.socialSuffix}</span>
                     </span>
                   )}
                 </button>
@@ -157,14 +160,14 @@ export function LoginPage({
         <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
           <form className="space-y-5" onSubmit={(event) => void handleEmailLogin(event)}>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold">メールアドレスでログイン</h2>
-              <p className="text-sm leading-6 text-text-muted">
-                メールアドレスとパスワードでもログインできます。
-              </p>
+	              <h2 className="text-lg font-semibold">{t.emailTitle}</h2>
+	              <p className="text-sm leading-6 text-text-muted">
+	                {t.emailDescription}
+	              </p>
             </div>
 
             <label className="block space-y-2 text-sm font-semibold">
-              <span>メールアドレス</span>
+	              <span>{t.email}</span>
               <input
                 type="email"
                 autoComplete="email"
@@ -176,7 +179,7 @@ export function LoginPage({
             </label>
 
             <label className="block space-y-2 text-sm font-semibold">
-              <span>パスワード</span>
+	              <span>{t.password}</span>
               <input
                 type="password"
                 autoComplete="current-password"
@@ -202,17 +205,17 @@ export function LoginPage({
               disabled={pendingAction !== null}
             >
               {pendingAction?.type === "email"
-                ? "ログインしています"
-                : "メールアドレスでログイン"}
+	                ? t.submitting
+	                : t.emailTitle}
             </button>
 
             <p className="text-center text-sm text-text-muted">
-              アカウントをお持ちでない方は{" "}
+	              {t.signupLead}{" "}
               <Link
                 href="/signup"
                 className="font-semibold text-brand-primary underline-offset-4 hover:underline"
               >
-                アカウント登録へ
+	                {t.signupLink}
               </Link>
             </p>
           </form>

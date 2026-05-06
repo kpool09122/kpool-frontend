@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SignupPage } from "./SignupPage";
 import type { SignupAdapter } from "./signupFlow";
+import { I18nProvider } from "../i18n/I18nProvider";
 
 const createAdapter = (overrides: Partial<SignupAdapter> = {}): SignupAdapter => ({
   createAccount: vi.fn().mockResolvedValue({
@@ -133,6 +134,35 @@ describe("SignupPage", () => {
           accountType: "corporation",
         }),
         { language: "ja" },
+      ),
+    );
+  });
+
+  it("uses the current English locale as the initial API request language", async () => {
+    const adapter = createAdapter();
+
+    render(
+      <I18nProvider initialLocale="en">
+        <SignupPage signupAdapter={adapter} />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Create account" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Registration email address"), {
+      target: { value: "member@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Account name"), {
+      target: { value: "Member Account" },
+    });
+    expect(screen.getByLabelText("Language")).toHaveValue("en");
+    fireEvent.click(screen.getByRole("button", { name: "Send verification code" }));
+
+    await waitFor(() =>
+      expect(adapter.createAccount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "member@example.com",
+        }),
+        { language: "en" },
       ),
     );
   });

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./LoginPage";
+import { I18nProvider } from "../i18n/I18nProvider";
 
 describe("LoginPage", () => {
   afterEach(() => {
@@ -95,5 +96,22 @@ describe("LoginPage", () => {
     expect(
       await screen.findByText("メールアドレスまたはパスワードが違います。"),
     ).toBeInTheDocument();
+  });
+
+  it("renders the primary login copy in English", () => {
+    render(
+      <I18nProvider initialLocale="en">
+        <LoginPage />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Log in" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Google.*login/ })).toBeInTheDocument();
+    expect(screen.getByLabelText("Email address")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Log in with email" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
+      "href",
+      "/signup",
+    );
   });
 });

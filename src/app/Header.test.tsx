@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Header } from "./Header";
+import { I18nProvider } from "./i18n/I18nProvider";
 
 afterEach(() => {
   cleanup();
@@ -121,5 +122,24 @@ describe("Header", () => {
 
     await vi.waitFor(() => expect(logoutAdapter).toHaveBeenCalled());
     expect(navigate).toHaveBeenCalledWith("/login");
+  });
+
+  it("switches fixed header text when the locale selector changes", () => {
+    const refresh = vi.fn();
+
+    render(
+      <I18nProvider initialLocale="en">
+        <Header refresh={refresh} />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "Log in" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Language"), {
+      target: { value: "ko" },
+    });
+
+    expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
   });
 });

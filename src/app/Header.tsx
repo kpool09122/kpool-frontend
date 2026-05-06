@@ -3,7 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
+
+import { useI18n } from "./i18n/I18nProvider";
+import { localeLabels, type Locale } from "./i18n/locales";
 
 type HeaderProps = {
   initialIsAuthenticated?: boolean;
@@ -14,7 +18,6 @@ type HeaderProps = {
 
 const guestNavigation = {
   href: "/login",
-  label: "ログイン",
 };
 const mobileNavigationId = "mobile-navigation";
 
@@ -32,9 +35,12 @@ export function Header({
   refresh,
 }: HeaderProps = {}) {
   const router = useRouter();
+  const { locale, dictionary, setLocale } = useI18n();
+  const currentLocale = locale;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isAuthenticated = initialIsAuthenticated;
+  const t = dictionary.header;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -51,6 +57,32 @@ export function Header({
       refresh?.();
     }
   };
+  const handleLocaleChange = (nextLocale: Locale) => {
+    setLocale(nextLocale);
+    router.refresh();
+    refresh?.();
+  };
+  const languageSwitcher = (
+    <label className="relative inline-flex items-center text-sm font-semibold text-text-muted">
+      <span className="sr-only">{t.language}</span>
+      <select
+        aria-label={t.language}
+        className="h-10 appearance-none rounded-full border border-stroke-subtle bg-surface-base py-0 pl-4 pr-10 text-sm font-semibold text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight"
+        value={currentLocale}
+        onChange={(event) => handleLocaleChange(event.target.value as Locale)}
+      >
+        {Object.entries(localeLabels).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon
+        aria-hidden="true"
+        className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+      />
+    </label>
+  );
 
   return (
     <header className="sticky top-0 z-40 border-b border-stroke-subtle bg-surface-raised/95 text-text-strong shadow-[0_8px_30px_rgba(29,47,73,0.06)] backdrop-blur">
@@ -69,13 +101,15 @@ export function Header({
           />
         </Link>
 
-        {isAuthenticated ? (
-          <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-2 sm:flex">
+          {languageSwitcher}
+          {isAuthenticated ? (
+            <>
             <Link
               className="inline-flex items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
               href="/mypage"
             >
-              マイページ
+              {t.mypage}
             </Link>
             <button
               type="button"
@@ -83,22 +117,23 @@ export function Header({
               disabled={isLoggingOut}
               onClick={() => void handleLogout()}
             >
-              {isLoggingOut ? "ログアウト中" : "ログアウト"}
+              {isLoggingOut ? t.loggingOut : t.logout}
             </button>
-          </div>
-        ) : (
-          <Link
-            className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 sm:inline-flex"
-            href={guestNavigation.href}
-          >
-            {guestNavigation.label}
-          </Link>
-        )}
+            </>
+          ) : (
+            <Link
+              className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 sm:inline-flex"
+              href={guestNavigation.href}
+            >
+              {t.login}
+            </Link>
+          )}
+        </div>
 
         <button
           type="button"
           className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 sm:hidden"
-          aria-label="ナビゲーションメニュー"
+          aria-label={t.navigationMenu}
           aria-controls={mobileNavigationId}
           aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((current) => !current)}
@@ -114,16 +149,17 @@ export function Header({
       {isMobileMenuOpen ? (
         <nav
           id={mobileNavigationId}
-          aria-label="モバイルメニュー"
+          aria-label={t.mobileMenu}
           className="border-t border-stroke-subtle bg-surface-raised px-6 py-4 sm:hidden"
         >
+          <div className="mb-3">{languageSwitcher}</div>
           {isAuthenticated ? (
             <div className="grid gap-3">
               <Link
                 className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
                 href="/mypage"
               >
-                マイページ
+                {t.mypage}
               </Link>
               <button
                 type="button"
@@ -131,7 +167,7 @@ export function Header({
                 disabled={isLoggingOut}
                 onClick={() => void handleLogout()}
               >
-                {isLoggingOut ? "ログアウト中" : "ログアウト"}
+                {isLoggingOut ? t.loggingOut : t.logout}
               </button>
             </div>
           ) : (
@@ -139,7 +175,7 @@ export function Header({
               className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
               href={guestNavigation.href}
             >
-              {guestNavigation.label}
+              {t.login}
             </Link>
           )}
         </nav>
