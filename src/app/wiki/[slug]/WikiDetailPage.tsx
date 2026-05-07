@@ -11,7 +11,6 @@ import {
   WikiPublicHeroBasicSection,
   WikiSectionAccordion,
   WikiStatePanel,
-  accentBadgeStyle,
   mainBackgroundStyle,
 } from "../../../components/Wiki";
 import { useI18n } from "../../i18n/I18nProvider";
@@ -66,7 +65,6 @@ export function WikiDetailPage({
   const sections = sortWikiSections(data.sections.map(normalizeWikiSectionContents));
   const effectiveThemeColor = themeColor ?? data.themeColor ?? undefined;
   const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor);
-  const themeLabel = effectiveThemeColor?.toUpperCase();
 
   return (
     <main
@@ -83,15 +81,6 @@ export function WikiDetailPage({
             <h1 className="text-4xl font-semibold tracking-[-0.05em] text-text-strong lg:text-5xl">
               {data.basic.name}
             </h1>
-            {themeLabel ? (
-              <span
-                className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]"
-                data-testid="wiki-theme-badge"
-                style={accentBadgeStyle}
-              >
-                {t.theme} {themeLabel}
-              </span>
-            ) : null}
           </div>
         </header>
 

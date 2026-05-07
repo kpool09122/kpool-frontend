@@ -111,7 +111,7 @@ describe("WikiDetailPage", () => {
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
   });
 
-  it("injects theme css variables and badges when themeColor is provided", () => {
+  it("injects theme css variables without rendering the color code when themeColor is provided", () => {
     const { container } = render(
       React.createElement(WikiDetailPage, {
         language: "ja",
@@ -126,9 +126,7 @@ describe("WikiDetailPage", () => {
       }),
     );
 
-    expect(screen.getByTestId("wiki-theme-badge")).toHaveTextContent(
-      "Theme #D94F70",
-    );
+    expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
     const rootStyle = container
       .querySelector('[data-testid="wiki-theme-root"]')
       ?.getAttribute("style");

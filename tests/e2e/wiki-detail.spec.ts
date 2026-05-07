@@ -9,7 +9,7 @@ test("wiki detail page shows the public layout and flip interaction", async ({
   await expect(
     page.getByRole("heading", { name: /Aurora Echo/i }),
   ).toBeVisible();
-  await expect(page.getByTestId("wiki-theme-badge")).toHaveText("Theme #4C5CFF");
+  await expect(page.getByTestId("wiki-theme-badge")).toHaveCount(0);
   await expect(page.getByTestId("wiki-theme-root")).toHaveAttribute(
     "style",
     /--wiki-header-background-light:/,
@@ -65,9 +65,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
 
   await expect(page.getByRole("heading", { name: "Aurora Echo" })).toBeVisible();
-  await expect(page.getByTestId("wiki-edit-theme-badge")).toHaveText(
-    "Theme #4C5CFF",
-  );
+  await expect(page.getByTestId("wiki-edit-theme-badge")).toHaveCount(0);
   await expect(page.getByText("Saved")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
