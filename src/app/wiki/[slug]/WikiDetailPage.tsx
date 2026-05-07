@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type WikiDetailState,
   normalizeWikiSectionContents,
   sortWikiSections,
 } from "@kpool/wiki";
@@ -16,21 +17,24 @@ import {
 import { useI18n } from "../../i18n/I18nProvider";
 import { getWikiResourceLabel } from "../wikiRouting";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
-import { useWikiDetail } from "./useWikiDetail";
 
 type WikiDetailPageProps = {
   language: string;
   slug: string;
   themeColor?: string;
+  wikiState: WikiDetailState;
 };
 
-export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPageProps) {
+export function WikiDetailPage({
+  language,
+  themeColor,
+  wikiState,
+}: WikiDetailPageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
-  const wikiDetail = useWikiDetail(slug, { language, themeColor });
   const flipCardId = useId();
 
-  if (wikiDetail.status === "loading") {
+  if (wikiState.status === "loading") {
     return (
       <WikiStatePanel
         message={t.loadingMessage}
@@ -39,17 +43,17 @@ export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPagePro
     );
   }
 
-  if (wikiDetail.status === "error") {
+  if (wikiState.status === "error") {
     return (
       <WikiStatePanel
-        message={wikiDetail.message}
+        message={wikiState.message}
         title={t.loadErrorTitle}
         tone="danger"
       />
     );
   }
 
-  if (wikiDetail.status === "empty") {
+  if (wikiState.status === "empty") {
     return (
       <WikiStatePanel
         message={t.emptyPublicMessage}
@@ -58,10 +62,11 @@ export function WikiDetailPage({ language, slug, themeColor }: WikiDetailPagePro
     );
   }
 
-  const { data } = wikiDetail;
+  const { data } = wikiState;
   const sections = sortWikiSections(data.sections.map(normalizeWikiSectionContents));
-  const themeStyles = buildWikiThemeCssVariables(data.themeColor);
-  const themeLabel = data.themeColor?.toUpperCase();
+  const effectiveThemeColor = themeColor ?? data.themeColor ?? undefined;
+  const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor);
+  const themeLabel = effectiveThemeColor?.toUpperCase();
 
   return (
     <main
