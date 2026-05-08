@@ -71,7 +71,6 @@ function WikiEditContent({
   } = useWikiEditDraft(data, { saveAdapter });
   const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
-  const themeLabel = draft.themeColor?.toUpperCase();
   const closeEditor = () => setEditingId(null);
   const editHeroImage = () => {
     setIsBasicFlipped(false);
@@ -119,14 +118,6 @@ function WikiEditContent({
         </header>
 
         <div className="flex min-w-0 flex-col gap-8">
-          {themeLabel ? (
-            <div>
-              <span className="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]" data-testid="wiki-edit-theme-badge" style={cardSurfaceStyle}>
-                {t.theme} {themeLabel}
-              </span>
-            </div>
-          ) : null}
-
           <section>
             <WikiHeroBasicFlipCard
               basic={draft.basic}

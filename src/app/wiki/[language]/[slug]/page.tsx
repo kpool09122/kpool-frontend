@@ -1,4 +1,5 @@
 import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
+import { loadPublicWikiState } from "../../publicWiki";
 
 type WikiDetailRouteProps = {
   params: Promise<{
@@ -16,12 +17,14 @@ const getThemeColor = (value: string | string[] | undefined): string | undefined
 export default async function Page({ params, searchParams }: WikiDetailRouteProps) {
   const { language, slug } = await params;
   const { themeColor } = await searchParams;
+  const wikiState = await loadPublicWikiState(language, slug);
 
   return (
     <WikiDetailPage
       language={language}
       slug={slug}
       themeColor={getThemeColor(themeColor)}
+      wikiState={wikiState}
     />
   );
 }

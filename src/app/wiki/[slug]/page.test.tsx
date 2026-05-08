@@ -1,15 +1,9 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { WikiDetailPage } from "./WikiDetailPage";
-import { useWikiDetail, type WikiDetailState } from "./useWikiDetail";
-
-vi.mock("./useWikiDetail", () => ({
-  useWikiDetail: vi.fn(),
-}));
-
-const mockedUseWikiDetail = vi.mocked(useWikiDetail);
+import type { WikiDetailState } from "@kpool/wiki";
 
 const successState: WikiDetailState = {
   status: "success",
@@ -91,14 +85,14 @@ const successState: WikiDetailState = {
 };
 
 describe("WikiDetailPage", () => {
-  beforeEach(() => {
-    mockedUseWikiDetail.mockReset();
-  });
-
   it("renders the public wiki detail view", () => {
-    mockedUseWikiDetail.mockReturnValue(successState);
-
-    render(React.createElement(WikiDetailPage, { language: "ja", slug: "gr-aurora-echo" }));
+    render(
+      React.createElement(WikiDetailPage, {
+        language: "ja",
+        slug: "gr-aurora-echo",
+        wikiState: successState,
+      }),
+    );
 
     expect(screen.getAllByRole("heading", { name: "Aurora Echo" })[0]).toBeInTheDocument();
     expect(screen.getAllByText("Aurora Echo")[0]).toBeInTheDocument();
@@ -117,25 +111,22 @@ describe("WikiDetailPage", () => {
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
   });
 
-  it("injects theme css variables and badges when themeColor is provided", () => {
-    mockedUseWikiDetail.mockReturnValue({
-      ...successState,
-      data: {
-        ...successState.data,
-        themeColor: "#d94f70",
-      },
-    });
-
+  it("injects theme css variables without rendering the color code when themeColor is provided", () => {
     const { container } = render(
       React.createElement(WikiDetailPage, {
         language: "ja",
         slug: "gr-aurora-echo",
+        wikiState: {
+          ...successState,
+          data: {
+            ...successState.data,
+            themeColor: "#d94f70",
+          },
+        },
       }),
     );
 
-    expect(screen.getByTestId("wiki-theme-badge")).toHaveTextContent(
-      "Theme #D94F70",
-    );
+    expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
     const rootStyle = container
       .querySelector('[data-testid="wiki-theme-root"]')
       ?.getAttribute("style");
@@ -145,9 +136,13 @@ describe("WikiDetailPage", () => {
   });
 
   it("renders the empty state", () => {
-    mockedUseWikiDetail.mockReturnValue({ status: "empty" });
-
-    render(React.createElement(WikiDetailPage, { language: "ja", slug: "empty" }));
+    render(
+      React.createElement(WikiDetailPage, {
+        language: "ja",
+        slug: "empty",
+        wikiState: { status: "empty" },
+      }),
+    );
 
     expect(screen.getByText("No public wiki yet")).toBeInTheDocument();
     expect(
