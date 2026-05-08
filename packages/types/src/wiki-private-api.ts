@@ -230,6 +230,23 @@ const AgencyDraftWikiDetail = z
     sections: z.array(z.unknown()),
   })
   .passthrough();
+const GroupDraftWikiBasic = z
+  .object({
+    name: z.string(),
+    normalizedName: z.string(),
+    agencyIdentifier: KPool_Common_Uuid.optional(),
+    groupType: z.string(),
+    status: z.string().optional(),
+    generation: z.string(),
+    debutDate: z.string().optional(),
+    disbandDate: z.string().optional(),
+    fandomName: z.string(),
+    officialColors: z.array(z.string()),
+    emoji: z.string(),
+    representativeSymbol: z.string(),
+    mainImageIdentifier: KPool_Common_Uuid.optional(),
+  })
+  .passthrough();
 const DraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -239,7 +256,7 @@ const DraftWikiDetail = z
     version: z.number().int(),
     themeColor: z.string().optional(),
     heroImage: DraftWikiHeroImage,
-    basic: z.unknown(),
+    basic: GroupDraftWikiBasic,
     sections: z.array(z.unknown()),
   })
   .passthrough();
@@ -391,6 +408,29 @@ const RollbackWikiResponseBody = z
 const TranslateWikiResponseBody = z
   .object({ draftWikis: z.array(DraftWikiSummary) })
   .passthrough();
+const WikiListItem = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    name: z.string(),
+    normalizedName: z.string(),
+    publishedAt: z.string().nullable(),
+    updatedAt: z.string().nullable(),
+  })
+  .passthrough();
+const ListWikisResponseBody = z
+  .object({
+    wikis: z.array(WikiListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -427,6 +467,7 @@ export const schemas = {
   DraftWikiHeroImage,
   AgencyDraftWikiBasic,
   AgencyDraftWikiDetail,
+  GroupDraftWikiBasic,
   DraftWikiDetail,
   SongDraftWikiGroupSummary,
   SongDraftWikiTalentSummary,
@@ -442,6 +483,8 @@ export const schemas = {
   RollbackWikiRequestBody,
   RollbackWikiResponseBody,
   TranslateWikiResponseBody,
+  WikiListItem,
+  ListWikisResponseBody,
 };
 
 const endpoints = makeApi([
@@ -1936,6 +1979,58 @@ const endpoints = makeApi([
         description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wikis/:language",
+    alias: "WikiListOperations_listWikis",
+    description: `List published wikis by language.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+      {
+        name: "keyword",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+      {
+        name: "sort",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+      {
+        name: "order",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+    ],
+    response: ListWikisResponseBody,
+    errors: [
       {
         status: 422,
         description: `Client error`,
