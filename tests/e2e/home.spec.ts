@@ -11,49 +11,49 @@ const useJapaneseLocale = async (page: Page) => {
   ]);
 };
 
-test("home page shows the theme preview content", async ({ page }) => {
+test("home page shows the wiki list surface", async ({ page }) => {
   await page.goto("/");
 
   await expect(
     page.getByRole("heading", {
-      name: /Trust-forward colors for a calm, premium first impression/i,
+      name: "Find a wiki",
     }),
   ).toBeVisible();
+  await expect(page.getByLabel("Search")).toBeVisible();
+  await expect(page.getByLabel("Resource")).toHaveValue("");
+  await expect(page.getByLabel("Sort")).toHaveValue("asc");
+  await expect(page.getByLabel("Per page")).toHaveValue("10");
+  await expect(
+    page.getByText(/Theme token preview|Open Wiki Detail Demo/i),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("heading", {
-      name: /Theme token preview/i,
+      name: /Wiki list|No wikis found|Wiki list is unavailable/i,
     }),
-  ).toBeVisible();
-  await expect(page.getByText("--brand-primary")).toBeVisible();
-  await expect(page.getByText("Deep Harbor")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /Open Wiki Detail Demo/i }),
-  ).toBeVisible();
-
-  await expect(page.getByTestId("theme-mode-label")).toHaveText(/light|dark/i);
-  await page.getByRole("button", { name: /toggle color theme/i }).click();
-  await expect(page.getByTestId("theme-mode-label")).toHaveText("Dark");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-
-  await page.getByRole("link", { name: /Open Wiki Detail Demo/i }).click();
-  await expect(
-    page.getByRole("heading", { name: /Aurora Echo/i }),
   ).toBeVisible();
 });
 
-test("home page demo links open the wiki detail page with a theme color override", async ({
+test("home page applies filters and resets to the first page", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?page=3&perPage=10&sort=name&order=asc");
 
-  await page.getByTestId("wiki-theme-demo-rose-stage").click();
+  await page.getByLabel("Search").fill("aurora");
+  await page.getByLabel("Resource").selectOption("group");
+  await page.getByLabel("Sort").selectOption("desc");
+  await page.getByLabel("Per page").selectOption("30");
+  await page.getByRole("button", { name: "Apply" }).click();
 
-  await expect(page).toHaveURL(/themeColor=%23d94f70/);
-  await expect(page.getByTestId("wiki-theme-badge")).toHaveCount(0);
-  await expect(page.getByTestId("wiki-theme-root")).toHaveAttribute(
-    "style",
-    /--wiki-page-background-light:/,
-  );
+  await expect(page).toHaveURL(/keyword=aurora/);
+  await expect(page).toHaveURL(/resourceType=group/);
+  await expect(page).toHaveURL(/sort=name/);
+  await expect(page).toHaveURL(/order=desc/);
+  await expect(page).toHaveURL(/perPage=30/);
+  await expect(page).not.toHaveURL(/page=3/);
+  await expect(page.getByLabel("Search")).toHaveValue("aurora");
+  await expect(page.getByLabel("Resource")).toHaveValue("group");
+  await expect(page.getByLabel("Sort")).toHaveValue("desc");
+  await expect(page.getByLabel("Per page")).toHaveValue("30");
 });
 
 test("guest locale defaults to English and persists language switching", async ({ page }) => {
@@ -64,10 +64,13 @@ test("guest locale defaults to English and persists language switching", async (
 
   await page.getByLabel("Language").selectOption("ja");
   await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wikiを探す" })).toBeVisible();
+  await expect(page.getByLabel("検索")).toBeVisible();
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wikiを探す" })).toBeVisible();
 });
 
 test("mobile header menu shows the login link", async ({ page }) => {
