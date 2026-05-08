@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   adaptPublicWikiResponse,
   createPublicWikiApiClient,
+  fetchPublicWikiList,
   fetchPublicWiki,
+  getPublicWikiListEndpointPath,
   getPublicWikiEndpointPath,
   getPublicWikiErrorMessage,
   loadPublicWikiState,
@@ -39,6 +41,27 @@ const publicWikiResponse = {
   themeColor: "#4c5cff",
   version: 4,
   wikiIdentifier: "wiki-1",
+};
+
+const publicWikiListResponse = {
+  current_page: 2,
+  last_page: 4,
+  per_page: 10,
+  total: 31,
+  wikis: [
+    {
+      language: "ja",
+      name: "Aurora Echo",
+      normalizedName: "aurora-echo",
+      publishedAt: "2026-05-01T00:00:00+00:00",
+      resourceType: "group",
+      slug: "gr-aurora-echo",
+      themeColor: "#4c5cff",
+      updatedAt: "2026-05-02T00:00:00+00:00",
+      version: 4,
+      wikiIdentifier: "wiki-1",
+    },
+  ],
 };
 
 describe("publicWiki", () => {
@@ -91,8 +114,24 @@ describe("publicWiki", () => {
     );
   });
 
+  it("builds the public wiki list endpoint with supported query parameters", () => {
+    expect(
+      getPublicWikiListEndpointPath("ja", {
+        keyword: "aurora echo",
+        order: "asc",
+        page: 2,
+        perPage: 30,
+        resourceType: "group",
+        sort: "name",
+      }),
+    ).toBe(
+      "/wikis/ja?perPage=30&resourceType=group&keyword=aurora+echo&sort=name&order=asc&page=2",
+    );
+  });
+
   it("fetches the public wiki by inferred slug resource type", async () => {
     const client = {
+      fetchWikiList: vi.fn(),
       fetchWiki: vi.fn().mockResolvedValue(publicWikiResponse),
     };
 
@@ -107,6 +146,7 @@ describe("publicWiki", () => {
 
   it("returns empty for unsupported public wiki slug prefixes", async () => {
     const client = {
+      fetchWikiList: vi.fn(),
       fetchWiki: vi.fn(),
     };
 
@@ -134,6 +174,40 @@ describe("publicWiki", () => {
         },
       }),
     );
+  });
+
+  it("fetches and adapts the public wiki list", async () => {
+    const client = {
+      fetchWiki: vi.fn(),
+      fetchWikiList: vi.fn().mockResolvedValue(publicWikiListResponse),
+    };
+
+    await expect(
+      fetchPublicWikiList(client, "ja", {
+        order: "asc",
+        page: 2,
+        perPage: 10,
+        sort: "name",
+      }),
+    ).resolves.toMatchObject({
+      currentPage: 2,
+      lastPage: 4,
+      perPage: 10,
+      total: 31,
+      wikis: [
+        {
+          name: "Aurora Echo",
+          resourceType: "group",
+          slug: "gr-aurora-echo",
+        },
+      ],
+    });
+    expect(client.fetchWikiList).toHaveBeenCalledWith("ja", {
+      order: "asc",
+      page: 2,
+      perPage: 10,
+      sort: "name",
+    });
   });
 
   it("returns an error when the wiki api base url is not configured", async () => {

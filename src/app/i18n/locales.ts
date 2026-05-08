@@ -48,9 +48,20 @@ export const resolveLocale = ({
   savedLocale?: unknown;
   country?: unknown;
 }): Locale =>
-  normalizeLocale(identityLanguage) ??
   normalizeLocale(savedLocale) ??
+  normalizeLocale(identityLanguage) ??
   localeFromCountry(country) ??
+  fallbackLocale;
+
+export const resolveWikiListLocale = ({
+  identityLanguage,
+  savedLocale,
+}: {
+  identityLanguage?: unknown;
+  savedLocale?: unknown;
+}): Locale =>
+  normalizeLocale(savedLocale) ??
+  normalizeLocale(identityLanguage) ??
   fallbackLocale;
 
 export const localeLabels: Record<Locale, string> = {

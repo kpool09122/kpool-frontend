@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import { resolveLocale } from "./locales";
 
 describe("resolveLocale", () => {
-  it("prefers identity language over saved locale and country", () => {
+  it("prefers saved locale over identity language and country", () => {
     expect(
       resolveLocale({
         identityLanguage: "ko",
         savedLocale: "ja",
         country: "US",
       }),
-    ).toBe("ko");
+    ).toBe("ja");
   });
 
   it("uses saved locale before country for guests", () => {
