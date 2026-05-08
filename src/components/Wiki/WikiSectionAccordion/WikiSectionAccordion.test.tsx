@@ -1,11 +1,13 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { wikiStorySection } from "../storybook/fixtures";
 import { WikiSectionAccordion } from "./index";
 
 describe("WikiSectionAccordion", () => {
+  afterEach(() => cleanup());
+
   it("renders the section summary closed by default", () => {
     render(<WikiSectionAccordion language="ja" section={wikiStorySection} />);
 
