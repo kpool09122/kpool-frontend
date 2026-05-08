@@ -69,6 +69,30 @@ const ImageHideRequestSummary = z
     status: z.string(),
   })
   .passthrough();
+const UploadedImageListItem = z
+  .object({
+    imageIdentifier: KPool_Common_Uuid,
+    url: z.string(),
+    resourceType: z.string(),
+    wikiIdentifier: KPool_Common_Uuid,
+    imageUsage: z.string(),
+    displayOrder: z.number().int(),
+    sourceUrl: z.string(),
+    sourceName: z.string(),
+    altText: z.string(),
+    isHidden: z.boolean(),
+    uploadedAt: z.string().nullable(),
+  })
+  .passthrough();
+const ListUploadedImagesResponseBody = z
+  .object({
+    images: z.array(UploadedImageListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
 const RequestCertificationRequestBody = z
   .object({
     resourceType: z.string(),
@@ -442,6 +466,8 @@ export const schemas = {
   ImageSummary,
   RequestImageHideRequestBody,
   ImageHideRequestSummary,
+  UploadedImageListItem,
+  ListUploadedImagesResponseBody,
   RequestCertificationRequestBody,
   OfficialCertificationSummary,
   PolicyConditionClause,
@@ -800,6 +826,43 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/images",
+    alias: "ImageListOperations_listUploadedImages",
+    description: `List uploaded images.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "wikiIdentifier",
+        type: "Query",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+    ],
+    response: ListUploadedImagesResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
