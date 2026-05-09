@@ -32,6 +32,7 @@ const renderPage = (
 describe("WikiEditPage", () => {
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
   });
 
   it("renders the editable wiki layout with image overlays and save state", () => {
@@ -67,6 +68,191 @@ describe("WikiEditPage", () => {
       "href",
       "/wiki/ja/gr-aurora-echo",
     );
+  });
+
+  it("opens the image library from the profile image and loads more images", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            images: [
+              {
+                imageIdentifier: "image-1",
+                url: "https://images.example.test/image-1.jpg",
+                resourceType: "group",
+                wikiIdentifier: "gr-aurora-echo",
+                imageUsage: "wiki_editor",
+                displayOrder: 1,
+                sourceUrl: "",
+                sourceName: "cover.jpg",
+                altText: "Cover image",
+                isHidden: false,
+                uploadedAt: "2026-05-09T00:00:00Z",
+              },
+            ],
+            current_page: 1,
+            last_page: 2,
+            total: 2,
+            per_page: 1,
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            images: [
+              {
+                imageIdentifier: "image-2",
+                url: "https://images.example.test/image-2.webp",
+                resourceType: "group",
+                wikiIdentifier: "gr-aurora-echo",
+                imageUsage: "wiki_editor",
+                displayOrder: 2,
+                sourceUrl: "",
+                sourceName: "stage.webp",
+                altText: "Stage image",
+                isHidden: false,
+                uploadedAt: "2026-05-09T00:00:00Z",
+              },
+            ],
+            current_page: 2,
+            last_page: 2,
+            total: 2,
+            per_page: 1,
+          }),
+          { status: 200 },
+        ),
+      );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+
+    expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
+    expect(await screen.findByText("Cover image")).toBeInTheDocument();
+    expect(screen.getByText("cover.jpg")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Load more images" }));
+
+    expect(await screen.findByText("Stage image")).toBeInTheDocument();
+    expect(screen.getByText("All images are loaded")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/wiki/images?wikiIdentifier=gr-aurora-echo&perPage=12&page=1",
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/wiki/images?wikiIdentifier=gr-aurora-echo&perPage=12&page=2",
+    );
+  });
+
+  it("uploads an accepted image and refreshes the library", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            images: [],
+            current_page: 1,
+            last_page: 1,
+            total: 0,
+            per_page: 12,
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            imageIdentifier: "uploaded-image",
+            resourceType: "group",
+            imageUsage: "wiki_editor",
+            status: "draft",
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            images: [
+              {
+                imageIdentifier: "uploaded-image",
+                url: "https://images.example.test/uploaded-image.png",
+                resourceType: "group",
+                wikiIdentifier: "gr-aurora-echo",
+                imageUsage: "wiki_editor",
+                displayOrder: 1,
+                sourceUrl: "",
+                sourceName: "upload.png",
+                altText: "upload.png",
+                isHidden: false,
+                uploadedAt: "2026-05-09T00:00:00Z",
+              },
+            ],
+            current_page: 1,
+            last_page: 1,
+            total: 1,
+            per_page: 12,
+          }),
+          { status: 200 },
+        ),
+      );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("No uploaded images yet")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
+      target: {
+        files: [new File(["image"], "upload.png", { type: "image/png" })],
+      },
+    });
+
+    expect((await screen.findAllByText("upload.png")).length).toBeGreaterThan(0);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/wiki/images/upload",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"base64EncodedImage"'),
+      }),
+    );
+  });
+
+  it("rejects unsupported image files before upload", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("No uploaded images yet")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
+      target: {
+        files: [new File(["text"], "notes.txt", { type: "text/plain" })],
+      },
+    });
+
+    expect(
+      await screen.findByText("Only jpg, jpeg, png, and webp images can be uploaded."),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("adds a block inside a section and opens the new block editor", () => {

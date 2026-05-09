@@ -11,6 +11,7 @@ import {
   WikiEditSidebar,
   WikiHeroBasicFlipCard,
   WikiHeroPanel,
+  WikiImageLibrary,
   WikiSectionEditor,
   WikiStatePanel,
   cardSurfaceStyle,
@@ -20,6 +21,14 @@ import { useI18n } from "../../../i18n/I18nProvider";
 import { getWikiResourceLabel, type WikiResourceType } from "../../wikiRouting";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
 import { type loadDraftWikiState } from "../../draftWiki";
+import {
+  createWikiImageUploadRequest,
+  defaultWikiImagePerPage,
+  type WikiImageListResponse,
+  type WikiUploadedImage,
+  wikiImageListResponseSchema,
+  wikiImageUploadResponseSchema,
+} from "../../wikiImages";
 import { saveWikiDraft, type WikiSaveResult } from "./saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
@@ -30,6 +39,44 @@ type WikiEditPageProps = {
   wikiState: Awaited<ReturnType<typeof loadDraftWikiState>>;
   saveAdapter?: (draft: WikiDetail) => Promise<WikiSaveResult>;
 };
+
+type ImageLibraryState = {
+  images: WikiUploadedImage[];
+  isInitialLoading: boolean;
+  isLoadingMore: boolean;
+  isOpen: boolean;
+  isUploading: boolean;
+  loadError: string | null;
+  pageInfo: Pick<WikiImageListResponse, "current_page" | "last_page" | "total"> | null;
+  uploadError: string | null;
+};
+
+const initialImageLibraryState: ImageLibraryState = {
+  images: [],
+  isInitialLoading: false,
+  isLoadingMore: false,
+  isOpen: false,
+  isUploading: false,
+  loadError: null,
+  pageInfo: null,
+  uploadError: null,
+};
+
+const readJsonResponse = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+};
+
+const getRouteErrorMessage = (body: unknown, fallback: string): string =>
+  typeof body === "object" &&
+  body !== null &&
+  "message" in body &&
+  typeof (body as { message: unknown }).message === "string"
+    ? (body as { message: string }).message
+    : fallback;
 
 function WikiEditContent({
   data,
@@ -45,6 +92,9 @@ function WikiEditContent({
   const flipCardId = useId();
   const [isBasicFlipped, setIsBasicFlipped] = useState(false);
   const [editorMode, setEditorMode] = useState<WikiEditorMode>("gui");
+  const [imageLibrary, setImageLibrary] = useState<ImageLibraryState>(
+    initialImageLibraryState,
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [previewMode, setPreviewMode] = useState<WikiPreviewMode>("light");
   const {
@@ -89,6 +139,97 @@ function WikiEditContent({
     setIsBasicFlipped(false);
     clearDraft();
   };
+  const loadImageLibraryPage = async (page: number) => {
+    setImageLibrary((state) => ({
+      ...state,
+      isInitialLoading: page === 1,
+      isLoadingMore: page > 1,
+      isOpen: true,
+      loadError: null,
+    }));
+
+    try {
+      const response = await fetch(
+        `/api/wiki/images?wikiIdentifier=${encodeURIComponent(
+          draft.wikiIdentifier,
+        )}&perPage=${defaultWikiImagePerPage}&page=${page}`,
+      );
+      const body = await readJsonResponse(response);
+
+      if (!response.ok) {
+        throw new Error(getRouteErrorMessage(body, "Image list could not be loaded."));
+      }
+
+      const imagePage = wikiImageListResponseSchema.parse(body);
+
+      setImageLibrary((state) => ({
+        ...state,
+        images: page === 1 ? imagePage.images : [...state.images, ...imagePage.images],
+        isInitialLoading: false,
+        isLoadingMore: false,
+        pageInfo: {
+          current_page: imagePage.current_page,
+          last_page: imagePage.last_page,
+          total: imagePage.total,
+        },
+      }));
+    } catch (error) {
+      setImageLibrary((state) => ({
+        ...state,
+        isInitialLoading: false,
+        isLoadingMore: false,
+        loadError:
+          error instanceof Error ? error.message : "Image list could not be loaded.",
+      }));
+    }
+  };
+  const openImageLibrary = () => {
+    void loadImageLibraryPage(1);
+  };
+  const uploadImage = async (file: File, base64Image: string) => {
+    setImageLibrary((state) => ({
+      ...state,
+      isUploading: true,
+      uploadError: null,
+    }));
+
+    try {
+      const response = await fetch("/api/wiki/images/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          createWikiImageUploadRequest({
+            altText: file.name,
+            base64EncodedImage: base64Image,
+            displayOrder: imageLibrary.images.length + 1,
+            fileName: file.name,
+            resourceType: draft.resourceType,
+            wikiIdentifier: draft.wikiIdentifier,
+          }),
+        ),
+      });
+      const body = await readJsonResponse(response);
+
+      if (!response.ok) {
+        throw new Error(getRouteErrorMessage(body, "Image upload failed."));
+      }
+
+      wikiImageUploadResponseSchema.parse(body);
+      setImageLibrary((state) => ({
+        ...state,
+        isUploading: false,
+      }));
+      await loadImageLibraryPage(1);
+    } catch (error) {
+      setImageLibrary((state) => ({
+        ...state,
+        isUploading: false,
+        uploadError: error instanceof Error ? error.message : "Image upload failed.",
+      }));
+    }
+  };
 
   return (
     <main
@@ -130,6 +271,7 @@ function WikiEditContent({
               onEditBasic={editBasic}
               onEditHero={editHeroImage}
               onFlipChange={setIsBasicFlipped}
+              onOpenImageLibrary={openImageLibrary}
               onSaveBasic={(basic) => {
                 updateBasic(basic);
                 closeEditor();
@@ -146,6 +288,7 @@ function WikiEditContent({
                 isEditing={editingId === "hero"}
                 onCancel={closeEditor}
                 onEdit={editHeroImage}
+                onOpenImageLibrary={openImageLibrary}
                 onSave={(heroImage) => {
                   updateHeroImage(heroImage);
                   closeEditor();
@@ -223,6 +366,25 @@ function WikiEditContent({
           resourceType={draft.resourceType}
           slug={draft.slug}
           themeColor={draft.themeColor}
+        />
+        <WikiImageLibrary
+          images={imageLibrary.images}
+          isInitialLoading={imageLibrary.isInitialLoading}
+          isLoadingMore={imageLibrary.isLoadingMore}
+          isOpen={imageLibrary.isOpen}
+          isUploading={imageLibrary.isUploading}
+          loadError={imageLibrary.loadError}
+          onClose={() => setImageLibrary((state) => ({ ...state, isOpen: false }))}
+          onLoadMore={() => {
+            if (imageLibrary.pageInfo) {
+              void loadImageLibraryPage(imageLibrary.pageInfo.current_page + 1);
+            }
+          }}
+          onUpload={uploadImage}
+          pageInfo={imageLibrary.pageInfo}
+          resourceType={draft.resourceType}
+          uploadError={imageLibrary.uploadError}
+          wikiIdentifier={draft.wikiIdentifier}
         />
       </div>
     </main>

@@ -8,6 +8,7 @@ export { WikiCodeEditor } from "./WikiCodeEditor/index";
 export { WikiEditSidebar } from "./WikiEditSidebar/index";
 export { WikiHeroBasicFlipCard } from "./WikiHeroBasicFlipCard/index";
 export { WikiHeroPanel } from "./WikiHeroPanel/index";
+export { WikiImageLibrary } from "./WikiImageLibrary/index";
 export { WikiPublicHeroBasicSection } from "./WikiPublicHeroBasicSection/index";
 export { WikiSectionAccordion } from "./WikiSectionAccordion/index";
 export { WikiSectionEditor } from "./WikiSectionEditor/index";
