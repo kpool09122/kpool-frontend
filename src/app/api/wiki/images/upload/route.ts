@@ -8,6 +8,7 @@ import {
   wikiImageUploadResponseSchema,
 } from "../../../../wiki/wikiImages";
 import { trimTrailingSlashes } from "../../../../wiki/wikiApiModel";
+import { parseWithSchemaLog } from "../../../../zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -57,7 +58,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(wikiImageUploadResponseSchema.parse(responseBody), { status: 201 });
+    return NextResponse.json(
+      parseWithSchemaLog(
+        "wiki image upload response",
+        wikiImageUploadResponseSchema,
+        responseBody,
+      ),
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

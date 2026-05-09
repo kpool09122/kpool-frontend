@@ -1,15 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   adaptDraftWikiResponse,
   createDraftWikiApiClient,
+  fetchDraftWiki,
+  getDraftWikiEndpointPath,
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
+  getEditWikiEndpointPath,
   loadDraftWikiState,
   saveDraftWiki,
 } from "./draftWiki";
 
 describe("draftWiki", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("maps slug prefixes to the matching draft endpoint alias", () => {
     expect(getDraftWikiAlias("ag-jyp")).toBe("WikiOperations_getAgencyDraftWiki");
     expect(getDraftWikiAlias("gr-twice")).toBe("WikiOperations_getGroupDraftWiki");
@@ -121,12 +128,19 @@ describe("draftWiki", () => {
   });
 
   it("normalizes the backend base url to the wiki api prefix", () => {
-    expect(createDraftWikiApiClient("http://127.0.0.1:8080")?.baseURL).toBe(
+    expect(createDraftWikiApiClient("http://127.0.0.1:8080")?.baseUrl).toBe(
       "http://127.0.0.1:8080/api/wiki",
     );
-    expect(createDraftWikiApiClient("http://127.0.0.1:8080/api/wiki")?.baseURL).toBe(
+    expect(createDraftWikiApiClient("http://127.0.0.1:8080/api/wiki")?.baseUrl).toBe(
       "http://127.0.0.1:8080/api/wiki",
     );
+  });
+
+  it("builds draft wiki endpoint paths without using the generated client", () => {
+    expect(getDraftWikiEndpointPath("ja", "group", "gr-aurora-echo")).toBe(
+      "/wiki/ja/group/gr-aurora-echo/draft",
+    );
+    expect(getEditWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/edit");
   });
 
   it("turns api errors into a specific message", () => {
@@ -152,7 +166,7 @@ describe("draftWiki", () => {
 
   it("saves a draft wiki with the wiki identifier as the edit path param", async () => {
     const client = {
-      WikiOperations_editWiki: vi.fn().mockResolvedValue({
+      saveDraftWiki: vi.fn().mockResolvedValue({
         language: "ja",
         name: "Aurora Echo",
         resourceType: "group",
@@ -172,10 +186,52 @@ describe("draftWiki", () => {
       resourceType: "group",
       status: "draft",
     });
-    expect(client.WikiOperations_editWiki).toHaveBeenCalledWith(body, {
-      params: {
-        wikiId: "wiki-1",
-      },
-    });
+    expect(client.saveDraftWiki).toHaveBeenCalledWith("wiki-1", body);
+  });
+
+  it("loads a draft wiki through fetch and parses the response", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          basic: {
+            emoji: "☀",
+            fandomName: "Daybreak",
+            generation: "5th",
+            groupType: "Girl Group",
+            name: "Aurora Echo",
+            normalizedName: "aurora-echo",
+            officialColors: ["Solar Gold"],
+            representativeSymbol: "Solar wave",
+          },
+          heroImage: {
+            imageIdentifier: "hero-image-1",
+          },
+          language: "ja",
+          resourceType: "group",
+          sections: [],
+          slug: "gr-aurora-echo",
+          version: 1,
+          wikiIdentifier: "wiki-1",
+        }),
+        { status: 200 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080");
+
+    await expect(fetchDraftWiki(client!, "ja", "gr-aurora-echo")).resolves.toEqual(
+      expect.objectContaining({
+        slug: "gr-aurora-echo",
+        wikiIdentifier: "wiki-1",
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo/draft",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: {
+          accept: "application/json",
+        },
+      }),
+    );
   });
 });

@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { schemas } from "@kpool/types/identity-api";
 import { z } from "zod";
 
 import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
   parseVerifyEmailRequest,
-  parseVerifyEmailResult,
 } from "../../../../identityApi";
+import { parseWithSchemaLog } from "../../../../zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -52,7 +53,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(parseVerifyEmailResult(body), { status: 200 });
+    return NextResponse.json(
+      parseWithSchemaLog("identity verify email response", schemas.VerifyEmailResult, body),
+      { status: 200 },
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -5,6 +5,7 @@ import {
   type WikiDetail,
   type WikiEditRequestPayload,
 } from "@kpool/wiki";
+import { schemas } from "@kpool/types/wiki-private-api";
 
 export type WikiSaveResult = { ok: true } | { ok: false };
 
@@ -20,7 +21,13 @@ export const saveWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> 
     },
   );
 
-  return response.ok ? { ok: true } : { ok: false };
+  if (!response.ok) {
+    return { ok: false };
+  }
+
+  schemas.DraftWikiSummary.parse(await response.json());
+
+  return { ok: true };
 };
 
 export const createSaveWikiDraftBody = (

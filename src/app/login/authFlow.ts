@@ -1,4 +1,8 @@
-import type { IdentityLoginRequest } from "../identityApi";
+import {
+  parseIdentitySummary,
+  parseRedirectUrlResult,
+  type IdentityLoginRequest,
+} from "../identityApi";
 
 export type IdentityProvider = {
   id: "google" | "line" | "kakao";
@@ -107,6 +111,8 @@ export const loginWithEmail: LoginAdapter = async (credentials) => {
     };
   }
 
+  parseIdentitySummary(await response.json());
+
   return { ok: true };
 };
 
@@ -125,12 +131,7 @@ export const requestSocialRedirect: SocialRedirectAdapter = async (provider) => 
     };
   }
 
-  const body = (await response.json()) as { redirectUrl?: unknown };
+  const redirect = parseRedirectUrlResult(await response.json());
 
-  return typeof body.redirectUrl === "string"
-    ? { ok: true, redirectUrl: body.redirectUrl }
-    : {
-        ok: false,
-        message: "SSOログインの開始に失敗しました。時間をおいて再度お試しください。",
-      };
+  return { ok: true, redirectUrl: redirect.redirectUrl };
 };

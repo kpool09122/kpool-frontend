@@ -11,6 +11,7 @@ import {
   getWikiApiErrorMessage,
   withWikiApiPrefix,
 } from "./wikiApiModel";
+import { parseWithSchemaLog } from "../zodErrorLog";
 
 const publicWikiHeroImageSchema = z
   .object({
@@ -92,11 +93,31 @@ export type PublicWikiApiClient = {
     language: string,
     resourceType: WikiResourceType,
     slug: string,
-  ) => Promise<unknown>;
-  fetchWikiList: (language: string, query: PublicWikiListQuery) => Promise<unknown>;
+  ) => Promise<PublicWikiApiResponse>;
+  fetchWikiList: (
+    language: string,
+    query: PublicWikiListQuery,
+  ) => Promise<z.infer<typeof publicWikiListApiResponseSchema>>;
 };
 
 const defaultApiBaseUrl = process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
+
+const readResponseBody = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+};
+
+const throwApiError = async (response: Response): Promise<never> => {
+  throw {
+    response: {
+      status: response.status,
+      data: await readResponseBody(response),
+    },
+  };
+};
 
 export const getPublicWikiEndpointPath = (
   language: string,
@@ -157,15 +178,16 @@ export const createPublicWikiApiClient = (
       );
 
       if (!response.ok) {
-        throw {
-          response: {
-            status: response.status,
-            data: await response.json().catch(() => null),
-          },
-        };
+        await throwApiError(response);
       }
 
-      return response.json();
+      const responseBody = await readResponseBody(response);
+
+      return parseWithSchemaLog(
+        "public wiki detail response",
+        publicWikiApiResponseSchema,
+        responseBody,
+      );
     },
     fetchWikiList: async (language, query) => {
       const response = await fetch(
@@ -181,15 +203,16 @@ export const createPublicWikiApiClient = (
       );
 
       if (!response.ok) {
-        throw {
-          response: {
-            status: response.status,
-            data: await response.json().catch(() => null),
-          },
-        };
+        await throwApiError(response);
       }
 
-      return response.json();
+      const responseBody = await readResponseBody(response);
+
+      return parseWithSchemaLog(
+        "public wiki list response",
+        publicWikiListApiResponseSchema,
+        responseBody,
+      );
     },
   };
 };
@@ -221,7 +244,7 @@ export const fetchPublicWiki = async (
 
   const response = await client.fetchWiki(language, resourceType, slug);
 
-  return adaptPublicWikiResponse(publicWikiApiResponseSchema.parse(response));
+  return adaptPublicWikiResponse(response);
 };
 
 export const fetchPublicWikiList = async (
@@ -231,7 +254,7 @@ export const fetchPublicWikiList = async (
 ): Promise<PublicWikiList> => {
   const response = await client.fetchWikiList(language, query);
 
-  return adaptPublicWikiListResponse(publicWikiListApiResponseSchema.parse(response));
+  return adaptPublicWikiListResponse(response);
 };
 
 export const getPublicWikiErrorMessage = (error: unknown): string =>

@@ -8,6 +8,7 @@ import {
   getWikiImageErrorMessage,
   wikiImageListResponseSchema,
 } from "../../../wiki/wikiImages";
+import { parseWithSchemaLog } from "../../../zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -76,7 +77,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(wikiImageListResponseSchema.parse(body));
+    return NextResponse.json(
+      parseWithSchemaLog("wiki image list response", wikiImageListResponseSchema, body),
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
