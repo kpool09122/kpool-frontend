@@ -334,7 +334,7 @@ test("wiki edit page opens the image library and uploads an image", async ({
 
   await expect(page.getByTestId("wiki-image-library")).toBeVisible();
   await expect(page.getByText("Cover image")).toBeVisible();
-  await page.getByRole("button", { name: "Load more images" }).click();
+  await page.getByRole("button", { name: "さらに読み込む" }).click();
   await expect(page.getByText("upload.png")).toBeVisible();
 
   await page.getByTestId("wiki-image-upload-input").setInputFiles({
@@ -342,6 +342,10 @@ test("wiki edit page opens the image library and uploads an image", async ({
     mimeType: "image/png",
     buffer: Buffer.from("png"),
   });
+  await expect(page.getByText("選択中: upload.png")).toBeVisible();
+  await expect.poll(() => uploadRequestBody).toBeNull();
+
+  await page.getByRole("button", { name: "この画像をアップロード" }).click();
 
   await expect.poll(() => uploadRequestBody).toEqual(
     expect.objectContaining({

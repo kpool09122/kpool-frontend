@@ -67,6 +67,7 @@ export function WikiImageLibrary({
   const inputRef = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const canLoadMore = pageInfo ? pageInfo.current_page < pageInfo.last_page : false;
   const isBusy = isInitialLoading || isLoadingMore || isUploading;
   const errorMessage = localError ?? uploadError;
@@ -75,17 +76,29 @@ export function WikiImageLibrary({
     return null;
   }
 
-  const uploadFile = async (file: File) => {
+  const selectFile = (file: File) => {
     setLocalError(null);
 
     if (!isAcceptedWikiImageFile(file)) {
+      setSelectedFile(null);
       setLocalError(t.invalidFormat);
       return;
     }
 
+    setSelectedFile(file);
+  };
+
+  const uploadSelectedFile = async () => {
+    if (!selectedFile) {
+      return;
+    }
+
+    setLocalError(null);
+
     try {
-      const base64Image = await readFileAsDataUrl(file);
-      await onUpload(file, base64Image);
+      const base64Image = await readFileAsDataUrl(selectedFile);
+      await onUpload(selectedFile, base64Image);
+      setSelectedFile(null);
     } catch (error) {
       setLocalError(
         error instanceof Error && error.message !== "file-read-failed"
@@ -95,14 +108,14 @@ export function WikiImageLibrary({
     }
   };
 
-  const uploadFirstFile = (fileList: FileList | null) => {
+  const selectFirstFile = (fileList: FileList | null) => {
     const file = fileList?.[0];
 
     if (!file) {
       return;
     }
 
-    void uploadFile(file);
+    selectFile(file);
   };
 
   return (
@@ -224,7 +237,7 @@ export function WikiImageLibrary({
               onDrop={(event) => {
                 event.preventDefault();
                 setIsDragActive(false);
-                uploadFirstFile(event.dataTransfer.files);
+                selectFirstFile(event.dataTransfer.files);
               }}
               type="button"
             >
@@ -242,11 +255,38 @@ export function WikiImageLibrary({
               data-wiki-identifier={wikiIdentifier}
               data-testid="wiki-image-upload-input"
               onChange={(event) => {
-                uploadFirstFile(event.currentTarget.files);
+                selectFirstFile(event.currentTarget.files);
                 event.currentTarget.value = "";
               }}
               type="file"
             />
+            {selectedFile ? (
+              <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 truncate text-sm font-semibold">
+                  {t.selectedFile(selectedFile.name)}
+                </p>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isBusy}
+                    onClick={() => setSelectedFile(null)}
+                    type="button"
+                  >
+                    {t.removeSelectedFile}
+                  </button>
+                  <button
+                    className="rounded-full border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isBusy}
+                    onClick={() => {
+                      void uploadSelectedFile();
+                    }}
+                    type="button"
+                  >
+                    {isUploading ? t.uploading : t.uploadSelectedFile}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {errorMessage ? (
               <p className="mt-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
                 {errorMessage}

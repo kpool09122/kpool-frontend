@@ -212,6 +212,11 @@ describe("WikiEditPage", () => {
       },
     });
 
+    expect(screen.getByText("選択中: upload.png")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "この画像をアップロード" }));
+
     expect((await screen.findAllByText("upload.png")).length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -252,6 +257,39 @@ describe("WikiEditPage", () => {
     expect(
       await screen.findByText("jpg、jpeg、png、webp の画像のみアップロードできます。"),
     ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("removes a selected image before upload", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
+      target: {
+        files: [new File(["image"], "remove-me.webp", { type: "image/webp" })],
+      },
+    });
+
+    expect(screen.getByText("選択中: remove-me.webp")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "選択を解除" }));
+
+    expect(screen.queryByText("選択中: remove-me.webp")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "この画像をアップロード" })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

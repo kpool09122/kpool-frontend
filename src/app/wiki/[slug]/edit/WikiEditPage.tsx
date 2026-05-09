@@ -223,11 +223,14 @@ function WikiEditContent({
       }));
       await loadImageLibraryPage(1);
     } catch (error) {
+      const message = error instanceof Error ? error.message : t.imageLibrary.uploadFailed;
+
       setImageLibrary((state) => ({
         ...state,
         isUploading: false,
-        uploadError: error instanceof Error ? error.message : t.imageLibrary.uploadFailed,
+        uploadError: message,
       }));
+      throw new Error(message);
     }
   };
 
