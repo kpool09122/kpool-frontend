@@ -12,6 +12,7 @@ import {
   type WikiUploadedImage,
   wikiImageAcceptAttribute,
 } from "../../../app/wiki/wikiImages";
+import { useI18n } from "../../../app/i18n/I18nProvider";
 import { cardSurfaceStyle } from "../styles";
 
 type WikiImageLibraryProps = {
@@ -40,9 +41,9 @@ const readFileAsDataUrl = (file: File): Promise<string> =>
         return;
       }
 
-      reject(new Error("Selected image could not be read."));
+      reject(new Error("file-read-failed"));
     });
-    reader.addEventListener("error", () => reject(new Error("Selected image could not be read.")));
+    reader.addEventListener("error", () => reject(new Error("file-read-failed")));
     reader.readAsDataURL(file);
   });
 
@@ -61,6 +62,8 @@ export function WikiImageLibrary({
   onLoadMore,
   onUpload,
 }: WikiImageLibraryProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.imageLibrary;
   const inputRef = useRef<HTMLInputElement>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -76,7 +79,7 @@ export function WikiImageLibrary({
     setLocalError(null);
 
     if (!isAcceptedWikiImageFile(file)) {
-      setLocalError("Only jpg, jpeg, png, and webp images can be uploaded.");
+      setLocalError(t.invalidFormat);
       return;
     }
 
@@ -85,7 +88,9 @@ export function WikiImageLibrary({
       await onUpload(file, base64Image);
     } catch (error) {
       setLocalError(
-        error instanceof Error ? error.message : "Selected image could not be read.",
+        error instanceof Error && error.message !== "file-read-failed"
+          ? error.message
+          : t.readFailed,
       );
     }
   };
@@ -102,7 +107,7 @@ export function WikiImageLibrary({
 
   return (
     <section
-      aria-label="Wiki image library"
+      aria-label={t.label}
       className="fixed inset-0 z-50 grid place-items-stretch bg-black/55 p-4 sm:p-6"
       data-testid="wiki-image-library"
     >
@@ -113,11 +118,11 @@ export function WikiImageLibrary({
         <div className="flex items-start justify-between gap-4 border-b border-stroke-subtle p-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-              Image library
+              {t.eyebrow}
             </p>
-            <h2 className="mt-1 text-2xl font-semibold">Uploaded images</h2>
+            <h2 className="mt-1 text-2xl font-semibold">{t.title}</h2>
             <p className="mt-2 text-sm text-text-muted">
-              {pageInfo ? `${pageInfo.total} images for this wiki` : "Images for this wiki"}
+              {pageInfo ? t.total(pageInfo.total) : t.summary}
             </p>
           </div>
           <button
@@ -125,7 +130,7 @@ export function WikiImageLibrary({
             onClick={onClose}
             type="button"
           >
-            Close
+            {t.close}
           </button>
         </div>
 
@@ -138,7 +143,7 @@ export function WikiImageLibrary({
 
           {isInitialLoading ? (
             <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-stroke-subtle text-sm font-semibold text-text-muted">
-              Loading images
+              {t.loading}
             </div>
           ) : images.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -157,8 +162,8 @@ export function WikiImageLibrary({
                     />
                   </div>
                   <div className="grid gap-2 p-4 text-sm">
-                    <p className="truncate font-semibold">{image.altText || "No alt text"}</p>
-                    <p className="truncate text-text-muted">{image.sourceName || "No source"}</p>
+                    <p className="truncate font-semibold">{image.altText || t.noAltText}</p>
+                    <p className="truncate text-text-muted">{image.sourceName || t.noSource}</p>
                     <code className="truncate rounded-lg bg-surface-raised px-2 py-1 text-xs text-text-muted">
                       {image.imageIdentifier}
                     </code>
@@ -170,9 +175,9 @@ export function WikiImageLibrary({
             <div className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-stroke-subtle p-6 text-center">
               <div>
                 <ImageIcon className="mx-auto h-6 w-6 text-text-muted" />
-                <p className="mt-3 font-semibold">No uploaded images yet</p>
+                <p className="mt-3 font-semibold">{t.emptyTitle}</p>
                 <p className="mt-1 text-sm text-text-muted">
-                  Upload an image to make it available in this wiki.
+                  {t.emptyMessage}
                 </p>
               </div>
             </div>
@@ -187,15 +192,15 @@ export function WikiImageLibrary({
                 type="button"
               >
                 <ReloadIcon />
-                {isLoadingMore ? "Loading more" : "Load more images"}
+                {isLoadingMore ? t.loadingMore : t.loadMore}
               </button>
             ) : pageInfo && images.length > 0 ? (
-              <p className="text-sm font-semibold text-text-muted">All images are loaded</p>
+              <p className="text-sm font-semibold text-text-muted">{t.allLoaded}</p>
             ) : null}
           </div>
 
           <div className="mt-6 border-t border-stroke-subtle pt-5">
-            <h3 className="text-lg font-semibold">Upload image</h3>
+            <h3 className="text-lg font-semibold">{t.uploadTitle}</h3>
             <button
               className={`mt-3 grid w-full place-items-center rounded-2xl border border-dashed p-8 text-center transition ${
                 isDragActive
@@ -225,9 +230,9 @@ export function WikiImageLibrary({
             >
               <UploadIcon className="h-6 w-6 text-text-muted" />
               <span className="mt-3 font-semibold">
-                {isUploading ? "Uploading image" : "Choose an image or drop it here"}
+                {isUploading ? t.uploading : t.chooseOrDrop}
               </span>
-              <span className="mt-1 text-sm text-text-muted">jpg, jpeg, png, or webp</span>
+              <span className="mt-1 text-sm text-text-muted">{t.acceptedFormats}</span>
             </button>
             <input
               ref={inputRef}

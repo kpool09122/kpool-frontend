@@ -134,10 +134,10 @@ describe("WikiEditPage", () => {
     expect(await screen.findByText("Cover image")).toBeInTheDocument();
     expect(screen.getByText("cover.jpg")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Load more images" }));
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
 
     expect(await screen.findByText("Stage image")).toBeInTheDocument();
-    expect(screen.getByText("All images are loaded")).toBeInTheDocument();
+    expect(screen.getByText("すべての画像を読み込みました")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "/api/wiki/images?wikiIdentifier=gr-aurora-echo&perPage=12&page=1",
@@ -204,7 +204,7 @@ describe("WikiEditPage", () => {
     renderPage();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
-    expect(await screen.findByText("No uploaded images yet")).toBeInTheDocument();
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
       target: {
@@ -241,7 +241,7 @@ describe("WikiEditPage", () => {
     renderPage();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
-    expect(await screen.findByText("No uploaded images yet")).toBeInTheDocument();
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
       target: {
@@ -250,7 +250,7 @@ describe("WikiEditPage", () => {
     });
 
     expect(
-      await screen.findByText("Only jpg, jpeg, png, and webp images can be uploaded."),
+      await screen.findByText("jpg、jpeg、png、webp の画像のみアップロードできます。"),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

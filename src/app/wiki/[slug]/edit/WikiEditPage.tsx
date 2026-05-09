@@ -157,7 +157,7 @@ function WikiEditContent({
       const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(getRouteErrorMessage(body, "Image list could not be loaded."));
+        throw new Error(getRouteErrorMessage(body, t.imageLibrary.listLoadFailed));
       }
 
       const imagePage = wikiImageListResponseSchema.parse(body);
@@ -179,7 +179,7 @@ function WikiEditContent({
         isInitialLoading: false,
         isLoadingMore: false,
         loadError:
-          error instanceof Error ? error.message : "Image list could not be loaded.",
+          error instanceof Error ? error.message : t.imageLibrary.listLoadFailed,
       }));
     }
   };
@@ -213,7 +213,7 @@ function WikiEditContent({
       const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(getRouteErrorMessage(body, "Image upload failed."));
+        throw new Error(getRouteErrorMessage(body, t.imageLibrary.uploadFailed));
       }
 
       wikiImageUploadResponseSchema.parse(body);
@@ -226,7 +226,7 @@ function WikiEditContent({
       setImageLibrary((state) => ({
         ...state,
         isUploading: false,
-        uploadError: error instanceof Error ? error.message : "Image upload failed.",
+        uploadError: error instanceof Error ? error.message : t.imageLibrary.uploadFailed,
       }));
     }
   };
