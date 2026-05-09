@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { schemas } from "@kpool/types/identity-api";
 import { z } from "zod";
 
 import {
-  getIdentityApiBaseUrl,
-  getIdentityRouteErrorMessage,
-  parseVerifyEmailRequest,
-} from "../../../../identityApi";
+  getWikiImageApiBaseUrl,
+  getWikiImageErrorMessage,
+  wikiImageUploadRequestSchema,
+  wikiImageUploadResponseSchema,
+} from "../../../../wiki/wikiImages";
+import { trimTrailingSlashes } from "../../../../wiki/wikiApiModel";
 import { parseWithSchemaLog } from "../../../../zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
@@ -18,18 +19,18 @@ const readResponseBody = async (response: Response): Promise<unknown> => {
 };
 
 export async function POST(request: NextRequest) {
-  const baseUrl = getIdentityApiBaseUrl();
+  const baseUrl = getWikiImageApiBaseUrl();
 
   if (!baseUrl) {
     return NextResponse.json(
-      { message: "Identity API is not configured." },
+      { message: "Wiki image API is not configured." },
       { status: 500 },
     );
   }
 
   try {
-    const verification = parseVerifyEmailRequest(await request.json());
-    const apiResponse = await fetch(`${baseUrl}/auth/verify-email`, {
+    const body = wikiImageUploadRequestSchema.parse(await request.json());
+    const apiResponse = await fetch(`${trimTrailingSlashes(baseUrl)}/image/upload`, {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -41,32 +42,40 @@ export async function POST(request: NextRequest) {
           ? { Cookie: request.headers.get("cookie") ?? "" }
           : {}),
       },
-      body: JSON.stringify(verification),
+      body: JSON.stringify(body),
       cache: "no-store",
     });
-    const body = await readResponseBody(apiResponse);
+    const responseBody = await readResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+        {
+          message: getWikiImageErrorMessage({
+            response: { status: apiResponse.status, data: responseBody },
+          }),
+        },
         { status: apiResponse.status },
       );
     }
 
     return NextResponse.json(
-      parseWithSchemaLog("identity verify email response", schemas.VerifyEmailResult, body),
-      { status: 200 },
+      parseWithSchemaLog(
+        "wiki image upload response",
+        wikiImageUploadResponseSchema,
+        responseBody,
+      ),
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: "Identity API response did not match the expected schema." },
-        { status: 502 },
+        { message: getWikiImageErrorMessage(error) },
+        { status: 422 },
       );
     }
 
     return NextResponse.json(
-      { message: getIdentityRouteErrorMessage({ data: error }) },
+      { message: getWikiImageErrorMessage(error) },
       { status: 502 },
     );
   }

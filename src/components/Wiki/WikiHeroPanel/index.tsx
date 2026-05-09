@@ -12,6 +12,7 @@ type WikiHeroPanelProps = {
   heroImage: WikiDetail["heroImage"];
   isEditing: boolean;
   onEdit: () => void;
+  onOpenImageLibrary?: () => void;
   onCancel: () => void;
   onSave: (heroImage: WikiDetail["heroImage"]) => void;
 };
@@ -20,6 +21,7 @@ export function WikiHeroPanel({
   heroImage,
   isEditing,
   onEdit,
+  onOpenImageLibrary,
   onCancel,
   onSave,
 }: WikiHeroPanelProps) {
@@ -54,6 +56,14 @@ export function WikiHeroPanel({
 
   return (
     <div className="relative h-full min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-stroke-subtle" style={cardSurfaceStyle}>
+      {onOpenImageLibrary ? (
+        <button
+          aria-label="Open wiki image library"
+          className="absolute inset-0 z-10 cursor-pointer"
+          onClick={onOpenImageLibrary}
+          type="button"
+        />
+      ) : null}
       <Image
         alt={heroImage.alt}
         className="object-cover"

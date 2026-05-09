@@ -256,6 +256,108 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   );
 });
 
+test("wiki edit page opens the image library and uploads an image", async ({
+  page,
+}) => {
+  let listRequestCount = 0;
+  let uploadRequestBody: unknown = null;
+
+  await page.route("**/api/wiki/images?**", async (route) => {
+    listRequestCount += 1;
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify(
+        listRequestCount === 1
+          ? {
+              images: [
+                {
+                  imageIdentifier: "image-1",
+                  url: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg",
+                  resourceType: "group",
+                  wikiIdentifier: "gr-aurora-echo",
+                  imageUsage: "wiki_editor",
+                  displayOrder: 1,
+                  sourceUrl: "",
+                  sourceName: "cover.jpg",
+                  altText: "Cover image",
+                  isHidden: false,
+                  uploadedAt: "2026-05-09T00:00:00Z",
+                },
+              ],
+              current_page: 1,
+              last_page: 2,
+              total: 2,
+              per_page: 1,
+            }
+          : {
+              images: [
+                {
+                  imageIdentifier: "image-uploaded",
+                  url: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg",
+                  resourceType: "group",
+                  wikiIdentifier: "gr-aurora-echo",
+                  imageUsage: "wiki_editor",
+                  displayOrder: 2,
+                  sourceUrl: "",
+                  sourceName: "upload.png",
+                  altText: "upload.png",
+                  isHidden: false,
+                  uploadedAt: "2026-05-09T00:00:00Z",
+                },
+              ],
+              current_page: 2,
+              last_page: 2,
+              total: 2,
+              per_page: 1,
+            },
+      ),
+    });
+  });
+  await page.route("**/api/wiki/images/upload", async (route) => {
+    uploadRequestBody = route.request().postDataJSON();
+    await route.fulfill({
+      contentType: "application/json",
+      status: 201,
+      body: JSON.stringify({
+        imageIdentifier: "image-uploaded",
+        resourceType: "group",
+        imageUsage: "wiki_editor",
+        status: "draft",
+      }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/wiki/ja/gr-aurora-echo/edit");
+  await page.getByRole("button", { name: "Open wiki image library" }).last().click();
+
+  await expect(page.getByTestId("wiki-image-library")).toBeVisible();
+  await expect(page.getByText("Cover image")).toBeVisible();
+  await page.getByRole("button", { name: "さらに読み込む" }).click();
+  await expect(page.getByText("upload.png")).toBeVisible();
+
+  await page.getByTestId("wiki-image-upload-input").setInputFiles({
+    name: "upload.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("png"),
+  });
+  await expect(page.getByText("選択中: upload.png")).toBeVisible();
+  await expect.poll(() => uploadRequestBody).toBeNull();
+
+  await page.getByRole("button", { name: "この画像をアップロード" }).click();
+
+  await expect.poll(() => uploadRequestBody).toEqual(
+    expect.objectContaining({
+      altText: "upload.png",
+      imageUsage: "wiki_editor",
+      resourceType: "group",
+      sourceName: "upload.png",
+      wikiIdentifier: "gr-aurora-echo",
+    }),
+  );
+});
+
 test("twice member profile cards open the member wiki pages", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/ja/gr-twice/edit");

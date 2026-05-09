@@ -18,6 +18,7 @@ type WikiHeroBasicFlipCardProps = {
   profileLabel?: string;
   onFlipChange: (isFlipped: boolean) => void;
   onEditHero: () => void;
+  onOpenImageLibrary?: () => void;
   onEditBasic: () => void;
   onCancel: () => void;
   onSaveHero: (heroImage: WikiDetail["heroImage"]) => void;
@@ -34,6 +35,7 @@ export function WikiHeroBasicFlipCard({
   profileLabel = "Basic profile",
   onFlipChange,
   onEditHero,
+  onOpenImageLibrary,
   onEditBasic,
   onCancel,
   onSaveHero,
@@ -68,13 +70,14 @@ export function WikiHeroBasicFlipCard({
                 isEditing={isHeroEditing}
                 onCancel={onCancel}
                 onEdit={onEditHero}
+                onOpenImageLibrary={onOpenImageLibrary}
                 onSave={onSaveHero}
               />
             </div>
             {!isHeroEditing ? (
               <label
                 aria-label="Flip wiki edit card to basic details"
-                className={`absolute inset-0 z-20 rounded-[1.75rem] ${
+                className={`absolute bottom-0 left-0 right-0 z-20 h-24 rounded-b-[1.75rem] ${
                   isFlipped ? "pointer-events-none" : "cursor-pointer"
                 }`}
                 data-testid="wiki-edit-flip-front-toggle"

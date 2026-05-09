@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { schemas } from "@kpool/types/identity-api";
 import { z } from "zod";
 
 import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
-  parseRedirectUrlResult,
 } from "../../../../../../identityApi";
+import { parseWithSchemaLog } from "../../../../../../zodErrorLog";
 
 type SocialRedirectRouteContext = {
   params: Promise<{
@@ -54,7 +55,10 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
       );
     }
 
-    return NextResponse.json(parseRedirectUrlResult(body), { status: 200 });
+    return NextResponse.json(
+      parseWithSchemaLog("identity social redirect response", schemas.RedirectUrlResult, body),
+      { status: 200 },
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

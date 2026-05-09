@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { schemas } from "@kpool/types/identity-api";
 import { z } from "zod";
 
 import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
   parseCreateIdentityRequest,
-  parseIdentitySummary,
 } from "../../../../identityApi";
+import { parseWithSchemaLog } from "../../../../zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -79,7 +80,10 @@ export async function POST(request: NextRequest) {
     }
 
     return withSetCookie(
-      NextResponse.json(parseIdentitySummary(body), { status: 201 }),
+      NextResponse.json(
+        parseWithSchemaLog("identity register response", schemas.IdentitySummary, body),
+        { status: 201 },
+      ),
       apiResponse,
     );
   } catch (error) {

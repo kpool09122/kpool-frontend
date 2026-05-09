@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { schemas } from "@kpool/types/account-api";
 import { z } from "zod";
 
 import {
   getAccountApiBaseUrl,
   parseCreateAccountRequest,
-  parseCreateAccountResult,
 } from "../../../accountApi";
 import { getIdentityRouteErrorMessage } from "../../../identityApi";
+import { parseWithSchemaLog } from "../../../zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -52,7 +53,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(parseCreateAccountResult(body), { status: 201 });
+    return NextResponse.json(
+      parseWithSchemaLog(
+        "account create response",
+        schemas.CreateAccountResult,
+        Array.isArray(body) && body.length === 0 ? {} : body,
+      ),
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

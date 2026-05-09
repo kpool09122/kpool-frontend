@@ -1,9 +1,15 @@
-import type { CreateAccountRequest, CreateAccountResult } from "../accountApi";
-import type {
-  CreateIdentityRequest,
-  IdentitySummary,
-  VerifyEmailRequest,
-  VerifyEmailResult,
+import {
+  parseCreateAccountResult,
+  type CreateAccountRequest,
+  type CreateAccountResult,
+} from "../accountApi";
+import {
+  parseIdentitySummary,
+  parseVerifyEmailResult,
+  type CreateIdentityRequest,
+  type IdentitySummary,
+  type VerifyEmailRequest,
+  type VerifyEmailResult,
 } from "../identityApi";
 
 export type SignupStepId = "account" | "verification" | "identity";
@@ -154,6 +160,7 @@ export const getSignupErrorMessage = async (response: Response): Promise<string>
 const postJson = async <T>(
   url: string,
   body: unknown,
+  parseResponse: (body: unknown) => T,
   options?: { language: string },
 ): Promise<SignupResult<T>> => {
   const response = await fetch(url, {
@@ -175,7 +182,7 @@ const postJson = async <T>(
 
   return {
     ok: true,
-    data: (await response.json()) as T,
+    data: parseResponse(await response.json()),
   };
 };
 
@@ -184,6 +191,7 @@ export const signupWithApi: SignupAdapter = {
     const result = await postJson<CreateAccountResult>(
       "/api/account/accounts",
       request,
+      parseCreateAccountResult,
       options,
     );
 
@@ -197,6 +205,7 @@ export const signupWithApi: SignupAdapter = {
     const result = await postJson<VerifyEmailResult>(
       "/api/identity/auth/verify-email",
       request,
+      parseVerifyEmailResult,
       options,
     );
 
@@ -210,6 +219,7 @@ export const signupWithApi: SignupAdapter = {
     const result = await postJson<IdentitySummary>(
       "/api/identity/auth/register",
       request,
+      parseIdentitySummary,
       options,
     );
 
