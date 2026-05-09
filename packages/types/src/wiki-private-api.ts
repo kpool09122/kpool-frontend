@@ -258,17 +258,17 @@ const GroupDraftWikiBasic = z
   .object({
     name: z.string(),
     normalizedName: z.string(),
-    agencyIdentifier: KPool_Common_Uuid.optional(),
+    agencyIdentifier: KPool_Common_Uuid.nullish(),
     groupType: z.string(),
     status: z.string().optional(),
     generation: z.string(),
     debutDate: z.string().optional(),
-    disbandDate: z.string().optional(),
+    disbandDate: z.string().nullish(),
     fandomName: z.string(),
     officialColors: z.array(z.string()),
     emoji: z.string(),
     representativeSymbol: z.string(),
-    mainImageIdentifier: KPool_Common_Uuid.optional(),
+    mainImageIdentifier: KPool_Common_Uuid.nullish(),
   })
   .passthrough();
 const DraftWikiDetail = z
