@@ -2,6 +2,48 @@ import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
 const KPool_Common_Uuid = z.string();
+const wikiIdentifier = KPool_Common_Uuid.nullish();
+const DraftImageStatus = z.enum([
+  "approved",
+  "pending",
+  "rejected",
+  "under_review",
+]);
+const DraftImageListItem = z
+  .object({
+    imageIdentifier: KPool_Common_Uuid,
+    publishedImageIdentifier: KPool_Common_Uuid.nullable(),
+    url: z.string(),
+    resourceType: z.string(),
+    wikiIdentifier: KPool_Common_Uuid,
+    imageUsage: z.string(),
+    displayOrder: z.number().int(),
+    sourceUrl: z.string(),
+    sourceName: z.string(),
+    altText: z.string(),
+    status: DraftImageStatus,
+    uploadedAt: z.string().nullable(),
+  })
+  .passthrough();
+const ListDraftImagesResponseBody = z
+  .object({
+    images: z.array(DraftImageListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
+const KPool_Common_ProblemDetails = z
+  .object({
+    type: z.string(),
+    status: z.number().int(),
+    title: z.string(),
+    detail: z.string(),
+    instance: z.string(),
+  })
+  .partial()
+  .passthrough();
 const UploadImageRequestBody = z
   .object({
     publishedImageIdentifier: KPool_Common_Uuid.optional(),
@@ -23,16 +65,6 @@ const ImageDraftSummary = z
     imageUsage: z.string(),
     status: z.string(),
   })
-  .passthrough();
-const KPool_Common_ProblemDetails = z
-  .object({
-    type: z.string(),
-    status: z.number().int(),
-    title: z.string(),
-    detail: z.string(),
-    instance: z.string(),
-  })
-  .partial()
   .passthrough();
 const ReviewImageHideRequestBody = z
   .object({ reviewerComment: z.string() })
@@ -458,9 +490,13 @@ const ListWikisResponseBody = z
 
 export const schemas = {
   KPool_Common_Uuid,
+  wikiIdentifier,
+  DraftImageStatus,
+  DraftImageListItem,
+  ListDraftImagesResponseBody,
+  KPool_Common_ProblemDetails,
   UploadImageRequestBody,
   ImageDraftSummary,
-  KPool_Common_ProblemDetails,
   ReviewImageHideRequestBody,
   ImageHideReviewSummary,
   ImageSummary,
@@ -514,6 +550,48 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/draft-images",
+    alias: "DraftImageListOperations_listDraftImages",
+    description: `List draft images.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "wikiIdentifier",
+        type: "Query",
+        schema: wikiIdentifier,
+      },
+      {
+        name: "status",
+        type: "Query",
+        schema: z.enum(["approved", "pending", "rejected", "under_review"]),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+    ],
+    response: ListDraftImagesResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
   {
     method: "delete",
     path: "/image/:imageId",
@@ -1292,6 +1370,26 @@ const endpoints = makeApi([
       {
         status: 422,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/principal/me",
+    alias: "PrincipalOperations_getCurrentPrincipal",
+    description: `Get the principal associated with the authenticated identity.`,
+    requestFormat: "json",
+    response: PrincipalSummary,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
