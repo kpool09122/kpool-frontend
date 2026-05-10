@@ -42,8 +42,25 @@ describe("MyPageClient", () => {
     render(<MyPageClient initialIdentity={identity} principalAdapter={createAdapter()} />);
 
     expect(screen.getByRole("complementary", { name: "マイページメニュー" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "マイページメニューを閉じる" }),
+    ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("button", { name: "概要" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Wiki" })).toBeInTheDocument();
+  });
+
+  it("collapses and expands the sidebar with a persistent toggle", () => {
+    render(<MyPageClient initialIdentity={identity} principalAdapter={createAdapter()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "マイページメニューを閉じる" }));
+    expect(
+      screen.getByRole("button", { name: "マイページメニューを開く" }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "マイページメニューを開く" }));
+    expect(
+      screen.getByRole("button", { name: "マイページメニューを閉じる" }),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   it("loads the current principal when Wiki is selected", async () => {

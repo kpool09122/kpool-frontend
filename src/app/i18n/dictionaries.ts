@@ -100,6 +100,8 @@ const ja = {
     description:
       "アカウントに紐づく作業領域を管理できます。",
     sidebarLabel: "マイページメニュー",
+    collapseSidebar: "マイページメニューを閉じる",
+    expandSidebar: "マイページメニューを開く",
     overviewMenu: "概要",
     overviewTitle: "アカウント概要",
     overviewDescription:
@@ -267,6 +269,8 @@ const en: typeof ja = {
     description:
       "Manage the workspace connected to your account.",
     sidebarLabel: "My page menu",
+    collapseSidebar: "Collapse my page menu",
+    expandSidebar: "Expand my page menu",
     overviewMenu: "Overview",
     overviewTitle: "Account overview",
     overviewDescription:
@@ -434,6 +438,8 @@ const ko: typeof ja = {
     description:
       "계정에 연결된 작업 영역을 관리할 수 있습니다.",
     sidebarLabel: "마이페이지 메뉴",
+    collapseSidebar: "마이페이지 메뉴 닫기",
+    expandSidebar: "마이페이지 메뉴 열기",
     overviewMenu: "개요",
     overviewTitle: "계정 개요",
     overviewDescription:

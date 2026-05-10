@@ -25,6 +25,14 @@ test("mypage shows the Wiki collaborator activation path", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "マイページ" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "マイページメニュー" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "マイページメニューを閉じる" }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "マイページメニューを閉じる" }).click();
+  await expect(
+    page.getByRole("button", { name: "マイページメニューを開く" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "マイページメニューを開く" }).click();
   await expect(page.getByRole("button", { name: "概要" })).toHaveAttribute(
     "aria-current",
     "page",

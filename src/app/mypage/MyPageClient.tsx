@@ -1,6 +1,7 @@
 "use client";
 
 import type { IdentitySummary } from "../identityApi";
+import { ChevronRightIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import { useI18n } from "../i18n/I18nProvider";
@@ -29,9 +30,9 @@ const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
 };
 
 const selectedSectionClass =
-  "border-brand-primary bg-brand-highlight text-text-strong shadow-soft";
+  "bg-brand-highlight/70 text-text-strong";
 const idleSectionClass =
-  "border-stroke-subtle bg-surface-raised text-text-muted hover:border-brand-primary/40 hover:text-text-strong";
+  "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong";
 
 const isActionPending = (state: WikiPrincipalState): boolean =>
   state.status === "loading";
@@ -43,6 +44,7 @@ export function MyPageClient({
   const { dictionary } = useI18n();
   const t = dictionary.mypage;
   const [selectedSection, setSelectedSection] = useState<MyPageSection>("overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [principalState, setPrincipalState] = useState<WikiPrincipalState>({
     status: "idle",
   });
@@ -88,36 +90,57 @@ export function MyPageClient({
   };
 
   return (
-    <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
-      <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <aside
-          aria-label={t.sidebarLabel}
-          className="rounded-lg border border-stroke-subtle bg-surface-raised p-3 shadow-soft"
+    <main
+      className={`min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
+        isSidebarOpen ? "lg:pl-80" : "lg:pl-20"
+      }`}
+    >
+      <aside
+        aria-label={t.sidebarLabel}
+        className={`fixed bottom-0 left-0 top-20 z-30 w-72 max-w-[calc(100vw-2rem)] transition-transform duration-300 ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <button
+          type="button"
+          aria-label={isSidebarOpen ? t.collapseSidebar : t.expandSidebar}
+          aria-expanded={isSidebarOpen}
+          className="absolute -right-11 top-6 z-10 grid h-20 w-11 place-items-center rounded-r-2xl border-y border-r border-stroke-subtle bg-surface-raised text-text-strong shadow-soft transition hover:bg-brand-highlight/20"
+          onClick={() => setIsSidebarOpen((current) => !current)}
         >
-          <nav className="grid gap-2">
-            <button
-              type="button"
-              className={`rounded-lg border px-4 py-3 text-left text-sm font-semibold transition ${
-                selectedSection === "overview" ? selectedSectionClass : idleSectionClass
-              }`}
-              aria-current={selectedSection === "overview" ? "page" : undefined}
-              onClick={() => setSelectedSection("overview")}
-            >
-              {t.overviewMenu}
-            </button>
-            <button
-              type="button"
-              className={`rounded-lg border px-4 py-3 text-left text-sm font-semibold transition ${
-                selectedSection === "wiki" ? selectedSectionClass : idleSectionClass
-              }`}
-              aria-current={selectedSection === "wiki" ? "page" : undefined}
-              onClick={selectWiki}
-            >
-              {t.wikiMenu}
-            </button>
-          </nav>
-        </aside>
+          <span className={`transition-transform ${isSidebarOpen ? "rotate-180" : ""}`}>
+            <ChevronRightIcon />
+          </span>
+        </button>
+        <div className="relative h-full overflow-y-auto border border-l-0 border-stroke-subtle bg-surface-raised p-4 shadow-soft">
+          <div className={isSidebarOpen ? "block" : "pointer-events-none invisible"}>
+            <nav className="grid gap-2">
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+                  selectedSection === "overview" ? selectedSectionClass : idleSectionClass
+                }`}
+                aria-current={selectedSection === "overview" ? "page" : undefined}
+                onClick={() => setSelectedSection("overview")}
+              >
+                {t.overviewMenu}
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+                  selectedSection === "wiki" ? selectedSectionClass : idleSectionClass
+                }`}
+                aria-current={selectedSection === "wiki" ? "page" : undefined}
+                onClick={selectWiki}
+              >
+                {t.wikiMenu}
+              </button>
+            </nav>
+          </div>
+        </div>
+      </aside>
 
+      <div className="mx-auto max-w-5xl">
         <section className="min-w-0 space-y-6">
           <header className="space-y-3">
             <p className="text-sm font-semibold uppercase text-brand-primary">
