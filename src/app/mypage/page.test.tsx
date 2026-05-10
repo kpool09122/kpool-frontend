@@ -9,7 +9,7 @@ const identity = {
   username: "member",
   email: "member@example.com",
   language: "ja",
-  accountIdentifier: "22222222-2222-2222-2222-222222222222",
+  accountId: "22222222-2222-2222-2222-222222222222",
 };
 
 const principal = {
@@ -110,7 +110,7 @@ describe("MyPageClient", () => {
     expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
   });
 
-  it("does not submit principal creation when accountIdentifier is unavailable", async () => {
+  it("does not submit principal creation when accountId is unavailable", async () => {
     const adapter = createAdapter({
       getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
     });
@@ -130,7 +130,7 @@ describe("MyPageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "Wiki" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "principal 作成に必要な accountIdentifier を取得できません。",
+      "principal 作成に必要な accountId を取得できません。",
     );
     expect(screen.getByRole("button", { name: "Wiki collaborator を有効化" })).toBeDisabled();
     expect(adapter.createPrincipal).not.toHaveBeenCalled();

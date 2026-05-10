@@ -97,7 +97,19 @@ describe("wiki principal helpers", () => {
     });
   });
 
-  it("reads accountIdentifier only when it is present on identity payloads", () => {
+  it("reads accountId from identity payloads", () => {
+    expect(
+      getAccountIdentifierFromIdentity({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        username: "member",
+        email: "member@example.com",
+        language: "ja",
+        accountId: "22222222-2222-2222-2222-222222222222",
+      }),
+    ).toBe("22222222-2222-2222-2222-222222222222");
+  });
+
+  it("falls back to accountIdentifier for older identity payloads", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
@@ -107,6 +119,9 @@ describe("wiki principal helpers", () => {
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
       }),
     ).toBe("22222222-2222-2222-2222-222222222222");
+  });
+
+  it("returns null when identity payloads do not include an account id", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",

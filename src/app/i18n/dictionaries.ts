@@ -117,7 +117,7 @@ const ja = {
     activateWiki: "Wiki collaborator を有効化",
     identityUnavailableMessage: "ログイン情報を確認できません。再ログインしてください。",
     accountUnavailableMessage:
-      "principal 作成に必要な accountIdentifier を取得できません。",
+      "principal 作成に必要な accountId を取得できません。",
     principalIdLabel: "Principal ID",
     principalStatusLabel: "状態",
     principalEnabled: "有効",
@@ -284,7 +284,7 @@ const en: typeof ja = {
     activateWiki: "Enable Wiki collaborator",
     identityUnavailableMessage: "Your login information is unavailable. Log in again.",
     accountUnavailableMessage:
-      "The accountIdentifier required to create a principal is unavailable.",
+      "The accountId required to create a principal is unavailable.",
     principalIdLabel: "Principal ID",
     principalStatusLabel: "Status",
     principalEnabled: "Enabled",
@@ -449,7 +449,7 @@ const ko: typeof ja = {
     retryPrincipal: "다시 불러오기",
     activateWiki: "Wiki collaborator 활성화",
     identityUnavailableMessage: "로그인 정보를 확인할 수 없습니다. 다시 로그인하세요.",
-    accountUnavailableMessage: "principal 생성에 필요한 accountIdentifier를 가져올 수 없습니다.",
+    accountUnavailableMessage: "principal 생성에 필요한 accountId를 가져올 수 없습니다.",
     principalIdLabel: "Principal ID",
     principalStatusLabel: "상태",
     principalEnabled: "활성",

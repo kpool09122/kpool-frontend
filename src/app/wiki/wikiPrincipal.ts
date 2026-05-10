@@ -41,9 +41,16 @@ export const getAccountIdentifierFromIdentity = (
     return null;
   }
 
+  const accountId = (identity as IdentitySummary & {
+    accountId?: unknown;
+  }).accountId;
   const accountIdentifier = (identity as IdentitySummary & {
     accountIdentifier?: unknown;
   }).accountIdentifier;
+
+  if (typeof accountId === "string" && accountId.length > 0) {
+    return accountId;
+  }
 
   return typeof accountIdentifier === "string" && accountIdentifier.length > 0
     ? accountIdentifier
