@@ -25,6 +25,7 @@ const KPool_Common_ProblemDetails = z
   .partial()
   .passthrough();
 const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
+const AuthenticatedIdentitySummary = IdentitySummary;
 const CreateIdentityRequestBody = z
   .object({
     username: z.string(),
@@ -56,6 +57,7 @@ export const schemas = {
   IdentitySummary,
   KPool_Common_ProblemDetails,
   KPool_Common_EmptyJsonObject,
+  AuthenticatedIdentitySummary,
   CreateIdentityRequestBody,
   SendAuthCodeRequestBody,
   RedirectUrlResult,
@@ -110,6 +112,31 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/auth/me",
+    alias: "IdentityAuthOperations_getAuthenticatedIdentity",
+    description: `Get the current authenticated identity.`,
+    requestFormat: "json",
+    response: AuthenticatedIdentitySummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
