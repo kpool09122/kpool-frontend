@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createWikiDraftImagesUrl,
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
@@ -56,5 +57,19 @@ describe("wikiImages", () => {
         wikiIdentifier: "wiki-1",
       }),
     ).toBe("https://api.example.test/api/wiki/images?wikiIdentifier=wiki-1&perPage=12&page=2");
+  });
+
+  it("builds draft image list urls with status and optional filters", () => {
+    expect(
+      createWikiDraftImagesUrl({
+        baseUrl: "https://api.example.test/api/wiki/",
+        page: 3,
+        perPage: 24,
+        status: "under_review",
+        wikiIdentifier: "wiki-1",
+      }),
+    ).toBe(
+      "https://api.example.test/api/wiki/draft-images?status=under_review&perPage=24&page=3&wikiIdentifier=wiki-1",
+    );
   });
 });
