@@ -26,6 +26,7 @@ const parsePositiveInteger = (value: string | null, fallback: number): number =>
 
 export async function GET(request: NextRequest) {
   const baseUrl = getWikiImageApiBaseUrl();
+  const cookieHeader = request.headers.get("cookie");
 
   if (!baseUrl) {
     return NextResponse.json(
@@ -61,9 +62,7 @@ export async function GET(request: NextRequest) {
           ...(request.headers.get("accept-language")
             ? { "Accept-Language": request.headers.get("accept-language") ?? "" }
             : {}),
-          ...(request.headers.get("cookie")
-            ? { Cookie: request.headers.get("cookie") ?? "" }
-            : {}),
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
         },
         cache: "no-store",
       },

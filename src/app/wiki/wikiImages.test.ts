@@ -38,10 +38,10 @@ describe("wikiImages", () => {
         altText: "stage.webp",
         base64EncodedImage: "abc123",
         displayOrder: 3,
-        imageUsage: "wiki_editor",
+        imageUsage: "profile",
         resourceType: "group",
         sourceName: "stage.webp",
-        sourceUrl: "",
+        sourceUrl: "stage.webp",
         wikiIdentifier: "wiki-1",
       }),
     );
