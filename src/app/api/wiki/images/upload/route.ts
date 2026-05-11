@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const cookieHeader = request.headers.get("cookie");
+
     const body = wikiImageUploadRequestSchema.parse(await request.json());
     const apiResponse = await fetch(`${trimTrailingSlashes(baseUrl)}/image/upload`, {
       method: "POST",
@@ -38,9 +40,7 @@ export async function POST(request: NextRequest) {
           ? { "Accept-Language": request.headers.get("accept-language") ?? "" }
           : {}),
         "Content-Type": "application/json",
-        ...(request.headers.get("cookie")
-          ? { Cookie: request.headers.get("cookie") ?? "" }
-          : {}),
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       },
       body: JSON.stringify(body),
       cache: "no-store",
