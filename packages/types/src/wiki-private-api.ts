@@ -294,6 +294,7 @@ const AgencyDraftWikiBasic = z
 const AgencyDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
@@ -324,6 +325,7 @@ const GroupDraftWikiBasic = z
 const DraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
@@ -400,6 +402,7 @@ const SongDraftWikiBasic = z
 const SongDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
@@ -454,6 +457,7 @@ const TalentDraftWikiBasic = z
 const TalentDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
