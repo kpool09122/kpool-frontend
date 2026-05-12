@@ -56,6 +56,7 @@ const UploadImageRequestBody = z
     sourceName: z.string(),
     altText: z.string(),
     agreedToTermsAt: z.string(),
+    rightsConfirmationAgreed: z.boolean(),
   })
   .passthrough();
 const ImageDraftSummary = z
