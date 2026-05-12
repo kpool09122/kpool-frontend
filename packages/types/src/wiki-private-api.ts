@@ -146,7 +146,11 @@ const OfficialCertificationSummary = z
   })
   .passthrough();
 const PolicyConditionClause = z
-  .object({ field: z.string(), operator: z.string(), value: z.string() })
+  .object({
+    field: z.string(),
+    operator: z.string(),
+    value: z.union([z.string(), z.boolean()]),
+  })
   .passthrough();
 const PolicyCondition = z
   .object({ clauses: z.array(PolicyConditionClause) })
@@ -157,7 +161,7 @@ const PolicyStatement = z
     effect: z.string(),
     actions: z.array(z.string()),
     resourceTypes: z.array(z.string()),
-    condition: PolicyCondition.optional(),
+    condition: PolicyCondition.nullish(),
   })
   .passthrough();
 const CreatePolicyRequestBody = z
@@ -200,12 +204,21 @@ const CreatePrincipalRequestBody = z
     accountIdentifier: KPool_Common_Uuid,
   })
   .passthrough();
+const EffectivePolicySummary = z
+  .object({
+    policyIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    isSystemPolicy: z.boolean(),
+    statements: z.array(PolicyStatement),
+  })
+  .passthrough();
 const PrincipalSummary = z
   .object({
     principalIdentifier: KPool_Common_Uuid,
     identityIdentifier: KPool_Common_Uuid,
     isDelegatedPrincipal: z.boolean(),
     isEnabled: z.boolean(),
+    policies: z.array(EffectivePolicySummary),
   })
   .passthrough();
 const CreateRoleRequestBody = z
@@ -522,6 +535,7 @@ export const schemas = {
   MutatePrincipalGroupMemberRequestBody,
   AttachRoleToPrincipalGroupRequestBody,
   CreatePrincipalRequestBody,
+  EffectivePolicySummary,
   PrincipalSummary,
   CreateRoleRequestBody,
   RoleSummary,
