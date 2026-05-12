@@ -3,6 +3,9 @@ import { z } from "zod";
 
 const KPool_Common_Uuid = z.string();
 const translationSetIdentifier = KPool_Common_Uuid.nullish();
+const DraftImageWikiDisplayInformation = z
+  .object({ names: z.record(z.string()), slug: z.string() })
+  .passthrough();
 const DraftImageStatus = z.enum([
   "approved",
   "pending",
@@ -21,6 +24,7 @@ const DraftImageListItem = z
     sourceUrl: z.string(),
     sourceName: z.string(),
     altText: z.string(),
+    wiki: DraftImageWikiDisplayInformation,
     status: DraftImageStatus,
     uploadedAt: z.string().nullable(),
   })
@@ -492,6 +496,7 @@ const ListWikisResponseBody = z
 export const schemas = {
   KPool_Common_Uuid,
   translationSetIdentifier,
+  DraftImageWikiDisplayInformation,
   DraftImageStatus,
   DraftImageListItem,
   ListDraftImagesResponseBody,
