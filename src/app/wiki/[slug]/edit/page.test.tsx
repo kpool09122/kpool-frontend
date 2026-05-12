@@ -82,6 +82,7 @@ describe("WikiEditPage", () => {
                 url: "https://images.example.test/image-1.jpg",
                 resourceType: "group",
                 wikiIdentifier: "gr-aurora-echo",
+                translationSetIdentifier: "translation-set-aurora-echo",
                 imageUsage: "wiki_editor",
                 displayOrder: 1,
                 sourceUrl: "",
@@ -108,6 +109,7 @@ describe("WikiEditPage", () => {
                 url: "https://images.example.test/image-2.webp",
                 resourceType: "group",
                 wikiIdentifier: "gr-aurora-echo",
+                translationSetIdentifier: "translation-set-aurora-echo",
                 imageUsage: "wiki_editor",
                 displayOrder: 2,
                 sourceUrl: "",
@@ -140,15 +142,15 @@ describe("WikiEditPage", () => {
     expect(screen.getByText("すべての画像を読み込みました")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "/api/wiki/images?wikiIdentifier=gr-aurora-echo&perPage=12&page=1",
+      "/api/wiki/images?translationSetIdentifier=translation-set-gr-aurora-echo&perPage=12&page=1",
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "/api/wiki/images?wikiIdentifier=gr-aurora-echo&perPage=12&page=2",
+      "/api/wiki/images?translationSetIdentifier=translation-set-gr-aurora-echo&perPage=12&page=2",
     );
   });
 
-  it("uploads an accepted image and refreshes the library", async () => {
+  it("switches tabs and submits an image usage request with source metadata", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
@@ -183,11 +185,12 @@ describe("WikiEditPage", () => {
                 url: "https://images.example.test/uploaded-image.png",
                 resourceType: "group",
                 wikiIdentifier: "gr-aurora-echo",
+                translationSetIdentifier: "translation-set-aurora-echo",
                 imageUsage: "wiki_editor",
                 displayOrder: 1,
-                sourceUrl: "",
-                sourceName: "upload.png",
-                altText: "upload.png",
+                sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
+                sourceName: "Wikimedia Commons",
+                altText: "Stage upload",
                 isHidden: false,
                 uploadedAt: "2026-05-09T00:00:00Z",
               },
@@ -205,7 +208,21 @@ describe("WikiEditPage", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
 
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
+    expect(screen.getByRole("tab", { name: "画像の利用申請" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(
+      screen.getByText(
+        "申請が承認されると、画像一覧からアップロードした画像を利用できるようになります。",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("承認済み画像は他の言語のWikiでも利用できます。"),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
       target: {
         files: [new File(["image"], "upload.png", { type: "image/png" })],
@@ -214,19 +231,113 @@ describe("WikiEditPage", () => {
 
     expect(screen.getByText("選択中: upload.png")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByLabelText("参照元URL"), {
+      target: { value: "https://commons.wikimedia.org/wiki/File:Upload.png" },
+    });
+    fireEvent.change(screen.getByLabelText("参照元サイト名"), {
+      target: { value: "Wikimedia Commons" },
+    });
+    fireEvent.change(screen.getByLabelText("altテキスト"), {
+      target: { value: "Stage upload" },
+    });
+    fireEvent.click(
+      screen.getByLabelText("著作権や肖像権に問題がないことを確認しました。"),
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "この画像をアップロード" }));
+    fireEvent.click(screen.getByRole("button", { name: "利用申請を送信" }));
 
-    expect((await screen.findAllByText("upload.png")).length).toBeGreaterThan(0);
+    expect(
+      await screen.findByText("申請を送信しました。申請内容を確認しますので、しばらくお待ちください。"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "承認を行うには？" })).toHaveAttribute("href", "#");
+    expect(screen.getByRole("tab", { name: "画像の利用申請" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       "/api/wiki/images/upload",
       expect.objectContaining({
         method: "POST",
-        body: expect.stringContaining('"base64EncodedImage"'),
+        body: expect.stringContaining('"sourceName":"Wikimedia Commons"'),
       }),
     );
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual(
+      expect.objectContaining({
+        altText: "Stage upload",
+        imageUsage: "profile",
+        sourceName: "Wikimedia Commons",
+        sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
+        translationSetIdentifier: "translation-set-gr-aurora-echo",
+      }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+
+    expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
+    expect(
+      screen.queryByText("申請を送信しました。申請内容を確認しますので、しばらくお待ちください。"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("keeps image usage requests disabled until required fields are filled", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
+
+    const submitButton = screen.getByRole("button", { name: "利用申請を送信" });
+
+    expect(submitButton).toBeDisabled();
+    fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
+      target: {
+        files: [new File(["image"], "upload.png", { type: "image/png" })],
+      },
+    });
+    fireEvent.change(screen.getByLabelText("参照元URL"), {
+      target: { value: "https://commons.wikimedia.org/wiki/File:Upload.png" },
+    });
+    fireEvent.change(screen.getByLabelText("参照元サイト名"), {
+      target: { value: "Wikimedia Commons" },
+    });
+    fireEvent.change(screen.getByLabelText("altテキスト"), {
+      target: { value: "Stage upload" },
+    });
+
+    expect(submitButton).toBeDisabled();
+    fireEvent.click(
+      screen.getByLabelText("著作権や肖像権に問題がないことを確認しました。"),
+    );
+
+    expect(submitButton).toBeEnabled();
   });
 
   it("rejects unsupported image files before upload", async () => {
@@ -247,6 +358,7 @@ describe("WikiEditPage", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
     fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
       target: {
@@ -278,6 +390,7 @@ describe("WikiEditPage", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
     fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
       target: {
@@ -289,7 +402,7 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "選択を解除" }));
 
     expect(screen.queryByText("選択中: remove-me.webp")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "この画像をアップロード" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -431,6 +544,7 @@ describe("WikiEditPage", () => {
       expect.objectContaining({
         slug: "gr-custom-title",
         wikiIdentifier: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-gr-aurora-echo",
       }),
     );
   });

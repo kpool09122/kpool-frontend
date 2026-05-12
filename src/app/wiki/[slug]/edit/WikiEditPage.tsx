@@ -16,6 +16,7 @@ import {
   WikiStatePanel,
   cardSurfaceStyle,
   mainBackgroundStyle,
+  type WikiImageUsageRequestInput,
 } from "../../../../components/Wiki";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { getWikiResourceLabel, type WikiResourceType } from "../../wikiRouting";
@@ -23,6 +24,7 @@ import { buildWikiThemeCssVariables } from "../wikiThemePalette";
 import { type loadDraftWikiState } from "../../draftWiki";
 import {
   createWikiImageUploadRequest,
+  createWikiImageAssociationInput,
   defaultWikiImagePerPage,
   type WikiImageListResponse,
   type WikiUploadedImage,
@@ -150,8 +152,8 @@ function WikiEditContent({
 
     try {
       const response = await fetch(
-        `/api/wiki/images?wikiIdentifier=${encodeURIComponent(
-          draft.wikiIdentifier,
+        `/api/wiki/images?translationSetIdentifier=${encodeURIComponent(
+          draft.translationSetIdentifier,
         )}&perPage=${defaultWikiImagePerPage}&page=${page}`,
       );
       const body = await readJsonResponse(response);
@@ -186,7 +188,11 @@ function WikiEditContent({
   const openImageLibrary = () => {
     void loadImageLibraryPage(1);
   };
-  const uploadImage = async (file: File, base64Image: string) => {
+  const imageAssociation = createWikiImageAssociationInput({
+    resourceType: draft.resourceType,
+    translationSetIdentifier: draft.translationSetIdentifier,
+  });
+  const uploadImage = async (input: WikiImageUsageRequestInput) => {
     setImageLibrary((state) => ({
       ...state,
       isUploading: true,
@@ -201,12 +207,13 @@ function WikiEditContent({
         },
         body: JSON.stringify(
           createWikiImageUploadRequest({
-            altText: file.name,
-            base64EncodedImage: base64Image,
+            altText: input.altText,
+            base64EncodedImage: input.base64Image,
             displayOrder: imageLibrary.images.length + 1,
-            fileName: file.name,
-            resourceType: draft.resourceType,
-            wikiIdentifier: draft.wikiIdentifier,
+            fileName: input.file.name,
+            imageAssociation,
+            sourceName: input.sourceName,
+            sourceUrl: input.sourceUrl,
           }),
         ),
       });
@@ -387,7 +394,6 @@ function WikiEditContent({
           pageInfo={imageLibrary.pageInfo}
           resourceType={draft.resourceType}
           uploadError={imageLibrary.uploadError}
-          wikiIdentifier={draft.wikiIdentifier}
         />
       </div>
     </main>

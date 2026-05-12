@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const wikiIdentifier = request.nextUrl.searchParams.get("wikiIdentifier");
+  const translationSetIdentifier = request.nextUrl.searchParams.get("translationSetIdentifier");
 
-  if (!wikiIdentifier) {
+  if (!translationSetIdentifier) {
     return NextResponse.json(
-      { message: "wikiIdentifier is required." },
+      { message: "translationSetIdentifier is required." },
       { status: 400 },
     );
   }
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
           request.nextUrl.searchParams.get("perPage"),
           defaultWikiImagePerPage,
         ),
-        wikiIdentifier,
+        translationSetIdentifier,
       }),
       {
         method: "GET",

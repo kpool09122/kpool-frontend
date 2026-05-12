@@ -256,7 +256,7 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   );
 });
 
-test("wiki edit page opens the image library and uploads an image", async ({
+test("wiki edit page opens the image library and submits an image usage request", async ({
   page,
 }) => {
   let listRequestCount = 0;
@@ -276,6 +276,7 @@ test("wiki edit page opens the image library and uploads an image", async ({
                   url: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg",
                   resourceType: "group",
                   wikiIdentifier: "gr-aurora-echo",
+                  translationSetIdentifier: "translation-set-aurora-echo",
                   imageUsage: "wiki_editor",
                   displayOrder: 1,
                   sourceUrl: "",
@@ -297,11 +298,12 @@ test("wiki edit page opens the image library and uploads an image", async ({
                   url: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Placeholder_view_vector.svg",
                   resourceType: "group",
                   wikiIdentifier: "gr-aurora-echo",
+                  translationSetIdentifier: "translation-set-aurora-echo",
                   imageUsage: "wiki_editor",
                   displayOrder: 2,
-                  sourceUrl: "",
-                  sourceName: "upload.png",
-                  altText: "upload.png",
+                  sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
+                  sourceName: "Wikimedia Commons",
+                  altText: "Stage upload",
                   isHidden: false,
                   uploadedAt: "2026-05-09T00:00:00Z",
                 },
@@ -333,10 +335,12 @@ test("wiki edit page opens the image library and uploads an image", async ({
   await page.getByRole("button", { name: "Open wiki image library" }).last().click();
 
   await expect(page.getByTestId("wiki-image-library")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("Cover image")).toBeVisible();
   await page.getByRole("button", { name: "さらに読み込む" }).click();
-  await expect(page.getByText("upload.png")).toBeVisible();
+  await expect(page.getByText("Stage upload")).toBeVisible();
 
+  await page.getByRole("tab", { name: "画像の利用申請" }).click();
   await page.getByTestId("wiki-image-upload-input").setInputFiles({
     name: "upload.png",
     mimeType: "image/png",
@@ -344,16 +348,27 @@ test("wiki edit page opens the image library and uploads an image", async ({
   });
   await expect(page.getByText("選択中: upload.png")).toBeVisible();
   await expect.poll(() => uploadRequestBody).toBeNull();
+  await expect(page.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
+  await page.getByLabel("参照元URL").fill("https://commons.wikimedia.org/wiki/File:Upload.png");
+  await page.getByLabel("参照元サイト名").fill("Wikimedia Commons");
+  await page.getByLabel("altテキスト").fill("Stage upload");
+  await expect(page.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
+  await page.getByLabel("著作権や肖像権に問題がないことを確認しました。").check();
 
-  await page.getByRole("button", { name: "この画像をアップロード" }).click();
+  await page.getByRole("button", { name: "利用申請を送信" }).click();
+  await expect(
+    page.getByText("申請を送信しました。申請内容を確認しますので、しばらくお待ちください。"),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "承認を行うには？" })).toHaveAttribute("href", "#");
 
   await expect.poll(() => uploadRequestBody).toEqual(
     expect.objectContaining({
-      altText: "upload.png",
-      imageUsage: "wiki_editor",
+      altText: "Stage upload",
+      imageUsage: "profile",
       resourceType: "group",
-      sourceName: "upload.png",
-      wikiIdentifier: "gr-aurora-echo",
+      sourceName: "Wikimedia Commons",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
+      translationSetIdentifier: "translation-set-gr-aurora-echo",
     }),
   );
 });

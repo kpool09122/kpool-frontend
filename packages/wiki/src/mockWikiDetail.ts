@@ -375,6 +375,7 @@ export const createMockWikiDetail = (
 
   return wikiDetailSchema.parse({
     wikiIdentifier: normalizedSlug,
+    translationSetIdentifier: `translation-set-${normalizedSlug}`,
     slug: normalizedSlug,
     language: "ja",
     resourceType: twiceMember ? "talent" : "group",

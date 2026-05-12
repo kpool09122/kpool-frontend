@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createWikiDraftImagesUrl,
+  createWikiImageAssociationInput,
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
@@ -25,24 +26,28 @@ describe("wikiImages", () => {
 
   it("creates a typed upload request with required backend fields", () => {
     const request = createWikiImageUploadRequest({
-      altText: "",
+      altText: "Stage performance",
       base64EncodedImage: "data:image/webp;base64,abc123",
       displayOrder: 3,
       fileName: "stage.webp",
-      resourceType: "group",
-      wikiIdentifier: "wiki-1",
+      imageAssociation: createWikiImageAssociationInput({
+        resourceType: "group",
+        translationSetIdentifier: "translation-set-1",
+      }),
+      sourceName: "Wikimedia Commons",
+      sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
     });
 
     expect(request).toEqual(
       expect.objectContaining({
-        altText: "stage.webp",
+        altText: "Stage performance",
         base64EncodedImage: "abc123",
         displayOrder: 3,
         imageUsage: "profile",
         resourceType: "group",
-        sourceName: "stage.webp",
-        sourceUrl: "stage.webp",
-        wikiIdentifier: "wiki-1",
+        sourceName: "Wikimedia Commons",
+        sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
+        translationSetIdentifier: "translation-set-1",
       }),
     );
     expect(request.agreedToTermsAt).toEqual(expect.any(String));
@@ -54,9 +59,11 @@ describe("wikiImages", () => {
         baseUrl: "https://api.example.test/api/wiki/",
         page: 2,
         perPage: 12,
-        wikiIdentifier: "wiki-1",
+        translationSetIdentifier: "translation-set-1",
       }),
-    ).toBe("https://api.example.test/api/wiki/images?wikiIdentifier=wiki-1&perPage=12&page=2");
+    ).toBe(
+      "https://api.example.test/api/wiki/images?translationSetIdentifier=translation-set-1&perPage=12&page=2",
+    );
   });
 
   it("builds draft image list urls with status and optional filters", () => {
