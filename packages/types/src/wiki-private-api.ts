@@ -2,7 +2,7 @@ import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
 const KPool_Common_Uuid = z.string();
-const wikiIdentifier = KPool_Common_Uuid.nullish();
+const translationSetIdentifier = KPool_Common_Uuid.nullish();
 const DraftImageStatus = z.enum([
   "approved",
   "pending",
@@ -15,7 +15,7 @@ const DraftImageListItem = z
     publishedImageIdentifier: KPool_Common_Uuid.nullable(),
     url: z.string(),
     resourceType: z.string(),
-    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     imageUsage: z.string(),
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
@@ -48,7 +48,7 @@ const UploadImageRequestBody = z
   .object({
     publishedImageIdentifier: KPool_Common_Uuid.optional(),
     resourceType: z.string(),
-    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     base64EncodedImage: z.string(),
     imageUsage: z.string(),
     displayOrder: z.number().int(),
@@ -106,7 +106,7 @@ const UploadedImageListItem = z
     imageIdentifier: KPool_Common_Uuid,
     url: z.string(),
     resourceType: z.string(),
-    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     imageUsage: z.string(),
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
@@ -490,7 +490,7 @@ const ListWikisResponseBody = z
 
 export const schemas = {
   KPool_Common_Uuid,
-  wikiIdentifier,
+  translationSetIdentifier,
   DraftImageStatus,
   DraftImageListItem,
   ListDraftImagesResponseBody,
@@ -558,9 +558,9 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "wikiIdentifier",
+        name: "translationSetIdentifier",
         type: "Query",
-        schema: wikiIdentifier,
+        schema: translationSetIdentifier,
       },
       {
         name: "status",
@@ -926,7 +926,7 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "wikiIdentifier",
+        name: "translationSetIdentifier",
         type: "Query",
         schema: z.string().uuid(),
       },
