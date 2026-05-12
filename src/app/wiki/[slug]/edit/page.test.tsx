@@ -133,13 +133,25 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
 
     expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
-    expect(await screen.findByText("Cover image")).toBeInTheDocument();
-    expect(screen.getByText("cover.jpg")).toBeInTheDocument();
+    expect(await screen.findByText("代替テキスト: Cover image")).toBeInTheDocument();
+    expect(screen.queryByText("cover.jpg")).not.toBeInTheDocument();
+    expect(screen.queryByText("image-1")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
 
-    expect(await screen.findByText("Stage image")).toBeInTheDocument();
+    expect(await screen.findByText("代替テキスト: Stage image")).toBeInTheDocument();
+    expect(screen.queryByText("stage.webp")).not.toBeInTheDocument();
+    expect(screen.queryByText("image-2")).not.toBeInTheDocument();
     expect(screen.getByText("すべての画像を読み込みました")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "画像を選択: Stage image" }));
+
+    expect(screen.queryByTestId("wiki-image-library")).not.toBeInTheDocument();
+    expect(screen.getAllByAltText("Stage image")).toHaveLength(2);
+    expect(screen.getAllByAltText("Stage image")[0]).toHaveAttribute(
+      "src",
+      "https://images.example.test/image-2.webp",
+    );
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "/api/wiki/images?translationSetIdentifier=translation-set-gr-aurora-echo&perPage=12&page=1",

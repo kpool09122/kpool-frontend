@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  canReviewWikiDraftImages,
   createWikiPrincipal,
   getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
@@ -11,7 +12,32 @@ const principal = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   isDelegatedPrincipal: false,
   isEnabled: true,
+  policies: [],
 };
+
+const policy = ({
+  actions,
+  effect = "allow",
+  name = "IMAGE_REVIEW",
+  resourceTypes,
+}: {
+  actions: string[];
+  effect?: string;
+  name?: string;
+  resourceTypes: string[];
+}) => ({
+  policyIdentifier: crypto.randomUUID(),
+  name,
+  isSystemPolicy: true,
+  statements: [
+    {
+      effect,
+      actions,
+      resourceTypes,
+      condition: null,
+    },
+  ],
+});
 
 describe("wiki principal helpers", () => {
   it("normalizes the current principal response when it exists", async () => {
@@ -130,5 +156,69 @@ describe("wiki principal helpers", () => {
         language: "ja",
       }),
     ).toBeNull();
+  });
+
+  it("allows draft image review when policies allow approve and reject on images", () => {
+    expect(
+      canReviewWikiDraftImages({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["approve", "REJECT"],
+            resourceTypes: ["image"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("treats wildcard actions and resources as full access", () => {
+    expect(
+      canReviewWikiDraftImages({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["*"],
+            name: "FULL_ACCESS",
+            resourceTypes: ["ALL"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("does not allow draft image review with only basic editing actions", () => {
+    expect(
+      canReviewWikiDraftImages({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["CREATE", "EDIT", "SUBMIT"],
+            name: "BASIC_EDITING",
+            resourceTypes: ["WIKI"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("denies draft image review when a matching deny statement exists", () => {
+    expect(
+      canReviewWikiDraftImages({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            resourceTypes: ["IMAGE"],
+          }),
+          policy({
+            actions: ["reject"],
+            effect: "deny",
+            name: "DENY_IMAGE_REJECT",
+            resourceTypes: ["image"],
+          }),
+        ],
+      }),
+    ).toBe(false);
   });
 });

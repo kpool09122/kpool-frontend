@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createWikiDraftImageReviewUrl,
   createWikiDraftImagesUrl,
   createWikiImageAssociationInput,
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
+  normalizeWikiDraftImageListResponse,
   stripDataUrlPrefix,
 } from "./wikiImages";
 
@@ -80,5 +82,51 @@ describe("wikiImages", () => {
     ).toBe(
       "https://api.example.test/api/wiki/draft-images?status=under_review&perPage=24&page=3&wikiIdentifier=wiki-1",
     );
+  });
+
+  it("builds draft image review urls for backend image actions", () => {
+    expect(
+      createWikiDraftImageReviewUrl({
+        action: "approve",
+        baseUrl: "https://api.example.test/api/wiki/",
+        imageIdentifier: "44444444-4444-4444-4444-444444444444",
+      }),
+    ).toBe(
+      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/approve",
+    );
+  });
+
+  it("normalizes empty draft image wiki names arrays from backend responses", () => {
+    expect(
+      normalizeWikiDraftImageListResponse({
+        images: [
+          {
+            imageIdentifier: "44444444-4444-4444-4444-444444444444",
+            wiki: {
+              names: [],
+              slug: "review-wiki",
+            },
+          },
+        ],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    ).toEqual({
+      images: [
+        {
+          imageIdentifier: "44444444-4444-4444-4444-444444444444",
+          wiki: {
+            names: {},
+            slug: "review-wiki",
+          },
+        },
+      ],
+      current_page: 1,
+      last_page: 1,
+      total: 1,
+      per_page: 12,
+    });
   });
 });

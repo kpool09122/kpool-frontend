@@ -70,6 +70,7 @@ export function WikiHeroPanel({
         fill
         sizes="(min-width: 1024px) 55vw, 100vw"
         src={heroImage.src}
+        unoptimized
       />
       <ImageEditableOverlay />
       <button

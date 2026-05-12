@@ -54,6 +54,7 @@ describe("draftWiki", () => {
       ],
       slug: "gr-aurora-echo",
       themeColor: "#4c5cff",
+      translationSetIdentifier: "translation-set-1",
       version: 3,
       wikiIdentifier: "wiki-1",
     });
@@ -62,6 +63,8 @@ describe("draftWiki", () => {
     expect(wiki.resourceType).toBe("group");
     expect(wiki.basic.resourceType).toBe("group");
     expect(wiki.basic.name).toBe("Aurora Echo");
+    expect(wiki.translationSetIdentifier).toBe("translation-set-1");
+    expect(wiki.translationSetIdentifier).not.toBe(wiki.wikiIdentifier);
     expect(wiki.basic.agencyName).toBe("North Harbor Entertainment");
     expect(wiki.heroImage.alt).toBe("Aurora Echo hero image");
     expect(wiki.heroImage.src).toContain("hero-image-1");
@@ -108,6 +111,7 @@ describe("draftWiki", () => {
       sections: [],
       slug: "tl-nayeon-twice",
       themeColor: undefined,
+      translationSetIdentifier: "translation-set-2",
       version: 7,
       wikiIdentifier: "wiki-2",
     });
@@ -210,6 +214,7 @@ describe("draftWiki", () => {
           resourceType: "group",
           sections: [],
           slug: "gr-aurora-echo",
+          translationSetIdentifier: "translation-set-1",
           version: 1,
           wikiIdentifier: "wiki-1",
         }),
@@ -221,6 +226,7 @@ describe("draftWiki", () => {
     await expect(fetchDraftWiki(client!, "ja", "gr-aurora-echo")).resolves.toEqual(
       expect.objectContaining({
         slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
         wikiIdentifier: "wiki-1",
       }),
     );

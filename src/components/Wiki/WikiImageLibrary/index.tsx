@@ -45,6 +45,7 @@ type WikiImageLibraryProps = {
   uploadError: string | null;
   onClose: () => void;
   onLoadMore: () => void;
+  onSelectImage?: (image: WikiUploadedImage) => void;
   onUpload: (input: WikiImageUsageRequestInput) => Promise<void>;
 };
 
@@ -93,6 +94,7 @@ export function WikiImageLibrary({
   uploadError,
   onClose,
   onLoadMore,
+  onSelectImage,
   onUpload,
 }: WikiImageLibraryProps) {
   const { dictionary } = useI18n();
@@ -258,22 +260,28 @@ export function WikiImageLibrary({
                       className="overflow-hidden rounded-2xl border border-stroke-subtle bg-surface-base"
                       key={image.imageIdentifier}
                     >
-                      <div className="relative aspect-[4/3] bg-black/10">
-                        <Image
-                          alt={image.altText || image.sourceName || image.imageIdentifier}
-                          className="object-cover"
-                          fill
-                          sizes="(min-width: 1024px) 28vw, (min-width: 640px) 45vw, 90vw"
-                          src={image.url}
-                        />
-                      </div>
-                      <div className="grid gap-2 p-4 text-sm">
-                        <p className="truncate font-semibold">{image.altText || t.noAltText}</p>
-                        <p className="truncate text-text-muted">{image.sourceName || t.noSource}</p>
-                        <code className="truncate rounded-lg bg-surface-raised px-2 py-1 text-xs text-text-muted">
-                          {image.imageIdentifier}
-                        </code>
-                      </div>
+                      <button
+                        aria-label={t.selectImage(image.altText || t.noAltText)}
+                        className="grid w-full text-left transition hover:bg-brand-highlight/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                        onClick={() => onSelectImage?.(image)}
+                        type="button"
+                      >
+                        <span className="relative block aspect-[4/3] bg-black/10">
+                          <Image
+                            alt={image.altText || image.sourceName || image.imageIdentifier}
+                            className="object-cover"
+                            fill
+                            sizes="(min-width: 1024px) 28vw, (min-width: 640px) 45vw, 90vw"
+                            src={image.url}
+                            unoptimized
+                          />
+                        </span>
+                        <span className="grid gap-2 p-4 text-sm">
+                          <span className="truncate font-semibold">
+                            {t.imageAltText(image.altText || t.noAltText)}
+                          </span>
+                        </span>
+                      </button>
                     </article>
                   ))}
                 </div>

@@ -32,6 +32,7 @@ export const publicWikiApiResponseSchema = z
     heroImage: publicWikiHeroImageSchema.nullable().optional(),
     basic: z.unknown(),
     sections: z.array(z.unknown()),
+    translationSetIdentifier: z.string(),
   })
   .passthrough();
 

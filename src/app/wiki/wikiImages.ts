@@ -11,6 +11,10 @@ export const wikiImageListResponseSchema = schemas.ListUploadedImagesResponseBod
 export const wikiDraftImageListResponseSchema = schemas.ListDraftImagesResponseBody;
 export const wikiImageUploadResponseSchema = schemas.ImageDraftSummary;
 export const wikiImageUploadRequestSchema = schemas.UploadImageRequestBody;
+export const wikiImageReviewResponseSchema = z.union([
+  schemas.ImageDraftSummary,
+  schemas.ImageSummary,
+]);
 
 export type WikiUploadedImage = z.infer<typeof schemas.UploadedImageListItem>;
 export type WikiDraftImage = z.infer<typeof schemas.DraftImageListItem>;
@@ -18,6 +22,7 @@ export type WikiImageListResponse = z.infer<typeof wikiImageListResponseSchema>;
 export type WikiDraftImageListResponse = z.infer<typeof wikiDraftImageListResponseSchema>;
 export type WikiImageUploadRequest = z.infer<typeof wikiImageUploadRequestSchema>;
 export type WikiImageUploadResponse = z.infer<typeof wikiImageUploadResponseSchema>;
+export type WikiImageReviewResponse = z.infer<typeof wikiImageReviewResponseSchema>;
 export type WikiDraftImageStatus = z.infer<typeof schemas.DraftImageStatus>;
 
 export const wikiImageAcceptedMimeTypes = [
@@ -151,6 +156,82 @@ export const createWikiDraftImagesUrl = ({
   return url.toString();
 };
 
+export const createWikiDraftImageReviewUrl = ({
+  action,
+  baseUrl,
+  imageIdentifier,
+}: {
+  action: "approve" | "reject";
+  baseUrl: string;
+  imageIdentifier: string;
+}): string =>
+  `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/${action}`;
+
+const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const normalizeDraftImageWikiNames = (names: unknown): Record<string, string> => {
+  if (isObjectRecord(names)) {
+    return Object.fromEntries(
+      Object.entries(names).filter((entry): entry is [string, string] => {
+        const [, value] = entry;
+
+        return typeof value === "string";
+      }),
+    );
+  }
+
+  if (!Array.isArray(names)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    names.flatMap((name) => {
+      if (!isObjectRecord(name)) {
+        return [];
+      }
+
+      const language =
+        typeof name.language === "string"
+          ? name.language
+          : typeof name.locale === "string"
+            ? name.locale
+            : null;
+      const value =
+        typeof name.name === "string"
+          ? name.name
+          : typeof name.value === "string"
+            ? name.value
+            : null;
+
+      return language && value ? [[language, value]] : [];
+    }),
+  );
+};
+
+export const normalizeWikiDraftImageListResponse = (body: unknown): unknown => {
+  if (!isObjectRecord(body) || !Array.isArray(body.images)) {
+    return body;
+  }
+
+  return {
+    ...body,
+    images: body.images.map((image) => {
+      if (!isObjectRecord(image) || !isObjectRecord(image.wiki)) {
+        return image;
+      }
+
+      return {
+        ...image,
+        wiki: {
+          ...image.wiki,
+          names: normalizeDraftImageWikiNames(image.wiki.names),
+        },
+      };
+    }),
+  };
+};
+
 const readJsonResponse = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
@@ -197,8 +278,60 @@ export const fetchWikiDraftImages = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return wikiDraftImageListResponseSchema.parse(body);
+  return wikiDraftImageListResponseSchema.parse(normalizeWikiDraftImageListResponse(body));
 };
+
+const reviewWikiDraftImage = async ({
+  action,
+  fallbackErrorMessage,
+  imageIdentifier,
+}: {
+  action: "approve" | "reject";
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+}): Promise<WikiImageReviewResponse> => {
+  const response = await fetch(
+    `/api/wiki/draft-images/${encodeURIComponent(imageIdentifier)}/${action}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    },
+  );
+  const body = await readJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return wikiImageReviewResponseSchema.parse(body);
+};
+
+export const approveWikiDraftImage = async ({
+  fallbackErrorMessage,
+  imageIdentifier,
+}: {
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+}): Promise<WikiImageReviewResponse> =>
+  reviewWikiDraftImage({
+    action: "approve",
+    fallbackErrorMessage,
+    imageIdentifier,
+  });
+
+export const rejectWikiDraftImage = async ({
+  fallbackErrorMessage,
+  imageIdentifier,
+}: {
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+}): Promise<WikiImageReviewResponse> =>
+  reviewWikiDraftImage({
+    action: "reject",
+    fallbackErrorMessage,
+    imageIdentifier,
+  });
 
 export const getWikiImageErrorMessage = (error: unknown): string =>
   getWikiApiErrorMessage(error, {

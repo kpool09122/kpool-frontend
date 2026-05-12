@@ -39,6 +39,7 @@ const publicWikiResponse = {
   ],
   slug: "gr-aurora-echo",
   themeColor: "#4c5cff",
+  translationSetIdentifier: "translation-set-aurora-echo",
   version: 4,
   wikiIdentifier: "wiki-1",
 };
@@ -86,6 +87,7 @@ describe("publicWiki", () => {
       resourceType: "group",
       slug: "gr-aurora-echo",
       themeColor: "#4c5cff",
+      translationSetIdentifier: "translation-set-aurora-echo",
       version: 4,
     });
     expect(wiki.sections).toEqual([

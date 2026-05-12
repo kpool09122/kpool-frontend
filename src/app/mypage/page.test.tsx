@@ -21,6 +21,21 @@ const principal = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   isDelegatedPrincipal: false,
   isEnabled: true,
+  policies: [
+    {
+      policyIdentifier: "66666666-6666-6666-6666-666666666666",
+      name: "IMAGE_REVIEW",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["APPROVE", "REJECT"],
+          resourceTypes: ["IMAGE"],
+          condition: null,
+        },
+      ],
+    },
+  ],
 };
 
 const draftImage = {
@@ -28,12 +43,19 @@ const draftImage = {
   publishedImageIdentifier: null,
   url: "https://images.example.test/review.png",
   resourceType: "group",
-  wikiIdentifier: "55555555-5555-5555-5555-555555555555",
+  translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
   imageUsage: "wiki_editor",
   displayOrder: 1,
-  sourceUrl: "",
-  sourceName: "review.png",
+  sourceUrl: "https://source.example.test/review.png",
+  sourceName: "K-Pool archive",
   altText: "Review image",
+  wiki: {
+    names: {
+      ja: "レビュー対象 Wiki",
+      en: "Review Wiki",
+    },
+    slug: "review-wiki",
+  },
   status: "under_review" as const,
   uploadedAt: "2026-05-09T00:00:00Z",
 };
@@ -55,12 +77,24 @@ const createAdapter = (
 const createDraftImageAdapter = (
   overrides: Partial<MyPageDraftImageAdapter> = {},
 ): MyPageDraftImageAdapter => ({
+  approveDraftImage: vi.fn().mockResolvedValue({
+    imageIdentifier: draftImage.imageIdentifier,
+    resourceType: "group",
+    imageUsage: "wiki_editor",
+    status: "approved",
+  }),
   listDraftImages: vi.fn().mockResolvedValue({
     images: [draftImage],
     current_page: 1,
     last_page: 1,
     total: 1,
     per_page: 12,
+  }),
+  rejectDraftImage: vi.fn().mockResolvedValue({
+    imageIdentifier: draftImage.imageIdentifier,
+    resourceType: "group",
+    imageUsage: "wiki_editor",
+    isHidden: false,
   }),
   ...overrides,
 });
@@ -154,9 +188,100 @@ describe("MyPageClient", () => {
         status: "under_review",
       }),
     );
-    expect(screen.getByText("Review image")).toBeInTheDocument();
-    expect(screen.getByText("under_review")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "K-Pool archive" })).toHaveAttribute(
+      "href",
+      "https://source.example.test/review.png",
+    );
+    expect(
+      screen.queryByRole("link", { name: "https://source.example.test/review.png" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "レビュー対象 Wiki（ja）" })).toHaveAttribute(
+      "href",
+      "/wiki/ja/review-wiki",
+    );
+    expect(screen.queryByText("group")).not.toBeInTheDocument();
+    expect(screen.queryByText("under_review")).not.toBeInTheDocument();
     expect(screen.queryByText("pending")).not.toBeInTheDocument();
+  });
+
+  it("approves a draft image and removes it from the list", async () => {
+    const draftImageAdapter = createDraftImageAdapter();
+
+    render(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "承認" }));
+
+    await waitFor(() =>
+      expect(draftImageAdapter.approveDraftImage).toHaveBeenCalledWith({
+        fallbackErrorMessage: "画像を承認できませんでした。",
+        imageIdentifier: draftImage.imageIdentifier,
+      }),
+    );
+    expect(await screen.findByText("未承認の画像はありません")).toBeInTheDocument();
+  });
+
+  it("shows a retryable error when draft image review fails", async () => {
+    const draftImageAdapter = createDraftImageAdapter({
+      approveDraftImage: vi.fn().mockRejectedValue(new Error("approve failed")),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "承認" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("approve failed");
+    expect(screen.getByRole("button", { name: "承認" })).toBeEnabled();
+  });
+
+  it("does not show draft image tabs when policies do not allow image review", async () => {
+    const basicPrincipal = {
+      ...principal,
+      policies: [
+        {
+          policyIdentifier: "77777777-7777-7777-7777-777777777777",
+          name: "BASIC_EDITING",
+          isSystemPolicy: true,
+          statements: [
+            {
+              effect: "allow",
+              actions: ["CREATE", "EDIT", "SUBMIT"],
+              resourceTypes: ["WIKI"],
+              condition: null,
+            },
+          ],
+        },
+      ],
+    };
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: basicPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "利用できる Wiki 機能がありません" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "未承認の画像" })).not.toBeInTheDocument();
   });
 
   it("shows the empty state when under review draft images are empty", async () => {
