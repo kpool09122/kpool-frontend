@@ -65,4 +65,5 @@ tasks:
     desc: Run the project's default checks
     cmds:
       - task: lint
+      - task: build
       - task: test:unit
