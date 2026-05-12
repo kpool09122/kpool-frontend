@@ -434,7 +434,10 @@ function DraftImageListPanel({
               <dl className="grid gap-2 sm:grid-cols-2">
                 <DraftImageMeta label={t.draftImageResourceTypeLabel} value={image.resourceType} />
                 <DraftImageMeta label={t.draftImageUsageLabel} value={image.imageUsage} />
-                <DraftImageMeta label={t.draftImageWikiIdentifierLabel} value={image.wikiIdentifier} />
+                <DraftImageMeta
+                  label={t.draftImageWikiIdentifierLabel}
+                  value={formatDraftImageMetaValue(image.wikiIdentifier)}
+                />
                 <DraftImageMeta label={t.draftImageStatusLabel} value={image.status} />
                 <DraftImageMeta
                   label={t.draftImageUploadedAtLabel}
@@ -471,6 +474,14 @@ function DraftImageMeta({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+const formatDraftImageMetaValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  return String(value);
+};
 
 const formatDraftImageDate = (value: string | null): string => {
   if (!value) {
