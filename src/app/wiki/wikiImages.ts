@@ -35,6 +35,22 @@ export const wikiImageAcceptAttribute = [
 
 export const defaultWikiImagePerPage = 12;
 
+export type WikiImageAssociationInput = {
+  resourceType: string;
+  translationSetIdentifier: string;
+};
+
+export const createWikiImageAssociationInput = ({
+  resourceType,
+  translationSetIdentifier,
+}: {
+  resourceType: string;
+  translationSetIdentifier: string;
+}): WikiImageAssociationInput => ({
+  resourceType,
+  translationSetIdentifier,
+});
+
 export const getWikiImageApiBaseUrl = (): string =>
   process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL
     ? withWikiApiPrefix(process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL)
@@ -62,42 +78,47 @@ export const createWikiImageUploadRequest = ({
   base64EncodedImage,
   displayOrder,
   fileName,
-  resourceType,
-  wikiIdentifier,
+  imageAssociation,
+  rightsConfirmationAgreed,
+  sourceName,
+  sourceUrl,
 }: {
   altText: string;
   base64EncodedImage: string;
   displayOrder: number;
   fileName: string;
-  resourceType: string;
-  wikiIdentifier: string;
+  imageAssociation: WikiImageAssociationInput;
+  rightsConfirmationAgreed: boolean;
+  sourceName: string;
+  sourceUrl: string;
 }): WikiImageUploadRequest =>
   wikiImageUploadRequestSchema.parse({
-    resourceType,
-    wikiIdentifier,
+    resourceType: imageAssociation.resourceType,
+    translationSetIdentifier: imageAssociation.translationSetIdentifier,
     base64EncodedImage: stripDataUrlPrefix(base64EncodedImage),
     imageUsage: "profile",
     displayOrder,
-    sourceUrl: fileName,
-    sourceName: fileName,
+    sourceUrl: sourceUrl.trim(),
+    sourceName: sourceName.trim(),
     altText: altText.trim() || fileName,
     agreedToTermsAt: new Date().toISOString(),
+    rightsConfirmationAgreed,
   });
 
 export const createWikiImagesUrl = ({
   baseUrl,
   page,
   perPage,
-  wikiIdentifier,
+  translationSetIdentifier,
 }: {
   baseUrl: string;
   page: number;
   perPage: number;
-  wikiIdentifier: string;
+  translationSetIdentifier: string;
 }): string => {
   const url = new URL(`${trimTrailingSlashes(baseUrl)}/images`);
 
-  url.searchParams.set("wikiIdentifier", wikiIdentifier);
+  url.searchParams.set("translationSetIdentifier", translationSetIdentifier);
   url.searchParams.set("perPage", String(perPage));
   url.searchParams.set("page", String(page));
 

@@ -45,6 +45,7 @@ type WikiApiResponse = {
   slug: string;
   themeColor?: string | null;
   version: number;
+  translationSetIdentifier?: string;
   wikiIdentifier: string;
 };
 
@@ -204,6 +205,7 @@ export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
     sections: adaptWikiSections(response.sections),
     slug: response.slug,
     themeColor: response.themeColor ?? null,
+    translationSetIdentifier: response.translationSetIdentifier ?? response.wikiIdentifier,
     version: response.version,
     wikiIdentifier: response.wikiIdentifier,
   });

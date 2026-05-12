@@ -239,6 +239,7 @@ export const wikiBasicSchema = z.object({
 
 export const wikiDetailSchema = z.object({
   wikiIdentifier: z.string(),
+  translationSetIdentifier: z.string(),
   slug: z.string(),
   language: z.string(),
   resourceType: z.enum(["agency", "group", "song", "talent"]),
