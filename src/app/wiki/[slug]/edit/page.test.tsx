@@ -267,6 +267,7 @@ describe("WikiEditPage", () => {
       expect.objectContaining({
         altText: "Stage upload",
         imageUsage: "profile",
+        rightsConfirmationAgreed: true,
         sourceName: "Wikimedia Commons",
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
         translationSetIdentifier: "translation-set-gr-aurora-echo",

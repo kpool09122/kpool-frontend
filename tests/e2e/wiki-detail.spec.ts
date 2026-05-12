@@ -366,6 +366,7 @@ test("wiki edit page opens the image library and submits an image usage request"
       altText: "Stage upload",
       imageUsage: "profile",
       resourceType: "group",
+      rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
       translationSetIdentifier: "translation-set-gr-aurora-echo",

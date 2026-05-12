@@ -79,6 +79,7 @@ export const createWikiImageUploadRequest = ({
   displayOrder,
   fileName,
   imageAssociation,
+  rightsConfirmationAgreed,
   sourceName,
   sourceUrl,
 }: {
@@ -87,6 +88,7 @@ export const createWikiImageUploadRequest = ({
   displayOrder: number;
   fileName: string;
   imageAssociation: WikiImageAssociationInput;
+  rightsConfirmationAgreed: boolean;
   sourceName: string;
   sourceUrl: string;
 }): WikiImageUploadRequest =>
@@ -100,6 +102,7 @@ export const createWikiImageUploadRequest = ({
     sourceName: sourceName.trim(),
     altText: altText.trim() || fileName,
     agreedToTermsAt: new Date().toISOString(),
+    rightsConfirmationAgreed,
   });
 
 export const createWikiImagesUrl = ({

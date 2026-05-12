@@ -548,7 +548,8 @@ const ko: typeof ja = {
       rightsConfirmedLabel: "저작권 및 초상권에 문제가 없음을 확인했습니다.",
       requiredHint: "이미지 파일, 참조 URL, 참조 사이트명, alt 텍스트, 권리 확인은 필수입니다.",
       submitRequest: "이용 신청 전송",
-      requestSubmitted: "신청을 전송했습니다. 신청 내용을 확인할 예정이니 잠시 기다려 주세요.",
+      requestSubmitted:
+        "이용 신청을 보냈습니다. 신청 내용을 확인할 예정이니 잠시 기다려 주세요.",
       approvalGuideLink: "승인은 어떻게 진행하나요?",
       invalidFormat: "jpg, jpeg, png, webp 이미지만 업로드할 수 있습니다.",
       requiredFields: "필수 항목을 모두 입력해 주세요.",

@@ -212,6 +212,7 @@ function WikiEditContent({
             displayOrder: imageLibrary.images.length + 1,
             fileName: input.file.name,
             imageAssociation,
+            rightsConfirmationAgreed: input.rightsConfirmationAgreed,
             sourceName: input.sourceName,
             sourceUrl: input.sourceUrl,
           }),

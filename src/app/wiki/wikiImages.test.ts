@@ -34,6 +34,7 @@ describe("wikiImages", () => {
         resourceType: "group",
         translationSetIdentifier: "translation-set-1",
       }),
+      rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
     });
@@ -45,6 +46,7 @@ describe("wikiImages", () => {
         displayOrder: 3,
         imageUsage: "profile",
         resourceType: "group",
+        rightsConfirmationAgreed: true,
         sourceName: "Wikimedia Commons",
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
         translationSetIdentifier: "translation-set-1",

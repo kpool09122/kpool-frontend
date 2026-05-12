@@ -23,6 +23,7 @@ export type WikiImageUsageRequestInput = {
   sourceUrl: string;
   sourceName: string;
   altText: string;
+  rightsConfirmationAgreed: boolean;
 };
 
 type WikiImageRequestForm = {
@@ -141,6 +142,7 @@ export function WikiImageLibrary({
         sourceUrl: requestForm.sourceUrl.trim(),
         sourceName: requestForm.sourceName.trim(),
         altText: requestForm.altText.trim(),
+        rightsConfirmationAgreed: requestForm.rightsConfirmed,
       });
       setSelectedFile(null);
       setRequestForm(emptyRequestForm);
