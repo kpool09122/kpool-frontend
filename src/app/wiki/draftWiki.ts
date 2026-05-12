@@ -13,12 +13,20 @@ import {
 } from "./wikiApiModel";
 import { parseWithSchemaLog } from "../zodErrorLog";
 
-const draftWikiApiResponseSchema = z.union([
-  schemas.AgencyDraftWikiDetail,
-  schemas.DraftWikiDetail,
-  schemas.SongDraftWikiDetail,
-  schemas.TalentDraftWikiDetail,
-]);
+const draftWikiApiResponseSchema = z
+  .union([
+    schemas.AgencyDraftWikiDetail,
+    schemas.DraftWikiDetail,
+    schemas.SongDraftWikiDetail,
+    schemas.TalentDraftWikiDetail,
+  ])
+  .and(
+    z
+      .object({
+        translationSetIdentifier: z.string(),
+      })
+      .passthrough(),
+  );
 
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof schemas.UpdateWikiDraftRequestBody>;

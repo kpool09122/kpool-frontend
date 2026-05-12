@@ -1,16 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { schemas } from "@kpool/types/wiki-private-api";
 import { z } from "zod";
 
 import {
-  createWikiDraftImagesUrl,
-  defaultWikiImagePerPage,
+  createWikiDraftImageReviewUrl,
   getWikiImageApiBaseUrl,
   getWikiImageErrorMessage,
-  normalizeWikiDraftImageListResponse,
-  wikiDraftImageListResponseSchema,
-} from "../../../wiki/wikiImages";
-import { parseWithSchemaLog } from "../../../zodErrorLog";
+  wikiImageReviewResponseSchema,
+} from "../../../../../wiki/wikiImages";
+import { parseWithSchemaLog } from "../../../../../zodErrorLog";
+
+type WikiDraftImageReviewRouteContext = {
+  params: Promise<{
+    imageId: string;
+  }>;
+};
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -20,13 +23,10 @@ const readResponseBody = async (response: Response): Promise<unknown> => {
   }
 };
 
-const parsePositiveInteger = (value: string | null, fallback: number): number => {
-  const parsed = Number(value);
-
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-};
-
-export async function GET(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  context: WikiDraftImageReviewRouteContext,
+) {
   const baseUrl = getWikiImageApiBaseUrl();
 
   if (!baseUrl) {
@@ -36,31 +36,16 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const statusResult = schemas.DraftImageStatus.safeParse(
-    request.nextUrl.searchParams.get("status"),
-  );
-
-  if (!statusResult.success) {
-    return NextResponse.json(
-      { message: "Valid draft image status is required." },
-      { status: 400 },
-    );
-  }
-
   try {
+    const { imageId } = await context.params;
     const apiResponse = await fetch(
-      createWikiDraftImagesUrl({
+      createWikiDraftImageReviewUrl({
+        action: "reject",
         baseUrl,
-        page: parsePositiveInteger(request.nextUrl.searchParams.get("page"), 1),
-        perPage: parsePositiveInteger(
-          request.nextUrl.searchParams.get("perPage"),
-          defaultWikiImagePerPage,
-        ),
-        status: statusResult.data,
-        wikiIdentifier: request.nextUrl.searchParams.get("wikiIdentifier") ?? undefined,
+        imageIdentifier: imageId,
       }),
       {
-        method: "GET",
+        method: "POST",
         headers: {
           Accept: "application/json",
           ...(request.headers.get("accept-language")
@@ -83,11 +68,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      parseWithSchemaLog(
-        "wiki draft image list response",
-        wikiDraftImageListResponseSchema,
-        normalizeWikiDraftImageListResponse(body),
-      ),
+      parseWithSchemaLog("wiki image reject response", wikiImageReviewResponseSchema, body),
     );
   } catch (error) {
     if (error instanceof z.ZodError) {

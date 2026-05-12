@@ -188,6 +188,13 @@ function WikiEditContent({
   const openImageLibrary = () => {
     void loadImageLibraryPage(1);
   };
+  const selectImageFromLibrary = (image: WikiUploadedImage) => {
+    updateHeroImage({
+      alt: image.altText || image.sourceName || image.imageIdentifier,
+      src: image.url,
+    });
+    setImageLibrary((state) => ({ ...state, isOpen: false }));
+  };
   const imageAssociation = createWikiImageAssociationInput({
     resourceType: draft.resourceType,
     translationSetIdentifier: draft.translationSetIdentifier,
@@ -391,6 +398,7 @@ function WikiEditContent({
               void loadImageLibraryPage(imageLibrary.pageInfo.current_page + 1);
             }
           }}
+          onSelectImage={selectImageFromLibrary}
           onUpload={uploadImage}
           pageInfo={imageLibrary.pageInfo}
           resourceType={draft.resourceType}

@@ -6,18 +6,23 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 
 import { useI18n } from "../i18n/I18nProvider";
+import type { Locale } from "../i18n/locales";
 import {
+  canReviewWikiDraftImages,
   createWikiPrincipal,
   getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
   type WikiPrincipalState,
 } from "../wiki/wikiPrincipal";
 import {
+  approveWikiDraftImage,
   defaultWikiImagePerPage,
   fetchWikiDraftImages,
+  rejectWikiDraftImage,
   type WikiDraftImage,
   type WikiDraftImageListResponse,
 } from "../wiki/wikiImages";
+import { buildWikiPath } from "../wiki/wikiRouting";
 
 type MyPageWikiTab = "draftImages";
 
@@ -35,7 +40,9 @@ export type MyPagePrincipalAdapter = {
 };
 
 export type MyPageDraftImageAdapter = {
+  approveDraftImage: typeof approveWikiDraftImage;
   listDraftImages: typeof fetchWikiDraftImages;
+  rejectDraftImage: typeof rejectWikiDraftImage;
 };
 
 type MyPageClientProps = {
@@ -52,7 +59,9 @@ const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
 };
 
 const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
+  approveDraftImage: approveWikiDraftImage,
   listDraftImages: fetchWikiDraftImages,
+  rejectDraftImage: rejectWikiDraftImage,
 };
 
 const initialDraftImageListState: DraftImageListState = {
@@ -75,13 +84,15 @@ export function MyPageClient({
   initialPrincipalState = { status: "idle" },
   principalAdapter = defaultPrincipalAdapter,
 }: MyPageClientProps) {
-  const { dictionary } = useI18n();
+  const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("draftImages");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [principalState, setPrincipalState] =
     useState<WikiPrincipalState>(initialPrincipalState);
   const [draftImages, setDraftImages] = useState<DraftImageListState>(initialDraftImages);
+  const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const hasQueuedInitialPrincipalLoad = useRef(false);
   const accountIdentifier = getAccountIdentifierFromIdentity(initialIdentity);
 
@@ -129,7 +140,7 @@ export function MyPageClient({
 
     setPrincipalState(nextState);
 
-    if (nextState.status === "available") {
+    if (nextState.status === "available" && canReviewWikiDraftImages(nextState.principal)) {
       await loadDraftImagesPage(1);
     }
   };
@@ -159,8 +170,52 @@ export function MyPageClient({
 
     setPrincipalState(nextState);
 
-    if (nextState.status === "available") {
+    if (nextState.status === "available" && canReviewWikiDraftImages(nextState.principal)) {
       await loadDraftImagesPage(1);
+    }
+  };
+
+  const removeReviewedImage = (imageIdentifier: string) => {
+    setDraftImages((state) => ({
+      ...state,
+      images: state.images.filter((image) => image.imageIdentifier !== imageIdentifier),
+      pageInfo: state.pageInfo
+        ? {
+            ...state.pageInfo,
+            total: Math.max(0, state.pageInfo.total - 1),
+          }
+        : state.pageInfo,
+    }));
+  };
+
+  const reviewDraftImage = async (
+    imageIdentifier: string,
+    action: "approve" | "reject",
+  ) => {
+    setReviewingImageIdentifier(imageIdentifier);
+    setReviewError(null);
+
+    try {
+      const fallbackErrorMessage =
+        action === "approve" ? t.draftImageApproveFailed : t.draftImageRejectFailed;
+
+      if (action === "approve") {
+        await draftImageAdapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage });
+      } else {
+        await draftImageAdapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
+      }
+
+      removeReviewedImage(imageIdentifier);
+    } catch (error) {
+      setReviewError(
+        error instanceof Error
+          ? error.message
+          : action === "approve"
+            ? t.draftImageApproveFailed
+            : t.draftImageRejectFailed,
+      );
+    } finally {
+      setReviewingImageIdentifier(null);
     }
   };
 
@@ -221,6 +276,9 @@ export function MyPageClient({
           <WikiPrincipalPanel
             accountIdentifier={accountIdentifier}
             draftImages={draftImages}
+            locale={locale}
+            reviewError={reviewError}
+            reviewingImageIdentifier={reviewingImageIdentifier}
             isAuthenticated={initialIdentity !== null}
             isPending={isActionPending(principalState)}
             selectedWikiTab={selectedWikiTab}
@@ -229,6 +287,9 @@ export function MyPageClient({
             onActivate={() => void activateWikiPrincipal()}
             onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
             onRetry={() => void loadCurrentPrincipal()}
+            onReviewDraftImage={(imageIdentifier, action) =>
+              void reviewDraftImage(imageIdentifier, action)
+            }
             onSelectWikiTab={setSelectedWikiTab}
           />
         </section>
@@ -240,6 +301,9 @@ export function MyPageClient({
 function WikiPrincipalPanel({
   accountIdentifier,
   draftImages,
+  locale,
+  reviewError,
+  reviewingImageIdentifier,
   isAuthenticated,
   isPending,
   selectedWikiTab,
@@ -248,10 +312,14 @@ function WikiPrincipalPanel({
   onActivate,
   onLoadDraftImagesPage,
   onRetry,
+  onReviewDraftImage,
   onSelectWikiTab,
 }: {
   accountIdentifier: string | null;
   draftImages: DraftImageListState;
+  locale: Locale;
+  reviewError: string | null;
+  reviewingImageIdentifier: string | null;
   isAuthenticated: boolean;
   isPending: boolean;
   selectedWikiTab: MyPageWikiTab;
@@ -260,6 +328,7 @@ function WikiPrincipalPanel({
   onActivate: () => void;
   onLoadDraftImagesPage: (page: number) => void;
   onRetry: () => void;
+  onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
   const canActivate = isAuthenticated && accountIdentifier !== null && !isPending;
@@ -276,6 +345,19 @@ function WikiPrincipalPanel({
   }
 
   if (state.status === "available") {
+    const canReviewDraftImages = canReviewWikiDraftImages(state.principal);
+
+    if (!canReviewDraftImages) {
+      return (
+        <div className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
+          <h2 className="text-xl font-semibold">{t.wikiReviewUnavailableTitle}</h2>
+          <p className="mt-3 text-sm leading-7 text-text-muted">
+            {t.wikiReviewUnavailableMessage}
+          </p>
+        </div>
+      );
+    }
+
     return (
       <section className="space-y-5">
         <div className="overflow-x-auto border-b border-stroke-subtle">
@@ -300,6 +382,9 @@ function WikiPrincipalPanel({
         </div>
         {selectedWikiTab === "draftImages" ? (
           <DraftImageListPanel
+            locale={locale}
+            reviewError={reviewError}
+            reviewingImageIdentifier={reviewingImageIdentifier}
             state={draftImages}
             t={t}
             onLoadMore={() => {
@@ -308,6 +393,7 @@ function WikiPrincipalPanel({
               }
             }}
             onReload={() => onLoadDraftImagesPage(1)}
+            onReviewDraftImage={onReviewDraftImage}
           />
         ) : null}
       </section>
@@ -356,15 +442,23 @@ function WikiPrincipalPanel({
 }
 
 function DraftImageListPanel({
+  locale,
+  reviewError,
+  reviewingImageIdentifier,
   state,
   t,
   onLoadMore,
   onReload,
+  onReviewDraftImage,
 }: {
+  locale: Locale;
+  reviewError: string | null;
+  reviewingImageIdentifier: string | null;
   state: DraftImageListState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onLoadMore: () => void;
   onReload: () => void;
+  onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
 }) {
   const canLoadMore = state.pageInfo
     ? state.pageInfo.current_page < state.pageInfo.last_page
@@ -410,43 +504,74 @@ function DraftImageListPanel({
           {t.draftImageListTotal(state.pageInfo.total)}
         </p>
       ) : null}
+      {reviewError ? (
+        <p
+          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+          role="alert"
+        >
+          {reviewError}
+        </p>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        {state.images.map((image) => (
-          <article
-            className="overflow-hidden rounded-lg border border-stroke-subtle bg-surface-base"
-            key={image.imageIdentifier}
-          >
-            <div className="relative aspect-[4/3] bg-black/10">
-              <Image
-                alt={image.altText || image.sourceName || image.imageIdentifier}
-                className="object-cover"
-                fill
-                sizes="(min-width: 768px) 40vw, 90vw"
-                src={image.url}
-                unoptimized
-              />
-            </div>
-            <div className="grid gap-3 p-4 text-sm">
-              <div>
-                <p className="font-semibold">{image.altText || t.draftImageNoAltText}</p>
-                <p className="mt-1 break-all text-text-muted">{image.imageIdentifier}</p>
+        {state.images.map((image) => {
+          const wiki = getDraftImageWikiDisplay(image, locale);
+          const isReviewing = reviewingImageIdentifier === image.imageIdentifier;
+
+          return (
+            <article
+              className="overflow-hidden rounded-lg border border-stroke-subtle bg-surface-base"
+              key={image.imageIdentifier}
+            >
+              <div className="relative aspect-[4/3] bg-black/10">
+                <Image
+                  alt={image.altText || image.sourceName || image.imageIdentifier}
+                  className="object-cover"
+                  fill
+                  sizes="(min-width: 768px) 40vw, 90vw"
+                  src={image.url}
+                  unoptimized
+                />
               </div>
-              <dl className="grid gap-2 sm:grid-cols-2">
-                <DraftImageMeta label={t.draftImageResourceTypeLabel} value={image.resourceType} />
-                <DraftImageMeta label={t.draftImageUsageLabel} value={image.imageUsage} />
-                <DraftImageMeta
-                  label={t.draftImageWikiIdentifierLabel}
-                  value={formatDraftImageMetaValue(image.wikiIdentifier)}
-                />
-                <DraftImageMeta label={t.draftImageStatusLabel} value={image.status} />
-                <DraftImageMeta
-                  label={t.draftImageUploadedAtLabel}
-                  value={formatDraftImageDate(image.uploadedAt)}
-                />
-              </dl>
-            </div>
-          </article>
-        ))}
+              <div className="grid gap-4 p-4 text-sm">
+                <dl className="grid gap-3">
+                  <DraftImageSourceNameMeta
+                    label={t.draftImageSourceNameLabel}
+                    sourceName={image.sourceName}
+                    sourceUrl={image.sourceUrl}
+                  />
+                  <DraftImageMeta label={t.draftImageAltTextLabel} value={image.altText || t.draftImageNoAltText} />
+                  <DraftImageWikiMeta
+                    href={wiki.href}
+                    label={t.draftImageRelatedWikiLabel}
+                    name={wiki.name}
+                  />
+                  <DraftImageMeta
+                    label={t.draftImageUploadedAtLabel}
+                    value={formatDraftImageDate(image.uploadedAt)}
+                  />
+                </dl>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isReviewing}
+                    onClick={() => onReviewDraftImage(image.imageIdentifier, "approve")}
+                    type="button"
+                  >
+                    {isReviewing ? t.draftImageReviewing : t.approveDraftImage}
+                  </button>
+                  <button
+                    className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isReviewing}
+                    onClick={() => onReviewDraftImage(image.imageIdentifier, "reject")}
+                    type="button"
+                  >
+                    {isReviewing ? t.draftImageReviewing : t.rejectDraftImage}
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
       </div>
       <div className="flex justify-center">
         {canLoadMore ? (
@@ -475,13 +600,56 @@ function DraftImageMeta({ label, value }: { label: string; value: string }) {
   );
 }
 
-const formatDraftImageMetaValue = (value: unknown): string => {
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
+function DraftImageSourceNameMeta({
+  label,
+  sourceName,
+  sourceUrl,
+}: {
+  label: string;
+  sourceName: string;
+  sourceUrl: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="font-semibold text-text-muted">{label}</dt>
+      <dd className="mt-1 break-all text-text-strong">
+        {sourceUrl ? (
+          <a
+            className="text-brand-primary underline underline-offset-4"
+            href={sourceUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            {sourceName}
+          </a>
+        ) : (
+          sourceName
+        )}
+      </dd>
+    </div>
+  );
+}
 
-  return String(value);
-};
+function DraftImageWikiMeta({
+  href,
+  label,
+  name,
+}: {
+  href: string;
+  label: string;
+  name: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="font-semibold text-text-muted">{label}</dt>
+      <dd className="mt-1 break-all text-text-strong">
+        <a className="text-brand-primary underline underline-offset-4" href={href}>
+          {name}
+        </a>
+      </dd>
+    </div>
+  );
+}
 
 const formatDraftImageDate = (value: string | null): string => {
   if (!value) {
@@ -491,4 +659,19 @@ const formatDraftImageDate = (value: string | null): string => {
   const date = new Date(value);
 
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+};
+
+const getDraftImageWikiDisplay = (
+  image: WikiDraftImage,
+  locale: Locale,
+): { href: string; name: string } => {
+  const fallbackLanguages = [locale, "ja", "en", "ko"];
+  const language =
+    fallbackLanguages.find((candidate) => image.wiki.names[candidate]?.trim()) ?? locale;
+  const wikiName = image.wiki.names[language]?.trim() || image.wiki.slug;
+
+  return {
+    href: buildWikiPath(language, image.wiki.slug),
+    name: `${wikiName}（${language}）`,
+  };
 };

@@ -21,6 +21,8 @@ export type WikiPrincipalState =
   | { status: "missing" }
   | { status: "error"; message: string };
 
+type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
+
 type FetchAdapter = typeof fetch;
 
 type ResponseLike = {
@@ -56,6 +58,50 @@ export const getAccountIdentifierFromIdentity = (
     ? accountIdentifier
     : null;
 };
+
+const normalizePolicyValue = (value: string): string => value.trim().toUpperCase();
+
+const valueMatches = (values: string[], target: string): boolean => {
+  const normalizedTarget = normalizePolicyValue(target);
+
+  return values
+    .map(normalizePolicyValue)
+    .some((value) => value === normalizedTarget || value === "*" || value === "ALL");
+};
+
+const statementMatches = (
+  statement: WikiPolicyStatement,
+  action: "APPROVE" | "REJECT",
+  resourceType: "IMAGE",
+): boolean =>
+  valueMatches(statement.actions, action) &&
+  valueMatches(statement.resourceTypes, resourceType);
+
+const hasMatchingStatement = (
+  principal: WikiPrincipalSummary,
+  effect: "ALLOW" | "DENY",
+  action: "APPROVE" | "REJECT",
+  resourceType: "IMAGE",
+): boolean =>
+  principal.policies.some((policy) =>
+    policy.statements.some(
+      (statement) =>
+        normalizePolicyValue(statement.effect) === effect &&
+        statementMatches(statement, action, resourceType),
+    ),
+  );
+
+const isAllowedWithoutDeny = (
+  principal: WikiPrincipalSummary,
+  action: "APPROVE" | "REJECT",
+  resourceType: "IMAGE",
+): boolean =>
+  hasMatchingStatement(principal, "ALLOW", action, resourceType) &&
+  !hasMatchingStatement(principal, "DENY", action, resourceType);
+
+export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
+  isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
+  isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
 
 const readResponseBody = async (response: ResponseLike): Promise<unknown> => {
   try {
