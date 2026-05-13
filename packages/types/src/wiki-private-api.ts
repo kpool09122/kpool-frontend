@@ -1,21 +1,7 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
-export const WIKI_IMAGE_MAX_BASE64_LENGTH = Math.ceil((5 * 1024 * 1024) / 3) * 4;
-
 const KPool_Common_Uuid = z.string();
-const WikiImageSourceUrl = z
-  .string()
-  .trim()
-  .refine((value) => {
-    try {
-      const url = new URL(value);
-
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
-    }
-  }, "Wiki image source URL must use http or https.");
 const translationSetIdentifier = KPool_Common_Uuid.nullish();
 const DraftImageWikiDisplayInformation = z
   .object({ names: z.record(z.string()), slug: z.string() })
@@ -35,7 +21,7 @@ const DraftImageListItem = z
     translationSetIdentifier: KPool_Common_Uuid,
     imageUsage: z.string(),
     displayOrder: z.number().int(),
-    sourceUrl: WikiImageSourceUrl,
+    sourceUrl: z.string(),
     sourceName: z.string(),
     altText: z.string(),
     wiki: DraftImageWikiDisplayInformation,
@@ -67,10 +53,10 @@ const UploadImageRequestBody = z
     publishedImageIdentifier: KPool_Common_Uuid.optional(),
     resourceType: z.string(),
     translationSetIdentifier: KPool_Common_Uuid,
-    base64EncodedImage: z.string().max(WIKI_IMAGE_MAX_BASE64_LENGTH),
+    base64EncodedImage: z.string(),
     imageUsage: z.string(),
     displayOrder: z.number().int(),
-    sourceUrl: WikiImageSourceUrl,
+    sourceUrl: z.string(),
     sourceName: z.string(),
     altText: z.string(),
     agreedToTermsAt: z.string(),
@@ -128,7 +114,7 @@ const UploadedImageListItem = z
     translationSetIdentifier: KPool_Common_Uuid,
     imageUsage: z.string(),
     displayOrder: z.number().int(),
-    sourceUrl: WikiImageSourceUrl,
+    sourceUrl: z.string(),
     sourceName: z.string(),
     altText: z.string(),
     isHidden: z.boolean(),
@@ -218,6 +204,14 @@ const CreatePrincipalRequestBody = z
     accountIdentifier: KPool_Common_Uuid,
   })
   .passthrough();
+const CreatedPrincipalSummary = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid,
+    identityIdentifier: KPool_Common_Uuid,
+    isDelegatedPrincipal: z.boolean(),
+    isEnabled: z.boolean(),
+  })
+  .passthrough();
 const EffectivePolicySummary = z
   .object({
     policyIdentifier: KPool_Common_Uuid,
@@ -305,6 +299,20 @@ const AgencyDraftWikiBasic = z
     socialLinks: z.array(z.string()),
   })
   .passthrough();
+const AgencyWikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: AgencyDraftWikiBasic,
+    sections: z.array(z.unknown()),
+  })
+  .passthrough();
 const AgencyDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -334,6 +342,20 @@ const GroupDraftWikiBasic = z
     emoji: z.string(),
     representativeSymbol: z.string(),
     mainImageIdentifier: KPool_Common_Uuid.nullish(),
+  })
+  .passthrough();
+const WikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: GroupDraftWikiBasic,
+    sections: z.array(z.unknown()),
   })
   .passthrough();
 const DraftWikiDetail = z
@@ -413,6 +435,20 @@ const SongDraftWikiBasic = z
     talents: z.array(SongDraftWikiTalentSummary),
   })
   .passthrough();
+const SongWikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: SongDraftWikiBasic,
+    sections: z.array(z.unknown()),
+  })
+  .passthrough();
 const SongDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -468,6 +504,20 @@ const TalentDraftWikiBasic = z
     groups: z.array(TalentDraftWikiGroupSummary),
   })
   .passthrough();
+const TalentWikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: TalentDraftWikiBasic,
+    sections: z.array(z.unknown()),
+  })
+  .passthrough();
 const TalentDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -503,6 +553,7 @@ const TranslateWikiResponseBody = z
 const WikiListItem = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
@@ -553,6 +604,7 @@ export const schemas = {
   MutatePrincipalGroupMemberRequestBody,
   AttachRoleToPrincipalGroupRequestBody,
   CreatePrincipalRequestBody,
+  CreatedPrincipalSummary,
   EffectivePolicySummary,
   PrincipalSummary,
   CreateRoleRequestBody,
@@ -566,15 +618,19 @@ export const schemas = {
   CreateWikiRequestBody,
   DraftWikiHeroImage,
   AgencyDraftWikiBasic,
+  AgencyWikiDetail,
   AgencyDraftWikiDetail,
   GroupDraftWikiBasic,
+  WikiDetail,
   DraftWikiDetail,
   SongDraftWikiGroupSummary,
   SongDraftWikiTalentSummary,
   SongDraftWikiBasic,
+  SongWikiDetail,
   SongDraftWikiDetail,
   TalentDraftWikiGroupSummary,
   TalentDraftWikiBasic,
+  TalentWikiDetail,
   TalentDraftWikiDetail,
   WikiWorkflowRequestBody,
   UpdateWikiDraftRequestBody,
@@ -1398,7 +1454,7 @@ const endpoints = makeApi([
         schema: CreatePrincipalRequestBody,
       },
     ],
-    response: PrincipalSummary,
+    response: CreatedPrincipalSummary,
     errors: [
       {
         status: 409,
@@ -1604,6 +1660,43 @@ const endpoints = makeApi([
   },
   {
     method: "get",
+    path: "/wiki/:language/agency/:slug",
+    alias: "WikiOperations_getAgencyWiki",
+    description: `Fetch the published agency wiki.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "slug",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: AgencyWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/wiki/:language/agency/:slug/draft",
     alias: "WikiOperations_getAgencyDraftWiki",
     description: `Fetch the agency draft wiki used by the editor.`,
@@ -1621,6 +1714,43 @@ const endpoints = makeApi([
       },
     ],
     response: AgencyDraftWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/:language/group/:slug",
+    alias: "WikiOperations_getGroupWiki",
+    description: `Fetch the published group wiki.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "slug",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: WikiDetail,
     errors: [
       {
         status: 404,
@@ -1678,6 +1808,43 @@ const endpoints = makeApi([
   },
   {
     method: "get",
+    path: "/wiki/:language/song/:slug",
+    alias: "WikiOperations_getSongWiki",
+    description: `Fetch the published song wiki.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "slug",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: SongWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/wiki/:language/song/:slug/draft",
     alias: "WikiOperations_getSongDraftWiki",
     description: `Fetch the song draft wiki used by the editor.`,
@@ -1695,6 +1862,43 @@ const endpoints = makeApi([
       },
     ],
     response: SongDraftWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/:language/talent/:slug",
+    alias: "WikiOperations_getTalentWiki",
+    description: `Fetch the published talent wiki.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "slug",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: TalentWikiDetail,
     errors: [
       {
         status: 404,
