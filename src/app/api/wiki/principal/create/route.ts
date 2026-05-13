@@ -9,23 +9,17 @@ import {
   wikiPrincipalCreateRequestSchema,
   wikiPrincipalSummarySchema,
 } from "../../../../wiki/wikiPrincipal";
-
-const readResponseBody = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
+import {
+  getForwardedWikiApiHeaders,
+  jsonErrorResponse,
+  readJsonResponseBody,
+} from "../../wikiRouteSupport";
 
 export async function POST(request: NextRequest) {
   const baseUrl = getWikiPrincipalApiBaseUrl();
 
   if (!baseUrl) {
-    return NextResponse.json(
-      { message: "Wiki principal API is not configured." },
-      { status: 500 },
-    );
+    return jsonErrorResponse("Wiki principal API is not configured.", 500);
   }
 
   try {
@@ -33,19 +27,13 @@ export async function POST(request: NextRequest) {
     const apiResponse = await fetch(createWikiPrincipalCreateUrl(baseUrl), {
       method: "POST",
       headers: {
-        Accept: "application/json",
-        ...(request.headers.get("accept-language")
-          ? { "Accept-Language": request.headers.get("accept-language") ?? "" }
-          : {}),
+        ...getForwardedWikiApiHeaders(request.headers),
         "Content-Type": "application/json",
-        ...(request.headers.get("cookie")
-          ? { Cookie: request.headers.get("cookie") ?? "" }
-          : {}),
       },
       body: JSON.stringify(body),
       cache: "no-store",
     });
-    const responseBody = await readResponseBody(apiResponse);
+    const responseBody = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
       return NextResponse.json(

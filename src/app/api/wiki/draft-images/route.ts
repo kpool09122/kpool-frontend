@@ -5,35 +5,24 @@ import { z } from "zod";
 import {
   createWikiDraftImagesUrl,
   defaultWikiImagePerPage,
-  getWikiImageApiBaseUrl,
   getWikiImageErrorMessage,
   normalizeWikiDraftImageListResponse,
   wikiDraftImageListResponseSchema,
-} from "../../../wiki/wikiImages";
+} from "../../../wiki/wikiImageModel";
+import { getWikiImageApiBaseUrl } from "../../../wiki/wikiImageServerApi";
 import { parseWithSchemaLog } from "../../../zodErrorLog";
-
-const readResponseBody = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
-const parsePositiveInteger = (value: string | null, fallback: number): number => {
-  const parsed = Number(value);
-
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-};
+import {
+  getForwardedWikiApiHeaders,
+  jsonErrorResponse,
+  parsePositiveIntegerParam,
+  readJsonResponseBody,
+} from "../wikiRouteSupport";
 
 export async function GET(request: NextRequest) {
   const baseUrl = getWikiImageApiBaseUrl();
 
   if (!baseUrl) {
-    return NextResponse.json(
-      { message: "Wiki image API is not configured." },
-      { status: 500 },
-    );
+    return jsonErrorResponse("Wiki image API is not configured.", 500);
   }
 
   const statusResult = schemas.DraftImageStatus.safeParse(
@@ -41,18 +30,15 @@ export async function GET(request: NextRequest) {
   );
 
   if (!statusResult.success) {
-    return NextResponse.json(
-      { message: "Valid draft image status is required." },
-      { status: 400 },
-    );
+    return jsonErrorResponse("Valid draft image status is required.", 400);
   }
 
   try {
     const apiResponse = await fetch(
       createWikiDraftImagesUrl({
         baseUrl,
-        page: parsePositiveInteger(request.nextUrl.searchParams.get("page"), 1),
-        perPage: parsePositiveInteger(
+        page: parsePositiveIntegerParam(request.nextUrl.searchParams.get("page"), 1),
+        perPage: parsePositiveIntegerParam(
           request.nextUrl.searchParams.get("perPage"),
           defaultWikiImagePerPage,
         ),
@@ -61,19 +47,11 @@ export async function GET(request: NextRequest) {
       }),
       {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-          ...(request.headers.get("accept-language")
-            ? { "Accept-Language": request.headers.get("accept-language") ?? "" }
-            : {}),
-          ...(request.headers.get("cookie")
-            ? { Cookie: request.headers.get("cookie") ?? "" }
-            : {}),
-        },
+        headers: getForwardedWikiApiHeaders(request.headers),
         cache: "no-store",
       },
     );
-    const body = await readResponseBody(apiResponse);
+    const body = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
       return NextResponse.json(

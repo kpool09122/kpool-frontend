@@ -7,9 +7,14 @@ import {
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
+  isSafeWikiSourceUrl,
+  isWikiImageFileSizeAllowed,
   normalizeWikiDraftImageListResponse,
   stripDataUrlPrefix,
-} from "./wikiImages";
+  wikiImageMaxBase64Length,
+  wikiImageMaxFileSizeBytes,
+  wikiImageUploadRequestSchema,
+} from "./wikiImageModel";
 
 describe("wikiImages", () => {
   it("accepts only supported image mime types with matching extensions", () => {
@@ -19,6 +24,12 @@ describe("wikiImages", () => {
     expect(isAcceptedWikiImageFile({ name: "cover.webp", type: "image/webp" })).toBe(true);
     expect(isAcceptedWikiImageFile({ name: "cover.gif", type: "image/gif" })).toBe(false);
     expect(isAcceptedWikiImageFile({ name: "cover.jpg", type: "text/plain" })).toBe(false);
+  });
+
+  it("accepts only image files within the configured size limit", () => {
+    expect(isWikiImageFileSizeAllowed({ size: wikiImageMaxFileSizeBytes })).toBe(true);
+    expect(isWikiImageFileSizeAllowed({ size: wikiImageMaxFileSizeBytes + 1 })).toBe(false);
+    expect(isWikiImageFileSizeAllowed({ size: 0 })).toBe(false);
   });
 
   it("strips data url prefixes before sending backend upload payloads", () => {
@@ -55,6 +66,44 @@ describe("wikiImages", () => {
       }),
     );
     expect(request.agreedToTermsAt).toEqual(expect.any(String));
+  });
+
+  it("rejects dangerous source URL schemes for upload requests", () => {
+    expect(isSafeWikiSourceUrl("javascript:alert(1)")).toBe(false);
+    expect(isSafeWikiSourceUrl("data:text/html;base64,PHNjcmlwdD4=")).toBe(false);
+    expect(isSafeWikiSourceUrl("https://commons.wikimedia.org/wiki/File:Stage.webp")).toBe(true);
+    expect(() =>
+      createWikiImageUploadRequest({
+        altText: "Stage performance",
+        base64EncodedImage: "abc123",
+        displayOrder: 3,
+        fileName: "stage.webp",
+        imageAssociation: createWikiImageAssociationInput({
+          resourceType: "group",
+          translationSetIdentifier: "translation-set-1",
+        }),
+        rightsConfirmationAgreed: true,
+        sourceName: "Wikimedia Commons",
+        sourceUrl: "javascript:alert(1)",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects upload requests with oversized encoded images", () => {
+    expect(() =>
+      wikiImageUploadRequestSchema.parse({
+        resourceType: "group",
+        translationSetIdentifier: "translation-set-1",
+        base64EncodedImage: "a".repeat(wikiImageMaxBase64Length + 1),
+        imageUsage: "profile",
+        displayOrder: 3,
+        sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
+        sourceName: "Wikimedia Commons",
+        altText: "Stage performance",
+        agreedToTermsAt: "2026-05-09T00:00:00.000Z",
+        rightsConfirmationAgreed: true,
+      }),
+    ).toThrow();
   });
 
   it("builds image list urls with pagination query values", () => {

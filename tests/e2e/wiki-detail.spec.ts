@@ -279,7 +279,7 @@ test("wiki edit page opens the image library and submits an image usage request"
                   translationSetIdentifier: "translation-set-aurora-echo",
                   imageUsage: "wiki_editor",
                   displayOrder: 1,
-                  sourceUrl: "",
+                  sourceUrl: "https://source.example.test/image-1",
                   sourceName: "cover.jpg",
                   altText: "Cover image",
                   isHidden: false,
@@ -359,7 +359,7 @@ test("wiki edit page opens the image library and submits an image usage request"
   await expect(
     page.getByText("申請を送信しました。申請内容を確認しますので、しばらくお待ちください。"),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "承認を行うには？" })).toHaveAttribute("href", "#");
+  await expect(page.getByRole("link", { name: "承認を行うには？" })).toHaveCount(0);
 
   await expect.poll(() => uploadRequestBody).toEqual(
     expect.objectContaining({

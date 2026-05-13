@@ -3,47 +3,38 @@
 import type { IdentitySummary } from "../identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useI18n } from "../i18n/I18nProvider";
 import type { Locale } from "../i18n/locales";
 import {
   canReviewWikiDraftImages,
   createWikiPrincipal,
-  getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
   type WikiPrincipalState,
 } from "../wiki/wikiPrincipal";
 import {
   approveWikiDraftImage,
-  defaultWikiImagePerPage,
   fetchWikiDraftImages,
   rejectWikiDraftImage,
+} from "../wiki/wikiImageBrowserApi";
+import {
+  isSafeWikiSourceUrl,
   type WikiDraftImage,
-  type WikiDraftImageListResponse,
-} from "../wiki/wikiImages";
+} from "../wiki/wikiImageModel";
 import { buildWikiPath } from "../wiki/wikiRouting";
+import {
+  initialDraftImageListState,
+  type DraftImageListState,
+  useMyPageDraftImageReview,
+} from "./useMyPageDraftImageReview";
+import type {
+  MyPageDraftImageAdapter,
+  MyPagePrincipalAdapter,
+} from "./myPageAdapters";
+import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
 type MyPageWikiTab = "draftImages";
-
-export type DraftImageListState = {
-  images: WikiDraftImage[];
-  isInitialLoading: boolean;
-  isLoadingMore: boolean;
-  loadError: string | null;
-  pageInfo: Pick<WikiDraftImageListResponse, "current_page" | "last_page" | "total"> | null;
-};
-
-export type MyPagePrincipalAdapter = {
-  createPrincipal: typeof createWikiPrincipal;
-  getCurrentPrincipal: typeof getCurrentWikiPrincipal;
-};
-
-export type MyPageDraftImageAdapter = {
-  approveDraftImage: typeof approveWikiDraftImage;
-  listDraftImages: typeof fetchWikiDraftImages;
-  rejectDraftImage: typeof rejectWikiDraftImage;
-};
 
 type MyPageClientProps = {
   initialIdentity: IdentitySummary | null;
@@ -64,14 +55,6 @@ const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
   rejectDraftImage: rejectWikiDraftImage,
 };
 
-const initialDraftImageListState: DraftImageListState = {
-  images: [],
-  isInitialLoading: false,
-  isLoadingMore: false,
-  loadError: null,
-  pageInfo: null,
-};
-
 const selectedSectionClass = "bg-brand-highlight/70 text-text-strong";
 
 const isActionPending = (state: WikiPrincipalState): boolean =>
@@ -88,143 +71,42 @@ export function MyPageClient({
   const t = dictionary.mypage;
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("draftImages");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [principalState, setPrincipalState] =
-    useState<WikiPrincipalState>(initialPrincipalState);
-  const [draftImages, setDraftImages] = useState<DraftImageListState>(initialDraftImages);
-  const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
-  const [reviewError, setReviewError] = useState<string | null>(null);
-  const hasQueuedInitialPrincipalLoad = useRef(false);
-  const accountIdentifier = getAccountIdentifierFromIdentity(initialIdentity);
-
-  const loadDraftImagesPage = async (page: number) => {
-    setDraftImages((state) => ({
-      ...state,
-      isInitialLoading: page === 1,
-      isLoadingMore: page > 1,
-      loadError: null,
-    }));
-
-    try {
-      const imagePage = await draftImageAdapter.listDraftImages({
-        fallbackErrorMessage: t.draftImageListLoadFailed,
-        page,
-        perPage: defaultWikiImagePerPage,
-        status: "under_review",
-      });
-
-      setDraftImages((state) => ({
-        ...state,
-        images: page === 1 ? imagePage.images : [...state.images, ...imagePage.images],
-        isInitialLoading: false,
-        isLoadingMore: false,
-        pageInfo: {
-          current_page: imagePage.current_page,
-          last_page: imagePage.last_page,
-          total: imagePage.total,
-        },
-      }));
-    } catch (error) {
-      setDraftImages((state) => ({
-        ...state,
-        isInitialLoading: false,
-        isLoadingMore: false,
-        loadError:
-          error instanceof Error ? error.message : t.draftImageListLoadFailed,
-      }));
-    }
-  };
-
-  const loadCurrentPrincipal = async () => {
-    setPrincipalState({ status: "loading" });
-    const nextState = await principalAdapter.getCurrentPrincipal();
-
-    setPrincipalState(nextState);
-
-    if (nextState.status === "available" && canReviewWikiDraftImages(nextState.principal)) {
-      await loadDraftImagesPage(1);
-    }
-  };
-
-  const activateWikiPrincipal = async () => {
-    if (!initialIdentity) {
-      setPrincipalState({
-        status: "error",
-        message: t.identityUnavailableMessage,
-      });
-      return;
-    }
-
-    if (!accountIdentifier) {
-      setPrincipalState({
-        status: "error",
-        message: t.accountUnavailableMessage,
-      });
-      return;
-    }
-
-    setPrincipalState({ status: "loading" });
-    const nextState = await principalAdapter.createPrincipal({
-      identityIdentifier: initialIdentity.identityIdentifier,
-      accountIdentifier,
-    });
-
-    setPrincipalState(nextState);
-
-    if (nextState.status === "available" && canReviewWikiDraftImages(nextState.principal)) {
-      await loadDraftImagesPage(1);
-    }
-  };
-
-  const removeReviewedImage = (imageIdentifier: string) => {
-    setDraftImages((state) => ({
-      ...state,
-      images: state.images.filter((image) => image.imageIdentifier !== imageIdentifier),
-      pageInfo: state.pageInfo
-        ? {
-            ...state.pageInfo,
-            total: Math.max(0, state.pageInfo.total - 1),
-          }
-        : state.pageInfo,
-    }));
-  };
-
-  const reviewDraftImage = async (
-    imageIdentifier: string,
-    action: "approve" | "reject",
-  ) => {
-    setReviewingImageIdentifier(imageIdentifier);
-    setReviewError(null);
-
-    try {
-      const fallbackErrorMessage =
-        action === "approve" ? t.draftImageApproveFailed : t.draftImageRejectFailed;
-
-      if (action === "approve") {
-        await draftImageAdapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage });
-      } else {
-        await draftImageAdapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
-      }
-
-      removeReviewedImage(imageIdentifier);
-    } catch (error) {
-      setReviewError(
-        error instanceof Error
-          ? error.message
-          : action === "approve"
-            ? t.draftImageApproveFailed
-            : t.draftImageRejectFailed,
-      );
-    } finally {
-      setReviewingImageIdentifier(null);
-    }
-  };
-
-  if (principalState.status === "idle" && !hasQueuedInitialPrincipalLoad.current) {
-    hasQueuedInitialPrincipalLoad.current = true;
-    queueMicrotask(() => {
-      void loadCurrentPrincipal();
-    });
-  }
+  const draftImageMessages = useMemo(() => ({
+    draftImageApproveFailed: t.draftImageApproveFailed,
+    draftImageListLoadFailed: t.draftImageListLoadFailed,
+    draftImageRejectFailed: t.draftImageRejectFailed,
+  }), [t.draftImageApproveFailed, t.draftImageListLoadFailed, t.draftImageRejectFailed]);
+  const {
+    draftImages,
+    loadDraftImagesPage,
+    reviewDraftImage,
+    reviewError,
+    reviewingImageIdentifier,
+  } = useMyPageDraftImageReview({
+    adapter: draftImageAdapter,
+    initialDraftImages,
+    messages: draftImageMessages,
+  });
+  const loadFirstDraftImagesPage = useCallback(
+    () => loadDraftImagesPage(1),
+    [loadDraftImagesPage],
+  );
+  const principalMessages = useMemo(() => ({
+    accountUnavailableMessage: t.accountUnavailableMessage,
+    identityUnavailableMessage: t.identityUnavailableMessage,
+  }), [t.accountUnavailableMessage, t.identityUnavailableMessage]);
+  const {
+    accountIdentifier,
+    activateWikiPrincipal,
+    loadCurrentPrincipal,
+    principalState,
+  } = useMyPageWikiPrincipal({
+    adapter: principalAdapter,
+    initialIdentity,
+    initialPrincipalState,
+    messages: principalMessages,
+    onReviewReady: loadFirstDraftImagesPage,
+  });
 
   return (
     <main
@@ -609,14 +491,16 @@ function DraftImageSourceNameMeta({
   sourceName: string;
   sourceUrl: string;
 }) {
+  const safeSourceUrl = isSafeWikiSourceUrl(sourceUrl) ? sourceUrl : null;
+
   return (
     <div className="min-w-0">
       <dt className="font-semibold text-text-muted">{label}</dt>
       <dd className="mt-1 break-all text-text-strong">
-        {sourceUrl ? (
+        {safeSourceUrl ? (
           <a
             className="text-brand-primary underline underline-offset-4"
-            href={sourceUrl}
+            href={safeSourceUrl}
             rel="noreferrer"
             target="_blank"
           >

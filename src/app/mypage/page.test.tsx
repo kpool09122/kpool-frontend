@@ -2,11 +2,11 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  MyPageClient,
-  type MyPageDraftImageAdapter,
-  type MyPagePrincipalAdapter,
-} from "./MyPageClient";
+import { MyPageClient } from "./MyPageClient";
+import type {
+  MyPageDraftImageAdapter,
+  MyPagePrincipalAdapter,
+} from "./myPageAdapters";
 
 const identity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
@@ -156,7 +156,7 @@ describe("MyPageClient", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Wiki", level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).toHaveBeenCalledOnce();
   });
@@ -174,9 +174,9 @@ describe("MyPageClient", () => {
 
     expect(await screen.findByRole("heading", { name: "Wiki", level: 1 })).toBeInTheDocument();
     expect(
-      screen.getByRole("tablist", { name: "Wiki タブ" }),
+      await screen.findByRole("tablist", { name: "Wiki タブ" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
+    expect(await screen.findByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -204,6 +204,29 @@ describe("MyPageClient", () => {
     expect(screen.queryByText("pending")).not.toBeInTheDocument();
   });
 
+  it("does not link dangerous draft image source URLs", async () => {
+    const draftImageAdapter = createDraftImageAdapter({
+      listDraftImages: vi.fn().mockResolvedValue({
+        images: [{ ...draftImage, sourceUrl: "javascript:alert(1)" }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByText("K-Pool archive")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "K-Pool archive" })).not.toBeInTheDocument();
+  });
+
   it("approves a draft image and removes it from the list", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
@@ -220,6 +243,28 @@ describe("MyPageClient", () => {
     await waitFor(() =>
       expect(draftImageAdapter.approveDraftImage).toHaveBeenCalledWith({
         fallbackErrorMessage: "画像を承認できませんでした。",
+        imageIdentifier: draftImage.imageIdentifier,
+      }),
+    );
+    expect(await screen.findByText("未承認の画像はありません")).toBeInTheDocument();
+  });
+
+  it("rejects a draft image and removes it from the list", async () => {
+    const draftImageAdapter = createDraftImageAdapter();
+
+    render(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+
+    await waitFor(() =>
+      expect(draftImageAdapter.rejectDraftImage).toHaveBeenCalledWith({
+        fallbackErrorMessage: "画像を拒否できませんでした。",
         imageIdentifier: draftImage.imageIdentifier,
       }),
     );
@@ -243,6 +288,25 @@ describe("MyPageClient", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("approve failed");
     expect(screen.getByRole("button", { name: "承認" })).toBeEnabled();
+  });
+
+  it("shows a retryable error when draft image reject fails", async () => {
+    const draftImageAdapter = createDraftImageAdapter({
+      rejectDraftImage: vi.fn().mockRejectedValue(new Error("reject failed")),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("reject failed");
+    expect(screen.getByRole("button", { name: "拒否" })).toBeEnabled();
   });
 
   it("does not show draft image tabs when policies do not allow image review", async () => {
