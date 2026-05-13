@@ -5,6 +5,7 @@ import {
   createWikiPrincipal,
   getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
+  getCurrentWikiPrincipalForRequest,
 } from "./wikiPrincipal";
 
 const principal = {
@@ -67,6 +68,35 @@ describe("wiki principal helpers", () => {
     await expect(getCurrentWikiPrincipal({ fetchAdapter })).resolves.toEqual({
       status: "missing",
     });
+  });
+
+  it("loads the current principal from the private API with request cookies", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue(principal),
+    });
+
+    await expect(
+      getCurrentWikiPrincipalForRequest({
+        baseUrl: "https://wiki.example.test/api",
+        cookieHeader: "session=abc",
+        fetchAdapter,
+      }),
+    ).resolves.toEqual({
+      status: "available",
+      principal,
+    });
+    expect(fetchAdapter).toHaveBeenCalledWith(
+      "https://wiki.example.test/api/principal/me",
+      {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          Cookie: "session=abc",
+        },
+      },
+    );
   });
 
   it("does not treat server errors as a missing principal", async () => {

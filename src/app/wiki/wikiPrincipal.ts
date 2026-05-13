@@ -158,6 +158,57 @@ export const getCurrentWikiPrincipal = async ({
   }
 };
 
+export const getCurrentWikiPrincipalForRequest = async ({
+  baseUrl = getWikiPrincipalApiBaseUrl(),
+  cookieHeader,
+  fetchAdapter = fetch,
+}: {
+  baseUrl?: string;
+  cookieHeader?: string;
+  fetchAdapter?: FetchAdapter;
+} = {}): Promise<Extract<WikiPrincipalState, { status: "available" | "missing" | "error" }>> => {
+  if (!baseUrl) {
+    return {
+      status: "error",
+      message: "Wiki principal API is not configured.",
+    };
+  }
+
+  try {
+    const response = await fetchAdapter(createWikiCurrentPrincipalUrl(baseUrl), {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+    });
+    const body = await readResponseBody(response);
+
+    if (response.status === 404) {
+      return { status: "missing" };
+    }
+
+    if (!response.ok) {
+      return {
+        status: "error",
+        message: toWikiPrincipalMessage({
+          response: { status: response.status, data: body },
+        }),
+      };
+    }
+
+    return {
+      status: "available",
+      principal: wikiPrincipalSummarySchema.parse(body),
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: toWikiPrincipalMessage(error),
+    };
+  }
+};
+
 export const createWikiPrincipal = async ({
   accountIdentifier,
   fetchAdapter = fetch,

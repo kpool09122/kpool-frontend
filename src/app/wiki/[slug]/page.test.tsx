@@ -107,6 +107,10 @@ describe("WikiDetailPage", () => {
       "href",
       "/wiki/ja/gr-aurora-echo",
     );
+    expect(screen.getAllByRole("link", { name: "Edit basic" })[0]).toHaveAttribute(
+      "href",
+      "/wiki/ja/gr-aurora-echo/edit?authGate=1",
+    );
     expect(screen.getAllByLabelText(/Edit section/i)).toHaveLength(2);
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
   });

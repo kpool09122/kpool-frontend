@@ -14,7 +14,7 @@ import {
   mainBackgroundStyle,
 } from "../../../components/Wiki";
 import { useI18n } from "../../i18n/I18nProvider";
-import { getWikiResourceLabel } from "../wikiRouting";
+import { buildWikiEditPath, getWikiResourceLabel } from "../wikiRouting";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 
 type WikiDetailPageProps = {
@@ -26,6 +26,7 @@ type WikiDetailPageProps = {
 
 export function WikiDetailPage({
   language,
+  slug,
   themeColor,
   wikiState,
 }: WikiDetailPageProps) {
@@ -86,6 +87,7 @@ export function WikiDetailPage({
 
         <WikiPublicHeroBasicSection
           basic={data.basic}
+          editHref={`${buildWikiEditPath(language, slug)}?authGate=1`}
           flipCardId={flipCardId}
           heroImage={data.heroImage}
           profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}

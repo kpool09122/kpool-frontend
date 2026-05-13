@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
@@ -16,12 +17,14 @@ import { EditIcon } from "../icons";
 type WikiPublicHeroBasicSectionProps = {
   basic: WikiBasic;
   heroImage: WikiDetail["heroImage"];
+  editHref?: string;
   flipCardId: string;
   profileLabel?: string;
 };
 
 export function WikiPublicHeroBasicSection({
   basic,
+  editHref,
   heroImage,
   flipCardId,
   profileLabel = "Basic profile",
@@ -107,6 +110,17 @@ export function WikiPublicHeroBasicSection({
                         {profileLabel}
                       </p>
                     </div>
+                    {editHref ? (
+                      <Link
+                        aria-label="Edit basic"
+                        className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+                        href={editHref}
+                        onClick={(event) => event.stopPropagation()}
+                        style={cardSurfaceStyle}
+                      >
+                        <EditIcon />
+                      </Link>
+                    ) : null}
                   </div>
                   <div
                     className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
@@ -164,14 +178,16 @@ export function WikiPublicHeroBasicSection({
                 {profileLabel}
               </p>
             </div>
-            <button
-              aria-label="Edit basic"
-              type="button"
-              className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
-              style={cardSurfaceStyle}
-            >
-              <EditIcon />
-            </button>
+            {editHref ? (
+              <Link
+                aria-label="Edit basic"
+                className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+                href={editHref}
+                style={cardSurfaceStyle}
+              >
+                <EditIcon />
+              </Link>
+            ) : null}
           </div>
           <WikiBasicFieldsList
             basic={basic}
