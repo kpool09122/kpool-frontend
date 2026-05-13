@@ -1,7 +1,21 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
+export const WIKI_IMAGE_MAX_BASE64_LENGTH = Math.ceil((5 * 1024 * 1024) / 3) * 4;
+
 const KPool_Common_Uuid = z.string();
+const WikiImageSourceUrl = z
+  .string()
+  .trim()
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Wiki image source URL must use http or https.");
 const translationSetIdentifier = KPool_Common_Uuid.nullish();
 const DraftImageWikiDisplayInformation = z
   .object({ names: z.record(z.string()), slug: z.string() })
@@ -21,7 +35,7 @@ const DraftImageListItem = z
     translationSetIdentifier: KPool_Common_Uuid,
     imageUsage: z.string(),
     displayOrder: z.number().int(),
-    sourceUrl: z.string(),
+    sourceUrl: WikiImageSourceUrl,
     sourceName: z.string(),
     altText: z.string(),
     wiki: DraftImageWikiDisplayInformation,
@@ -53,10 +67,10 @@ const UploadImageRequestBody = z
     publishedImageIdentifier: KPool_Common_Uuid.optional(),
     resourceType: z.string(),
     translationSetIdentifier: KPool_Common_Uuid,
-    base64EncodedImage: z.string(),
+    base64EncodedImage: z.string().max(WIKI_IMAGE_MAX_BASE64_LENGTH),
     imageUsage: z.string(),
     displayOrder: z.number().int(),
-    sourceUrl: z.string(),
+    sourceUrl: WikiImageSourceUrl,
     sourceName: z.string(),
     altText: z.string(),
     agreedToTermsAt: z.string(),
@@ -114,7 +128,7 @@ const UploadedImageListItem = z
     translationSetIdentifier: KPool_Common_Uuid,
     imageUsage: z.string(),
     displayOrder: z.number().int(),
-    sourceUrl: z.string(),
+    sourceUrl: WikiImageSourceUrl,
     sourceName: z.string(),
     altText: z.string(),
     isHidden: z.boolean(),

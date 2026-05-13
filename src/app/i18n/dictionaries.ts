@@ -186,8 +186,8 @@ const ja = {
       submitRequest: "利用申請を送信",
       requestSubmitted:
         "申請を送信しました。申請内容を確認しますので、しばらくお待ちください。",
-      approvalGuideLink: "承認を行うには？",
       invalidFormat: "jpg、jpeg、png、webp の画像のみアップロードできます。",
+      fileTooLarge: "画像は5MB以下のファイルを選択してください。",
       requiredFields: "必須項目をすべて入力してください。",
       readFailed: "選択した画像を読み込めませんでした。",
       listLoadFailed: "画像一覧を読み込めませんでした。",
@@ -383,8 +383,8 @@ const en: typeof ja = {
       submitRequest: "Submit usage request",
       requestSubmitted:
         "Your request has been submitted. Please wait while we review the request details.",
-      approvalGuideLink: "How do approvals work?",
       invalidFormat: "Only jpg, jpeg, png, and webp images can be uploaded.",
+      fileTooLarge: "Choose an image file that is 5 MB or smaller.",
       requiredFields: "Fill in all required fields.",
       readFailed: "Selected image could not be read.",
       listLoadFailed: "Image list could not be loaded.",
@@ -574,8 +574,8 @@ const ko: typeof ja = {
       submitRequest: "이용 신청 전송",
       requestSubmitted:
         "이용 신청을 보냈습니다. 신청 내용을 확인할 예정이니 잠시 기다려 주세요.",
-      approvalGuideLink: "승인은 어떻게 진행하나요?",
       invalidFormat: "jpg, jpeg, png, webp 이미지만 업로드할 수 있습니다.",
+      fileTooLarge: "5MB 이하의 이미지 파일을 선택해 주세요.",
       requiredFields: "필수 항목을 모두 입력해 주세요.",
       readFailed: "선택한 이미지를 읽을 수 없습니다.",
       listLoadFailed: "이미지 목록을 불러올 수 없습니다.",

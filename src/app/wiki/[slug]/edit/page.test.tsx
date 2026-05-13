@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMockWikiDetail } from "@kpool/wiki";
 
 import { WikiEditPage } from "./WikiEditPage";
+import { wikiImageMaxFileSizeBytes } from "../../wikiImageModel";
+import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
 
 const successState = {
   status: "success",
@@ -33,6 +35,11 @@ describe("WikiEditPage", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+  });
+
+  it("does not expose retired wiki image library compatibility helpers", () => {
+    expect(WikiImageLibraryModule).not.toHaveProperty("createDefaultWikiImageUploadBody");
+    expect(WikiImageLibraryModule).not.toHaveProperty("wikiImageLibraryPerPage");
   });
 
   it("renders the editable wiki layout with image overlays and save state", () => {
@@ -85,7 +92,7 @@ describe("WikiEditPage", () => {
                 translationSetIdentifier: "translation-set-aurora-echo",
                 imageUsage: "wiki_editor",
                 displayOrder: 1,
-                sourceUrl: "",
+                sourceUrl: "https://source.example.test/image-1",
                 sourceName: "cover.jpg",
                 altText: "Cover image",
                 isHidden: false,
@@ -112,7 +119,7 @@ describe("WikiEditPage", () => {
                 translationSetIdentifier: "translation-set-aurora-echo",
                 imageUsage: "wiki_editor",
                 displayOrder: 2,
-                sourceUrl: "",
+                sourceUrl: "https://source.example.test/image-2",
                 sourceName: "stage.webp",
                 altText: "Stage image",
                 isHidden: false,
@@ -160,6 +167,90 @@ describe("WikiEditPage", () => {
       2,
       "/api/wiki/images?translationSetIdentifier=translation-set-gr-aurora-echo&perPage=12&page=2",
     );
+  });
+
+  it("keeps keyboard focus inside the image library dialog and restores focus on Escape", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [
+            {
+              imageIdentifier: "image-1",
+              url: "https://images.example.test/image-1.jpg",
+              resourceType: "group",
+              wikiIdentifier: "gr-aurora-echo",
+              translationSetIdentifier: "translation-set-aurora-echo",
+              imageUsage: "wiki_editor",
+              displayOrder: 1,
+              sourceUrl: "https://source.example.test/image-1",
+              sourceName: "cover.jpg",
+              altText: "Cover image",
+              isHidden: false,
+              uploadedAt: "2026-05-09T00:00:00Z",
+            },
+          ],
+          current_page: 1,
+          last_page: 2,
+          total: 2,
+          per_page: 1,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    const opener = screen.getAllByRole("button", { name: "Open wiki image library" })[0];
+
+    opener.focus();
+    fireEvent.click(opener);
+
+    const dialog = await screen.findByRole("dialog", { name: "画像ライブラリ" });
+    const closeButton = screen.getByRole("button", { name: "閉じる" });
+
+    expect(closeButton).toHaveFocus();
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    await screen.findByText("代替テキスト: Cover image");
+
+    const loadMoreButton = screen.getByRole("button", { name: "さらに読み込む" });
+
+    loadMoreButton.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(closeButton).toHaveFocus();
+
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(loadMoreButton).toHaveFocus();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "画像ライブラリ" })).toBeNull());
+    expect(opener).toHaveFocus();
+  });
+
+  it("keeps the hidden image file input out of the dialog tab order", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
+
+    const uploadInput = screen.getByLabelText("画像を選択またはここにドロップ");
+
+    expect(uploadInput).toHaveAttribute("type", "file");
+    expect(uploadInput).toHaveAttribute("tabindex", "-1");
   });
 
   it("switches tabs and submits an image usage request with source metadata", async () => {
@@ -261,7 +352,7 @@ describe("WikiEditPage", () => {
     expect(
       await screen.findByText("申請を送信しました。申請内容を確認しますので、しばらくお待ちください。"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "承認を行うには？" })).toHaveAttribute("href", "#");
+    expect(screen.queryByRole("link", { name: "承認を行うには？" })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "画像の利用申請" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -381,6 +472,44 @@ describe("WikiEditPage", () => {
 
     expect(
       await screen.findByText("jpg、jpeg、png、webp の画像のみアップロードできます。"),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects oversized image files before upload", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
+
+    fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
+      target: {
+        files: [
+          new File(
+            [new Uint8Array(wikiImageMaxFileSizeBytes + 1)],
+            "oversized.png",
+            { type: "image/png" },
+          ),
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByText("画像は5MB以下のファイルを選択してください。"),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

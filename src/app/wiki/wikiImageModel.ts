@@ -4,13 +4,28 @@ import { z } from "zod";
 import {
   getWikiApiErrorMessage,
   trimTrailingSlashes,
-  withWikiApiPrefix,
 } from "./wikiApiModel";
+
+export const defaultWikiImagePerPage = 12;
+export const wikiImageMaxFileSizeBytes = 5 * 1024 * 1024;
+export const wikiImageMaxBase64Length = Math.ceil(wikiImageMaxFileSizeBytes / 3) * 4;
+export const wikiImageMaxUploadBodyBytes = wikiImageMaxBase64Length + 4096;
+export const wikiDraftImageReviewCsrfHeaderName = "X-KPool-Wiki-Review-Request";
+export const wikiDraftImageReviewCsrfHeaderValue = "1";
+
+export const wikiSafeSourceUrlSchema = z
+  .string()
+  .trim()
+  .refine((value) => isSafeWikiSourceUrl(value), {
+    message: "Wiki image source URL must use http or https.",
+  });
 
 export const wikiImageListResponseSchema = schemas.ListUploadedImagesResponseBody;
 export const wikiDraftImageListResponseSchema = schemas.ListDraftImagesResponseBody;
 export const wikiImageUploadResponseSchema = schemas.ImageDraftSummary;
-export const wikiImageUploadRequestSchema = schemas.UploadImageRequestBody;
+export const wikiImageUploadRequestSchema = schemas.UploadImageRequestBody.extend({
+  base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
+});
 export const wikiImageReviewResponseSchema = z.union([
   schemas.ImageDraftSummary,
   schemas.ImageSummary,
@@ -38,11 +53,19 @@ export const wikiImageAcceptAttribute = [
   ...acceptedExtensions,
 ].join(",");
 
-export const defaultWikiImagePerPage = 12;
-
 export type WikiImageAssociationInput = {
   resourceType: string;
   translationSetIdentifier: string;
+};
+
+export const isSafeWikiSourceUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value.trim());
+
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 };
 
 export const createWikiImageAssociationInput = ({
@@ -56,12 +79,7 @@ export const createWikiImageAssociationInput = ({
   translationSetIdentifier,
 });
 
-export const getWikiImageApiBaseUrl = (): string =>
-  process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL
-    ? withWikiApiPrefix(process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL)
-    : "";
-
-export const isAcceptedWikiImageFile = (file: Pick<File, "name" | "type">): boolean => {
+export const isAcceptedWikiImageFile = (file: { name: string; type: string }): boolean => {
   const normalizedType = file.type.toLowerCase();
   const normalizedName = file.name.toLowerCase();
 
@@ -70,6 +88,9 @@ export const isAcceptedWikiImageFile = (file: Pick<File, "name" | "type">): bool
     acceptedExtensions.some((extension) => normalizedName.endsWith(extension))
   );
 };
+
+export const isWikiImageFileSizeAllowed = (file: { size: number }): boolean =>
+  Number.isFinite(file.size) && file.size > 0 && file.size <= wikiImageMaxFileSizeBytes;
 
 export const stripDataUrlPrefix = (value: string): string => {
   const marker = ";base64,";
@@ -103,7 +124,7 @@ export const createWikiImageUploadRequest = ({
     base64EncodedImage: stripDataUrlPrefix(base64EncodedImage),
     imageUsage: "profile",
     displayOrder,
-    sourceUrl: sourceUrl.trim(),
+    sourceUrl: wikiSafeSourceUrlSchema.parse(sourceUrl),
     sourceName: sourceName.trim(),
     altText: altText.trim() || fileName,
     agreedToTermsAt: new Date().toISOString(),
@@ -231,107 +252,6 @@ export const normalizeWikiDraftImageListResponse = (body: unknown): unknown => {
     }),
   };
 };
-
-const readJsonResponse = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
-const getRouteErrorMessage = (body: unknown, fallback: string): string =>
-  typeof body === "object" &&
-  body !== null &&
-  "message" in body &&
-  typeof (body as { message: unknown }).message === "string"
-    ? (body as { message: string }).message
-    : fallback;
-
-export const fetchWikiDraftImages = async ({
-  page,
-  perPage,
-  status,
-  wikiIdentifier,
-  fallbackErrorMessage,
-}: {
-  page: number;
-  perPage: number;
-  status: WikiDraftImageStatus;
-  wikiIdentifier?: string;
-  fallbackErrorMessage: string;
-}): Promise<WikiDraftImageListResponse> => {
-  const url = new URL("/api/wiki/draft-images", window.location.origin);
-
-  url.searchParams.set("status", status);
-  url.searchParams.set("perPage", String(perPage));
-  url.searchParams.set("page", String(page));
-
-  if (wikiIdentifier) {
-    url.searchParams.set("wikiIdentifier", wikiIdentifier);
-  }
-
-  const response = await fetch(`${url.pathname}${url.search}`);
-  const body = await readJsonResponse(response);
-
-  if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
-  }
-
-  return wikiDraftImageListResponseSchema.parse(normalizeWikiDraftImageListResponse(body));
-};
-
-const reviewWikiDraftImage = async ({
-  action,
-  fallbackErrorMessage,
-  imageIdentifier,
-}: {
-  action: "approve" | "reject";
-  fallbackErrorMessage: string;
-  imageIdentifier: string;
-}): Promise<WikiImageReviewResponse> => {
-  const response = await fetch(
-    `/api/wiki/draft-images/${encodeURIComponent(imageIdentifier)}/${action}`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    },
-  );
-  const body = await readJsonResponse(response);
-
-  if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
-  }
-
-  return wikiImageReviewResponseSchema.parse(body);
-};
-
-export const approveWikiDraftImage = async ({
-  fallbackErrorMessage,
-  imageIdentifier,
-}: {
-  fallbackErrorMessage: string;
-  imageIdentifier: string;
-}): Promise<WikiImageReviewResponse> =>
-  reviewWikiDraftImage({
-    action: "approve",
-    fallbackErrorMessage,
-    imageIdentifier,
-  });
-
-export const rejectWikiDraftImage = async ({
-  fallbackErrorMessage,
-  imageIdentifier,
-}: {
-  fallbackErrorMessage: string;
-  imageIdentifier: string;
-}): Promise<WikiImageReviewResponse> =>
-  reviewWikiDraftImage({
-    action: "reject",
-    fallbackErrorMessage,
-    imageIdentifier,
-  });
 
 export const getWikiImageErrorMessage = (error: unknown): string =>
   getWikiApiErrorMessage(error, {

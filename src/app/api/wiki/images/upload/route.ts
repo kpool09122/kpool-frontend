@@ -2,50 +2,65 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import {
-  getWikiImageApiBaseUrl,
   getWikiImageErrorMessage,
+  wikiImageMaxUploadBodyBytes,
   wikiImageUploadRequestSchema,
   wikiImageUploadResponseSchema,
-} from "../../../../wiki/wikiImages";
+} from "../../../../wiki/wikiImageModel";
+import { getWikiImageApiBaseUrl } from "../../../../wiki/wikiImageServerApi";
 import { trimTrailingSlashes } from "../../../../wiki/wikiApiModel";
 import { parseWithSchemaLog } from "../../../../zodErrorLog";
+import {
+  getForwardedWikiApiHeaders,
+  jsonErrorResponse,
+  readJsonResponseBody,
+} from "../../wikiRouteSupport";
 
-const readResponseBody = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
+const validateUploadContentLength = (headers: Headers): Response | null => {
+  const contentLength = headers.get("content-length");
+
+  if (contentLength === null) {
+    return jsonErrorResponse("Wiki image upload content length is required.", 411);
   }
+
+  const parsedLength = Number(contentLength);
+
+  if (!Number.isFinite(parsedLength) || parsedLength <= 0) {
+    return jsonErrorResponse("Wiki image upload content length is invalid.", 400);
+  }
+
+  if (parsedLength > wikiImageMaxUploadBodyBytes) {
+    return jsonErrorResponse("Wiki image upload body is too large.", 413);
+  }
+
+  return null;
 };
 
 export async function POST(request: NextRequest) {
   const baseUrl = getWikiImageApiBaseUrl();
 
   if (!baseUrl) {
-    return NextResponse.json(
-      { message: "Wiki image API is not configured." },
-      { status: 500 },
-    );
+    return jsonErrorResponse("Wiki image API is not configured.", 500);
+  }
+
+  const contentLengthError = validateUploadContentLength(request.headers);
+
+  if (contentLengthError) {
+    return contentLengthError;
   }
 
   try {
-    const cookieHeader = request.headers.get("cookie");
-
     const body = wikiImageUploadRequestSchema.parse(await request.json());
     const apiResponse = await fetch(`${trimTrailingSlashes(baseUrl)}/image/upload`, {
       method: "POST",
       headers: {
-        Accept: "application/json",
-        ...(request.headers.get("accept-language")
-          ? { "Accept-Language": request.headers.get("accept-language") ?? "" }
-          : {}),
+        ...getForwardedWikiApiHeaders(request.headers),
         "Content-Type": "application/json",
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       },
       body: JSON.stringify(body),
       cache: "no-store",
     });
-    const responseBody = await readResponseBody(apiResponse);
+    const responseBody = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
       return NextResponse.json(

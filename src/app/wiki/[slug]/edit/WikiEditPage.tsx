@@ -28,9 +28,8 @@ import {
   defaultWikiImagePerPage,
   type WikiImageListResponse,
   type WikiUploadedImage,
-  wikiImageListResponseSchema,
-  wikiImageUploadResponseSchema,
-} from "../../wikiImages";
+} from "../../wikiImageModel";
+import { fetchWikiImages, uploadWikiImageRequest } from "../../wikiImageBrowserApi";
 import { saveWikiDraft, type WikiSaveResult } from "./saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
@@ -63,22 +62,6 @@ const initialImageLibraryState: ImageLibraryState = {
   pageInfo: null,
   uploadError: null,
 };
-
-const readJsonResponse = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
-const getRouteErrorMessage = (body: unknown, fallback: string): string =>
-  typeof body === "object" &&
-  body !== null &&
-  "message" in body &&
-  typeof (body as { message: unknown }).message === "string"
-    ? (body as { message: string }).message
-    : fallback;
 
 function WikiEditContent({
   data,
@@ -151,18 +134,12 @@ function WikiEditContent({
     }));
 
     try {
-      const response = await fetch(
-        `/api/wiki/images?translationSetIdentifier=${encodeURIComponent(
-          draft.translationSetIdentifier,
-        )}&perPage=${defaultWikiImagePerPage}&page=${page}`,
-      );
-      const body = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(getRouteErrorMessage(body, t.imageLibrary.listLoadFailed));
-      }
-
-      const imagePage = wikiImageListResponseSchema.parse(body);
+      const imagePage = await fetchWikiImages({
+        fallbackErrorMessage: t.imageLibrary.listLoadFailed,
+        page,
+        perPage: defaultWikiImagePerPage,
+        translationSetIdentifier: draft.translationSetIdentifier,
+      });
 
       setImageLibrary((state) => ({
         ...state,
@@ -207,31 +184,19 @@ function WikiEditContent({
     }));
 
     try {
-      const response = await fetch("/api/wiki/images/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          createWikiImageUploadRequest({
-            altText: input.altText,
-            base64EncodedImage: input.base64Image,
-            displayOrder: imageLibrary.images.length + 1,
-            fileName: input.file.name,
-            imageAssociation,
-            rightsConfirmationAgreed: input.rightsConfirmationAgreed,
-            sourceName: input.sourceName,
-            sourceUrl: input.sourceUrl,
-          }),
-        ),
+      await uploadWikiImageRequest({
+        fallbackErrorMessage: t.imageLibrary.uploadFailed,
+        requestBody: createWikiImageUploadRequest({
+          altText: input.altText,
+          base64EncodedImage: input.base64Image,
+          displayOrder: imageLibrary.images.length + 1,
+          fileName: input.file.name,
+          imageAssociation,
+          rightsConfirmationAgreed: input.rightsConfirmationAgreed,
+          sourceName: input.sourceName,
+          sourceUrl: input.sourceUrl,
+        }),
       });
-      const body = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(getRouteErrorMessage(body, t.imageLibrary.uploadFailed));
-      }
-
-      wikiImageUploadResponseSchema.parse(body);
       setImageLibrary((state) => ({
         ...state,
         isUploading: false,
