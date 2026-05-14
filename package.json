@@ -25,7 +25,7 @@
     "@tiptap/react": "^3.22.3",
     "@tiptap/starter-kit": "^3.22.3",
     "@zodios/core": "10.9.6",
-    "next": "16.2.3",
+    "next": "16.2.4",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "zod": "3.25.76"
@@ -44,7 +44,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^9",
-    "eslint-config-next": "16.2.3",
+    "eslint-config-next": "16.2.4",
     "jsdom": "^29.0.2",
     "storybook": "^10.3.5",
     "tailwindcss": "^4.2.2",
