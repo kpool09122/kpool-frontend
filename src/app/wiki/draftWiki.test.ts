@@ -235,8 +235,53 @@ describe("draftWiki", () => {
       expect.objectContaining({
         cache: "no-store",
         headers: {
-          accept: "application/json",
+          Accept: "application/json",
         },
+      }),
+    );
+  });
+
+  it("forwards cookie headers when saving a draft wiki through fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "draft",
+        }),
+        { status: 200 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Accept: "application/json",
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+    const body = {
+      resourceType: "group",
+      basic: { name: "Aurora Echo" },
+      sections: [],
+      themeColor: "#4c5cff",
+    };
+
+    await expect(client!.saveDraftWiki("wiki-1", body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "draft",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/edit",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
       }),
     );
   });

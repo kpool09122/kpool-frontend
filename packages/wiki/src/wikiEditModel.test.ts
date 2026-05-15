@@ -95,18 +95,18 @@ describe("wikiEditModel", () => {
     expect(deleted[0]?.contents).toEqual([]);
   });
 
-  it("converts editable contents into the backend SectionContentMapper array shape", () => {
+  it("converts editable contents into the backend section content array shape", () => {
     const wiki = createMockWikiDetail("aurora-echo");
     const payload = toWikiSectionContentPayload(wiki.sections);
 
     expect(payload[0]).toMatchObject({
       type: "section",
       title: "Overview",
-      display_order: 10,
+      displayOrder: 10,
       contents: [
         {
-          block_type: "text",
-          display_order: 10,
+          type: "text",
+          displayOrder: 10,
           content:
             "Aurora Echo debuted with a performance style built around fluid formations, layered harmonies, and warm retro production.",
         },
@@ -200,46 +200,46 @@ describe("wikiEditModel", () => {
       {
         type: "section",
         title: "Overview",
-        display_order: 10,
+        displayOrder: 10,
         contents: [
           {
-            block_type: "text",
-            display_order: 10,
+            type: "text",
+            displayOrder: 10,
             content: "Aurora Echo keeps a fast release cycle.",
           },
           {
-            block_type: "text",
-            display_order: 20,
+            type: "text",
+            displayOrder: 20,
             content: "[[분류:테스트]]",
           },
           {
-            block_type: "text",
-            display_order: 30,
+            type: "text",
+            displayOrder: 30,
             content: "[* 주석 예시]",
           },
           {
-            block_type: "list",
-            display_order: 40,
-            list_type: "bullet",
+            type: "list",
+            displayOrder: 40,
+            listType: "bullet",
             items: ["Debut single", "Follow-up single"],
           },
           {
             type: "section",
             title: "Highlights",
-            display_order: 50,
+            displayOrder: 50,
             contents: [
               {
-                block_type: "table",
-                display_order: 10,
+                type: "table",
+                displayOrder: 10,
                 headers: ["Release", "Year"],
-                header_cells: [{ content: "Release" }, { content: "Year" }],
+                headerCells: [{ content: "Release" }, { content: "Year" }],
                 rows: [["Low Tide, High Lights", "2022"]],
-                row_cells: [[{ content: "Low Tide, High Lights" }, { content: "2022" }]],
-                table_width: null,
+                rowCells: [[{ content: "Low Tide, High Lights" }, { content: "2022" }]],
+                tableWidth: null,
               },
               {
-                block_type: "text",
-                display_order: 20,
+                type: "text",
+                displayOrder: 20,
                 content: "[include(틀:Discography)]",
               },
             ],
@@ -323,13 +323,13 @@ describe("wikiEditModel", () => {
       {
         type: "section",
         title: "Overview",
-        display_order: 10,
+        displayOrder: 10,
         contents: [
           {
-            block_type: "embed",
-            display_order: 10,
+            type: "embed",
+            displayOrder: 10,
             provider: "youtube",
-            embed_id: "jNQXAC9IVRw",
+            embedId: "jNQXAC9IVRw",
             caption: null,
           },
         ],
@@ -355,16 +355,16 @@ describe("wikiEditModel", () => {
       {
         type: "section",
         title: "Highlights",
-        display_order: 10,
+        displayOrder: 10,
         contents: [
           {
-            block_type: "table",
-            display_order: 10,
+            type: "table",
+            displayOrder: 10,
             headers: ["Release", "Year"],
-            header_cells: [{ content: "Release" }, { content: "Year" }],
+            headerCells: [{ content: "Release" }, { content: "Year" }],
             rows: [["Aurora Echo"]],
-            row_cells: [[{ content: "Aurora Echo", colspan: 2 }]],
-            table_width: 320,
+            rowCells: [[{ content: "Aurora Echo", colspan: 2 }]],
+            tableWidth: 320,
           },
         ],
       },
