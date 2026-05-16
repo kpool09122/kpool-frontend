@@ -750,12 +750,22 @@ const endpoints = makeApi([
         type: "Query",
         schema: z.string().optional(),
       },
+      {
+        name: "onlyMine",
+        type: "Query",
+        schema: z.boolean().optional(),
+      },
     ],
     response: ListDraftWikisResponseBody,
     errors: [
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
