@@ -11,7 +11,6 @@ const createUploadBody = (base64EncodedImage = "aGVsbG8=") => ({
   resourceType: "group",
   translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
   base64EncodedImage,
-  imageUsage: "profile",
   displayOrder: 1,
   sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
   sourceName: "Wikimedia Commons",
@@ -121,7 +120,6 @@ describe("wiki image upload route", () => {
         {
           imageIdentifier: "44444444-4444-4444-4444-444444444444",
           resourceType: "group",
-          imageUsage: "profile",
           status: "draft",
         },
         201,

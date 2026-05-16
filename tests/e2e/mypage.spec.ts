@@ -20,7 +20,6 @@ test("mypage shows the Wiki collaborator activation path", async ({ page }) => {
       body: JSON.stringify({ message: "Wiki principal was not found." }),
     });
   });
-
   await page.goto("/mypage");
 
   await expect(page.getByRole("heading", { name: "Wiki", level: 1 })).toBeVisible();
@@ -47,6 +46,7 @@ test("mypage shows the Wiki collaborator activation path", async ({ page }) => {
 test("mypage shows under review draft images for an available Wiki principal", async ({ page }) => {
   await useJapaneseLocale(page);
   const draftImageRequests: string[] = [];
+  const draftWikiRequests: string[] = [];
 
   await page.route("**/api/wiki/principal/me", async (route) => {
     await route.fulfill({
@@ -90,7 +90,6 @@ test("mypage shows under review draft images for an available Wiki principal", a
             url: "https://images.example.test/review.png",
             resourceType: "group",
             translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
-            imageUsage: "wiki_editor",
             displayOrder: 1,
             sourceUrl: "https://source.example.test/review.png",
             sourceName: "K-Pool archive",
@@ -113,6 +112,41 @@ test("mypage shows under review draft images for an available Wiki principal", a
       }),
     });
   });
+  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+    draftWikiRequests.push(route.request().url());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        wikis: [
+          {
+            wikiIdentifier: "88888888-8888-8888-8888-888888888888",
+            publishedWikiIdentifier: null,
+            translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+            slug: "gr-review-wiki",
+            language: "ja",
+            resourceType: "group",
+            themeColor: "#4c5cff",
+            status: "pending",
+            name: "編集中 Wiki",
+            normalizedName: "editing-wiki",
+            imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            imageUrl: "https://images.example.test/editing-wiki.webp",
+            imageAltText: "編集中 Wiki profile",
+            editedAt: "2026-05-10T00:00:00Z",
+            updatedAt: "2026-05-11T00:00:00Z",
+            approvedAt: null,
+            translatedAt: null,
+            mergedAt: null,
+          },
+        ],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+  });
   await page.route("**/api/wiki/draft-images/*/approve", async (route) => {
     approveRequests += 1;
     await route.fulfill({
@@ -121,15 +155,22 @@ test("mypage shows under review draft images for an available Wiki principal", a
       body: JSON.stringify({
         imageIdentifier: "44444444-4444-4444-4444-444444444444",
         resourceType: "group",
-        imageUsage: "wiki_editor",
         status: "approved",
       }),
     });
   });
-
   await page.goto("/mypage");
 
   await expect(page.getByRole("heading", { name: "Wiki", level: 1 })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "編集中のWiki" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+    "href",
+    "/wiki/ja/gr-review-wiki/edit",
+  );
+  await page.getByRole("tab", { name: "未承認の画像" }).click();
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
     "aria-selected",
     "true",
@@ -149,8 +190,87 @@ test("mypage shows under review draft images for an available Wiki principal", a
   await page.getByRole("button", { name: "承認" }).click();
   await expect(page.getByText("未承認の画像はありません")).toBeVisible();
   expect(approveRequests).toBe(1);
+  expect(draftWikiRequests[0]).toContain("status=pending");
+  expect(draftWikiRequests[0]).toContain("onlyMine=true");
   expect(draftImageRequests[0]).toContain("status=under_review");
   expect(draftImageRequests[0]).not.toContain("pending");
+});
+
+test("mypage shows unapproved draft wikis only for reviewer principals", async ({ page }) => {
+  await useJapaneseLocale(page);
+  const draftWikiRequests: string[] = [];
+
+  await page.route("**/api/wiki/principal/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        principalIdentifier: "33333333-3333-3333-3333-333333333333",
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        isDelegatedPrincipal: false,
+        isEnabled: true,
+        policies: [
+          {
+            policyIdentifier: "66666666-6666-6666-6666-666666666666",
+            name: "GROUP_MANAGEMENT",
+            isSystemPolicy: true,
+            statements: [
+              {
+                effect: "allow",
+                actions: ["APPROVE", "REJECT"],
+                resourceTypes: ["GROUP"],
+                condition: null,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+  });
+  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+    draftWikiRequests.push(route.request().url());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        wikis: [
+          {
+            wikiIdentifier: "88888888-8888-8888-8888-888888888888",
+            publishedWikiIdentifier: null,
+            translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+            slug: "gr-review-wiki",
+            language: "ja",
+            resourceType: "group",
+            themeColor: "#4c5cff",
+            status: "under_review",
+            name: "未承認 Wiki",
+            normalizedName: "unapproved-wiki",
+            imageIdentifier: null,
+            imageUrl: null,
+            imageAltText: null,
+            editedAt: "2026-05-10T00:00:00Z",
+            updatedAt: "2026-05-11T00:00:00Z",
+            approvedAt: null,
+            translatedAt: null,
+            mergedAt: null,
+          },
+        ],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+  });
+
+  await page.goto("/mypage");
+
+  await expect(page.getByRole("tab", { name: "未承認のWiki" })).toBeVisible();
+  await page.getByRole("tab", { name: "未承認のWiki" }).click();
+  await expect(page.getByRole("link", { name: "未承認 Wiki" })).toBeVisible();
+  expect(draftWikiRequests.at(-1)).toContain("status=under_review");
+  expect(draftWikiRequests.at(-1)).not.toContain("onlyMine=true");
+  await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
 });
 
 test("mypage hides draft image review for principals without image policies", async ({ page }) => {
@@ -184,10 +304,23 @@ test("mypage hides draft image review for principals without image policies", as
     });
   });
 
+  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        wikis: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 12,
+      }),
+    });
+  });
+
   await page.goto("/mypage");
 
-  await expect(
-    page.getByRole("heading", { name: "利用できる Wiki 機能がありません" }),
-  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "編集中のWiki" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "未承認のWiki" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
 });

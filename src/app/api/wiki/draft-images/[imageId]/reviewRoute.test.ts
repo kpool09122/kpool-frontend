@@ -41,7 +41,6 @@ describe("wiki draft image review route", () => {
       jsonResponse({
         imageIdentifier: imageId,
         resourceType: "group",
-        imageUsage: "wiki_editor",
         status: "approved",
       }),
     );
@@ -75,7 +74,6 @@ describe("wiki draft image review route", () => {
       jsonResponse({
         imageIdentifier: imageId,
         resourceType: "group",
-        imageUsage: "wiki_editor",
         isHidden: false,
       }),
     );

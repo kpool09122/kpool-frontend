@@ -30,7 +30,6 @@ describe("wikiImageBrowserApi", () => {
       jsonResponse({
         imageIdentifier,
         resourceType: "group",
-        imageUsage: "wiki_editor",
         status: "approved",
       }),
     );
@@ -98,7 +97,6 @@ describe("wikiImageBrowserApi", () => {
         {
           imageIdentifier,
           resourceType: "group",
-          imageUsage: "wiki_editor",
           status: "draft",
         },
         201,
@@ -125,7 +123,6 @@ describe("wikiImageBrowserApi", () => {
       jsonResponse({
         imageIdentifier,
         resourceType: "group",
-        imageUsage: "wiki_editor",
         isHidden: false,
       }),
     );

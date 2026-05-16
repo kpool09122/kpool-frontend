@@ -3,6 +3,7 @@ import type {
   fetchWikiDraftImages,
   rejectWikiDraftImage,
 } from "../wiki/wikiImageBrowserApi";
+import type { fetchWikiDraftWikis } from "../wiki/draftWiki";
 import type {
   createWikiPrincipal,
   getCurrentWikiPrincipal,
@@ -17,4 +18,8 @@ export type MyPageDraftImageAdapter = {
   approveDraftImage: typeof approveWikiDraftImage;
   listDraftImages: typeof fetchWikiDraftImages;
   rejectDraftImage: typeof rejectWikiDraftImage;
+};
+
+export type MyPageDraftWikiAdapter = {
+  listDraftWikis: typeof fetchWikiDraftWikis;
 };

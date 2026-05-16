@@ -22,6 +22,8 @@ export type WikiPrincipalState =
   | { status: "error"; message: string };
 
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
+type WikiReviewAction = "APPROVE" | "REJECT";
+type WikiReviewResourceType = "AGENCY" | "GROUP" | "IMAGE" | "SONG" | "TALENT";
 
 type FetchAdapter = typeof fetch;
 
@@ -71,8 +73,8 @@ const valueMatches = (values: string[], target: string): boolean => {
 
 const statementMatches = (
   statement: WikiPolicyStatement,
-  action: "APPROVE" | "REJECT",
-  resourceType: "IMAGE",
+  action: WikiReviewAction,
+  resourceType: WikiReviewResourceType,
 ): boolean =>
   valueMatches(statement.actions, action) &&
   valueMatches(statement.resourceTypes, resourceType);
@@ -80,8 +82,8 @@ const statementMatches = (
 const hasMatchingStatement = (
   principal: WikiPrincipalSummary,
   effect: "ALLOW" | "DENY",
-  action: "APPROVE" | "REJECT",
-  resourceType: "IMAGE",
+  action: WikiReviewAction,
+  resourceType: WikiReviewResourceType,
 ): boolean =>
   principal.policies.some((policy) =>
     policy.statements.some(
@@ -93,8 +95,8 @@ const hasMatchingStatement = (
 
 const isAllowedWithoutDeny = (
   principal: WikiPrincipalSummary,
-  action: "APPROVE" | "REJECT",
-  resourceType: "IMAGE",
+  action: WikiReviewAction,
+  resourceType: WikiReviewResourceType,
 ): boolean =>
   hasMatchingStatement(principal, "ALLOW", action, resourceType) &&
   !hasMatchingStatement(principal, "DENY", action, resourceType);
@@ -102,6 +104,15 @@ const isAllowedWithoutDeny = (
 export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
   isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
+
+const draftWikiReviewResourceTypes = ["AGENCY", "GROUP", "SONG", "TALENT"] as const;
+
+export const canReviewWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
+  draftWikiReviewResourceTypes.some(
+    (resourceType) =>
+      isAllowedWithoutDeny(principal, "APPROVE", resourceType) &&
+      isAllowedWithoutDeny(principal, "REJECT", resourceType),
+  );
 
 const readResponseBody = async (response: ResponseLike): Promise<unknown> => {
   try {
