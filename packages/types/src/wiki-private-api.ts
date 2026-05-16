@@ -48,6 +48,40 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
+const DraftWikiStatus = z.enum([
+  "approved",
+  "pending",
+  "rejected",
+  "under_review",
+]);
+const DraftWikiListItem = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    publishedWikiIdentifier: KPool_Common_Uuid.nullable(),
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    themeColor: z.string().nullable(),
+    status: DraftWikiStatus,
+    name: z.string(),
+    normalizedName: z.string(),
+    editedAt: z.string().nullable(),
+    updatedAt: z.string().nullable(),
+    approvedAt: z.string().nullable(),
+    translatedAt: z.string().nullable(),
+    mergedAt: z.string().nullable(),
+  })
+  .passthrough();
+const ListDraftWikisResponseBody = z
+  .object({
+    wikis: z.array(DraftWikiListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
 const UploadImageRequestBody = z
   .object({
     publishedImageIdentifier: KPool_Common_Uuid.optional(),
@@ -583,6 +617,9 @@ export const schemas = {
   DraftImageListItem,
   ListDraftImagesResponseBody,
   KPool_Common_ProblemDetails,
+  DraftWikiStatus,
+  DraftWikiListItem,
+  ListDraftWikisResponseBody,
   UploadImageRequestBody,
   ImageDraftSummary,
   ReviewImageHideRequestBody,
@@ -668,6 +705,53 @@ const endpoints = makeApi([
       },
     ],
     response: ListDraftImagesResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/draft-wikis",
+    alias: "DraftWikiListOperations_listDraftWikis",
+    description: `List draft wikis.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+      {
+        name: "translationSetIdentifier",
+        type: "Query",
+        schema: z.string().uuid().optional(),
+      },
+      {
+        name: "status",
+        type: "Query",
+        schema: z.enum(["approved", "pending", "rejected", "under_review"]),
+      },
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+    ],
+    response: ListDraftWikisResponseBody,
     errors: [
       {
         status: 401,
