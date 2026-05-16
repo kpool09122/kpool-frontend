@@ -129,6 +129,7 @@ export const saveDraftWiki = async (
 
 export const createDraftWikiApiClient = (
   baseUrl: string = defaultApiBaseUrl ?? "",
+  forwardedHeaders: HeadersInit = {},
 ): DraftWikiApiClient | null => {
   const apiBaseUrl = baseUrl ? withWikiApiPrefix(baseUrl) : "";
 
@@ -140,7 +141,8 @@ export const createDraftWikiApiClient = (
             `${apiBaseUrl}${getDraftWikiEndpointPath(language, resourceType, slug)}`,
             {
               headers: {
-                accept: "application/json",
+                ...forwardedHeaders,
+                Accept: "application/json",
               },
               cache: "no-store",
             },
@@ -160,7 +162,8 @@ export const createDraftWikiApiClient = (
             {
               method: "POST",
               headers: {
-                accept: "application/json",
+                ...forwardedHeaders,
+                Accept: "application/json",
                 "Content-Type": "application/json",
               },
               body: JSON.stringify(body),

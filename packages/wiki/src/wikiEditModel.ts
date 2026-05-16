@@ -16,28 +16,28 @@ export type WikiSectionContentPayload =
   | {
       type: "section";
       title: string;
-      display_order: number;
+      displayOrder: number;
       contents: WikiSectionContentPayload[];
     }
   | {
-      block_type: WikiBlockType;
-      display_order: number;
+      type: WikiBlockType;
+      displayOrder: number;
       content?: string;
-      image_identifier?: string;
-      image_identifiers?: string[];
+      imageIdentifier?: string;
+      imageIdentifiers?: string[];
       caption?: string | null;
       alt?: string | null;
       provider?: string;
-      embed_id?: string;
+      embedId?: string;
       source?: string | null;
-      list_type?: string;
+      listType?: string;
       items?: string[];
       rows?: string[][];
       headers?: string[] | null;
-      row_cells?: Array<Array<{ content: string; colspan?: number }>>;
-      header_cells?: Array<{ content: string; colspan?: number }> | null;
-      table_width?: number | null;
-      wiki_identifiers?: string[];
+      rowCells?: Array<Array<{ content: string; colspan?: number }>>;
+      headerCells?: Array<{ content: string; colspan?: number }> | null;
+      tableWidth?: number | null;
+      wikiIdentifiers?: string[];
       title?: string | null;
     };
 
@@ -1350,7 +1350,7 @@ const toWikiContentPayload = (
     return {
       type: "section",
       title: content.title,
-      display_order: content.displayOrder,
+      displayOrder: content.displayOrder,
       contents: sortWikiSectionContents(content.contents).map(toWikiContentPayload),
     };
   }
@@ -1358,62 +1358,62 @@ const toWikiContentPayload = (
   switch (content.blockType) {
     case "text":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
         content: content.content,
       };
     case "image":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
-        image_identifier: content.imageIdentifier,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
+        imageIdentifier: content.imageIdentifier,
         caption: content.caption,
         alt: content.alt,
       };
     case "image_gallery":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
-        image_identifiers: content.images.map((image) => image.imageIdentifier),
+        type: content.blockType,
+        displayOrder: content.displayOrder,
+        imageIdentifiers: content.images.map((image) => image.imageIdentifier),
         caption: content.caption,
       };
     case "embed":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
         provider: content.provider,
-        embed_id: content.embedId,
+        embedId: content.embedId,
         caption: content.caption,
       };
     case "quote":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
         content: content.content,
         source: content.source,
       };
     case "list":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
-        list_type: content.listType,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
+        listType: content.listType,
         items: content.items,
       };
     case "table":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
         rows: content.rows,
         headers: content.headers,
-        row_cells: content.rowCells,
-        header_cells: content.headerCells ?? null,
-        table_width: content.tableWidth ?? null,
+        rowCells: content.rowCells,
+        headerCells: content.headerCells ?? null,
+        tableWidth: content.tableWidth ?? null,
       };
     case "profile_card_list":
       return {
-        block_type: content.blockType,
-        display_order: content.displayOrder,
-        wiki_identifiers: content.wikiIdentifiers,
+        type: content.blockType,
+        displayOrder: content.displayOrder,
+        wikiIdentifiers: content.wikiIdentifiers,
         title: content.title,
       };
   }
