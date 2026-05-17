@@ -277,7 +277,6 @@ test("wiki edit page opens the image library and submits an image usage request"
                   resourceType: "group",
                   wikiIdentifier: "gr-aurora-echo",
                   translationSetIdentifier: "translation-set-aurora-echo",
-                  imageUsage: "wiki_editor",
                   displayOrder: 1,
                   sourceUrl: "https://source.example.test/image-1",
                   sourceName: "cover.jpg",
@@ -299,7 +298,6 @@ test("wiki edit page opens the image library and submits an image usage request"
                   resourceType: "group",
                   wikiIdentifier: "gr-aurora-echo",
                   translationSetIdentifier: "translation-set-aurora-echo",
-                  imageUsage: "wiki_editor",
                   displayOrder: 2,
                   sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
                   sourceName: "Wikimedia Commons",
@@ -324,7 +322,6 @@ test("wiki edit page opens the image library and submits an image usage request"
       body: JSON.stringify({
         imageIdentifier: "image-uploaded",
         resourceType: "group",
-        imageUsage: "wiki_editor",
         status: "draft",
       }),
     });
@@ -364,7 +361,6 @@ test("wiki edit page opens the image library and submits an image usage request"
   await expect.poll(() => uploadRequestBody).toEqual(
     expect.objectContaining({
       altText: "Stage upload",
-      imageUsage: "profile",
       resourceType: "group",
       rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",

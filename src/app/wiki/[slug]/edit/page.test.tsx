@@ -90,7 +90,6 @@ describe("WikiEditPage", () => {
                 resourceType: "group",
                 wikiIdentifier: "gr-aurora-echo",
                 translationSetIdentifier: "translation-set-aurora-echo",
-                imageUsage: "wiki_editor",
                 displayOrder: 1,
                 sourceUrl: "https://source.example.test/image-1",
                 sourceName: "cover.jpg",
@@ -117,7 +116,6 @@ describe("WikiEditPage", () => {
                 resourceType: "group",
                 wikiIdentifier: "gr-aurora-echo",
                 translationSetIdentifier: "translation-set-aurora-echo",
-                imageUsage: "wiki_editor",
                 displayOrder: 2,
                 sourceUrl: "https://source.example.test/image-2",
                 sourceName: "stage.webp",
@@ -180,7 +178,6 @@ describe("WikiEditPage", () => {
               resourceType: "group",
               wikiIdentifier: "gr-aurora-echo",
               translationSetIdentifier: "translation-set-aurora-echo",
-              imageUsage: "wiki_editor",
               displayOrder: 1,
               sourceUrl: "https://source.example.test/image-1",
               sourceName: "cover.jpg",
@@ -273,7 +270,6 @@ describe("WikiEditPage", () => {
           JSON.stringify({
             imageIdentifier: "uploaded-image",
             resourceType: "group",
-            imageUsage: "wiki_editor",
             status: "draft",
           }),
           { status: 201 },
@@ -289,7 +285,6 @@ describe("WikiEditPage", () => {
                 resourceType: "group",
                 wikiIdentifier: "gr-aurora-echo",
                 translationSetIdentifier: "translation-set-aurora-echo",
-                imageUsage: "wiki_editor",
                 displayOrder: 1,
                 sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
                 sourceName: "Wikimedia Commons",
@@ -369,7 +364,6 @@ describe("WikiEditPage", () => {
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual(
       expect.objectContaining({
         altText: "Stage upload",
-        imageUsage: "profile",
         rightsConfirmationAgreed: true,
         sourceName: "Wikimedia Commons",
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",

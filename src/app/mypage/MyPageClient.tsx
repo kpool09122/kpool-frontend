@@ -3,16 +3,22 @@
 import type { IdentitySummary } from "../identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useI18n } from "../i18n/I18nProvider";
 import type { Locale } from "../i18n/locales";
 import {
   canReviewWikiDraftImages,
+  canReviewWikiDraftWikis,
   createWikiPrincipal,
   getCurrentWikiPrincipal,
   type WikiPrincipalState,
 } from "../wiki/wikiPrincipal";
+import {
+  fetchWikiDraftWikis,
+  type WikiDraftWiki,
+} from "../wiki/draftWiki";
+import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
 import {
   approveWikiDraftImage,
   fetchWikiDraftImages,
@@ -28,19 +34,28 @@ import {
   type DraftImageListState,
   useMyPageDraftImageReview,
 } from "./useMyPageDraftImageReview";
+import {
+  initialDraftWikiListState,
+  type DraftWikiListState,
+  type MyPageDraftWikiTab,
+  useMyPageDraftWikis,
+} from "./useMyPageDraftWikis";
 import type {
   MyPageDraftImageAdapter,
+  MyPageDraftWikiAdapter,
   MyPagePrincipalAdapter,
 } from "./myPageAdapters";
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
-type MyPageWikiTab = "draftImages";
+type MyPageWikiTab = MyPageDraftWikiTab | "draftImages";
 
 type MyPageClientProps = {
   initialIdentity: IdentitySummary | null;
   initialDraftImages?: DraftImageListState;
+  initialDraftWikis?: Record<MyPageDraftWikiTab, DraftWikiListState>;
   initialPrincipalState?: WikiPrincipalState;
   draftImageAdapter?: MyPageDraftImageAdapter;
+  draftWikiAdapter?: MyPageDraftWikiAdapter;
   principalAdapter?: MyPagePrincipalAdapter;
 };
 
@@ -55,21 +70,38 @@ const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
   rejectDraftImage: rejectWikiDraftImage,
 };
 
+const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
+  listDraftWikis: fetchWikiDraftWikis,
+};
+
+const initialDraftWikiLists: Record<MyPageDraftWikiTab, DraftWikiListState> = {
+  editingWikis: initialDraftWikiListState,
+  submittedWikis: initialDraftWikiListState,
+  unapprovedWikis: initialDraftWikiListState,
+};
+
 const selectedSectionClass = "bg-brand-highlight/70 text-text-strong";
 
 const isActionPending = (state: WikiPrincipalState): boolean =>
   state.status === "loading";
 
+const createWikiTab = (id: MyPageWikiTab, label: string): { id: MyPageWikiTab; label: string } => ({
+  id,
+  label,
+});
+
 export function MyPageClient({
   draftImageAdapter = defaultDraftImageAdapter,
+  draftWikiAdapter = defaultDraftWikiAdapter,
   initialDraftImages = initialDraftImageListState,
+  initialDraftWikis = initialDraftWikiLists,
   initialIdentity,
   initialPrincipalState = { status: "idle" },
   principalAdapter = defaultPrincipalAdapter,
 }: MyPageClientProps) {
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
-  const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("draftImages");
+  const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("editingWikis");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const draftImageMessages = useMemo(() => ({
     draftImageApproveFailed: t.draftImageApproveFailed,
@@ -87,9 +119,20 @@ export function MyPageClient({
     initialDraftImages,
     messages: draftImageMessages,
   });
-  const loadFirstDraftImagesPage = useCallback(
-    () => loadDraftImagesPage(1),
-    [loadDraftImagesPage],
+  const draftWikiMessages = useMemo(() => ({
+    draftWikiListLoadFailed: t.draftWikiListLoadFailed,
+  }), [t.draftWikiListLoadFailed]);
+  const {
+    draftWikis,
+    loadDraftWikisPage,
+  } = useMyPageDraftWikis({
+    adapter: draftWikiAdapter,
+    initialDraftWikis,
+    messages: draftWikiMessages,
+  });
+  const loadFirstDraftWikiPage = useCallback(
+    () => loadDraftWikisPage("editingWikis", 1),
+    [loadDraftWikisPage],
   );
   const principalMessages = useMemo(() => ({
     accountUnavailableMessage: t.accountUnavailableMessage,
@@ -105,7 +148,7 @@ export function MyPageClient({
     initialIdentity,
     initialPrincipalState,
     messages: principalMessages,
-    onReviewReady: loadFirstDraftImagesPage,
+    onPrincipalReady: loadFirstDraftWikiPage,
   });
 
   return (
@@ -158,6 +201,7 @@ export function MyPageClient({
           <WikiPrincipalPanel
             accountIdentifier={accountIdentifier}
             draftImages={draftImages}
+            draftWikis={draftWikis}
             locale={locale}
             reviewError={reviewError}
             reviewingImageIdentifier={reviewingImageIdentifier}
@@ -168,6 +212,7 @@ export function MyPageClient({
             t={t}
             onActivate={() => void activateWikiPrincipal()}
             onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
+            onLoadDraftWikisPage={(tab, page) => void loadDraftWikisPage(tab, page)}
             onRetry={() => void loadCurrentPrincipal()}
             onReviewDraftImage={(imageIdentifier, action) =>
               void reviewDraftImage(imageIdentifier, action)
@@ -183,6 +228,7 @@ export function MyPageClient({
 function WikiPrincipalPanel({
   accountIdentifier,
   draftImages,
+  draftWikis,
   locale,
   reviewError,
   reviewingImageIdentifier,
@@ -193,12 +239,14 @@ function WikiPrincipalPanel({
   t,
   onActivate,
   onLoadDraftImagesPage,
+  onLoadDraftWikisPage,
   onRetry,
   onReviewDraftImage,
   onSelectWikiTab,
 }: {
   accountIdentifier: string | null;
   draftImages: DraftImageListState;
+  draftWikis: Record<MyPageDraftWikiTab, DraftWikiListState>;
   locale: Locale;
   reviewError: string | null;
   reviewingImageIdentifier: string | null;
@@ -209,6 +257,7 @@ function WikiPrincipalPanel({
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onActivate: () => void;
   onLoadDraftImagesPage: (page: number) => void;
+  onLoadDraftWikisPage: (tab: MyPageDraftWikiTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
@@ -228,41 +277,48 @@ function WikiPrincipalPanel({
 
   if (state.status === "available") {
     const canReviewDraftImages = canReviewWikiDraftImages(state.principal);
+    const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
 
-    if (!canReviewDraftImages) {
-      return (
-        <div className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
-          <h2 className="text-xl font-semibold">{t.wikiReviewUnavailableTitle}</h2>
-          <p className="mt-3 text-sm leading-7 text-text-muted">
-            {t.wikiReviewUnavailableMessage}
-          </p>
-        </div>
-      );
-    }
+    const tabs: Array<{ id: MyPageWikiTab; label: string }> = [
+      createWikiTab("editingWikis", t.editingWikisTab),
+      createWikiTab("submittedWikis", t.submittedWikisTab),
+      ...(canReviewDraftWikis ? [createWikiTab("unapprovedWikis", t.unapprovedWikisTab)] : []),
+      ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
+    ];
+    const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)
+      ? selectedWikiTab
+      : tabs[0].id;
 
     return (
       <section className="space-y-5">
         <div className="overflow-x-auto border-b border-stroke-subtle">
           <div aria-label={t.wikiTabsLabel} className="-mb-px flex gap-1" role="tablist">
-            <button
-              aria-selected={selectedWikiTab === "draftImages"}
-              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                selectedWikiTab === "draftImages"
-                  ? "border-brand-primary text-text-strong"
-                  : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
-              }`}
-              onClick={() => {
-                onSelectWikiTab("draftImages");
-                onLoadDraftImagesPage(1);
-              }}
-              role="tab"
-              type="button"
-            >
-              {t.draftImagesTab}
-            </button>
+            {tabs.map((tab) => (
+              <button
+                aria-selected={activeWikiTab === tab.id}
+                className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                  activeWikiTab === tab.id
+                    ? "border-brand-primary text-text-strong"
+                    : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
+                }`}
+                key={tab.id}
+                onClick={() => {
+                  onSelectWikiTab(tab.id);
+                  if (tab.id === "draftImages") {
+                    onLoadDraftImagesPage(1);
+                  } else {
+                    onLoadDraftWikisPage(tab.id, 1);
+                  }
+                }}
+                role="tab"
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
-        {selectedWikiTab === "draftImages" ? (
+        {activeWikiTab === "draftImages" ? (
           <DraftImageListPanel
             locale={locale}
             reviewError={reviewError}
@@ -276,6 +332,21 @@ function WikiPrincipalPanel({
             }}
             onReload={() => onLoadDraftImagesPage(1)}
             onReviewDraftImage={onReviewDraftImage}
+          />
+        ) : null}
+        {activeWikiTab !== "draftImages" ? (
+          <DraftWikiListPanel
+            state={draftWikis[activeWikiTab]}
+            t={t}
+            tab={activeWikiTab}
+            onLoadMore={() => {
+              const pageInfo = draftWikis[activeWikiTab].pageInfo;
+
+              if (pageInfo) {
+                onLoadDraftWikisPage(activeWikiTab, pageInfo.current_page + 1);
+              }
+            }}
+            onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
           />
         ) : null}
       </section>
@@ -320,6 +391,160 @@ function WikiPrincipalPanel({
         {t.activateWiki}
       </button>
     </div>
+  );
+}
+
+function DraftWikiListPanel({
+  state,
+  t,
+  tab,
+  onLoadMore,
+  onReload,
+}: {
+  state: DraftWikiListState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  tab: MyPageDraftWikiTab;
+  onLoadMore: () => void;
+  onReload: () => void;
+}) {
+  const canLoadMore = state.pageInfo
+    ? state.pageInfo.current_page < state.pageInfo.last_page
+    : false;
+  const isBusy = state.isInitialLoading || state.isLoadingMore;
+  const messages = getDraftWikiListMessages(t, tab);
+
+  if (state.loadError) {
+    return (
+      <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <p role="alert" className="font-semibold">{state.loadError}</p>
+        <button
+          className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold transition hover:bg-red-100"
+          onClick={onReload}
+          type="button"
+        >
+          {t.reloadDraftWikis}
+        </button>
+      </div>
+    );
+  }
+
+  if (state.isInitialLoading) {
+    return (
+      <div className="mt-5 grid min-h-40 place-items-center rounded-lg border border-dashed border-stroke-subtle text-sm font-semibold text-text-muted">
+        {messages.loading}
+      </div>
+    );
+  }
+
+  if (state.wikis.length === 0) {
+    return (
+      <div className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-6 text-center">
+        <p className="font-semibold">{messages.emptyTitle}</p>
+        <p className="mt-2 text-sm text-text-muted">{messages.emptyMessage}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 space-y-5">
+      {state.pageInfo ? (
+        <p className="text-sm font-semibold text-text-muted">
+          {messages.total(state.pageInfo.total)}
+        </p>
+      ) : null}
+      <div className="grid gap-4 md:grid-cols-2">
+        {state.wikis.map((wiki) => (
+          <DraftWikiCard key={wiki.wikiIdentifier} t={t} wiki={wiki} />
+        ))}
+      </div>
+      <div className="flex justify-center">
+        {canLoadMore ? (
+          <button
+            className="rounded-lg border border-stroke-subtle px-5 py-2.5 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isBusy}
+            onClick={onLoadMore}
+            type="button"
+          >
+            {state.isLoadingMore ? t.draftWikiListLoadingMore : t.loadMoreDraftWikis}
+          </button>
+        ) : (
+          <p className="text-sm font-semibold text-text-muted">{t.allDraftWikisLoaded}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DraftWikiCard({
+  t,
+  wiki,
+}: {
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  wiki: WikiDraftWiki;
+}) {
+  const hasImage = Boolean(wiki.imageUrl);
+
+  return (
+    <article
+      className="wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft"
+      style={buildDraftWikiCardStyle(wiki)}
+    >
+      <div className="relative z-10">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="break-words text-base font-semibold">
+              <a
+                className="text-brand-primary underline underline-offset-4"
+                href={getDraftWikiHref(wiki)}
+                style={{ color: hasImage ? "#fffaf4" : undefined }}
+              >
+                {wiki.name}
+              </a>
+            </h3>
+            <p
+              className="mt-1 text-xs font-semibold uppercase text-text-muted"
+              style={{ color: hasImage ? "rgba(255, 250, 244, 0.78)" : undefined }}
+            >
+              {wiki.language}
+            </p>
+          </div>
+          <span
+            className="shrink-0 rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted"
+            style={{
+              backgroundColor: hasImage
+                ? "rgba(255, 255, 255, 0.86)"
+                : wiki.themeColor
+                  ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
+                  : undefined,
+              color: hasImage
+                ? "#15243b"
+                : wiki.themeColor
+                  ? "var(--wiki-accent-text)"
+                  : undefined,
+            }}
+          >
+            {getDraftWikiResourceLabel(t, wiki.resourceType)}
+          </span>
+        </div>
+        <dl className="mt-4 grid gap-3 text-sm">
+          <DraftWikiMeta
+            isOnImage={hasImage}
+            label={t.draftWikiStatusLabel}
+            value={getDraftWikiStatusLabel(t, wiki.status)}
+          />
+          <DraftWikiMeta
+            isOnImage={hasImage}
+            label={t.draftWikiEditedAtLabel}
+            value={formatDraftWikiDate(wiki.editedAt)}
+          />
+          <DraftWikiMeta
+            isOnImage={hasImage}
+            label={t.draftWikiUpdatedAtLabel}
+            value={formatDraftWikiDate(wiki.updatedAt)}
+          />
+        </dl>
+      </div>
+    </article>
   );
 }
 
@@ -472,6 +697,109 @@ function DraftImageListPanel({
     </div>
   );
 }
+
+function DraftWikiMeta({
+  isOnImage = false,
+  label,
+  value,
+}: {
+  isOnImage?: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <dt
+        className="font-semibold text-text-muted"
+        style={{ color: isOnImage ? "rgba(255, 250, 244, 0.72)" : undefined }}
+      >
+        {label}
+      </dt>
+      <dd
+        className="mt-1 break-words text-text-strong"
+        style={{ color: isOnImage ? "rgba(255, 250, 244, 0.94)" : undefined }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+const getDraftWikiListMessages = (
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"],
+  tab: MyPageDraftWikiTab,
+) => {
+  if (tab === "editingWikis") {
+    return {
+      emptyMessage: t.editingWikiListEmptyMessage,
+      emptyTitle: t.editingWikiListEmptyTitle,
+      loading: t.editingWikiListLoading,
+      total: t.editingWikiListTotal,
+    };
+  }
+
+  if (tab === "submittedWikis") {
+    return {
+      emptyMessage: t.submittedWikiListEmptyMessage,
+      emptyTitle: t.submittedWikiListEmptyTitle,
+      loading: t.submittedWikiListLoading,
+      total: t.submittedWikiListTotal,
+    };
+  }
+
+  return {
+    emptyMessage: t.unapprovedWikiListEmptyMessage,
+    emptyTitle: t.unapprovedWikiListEmptyTitle,
+    loading: t.unapprovedWikiListLoading,
+    total: t.unapprovedWikiListTotal,
+  };
+};
+
+const getDraftWikiHref = (wiki: WikiDraftWiki): string =>
+  `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+
+const buildDraftWikiCardStyle = (wiki: WikiDraftWiki): CSSProperties | undefined => {
+  if (wiki.imageUrl) {
+    return {
+      backgroundColor: "#15243b",
+      backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${wiki.imageUrl.replaceAll("\"", "%22")}")`,
+      borderColor: "rgba(255, 255, 255, 0.22)",
+    };
+  }
+
+  const themeVariables = buildWikiThemeCssVariables(wiki.themeColor);
+
+  if (!themeVariables) {
+    return undefined;
+  }
+
+  return {
+    ...themeVariables,
+    backgroundColor: "var(--wiki-card-background, var(--surface-raised))",
+    backgroundImage: "var(--wiki-page-background)",
+    borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
+  };
+};
+
+const getDraftWikiResourceLabel = (
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"],
+  resourceType: string,
+): string => (t.draftWikiResourceLabels as Record<string, string>)[resourceType] ?? resourceType;
+
+const getDraftWikiStatusLabel = (
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"],
+  status: WikiDraftWiki["status"],
+): string => (t.draftWikiStatusLabels as Record<string, string>)[status] ?? status;
+
+const formatDraftWikiDate = (value: string | null): string => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+};
 
 function DraftImageMeta({ label, value }: { label: string; value: string }) {
   return (

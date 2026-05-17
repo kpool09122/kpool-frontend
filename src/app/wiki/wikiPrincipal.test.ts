@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   canReviewWikiDraftImages,
+  canReviewWikiDraftWikis,
   createWikiPrincipal,
   getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
@@ -250,5 +251,62 @@ describe("wiki principal helpers", () => {
         ],
       }),
     ).toBe(false);
+  });
+
+  it("allows draft wiki review when approve and reject are allowed for a wiki resource type", () => {
+    expect(
+      canReviewWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "GROUP_MANAGEMENT",
+            resourceTypes: ["GROUP"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("does not allow draft wiki review when matching deny covers the only allowed resource type", () => {
+    expect(
+      canReviewWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "GROUP_MANAGEMENT",
+            resourceTypes: ["GROUP"],
+          }),
+          policy({
+            actions: ["APPROVE"],
+            effect: "deny",
+            name: "DENY_GROUP_APPROVAL",
+            resourceTypes: ["GROUP"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("allows draft wiki review when another resource type remains allowed after a deny", () => {
+    expect(
+      canReviewWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "MANAGEMENT",
+            resourceTypes: ["GROUP", "TALENT"],
+          }),
+          policy({
+            actions: ["REJECT"],
+            effect: "deny",
+            name: "DENY_GROUP_REJECT",
+            resourceTypes: ["GROUP"],
+          }),
+        ],
+      }),
+    ).toBe(true);
   });
 });

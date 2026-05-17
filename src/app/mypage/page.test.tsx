@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MyPageClient } from "./MyPageClient";
 import type {
   MyPageDraftImageAdapter,
+  MyPageDraftWikiAdapter,
   MyPagePrincipalAdapter,
 } from "./myPageAdapters";
 
@@ -38,13 +39,32 @@ const principal = {
   ],
 };
 
+const wikiReviewPrincipal = {
+  ...principal,
+  policies: [
+    ...principal.policies,
+    {
+      policyIdentifier: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      name: "GROUP_MANAGEMENT",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["APPROVE", "REJECT"],
+          resourceTypes: ["GROUP"],
+          condition: null,
+        },
+      ],
+    },
+  ],
+};
+
 const draftImage = {
   imageIdentifier: "44444444-4444-4444-4444-444444444444",
   publishedImageIdentifier: null,
   url: "https://images.example.test/review.png",
   resourceType: "group",
   translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
-  imageUsage: "wiki_editor",
   displayOrder: 1,
   sourceUrl: "https://source.example.test/review.png",
   sourceName: "K-Pool archive",
@@ -58,6 +78,27 @@ const draftImage = {
   },
   status: "under_review" as const,
   uploadedAt: "2026-05-09T00:00:00Z",
+};
+
+const draftWiki = {
+  wikiIdentifier: "88888888-8888-8888-8888-888888888888",
+  publishedWikiIdentifier: null,
+  translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+  slug: "gr-review-wiki",
+  language: "ja",
+  resourceType: "group",
+  themeColor: "#4c5cff",
+  status: "pending" as const,
+  name: "編集中 Wiki",
+  normalizedName: "editing-wiki",
+  imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  imageUrl: "https://images.example.test/editing-wiki.webp",
+  imageAltText: "編集中 Wiki profile",
+  editedAt: "2026-05-10T00:00:00Z",
+  updatedAt: "2026-05-11T00:00:00Z",
+  approvedAt: null,
+  translatedAt: null,
+  mergedAt: null,
 };
 
 const createAdapter = (
@@ -80,7 +121,6 @@ const createDraftImageAdapter = (
   approveDraftImage: vi.fn().mockResolvedValue({
     imageIdentifier: draftImage.imageIdentifier,
     resourceType: "group",
-    imageUsage: "wiki_editor",
     status: "approved",
   }),
   listDraftImages: vi.fn().mockResolvedValue({
@@ -93,8 +133,20 @@ const createDraftImageAdapter = (
   rejectDraftImage: vi.fn().mockResolvedValue({
     imageIdentifier: draftImage.imageIdentifier,
     resourceType: "group",
-    imageUsage: "wiki_editor",
     isHidden: false,
+  }),
+  ...overrides,
+});
+
+const createDraftWikiAdapter = (
+  overrides: Partial<MyPageDraftWikiAdapter> = {},
+): MyPageDraftWikiAdapter => ({
+  listDraftWikis: vi.fn().mockResolvedValue({
+    wikis: [draftWiki],
+    current_page: 1,
+    last_page: 1,
+    total: 1,
+    per_page: 12,
   }),
   ...overrides,
 });
@@ -110,6 +162,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={adapter}
       />,
@@ -128,6 +181,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
@@ -150,12 +204,15 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={adapter}
       />,
     );
 
     expect(await screen.findByRole("heading", { name: "Wiki", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).toHaveBeenCalledOnce();
@@ -167,6 +224,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
@@ -176,6 +234,7 @@ describe("MyPageClient", () => {
     expect(
       await screen.findByRole("tablist", { name: "Wiki タブ" }),
     ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -204,6 +263,100 @@ describe("MyPageClient", () => {
     expect(screen.queryByText("pending")).not.toBeInTheDocument();
   });
 
+  it("loads editing draft wikis by default and submitted draft wikis on tab selection", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter();
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await waitFor(() =>
+      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+        onlyMine: true,
+        page: 1,
+        perPage: 12,
+        status: "pending",
+      }),
+    );
+    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+      "href",
+      "/wiki/ja/gr-review-wiki/edit",
+    );
+    expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
+      'url("https://images.example.test/editing-wiki.webp")',
+    );
+    expect(screen.getByText("グループ")).toBeInTheDocument();
+    expect(screen.getByText("編集中", { selector: "dd" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "申請中のWiki" }));
+    await waitFor(() =>
+      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+        onlyMine: true,
+        page: 1,
+        perPage: 12,
+        status: "under_review",
+      }),
+    );
+  });
+
+  it("shows unapproved draft wikis only for principals with approve and reject policies", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          status: "under_review",
+          name: "未承認 Wiki",
+          imageIdentifier: null,
+          imageUrl: null,
+          imageAltText: null,
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiReviewPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
+    await waitFor(() =>
+      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+        page: 1,
+        perPage: 12,
+        status: "under_review",
+      }),
+    );
+    expect(await screen.findByRole("link", { name: "未承認 Wiki" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "未承認 Wiki" }).closest("article")?.getAttribute("style")).toContain(
+      "--wiki-page-background-light",
+    );
+  });
+
   it("does not link dangerous draft image source URLs", async () => {
     const draftImageAdapter = createDraftImageAdapter({
       listDraftImages: vi.fn().mockResolvedValue({
@@ -218,11 +371,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByText("K-Pool archive")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "K-Pool archive" })).not.toBeInTheDocument();
   });
@@ -233,11 +388,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "承認" }));
 
     await waitFor(() =>
@@ -255,11 +412,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
 
     await waitFor(() =>
@@ -279,11 +438,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "承認" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("approve failed");
@@ -298,11 +459,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("reject failed");
@@ -332,6 +495,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
@@ -342,9 +506,9 @@ describe("MyPageClient", () => {
       />,
     );
 
-    expect(
-      await screen.findByRole("heading", { name: "利用できる Wiki 機能がありません" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "未承認のWiki" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "未承認の画像" })).not.toBeInTheDocument();
   });
 
@@ -362,11 +526,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByText("未承認の画像はありません")).toBeInTheDocument();
   });
 
@@ -378,11 +544,13 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={createAdapter()}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("draft image failure");
     expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
   });
@@ -395,6 +563,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={adapter}
       />,
@@ -418,6 +587,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={adapter}
       />,
@@ -444,6 +614,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
         principalAdapter={adapter}
       />,
@@ -469,6 +640,7 @@ describe("MyPageClient", () => {
     render(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identityWithoutAccount}
         principalAdapter={adapter}
       />,

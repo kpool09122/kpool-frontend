@@ -9,6 +9,7 @@ import {
 import {
   adaptWikiApiResponse,
   getWikiApiErrorMessage,
+  trimTrailingSlashes,
   withWikiApiPrefix,
 } from "./wikiApiModel";
 import { parseWithSchemaLog } from "../zodErrorLog";
@@ -31,6 +32,9 @@ const draftWikiApiResponseSchema = z
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof schemas.UpdateWikiDraftRequestBody>;
 type DraftWikiSummary = z.infer<typeof schemas.DraftWikiSummary>;
+export type WikiDraftWiki = z.infer<typeof schemas.DraftWikiListItem>;
+export type WikiDraftWikiStatus = z.infer<typeof schemas.DraftWikiStatus>;
+export type WikiDraftWikiListResponse = z.infer<typeof schemas.ListDraftWikisResponseBody>;
 type DraftWikiApiClient = {
   baseUrl: string;
   fetchDraftWiki: (
@@ -40,6 +44,9 @@ type DraftWikiApiClient = {
   ) => Promise<DraftWikiApiResponse>;
   saveDraftWiki: (wikiId: string, body: EditWikiRequestBody) => Promise<DraftWikiSummary>;
 };
+
+export const defaultWikiDraftPerPage = 12;
+export const wikiDraftWikiListResponseSchema = schemas.ListDraftWikisResponseBody;
 
 type DraftWikiState =
   | { status: "success"; data: WikiDetail }
@@ -98,6 +105,44 @@ export const getDraftWikiEndpointPath = (
 
 export const getEditWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/edit`;
+
+export const createWikiDraftWikisUrl = ({
+  baseUrl,
+  onlyMine,
+  page,
+  perPage,
+  resourceType,
+  status,
+  translationSetIdentifier,
+}: {
+  baseUrl: string;
+  onlyMine?: boolean;
+  page: number;
+  perPage: number;
+  resourceType?: string;
+  status: WikiDraftWikiStatus;
+  translationSetIdentifier?: string;
+}): string => {
+  const url = new URL(`${trimTrailingSlashes(baseUrl)}/draft-wikis`);
+
+  url.searchParams.set("status", status);
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  if (onlyMine !== undefined) {
+    url.searchParams.set("onlyMine", String(onlyMine));
+  }
+
+  if (resourceType) {
+    url.searchParams.set("resourceType", resourceType);
+  }
+
+  if (translationSetIdentifier) {
+    url.searchParams.set("translationSetIdentifier", translationSetIdentifier);
+  }
+
+  return url.toString();
+};
 
 export const fetchDraftWiki = async (
   client: DraftWikiApiClient,
@@ -190,6 +235,69 @@ export const getDraftWikiErrorMessage = (error: unknown): string =>
     responseSchemaPrefix: "Draft wiki response did not match the expected schema",
     unavailable: "Wiki drafts are temporarily unavailable. Please try again later.",
   });
+
+const readBrowserJsonResponse = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+};
+
+const getRouteErrorMessage = (body: unknown, fallback: string): string =>
+  typeof body === "object" &&
+  body !== null &&
+  "message" in body &&
+  typeof (body as { message: unknown }).message === "string"
+    ? (body as { message: string }).message
+    : fallback;
+
+export const fetchWikiDraftWikis = async ({
+  fallbackErrorMessage,
+  onlyMine,
+  page,
+  perPage,
+  resourceType,
+  status,
+  translationSetIdentifier,
+}: {
+  fallbackErrorMessage: string;
+  onlyMine?: boolean;
+  page: number;
+  perPage: number;
+  resourceType?: string;
+  status: WikiDraftWikiStatus;
+  translationSetIdentifier?: string;
+}): Promise<WikiDraftWikiListResponse> => {
+  const url = new URL("/api/wiki/draft-wikis", window.location.origin);
+
+  url.searchParams.set("status", status);
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  if (onlyMine !== undefined) {
+    url.searchParams.set("onlyMine", String(onlyMine));
+  }
+
+  if (resourceType) {
+    url.searchParams.set("resourceType", resourceType);
+  }
+
+  if (translationSetIdentifier) {
+    url.searchParams.set("translationSetIdentifier", translationSetIdentifier);
+  }
+
+  const response = await fetch(`${url.pathname}${url.search}`, {
+    credentials: "include",
+  });
+  const body = await readBrowserJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return wikiDraftWikiListResponseSchema.parse(body);
+};
 
 export const loadDraftWikiState = async (
   language: string,

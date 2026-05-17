@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { IdentitySummary } from "../identityApi";
 import {
-  canReviewWikiDraftImages,
   getAccountIdentifierFromIdentity,
   type WikiPrincipalState,
 } from "../wiki/wikiPrincipal";
@@ -20,13 +19,13 @@ export const useMyPageWikiPrincipal = ({
   initialIdentity,
   initialPrincipalState,
   messages,
-  onReviewReady,
+  onPrincipalReady,
 }: {
   adapter: MyPagePrincipalAdapter;
   initialIdentity: IdentitySummary | null;
   initialPrincipalState: WikiPrincipalState;
   messages: MyPagePrincipalMessages;
-  onReviewReady: () => Promise<void>;
+  onPrincipalReady: () => Promise<void>;
 }) => {
   const [principalState, setPrincipalState] =
     useState<WikiPrincipalState>(initialPrincipalState);
@@ -38,10 +37,10 @@ export const useMyPageWikiPrincipal = ({
 
     setPrincipalState(nextState);
 
-    if (nextState.status === "available" && canReviewWikiDraftImages(nextState.principal)) {
-      await onReviewReady();
+    if (nextState.status === "available") {
+      await onPrincipalReady();
     }
-  }, [adapter, onReviewReady]);
+  }, [adapter, onPrincipalReady]);
 
   const activateWikiPrincipal = async () => {
     if (!initialIdentity) {
@@ -68,8 +67,8 @@ export const useMyPageWikiPrincipal = ({
 
     setPrincipalState(nextState);
 
-    if (nextState.status === "available" && canReviewWikiDraftImages(nextState.principal)) {
-      await onReviewReady();
+    if (nextState.status === "available") {
+      await onPrincipalReady();
     }
   };
 

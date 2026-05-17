@@ -122,7 +122,6 @@ export const createWikiImageUploadRequest = ({
     resourceType: imageAssociation.resourceType,
     translationSetIdentifier: imageAssociation.translationSetIdentifier,
     base64EncodedImage: stripDataUrlPrefix(base64EncodedImage),
-    imageUsage: "profile",
     displayOrder,
     sourceUrl: wikiSafeSourceUrlSchema.parse(sourceUrl),
     sourceName: sourceName.trim(),

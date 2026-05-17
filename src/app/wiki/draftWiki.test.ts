@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   adaptDraftWikiResponse,
   createDraftWikiApiClient,
+  createWikiDraftWikisUrl,
   fetchDraftWiki,
+  fetchWikiDraftWikis,
   getDraftWikiEndpointPath,
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
@@ -145,6 +147,74 @@ describe("draftWiki", () => {
       "/wiki/ja/group/gr-aurora-echo/draft",
     );
     expect(getEditWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/edit");
+  });
+
+  it("builds draft wiki list urls with status, onlyMine, and optional filters", () => {
+    expect(
+      createWikiDraftWikisUrl({
+        baseUrl: "https://api.example.test/api/wiki/",
+        onlyMine: true,
+        page: 2,
+        perPage: 24,
+        resourceType: "group",
+        status: "under_review",
+        translationSetIdentifier: "translation-set-1",
+      }),
+    ).toBe(
+      "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=24&page=2&onlyMine=true&resourceType=group&translationSetIdentifier=translation-set-1",
+    );
+  });
+
+  it("fetches draft wiki lists through the browser API route", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          wikis: [
+            {
+              wikiIdentifier: "88888888-8888-8888-8888-888888888888",
+              publishedWikiIdentifier: null,
+              translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+              slug: "gr-review-wiki",
+              language: "ja",
+              resourceType: "group",
+              themeColor: "#4c5cff",
+              status: "pending",
+              name: "編集中 Wiki",
+              normalizedName: "editing-wiki",
+              imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+              imageUrl: "https://images.example.test/editing-wiki.webp",
+              imageAltText: "編集中 Wiki profile",
+              editedAt: "2026-05-10T00:00:00Z",
+              updatedAt: "2026-05-11T00:00:00Z",
+              approvedAt: null,
+              translatedAt: null,
+              mergedAt: null,
+            },
+          ],
+          current_page: 1,
+          last_page: 1,
+          total: 1,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      fetchWikiDraftWikis({
+        fallbackErrorMessage: "fallback",
+        onlyMine: true,
+        page: 1,
+        perPage: 12,
+        status: "pending",
+      }),
+    ).resolves.toEqual(expect.objectContaining({ total: 1 }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/draft-wikis?status=pending&perPage=12&page=1&onlyMine=true",
+      {
+        credentials: "include",
+      },
+    );
   });
 
   it("turns api errors into a specific message", () => {
