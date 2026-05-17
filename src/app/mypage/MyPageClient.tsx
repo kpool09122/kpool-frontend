@@ -15,8 +15,11 @@ import {
   type WikiPrincipalState,
 } from "../wiki/wikiPrincipal";
 import {
+  approveWikiDraft,
   fetchWikiDraftWikis,
+  rejectWikiDraft,
   type WikiDraftWiki,
+  type WikiDraftReviewAction,
 } from "../wiki/draftWiki";
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
 import {
@@ -71,7 +74,9 @@ const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
 };
 
 const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
+  approveDraftWiki: approveWikiDraft,
   listDraftWikis: fetchWikiDraftWikis,
+  rejectDraftWiki: rejectWikiDraft,
 };
 
 const initialDraftWikiLists: Record<MyPageDraftWikiTab, DraftWikiListState> = {
@@ -120,11 +125,16 @@ export function MyPageClient({
     messages: draftImageMessages,
   });
   const draftWikiMessages = useMemo(() => ({
+    draftWikiApproveFailed: t.draftWikiApproveFailed,
     draftWikiListLoadFailed: t.draftWikiListLoadFailed,
-  }), [t.draftWikiListLoadFailed]);
+    draftWikiRejectFailed: t.draftWikiRejectFailed,
+  }), [t.draftWikiApproveFailed, t.draftWikiListLoadFailed, t.draftWikiRejectFailed]);
   const {
     draftWikis,
     loadDraftWikisPage,
+    reviewDraftWiki,
+    reviewError: draftWikiReviewError,
+    reviewingWikiIdentifier,
   } = useMyPageDraftWikis({
     adapter: draftWikiAdapter,
     initialDraftWikis,
@@ -204,7 +214,9 @@ export function MyPageClient({
             draftWikis={draftWikis}
             locale={locale}
             reviewError={reviewError}
+            draftWikiReviewError={draftWikiReviewError}
             reviewingImageIdentifier={reviewingImageIdentifier}
+            reviewingWikiIdentifier={reviewingWikiIdentifier}
             isAuthenticated={initialIdentity !== null}
             isPending={isActionPending(principalState)}
             selectedWikiTab={selectedWikiTab}
@@ -217,6 +229,7 @@ export function MyPageClient({
             onReviewDraftImage={(imageIdentifier, action) =>
               void reviewDraftImage(imageIdentifier, action)
             }
+            onReviewDraftWiki={(wiki, action) => void reviewDraftWiki(wiki, action)}
             onSelectWikiTab={setSelectedWikiTab}
           />
         </section>
@@ -231,7 +244,9 @@ function WikiPrincipalPanel({
   draftWikis,
   locale,
   reviewError,
+  draftWikiReviewError,
   reviewingImageIdentifier,
+  reviewingWikiIdentifier,
   isAuthenticated,
   isPending,
   selectedWikiTab,
@@ -242,6 +257,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage,
   onRetry,
   onReviewDraftImage,
+  onReviewDraftWiki,
   onSelectWikiTab,
 }: {
   accountIdentifier: string | null;
@@ -249,7 +265,9 @@ function WikiPrincipalPanel({
   draftWikis: Record<MyPageDraftWikiTab, DraftWikiListState>;
   locale: Locale;
   reviewError: string | null;
+  draftWikiReviewError: string | null;
   reviewingImageIdentifier: string | null;
+  reviewingWikiIdentifier: string | null;
   isAuthenticated: boolean;
   isPending: boolean;
   selectedWikiTab: MyPageWikiTab;
@@ -260,6 +278,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage: (tab: MyPageDraftWikiTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
+  onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
   const canActivate = isAuthenticated && accountIdentifier !== null && !isPending;
@@ -336,6 +355,8 @@ function WikiPrincipalPanel({
         ) : null}
         {activeWikiTab !== "draftImages" ? (
           <DraftWikiListPanel
+            reviewError={draftWikiReviewError}
+            reviewingWikiIdentifier={reviewingWikiIdentifier}
             state={draftWikis[activeWikiTab]}
             t={t}
             tab={activeWikiTab}
@@ -347,6 +368,7 @@ function WikiPrincipalPanel({
               }
             }}
             onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
+            onReviewDraftWiki={onReviewDraftWiki}
           />
         ) : null}
       </section>
@@ -395,17 +417,23 @@ function WikiPrincipalPanel({
 }
 
 function DraftWikiListPanel({
+  reviewError,
+  reviewingWikiIdentifier,
   state,
   t,
   tab,
   onLoadMore,
   onReload,
+  onReviewDraftWiki,
 }: {
+  reviewError: string | null;
+  reviewingWikiIdentifier: string | null;
   state: DraftWikiListState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   tab: MyPageDraftWikiTab;
   onLoadMore: () => void;
   onReload: () => void;
+  onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction) => void;
 }) {
   const canLoadMore = state.pageInfo
     ? state.pageInfo.current_page < state.pageInfo.last_page
@@ -452,9 +480,24 @@ function DraftWikiListPanel({
           {messages.total(state.pageInfo.total)}
         </p>
       ) : null}
+      {reviewError && tab === "unapprovedWikis" ? (
+        <p
+          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+          role="alert"
+        >
+          {reviewError}
+        </p>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2">
         {state.wikis.map((wiki) => (
-          <DraftWikiCard key={wiki.wikiIdentifier} t={t} wiki={wiki} />
+          <DraftWikiCard
+            isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
+            key={wiki.wikiIdentifier}
+            showReviewActions={tab === "unapprovedWikis"}
+            t={t}
+            wiki={wiki}
+            onReviewDraftWiki={onReviewDraftWiki}
+          />
         ))}
       </div>
       <div className="flex justify-center">
@@ -476,11 +519,17 @@ function DraftWikiListPanel({
 }
 
 function DraftWikiCard({
+  isReviewing,
+  showReviewActions,
   t,
   wiki,
+  onReviewDraftWiki,
 }: {
+  isReviewing: boolean;
+  showReviewActions: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   wiki: WikiDraftWiki;
+  onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction) => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
 
@@ -543,6 +592,30 @@ function DraftWikiCard({
             value={formatDraftWikiDate(wiki.updatedAt)}
           />
         </dl>
+        {showReviewActions ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isReviewing}
+              onClick={() => onReviewDraftWiki(wiki, "approve")}
+              type="button"
+            >
+              {isReviewing ? t.draftWikiReviewing : t.approveDraftWiki}
+            </button>
+            <button
+              className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isReviewing}
+              onClick={() => onReviewDraftWiki(wiki, "reject")}
+              style={{
+                backgroundColor: hasImage ? "rgba(255, 255, 255, 0.88)" : undefined,
+                color: hasImage ? "#15243b" : undefined,
+              }}
+              type="button"
+            >
+              {isReviewing ? t.draftWikiReviewing : t.rejectDraftWiki}
+            </button>
+          </div>
+        ) : null}
       </div>
     </article>
   );
