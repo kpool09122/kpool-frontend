@@ -21,12 +21,14 @@ const renderPage = (
     status: "empty";
   } = successState,
   saveAdapter = vi.fn().mockResolvedValue({ ok: true }),
+  submitAdapter = vi.fn().mockResolvedValue({ ok: true }),
 ) =>
   render(
     React.createElement(WikiEditPage, {
       language: "ja",
       saveAdapter,
       slug: "gr-aurora-echo",
+      submitAdapter,
       wikiState,
     }),
   );
@@ -705,6 +707,89 @@ describe("WikiEditPage", () => {
 
     await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
     expect(saveAdapter).toHaveBeenCalledTimes(2);
+  });
+
+  it("submits the loaded draft through the injected submit adapter", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const submitAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(successState, saveAdapter, submitAdapter);
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "review-title" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
+
+    expect(screen.getByText("Submitting for review")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Submitted for review")).toBeInTheDocument());
+    expect(submitAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slug: "gr-review-title",
+        wikiIdentifier: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-gr-aurora-echo",
+      }),
+    );
+  });
+
+  it("shows submit failure, keeps draft changes, and allows retrying", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const submitAdapter = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true });
+
+    renderPage(successState, saveAdapter, submitAdapter);
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "retry-review" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
+
+    await waitFor(() => expect(screen.getByText("Submit failed")).toBeInTheDocument());
+    expect(screen.getByLabelText("Slug")).toHaveValue("retry-review");
+    expect(screen.getByRole("button", { name: "Submit wiki for review" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
+
+    await waitFor(() => expect(screen.getByText("Submitted for review")).toBeInTheDocument());
+    expect(submitAdapter).toHaveBeenCalledTimes(2);
+  });
+
+  it("prevents duplicate submit clicks while the submit adapter is pending", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    let resolveSubmit: ((result: { ok: true }) => void) | undefined;
+    const submitAdapter = vi.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveSubmit = resolve;
+        }),
+    );
+
+    renderPage(successState, saveAdapter, submitAdapter);
+
+    const submitButton = screen.getByRole("button", { name: "Submit wiki for review" });
+
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+
+    expect(submitButton).toBeDisabled();
+    expect(submitAdapter).toHaveBeenCalledTimes(1);
+    resolveSubmit?.({ ok: true });
+    await waitFor(() => expect(screen.getByText("Submitted for review")).toBeInTheDocument());
+  });
+
+  it("keeps submit disabled while code has a parse error", () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+    fireEvent.change(screen.getByLabelText("Wiki code"), {
+      target: {
+        value: ["== Overview ==", "", "[[image|id:cover]"].join("\n"),
+      },
+    });
+
+    expect(screen.getByTestId("wiki-code-error")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit wiki for review" })).toBeDisabled();
   });
 
   it("shows compatibility warnings for namuwiki syntax that falls back to text blocks", () => {

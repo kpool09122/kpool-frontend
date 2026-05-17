@@ -57,11 +57,11 @@ type WikiSaveState =
 
 type WikiEditDraftOptions = {
   saveAdapter?: (draft: WikiDetail) => Promise<{ ok: true } | { ok: false }>;
-  submitAdapter?: (payload: WikiEditPayload) => { ok: true } | { ok: false };
+  submitAdapter?: (draft: WikiDetail) => Promise<{ ok: true } | { ok: false }>;
 };
 
 const optimisticSaveAdapter = async () => ({ ok: true }) as const;
-const optimisticActionAdapter = () => ({ ok: true }) as const;
+const optimisticActionAdapter = async () => ({ ok: true }) as const;
 
 const createInitialDraft = (wiki: WikiDetail): WikiDetail => ({
   ...wiki,
@@ -158,7 +158,7 @@ export const useWikiEditDraft = (
     });
   };
 
-  const requestPublication = () => {
+  const requestPublication = async () => {
     const payload = toWikiEditPayload(draft);
 
     setSaveState({
@@ -168,16 +168,22 @@ export const useWikiEditDraft = (
       showMessage: true,
     });
 
-    queueMicrotask(() => {
-      const result = submitAdapter(payload);
-
+    try {
+      const result = await submitAdapter(draft);
       setSaveState({
         status: result.ok ? "saved" : "failed",
         message: result.ok ? "Submitted for review" : "Submit failed",
         payload,
         showMessage: true,
       });
-    });
+    } catch {
+      setSaveState({
+        status: "failed",
+        message: "Submit failed",
+        payload,
+        showMessage: true,
+      });
+    }
   };
 
   return {

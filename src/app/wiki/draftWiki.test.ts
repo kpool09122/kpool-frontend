@@ -4,14 +4,17 @@ import {
   adaptDraftWikiResponse,
   createDraftWikiApiClient,
   createWikiDraftWikisUrl,
+  createSubmitWikiRequestBody,
   fetchDraftWiki,
   fetchWikiDraftWikis,
   getDraftWikiEndpointPath,
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
   getEditWikiEndpointPath,
+  getSubmitWikiEndpointPath,
   loadDraftWikiState,
   saveDraftWiki,
+  submitDraftWiki,
 } from "./draftWiki";
 
 describe("draftWiki", () => {
@@ -147,6 +150,34 @@ describe("draftWiki", () => {
       "/wiki/ja/group/gr-aurora-echo/draft",
     );
     expect(getEditWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/edit");
+    expect(getSubmitWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/submit");
+  });
+
+  it("builds submit wiki request bodies with the wiki id and resource type", () => {
+    expect(
+      createSubmitWikiRequestBody({
+        resourceType: "group",
+        wikiIdentifier: "wiki-1",
+      }),
+    ).toEqual({
+      resourceType: "group",
+      wikiId: "wiki-1",
+    });
+    expect(
+      createSubmitWikiRequestBody({
+        agencyIdentifier: "agency-1",
+        groupIdentifiers: ["group-1"],
+        resourceType: "talent",
+        talentIdentifiers: ["talent-1"],
+        wikiIdentifier: "wiki-2",
+      }),
+    ).toEqual({
+      agencyIdentifier: "agency-1",
+      groupIdentifiers: ["group-1"],
+      resourceType: "talent",
+      talentIdentifiers: ["talent-1"],
+      wikiId: "wiki-2",
+    });
   });
 
   it("builds draft wiki list urls with status, onlyMine, and optional filters", () => {
@@ -263,6 +294,29 @@ describe("draftWiki", () => {
     expect(client.saveDraftWiki).toHaveBeenCalledWith("wiki-1", body);
   });
 
+  it("submits a draft wiki with the wiki identifier as the submit path param", async () => {
+    const client = {
+      submitDraftWiki: vi.fn().mockResolvedValue({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "under_review",
+      }),
+    };
+    const body = {
+      resourceType: "group",
+      wikiId: "wiki-1",
+    };
+
+    await expect(submitDraftWiki(client as never, "wiki-1", body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "under_review",
+    });
+    expect(client.submitDraftWiki).toHaveBeenCalledWith("wiki-1", body);
+  });
+
   it("loads a draft wiki through fetch and parses the response", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -344,6 +398,50 @@ describe("draftWiki", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/edit",
       expect.objectContaining({
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
+      }),
+    );
+  });
+
+  it("forwards cookie headers when submitting a draft wiki through fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "under_review",
+        }),
+        { status: 201 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Accept: "application/json",
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+    const body = {
+      resourceType: "group",
+      wikiId: "wiki-1",
+    };
+
+    await expect(client!.submitDraftWiki("wiki-1", body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "under_review",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/submit",
+      expect.objectContaining({
+        body: JSON.stringify(body),
         cache: "no-store",
         headers: {
           Accept: "application/json",

@@ -31,6 +31,10 @@ const draftWikiApiResponseSchema = z
 
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof schemas.UpdateWikiDraftRequestBody>;
+type SubmitWikiRequestBody = z.infer<typeof schemas.WikiWorkflowRequestBody> & {
+  resourceType: string;
+  wikiId: string;
+};
 type DraftWikiSummary = z.infer<typeof schemas.DraftWikiSummary>;
 export type WikiDraftWiki = z.infer<typeof schemas.DraftWikiListItem>;
 export type WikiDraftWikiStatus = z.infer<typeof schemas.DraftWikiStatus>;
@@ -43,6 +47,7 @@ type DraftWikiApiClient = {
     slug: string,
   ) => Promise<DraftWikiApiResponse>;
   saveDraftWiki: (wikiId: string, body: EditWikiRequestBody) => Promise<DraftWikiSummary>;
+  submitDraftWiki: (wikiId: string, body: SubmitWikiRequestBody) => Promise<DraftWikiSummary>;
 };
 
 export const defaultWikiDraftPerPage = 12;
@@ -60,7 +65,7 @@ const draftWikiAliasByResourceType = {
   talent: "WikiOperations_getTalentDraftWiki",
 } as const;
 
-const defaultApiBaseUrl = process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
+const getDefaultApiBaseUrl = (): string => process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL ?? "";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -105,6 +110,53 @@ export const getDraftWikiEndpointPath = (
 
 export const getEditWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/edit`;
+
+export const getSubmitWikiEndpointPath = (wikiId: string): string =>
+  `/wiki/${encodeURIComponent(wikiId)}/submit`;
+
+const copyStringProperty = (
+  source: Record<string, unknown>,
+  target: Record<string, unknown>,
+  property: string,
+) => {
+  const value = source[property];
+
+  if (typeof value === "string") {
+    target[property] = value;
+  }
+};
+
+const copyStringArrayProperty = (
+  source: Record<string, unknown>,
+  target: Record<string, unknown>,
+  property: string,
+) => {
+  const value = source[property];
+
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    target[property] = value;
+  }
+};
+
+export const createSubmitWikiRequestBody = (
+  draft: Pick<WikiDetail, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
+): SubmitWikiRequestBody => {
+  const body: Record<string, unknown> = {
+    resourceType: draft.resourceType,
+    wikiId: draft.wikiIdentifier,
+  };
+
+  copyStringProperty(draft, body, "agencyIdentifier");
+  copyStringArrayProperty(draft, body, "groupIdentifiers");
+  copyStringArrayProperty(draft, body, "talentIdentifiers");
+
+  return schemas.WikiWorkflowRequestBody.and(
+    z.object({
+      resourceType: z.string(),
+      wikiId: z.string(),
+    }),
+  ).parse(body);
+};
 
 export const createWikiDraftWikisUrl = ({
   baseUrl,
@@ -172,8 +224,15 @@ export const saveDraftWiki = async (
 ): Promise<DraftWikiSummary> =>
   client.saveDraftWiki(wikiId, body);
 
+export const submitDraftWiki = async (
+  client: DraftWikiApiClient,
+  wikiId: string,
+  body: SubmitWikiRequestBody,
+): Promise<DraftWikiSummary> =>
+  client.submitDraftWiki(wikiId, body);
+
 export const createDraftWikiApiClient = (
-  baseUrl: string = defaultApiBaseUrl ?? "",
+  baseUrl: string = getDefaultApiBaseUrl(),
   forwardedHeaders: HeadersInit = {},
 ): DraftWikiApiClient | null => {
   const apiBaseUrl = baseUrl ? withWikiApiPrefix(baseUrl) : "";
@@ -204,6 +263,29 @@ export const createDraftWikiApiClient = (
         saveDraftWiki: async (wikiId, body) => {
           const response = await fetch(
             `${apiBaseUrl}${getEditWikiEndpointPath(wikiId)}`,
+            {
+              method: "POST",
+              headers: {
+                ...forwardedHeaders,
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(body),
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            await throwApiError(response);
+          }
+
+          const responseBody = await readResponseBody(response);
+
+          return parseDraftWikiSummaryBody(responseBody);
+        },
+        submitDraftWiki: async (wikiId, body) => {
+          const response = await fetch(
+            `${apiBaseUrl}${getSubmitWikiEndpointPath(wikiId)}`,
             {
               method: "POST",
               headers: {
