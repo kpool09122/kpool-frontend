@@ -141,12 +141,24 @@ const createDraftImageAdapter = (
 const createDraftWikiAdapter = (
   overrides: Partial<MyPageDraftWikiAdapter> = {},
 ): MyPageDraftWikiAdapter => ({
+  approveDraftWiki: vi.fn().mockResolvedValue({
+    language: "ja",
+    name: "未承認 Wiki",
+    resourceType: "group",
+    status: "approved",
+  }),
   listDraftWikis: vi.fn().mockResolvedValue({
     wikis: [draftWiki],
     current_page: 1,
     last_page: 1,
     total: 1,
     per_page: 12,
+  }),
+  rejectDraftWiki: vi.fn().mockResolvedValue({
+    language: "ja",
+    name: "未承認 Wiki",
+    resourceType: "group",
+    status: "rejected",
   }),
   ...overrides,
 });
@@ -355,6 +367,133 @@ describe("MyPageClient", () => {
     expect(screen.getByRole("link", { name: "未承認 Wiki" }).closest("article")?.getAttribute("style")).toContain(
       "--wiki-page-background-light",
     );
+    expect(screen.getByRole("button", { name: "承認" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "拒否" })).toBeInTheDocument();
+  });
+
+  it("approves an unapproved draft wiki and removes it from the list", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          status: "under_review",
+          name: "未承認 Wiki",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiReviewPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
+    fireEvent.click(await screen.findByRole("button", { name: "承認" }));
+
+    await waitFor(() =>
+      expect(draftWikiAdapter.approveDraftWiki).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki を承認できませんでした。",
+        requestBody: {
+          resourceType: "group",
+        },
+        wikiId: draftWiki.wikiIdentifier,
+      }),
+    );
+    expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
+  });
+
+  it("rejects an unapproved draft wiki and removes it from the list", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          status: "under_review",
+          name: "未承認 Wiki",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiReviewPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
+    fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+
+    await waitFor(() =>
+      expect(draftWikiAdapter.rejectDraftWiki).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki を拒否できませんでした。",
+        requestBody: {
+          resourceType: "group",
+        },
+        wikiId: draftWiki.wikiIdentifier,
+      }),
+    );
+    expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
+  });
+
+  it("shows a retryable error when draft wiki review fails", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      approveDraftWiki: vi.fn().mockRejectedValue(new Error("wiki approve failed")),
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          status: "under_review",
+          name: "未承認 Wiki",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiReviewPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
+    fireEvent.click(await screen.findByRole("button", { name: "承認" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("wiki approve failed");
+    expect(screen.getByRole("button", { name: "承認" })).toBeEnabled();
   });
 
   it("does not link dangerous draft image source URLs", async () => {

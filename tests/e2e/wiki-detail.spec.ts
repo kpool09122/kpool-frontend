@@ -46,6 +46,21 @@ test("wiki edit page supports inline edits and nested content controls", async (
   page,
 }) => {
   const saveRequests: unknown[] = [];
+  const submitRequests: unknown[] = [];
+
+  await page.route("**/api/wiki/drafts/*/submit", async (route) => {
+    submitRequests.push(route.request().postDataJSON());
+    await route.fulfill({
+      contentType: "application/json",
+      status: 201,
+      body: JSON.stringify({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "under_review",
+      }),
+    });
+  });
 
   await page.route("**/api/wiki/drafts/*", async (route) => {
     saveRequests.push(route.request().postDataJSON());
@@ -225,6 +240,18 @@ test("wiki edit page supports inline edits and nested content controls", async (
       ]),
     }),
   );
+
+  const submitButton = page.getByRole("button", { name: "Submit wiki for review" });
+
+  await submitButton.click();
+  await expect(submitButton).toBeDisabled();
+  await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Submitted for review");
+  expect(submitRequests).toEqual([
+    expect.objectContaining({
+      resourceType: "group",
+      wikiId: "gr-aurora-echo",
+    }),
+  ]);
 });
 
 test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async ({

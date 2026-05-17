@@ -7,6 +7,8 @@ import {
 } from "@kpool/wiki";
 import { schemas } from "@kpool/types/wiki-private-api";
 
+import { createSubmitWikiRequestBody } from "../../draftWiki";
+
 export type WikiSaveResult = { ok: true } | { ok: false };
 
 export const saveWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> => {
@@ -18,6 +20,27 @@ export const saveWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> 
         "Content-Type": "application/json",
       },
       body: JSON.stringify(toWikiEditRequestPayload(draft)),
+    },
+  );
+
+  if (!response.ok) {
+    return { ok: false };
+  }
+
+  schemas.DraftWikiSummary.parse(await response.json());
+
+  return { ok: true };
+};
+
+export const submitWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> => {
+  const response = await fetch(
+    `/api/wiki/drafts/${encodeURIComponent(draft.wikiIdentifier)}/submit`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(createSubmitWikiRequestBody(draft)),
     },
   );
 

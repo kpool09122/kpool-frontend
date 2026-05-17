@@ -199,6 +199,7 @@ test("mypage shows under review draft images for an available Wiki principal", a
 test("mypage shows unapproved draft wikis only for reviewer principals", async ({ page }) => {
   await useJapaneseLocale(page);
   const draftWikiRequests: string[] = [];
+  let approveRequests = 0;
 
   await page.route("**/api/wiki/principal/me", async (route) => {
     await route.fulfill({
@@ -262,6 +263,22 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
       }),
     });
   });
+  await page.route("**/api/wiki/drafts/*/approve", async (route) => {
+    approveRequests += 1;
+    expect(route.request().postDataJSON()).toEqual({
+      resourceType: "group",
+    });
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        language: "ja",
+        name: "未承認 Wiki",
+        resourceType: "group",
+        status: "approved",
+      }),
+    });
+  });
 
   await page.goto("/mypage");
 
@@ -270,6 +287,9 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
   await expect(page.getByRole("link", { name: "未承認 Wiki" })).toBeVisible();
   expect(draftWikiRequests.at(-1)).toContain("status=under_review");
   expect(draftWikiRequests.at(-1)).not.toContain("onlyMine=true");
+  await page.getByRole("button", { name: "承認" }).click();
+  await expect(page.getByText("未承認のWikiはありません")).toBeVisible();
+  expect(approveRequests).toBe(1);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
 });
 

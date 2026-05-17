@@ -30,7 +30,7 @@ import {
   type WikiUploadedImage,
 } from "../../wikiImageModel";
 import { fetchWikiImages, uploadWikiImageRequest } from "../../wikiImageBrowserApi";
-import { saveWikiDraft, type WikiSaveResult } from "./saveWikiDraft";
+import { saveWikiDraft, submitWikiDraft, type WikiSaveResult } from "./saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 type WikiEditPageProps = {
@@ -39,6 +39,7 @@ type WikiEditPageProps = {
   themeColor?: string;
   wikiState: Awaited<ReturnType<typeof loadDraftWikiState>>;
   saveAdapter?: (draft: WikiDetail) => Promise<WikiSaveResult>;
+  submitAdapter?: (draft: WikiDetail) => Promise<WikiSaveResult>;
 };
 
 type ImageLibraryState = {
@@ -67,10 +68,12 @@ function WikiEditContent({
   data,
   language,
   saveAdapter,
+  submitAdapter,
 }: {
   data: WikiDetail;
   language: string;
   saveAdapter: (draft: WikiDetail) => Promise<WikiSaveResult>;
+  submitAdapter: (draft: WikiDetail) => Promise<WikiSaveResult>;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
@@ -103,7 +106,7 @@ function WikiEditContent({
     addSection,
     addBlock,
     deleteContent,
-  } = useWikiEditDraft(data, { saveAdapter });
+  } = useWikiEditDraft(data, { saveAdapter, submitAdapter });
   const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const closeEditor = () => setEditingId(null);
@@ -342,7 +345,7 @@ function WikiEditContent({
           onClear={clearChanges}
           onPreviewModeChange={setPreviewMode}
           onSave={saveDraft}
-          onSubmit={requestPublication}
+          onSubmit={() => void requestPublication()}
           onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
           onUpdateSettings={updateSettings}
           previewMode={previewMode}
@@ -379,6 +382,7 @@ export function WikiEditPage({
   themeColor,
   wikiState,
   saveAdapter = saveWikiDraft,
+  submitAdapter = submitWikiDraft,
 }: WikiEditPageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
@@ -404,6 +408,7 @@ export function WikiEditPage({
       }}
       language={language}
       saveAdapter={saveAdapter}
+      submitAdapter={submitAdapter}
     />
   );
 }

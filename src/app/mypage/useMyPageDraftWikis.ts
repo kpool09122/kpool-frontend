@@ -3,9 +3,11 @@
 import { useCallback, useState } from "react";
 
 import {
+  createReviewWikiRequestBody,
   defaultWikiDraftPerPage,
   type WikiDraftWiki,
   type WikiDraftWikiListResponse,
+  type WikiDraftReviewAction,
   type WikiDraftWikiStatus,
 } from "../wiki/draftWiki";
 import type { MyPageDraftWikiAdapter } from "./myPageAdapters";
@@ -26,7 +28,9 @@ type DraftWikiListConfig = {
 };
 
 type MyPageDraftWikiMessages = {
+  draftWikiApproveFailed: string;
   draftWikiListLoadFailed: string;
+  draftWikiRejectFailed: string;
 };
 
 export const initialDraftWikiListState: DraftWikiListState = {
@@ -62,6 +66,8 @@ export const useMyPageDraftWikis = ({
 }) => {
   const [draftWikis, setDraftWikis] =
     useState<Record<MyPageDraftWikiTab, DraftWikiListState>>(initialDraftWikis);
+  const [reviewingWikiIdentifier, setReviewingWikiIdentifier] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const loadDraftWikisPage = useCallback(async (tab: MyPageDraftWikiTab, page: number) => {
     setDraftWikis((state) => ({
@@ -110,8 +116,71 @@ export const useMyPageDraftWikis = ({
     }
   }, [adapter, messages.draftWikiListLoadFailed]);
 
+  const removeReviewedWiki = (wikiIdentifier: string) => {
+    setDraftWikis((state) => ({
+      ...state,
+      unapprovedWikis: {
+        ...state.unapprovedWikis,
+        pageInfo: state.unapprovedWikis.pageInfo
+          ? {
+              ...state.unapprovedWikis.pageInfo,
+              total: Math.max(0, state.unapprovedWikis.pageInfo.total - 1),
+            }
+          : state.unapprovedWikis.pageInfo,
+        wikis: state.unapprovedWikis.wikis.filter(
+          (wiki) => wiki.wikiIdentifier !== wikiIdentifier,
+        ),
+      },
+    }));
+  };
+
+  const reviewDraftWiki = async (
+    wiki: WikiDraftWiki,
+    action: WikiDraftReviewAction,
+  ) => {
+    setReviewingWikiIdentifier(wiki.wikiIdentifier);
+    setReviewError(null);
+
+    try {
+      const fallbackErrorMessage =
+        action === "approve"
+          ? messages.draftWikiApproveFailed
+          : messages.draftWikiRejectFailed;
+      const requestBody = createReviewWikiRequestBody(wiki);
+
+      if (action === "approve") {
+        await adapter.approveDraftWiki({
+          fallbackErrorMessage,
+          requestBody,
+          wikiId: wiki.wikiIdentifier,
+        });
+      } else {
+        await adapter.rejectDraftWiki({
+          fallbackErrorMessage,
+          requestBody,
+          wikiId: wiki.wikiIdentifier,
+        });
+      }
+
+      removeReviewedWiki(wiki.wikiIdentifier);
+    } catch (error) {
+      setReviewError(
+        error instanceof Error
+          ? error.message
+          : action === "approve"
+            ? messages.draftWikiApproveFailed
+            : messages.draftWikiRejectFailed,
+      );
+    } finally {
+      setReviewingWikiIdentifier(null);
+    }
+  };
+
   return {
     draftWikis,
     loadDraftWikisPage,
+    reviewDraftWiki,
+    reviewError,
+    reviewingWikiIdentifier,
   };
 };
