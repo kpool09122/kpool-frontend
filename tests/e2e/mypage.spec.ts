@@ -267,7 +267,6 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
     approveRequests += 1;
     expect(route.request().postDataJSON()).toEqual({
       resourceType: "group",
-      wikiId: "88888888-8888-8888-8888-888888888888",
     });
     await route.fulfill({
       status: 201,

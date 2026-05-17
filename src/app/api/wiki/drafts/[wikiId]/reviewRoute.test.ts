@@ -49,7 +49,7 @@ describe("wiki draft review route", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const body = { resourceType: "group", wikiId };
+    const body = { resourceType: "group" };
     const response = await approvePOST(
       createRequest(body, {
         "accept-language": "ja",
@@ -86,7 +86,7 @@ describe("wiki draft review route", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const body = { resourceType: "group", wikiId };
+    const body = { resourceType: "group" };
     const response = await rejectPOST(createRequest(body), createContext());
 
     expect(response.status).toBe(201);
@@ -125,7 +125,7 @@ describe("wiki draft review route", () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ resourceType: "group", wikiId }),
+        body: JSON.stringify({ resourceType: "group" }),
       }) as NextRequest,
       createContext(),
     );

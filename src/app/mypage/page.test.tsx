@@ -408,8 +408,8 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki を承認できませんでした。",
         requestBody: {
           resourceType: "group",
-          wikiId: draftWiki.wikiIdentifier,
         },
+        wikiId: draftWiki.wikiIdentifier,
       }),
     );
     expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
@@ -452,8 +452,8 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki を拒否できませんでした。",
         requestBody: {
           resourceType: "group",
-          wikiId: draftWiki.wikiIdentifier,
         },
+        wikiId: draftWiki.wikiIdentifier,
       }),
     );
     expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();

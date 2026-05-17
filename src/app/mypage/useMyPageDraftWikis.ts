@@ -149,9 +149,17 @@ export const useMyPageDraftWikis = ({
       const requestBody = createReviewWikiRequestBody(wiki);
 
       if (action === "approve") {
-        await adapter.approveDraftWiki({ fallbackErrorMessage, requestBody });
+        await adapter.approveDraftWiki({
+          fallbackErrorMessage,
+          requestBody,
+          wikiId: wiki.wikiIdentifier,
+        });
       } else {
-        await adapter.rejectDraftWiki({ fallbackErrorMessage, requestBody });
+        await adapter.rejectDraftWiki({
+          fallbackErrorMessage,
+          requestBody,
+          wikiId: wiki.wikiIdentifier,
+        });
       }
 
       removeReviewedWiki(wiki.wikiIdentifier);

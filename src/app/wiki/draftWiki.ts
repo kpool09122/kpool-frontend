@@ -37,7 +37,6 @@ type SubmitWikiRequestBody = z.infer<typeof schemas.WikiWorkflowRequestBody> & {
 };
 type ReviewWikiRequestBody = z.infer<typeof schemas.WikiWorkflowRequestBody> & {
   resourceType: string;
-  wikiId: string;
 };
 type DraftWikiSummary = z.infer<typeof schemas.DraftWikiSummary>;
 export type WikiDraftWiki = z.infer<typeof schemas.DraftWikiListItem>;
@@ -181,7 +180,6 @@ export const createReviewWikiRequestBody = (
 ): ReviewWikiRequestBody => {
   const body: Record<string, unknown> = {
     resourceType: draft.resourceType,
-    wikiId: draft.wikiIdentifier,
   };
 
   copyStringProperty(draft, body, "agencyIdentifier");
@@ -191,7 +189,6 @@ export const createReviewWikiRequestBody = (
   return schemas.WikiWorkflowRequestBody.and(
     z.object({
       resourceType: z.string(),
-      wikiId: z.string(),
     }),
   ).parse(body);
 };
@@ -453,14 +450,16 @@ export const fetchWikiDraftWikis = async ({
 const reviewWikiDraftRequest = async ({
   action,
   fallbackErrorMessage,
+  wikiId,
   requestBody,
 }: {
   action: WikiDraftReviewAction;
   fallbackErrorMessage: string;
+  wikiId: string;
   requestBody: ReviewWikiRequestBody;
 }): Promise<DraftWikiSummary> => {
   const response = await fetch(
-    `/api/wiki/drafts/${encodeURIComponent(requestBody.wikiId)}/${action}`,
+    `/api/wiki/drafts/${encodeURIComponent(wikiId)}/${action}`,
     {
       method: "POST",
       credentials: "include",
@@ -483,27 +482,33 @@ const reviewWikiDraftRequest = async ({
 
 export const approveWikiDraft = async ({
   fallbackErrorMessage,
+  wikiId,
   requestBody,
 }: {
   fallbackErrorMessage: string;
+  wikiId: string;
   requestBody: ReviewWikiRequestBody;
 }): Promise<DraftWikiSummary> =>
   reviewWikiDraftRequest({
     action: "approve",
     fallbackErrorMessage,
+    wikiId,
     requestBody,
   });
 
 export const rejectWikiDraft = async ({
   fallbackErrorMessage,
+  wikiId,
   requestBody,
 }: {
   fallbackErrorMessage: string;
+  wikiId: string;
   requestBody: ReviewWikiRequestBody;
 }): Promise<DraftWikiSummary> =>
   reviewWikiDraftRequest({
     action: "reject",
     fallbackErrorMessage,
+    wikiId,
     requestBody,
   });
 

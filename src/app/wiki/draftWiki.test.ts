@@ -187,7 +187,7 @@ describe("draftWiki", () => {
     });
   });
 
-  it("builds review wiki request bodies with the wiki id", () => {
+  it("builds review wiki request bodies with the resource type", () => {
     expect(
       createReviewWikiRequestBody({
         resourceType: "group",
@@ -195,7 +195,6 @@ describe("draftWiki", () => {
       }),
     ).toEqual({
       resourceType: "group",
-      wikiId: "wiki-1",
     });
   });
 
@@ -576,12 +575,13 @@ describe("draftWiki", () => {
           { status: 201 },
         ),
       );
-    const requestBody = { resourceType: "group", wikiId: "wiki-1" };
+    const requestBody = { resourceType: "group" };
 
     await expect(
       approveWikiDraft({
         fallbackErrorMessage: "failed",
         requestBody,
+        wikiId: "wiki-1",
       }),
     ).resolves.toEqual({
       language: "ja",
@@ -601,6 +601,7 @@ describe("draftWiki", () => {
     await rejectWikiDraft({
       fallbackErrorMessage: "failed",
       requestBody,
+      wikiId: "wiki-1",
     });
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/wiki/drafts/wiki-1/reject",
