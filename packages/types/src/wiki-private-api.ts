@@ -19,7 +19,6 @@ const DraftImageListItem = z
     url: z.string(),
     resourceType: z.string(),
     translationSetIdentifier: KPool_Common_Uuid,
-    imageUsage: z.string(),
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
     sourceName: z.string(),
@@ -66,6 +65,9 @@ const DraftWikiListItem = z
     status: DraftWikiStatus,
     name: z.string(),
     normalizedName: z.string(),
+    imageIdentifier: KPool_Common_Uuid.nullable(),
+    imageUrl: z.string().nullable(),
+    imageAltText: z.string().nullable(),
     editedAt: z.string().nullable(),
     updatedAt: z.string().nullable(),
     approvedAt: z.string().nullable(),
@@ -88,7 +90,6 @@ const UploadImageRequestBody = z
     resourceType: z.string(),
     translationSetIdentifier: KPool_Common_Uuid,
     base64EncodedImage: z.string(),
-    imageUsage: z.string(),
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
     sourceName: z.string(),
@@ -101,7 +102,6 @@ const ImageDraftSummary = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
     resourceType: z.string(),
-    imageUsage: z.string(),
     status: z.string(),
   })
   .passthrough();
@@ -120,7 +120,6 @@ const ImageSummary = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
     resourceType: z.string(),
-    imageUsage: z.string(),
     isHidden: z.boolean(),
   })
   .passthrough();
@@ -146,7 +145,6 @@ const UploadedImageListItem = z
     url: z.string(),
     resourceType: z.string(),
     translationSetIdentifier: KPool_Common_Uuid,
-    imageUsage: z.string(),
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
     sourceName: z.string(),
@@ -328,7 +326,6 @@ const AgencyDraftWikiBasic = z
     foundedIn: z.string().optional(),
     parentAgencyIdentifier: KPool_Common_Uuid.optional(),
     status: z.string().optional(),
-    logoImageIdentifier: KPool_Common_Uuid.optional(),
     officialWebsite: z.string(),
     socialLinks: z.array(z.string()),
   })
@@ -375,7 +372,6 @@ const GroupDraftWikiBasic = z
     officialColors: z.array(z.string()),
     emoji: z.string(),
     representativeSymbol: z.string(),
-    mainImageIdentifier: KPool_Common_Uuid.nullish(),
   })
   .passthrough();
 const WikiDetail = z
@@ -423,7 +419,6 @@ const SongDraftWikiGroupSummary = z
     officialColors: z.array(z.string()),
     emoji: z.string(),
     representativeSymbol: z.string(),
-    mainImageIdentifier: KPool_Common_Uuid.optional(),
   })
   .passthrough();
 const SongDraftWikiTalentSummary = z
@@ -446,7 +441,6 @@ const SongDraftWikiTalentSummary = z
     height: z.number().int().optional(),
     bloodType: z.string().optional(),
     fandomName: z.string(),
-    profileImageIdentifier: KPool_Common_Uuid.optional(),
   })
   .passthrough();
 const SongDraftWikiBasic = z
@@ -458,7 +452,6 @@ const SongDraftWikiBasic = z
     agencyIdentifier: KPool_Common_Uuid.optional(),
     releaseDate: z.string().optional(),
     albumName: z.string(),
-    coverImageIdentifier: KPool_Common_Uuid.optional(),
     lyricist: z.string(),
     normalizedLyricist: z.string(),
     composer: z.string(),
@@ -514,7 +507,6 @@ const TalentDraftWikiGroupSummary = z
     officialColors: z.array(z.string()),
     emoji: z.string(),
     representativeSymbol: z.string(),
-    mainImageIdentifier: KPool_Common_Uuid.optional(),
   })
   .passthrough();
 const TalentDraftWikiBasic = z
@@ -534,7 +526,6 @@ const TalentDraftWikiBasic = z
     height: z.number().int().optional(),
     bloodType: z.string().optional(),
     fandomName: z.string(),
-    profileImageIdentifier: KPool_Common_Uuid.optional(),
     groups: z.array(TalentDraftWikiGroupSummary),
   })
   .passthrough();
