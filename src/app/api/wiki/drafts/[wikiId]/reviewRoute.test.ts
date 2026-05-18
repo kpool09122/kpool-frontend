@@ -6,6 +6,7 @@ import {
   wikiDraftReviewCsrfHeaderValue,
 } from "../../../../wiki/draftWiki";
 import { POST as approvePOST } from "./approve/route";
+import { POST as publishPOST } from "./publish/route";
 import { POST as rejectPOST } from "./reject/route";
 
 const wikiId = "44444444-4444-4444-4444-444444444444";
@@ -98,6 +99,32 @@ describe("wiki draft review route", () => {
       }),
     );
   });
+
+  it("forwards publish requests to the publish backend action", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "approved",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const body = { resourceType: "group" };
+    const response = await publishPOST(createRequest(body), createContext());
+
+    expect(response.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://api.example.test/api/wiki/wiki/${wikiId}/publish`,
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        method: "POST",
+      }),
+    );
+  });
+
 
   it("returns 500 when the backend base URL is not configured", async () => {
     const fetchMock = vi.fn();

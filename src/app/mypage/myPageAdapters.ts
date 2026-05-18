@@ -6,6 +6,7 @@ import type {
 import type {
   approveWikiDraft,
   fetchWikiDraftWikis,
+  publishWikiDraft,
   rejectWikiDraft,
 } from "../wiki/draftWiki";
 import type {
@@ -27,5 +28,6 @@ export type MyPageDraftImageAdapter = {
 export type MyPageDraftWikiAdapter = {
   approveDraftWiki: typeof approveWikiDraft;
   listDraftWikis: typeof fetchWikiDraftWikis;
+  publishDraftWiki: typeof publishWikiDraft;
   rejectDraftWiki: typeof rejectWikiDraft;
 };

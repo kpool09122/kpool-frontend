@@ -59,6 +59,26 @@ const wikiReviewPrincipal = {
   ],
 };
 
+const wikiPublishPrincipal = {
+  ...principal,
+  policies: [
+    ...principal.policies,
+    {
+      policyIdentifier: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      name: "GROUP_PUBLISH",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["PUBLISH"],
+          resourceTypes: ["GROUP"],
+          condition: null,
+        },
+      ],
+    },
+  ],
+};
+
 const draftImage = {
   imageIdentifier: "44444444-4444-4444-4444-444444444444",
   publishedImageIdentifier: null,
@@ -153,6 +173,12 @@ const createDraftWikiAdapter = (
     last_page: 1,
     total: 1,
     per_page: 12,
+  }),
+  publishDraftWiki: vi.fn().mockResolvedValue({
+    language: "ja",
+    name: "承認済み Wiki",
+    resourceType: "group",
+    status: "approved",
   }),
   rejectDraftWiki: vi.fn().mockResolvedValue({
     language: "ja",
@@ -415,6 +441,97 @@ describe("MyPageClient", () => {
     expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
   });
 
+  it("shows approved draft wikis only for principals with publish policies", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          status: "approved",
+          name: "承認済み Wiki",
+          imageIdentifier: null,
+          imageUrl: null,
+          imageAltText: null,
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiPublishPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "承認済みWiki" }));
+    await waitFor(() =>
+      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+        page: 1,
+        perPage: 12,
+        status: "approved",
+      }),
+    );
+    expect(await screen.findByRole("link", { name: "承認済み Wiki" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "公開" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "拒否" })).not.toBeInTheDocument();
+  });
+
+  it("publishes an approved draft wiki and removes it from the list", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          status: "approved",
+          name: "承認済み Wiki",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiPublishPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "承認済みWiki" }));
+    fireEvent.click(await screen.findByRole("button", { name: "公開" }));
+
+    await waitFor(() =>
+      expect(draftWikiAdapter.publishDraftWiki).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki を公開できませんでした。",
+        requestBody: {
+          resourceType: "group",
+        },
+        wikiId: draftWiki.wikiIdentifier,
+      }),
+    );
+    expect(await screen.findByText("承認済みWikiはありません")).toBeInTheDocument();
+  });
+
   it("rejects an unapproved draft wiki and removes it from the list", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       listDraftWikis: vi.fn().mockResolvedValue({
@@ -648,6 +765,7 @@ describe("MyPageClient", () => {
     expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "未承認のWiki" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "承認済みWiki" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "未承認の画像" })).not.toBeInTheDocument();
   });
 
