@@ -22,8 +22,8 @@ export type WikiPrincipalState =
   | { status: "error"; message: string };
 
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
-type WikiReviewAction = "APPROVE" | "REJECT";
-type WikiReviewResourceType = "AGENCY" | "GROUP" | "IMAGE" | "SONG" | "TALENT";
+type WikiPolicyAction = "APPROVE" | "PUBLISH" | "REJECT";
+type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "SONG" | "TALENT";
 
 type FetchAdapter = typeof fetch;
 
@@ -73,8 +73,8 @@ const valueMatches = (values: string[], target: string): boolean => {
 
 const statementMatches = (
   statement: WikiPolicyStatement,
-  action: WikiReviewAction,
-  resourceType: WikiReviewResourceType,
+  action: WikiPolicyAction,
+  resourceType: WikiPolicyResourceType,
 ): boolean =>
   valueMatches(statement.actions, action) &&
   valueMatches(statement.resourceTypes, resourceType);
@@ -82,8 +82,8 @@ const statementMatches = (
 const hasMatchingStatement = (
   principal: WikiPrincipalSummary,
   effect: "ALLOW" | "DENY",
-  action: WikiReviewAction,
-  resourceType: WikiReviewResourceType,
+  action: WikiPolicyAction,
+  resourceType: WikiPolicyResourceType,
 ): boolean =>
   principal.policies.some((policy) =>
     policy.statements.some(
@@ -95,8 +95,8 @@ const hasMatchingStatement = (
 
 const isAllowedWithoutDeny = (
   principal: WikiPrincipalSummary,
-  action: WikiReviewAction,
-  resourceType: WikiReviewResourceType,
+  action: WikiPolicyAction,
+  resourceType: WikiPolicyResourceType,
 ): boolean =>
   hasMatchingStatement(principal, "ALLOW", action, resourceType) &&
   !hasMatchingStatement(principal, "DENY", action, resourceType);
@@ -112,6 +112,11 @@ export const canReviewWikiDraftWikis = (principal: WikiPrincipalSummary): boolea
     (resourceType) =>
       isAllowedWithoutDeny(principal, "APPROVE", resourceType) &&
       isAllowedWithoutDeny(principal, "REJECT", resourceType),
+  );
+
+export const canPublishWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
+  draftWikiReviewResourceTypes.some((resourceType) =>
+    isAllowedWithoutDeny(principal, "PUBLISH", resourceType),
   );
 
 const readResponseBody = async (response: ResponseLike): Promise<unknown> => {
