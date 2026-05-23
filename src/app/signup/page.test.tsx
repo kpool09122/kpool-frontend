@@ -3,8 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { SignupPage } from "./SignupPage";
-import type { SignupAdapter } from "./signupFlow";
-import { I18nProvider } from "../i18n/I18nProvider";
+import type { SignupAdapter } from "@/gateways/auth/signupFlow";
+import { I18nProvider } from "../../i18n/I18nProvider";
 
 const createAdapter = (overrides: Partial<SignupAdapter> = {}): SignupAdapter => ({
   createAccount: vi.fn().mockResolvedValue({

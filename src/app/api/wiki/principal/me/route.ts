@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { parseWithSchemaLog } from "../../../../zodErrorLog";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   createWikiCurrentPrincipalUrl,
   getWikiPrincipalApiBaseUrl,
   getWikiPrincipalErrorMessage,
   wikiPrincipalSummarySchema,
-} from "../../../../wiki/wikiPrincipal";
+} from "@/gateways/wiki/wikiPrincipal";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,

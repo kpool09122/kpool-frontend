@@ -373,7 +373,7 @@ export const createMockWikiDetail = (
   const isTwiceGroupSlug = normalizedSlug === "gr-twice";
   const twiceMember = twiceMemberProfiles.find((member) => member.slug === normalizedSlug);
 
-  return wikiDetailSchema.parse({
+  const detail = {
     wikiIdentifier: normalizedSlug,
     translationSetIdentifier: `translation-set-${normalizedSlug}`,
     slug: normalizedSlug,
@@ -626,5 +626,8 @@ export const createMockWikiDetail = (
         children: [],
       },
     ],
-  });
+  };
+  const result = wikiDetailSchema.safeParse(detail);
+
+  return result.success ? result.data : (detail as WikiDetail);
 };

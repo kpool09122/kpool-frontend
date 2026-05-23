@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const e2eBaseUrl = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
+
 test("wiki detail page shows the public layout and flip interaction", async ({
   page,
 }) => {
@@ -85,7 +87,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Clear wiki changes" })).toBeVisible();
-  await expect(page.getByLabel("Slug")).toHaveValue("gr-aurora-echo");
+  await expect(page.getByLabel("Slug")).toHaveValue("aurora-echo");
   await expect(page.getByRole("group", { name: "Preview mode" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Default" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Theme color" })).toBeVisible();
@@ -354,13 +356,16 @@ test("wiki edit page opens the image library and submits an image usage request"
     });
   });
 
+  await page.context().addCookies([
+    { name: "kpool-locale", value: "ja", url: e2eBaseUrl },
+  ]);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/ja/gr-aurora-echo/edit");
   await page.getByRole("button", { name: "Open wiki image library" }).last().click();
 
   await expect(page.getByTestId("wiki-image-library")).toBeVisible();
   await expect(page.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByText("Cover image")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Cover image/ })).toBeVisible();
   await page.getByRole("button", { name: "さらに読み込む" }).click();
   await expect(page.getByText("Stage upload")).toBeVisible();
 

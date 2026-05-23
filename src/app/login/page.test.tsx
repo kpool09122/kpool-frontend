@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./LoginPage";
-import { I18nProvider } from "../i18n/I18nProvider";
+import { I18nProvider } from "../../i18n/I18nProvider";
 
 describe("LoginPage", () => {
   afterEach(() => {

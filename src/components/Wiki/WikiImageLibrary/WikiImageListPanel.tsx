@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { ImageIcon, ReloadIcon } from "@radix-ui/react-icons";
 
-import { type WikiUploadedImage } from "../../../app/wiki/wikiImageModel";
+import { type WikiUploadedImage } from "@kpool/wiki";
 import { type WikiImageLibraryDictionary } from "./types";
 
 export function WikiImageListPanel({

@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { IdentitySummary } from "../identityApi";
+import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import {
   getAccountIdentifierFromIdentity,
   type WikiPrincipalState,
-} from "../wiki/wikiPrincipal";
-import type { MyPagePrincipalAdapter } from "./myPageAdapters";
+} from "@/gateways/wiki/wikiPrincipal";
+import type { MyPagePrincipalAdapter } from "@/gateways/mypage/myPageAdapters";
 
 type MyPagePrincipalMessages = {
   accountUnavailableMessage: string;
@@ -25,7 +25,7 @@ export const useMyPageWikiPrincipal = ({
   initialIdentity: IdentitySummary | null;
   initialPrincipalState: WikiPrincipalState;
   messages: MyPagePrincipalMessages;
-  onPrincipalReady: () => Promise<void>;
+  onPrincipalReady: () => unknown;
 }) => {
   const [principalState, setPrincipalState] =
     useState<WikiPrincipalState>(initialPrincipalState);

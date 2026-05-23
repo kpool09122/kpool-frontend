@@ -7,7 +7,7 @@ import type {
   MyPageDraftImageAdapter,
   MyPageDraftWikiAdapter,
   MyPagePrincipalAdapter,
-} from "./myPageAdapters";
+} from "@/gateways/mypage/myPageAdapters";
 
 const identity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",

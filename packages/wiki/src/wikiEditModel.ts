@@ -60,6 +60,7 @@ export type WikiEditRequestPayload = {
   basic: WikiDetail["basic"];
   sections: WikiSectionContentPayload[];
   themeColor: string | null;
+  imageIdentifier?: string | null;
 };
 
 export type WikiCodeParseResult =
@@ -80,13 +81,8 @@ const escapeCodeValue = (value: string): string =>
 
 const encodeCodeUri = (value: string): string => encodeURIComponent(value);
 
-const decodeCodeUri = (value: string): string => {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-};
+const decodeCodeUri = (value: string): string =>
+  new URLSearchParams(`value=${value.replaceAll("+", "%2B")}`).get("value") ?? value;
 
 const unescapeCodeValue = (value: string): string => {
   let unescaped = "";
@@ -1341,6 +1337,7 @@ export const toWikiEditRequestPayload = (wiki: WikiDetail): WikiEditRequestPaylo
   basic: wiki.basic,
   sections: toWikiSectionContentPayload(wiki.sections),
   themeColor: wiki.themeColor ?? null,
+  imageIdentifier: wiki.heroImage.imageIdentifier ?? null,
 });
 
 const toWikiContentPayload = (

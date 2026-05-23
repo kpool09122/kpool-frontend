@@ -1,5 +1,5 @@
 import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
-import { loadPublicWikiState } from "../../publicWiki";
+import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
 
 type WikiDetailRouteProps = {
   params: Promise<{

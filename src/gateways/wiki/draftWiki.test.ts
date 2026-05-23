@@ -79,6 +79,7 @@ describe("draftWiki", () => {
     expect(wiki.translationSetIdentifier).toBe("translation-set-1");
     expect(wiki.translationSetIdentifier).not.toBe(wiki.wikiIdentifier);
     expect(wiki.basic.agencyName).toBe("North Harbor Entertainment");
+    expect(wiki.heroImage.imageIdentifier).toBe("hero-image-1");
     expect(wiki.heroImage.alt).toBe("Aurora Echo hero image");
     expect(wiki.heroImage.src).toContain("hero-image-1");
     expect(wiki.sections).toEqual([
@@ -98,6 +99,128 @@ describe("draftWiki", () => {
         ],
         children: [],
       },
+    ]);
+  });
+
+  it("uses backend hero image src and alt for the initial top image", () => {
+    const wiki = adaptDraftWikiResponse({
+      basic: {
+        name: "Aurora Echo",
+        normalizedName: "aurora-echo",
+      },
+      heroImage: {
+        imageIdentifier: "hero-image-1",
+        src: "https://cdn.example.test/wiki/hero-image-1.webp",
+        alt: "Aurora Echo official hero",
+      },
+      language: "ja",
+      resourceType: "group",
+      sections: [],
+      slug: "gr-aurora-echo",
+      themeColor: null,
+      translationSetIdentifier: "translation-set-1",
+      version: 4,
+      wikiIdentifier: "wiki-1",
+    });
+
+    expect(wiki.heroImage).toEqual({
+      imageIdentifier: "hero-image-1",
+      src: "https://cdn.example.test/wiki/hero-image-1.webp",
+      alt: "Aurora Echo official hero",
+    });
+  });
+
+  it("normalizes structured backend section contents into nested editor sections and blocks", () => {
+    const wiki = adaptDraftWikiResponse({
+      basic: {
+        name: "Aurora Echo",
+        normalizedName: "aurora-echo",
+      },
+      heroImage: {
+        imageIdentifier: "hero-image-1",
+      },
+      language: "ja",
+      resourceType: "group",
+      sections: [
+        {
+          type: "section",
+          title: "Overview",
+          display_order: 10,
+          contents: [
+            {
+              block_type: "text",
+              display_order: 10,
+              content: "Nested text",
+            },
+            {
+              type: "section",
+              title: "Highlights",
+              display_order: 20,
+              contents: [
+                {
+                  block_type: "image",
+                  display_order: 10,
+                  image_identifier: "image-1",
+                  src: "https://cdn.example.test/wiki/image-1.webp",
+                  caption: "Caption",
+                  alt: "Alt text",
+                },
+                {
+                  block_type: "image_gallery",
+                  display_order: 20,
+                  image_identifiers: ["image-2"],
+                  images: [
+                    {
+                      imageIdentifier: "image-2",
+                      src: "https://cdn.example.test/wiki/image-2.webp",
+                      alt: "Gallery alt",
+                    },
+                  ],
+                  caption: "Gallery",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      slug: "gr-aurora-echo",
+      themeColor: null,
+      translationSetIdentifier: "translation-set-1",
+      version: 3,
+      wikiIdentifier: "wiki-1",
+    });
+
+    expect(wiki.sections[0]?.contents).toEqual([
+      expect.objectContaining({
+        blockType: "text",
+        content: "Nested text",
+      }),
+      expect.objectContaining({
+        type: "section",
+        title: "Highlights",
+        contents: [
+          expect.objectContaining({
+            blockType: "image",
+            imageIdentifier: "image-1",
+            imageSrc: "https://cdn.example.test/wiki/image-1.webp",
+          }),
+          expect.objectContaining({
+            blockType: "image_gallery",
+            images: [
+              {
+                imageIdentifier: "image-2",
+                imageSrc: "https://cdn.example.test/wiki/image-2.webp",
+                alt: "Gallery alt",
+              },
+            ],
+          }),
+        ],
+      }),
+    ]);
+    expect(wiki.sections[0]?.children).toEqual([
+      expect.objectContaining({
+        title: "Highlights",
+      }),
     ]);
   });
 

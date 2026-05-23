@@ -12,7 +12,8 @@ import {
   type WikiImageReviewResponse,
   type WikiImageUploadRequest,
   type WikiImageUploadResponse,
-} from "./wikiImageModel";
+} from "@kpool/wiki";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 const readJsonResponse = async (response: Response): Promise<unknown> => {
   try {
@@ -60,7 +61,7 @@ export const fetchWikiDraftImages = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return wikiDraftImageListResponseSchema.parse(normalizeWikiDraftImageListResponse(body));
+  return parseWithSchemaLog("wiki draft image list response", wikiDraftImageListResponseSchema, normalizeWikiDraftImageListResponse(body));
 };
 
 export const fetchWikiImages = async ({
@@ -87,7 +88,7 @@ export const fetchWikiImages = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return wikiImageListResponseSchema.parse(body);
+  return parseWithSchemaLog("wiki image list response", wikiImageListResponseSchema, body);
 };
 
 export const uploadWikiImageRequest = async ({
@@ -110,7 +111,7 @@ export const uploadWikiImageRequest = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return wikiImageUploadResponseSchema.parse(body);
+  return parseWithSchemaLog("wiki image upload response", wikiImageUploadResponseSchema, body);
 };
 
 const reviewWikiDraftImage = async ({
@@ -139,7 +140,7 @@ const reviewWikiDraftImage = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return wikiImageReviewResponseSchema.parse(body);
+  return parseWithSchemaLog("wiki image review response", wikiImageReviewResponseSchema, body);
 };
 
 export const approveWikiDraftImage = async ({

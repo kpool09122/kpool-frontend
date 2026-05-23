@@ -1,11 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { fetchAuthenticatedIdentity } from "../../../../authIdentity";
-import { loadDraftWikiState } from "../../../draftWiki";
+import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
+import { loadDraftWikiState } from "@/gateways/wiki/draftWiki";
 import { WikiEditPage } from "../../../[slug]/edit/WikiEditPage";
-import { getCurrentWikiPrincipalForRequest } from "../../../wikiPrincipal";
-import { buildWikiEditPath } from "../../../wikiRouting";
+import { getCurrentWikiPrincipalForRequest } from "@/gateways/wiki/wikiPrincipal";
+import { buildWikiEditPath } from "@kpool/wiki";
 
 type WikiEditRouteProps = {
   params: Promise<{

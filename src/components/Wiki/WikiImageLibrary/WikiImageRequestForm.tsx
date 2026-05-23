@@ -1,6 +1,6 @@
 import { UploadIcon } from "@radix-ui/react-icons";
 
-import { wikiImageAcceptAttribute } from "../../../app/wiki/wikiImageModel";
+import { wikiImageAcceptAttribute } from "@kpool/wiki";
 import {
   type WikiImageLibraryDictionary,
   type WikiImageRequestFormController,

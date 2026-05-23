@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import {
   wikiImageMaxBase64Length,
   wikiImageMaxUploadBodyBytes,
-} from "../../../../wiki/wikiImageModel";
+} from "@kpool/wiki";
 import { POST } from "./route";
 
 const createUploadBody = (base64EncodedImage = "aGVsbG8=") => ({

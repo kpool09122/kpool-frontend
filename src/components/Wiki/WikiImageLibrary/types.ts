@@ -3,8 +3,8 @@ import { type Dispatch, type RefObject, type SetStateAction } from "react";
 import {
   type WikiImageListResponse,
   type WikiUploadedImage,
-} from "../../../app/wiki/wikiImageModel";
-import { type useI18n } from "../../../app/i18n/I18nProvider";
+} from "@kpool/wiki";
+import { type useI18n } from "../../../i18n/I18nProvider";
 
 export type WikiImageLibraryTab = "images" | "request";
 
@@ -39,7 +39,7 @@ export type WikiImageLibraryProps = {
   onClose: () => void;
   onLoadMore: () => void;
   onSelectImage?: (image: WikiUploadedImage) => void;
-  onUpload: (input: WikiImageUsageRequestInput) => Promise<void>;
+  onUpload: (input: WikiImageUsageRequestInput) => unknown;
 };
 
 export type WikiImageRequestFormController = {
@@ -56,5 +56,5 @@ export type WikiImageRequestFormController = {
   setRequestForm: Dispatch<SetStateAction<WikiImageRequestFormState>>;
   setSelectedFile: Dispatch<SetStateAction<File | null>>;
   setSuccessMessage: Dispatch<SetStateAction<string | null>>;
-  submitRequest: () => Promise<void>;
+  submitRequest: () => unknown;
 };

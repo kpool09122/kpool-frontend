@@ -7,7 +7,7 @@ import {
   type WikiDraftWorkflowAction,
   wikiDraftReviewCsrfHeaderName,
   wikiDraftReviewCsrfHeaderValue,
-} from "../../../../wiki/draftWiki";
+} from "@/gateways/wiki/draftWiki";
 import { getForwardedWikiApiHeaders } from "../../wikiRouteSupport";
 
 type WikiDraftReviewRouteContext = {

@@ -6,8 +6,8 @@ import {
   defaultWikiImagePerPage,
   type WikiDraftImage,
   type WikiDraftImageListResponse,
-} from "../wiki/wikiImageModel";
-import type { MyPageDraftImageAdapter } from "./myPageAdapters";
+} from "@kpool/wiki";
+import type { MyPageDraftImageAdapter } from "@/gateways/mypage/myPageAdapters";
 
 export type DraftImageListState = {
   images: WikiDraftImage[];
@@ -44,7 +44,7 @@ export const useMyPageDraftImageReview = ({
   const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  const loadDraftImagesPage = useCallback(async (page: number) => {
+  const loadDraftImagesPage = useCallback((page: number) => {
     setDraftImages((state) => ({
       ...state,
       isInitialLoading: page === 1,
@@ -52,14 +52,12 @@ export const useMyPageDraftImageReview = ({
       loadError: null,
     }));
 
-    try {
-      const imagePage = await adapter.listDraftImages({
-        fallbackErrorMessage: messages.draftImageListLoadFailed,
-        page,
-        perPage: defaultWikiImagePerPage,
-        status: "under_review",
-      });
-
+    void adapter.listDraftImages({
+      fallbackErrorMessage: messages.draftImageListLoadFailed,
+      page,
+      perPage: defaultWikiImagePerPage,
+      status: "under_review",
+    }).then((imagePage) => {
       setDraftImages((state) => ({
         ...state,
         images: page === 1 ? imagePage.images : [...state.images, ...imagePage.images],
@@ -71,7 +69,7 @@ export const useMyPageDraftImageReview = ({
           total: imagePage.total,
         },
       }));
-    } catch (error) {
+    }).catch((error: unknown) => {
       setDraftImages((state) => ({
         ...state,
         isInitialLoading: false,
@@ -79,7 +77,7 @@ export const useMyPageDraftImageReview = ({
         loadError:
           error instanceof Error ? error.message : messages.draftImageListLoadFailed,
       }));
-    }
+    });
   }, [adapter, messages.draftImageListLoadFailed]);
 
   const removeReviewedImage = (imageIdentifier: string) => {
@@ -95,27 +93,24 @@ export const useMyPageDraftImageReview = ({
     }));
   };
 
-  const reviewDraftImage = async (
+  const reviewDraftImage = (
     imageIdentifier: string,
     action: "approve" | "reject",
   ) => {
     setReviewingImageIdentifier(imageIdentifier);
     setReviewError(null);
 
-    try {
-      const fallbackErrorMessage =
-        action === "approve"
-          ? messages.draftImageApproveFailed
-          : messages.draftImageRejectFailed;
+    const fallbackErrorMessage =
+      action === "approve"
+        ? messages.draftImageApproveFailed
+        : messages.draftImageRejectFailed;
+    const request = action === "approve"
+      ? adapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage })
+      : adapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
 
-      if (action === "approve") {
-        await adapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage });
-      } else {
-        await adapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
-      }
-
+    void request.then(() => {
       removeReviewedImage(imageIdentifier);
-    } catch (error) {
+    }).catch((error: unknown) => {
       setReviewError(
         error instanceof Error
           ? error.message
@@ -123,9 +118,9 @@ export const useMyPageDraftImageReview = ({
             ? messages.draftImageApproveFailed
             : messages.draftImageRejectFailed,
       );
-    } finally {
+    }).finally(() => {
       setReviewingImageIdentifier(null);
-    }
+    });
   };
 
   return {

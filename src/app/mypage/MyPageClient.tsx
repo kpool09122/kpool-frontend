@@ -1,12 +1,12 @@
 "use client";
 
-import type { IdentitySummary } from "../identityApi";
+import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
-import { useI18n } from "../i18n/I18nProvider";
-import type { Locale } from "../i18n/locales";
+import { useI18n } from "../../i18n/I18nProvider";
+import type { Locale } from "../../i18n/locales";
 import {
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
@@ -14,7 +14,7 @@ import {
   createWikiPrincipal,
   getCurrentWikiPrincipal,
   type WikiPrincipalState,
-} from "../wiki/wikiPrincipal";
+} from "@/gateways/wiki/wikiPrincipal";
 import {
   approveWikiDraft,
   fetchWikiDraftWikis,
@@ -22,18 +22,18 @@ import {
   rejectWikiDraft,
   type WikiDraftWiki,
   type WikiDraftReviewAction,
-} from "../wiki/draftWiki";
+} from "@/gateways/wiki/draftWiki";
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
 import {
   approveWikiDraftImage,
   fetchWikiDraftImages,
   rejectWikiDraftImage,
-} from "../wiki/wikiImageBrowserApi";
+} from "@/gateways/wiki/wikiImageBrowserApi";
 import {
   isSafeWikiSourceUrl,
   type WikiDraftImage,
-} from "../wiki/wikiImageModel";
-import { buildWikiPath } from "../wiki/wikiRouting";
+} from "@kpool/wiki";
+import { buildWikiPath } from "@kpool/wiki";
 import {
   initialDraftImageListState,
   type DraftImageListState,
@@ -49,7 +49,7 @@ import type {
   MyPageDraftImageAdapter,
   MyPageDraftWikiAdapter,
   MyPagePrincipalAdapter,
-} from "./myPageAdapters";
+} from "@/gateways/mypage/myPageAdapters";
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
 type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages";

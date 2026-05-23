@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-import { fetchAuthenticatedIdentity } from "../authIdentity";
+import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import { MyPageClient } from "./MyPageClient";
 
 export default async function MyPage() {

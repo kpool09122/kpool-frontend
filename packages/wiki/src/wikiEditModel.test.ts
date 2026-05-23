@@ -138,10 +138,24 @@ describe("wikiEditModel", () => {
       basic: wiki.basic,
       sections: toWikiSectionContentPayload(wiki.sections),
       themeColor: "#4c5cff",
+      imageIdentifier: null,
     });
     expect(payload).not.toHaveProperty("wiki_identifier");
     expect(payload).not.toHaveProperty("theme_color");
     expect(payload).not.toHaveProperty("contents");
+  });
+
+  it("includes the selected hero image identifier in the EditWiki request body", () => {
+    const wiki = createMockWikiDetail("gr-aurora-echo");
+    const payload = toWikiEditRequestPayload({
+      ...wiki,
+      heroImage: {
+        ...wiki.heroImage,
+        imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      },
+    });
+
+    expect(payload.imageIdentifier).toBe("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
   });
 
   it("creates stable editor ids for sections and blocks", () => {

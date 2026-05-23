@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { schemas } from "@kpool/types/wiki-private-api";
+import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import {
@@ -8,9 +8,9 @@ import {
   getWikiImageErrorMessage,
   normalizeWikiDraftImageListResponse,
   wikiDraftImageListResponseSchema,
-} from "../../../wiki/wikiImageModel";
-import { getWikiImageApiBaseUrl } from "../../../wiki/wikiImageServerApi";
-import { parseWithSchemaLog } from "../../../zodErrorLog";
+} from "@kpool/wiki";
+import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return jsonErrorResponse("Wiki image API is not configured.", 500);
   }
 
-  const statusResult = schemas.DraftImageStatus.safeParse(
+  const statusResult = wikiPrivateApiTypes.schemas.DraftImageStatus.safeParse(
     request.nextUrl.searchParams.get("status"),
   );
 

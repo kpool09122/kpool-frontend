@@ -5,9 +5,11 @@ import {
   type WikiDetail,
   type WikiEditRequestPayload,
 } from "@kpool/wiki";
-import { schemas } from "@kpool/types/wiki-private-api";
+import { wikiPrivateApiTypes } from "@kpool/types";
 
-import { createSubmitWikiRequestBody } from "../../draftWiki";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+
+import { createSubmitWikiRequestBody } from "@/gateways/wiki/draftWiki";
 
 export type WikiSaveResult = { ok: true } | { ok: false };
 
@@ -27,7 +29,7 @@ export const saveWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> 
     return { ok: false };
   }
 
-  schemas.DraftWikiSummary.parse(await response.json());
+  parseWithSchemaLog("wiki draft save response", wikiPrivateApiTypes.schemas.DraftWikiSummary, await response.json());
 
   return { ok: true };
 };
@@ -48,7 +50,7 @@ export const submitWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult
     return { ok: false };
   }
 
-  schemas.DraftWikiSummary.parse(await response.json());
+  parseWithSchemaLog("wiki draft save response", wikiPrivateApiTypes.schemas.DraftWikiSummary, await response.json());
 
   return { ok: true };
 };

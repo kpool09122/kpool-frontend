@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
-} from "../../../../identityApi";
+} from "@/gateways/identity/identityApi";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {

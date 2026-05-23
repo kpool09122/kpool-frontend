@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import {
   wikiDraftReviewCsrfHeaderName,
   wikiDraftReviewCsrfHeaderValue,
-} from "../../../../wiki/draftWiki";
+} from "@/gateways/wiki/draftWiki";
 import { POST as approvePOST } from "./approve/route";
 import { POST as publishPOST } from "./publish/route";
 import { POST as rejectPOST } from "./reject/route";

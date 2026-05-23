@@ -1,14 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { parseWithSchemaLog } from "../../../../zodErrorLog";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   createWikiPrincipalCreateUrl,
   getWikiPrincipalApiBaseUrl,
   getWikiPrincipalErrorMessage,
   wikiPrincipalCreateRequestSchema,
   wikiPrincipalSummarySchema,
-} from "../../../../wiki/wikiPrincipal";
+} from "@/gateways/wiki/wikiPrincipal";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = wikiPrincipalCreateRequestSchema.parse(await request.json());
+    const body = parseWithSchemaLog("wiki principal create request", wikiPrincipalCreateRequestSchema, await request.json());
     const apiResponse = await fetch(createWikiPrincipalCreateUrl(baseUrl), {
       method: "POST",
       headers: {

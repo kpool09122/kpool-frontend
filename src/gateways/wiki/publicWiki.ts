@@ -1,22 +1,22 @@
-import { type WikiDetail, type WikiDetailState } from "@kpool/wiki";
+import { getWikiDetailState, type WikiDetail, type WikiDetailState } from "@kpool/wiki";
 import { z } from "zod";
 
 import {
   getWikiResourceTypeFromSlug,
   wikiResourceTypes,
   type WikiResourceType,
-} from "./wikiRouting";
+} from "@kpool/wiki";
 import {
   adaptWikiApiResponse,
   getWikiApiErrorMessage,
   withWikiApiPrefix,
-} from "./wikiApiModel";
-import { parseWithSchemaLog } from "../zodErrorLog";
+} from "@kpool/wiki";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 const publicWikiHeroImageSchema = z
   .object({
     imageIdentifier: z.string().nullable().optional(),
-    src: z.string().optional(),
+    src: z.string().nullable().optional(),
     alt: z.string().nullable().optional(),
   })
   .passthrough();
@@ -102,6 +102,8 @@ export type PublicWikiApiClient = {
 };
 
 const defaultApiBaseUrl = process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
+const isMockWikiGatewayEnabled = (): boolean =>
+  process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -279,6 +281,10 @@ export const loadPublicWikiState = async (
   language: string,
   slug: string,
 ): Promise<WikiDetailState> => {
+  if (isMockWikiGatewayEnabled()) {
+    return getWikiDetailState(slug, { language });
+  }
+
   const client = createPublicWikiApiClient();
 
   if (!client) {

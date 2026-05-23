@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { schemas } from "@kpool/types/wiki-private-api";
+import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import {
@@ -7,9 +7,9 @@ import {
   defaultWikiDraftPerPage,
   getDraftWikiErrorMessage,
   wikiDraftWikiListResponseSchema,
-} from "../../../wiki/draftWiki";
-import { getWikiImageApiBaseUrl } from "../../../wiki/wikiImageServerApi";
-import { parseWithSchemaLog } from "../../../zodErrorLog";
+} from "@/gateways/wiki/draftWiki";
+import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     return jsonErrorResponse("Wiki draft API is not configured.", 500);
   }
 
-  const statusResult = schemas.DraftWikiStatus.safeParse(
+  const statusResult = wikiPrivateApiTypes.schemas.DraftWikiStatus.safeParse(
     request.nextUrl.searchParams.get("status"),
   );
 

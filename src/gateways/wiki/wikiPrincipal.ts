@@ -1,15 +1,17 @@
-import { schemas } from "@kpool/types/wiki-private-api";
-import type { IdentitySummary } from "../identityApi";
+import { wikiPrivateApiTypes } from "@kpool/types";
+import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { z } from "zod";
+
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 import {
   getWikiApiErrorMessage,
   trimTrailingSlashes,
   withWikiApiPrefix,
-} from "./wikiApiModel";
+} from "@kpool/wiki";
 
-export const wikiPrincipalSummarySchema = schemas.PrincipalSummary;
-export const wikiPrincipalCreateRequestSchema = schemas.CreatePrincipalRequestBody;
+export const wikiPrincipalSummarySchema = wikiPrivateApiTypes.schemas.PrincipalSummary;
+export const wikiPrincipalCreateRequestSchema = wikiPrivateApiTypes.schemas.CreatePrincipalRequestBody;
 
 export type WikiPrincipalSummary = z.infer<typeof wikiPrincipalSummarySchema>;
 export type WikiPrincipalCreateRequest = z.infer<typeof wikiPrincipalCreateRequestSchema>;
@@ -164,7 +166,7 @@ export const getCurrentWikiPrincipal = async ({
 
     return {
       status: "available",
-      principal: wikiPrincipalSummarySchema.parse(body),
+      principal: parseWithSchemaLog("wiki principal response", wikiPrincipalSummarySchema, body),
     };
   } catch (error) {
     return {
@@ -215,7 +217,7 @@ export const getCurrentWikiPrincipalForRequest = async ({
 
     return {
       status: "available",
-      principal: wikiPrincipalSummarySchema.parse(body),
+      principal: parseWithSchemaLog("wiki principal response", wikiPrincipalSummarySchema, body),
     };
   } catch (error) {
     return {
@@ -233,7 +235,7 @@ export const createWikiPrincipal = async ({
   fetchAdapter?: FetchAdapter;
 }): Promise<Extract<WikiPrincipalState, { status: "available" | "error" }>> => {
   try {
-    const body = wikiPrincipalCreateRequestSchema.parse({
+    const body = parseWithSchemaLog("wiki principal create request", wikiPrincipalCreateRequestSchema, {
       accountIdentifier,
       identityIdentifier,
     });
@@ -259,7 +261,7 @@ export const createWikiPrincipal = async ({
 
     return {
       status: "available",
-      principal: wikiPrincipalSummarySchema.parse(responseBody),
+      principal: parseWithSchemaLog("wiki principal create response", wikiPrincipalSummarySchema, responseBody),
     };
   } catch (error) {
     return {

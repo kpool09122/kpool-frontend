@@ -8,11 +8,7 @@ const frameSurfaceStyle = {
 };
 
 function parseUrl(value: string): URL | null {
-  try {
-    return new URL(value);
-  } catch {
-    return null;
-  }
+  return URL.canParse(value) ? new URL(value) : null;
 }
 
 function getLastPathPart(value: string): string {

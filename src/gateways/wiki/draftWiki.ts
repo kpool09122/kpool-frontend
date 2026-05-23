@@ -1,25 +1,25 @@
-import { type WikiDetail } from "@kpool/wiki";
-import { schemas } from "@kpool/types/wiki-private-api";
+import { createMockWikiDetail, type WikiDetail } from "@kpool/wiki";
+import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import {
   getWikiResourceTypeFromSlug,
   type WikiResourceType,
-} from "./wikiRouting";
+} from "@kpool/wiki";
 import {
   adaptWikiApiResponse,
   getWikiApiErrorMessage,
   trimTrailingSlashes,
   withWikiApiPrefix,
-} from "./wikiApiModel";
-import { parseWithSchemaLog } from "../zodErrorLog";
+} from "@kpool/wiki";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 const draftWikiApiResponseSchema = z
   .union([
-    schemas.AgencyDraftWikiDetail,
-    schemas.DraftWikiDetail,
-    schemas.SongDraftWikiDetail,
-    schemas.TalentDraftWikiDetail,
+    wikiPrivateApiTypes.schemas.AgencyDraftWikiDetail,
+    wikiPrivateApiTypes.schemas.DraftWikiDetail,
+    wikiPrivateApiTypes.schemas.SongDraftWikiDetail,
+    wikiPrivateApiTypes.schemas.TalentDraftWikiDetail,
   ])
   .and(
     z
@@ -29,19 +29,26 @@ const draftWikiApiResponseSchema = z
       .passthrough(),
   );
 
+const submitWikiRequestBodySchema = wikiPrivateApiTypes.schemas.WikiWorkflowRequestBody.and(
+  z.object({
+    resourceType: z.string(),
+    wikiId: z.string(),
+  }),
+);
+const reviewWikiRequestBodySchema = wikiPrivateApiTypes.schemas.WikiWorkflowRequestBody.and(
+  z.object({
+    resourceType: z.string(),
+  }),
+);
+
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
-type EditWikiRequestBody = z.infer<typeof schemas.UpdateWikiDraftRequestBody>;
-type SubmitWikiRequestBody = z.infer<typeof schemas.WikiWorkflowRequestBody> & {
-  resourceType: string;
-  wikiId: string;
-};
-type ReviewWikiRequestBody = z.infer<typeof schemas.WikiWorkflowRequestBody> & {
-  resourceType: string;
-};
-type DraftWikiSummary = z.infer<typeof schemas.DraftWikiSummary>;
-export type WikiDraftWiki = z.infer<typeof schemas.DraftWikiListItem>;
-export type WikiDraftWikiStatus = z.infer<typeof schemas.DraftWikiStatus>;
-export type WikiDraftWikiListResponse = z.infer<typeof schemas.ListDraftWikisResponseBody>;
+type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWikiDraftRequestBody>;
+type SubmitWikiRequestBody = z.infer<typeof submitWikiRequestBodySchema>;
+type ReviewWikiRequestBody = z.infer<typeof reviewWikiRequestBodySchema>;
+type DraftWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiSummary>;
+export type WikiDraftWiki = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiListItem>;
+export type WikiDraftWikiStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiStatus>;
+export type WikiDraftWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody>;
 export type WikiDraftReviewAction = "approve" | "reject";
 export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish";
 type DraftWikiApiClient = {
@@ -61,7 +68,7 @@ type DraftWikiApiClient = {
 };
 
 export const defaultWikiDraftPerPage = 12;
-export const wikiDraftWikiListResponseSchema = schemas.ListDraftWikisResponseBody;
+export const wikiDraftWikiListResponseSchema = wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody;
 export const wikiDraftReviewCsrfHeaderName = "X-KPool-Wiki-Review-Request";
 export const wikiDraftReviewCsrfHeaderValue = "1";
 
@@ -78,6 +85,8 @@ const draftWikiAliasByResourceType = {
 } as const;
 
 const getDefaultApiBaseUrl = (): string => process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL ?? "";
+const isMockWikiGatewayEnabled = (): boolean =>
+  process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -100,7 +109,7 @@ const parseDraftWikiResponseBody = (body: unknown): DraftWikiApiResponse =>
   parseWithSchemaLog("wiki draft detail response", draftWikiApiResponseSchema, body);
 
 const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
-  parseWithSchemaLog("wiki draft summary response", schemas.DraftWikiSummary, body);
+  parseWithSchemaLog("wiki draft summary response", wikiPrivateApiTypes.schemas.DraftWikiSummary, body);
 
 export const adaptDraftWikiResponse = (response: DraftWikiApiResponse): WikiDetail =>
   adaptWikiApiResponse(response);
@@ -171,12 +180,7 @@ export const createSubmitWikiRequestBody = (
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
 
-  return schemas.WikiWorkflowRequestBody.and(
-    z.object({
-      resourceType: z.string(),
-      wikiId: z.string(),
-    }),
-  ).parse(body);
+  return parseWithSchemaLog("wiki submit request", submitWikiRequestBodySchema, body);
 };
 
 export const createReviewWikiRequestBody = (
@@ -190,11 +194,7 @@ export const createReviewWikiRequestBody = (
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
 
-  return schemas.WikiWorkflowRequestBody.and(
-    z.object({
-      resourceType: z.string(),
-    }),
-  ).parse(body);
+  return parseWithSchemaLog("wiki review request", reviewWikiRequestBodySchema, body);
 };
 
 export const createWikiDraftWikisUrl = ({
@@ -455,7 +455,7 @@ export const fetchWikiDraftWikis = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return wikiDraftWikiListResponseSchema.parse(body);
+  return parseWithSchemaLog("wiki draft list response", wikiDraftWikiListResponseSchema, body);
 };
 
 const reviewWikiDraftRequest = async ({
@@ -543,6 +543,18 @@ export const loadDraftWikiState = async (
   language: string,
   slug: string,
 ): Promise<DraftWikiState> => {
+  if (isMockWikiGatewayEnabled()) {
+    return slug === "empty"
+      ? { status: "empty" }
+      : {
+          status: "success",
+          data: {
+            ...createMockWikiDetail(slug),
+            language,
+          },
+        };
+  }
+
   const client = createDraftWikiApiClient();
 
   if (!client) {

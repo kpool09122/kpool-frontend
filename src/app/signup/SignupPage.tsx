@@ -13,9 +13,9 @@ import {
   type SignupPhase,
   type SignupStepId,
   type SignupStepState,
-	} from "./signupFlow";
-import { useI18n } from "../i18n/I18nProvider";
-import { localeLabels, type Locale } from "../i18n/locales";
+	} from "@/gateways/auth/signupFlow";
+import { useI18n } from "../../i18n/I18nProvider";
+import { localeLabels, type Locale } from "../../i18n/locales";
 
 type SignupPageProps = {
   signupAdapter?: SignupAdapter;
@@ -81,55 +81,52 @@ export function SignupPage({
     }));
   };
 
-  const handleAccountSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleAccountSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPending(true);
     setErrorMessage(null);
     setErrorStep(null);
 
-    try {
-      await signupAdapter.createAccount(buildCreateAccountRequest(values), {
-        language: values.language,
-      });
+    void signupAdapter.createAccount(buildCreateAccountRequest(values), {
+      language: values.language,
+    }).then(() => {
       setPhase("verification");
-    } catch (error) {
+    }).catch((error: unknown) => {
       setErrorMessage(getErrorMessage(error));
       setErrorStep("account");
-    } finally {
+    }).finally(() => {
       setPending(false);
-    }
+    });
   };
 
-  const handleVerificationSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleVerificationSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPending(true);
     setErrorMessage(null);
     setErrorStep(null);
 
-    try {
-      await signupAdapter.verifyEmail(
-        { email: values.email, authCode },
-        { language: values.language },
-      );
+    void signupAdapter.verifyEmail(
+      { email: values.email, authCode },
+      { language: values.language },
+    ).then(() => {
       setPhase("identity");
-    } catch (error) {
+    }).catch((error: unknown) => {
       setErrorMessage(getErrorMessage(error));
       setErrorStep("verification");
-    } finally {
+    }).finally(() => {
       setPending(false);
-    }
+    });
   };
 
-  const handleIdentitySubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleIdentitySubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPending(true);
     setErrorMessage(null);
     setErrorStep(null);
 
-    try {
-      await signupAdapter.createIdentity(buildCreateIdentityRequest(values), {
-        language: values.language,
-      });
+    void signupAdapter.createIdentity(buildCreateIdentityRequest(values), {
+      language: values.language,
+    }).then(() => {
       setPhase("complete");
 
       if (navigate) {
@@ -139,12 +136,12 @@ export function SignupPage({
         router.refresh();
       }
       refresh?.();
-    } catch (error) {
+    }).catch((error: unknown) => {
       setErrorMessage(getErrorMessage(error));
       setErrorStep("identity");
-    } finally {
+    }).finally(() => {
       setPending(false);
-    }
+    });
   };
 
   const steps = getSignupStepItems({ phase, pending, errorStep });

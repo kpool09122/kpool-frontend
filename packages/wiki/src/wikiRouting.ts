@@ -1,6 +1,6 @@
-export const wikiResourceTypes = ["agency", "group", "song", "talent"] as const;
+import type { WikiResourceType } from "./types/wiki";
 
-export type WikiResourceType = (typeof wikiResourceTypes)[number];
+export const wikiResourceTypes = ["agency", "group", "song", "talent"] as const;
 
 export const wikiResourceTypePrefixes: Record<WikiResourceType, string> = {
   agency: "ag-",
