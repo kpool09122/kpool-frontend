@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 
 import "./globals.css";
-import { fetchAuthenticatedIdentity } from "./authIdentity";
+import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import { Header } from "./Header";
-import { I18nProvider } from "./i18n/I18nProvider";
-import { localeCookieName, resolveLocale } from "./i18n/locales";
+import { I18nProvider } from "../i18n/I18nProvider";
+import { localeCookieName, resolveLocale } from "../i18n/locales";
 import { ThemeInitializer } from "./ThemeInitializer";
 
 export const metadata: Metadata = {

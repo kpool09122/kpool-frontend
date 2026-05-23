@@ -1,8 +1,10 @@
-import { schemas } from "@kpool/types/account-api";
+import { accountApiTypes } from "@kpool/types";
 import { z } from "zod";
 
-export type CreateAccountRequest = z.infer<typeof schemas.CreateAccountRequestBody>;
-export type CreateAccountResult = z.infer<typeof schemas.CreateAccountResult>;
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+
+export type CreateAccountRequest = z.infer<typeof accountApiTypes.schemas.CreateAccountRequestBody>;
+export type CreateAccountResult = z.infer<typeof accountApiTypes.schemas.CreateAccountResult>;
 
 type AccountApiEnv = Record<string, string | undefined>;
 
@@ -29,7 +31,7 @@ export const getAccountApiBaseUrl = (
     : null;
 
 export const parseCreateAccountRequest = (body: unknown): CreateAccountRequest =>
-  schemas.CreateAccountRequestBody.parse(body);
+  parseWithSchemaLog("account create request", accountApiTypes.schemas.CreateAccountRequestBody, body);
 
 export const parseCreateAccountResult = (body: unknown): CreateAccountResult =>
-  schemas.CreateAccountResult.parse(Array.isArray(body) && body.length === 0 ? {} : body);
+  parseWithSchemaLog("account create response", accountApiTypes.schemas.CreateAccountResult, Array.isArray(body) && body.length === 0 ? {} : body);

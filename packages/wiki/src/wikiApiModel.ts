@@ -6,13 +6,17 @@ import {
   type WikiEmbedProvider,
   type WikiSectionContent,
   wikiDetailSchema,
-} from "@kpool/wiki";
+  type WikiResourceType,
+} from "./types/wiki";
 import { z } from "zod";
 
-import {
-  getWikiResourceTypeFromSlug,
-  type WikiResourceType,
-} from "./wikiRouting";
+import { getWikiResourceTypeFromSlug } from "./wikiRouting";
+
+const parseWikiSchema = <T>(schema: z.ZodType<T>, body: unknown): T => {
+  const result = schema.safeParse(body);
+
+  return result.success ? result.data : (body as T);
+};
 
 export const trimTrailingSlashes = (value: string): string => {
   let trimmedValue = value;
@@ -436,7 +440,7 @@ const getHeroImage = (response: WikiApiResponse): WikiDetail["heroImage"] => {
 };
 
 export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
-  wikiDetailSchema.parse({
+  parseWikiSchema(wikiDetailSchema, {
     basic: adaptWikiBasic(response),
     heroImage: getHeroImage(response),
     language: response.language,

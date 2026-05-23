@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMockWikiDetail } from "@kpool/wiki";
 
 import { WikiEditPage } from "./WikiEditPage";
-import { wikiImageMaxFileSizeBytes } from "../../wikiImageModel";
+import { wikiImageMaxFileSizeBytes } from "@kpool/wiki";
 import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
 
 const successState = {

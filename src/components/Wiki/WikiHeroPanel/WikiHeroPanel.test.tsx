@@ -43,6 +43,7 @@ describe("WikiHeroPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).toHaveBeenCalledWith({
+      imageIdentifier: null,
       src: "https://example.com/new-image.jpg",
       alt: "Updated alt",
     });

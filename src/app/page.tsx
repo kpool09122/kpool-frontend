@@ -2,24 +2,24 @@ import type { CSSProperties } from "react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
-import { fetchAuthenticatedIdentity } from "./authIdentity";
-import { dictionaries, type I18nDictionary } from "./i18n/dictionaries";
+import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
+import { dictionaries, type I18nDictionary } from "../i18n/dictionaries";
 import {
   localeCookieName,
   resolveWikiListLocale,
   type Locale,
-} from "./i18n/locales";
+} from "../i18n/locales";
 import {
   loadPublicWikiListState,
   type PublicWikiListItem,
   type PublicWikiListQuery,
   type PublicWikiListState,
-} from "./wiki/publicWiki";
+} from "@/gateways/wiki/publicWiki";
 import {
   buildWikiPath,
   wikiResourceTypes,
   type WikiResourceType,
-} from "./wiki/wikiRouting";
+} from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "./wiki/[slug]/wikiThemePalette";
 
 type HomeProps = {

@@ -14,7 +14,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `pnpm build && pnpm exec next start --hostname 127.0.0.1 --port ${e2ePort}`,
+    command: `KPOOL_ENABLE_MOCK_WIKI_GATEWAY=1 pnpm build && KPOOL_ENABLE_MOCK_WIKI_GATEWAY=1 pnpm exec next start --hostname 127.0.0.1 --port ${e2ePort}`,
     url: e2eBaseUrl,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1",
     timeout: 120_000,

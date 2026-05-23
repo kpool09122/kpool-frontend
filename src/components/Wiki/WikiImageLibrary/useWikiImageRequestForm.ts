@@ -4,7 +4,7 @@ import {
   isAcceptedWikiImageFile,
   isSafeWikiSourceUrl,
   isWikiImageFileSizeAllowed,
-} from "../../../app/wiki/wikiImageModel";
+} from "@kpool/wiki";
 import {
   type WikiImageLibraryDictionary,
   type WikiImageRequestFormController,
@@ -19,8 +19,8 @@ const emptyRequestForm: WikiImageRequestFormState = {
   rightsConfirmed: false,
 };
 
-const readFileAsDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
 
     reader.addEventListener("load", () => {
@@ -53,7 +53,7 @@ export const useWikiImageRequestForm = ({
   uploadError,
 }: {
   isBusy: boolean;
-  onUpload: (input: WikiImageUsageRequestInput) => Promise<void>;
+  onUpload: (input: WikiImageUsageRequestInput) => unknown;
   t: WikiImageLibraryDictionary;
   uploadError: string | null;
 }): WikiImageRequestFormController => {
@@ -103,7 +103,7 @@ export const useWikiImageRequestForm = ({
     setRequestForm(emptyRequestForm);
   };
 
-  const submitRequest = async () => {
+  const submitRequest = () => {
     if (!hasCompleteRequestForm(selectedFile, requestForm)) {
       setLocalError(t.requiredFields);
       return;
@@ -111,26 +111,26 @@ export const useWikiImageRequestForm = ({
 
     setLocalError(null);
 
-    try {
-      const base64Image = await readFileAsDataUrl(selectedFile);
-      await onUpload({
+    void readFileAsDataUrl(selectedFile).then((base64Image) =>
+      Promise.resolve(onUpload({
         file: selectedFile,
         base64Image,
         sourceUrl: requestForm.sourceUrl.trim(),
         sourceName: requestForm.sourceName.trim(),
         altText: requestForm.altText.trim(),
         rightsConfirmationAgreed: requestForm.rightsConfirmed,
-      });
+      })),
+    ).then(() => {
       setSelectedFile(null);
       setRequestForm(emptyRequestForm);
       setSuccessMessage(t.requestSubmitted);
-    } catch (error) {
+    }).catch((error: unknown) => {
       setLocalError(
         error instanceof Error && error.message !== "file-read-failed"
           ? error.message
           : t.readFailed,
       );
-    }
+    });
   };
 
   return {

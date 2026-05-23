@@ -67,30 +67,30 @@ describe("wikiImages", () => {
     expect(request.agreedToTermsAt).toEqual(expect.any(String));
   });
 
-  it("rejects dangerous source URL schemes for upload requests", () => {
+  it("removes dangerous source URL schemes from upload requests", () => {
     expect(isSafeWikiSourceUrl("javascript:alert(1)")).toBe(false);
     expect(isSafeWikiSourceUrl("data:text/html;base64,PHNjcmlwdD4=")).toBe(false);
     expect(isSafeWikiSourceUrl("https://commons.wikimedia.org/wiki/File:Stage.webp")).toBe(true);
-    expect(() =>
-      createWikiImageUploadRequest({
-        altText: "Stage performance",
-        base64EncodedImage: "abc123",
-        displayOrder: 3,
-        fileName: "stage.webp",
-        imageAssociation: createWikiImageAssociationInput({
-          resourceType: "group",
-          translationSetIdentifier: "translation-set-1",
-        }),
-        rightsConfirmationAgreed: true,
-        sourceName: "Wikimedia Commons",
-        sourceUrl: "javascript:alert(1)",
+
+    const request = createWikiImageUploadRequest({
+      altText: "Stage performance",
+      base64EncodedImage: "abc123",
+      displayOrder: 3,
+      fileName: "stage.webp",
+      imageAssociation: createWikiImageAssociationInput({
+        resourceType: "group",
+        translationSetIdentifier: "translation-set-1",
       }),
-    ).toThrow();
+      rightsConfirmationAgreed: true,
+      sourceName: "Wikimedia Commons",
+      sourceUrl: "javascript:alert(1)",
+    });
+
+    expect(request.sourceUrl).toBe("");
   });
 
   it("rejects upload requests with oversized encoded images", () => {
-    expect(() =>
-      wikiImageUploadRequestSchema.parse({
+    expect(wikiImageUploadRequestSchema.safeParse({
         resourceType: "group",
         translationSetIdentifier: "translation-set-1",
         base64EncodedImage: "a".repeat(wikiImageMaxBase64Length + 1),
@@ -100,8 +100,7 @@ describe("wikiImages", () => {
         altText: "Stage performance",
         agreedToTermsAt: "2026-05-09T00:00:00.000Z",
         rightsConfirmationAgreed: true,
-      }),
-    ).toThrow();
+      }).success).toBe(false);
   });
 
   it("builds image list urls with pagination query values", () => {

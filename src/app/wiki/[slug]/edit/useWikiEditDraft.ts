@@ -21,7 +21,7 @@ import { useMemo, useState } from "react";
 import {
   normalizeWikiSlugForResourceType,
   type WikiResourceType,
-} from "../../wikiRouting";
+} from "@kpool/wiki";
 
 type WikiSaveState =
   | {
@@ -55,10 +55,18 @@ type WikiSaveState =
       showMessage: boolean;
     };
 
+type WikiPersistenceResult = { ok: true } | { ok: false };
+
 type WikiEditDraftOptions = {
-  saveAdapter?: (draft: WikiDetail) => Promise<{ ok: true } | { ok: false }>;
-  submitAdapter?: (draft: WikiDetail) => Promise<{ ok: true } | { ok: false }>;
+  saveAdapter?: (draft: WikiDetail) => unknown;
+  submitAdapter?: (draft: WikiDetail) => unknown;
 };
+
+const isWikiPersistenceResult = (value: unknown): value is WikiPersistenceResult =>
+  typeof value === "object" &&
+  value !== null &&
+  "ok" in value &&
+  typeof value.ok === "boolean";
 
 const optimisticSaveAdapter = async () => ({ ok: true }) as const;
 const optimisticActionAdapter = async () => ({ ok: true }) as const;
@@ -115,7 +123,7 @@ export const useWikiEditDraft = (
     });
   };
 
-  const saveDraft = async () => {
+  const saveDraft = () => {
     const payload = toWikiEditPayload(draft);
 
     setSaveState({
@@ -125,8 +133,8 @@ export const useWikiEditDraft = (
       showMessage: true,
     });
 
-    try {
-      const result = await saveAdapter(draft);
+    void Promise.resolve(saveAdapter(draft)).then((adapterResult) => {
+      const result = isWikiPersistenceResult(adapterResult) ? adapterResult : { ok: false };
 
       setSaveState({
         status: result.ok ? "saved" : "failed",
@@ -134,14 +142,14 @@ export const useWikiEditDraft = (
         payload,
         showMessage: true,
       });
-    } catch {
+    }).catch(() => {
       setSaveState({
         status: "failed",
         message: "Save failed",
         payload,
         showMessage: true,
       });
-    }
+    });
   };
 
   const clearDraft = () => {
@@ -158,7 +166,7 @@ export const useWikiEditDraft = (
     });
   };
 
-  const requestPublication = async () => {
+  const requestPublication = () => {
     const payload = toWikiEditPayload(draft);
 
     setSaveState({
@@ -168,22 +176,23 @@ export const useWikiEditDraft = (
       showMessage: true,
     });
 
-    try {
-      const result = await submitAdapter(draft);
+    void Promise.resolve(submitAdapter(draft)).then((adapterResult) => {
+      const result = isWikiPersistenceResult(adapterResult) ? adapterResult : { ok: false };
+
       setSaveState({
         status: result.ok ? "saved" : "failed",
         message: result.ok ? "Submitted for review" : "Submit failed",
         payload,
         showMessage: true,
       });
-    } catch {
+    }).catch(() => {
       setSaveState({
         status: "failed",
         message: "Submit failed",
         payload,
         showMessage: true,
       });
-    }
+    });
   };
 
   return {

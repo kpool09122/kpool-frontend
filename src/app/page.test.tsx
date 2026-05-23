@@ -1,9 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fetchAuthenticatedIdentity } from "./authIdentity";
+import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import Home from "./page";
-import { loadPublicWikiListState } from "./wiki/publicWiki";
+import { loadPublicWikiListState } from "@/gateways/wiki/publicWiki";
 
 const cookieState = vi.hoisted(() => ({
   savedLocale: "ja",
@@ -18,13 +18,13 @@ vi.mock("next/headers", () => ({
   })),
 }));
 
-vi.mock("./authIdentity", () => ({
+vi.mock("@/gateways/identity/authIdentity", () => ({
   fetchAuthenticatedIdentity: vi.fn(),
 }));
 
-vi.mock("./wiki/publicWiki", async () => {
-  const actual = await vi.importActual<typeof import("./wiki/publicWiki")>(
-    "./wiki/publicWiki",
+vi.mock("@/gateways/wiki/publicWiki", async () => {
+  const actual = await vi.importActual<typeof import("@/gateways/wiki/publicWiki")>(
+    "@/gateways/wiki/publicWiki",
   );
 
   return {

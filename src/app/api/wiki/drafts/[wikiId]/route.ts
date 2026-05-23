@@ -4,7 +4,7 @@ import {
   createDraftWikiApiClient,
   getDraftWikiErrorMessage,
   saveDraftWiki,
-} from "../../../../wiki/draftWiki";
+} from "@/gateways/wiki/draftWiki";
 import { getForwardedWikiApiHeaders } from "../../wikiRouteSupport";
 
 type WikiDraftSaveRouteContext = {

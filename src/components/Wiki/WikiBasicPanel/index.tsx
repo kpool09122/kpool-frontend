@@ -5,7 +5,7 @@ import { type WikiBasic } from "@kpool/wiki";
 import {
   getWikiResourceLabel,
   type WikiResourceType,
-} from "../../../app/wiki/wikiRouting";
+} from "@kpool/wiki";
 import { getLines, getString } from "../editing";
 import { EditIcon } from "../icons";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";

@@ -6,7 +6,7 @@ import {
   getWikiDetailState,
   type WikiProfileCardListBlock,
 } from "@kpool/wiki";
-import { buildWikiPath } from "../wikiRouting";
+import { buildWikiPath } from "@kpool/wiki";
 
 const profileCardStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",

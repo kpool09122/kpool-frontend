@@ -10,7 +10,7 @@ import {
   getWikiResourceLabel,
   wikiResourceTypes,
   wikiResourceTypePrefixes,
-} from "../../../app/wiki/wikiRouting";
+} from "@kpool/wiki";
 import { type WikiEditorMode, type WikiPreviewMode, themeColorOptions } from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";

@@ -1,12 +1,14 @@
-import { schemas } from "@kpool/types/identity-api";
+import { identityApiTypes } from "@kpool/types";
 import { z } from "zod";
 
-export type IdentityLoginRequest = z.infer<typeof schemas.LoginRequestBody>;
-export type IdentitySummary = z.infer<typeof schemas.IdentitySummary>;
-export type RedirectUrlResult = z.infer<typeof schemas.RedirectUrlResult>;
-export type CreateIdentityRequest = z.infer<typeof schemas.CreateIdentityRequestBody>;
-export type VerifyEmailRequest = z.infer<typeof schemas.VerifyEmailRequestBody>;
-export type VerifyEmailResult = z.infer<typeof schemas.VerifyEmailResult>;
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+
+export type IdentityLoginRequest = z.infer<typeof identityApiTypes.schemas.LoginRequestBody>;
+export type IdentitySummary = z.infer<typeof identityApiTypes.schemas.IdentitySummary>;
+export type RedirectUrlResult = z.infer<typeof identityApiTypes.schemas.RedirectUrlResult>;
+export type CreateIdentityRequest = z.infer<typeof identityApiTypes.schemas.CreateIdentityRequestBody>;
+export type VerifyEmailRequest = z.infer<typeof identityApiTypes.schemas.VerifyEmailRequestBody>;
+export type VerifyEmailResult = z.infer<typeof identityApiTypes.schemas.VerifyEmailResult>;
 
 type IdentityApiEnv = Record<string, string | undefined>;
 
@@ -71,19 +73,19 @@ export const getIdentityRouteErrorMessage = ({
 };
 
 export const parseIdentityLoginRequest = (body: unknown): IdentityLoginRequest =>
-  schemas.LoginRequestBody.parse(body);
+  parseWithSchemaLog("identity login request", identityApiTypes.schemas.LoginRequestBody, body);
 
 export const parseIdentitySummary = (body: unknown): IdentitySummary =>
-  schemas.IdentitySummary.parse(body);
+  parseWithSchemaLog("identity summary", identityApiTypes.schemas.IdentitySummary, body);
 
 export const parseRedirectUrlResult = (body: unknown): RedirectUrlResult =>
-  schemas.RedirectUrlResult.parse(body);
+  parseWithSchemaLog("identity redirect url response", identityApiTypes.schemas.RedirectUrlResult, body);
 
 export const parseCreateIdentityRequest = (body: unknown): CreateIdentityRequest =>
-  schemas.CreateIdentityRequestBody.parse(body);
+  parseWithSchemaLog("identity create request", identityApiTypes.schemas.CreateIdentityRequestBody, body);
 
 export const parseVerifyEmailRequest = (body: unknown): VerifyEmailRequest =>
-  schemas.VerifyEmailRequestBody.parse(body);
+  parseWithSchemaLog("identity verify email request", identityApiTypes.schemas.VerifyEmailRequestBody, body);
 
 export const parseVerifyEmailResult = (body: unknown): VerifyEmailResult =>
-  schemas.VerifyEmailResult.parse(body);
+  parseWithSchemaLog("identity verify email response", identityApiTypes.schemas.VerifyEmailResult, body);

@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
-import { useI18n } from "./i18n/I18nProvider";
-import { localeLabels, type Locale } from "./i18n/locales";
+import { useI18n } from "../i18n/I18nProvider";
+import { localeLabels, type Locale } from "../i18n/locales";
 
 type HeaderProps = {
   initialIsAuthenticated?: boolean;
-  logoutAdapter?: () => Promise<void>;
+  logoutAdapter?: () => unknown;
   navigate?: (url: string) => void;
   refresh?: () => void;
 };
@@ -21,7 +21,7 @@ const guestNavigation = {
 };
 const mobileNavigationId = "mobile-navigation";
 
-const logoutFromIdentity = async (): Promise<void> => {
+const logoutFromIdentity = async () => {
   await fetch("/api/identity/auth/logout", {
     method: "POST",
     credentials: "include",
@@ -42,12 +42,10 @@ export function Header({
   const isAuthenticated = initialIsAuthenticated;
   const t = dictionary.header;
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setIsLoggingOut(true);
 
-    try {
-      await logoutAdapter();
-    } finally {
+    void Promise.resolve(logoutAdapter()).finally(() => {
       if (navigate) {
         navigate("/login");
       } else {
@@ -55,12 +53,17 @@ export function Header({
         router.refresh();
       }
       refresh?.();
-    }
+    });
   };
   const handleLocaleChange = (nextLocale: Locale) => {
     setLocale(nextLocale);
-    router.refresh();
-    refresh?.();
+
+    if (refresh) {
+      refresh();
+      return;
+    }
+
+    window.location.reload();
   };
   const languageSwitcher = (
     <label className="relative inline-flex items-center text-sm font-semibold text-text-muted">

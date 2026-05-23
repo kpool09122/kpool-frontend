@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Header } from "./Header";
-import { I18nProvider } from "./i18n/I18nProvider";
+import { I18nProvider } from "../i18n/I18nProvider";
 
 afterEach(() => {
   cleanup();

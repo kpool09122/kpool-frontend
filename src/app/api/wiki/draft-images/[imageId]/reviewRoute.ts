@@ -7,9 +7,9 @@ import {
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
   wikiImageReviewResponseSchema,
-} from "../../../../wiki/wikiImageModel";
-import { getWikiImageApiBaseUrl } from "../../../../wiki/wikiImageServerApi";
-import { parseWithSchemaLog } from "../../../../zodErrorLog";
+} from "@kpool/wiki";
+import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,

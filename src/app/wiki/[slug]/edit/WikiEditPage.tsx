@@ -18,19 +18,19 @@ import {
   mainBackgroundStyle,
   type WikiImageUsageRequestInput,
 } from "../../../../components/Wiki";
-import { useI18n } from "../../../i18n/I18nProvider";
-import { getWikiResourceLabel, type WikiResourceType } from "../../wikiRouting";
+import { useI18n } from "../../../../i18n/I18nProvider";
+import { getWikiResourceLabel, type WikiResourceType } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
-import { type loadDraftWikiState } from "../../draftWiki";
+import { type loadDraftWikiState } from "@/gateways/wiki/draftWiki";
 import {
   createWikiImageUploadRequest,
   createWikiImageAssociationInput,
   defaultWikiImagePerPage,
   type WikiImageListResponse,
   type WikiUploadedImage,
-} from "../../wikiImageModel";
-import { fetchWikiImages, uploadWikiImageRequest } from "../../wikiImageBrowserApi";
-import { saveWikiDraft, submitWikiDraft, type WikiSaveResult } from "./saveWikiDraft";
+} from "@kpool/wiki";
+import { fetchWikiImages, uploadWikiImageRequest } from "@/gateways/wiki/wikiImageBrowserApi";
+import { saveWikiDraft, submitWikiDraft } from "@/gateways/wiki/edit/saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 type WikiEditPageProps = {
@@ -38,8 +38,8 @@ type WikiEditPageProps = {
   slug: string;
   themeColor?: string;
   wikiState: Awaited<ReturnType<typeof loadDraftWikiState>>;
-  saveAdapter?: (draft: WikiDetail) => Promise<WikiSaveResult>;
-  submitAdapter?: (draft: WikiDetail) => Promise<WikiSaveResult>;
+  saveAdapter?: (draft: WikiDetail) => unknown;
+  submitAdapter?: (draft: WikiDetail) => unknown;
 };
 
 type ImageLibraryState = {
@@ -72,8 +72,8 @@ function WikiEditContent({
 }: {
   data: WikiDetail;
   language: string;
-  saveAdapter: (draft: WikiDetail) => Promise<WikiSaveResult>;
-  submitAdapter: (draft: WikiDetail) => Promise<WikiSaveResult>;
+  saveAdapter: (draft: WikiDetail) => unknown;
+  submitAdapter: (draft: WikiDetail) => unknown;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
@@ -127,7 +127,7 @@ function WikiEditContent({
     setIsBasicFlipped(false);
     clearDraft();
   };
-  const loadImageLibraryPage = async (page: number) => {
+  const loadImageLibraryPage = (page: number) => {
     setImageLibrary((state) => ({
       ...state,
       isInitialLoading: page === 1,
@@ -136,14 +136,12 @@ function WikiEditContent({
       loadError: null,
     }));
 
-    try {
-      const imagePage = await fetchWikiImages({
-        fallbackErrorMessage: t.imageLibrary.listLoadFailed,
-        page,
-        perPage: defaultWikiImagePerPage,
-        translationSetIdentifier: draft.translationSetIdentifier,
-      });
-
+    return fetchWikiImages({
+      fallbackErrorMessage: t.imageLibrary.listLoadFailed,
+      page,
+      perPage: defaultWikiImagePerPage,
+      translationSetIdentifier: draft.translationSetIdentifier,
+    }).then((imagePage) => {
       setImageLibrary((state) => ({
         ...state,
         images: page === 1 ? imagePage.images : [...state.images, ...imagePage.images],
@@ -155,7 +153,7 @@ function WikiEditContent({
           total: imagePage.total,
         },
       }));
-    } catch (error) {
+    }).catch((error: unknown) => {
       setImageLibrary((state) => ({
         ...state,
         isInitialLoading: false,
@@ -163,7 +161,7 @@ function WikiEditContent({
         loadError:
           error instanceof Error ? error.message : t.imageLibrary.listLoadFailed,
       }));
-    }
+    });
   };
   const openImageLibrary = () => {
     void loadImageLibraryPage(1);
@@ -180,33 +178,32 @@ function WikiEditContent({
     resourceType: draft.resourceType,
     translationSetIdentifier: draft.translationSetIdentifier,
   });
-  const uploadImage = async (input: WikiImageUsageRequestInput) => {
+  const uploadImage = (input: WikiImageUsageRequestInput) => {
     setImageLibrary((state) => ({
       ...state,
       isUploading: true,
       uploadError: null,
     }));
 
-    try {
-      await uploadWikiImageRequest({
-        fallbackErrorMessage: t.imageLibrary.uploadFailed,
-        requestBody: createWikiImageUploadRequest({
-          altText: input.altText,
-          base64EncodedImage: input.base64Image,
-          displayOrder: imageLibrary.images.length + 1,
-          fileName: input.file.name,
-          imageAssociation,
-          rightsConfirmationAgreed: input.rightsConfirmationAgreed,
-          sourceName: input.sourceName,
-          sourceUrl: input.sourceUrl,
-        }),
-      });
+    return uploadWikiImageRequest({
+      fallbackErrorMessage: t.imageLibrary.uploadFailed,
+      requestBody: createWikiImageUploadRequest({
+        altText: input.altText,
+        base64EncodedImage: input.base64Image,
+        displayOrder: imageLibrary.images.length + 1,
+        fileName: input.file.name,
+        imageAssociation,
+        rightsConfirmationAgreed: input.rightsConfirmationAgreed,
+        sourceName: input.sourceName,
+        sourceUrl: input.sourceUrl,
+      }),
+    }).then(() => {
       setImageLibrary((state) => ({
         ...state,
         isUploading: false,
       }));
-      await loadImageLibraryPage(1);
-    } catch (error) {
+      return loadImageLibraryPage(1);
+    }).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : t.imageLibrary.uploadFailed;
 
       setImageLibrary((state) => ({
@@ -214,8 +211,8 @@ function WikiEditContent({
         isUploading: false,
         uploadError: message,
       }));
-      throw new Error(message);
-    }
+      return Promise.reject(new Error(message));
+    });
   };
 
   return (

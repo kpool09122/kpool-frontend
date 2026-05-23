@@ -13,8 +13,8 @@ import {
   type IdentityProvider,
   type LoginAdapter,
   type SocialRedirectAdapter,
-} from "./authFlow";
-import { useI18n } from "../i18n/I18nProvider";
+} from "@/gateways/auth/authFlow";
+import { useI18n } from "../../i18n/I18nProvider";
 
 type LoginPageProps = {
   loginAdapter?: LoginAdapter;

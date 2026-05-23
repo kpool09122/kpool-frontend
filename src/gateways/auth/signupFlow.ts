@@ -2,7 +2,7 @@ import {
   parseCreateAccountResult,
   type CreateAccountRequest,
   type CreateAccountResult,
-} from "../accountApi";
+} from "@/gateways/account/accountApi";
 import {
   parseIdentitySummary,
   parseVerifyEmailResult,
@@ -10,7 +10,7 @@ import {
   type IdentitySummary,
   type VerifyEmailRequest,
   type VerifyEmailResult,
-} from "../identityApi";
+} from "@/gateways/identity/identityApi";
 
 export type SignupStepId = "account" | "verification" | "identity";
 export type SignupPhase = "account" | "verification" | "identity" | "complete";

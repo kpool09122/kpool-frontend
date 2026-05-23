@@ -2,7 +2,7 @@ import {
   parseIdentitySummary,
   parseRedirectUrlResult,
   type IdentityLoginRequest,
-} from "../identityApi";
+} from "@/gateways/identity/identityApi";
 
 export type IdentityProvider = {
   id: "google" | "line" | "kakao";

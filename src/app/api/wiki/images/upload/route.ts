@@ -6,10 +6,10 @@ import {
   wikiImageMaxUploadBodyBytes,
   wikiImageUploadRequestSchema,
   wikiImageUploadResponseSchema,
-} from "../../../../wiki/wikiImageModel";
-import { getWikiImageApiBaseUrl } from "../../../../wiki/wikiImageServerApi";
-import { trimTrailingSlashes } from "../../../../wiki/wikiApiModel";
-import { parseWithSchemaLog } from "../../../../zodErrorLog";
+} from "@kpool/wiki";
+import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { trimTrailingSlashes } from "@kpool/wiki";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = wikiImageUploadRequestSchema.parse(await request.json());
+    const body = parseWithSchemaLog("wiki image upload request", wikiImageUploadRequestSchema, await request.json());
     const apiResponse = await fetch(`${trimTrailingSlashes(baseUrl)}/image/upload`, {
       method: "POST",
       headers: {

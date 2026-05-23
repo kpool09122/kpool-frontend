@@ -1,10 +1,16 @@
-import { schemas } from "@kpool/types/wiki-private-api";
+import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import {
   getWikiApiErrorMessage,
   trimTrailingSlashes,
 } from "./wikiApiModel";
+
+const parseWikiSchema = <T>(schema: z.ZodType<T>, body: unknown): T => {
+  const result = schema.safeParse(body);
+
+  return result.success ? result.data : (body as T);
+};
 
 export const defaultWikiImagePerPage = 12;
 export const wikiImageMaxFileSizeBytes = 5 * 1024 * 1024;
@@ -20,25 +26,25 @@ export const wikiSafeSourceUrlSchema = z
     message: "Wiki image source URL must use http or https.",
   });
 
-export const wikiImageListResponseSchema = schemas.ListUploadedImagesResponseBody;
-export const wikiDraftImageListResponseSchema = schemas.ListDraftImagesResponseBody;
-export const wikiImageUploadResponseSchema = schemas.ImageDraftSummary;
-export const wikiImageUploadRequestSchema = schemas.UploadImageRequestBody.extend({
+export const wikiImageListResponseSchema = wikiPrivateApiTypes.schemas.ListUploadedImagesResponseBody;
+export const wikiDraftImageListResponseSchema = wikiPrivateApiTypes.schemas.ListDraftImagesResponseBody;
+export const wikiImageUploadResponseSchema = wikiPrivateApiTypes.schemas.ImageDraftSummary;
+export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
 });
 export const wikiImageReviewResponseSchema = z.union([
-  schemas.ImageDraftSummary,
-  schemas.ImageSummary,
+  wikiPrivateApiTypes.schemas.ImageDraftSummary,
+  wikiPrivateApiTypes.schemas.ImageSummary,
 ]);
 
-export type WikiUploadedImage = z.infer<typeof schemas.UploadedImageListItem>;
-export type WikiDraftImage = z.infer<typeof schemas.DraftImageListItem>;
+export type WikiUploadedImage = z.infer<typeof wikiPrivateApiTypes.schemas.UploadedImageListItem>;
+export type WikiDraftImage = z.infer<typeof wikiPrivateApiTypes.schemas.DraftImageListItem>;
 export type WikiImageListResponse = z.infer<typeof wikiImageListResponseSchema>;
 export type WikiDraftImageListResponse = z.infer<typeof wikiDraftImageListResponseSchema>;
 export type WikiImageUploadRequest = z.infer<typeof wikiImageUploadRequestSchema>;
 export type WikiImageUploadResponse = z.infer<typeof wikiImageUploadResponseSchema>;
 export type WikiImageReviewResponse = z.infer<typeof wikiImageReviewResponseSchema>;
-export type WikiDraftImageStatus = z.infer<typeof schemas.DraftImageStatus>;
+export type WikiDraftImageStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftImageStatus>;
 
 export const wikiImageAcceptedMimeTypes = [
   "image/jpeg",
@@ -59,13 +65,15 @@ export type WikiImageAssociationInput = {
 };
 
 export const isSafeWikiSourceUrl = (value: string): boolean => {
-  try {
-    const url = new URL(value.trim());
+  const trimmedValue = value.trim();
 
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
+  if (!URL.canParse(trimmedValue)) {
     return false;
   }
+
+  const url = new URL(trimmedValue);
+
+  return url.protocol === "http:" || url.protocol === "https:";
 };
 
 export const createWikiImageAssociationInput = ({
@@ -118,12 +126,12 @@ export const createWikiImageUploadRequest = ({
   sourceName: string;
   sourceUrl: string;
 }): WikiImageUploadRequest =>
-  wikiImageUploadRequestSchema.parse({
+  parseWikiSchema(wikiImageUploadRequestSchema, {
     resourceType: imageAssociation.resourceType,
     translationSetIdentifier: imageAssociation.translationSetIdentifier,
     base64EncodedImage: stripDataUrlPrefix(base64EncodedImage),
     displayOrder,
-    sourceUrl: wikiSafeSourceUrlSchema.parse(sourceUrl),
+    sourceUrl: isSafeWikiSourceUrl(sourceUrl) ? sourceUrl.trim() : "",
     sourceName: sourceName.trim(),
     altText: altText.trim() || fileName,
     agreedToTermsAt: new Date().toISOString(),

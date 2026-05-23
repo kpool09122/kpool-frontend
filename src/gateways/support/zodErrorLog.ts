@@ -30,13 +30,12 @@ export const parseWithSchemaLog = <T>(
   schema: z.ZodType<T>,
   body: unknown,
 ): T => {
-  try {
-    return schema.parse(body);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      logZodSchemaError(context, error);
-    }
+  const result = schema.safeParse(body);
 
-    throw error;
+  if (result.success) {
+    return result.data;
   }
+
+  logZodSchemaError(context, result.error);
+  throw result.error;
 };

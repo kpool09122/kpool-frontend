@@ -4,9 +4,9 @@ import { Fragment } from "react";
 import Image from "next/image";
 import { type WikiBlock, type WikiTableCell } from "@kpool/wiki";
 
-import { WikiEmbedFrame } from "../../../app/wiki/[slug]/WikiEmbedFrame";
-import { WikiRelatedProfiles } from "../../../app/wiki/[slug]/WikiRelatedProfiles";
-import { buildWikiPath } from "../../../app/wiki/wikiRouting";
+import { WikiEmbedFrame } from "../WikiEmbedFrame";
+import { WikiRelatedProfiles } from "../WikiRelatedProfiles";
+import { buildWikiPath } from "@kpool/wiki";
 import { parseInlineMarkdown } from "../editing";
 import { ImageEditableOverlay } from "../icons";
 

@@ -4,7 +4,7 @@ import {
   createWikiImageUploadRequest,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
-} from "./wikiImageModel";
+} from "@kpool/wiki";
 import {
   approveWikiDraftImage,
   fetchWikiImages,

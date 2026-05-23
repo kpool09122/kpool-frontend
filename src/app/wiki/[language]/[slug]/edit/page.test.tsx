@@ -20,15 +20,15 @@ vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
 }));
 
-vi.mock("../../../../authIdentity", () => ({
+vi.mock("@/gateways/identity/authIdentity", () => ({
   fetchAuthenticatedIdentity: mocks.fetchAuthenticatedIdentity,
 }));
 
-vi.mock("../../../draftWiki", () => ({
+vi.mock("@/gateways/wiki/draftWiki", () => ({
   loadDraftWikiState: mocks.loadDraftWikiState,
 }));
 
-vi.mock("../../../wikiPrincipal", () => ({
+vi.mock("@/gateways/wiki/wikiPrincipal", () => ({
   getCurrentWikiPrincipalForRequest: mocks.getCurrentWikiPrincipalForRequest,
 }));
 

@@ -13,8 +13,8 @@ import {
   WikiStatePanel,
   mainBackgroundStyle,
 } from "../../../components/Wiki";
-import { useI18n } from "../../i18n/I18nProvider";
-import { buildWikiEditPath, getWikiResourceLabel } from "../wikiRouting";
+import { useI18n } from "../../../i18n/I18nProvider";
+import { buildWikiEditPath, getWikiResourceLabel } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 
 type WikiDetailPageProps = {
