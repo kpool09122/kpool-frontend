@@ -246,6 +246,7 @@ export const wikiDetailSchema = z.object({
   version: z.number().int(),
   themeColor: z.string().nullable().optional(),
   heroImage: z.object({
+    imageIdentifier: z.string().nullable().optional(),
     src: z.string(),
     alt: z.string(),
   }),

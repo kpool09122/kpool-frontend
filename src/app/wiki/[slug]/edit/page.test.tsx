@@ -80,6 +80,7 @@ describe("WikiEditPage", () => {
   });
 
   it("opens the image library from the profile image and loads more images", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
@@ -135,7 +136,7 @@ describe("WikiEditPage", () => {
         ),
       );
 
-    renderPage();
+    renderPage(successState, saveAdapter);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
 
@@ -159,6 +160,15 @@ describe("WikiEditPage", () => {
       "https://images.example.test/image-2.webp",
     );
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(saveAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        heroImage: expect.objectContaining({
+          imageIdentifier: "image-2",
+        }),
+      }),
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       "/api/wiki/images?translationSetIdentifier=translation-set-gr-aurora-echo&perPage=12&page=1",
@@ -683,6 +693,39 @@ describe("WikiEditPage", () => {
         slug: "gr-custom-title",
         wikiIdentifier: "gr-aurora-echo",
         translationSetIdentifier: "translation-set-gr-aurora-echo",
+      }),
+    );
+  });
+
+  it("saves nested section blocks through the injected save adapter", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(successState, saveAdapter);
+
+    const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview-style"));
+    fireEvent.click(addControls.getByText("+ Block"));
+    fireEvent.click(addControls.getByRole("button", { name: "Quote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(saveAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sections: expect.arrayContaining([
+          expect.objectContaining({
+            sectionIdentifier: "sec-overview",
+            contents: expect.arrayContaining([
+              expect.objectContaining({
+                sectionIdentifier: "sec-overview-style",
+                contents: expect.arrayContaining([
+                  expect.objectContaining({
+                    blockType: "quote",
+                    content: "New quote",
+                  }),
+                ]),
+              }),
+            ]),
+          }),
+        ]),
       }),
     );
   });

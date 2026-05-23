@@ -16,7 +16,7 @@ import { parseWithSchemaLog } from "../zodErrorLog";
 const publicWikiHeroImageSchema = z
   .object({
     imageIdentifier: z.string().nullable().optional(),
-    src: z.string().optional(),
+    src: z.string().nullable().optional(),
     alt: z.string().nullable().optional(),
   })
   .passthrough();

@@ -33,6 +33,7 @@ export function WikiHeroPanel({
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
           onSave({
+            imageIdentifier: heroImage.imageIdentifier ?? null,
             src: getString(formData, "src"),
             alt: getString(formData, "alt"),
           });

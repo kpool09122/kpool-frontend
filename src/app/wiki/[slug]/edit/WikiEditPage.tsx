@@ -170,6 +170,7 @@ function WikiEditContent({
   };
   const selectImageFromLibrary = (image: WikiUploadedImage) => {
     updateHeroImage({
+      imageIdentifier: image.imageIdentifier,
       alt: image.altText || image.sourceName || image.imageIdentifier,
       src: image.url,
     });

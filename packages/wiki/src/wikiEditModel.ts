@@ -60,6 +60,7 @@ export type WikiEditRequestPayload = {
   basic: WikiDetail["basic"];
   sections: WikiSectionContentPayload[];
   themeColor: string | null;
+  imageIdentifier?: string | null;
 };
 
 export type WikiCodeParseResult =
@@ -1341,6 +1342,7 @@ export const toWikiEditRequestPayload = (wiki: WikiDetail): WikiEditRequestPaylo
   basic: wiki.basic,
   sections: toWikiSectionContentPayload(wiki.sections),
   themeColor: wiki.themeColor ?? null,
+  imageIdentifier: wiki.heroImage.imageIdentifier ?? null,
 });
 
 const toWikiContentPayload = (
