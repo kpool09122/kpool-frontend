@@ -4,7 +4,7 @@ import {
   createDraftWikiApiClient,
   getDraftWikiErrorMessage,
   reviewDraftWiki,
-  type WikiDraftReviewAction,
+  type WikiDraftWorkflowAction,
   wikiDraftReviewCsrfHeaderName,
   wikiDraftReviewCsrfHeaderValue,
 } from "../../../../wiki/draftWiki";
@@ -28,7 +28,7 @@ const hasReviewRequestHeader = (request: NextRequest): boolean =>
   request.headers.get(wikiDraftReviewCsrfHeaderName) === wikiDraftReviewCsrfHeaderValue;
 
 export const createWikiDraftReviewRoute =
-  (action: WikiDraftReviewAction) =>
+  (action: WikiDraftWorkflowAction) =>
   async (request: NextRequest, context: WikiDraftReviewRouteContext) => {
     if (!hasReviewRequestHeader(request)) {
       return NextResponse.json(

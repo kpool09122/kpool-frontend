@@ -13,9 +13,12 @@ import {
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
   getEditWikiEndpointPath,
+  getPublishWikiEndpointPath,
   getReviewWikiEndpointPath,
   getSubmitWikiEndpointPath,
   loadDraftWikiState,
+  publishDraftWiki,
+  publishWikiDraft,
   saveDraftWiki,
   rejectWikiDraft,
   reviewDraftWiki,
@@ -158,6 +161,7 @@ describe("draftWiki", () => {
     expect(getSubmitWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/submit");
     expect(getReviewWikiEndpointPath("wiki-1", "approve")).toBe("/wiki/wiki-1/approve");
     expect(getReviewWikiEndpointPath("wiki-1", "reject")).toBe("/wiki/wiki-1/reject");
+    expect(getPublishWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/publish");
   });
 
   it("builds submit wiki request bodies with the wiki id and resource type", () => {
@@ -357,6 +361,28 @@ describe("draftWiki", () => {
     expect(client.reviewDraftWiki).toHaveBeenCalledWith("wiki-1", "approve", body);
   });
 
+  it("publishes a draft wiki with the wiki identifier as the publish path param", async () => {
+    const client = {
+      reviewDraftWiki: vi.fn().mockResolvedValue({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "approved",
+      }),
+    };
+    const body = {
+      resourceType: "group",
+    };
+
+    await expect(publishDraftWiki(client as never, "wiki-1", body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "approved",
+    });
+    expect(client.reviewDraftWiki).toHaveBeenCalledWith("wiki-1", "publish", body);
+  });
+
   it("loads a draft wiki through fetch and parses the response", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -550,9 +576,63 @@ describe("draftWiki", () => {
     );
   });
 
-  it("reviews draft wikis through the browser API routes", async () => {
+  it("forwards cookie headers when publishing a draft wiki through fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "approved",
+        }),
+        { status: 201 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Accept: "application/json",
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+    const body = {
+      resourceType: "group",
+    };
+
+    await expect(client!.reviewDraftWiki("wiki-1", "publish", body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "approved",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/publish",
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
+      }),
+    );
+  });
+
+  it("reviews and publishes draft wikis through the browser API routes", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            language: "ja",
+            name: "Aurora Echo",
+            resourceType: "group",
+            status: "approved",
+          }),
+          { status: 201 },
+        ),
+      )
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -605,6 +685,20 @@ describe("draftWiki", () => {
     });
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/wiki/drafts/wiki-1/reject",
+      expect.objectContaining({
+        body: JSON.stringify(requestBody),
+        credentials: "include",
+        method: "POST",
+      }),
+    );
+
+    await publishWikiDraft({
+      fallbackErrorMessage: "failed",
+      requestBody,
+      wikiId: "wiki-1",
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/wiki/drafts/wiki-1/publish",
       expect.objectContaining({
         body: JSON.stringify(requestBody),
         credentials: "include",

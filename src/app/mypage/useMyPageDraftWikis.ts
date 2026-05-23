@@ -13,6 +13,7 @@ import {
 import type { MyPageDraftWikiAdapter } from "./myPageAdapters";
 
 export type MyPageDraftWikiTab = "editingWikis" | "submittedWikis" | "unapprovedWikis";
+export type MyPageDraftWikiActionTab = MyPageDraftWikiTab | "approvedWikis";
 
 export type DraftWikiListState = {
   isInitialLoading: boolean;
@@ -30,6 +31,7 @@ type DraftWikiListConfig = {
 type MyPageDraftWikiMessages = {
   draftWikiApproveFailed: string;
   draftWikiListLoadFailed: string;
+  draftWikiPublishFailed: string;
   draftWikiRejectFailed: string;
 };
 
@@ -53,7 +55,10 @@ export const draftWikiListConfigByTab = {
   unapprovedWikis: {
     status: "under_review",
   },
-} as const satisfies Record<MyPageDraftWikiTab, DraftWikiListConfig>;
+  approvedWikis: {
+    status: "approved",
+  },
+} as const satisfies Record<MyPageDraftWikiActionTab, DraftWikiListConfig>;
 
 export const useMyPageDraftWikis = ({
   adapter,
@@ -61,15 +66,15 @@ export const useMyPageDraftWikis = ({
   messages,
 }: {
   adapter: MyPageDraftWikiAdapter;
-  initialDraftWikis: Record<MyPageDraftWikiTab, DraftWikiListState>;
+  initialDraftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
   messages: MyPageDraftWikiMessages;
 }) => {
   const [draftWikis, setDraftWikis] =
-    useState<Record<MyPageDraftWikiTab, DraftWikiListState>>(initialDraftWikis);
+    useState<Record<MyPageDraftWikiActionTab, DraftWikiListState>>(initialDraftWikis);
   const [reviewingWikiIdentifier, setReviewingWikiIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  const loadDraftWikisPage = useCallback(async (tab: MyPageDraftWikiTab, page: number) => {
+  const loadDraftWikisPage = useCallback(async (tab: MyPageDraftWikiActionTab, page: number) => {
     setDraftWikis((state) => ({
       ...state,
       [tab]: {
@@ -116,18 +121,18 @@ export const useMyPageDraftWikis = ({
     }
   }, [adapter, messages.draftWikiListLoadFailed]);
 
-  const removeReviewedWiki = (wikiIdentifier: string) => {
+  const removeWikiFromTab = (tab: MyPageDraftWikiActionTab, wikiIdentifier: string) => {
     setDraftWikis((state) => ({
       ...state,
-      unapprovedWikis: {
-        ...state.unapprovedWikis,
-        pageInfo: state.unapprovedWikis.pageInfo
+      [tab]: {
+        ...state[tab],
+        pageInfo: state[tab].pageInfo
           ? {
-              ...state.unapprovedWikis.pageInfo,
-              total: Math.max(0, state.unapprovedWikis.pageInfo.total - 1),
+              ...state[tab].pageInfo,
+              total: Math.max(0, state[tab].pageInfo.total - 1),
             }
-          : state.unapprovedWikis.pageInfo,
-        wikis: state.unapprovedWikis.wikis.filter(
+          : state[tab].pageInfo,
+        wikis: state[tab].wikis.filter(
           (wiki) => wiki.wikiIdentifier !== wikiIdentifier,
         ),
       },
@@ -136,7 +141,7 @@ export const useMyPageDraftWikis = ({
 
   const reviewDraftWiki = async (
     wiki: WikiDraftWiki,
-    action: WikiDraftReviewAction,
+    action: WikiDraftReviewAction | "publish",
   ) => {
     setReviewingWikiIdentifier(wiki.wikiIdentifier);
     setReviewError(null);
@@ -145,11 +150,19 @@ export const useMyPageDraftWikis = ({
       const fallbackErrorMessage =
         action === "approve"
           ? messages.draftWikiApproveFailed
-          : messages.draftWikiRejectFailed;
+          : action === "publish"
+            ? messages.draftWikiPublishFailed
+            : messages.draftWikiRejectFailed;
       const requestBody = createReviewWikiRequestBody(wiki);
 
       if (action === "approve") {
         await adapter.approveDraftWiki({
+          fallbackErrorMessage,
+          requestBody,
+          wikiId: wiki.wikiIdentifier,
+        });
+      } else if (action === "publish") {
+        await adapter.publishDraftWiki({
           fallbackErrorMessage,
           requestBody,
           wikiId: wiki.wikiIdentifier,
@@ -162,13 +175,18 @@ export const useMyPageDraftWikis = ({
         });
       }
 
-      removeReviewedWiki(wiki.wikiIdentifier);
+      removeWikiFromTab(
+        action === "publish" ? "approvedWikis" : "unapprovedWikis",
+        wiki.wikiIdentifier,
+      );
     } catch (error) {
       setReviewError(
         error instanceof Error
           ? error.message
           : action === "approve"
-            ? messages.draftWikiApproveFailed
+          ? messages.draftWikiApproveFailed
+          : action === "publish"
+            ? messages.draftWikiPublishFailed
             : messages.draftWikiRejectFailed,
       );
     } finally {

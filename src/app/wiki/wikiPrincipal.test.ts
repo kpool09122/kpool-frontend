@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
   createWikiPrincipal,
@@ -308,5 +309,41 @@ describe("wiki principal helpers", () => {
         ],
       }),
     ).toBe(true);
+  });
+
+  it("allows draft wiki publishing when publish is allowed for a wiki resource type", () => {
+    expect(
+      canPublishWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["PUBLISH"],
+            name: "TALENT_MANAGEMENT",
+            resourceTypes: ["TALENT"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("does not allow draft wiki publishing when a matching deny exists", () => {
+    expect(
+      canPublishWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["PUBLISH"],
+            name: "AGENCY_MANAGEMENT",
+            resourceTypes: ["AGENCY"],
+          }),
+          policy({
+            actions: ["PUBLISH"],
+            effect: "deny",
+            name: "DENY_AGENCY_APPROVAL",
+            resourceTypes: ["AGENCY"],
+          }),
+        ],
+      }),
+    ).toBe(false);
   });
 });
