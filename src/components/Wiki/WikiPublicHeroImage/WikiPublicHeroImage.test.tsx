@@ -3,14 +3,14 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { wikiStoryBasic, wikiStoryHeroImage } from "../storybook/fixtures";
-import { WikiPublicHeroBasicSection } from "./index";
+import { WikiPublicHeroImage } from "./index";
 
-describe("WikiPublicHeroBasicSection", () => {
+describe("WikiPublicHeroImage", () => {
   afterEach(() => cleanup());
 
   it("renders the hero intro copy", () => {
     render(
-      <WikiPublicHeroBasicSection
+      <WikiPublicHeroImage
         basic={wikiStoryBasic}
         flipCardId="public-flip-card"
         heroImage={wikiStoryHeroImage}
@@ -22,7 +22,7 @@ describe("WikiPublicHeroBasicSection", () => {
 
   it("toggles the mobile helper copy when flipped", () => {
     render(
-      <WikiPublicHeroBasicSection
+      <WikiPublicHeroImage
         basic={wikiStoryBasic}
         flipCardId="public-flip-card"
         heroImage={wikiStoryHeroImage}

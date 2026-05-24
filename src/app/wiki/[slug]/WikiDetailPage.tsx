@@ -8,7 +8,7 @@ import {
 import { useId } from "react";
 
 import {
-  WikiPublicHeroBasicSection,
+  WikiPublicHeroImage,
   WikiSectionAccordion,
   WikiStatePanel,
   mainBackgroundStyle,
@@ -85,7 +85,7 @@ export function WikiDetailPage({
           </div>
         </header>
 
-        <WikiPublicHeroBasicSection
+        <WikiPublicHeroImage
           basic={data.basic}
           editHref={`${buildWikiEditPath(language, slug)}?authGate=1`}
           flipCardId={flipCardId}

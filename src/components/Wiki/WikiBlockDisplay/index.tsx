@@ -142,7 +142,7 @@ export function WikiBlockDisplay({
       return (
         <figure>
           <div className="relative min-h-64 overflow-hidden rounded-2xl border border-stroke-subtle">
-            <Image alt={block.alt ?? ""} className="object-cover" fill sizes="100vw" src={block.imageSrc} />
+            <Image alt={block.alt ?? ""} className="object-cover" fill sizes="100vw" src={block.imageSrc} unoptimized />
             {showEditableImageOverlay ? <ImageEditableOverlay /> : null}
           </div>
           {block.caption ? <figcaption className="mt-2 text-sm text-text-muted">{block.caption}</figcaption> : null}
@@ -154,7 +154,7 @@ export function WikiBlockDisplay({
           <div className="grid gap-3 sm:grid-cols-2">
             {block.images.map((image) => (
               <div className="relative min-h-40 overflow-hidden rounded-2xl border border-stroke-subtle" key={image.imageIdentifier}>
-                <Image alt={image.alt ?? ""} className="object-cover" fill sizes="50vw" src={image.imageSrc} />
+                <Image alt={image.alt ?? ""} className="object-cover" fill sizes="50vw" src={image.imageSrc} unoptimized />
                 {showEditableImageOverlay ? <ImageEditableOverlay /> : null}
               </div>
             ))}

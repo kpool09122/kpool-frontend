@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { wikiStoryBasic, wikiStoryHeroImage } from "../storybook/fixtures";
-import { WikiPublicHeroBasicSection } from "../WikiPublicHeroBasicSection";
+import { WikiPublicHeroImage } from "../WikiPublicHeroImage";
 
 const meta = {
-  title: "Wiki/WikiPublicHeroBasicSection",
-  component: WikiPublicHeroBasicSection,
+  title: "Wiki/WikiPublicHeroImage",
+  component: WikiPublicHeroImage,
   args: {
     basic: wikiStoryBasic,
     heroImage: wikiStoryHeroImage,
@@ -15,7 +15,7 @@ const meta = {
     layout: "padded",
   },
   tags: ["autodocs"],
-} satisfies Meta<typeof WikiPublicHeroBasicSection>;
+} satisfies Meta<typeof WikiPublicHeroImage>;
 
 export default meta;
 
@@ -24,7 +24,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: (args) => (
     <div className="wiki-theme-scope max-w-6xl" data-theme="light">
-      <WikiPublicHeroBasicSection {...args} />
+      <WikiPublicHeroImage {...args} />
     </div>
   ),
 };
