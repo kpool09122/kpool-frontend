@@ -14,7 +14,7 @@ import {
 } from "../styles";
 import { EditIcon } from "../icons";
 
-type WikiPublicHeroBasicSectionProps = {
+type WikiPublicHeroImageProps = {
   basic: WikiBasic;
   heroImage: WikiDetail["heroImage"];
   editHref?: string;
@@ -22,13 +22,13 @@ type WikiPublicHeroBasicSectionProps = {
   profileLabel?: string;
 };
 
-export function WikiPublicHeroBasicSection({
+export function WikiPublicHeroImage({
   basic,
   editHref,
   heroImage,
   flipCardId,
   profileLabel = "Basic profile",
-}: WikiPublicHeroBasicSectionProps) {
+}: WikiPublicHeroImageProps) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -66,6 +66,7 @@ export function WikiPublicHeroBasicSection({
                       fill
                       sizes="100vw"
                       src={heroImage.src}
+                      unoptimized
                     />
                   </div>
                   <div className="absolute inset-0" style={heroOverlayStyle} />
@@ -161,6 +162,7 @@ export function WikiPublicHeroBasicSection({
               fill
               sizes="(min-width: 1024px) 55vw, 100vw"
               src={heroImage.src}
+              unoptimized
             />
           </div>
         </div>
