@@ -55,7 +55,9 @@ describe("draftWiki", () => {
         status: "Active",
       },
       heroImage: {
+        alt: null,
         imageIdentifier: "hero-image-1",
+        src: null,
       },
       language: "ja",
       resourceType: "group",
@@ -139,7 +141,9 @@ describe("draftWiki", () => {
         normalizedName: "aurora-echo",
       },
       heroImage: {
+        alt: null,
         imageIdentifier: "hero-image-1",
+        src: null,
       },
       language: "ja",
       resourceType: "group",
@@ -243,12 +247,16 @@ describe("draftWiki", () => {
         representativeSymbol: "Rabbit",
         zodiacSign: "Virgo",
       },
-      heroImage: {},
+      heroImage: {
+        alt: null,
+        imageIdentifier: null,
+        src: null,
+      },
       language: "ko",
       resourceType: "talent",
       sections: [],
       slug: "tl-nayeon-twice",
-      themeColor: undefined,
+      themeColor: null,
       translationSetIdentifier: "translation-set-2",
       version: 7,
       wikiIdentifier: "wiki-2",
@@ -639,7 +647,7 @@ describe("draftWiki", () => {
         language: "ja",
         name: "Aurora Echo",
         resourceType: "group",
-        status: "approved",
+        version: 2,
       }),
     };
     const body = {
@@ -650,7 +658,7 @@ describe("draftWiki", () => {
       language: "ja",
       name: "Aurora Echo",
       resourceType: "group",
-      status: "approved",
+      version: 2,
     });
     expect(client.reviewDraftWiki).toHaveBeenCalledWith("wiki-1", "publish", body);
   });
@@ -660,6 +668,9 @@ describe("draftWiki", () => {
       new Response(
         JSON.stringify({
           basic: {
+            agencyIdentifier: null,
+            debutDate: null,
+            disbandDate: null,
             emoji: "☀",
             fandomName: "Daybreak",
             generation: "5th",
@@ -668,14 +679,18 @@ describe("draftWiki", () => {
             normalizedName: "aurora-echo",
             officialColors: ["Solar Gold"],
             representativeSymbol: "Solar wave",
+            status: null,
           },
           heroImage: {
+            alt: null,
             imageIdentifier: "hero-image-1",
+            src: null,
           },
           language: "ja",
           resourceType: "group",
           sections: [],
           slug: "gr-aurora-echo",
+          themeColor: null,
           translationSetIdentifier: "translation-set-1",
           version: 1,
           wikiIdentifier: "wiki-1",
@@ -1112,7 +1127,7 @@ describe("draftWiki", () => {
           language: "ja",
           name: "Aurora Echo",
           resourceType: "group",
-          status: "approved",
+          version: 2,
         }),
         { status: 201 },
       ),
@@ -1130,7 +1145,7 @@ describe("draftWiki", () => {
       language: "ja",
       name: "Aurora Echo",
       resourceType: "group",
-      status: "approved",
+      version: 2,
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/publish",
@@ -1168,7 +1183,7 @@ describe("draftWiki", () => {
             language: "ja",
             name: "Aurora Echo",
             resourceType: "group",
-            status: "approved",
+            status: "rejected",
           }),
           { status: 201 },
         ),
@@ -1179,7 +1194,7 @@ describe("draftWiki", () => {
             language: "ja",
             name: "Aurora Echo",
             resourceType: "group",
-            status: "rejected",
+            version: 2,
           }),
           { status: 201 },
         ),

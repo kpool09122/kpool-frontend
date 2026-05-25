@@ -44,10 +44,9 @@ const wikiListState = {
         language: "ja",
         name: "Aurora Echo",
         normalizedName: "aurora-echo",
-        heroImage: {
-          alt: "Aurora Echo stage",
-          src: "https://cdn.example.com/aurora-echo.webp",
-        },
+        imageAltText: "Aurora Echo stage",
+        imageIdentifier: "image-1",
+        imageUrl: "https://cdn.example.com/aurora-echo.webp",
         publishedAt: "2026-05-01T00:00:00+00:00",
         resourceType: "group" as const,
         slug: "gr-aurora-echo",

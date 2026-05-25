@@ -107,7 +107,7 @@ describe("wiki draft review route", () => {
         language: "ja",
         name: "Aurora Echo",
         resourceType: "group",
-        status: "approved",
+        version: 2,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);

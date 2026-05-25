@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { wikiStorySection } from "../storybook/fixtures";
@@ -26,5 +26,26 @@ describe("WikiSectionAccordion", () => {
       ).length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Editable discography image").length).toBeGreaterThan(0);
+  });
+
+  it("renders section edit links without using the accordion toggle", () => {
+    render(
+      <WikiSectionAccordion
+        editHref="/wiki/ja/gr-aurora-echo/edit?authGate=1"
+        language="ja"
+        section={wikiStorySection}
+      />,
+    );
+
+    const section = screen.getByTestId(`section-${wikiStorySection.sectionIdentifier}`);
+    const editLink = screen.getByRole("link", {
+      name: `Edit section ${wikiStorySection.title}`,
+    });
+
+    expect(section).not.toHaveAttribute("open");
+    expect(editLink).toHaveAttribute("href", "/wiki/ja/gr-aurora-echo/edit?authGate=1");
+    editLink.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(editLink);
+    expect(section).not.toHaveAttribute("open");
   });
 });

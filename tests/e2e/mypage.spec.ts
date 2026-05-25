@@ -377,7 +377,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
         language: "ja",
         name: "承認済み Wiki",
         resourceType: "group",
-        status: "approved",
+        version: 2,
       }),
     });
   });

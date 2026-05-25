@@ -51,6 +51,7 @@ type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWiki
 type SubmitWikiRequestBody = z.infer<typeof submitWikiRequestBodySchema>;
 type ReviewWikiRequestBody = z.infer<typeof reviewWikiRequestBodySchema>;
 type DraftWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiSummary>;
+type PublishedWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.PublishedWikiSummary>;
 type CreateWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.CreateWikiRequestBody>;
 type PublicWikiApiResponse = z.infer<typeof publicWikiApiResponseSchema>;
 export type WikiDraftWiki = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiListItem>;
@@ -76,7 +77,7 @@ type DraftWikiApiClient = {
     wikiId: string,
     action: WikiDraftWorkflowAction,
     body: ReviewWikiRequestBody,
-  ) => Promise<DraftWikiSummary>;
+  ) => Promise<DraftWikiSummary | PublishedWikiSummary>;
   submitDraftWiki: (wikiId: string, body: SubmitWikiRequestBody) => Promise<DraftWikiSummary>;
 };
 
@@ -123,6 +124,9 @@ const parseDraftWikiResponseBody = (body: unknown): DraftWikiApiResponse =>
 
 const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
   parseWithSchemaLog("wiki draft summary response", wikiPrivateApiTypes.schemas.DraftWikiSummary, body);
+
+const parsePublishedWikiSummaryBody = (body: unknown): PublishedWikiSummary =>
+  parseWithSchemaLog("published wiki summary response", wikiPrivateApiTypes.schemas.PublishedWikiSummary, body);
 
 const parseCreateWikiRequestBody = (body: unknown): CreateWikiRequestBody =>
   parseWithSchemaLog("wiki create request", wikiPrivateApiTypes.schemas.CreateWikiRequestBody, body);
@@ -359,15 +363,15 @@ export const reviewDraftWiki = async (
   wikiId: string,
   action: WikiDraftWorkflowAction,
   body: ReviewWikiRequestBody,
-): Promise<DraftWikiSummary> =>
+): Promise<DraftWikiSummary | PublishedWikiSummary> =>
   client.reviewDraftWiki(wikiId, action, body);
 
 export const publishDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
   body: ReviewWikiRequestBody,
-): Promise<DraftWikiSummary> =>
-  client.reviewDraftWiki(wikiId, "publish", body);
+): Promise<PublishedWikiSummary> =>
+  client.reviewDraftWiki(wikiId, "publish", body) as Promise<PublishedWikiSummary>;
 
 export const createDraftWikiApiClient = (
   baseUrl: string = getDefaultApiBaseUrl(),
@@ -485,7 +489,9 @@ export const createDraftWikiApiClient = (
 
           const responseBody = await readResponseBody(response);
 
-          return parseDraftWikiSummaryBody(responseBody);
+          return action === "publish"
+            ? parsePublishedWikiSummaryBody(responseBody)
+            : parseDraftWikiSummaryBody(responseBody);
         },
         submitDraftWiki: async (wikiId, body) => {
           const response = await fetch(
@@ -595,7 +601,7 @@ const reviewWikiDraftRequest = async ({
   fallbackErrorMessage: string;
   wikiId: string;
   requestBody: ReviewWikiRequestBody;
-}): Promise<DraftWikiSummary> => {
+}): Promise<DraftWikiSummary | PublishedWikiSummary> => {
   const response = await fetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}/${action}`,
     {
@@ -615,7 +621,9 @@ const reviewWikiDraftRequest = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return parseDraftWikiSummaryBody(body);
+  return action === "publish"
+    ? parsePublishedWikiSummaryBody(body)
+    : parseDraftWikiSummaryBody(body);
 };
 
 export const approveWikiDraft = async ({
@@ -632,7 +640,7 @@ export const approveWikiDraft = async ({
     fallbackErrorMessage,
     wikiId,
     requestBody,
-  });
+  }) as Promise<DraftWikiSummary>;
 
 export const rejectWikiDraft = async ({
   fallbackErrorMessage,
@@ -648,7 +656,7 @@ export const rejectWikiDraft = async ({
     fallbackErrorMessage,
     wikiId,
     requestBody,
-  });
+  }) as Promise<DraftWikiSummary>;
 
 export const publishWikiDraft = async ({
   fallbackErrorMessage,
@@ -658,13 +666,13 @@ export const publishWikiDraft = async ({
   fallbackErrorMessage: string;
   wikiId: string;
   requestBody: ReviewWikiRequestBody;
-}): Promise<DraftWikiSummary> =>
+}): Promise<PublishedWikiSummary> =>
   reviewWikiDraftRequest({
     action: "publish",
     fallbackErrorMessage,
     wikiId,
     requestBody,
-  });
+  }) as Promise<PublishedWikiSummary>;
 
 export const loadDraftWikiState = async (
   language: string,

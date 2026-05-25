@@ -120,13 +120,18 @@ const getPaginationPages = (currentPage: number, lastPage: number): number[] => 
   return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 };
 
+const getWikiCardImageSrc = (item: PublicWikiListItem): string | null =>
+  item.heroImage?.src ?? item.imageUrl ?? null;
+
 const buildWikiCardStyle = (
   item: PublicWikiListItem,
 ): CSSProperties | undefined => {
-  if (item.heroImage?.src) {
+  const imageSrc = getWikiCardImageSrc(item);
+
+  if (imageSrc) {
     return {
       backgroundColor: "#15243b",
-      backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${item.heroImage.src.replaceAll("\"", "%22")}")`,
+      backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${imageSrc.replaceAll("\"", "%22")}")`,
       borderColor: "rgba(255, 255, 255, 0.22)",
     };
   }
@@ -156,7 +161,7 @@ const WikiCard = ({
   resolvedLanguage: string;
   t: I18nDictionary["home"];
 }) => {
-  const hasHeroImage = Boolean(item.heroImage?.src);
+  const hasHeroImage = Boolean(getWikiCardImageSrc(item));
 
   return (
     <Link

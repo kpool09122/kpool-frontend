@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   isWikiBlock,
   isWikiSection,
@@ -12,11 +13,12 @@ import { ChevronIcon, EditIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 
 type WikiSectionAccordionProps = {
+  editHref?: string;
   language: string;
   section: WikiSection;
 };
 
-export function WikiSectionAccordion({ language, section }: WikiSectionAccordionProps) {
+export function WikiSectionAccordion({ editHref, language, section }: WikiSectionAccordionProps) {
   const contents = sortWikiSectionContents(section.contents);
 
   return (
@@ -40,14 +42,17 @@ export function WikiSectionAccordion({ language, section }: WikiSectionAccordion
             {section.title}
           </span>
         </span>
-        <span
-          aria-label={`Edit section ${section.title}`}
-          className="rounded-full border border-stroke-subtle p-3 text-text-strong transition group-hover:bg-brand-highlight/30"
-          role="img"
-          style={cardSurfaceMutedStyle}
-        >
-          <EditIcon />
-        </span>
+        {editHref ? (
+          <Link
+            aria-label={`Edit section ${section.title}`}
+            className="rounded-full border border-stroke-subtle p-3 text-text-strong transition group-hover:bg-brand-highlight/30"
+            href={editHref}
+            onClick={(event) => event.stopPropagation()}
+            style={cardSurfaceMutedStyle}
+          >
+            <EditIcon />
+          </Link>
+        ) : null}
       </summary>
 
       <div
@@ -64,6 +69,7 @@ export function WikiSectionAccordion({ language, section }: WikiSectionAccordion
             />
           ) : isWikiSection(content) ? (
             <WikiSectionAccordion
+              editHref={editHref}
               key={content.sectionIdentifier}
               language={language}
               section={content}
