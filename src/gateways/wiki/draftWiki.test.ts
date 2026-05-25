@@ -4,11 +4,13 @@ import {
   adaptDraftWikiResponse,
   approveWikiDraft,
   createDraftWikiApiClient,
+  createWikiDraftRequestBodyFromPublicWiki,
   createReviewWikiRequestBody,
   createSubmitWikiRequestBody,
   createWikiDraftWikisUrl,
   fetchDraftWiki,
   fetchWikiDraftWikis,
+  getCreateWikiEndpointPath,
   getDraftWikiEndpointPath,
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
@@ -280,6 +282,7 @@ describe("draftWiki", () => {
     expect(getDraftWikiEndpointPath("ja", "group", "gr-aurora-echo")).toBe(
       "/wiki/ja/group/gr-aurora-echo/draft",
     );
+    expect(getCreateWikiEndpointPath()).toBe("/wiki/create");
     expect(getEditWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/edit");
     expect(getSubmitWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/submit");
     expect(getReviewWikiEndpointPath("wiki-1", "approve")).toBe("/wiki/wiki-1/approve");
@@ -322,6 +325,152 @@ describe("draftWiki", () => {
       }),
     ).toEqual({
       resourceType: "group",
+    });
+  });
+
+  it("builds create wiki request bodies from public wiki association targets", () => {
+    expect(
+      createWikiDraftRequestBodyFromPublicWiki({
+        basic: {
+          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: {
+          imageIdentifier: "66666666-6666-4666-8666-666666666666",
+        },
+        language: "ja",
+        resourceType: "group",
+        sections: [
+          {
+            display_order: 10,
+            contents: [
+              {
+                block_type: "text",
+                content: "Intro text",
+                display_order: 20,
+              },
+            ],
+            title: "Overview",
+          },
+        ],
+        slug: "gr-aurora-echo",
+        themeColor: "#4c5cff",
+        translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+        version: 1,
+        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      }),
+    ).toEqual({
+      agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+      basic: {
+        agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+        name: "Aurora Echo",
+        normalizedName: "aurora-echo",
+      },
+      imageIdentifier: "66666666-6666-4666-8666-666666666666",
+      language: "ja",
+      publishedWikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      resourceType: "group",
+      sections: [
+        {
+          contents: [
+            {
+              content: "Intro text",
+              displayOrder: 20,
+              type: "text",
+            },
+          ],
+          displayOrder: 10,
+          title: "Overview",
+          type: "section",
+        },
+      ],
+      slug: "gr-aurora-echo",
+      themeColor: "#4c5cff",
+    });
+
+    expect(
+      createWikiDraftRequestBodyFromPublicWiki({
+        basic: {
+          name: "Cheer Up",
+          normalizedName: "cheer-up",
+        },
+        groupIdentifiers: ["44444444-4444-4444-8444-444444444444"],
+        heroImage: null,
+        language: "ja",
+        resourceType: "song",
+        sections: [
+          {
+            id: "story",
+            title: "Story",
+          },
+        ],
+        slug: "sg-cheer-up",
+        talentIdentifiers: ["55555555-5555-4555-8555-555555555555"],
+        translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+        version: 1,
+        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      }),
+    ).toEqual({
+      basic: {
+        name: "Cheer Up",
+        normalizedName: "cheer-up",
+      },
+      groupIdentifiers: ["44444444-4444-4444-8444-444444444444"],
+      language: "ja",
+      publishedWikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      resourceType: "song",
+      sections: [
+        {
+          contents: [],
+          displayOrder: 1,
+          title: "Story",
+          type: "section",
+        },
+      ],
+      slug: "sg-cheer-up",
+      talentIdentifiers: ["55555555-5555-4555-8555-555555555555"],
+    });
+  });
+
+  it("allows create wiki request bodies without association targets", () => {
+    expect(
+      createWikiDraftRequestBodyFromPublicWiki({
+        basic: {
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [
+          {
+            id: "overview",
+            title: "Overview",
+          },
+        ],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+        version: 1,
+        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      }),
+    ).toEqual({
+      basic: {
+        name: "Aurora Echo",
+        normalizedName: "aurora-echo",
+      },
+      language: "ja",
+      publishedWikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      resourceType: "group",
+      sections: [
+        {
+          contents: [],
+          displayOrder: 1,
+          title: "Overview",
+          type: "section",
+        },
+      ],
+      slug: "gr-aurora-echo",
     });
   });
 
@@ -552,6 +701,263 @@ describe("draftWiki", () => {
         },
       }),
     );
+  });
+
+  it("creates a draft through fetch with forwarded headers", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "draft",
+        }),
+        { status: 201 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+    const body = {
+      agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+    };
+
+    await expect(client!.createWikiDraft(body)).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "draft",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/create",
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
+      }),
+    );
+  });
+
+  it("creates and refetches a draft when the draft detail is not found", async () => {
+    const fetchDraftWikiMock = vi
+      .fn()
+      .mockRejectedValueOnce({
+        response: {
+          status: 404,
+        },
+      })
+      .mockResolvedValueOnce({
+        basic: {
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [
+          {
+            id: "overview",
+            title: "Overview",
+          },
+        ],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "wiki-1",
+      });
+    const client = {
+      createWikiDraft: vi.fn().mockResolvedValue({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "draft",
+      }),
+      fetchDraftWiki: fetchDraftWikiMock,
+      fetchPublicWiki: vi.fn().mockResolvedValue({
+        basic: {
+          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [
+          {
+            id: "overview",
+            title: "Overview",
+          },
+        ],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      }),
+    };
+
+    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).resolves.toEqual(
+      expect.objectContaining({
+        slug: "gr-aurora-echo",
+        wikiIdentifier: "wiki-1",
+      }),
+    );
+    expect(fetchDraftWikiMock).toHaveBeenCalledTimes(2);
+    expect(client.fetchPublicWiki).toHaveBeenCalledWith("ja", "group", "gr-aurora-echo");
+    expect(client.createWikiDraft).toHaveBeenCalledWith({
+      agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+      basic: {
+        agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+        name: "Aurora Echo",
+        normalizedName: "aurora-echo",
+      },
+      language: "ja",
+      publishedWikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      resourceType: "group",
+      sections: [
+        {
+          contents: [],
+          displayOrder: 1,
+          title: "Overview",
+          type: "section",
+        },
+      ],
+      slug: "gr-aurora-echo",
+    });
+  });
+
+  it("does not create a draft when the draft detail already exists", async () => {
+    const client = {
+      createWikiDraft: vi.fn(),
+      fetchDraftWiki: vi.fn().mockResolvedValue({
+        basic: {
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "wiki-1",
+      }),
+      fetchPublicWiki: vi.fn(),
+    };
+
+    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).resolves.toEqual(
+      expect.objectContaining({
+        wikiIdentifier: "wiki-1",
+      }),
+    );
+    expect(client.fetchPublicWiki).not.toHaveBeenCalled();
+    expect(client.createWikiDraft).not.toHaveBeenCalled();
+  });
+
+  it("does not create a draft for non-404 draft detail failures", async () => {
+    const error = {
+      response: {
+        status: 500,
+      },
+    };
+    const client = {
+      createWikiDraft: vi.fn(),
+      fetchDraftWiki: vi.fn().mockRejectedValue(error),
+      fetchPublicWiki: vi.fn(),
+    };
+
+    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).rejects.toBe(error);
+    expect(client.fetchPublicWiki).not.toHaveBeenCalled();
+    expect(client.createWikiDraft).not.toHaveBeenCalled();
+  });
+
+  it("surfaces create failures after a missing draft detail", async () => {
+    const createError = {
+      response: {
+        status: 409,
+      },
+    };
+    const client = {
+      createWikiDraft: vi.fn().mockRejectedValue(createError),
+      fetchDraftWiki: vi.fn().mockRejectedValue({
+        response: {
+          status: 404,
+        },
+      }),
+      fetchPublicWiki: vi.fn().mockResolvedValue({
+        basic: {
+          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "published-wiki-1",
+      }),
+    };
+
+    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).rejects.toBe(
+      createError,
+    );
+    expect(client.createWikiDraft).toHaveBeenCalledTimes(1);
+    expect(client.fetchDraftWiki).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces refetch failures after creating a missing draft", async () => {
+    const refetchError = {
+      response: {
+        status: 500,
+      },
+    };
+    const client = {
+      createWikiDraft: vi.fn().mockResolvedValue({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "draft",
+      }),
+      fetchDraftWiki: vi
+        .fn()
+        .mockRejectedValueOnce({
+          response: {
+            status: 404,
+          },
+        })
+        .mockRejectedValueOnce(refetchError),
+      fetchPublicWiki: vi.fn().mockResolvedValue({
+        basic: {
+          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "published-wiki-1",
+      }),
+    };
+
+    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).rejects.toBe(
+      refetchError,
+    );
+    expect(client.createWikiDraft).toHaveBeenCalledTimes(1);
+    expect(client.fetchDraftWiki).toHaveBeenCalledTimes(2);
   });
 
   it("forwards cookie headers when saving a draft wiki through fetch", async () => {

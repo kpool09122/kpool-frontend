@@ -43,10 +43,12 @@ export default async function Page({ params, searchParams }: WikiEditRouteProps)
   const normalizedThemeColor = getSingleSearchParam(themeColor);
   const editPath = buildWikiEditPath(language, slug);
   const shouldGateEditAccess = getSingleSearchParam(authGate) === "1";
+  let wikiApiHeaders: HeadersInit | undefined;
 
   if (shouldGateEditAccess) {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
+    wikiApiHeaders = cookieHeader ? { Cookie: cookieHeader } : undefined;
     const authenticatedIdentity = await fetchAuthenticatedIdentity({
       cookieHeader,
     });
@@ -82,7 +84,9 @@ export default async function Page({ params, searchParams }: WikiEditRouteProps)
     }
   }
 
-  const wikiState = await loadDraftWikiState(language, slug);
+  const wikiState = wikiApiHeaders
+    ? await loadDraftWikiState(language, slug, wikiApiHeaders)
+    : await loadDraftWikiState(language, slug);
 
   return (
     <WikiEditPage
