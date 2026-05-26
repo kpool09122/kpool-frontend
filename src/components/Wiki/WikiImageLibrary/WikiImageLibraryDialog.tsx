@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type RefObject } from "react";
+import { type KeyboardEvent, type Ref, type RefObject } from "react";
 
 import { cardSurfaceStyle } from "../styles";
 import { getFocusableElements } from "./focus";
@@ -14,7 +14,7 @@ import {
 export function WikiImageLibraryDialog({
   activeTab,
   canLoadMore,
-  closeButtonRef,
+  closeButtonRefCallback,
   dialogRef,
   imageProps,
   isBusy,
@@ -25,7 +25,7 @@ export function WikiImageLibraryDialog({
 }: {
   activeTab: WikiImageLibraryTab;
   canLoadMore: boolean;
-  closeButtonRef: RefObject<HTMLButtonElement | null>;
+  closeButtonRefCallback: Ref<HTMLButtonElement>;
   dialogRef: RefObject<HTMLDivElement | null>;
   imageProps: Omit<WikiImageLibraryProps, "isOpen" | "onClose" | "onUpload">;
   isBusy: boolean;
@@ -87,7 +87,7 @@ export function WikiImageLibraryDialog({
           <button
             className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30"
             onClick={onClose}
-            ref={closeButtonRef}
+            ref={closeButtonRefCallback}
             type="button"
           >
             {t.close}

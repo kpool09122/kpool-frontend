@@ -29,6 +29,8 @@ function applyTheme(theme: ThemeMode, persist: boolean) {
 
 export function ThemeInitializer() {
   useEffect(() => {
+    // Theme state is synced with browser-only APIs, so keep this DOM side effect
+    // after hydration instead of running it during React render.
     applyTheme(readTheme(), false);
 
     const onClick = (event: MouseEvent) => {
