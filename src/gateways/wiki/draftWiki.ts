@@ -18,6 +18,10 @@ import {
   getPublicWikiEndpointPath,
   publicWikiApiResponseSchema,
 } from "@/gateways/wiki/publicWiki";
+import {
+  createMockInitialDraftWikis,
+  isMockWikiGatewayEnabled,
+} from "./mockWikiGateway";
 
 const draftWikiApiResponseSchema = z
   .union([
@@ -59,6 +63,19 @@ export type WikiDraftWikiStatus = z.infer<typeof wikiPrivateApiTypes.schemas.Dra
 export type WikiDraftWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody>;
 export type WikiDraftReviewAction = "approve" | "reject";
 export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish";
+type InitialDraftWikiListState = {
+  isInitialLoading: boolean;
+  isLoadingMore: boolean;
+  loadError: null;
+  pageInfo: { current_page: number; last_page: number; total: number } | null;
+  wikis: WikiDraftWiki[];
+};
+export type InitialDraftWikis = {
+  approvedWikis: InitialDraftWikiListState;
+  editingWikis: InitialDraftWikiListState;
+  submittedWikis: InitialDraftWikiListState;
+  unapprovedWikis: InitialDraftWikiListState;
+};
 type DraftWikiApiClient = {
   baseUrl: string;
   fetchDraftWiki: (
@@ -86,6 +103,21 @@ export const wikiDraftWikiListResponseSchema = wikiPrivateApiTypes.schemas.ListD
 export const wikiDraftReviewCsrfHeaderName = "X-KPool-Wiki-Review-Request";
 export const wikiDraftReviewCsrfHeaderValue = "1";
 
+const createEmptyDraftWikiListState = (): InitialDraftWikiListState => ({
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: null,
+  wikis: [],
+});
+
+export const createInitialDraftWikis = (): InitialDraftWikis => ({
+  approvedWikis: createEmptyDraftWikiListState(),
+  editingWikis: createEmptyDraftWikiListState(),
+  submittedWikis: createEmptyDraftWikiListState(),
+  unapprovedWikis: createEmptyDraftWikiListState(),
+});
+
 type DraftWikiState =
   | { status: "success"; data: WikiDetail }
   | { status: "empty" }
@@ -99,8 +131,6 @@ const draftWikiAliasByResourceType = {
 } as const;
 
 const getDefaultApiBaseUrl = (): string => process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL ?? "";
-const isMockWikiGatewayEnabled = (): boolean =>
-  process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
@@ -589,6 +619,69 @@ export const fetchWikiDraftWikis = async ({
   }
 
   return parseWithSchemaLog("wiki draft list response", wikiDraftWikiListResponseSchema, body);
+};
+
+export const loadInitialDraftWikisForRequest = async (
+  cookieHeader: string,
+): Promise<InitialDraftWikis> => {
+  if (isMockWikiGatewayEnabled()) {
+    return createMockInitialDraftWikis();
+  }
+
+  const configuredBaseUrl = getDefaultApiBaseUrl();
+  const baseUrl = configuredBaseUrl ? withWikiApiPrefix(configuredBaseUrl) : "";
+
+  if (!baseUrl) {
+    return createInitialDraftWikis();
+  }
+
+  try {
+    const response = await fetch(
+      createWikiDraftWikisUrl({
+        baseUrl,
+        onlyMine: true,
+        page: 1,
+        perPage: defaultWikiDraftPerPage,
+        status: "pending",
+      }),
+      {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          Cookie: cookieHeader,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return createInitialDraftWikis();
+    }
+
+    const bodyResult = wikiDraftWikiListResponseSchema.safeParse(await response.json());
+
+    if (!bodyResult.success) {
+      return createInitialDraftWikis();
+    }
+
+    const body = bodyResult.data;
+
+    return {
+      ...createInitialDraftWikis(),
+      editingWikis: {
+        isInitialLoading: false,
+        isLoadingMore: false,
+        loadError: null,
+        pageInfo: {
+          current_page: body.current_page,
+          last_page: body.last_page,
+          total: body.total,
+        },
+        wikis: body.wikis,
+      },
+    };
+  } catch {
+    return createInitialDraftWikis();
+  }
 };
 
 const reviewWikiDraftRequest = async ({

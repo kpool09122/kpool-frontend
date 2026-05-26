@@ -5,7 +5,9 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   createWikiCurrentPrincipalUrl,
   getWikiPrincipalApiBaseUrl,
+  getWikiPrincipalResponseErrorMessage,
   getWikiPrincipalErrorMessage,
+  wikiPrincipalUnavailableMessage,
   wikiPrincipalSummarySchema,
 } from "@/gateways/wiki/wikiPrincipal";
 import {
@@ -32,8 +34,9 @@ export async function GET(request: NextRequest) {
     if (!apiResponse.ok) {
       return NextResponse.json(
         {
-          message: getWikiPrincipalErrorMessage({
-            response: { status: apiResponse.status, data: body },
+          message: getWikiPrincipalResponseErrorMessage({
+            status: apiResponse.status,
+            data: body,
           }),
         },
         { status: apiResponse.status },
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: getWikiPrincipalErrorMessage(error) },
+      { message: wikiPrincipalUnavailableMessage },
       { status: 502 },
     );
   }

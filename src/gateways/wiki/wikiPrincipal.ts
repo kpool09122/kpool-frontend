@@ -3,6 +3,10 @@ import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { z } from "zod";
 
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+import {
+  getMockWikiPrincipalState,
+  isMockWikiGatewayEnabled,
+} from "./mockWikiGateway";
 
 import {
   getWikiApiErrorMessage,
@@ -39,9 +43,6 @@ export const getWikiPrincipalApiBaseUrl = (): string =>
   process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL
     ? withWikiApiPrefix(process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL)
     : "";
-
-const isMockWikiGatewayEnabled = (): boolean =>
-  process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
 
 export const getAccountIdentifierFromIdentity = (
   identity: IdentitySummary | null,
@@ -174,15 +175,34 @@ const readResponseBody = async (response: ResponseLike): Promise<unknown> => {
   }
 };
 
+export const wikiPrincipalUnavailableMessage =
+  "Wiki principal is temporarily unavailable. Please try again later.";
+
 const toWikiPrincipalMessage = (error: unknown): string =>
   getWikiApiErrorMessage(error, {
     notFound: "Wiki principal was not found.",
     requestFailedPrefix: "Wiki principal request failed with status",
     responseSchemaPrefix: "Wiki principal response did not match the expected schema",
-    unavailable: "Wiki principal is temporarily unavailable. Please try again later.",
+    unavailable: wikiPrincipalUnavailableMessage,
   });
 
 export const getWikiPrincipalErrorMessage = toWikiPrincipalMessage;
+
+const isServerErrorStatus = (status: number): boolean => status >= 500;
+
+export const getWikiPrincipalResponseErrorMessage = ({
+  data,
+  status,
+}: {
+  data: unknown;
+  status: number;
+}): string =>
+  isServerErrorStatus(status)
+    ? wikiPrincipalUnavailableMessage
+    : toWikiPrincipalMessage({ response: { status, data } });
+
+const getWikiPrincipalBoundaryErrorMessage = (error: unknown): string =>
+  error instanceof z.ZodError ? toWikiPrincipalMessage(error) : wikiPrincipalUnavailableMessage;
 
 export const getCurrentWikiPrincipal = async ({
   fetchAdapter = fetch,
@@ -203,8 +223,9 @@ export const getCurrentWikiPrincipal = async ({
     if (!response.ok) {
       return {
         status: "error",
-        message: toWikiPrincipalMessage({
-          response: { status: response.status, data: body },
+        message: getWikiPrincipalResponseErrorMessage({
+          status: response.status,
+          data: body,
         }),
       };
     }
@@ -216,7 +237,7 @@ export const getCurrentWikiPrincipal = async ({
   } catch (error) {
     return {
       status: "error",
-      message: toWikiPrincipalMessage(error),
+      message: getWikiPrincipalBoundaryErrorMessage(error),
     };
   }
 };
@@ -260,8 +281,9 @@ export const getCurrentWikiPrincipalForRequest = async ({
     if (!response.ok) {
       return {
         status: "error",
-        message: toWikiPrincipalMessage({
-          response: { status: response.status, data: body },
+        message: getWikiPrincipalResponseErrorMessage({
+          status: response.status,
+          data: body,
         }),
       };
     }
@@ -273,9 +295,23 @@ export const getCurrentWikiPrincipalForRequest = async ({
   } catch (error) {
     return {
       status: "error",
-      message: toWikiPrincipalMessage(error),
+      message: getWikiPrincipalBoundaryErrorMessage(error),
     };
   }
+};
+
+export const getInitialWikiPrincipalForRequest = async ({
+  cookieHeader,
+  hasAuthenticatedIdentity,
+}: {
+  cookieHeader: string;
+  hasAuthenticatedIdentity: boolean;
+}): Promise<Extract<WikiPrincipalState, { status: "available" | "missing" | "error" | "idle" }>> => {
+  if (!hasAuthenticatedIdentity && !isMockWikiGatewayEnabled()) {
+    return { status: "idle" };
+  }
+
+  return getCurrentWikiPrincipalForRequest({ cookieHeader });
 };
 
 export const createWikiPrincipal = async ({
@@ -304,8 +340,9 @@ export const createWikiPrincipal = async ({
     if (!response.ok) {
       return {
         status: "error",
-        message: toWikiPrincipalMessage({
-          response: { status: response.status, data: responseBody },
+        message: getWikiPrincipalResponseErrorMessage({
+          status: response.status,
+          data: responseBody,
         }),
       };
     }
@@ -317,7 +354,7 @@ export const createWikiPrincipal = async ({
   } catch (error) {
     return {
       status: "error",
-      message: toWikiPrincipalMessage(error),
+      message: getWikiPrincipalBoundaryErrorMessage(error),
     };
   }
 };
@@ -327,101 +364,3 @@ export const createWikiCurrentPrincipalUrl = (baseUrl: string): string =>
 
 export const createWikiPrincipalCreateUrl = (baseUrl: string): string =>
   `${trimTrailingSlashes(baseUrl)}/principal/create`;
-
-const getCookieValue = (cookieHeader: string | undefined, name: string): string | null => {
-  if (!cookieHeader) {
-    return null;
-  }
-
-  const cookie = cookieHeader
-    .split(";")
-    .map((value) => value.trim())
-    .find((value) => value.startsWith(`${name}=`));
-
-  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
-};
-
-const mockPolicyIdentifiers: Record<string, string> = {
-  BASIC_EDITING: "77777777-7777-7777-7777-777777777777",
-  GROUP_MANAGEMENT: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-  GROUP_PUBLISH: "cccccccc-cccc-cccc-cccc-cccccccccccc",
-  IMAGE_REVIEW: "66666666-6666-6666-6666-666666666666",
-};
-
-const createMockPolicy = (
-  name: string,
-  actions: string[],
-  resourceTypes: string[],
-): WikiPrincipalSummary["policies"][number] => ({
-  policyIdentifier: mockPolicyIdentifiers[name] ?? "99999999-9999-9999-9999-999999999999",
-  name,
-  isSystemPolicy: true,
-  statements: [{
-    effect: "allow",
-    actions,
-    resourceTypes,
-    condition: null,
-  }],
-});
-
-const createMockPrincipal = (
-  policies: WikiPrincipalSummary["policies"],
-): WikiPrincipalSummary => ({
-  principalIdentifier: "33333333-3333-3333-3333-333333333333",
-  identityIdentifier: "11111111-1111-1111-1111-111111111111",
-  isDelegatedPrincipal: false,
-  isEnabled: true,
-  policies,
-});
-
-const getMockWikiPrincipalState = (
-  cookieHeader: string | undefined,
-): Extract<WikiPrincipalState, { status: "available" | "missing" }> | null => {
-  if (!isMockWikiGatewayEnabled()) {
-    return null;
-  }
-
-  const principalMode = getCookieValue(cookieHeader, "kpool-e2e-wiki-principal");
-
-  if (principalMode === "missing") {
-    return { status: "missing" };
-  }
-
-  if (principalMode === "basic") {
-    return {
-      status: "available",
-      principal: createMockPrincipal([
-        createMockPolicy("BASIC_EDITING", ["CREATE", "EDIT", "SUBMIT"], ["WIKI"]),
-      ]),
-    };
-  }
-
-  if (principalMode === "wiki-review") {
-    return {
-      status: "available",
-      principal: createMockPrincipal([
-        createMockPolicy("GROUP_MANAGEMENT", ["APPROVE", "REJECT"], ["GROUP"]),
-      ]),
-    };
-  }
-
-  if (principalMode === "wiki-publish") {
-    return {
-      status: "available",
-      principal: createMockPrincipal([
-        createMockPolicy("GROUP_PUBLISH", ["PUBLISH"], ["GROUP"]),
-      ]),
-    };
-  }
-
-  if (principalMode === "image-review") {
-    return {
-      status: "available",
-      principal: createMockPrincipal([
-        createMockPolicy("IMAGE_REVIEW", ["APPROVE", "REJECT"], ["IMAGE"]),
-      ]),
-    };
-  }
-
-  return null;
-};

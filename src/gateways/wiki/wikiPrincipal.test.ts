@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   canPublishWikiDraftWikis,
@@ -8,7 +8,13 @@ import {
   getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
   getCurrentWikiPrincipalForRequest,
+  getInitialWikiPrincipalForRequest,
+  wikiPrincipalUnavailableMessage,
 } from "./wikiPrincipal";
+import {
+  createMockEditingDraftWiki,
+  mockWikiPrincipalCookieName,
+} from "./mockWikiGateway";
 
 const principal = {
   principalIdentifier: "33333333-3333-3333-3333-333333333333",
@@ -43,6 +49,10 @@ const policy = ({
 });
 
 describe("wiki principal helpers", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("normalizes the current principal response when it exists", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue({
       ok: true,
@@ -101,26 +111,107 @@ describe("wiki principal helpers", () => {
     );
   });
 
-  it("does not treat server errors as a missing principal", async () => {
-    const fetchAdapter = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: vi.fn().mockResolvedValue({ message: "Backend failed" }),
-    });
+  it("resolves E2E mock principal state from the shared mock gateway cookie contract", async () => {
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
+    const fetchAdapter = vi.fn();
 
-    await expect(getCurrentWikiPrincipal({ fetchAdapter })).resolves.toEqual({
-      status: "error",
-      message: "Backend failed",
+    await expect(
+      getCurrentWikiPrincipalForRequest({
+        cookieHeader: `${mockWikiPrincipalCookieName}=wiki-review`,
+        fetchAdapter,
+      }),
+    ).resolves.toMatchObject({
+      status: "available",
+      principal: {
+        policies: [
+          expect.objectContaining({
+            name: "GROUP_MANAGEMENT",
+          }),
+        ],
+      },
+    });
+    expect(fetchAdapter).not.toHaveBeenCalled();
+  });
+
+  it("keeps E2E draft wiki fixture in the mock gateway module", () => {
+    expect(createMockEditingDraftWiki()).toMatchObject({
+      name: "編集中 Wiki",
+      slug: "gr-review-wiki",
+      status: "pending",
     });
   });
 
-  it("normalizes network failures as errors", async () => {
-    const fetchAdapter = vi.fn().mockRejectedValue(new Error("network down"));
+  it("does not expose upstream server error details from the browser route response", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: vi.fn().mockResolvedValue({
+        message: "database failed at internal.wiki.example.test",
+      }),
+    });
 
     await expect(getCurrentWikiPrincipal({ fetchAdapter })).resolves.toEqual({
       status: "error",
-      message: "network down",
+      message: wikiPrincipalUnavailableMessage,
     });
+  });
+
+  it("does not expose fetch error details from the browser principal route", async () => {
+    const fetchAdapter = vi.fn().mockRejectedValue(
+      new Error("getaddrinfo ENOTFOUND internal.wiki.example.test"),
+    );
+
+    await expect(getCurrentWikiPrincipal({ fetchAdapter })).resolves.toEqual({
+      status: "error",
+      message: wikiPrincipalUnavailableMessage,
+    });
+  });
+
+  it("does not expose upstream server error details from the private API request", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: vi.fn().mockResolvedValue({
+        detail: "stack trace from internal.wiki.example.test",
+      }),
+    });
+
+    await expect(
+      getCurrentWikiPrincipalForRequest({
+        baseUrl: "https://wiki.example.test/api",
+        cookieHeader: "session=abc",
+        fetchAdapter,
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      message: wikiPrincipalUnavailableMessage,
+    });
+  });
+
+  it("does not expose fetch error details from the private API request", async () => {
+    const fetchAdapter = vi.fn().mockRejectedValue(
+      new Error("getaddrinfo ENOTFOUND internal.wiki.example.test"),
+    );
+
+    await expect(
+      getCurrentWikiPrincipalForRequest({
+        baseUrl: "https://wiki.example.test/api",
+        cookieHeader: "session=abc",
+        fetchAdapter,
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      message: wikiPrincipalUnavailableMessage,
+    });
+  });
+
+  it("keeps unauthenticated mypage SSR principal lookup idle outside mock mode", async () => {
+    const principalState = await getInitialWikiPrincipalForRequest({
+      cookieHeader: "",
+      hasAuthenticatedIdentity: false,
+    });
+
+    expect(principalState).toEqual({ status: "idle" });
   });
 
   it("creates a principal with identity and account identifiers", async () => {

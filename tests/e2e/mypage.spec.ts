@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
 
 const useJapaneseLocale = async (page: Page) => {
   await page.context().addCookies([
@@ -17,7 +18,7 @@ const useWikiPrincipal = async (
 ) => {
   await page.context().addCookies([
     {
-      name: "kpool-e2e-wiki-principal",
+      name: mockWikiPrincipalCookieName,
       value: principal,
       domain: "127.0.0.1",
       path: "/",

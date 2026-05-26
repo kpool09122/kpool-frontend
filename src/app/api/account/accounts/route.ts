@@ -6,7 +6,6 @@ import {
   getAccountApiBaseUrl,
   parseCreateAccountRequest,
 } from "@/gateways/account/accountApi";
-import { getIdentityRouteErrorMessage } from "@/gateways/identity/identityApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
@@ -15,6 +14,34 @@ const readResponseBody = async (response: Response): Promise<unknown> => {
   } catch {
     return {};
   }
+};
+
+const hasMessage = (value: unknown): value is { message: string } =>
+  typeof value === "object" &&
+  value !== null &&
+  "message" in value &&
+  typeof (value as { message: unknown }).message === "string";
+
+const hasDetail = (value: unknown): value is { detail: string } =>
+  typeof value === "object" &&
+  value !== null &&
+  "detail" in value &&
+  typeof (value as { detail: unknown }).detail === "string";
+
+const getAccountRouteErrorMessage = (status: number, body: unknown): string => {
+  if (status >= 500) {
+    return "Account API is temporarily unavailable.";
+  }
+
+  if (hasMessage(body)) {
+    return body.message;
+  }
+
+  if (hasDetail(body)) {
+    return body.detail;
+  }
+
+  return `Account API request failed with status ${status}.`;
 };
 
 export async function POST(request: NextRequest) {
@@ -29,17 +56,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const account = parseCreateAccountRequest(await request.json());
+    const acceptLanguage = request.headers.get("accept-language");
+    const cookie = request.headers.get("cookie");
     const apiResponse = await fetch(`${baseUrl}/accounts`, {
       method: "POST",
       headers: {
         Accept: "application/json",
-        ...(request.headers.get("accept-language")
-          ? { "Accept-Language": request.headers.get("accept-language") ?? "" }
-          : {}),
+        ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
         "Content-Type": "application/json",
-        ...(request.headers.get("cookie")
-          ? { Cookie: request.headers.get("cookie") ?? "" }
-          : {}),
+        ...(cookie ? { Cookie: cookie } : {}),
       },
       body: JSON.stringify(account),
       cache: "no-store",
@@ -48,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+        { message: getAccountRouteErrorMessage(apiResponse.status, body) },
         { status: apiResponse.status },
       );
     }
@@ -70,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: getIdentityRouteErrorMessage({ data: error }) },
+      { message: "Account API is temporarily unavailable." },
       { status: 502 },
     );
   }
