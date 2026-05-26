@@ -330,7 +330,7 @@ describe("MyPageClient", () => {
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
-    expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
+    expect(screen.getByRole("link", { name: "編集中 Wiki" }).getAttribute("style")).toContain(
       'url("https://images.example.test/editing-wiki.webp")',
     );
     expect(screen.getByText("グループ")).toBeInTheDocument();
@@ -345,6 +345,10 @@ describe("MyPageClient", () => {
         perPage: 12,
         status: "under_review",
       }),
+    );
+    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+      "href",
+      "/wiki/ja/gr-review-wiki/edit",
     );
   });
 
