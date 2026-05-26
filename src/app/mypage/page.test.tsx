@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -218,6 +222,25 @@ const draftWikiListState = {
   wikis: [draftWiki],
 };
 
+const renderWithQueryClient = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      mutations: {
+        retry: false,
+      },
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>,
+  );
+};
+
 describe("MyPageClient", () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -235,7 +258,7 @@ describe("MyPageClient", () => {
   it("renders the sidebar with Wiki selected by default", async () => {
     const adapter = createAdapter();
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -254,7 +277,7 @@ describe("MyPageClient", () => {
   });
 
   it("collapses and expands the sidebar with a persistent toggle", () => {
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -278,7 +301,7 @@ describe("MyPageClient", () => {
   it("renders the default Wiki page from the initial principal state", async () => {
     const adapter = createAdapter();
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -313,7 +336,7 @@ describe("MyPageClient", () => {
       },
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -340,7 +363,7 @@ describe("MyPageClient", () => {
   it("shows the Wiki subheader tab and loads under review draft images", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -386,7 +409,7 @@ describe("MyPageClient", () => {
   it("loads editing draft wikis by default and submitted draft wikis on tab selection", async () => {
     const draftWikiAdapter = createDraftWikiAdapter();
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -451,7 +474,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -498,7 +521,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -546,7 +569,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -591,7 +614,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -636,7 +659,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -682,7 +705,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
@@ -715,7 +738,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -733,7 +756,7 @@ describe("MyPageClient", () => {
   it("approves a draft image and removes it from the list", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -758,7 +781,7 @@ describe("MyPageClient", () => {
   it("rejects a draft image and removes it from the list", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -785,7 +808,7 @@ describe("MyPageClient", () => {
       approveDraftImage: vi.fn().mockRejectedValue(new Error("approve failed")),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -807,7 +830,7 @@ describe("MyPageClient", () => {
       rejectDraftImage: vi.fn().mockRejectedValue(new Error("reject failed")),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -844,7 +867,7 @@ describe("MyPageClient", () => {
       ],
     };
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -877,7 +900,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -896,7 +919,7 @@ describe("MyPageClient", () => {
       listDraftImages: vi.fn().mockRejectedValue(new Error("draft image failure")),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -916,7 +939,7 @@ describe("MyPageClient", () => {
       getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -941,7 +964,7 @@ describe("MyPageClient", () => {
       createPrincipal: vi.fn().mockResolvedValue({ status: "available", principal }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -969,7 +992,7 @@ describe("MyPageClient", () => {
       }),
     });
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
@@ -999,7 +1022,7 @@ describe("MyPageClient", () => {
       language: "ja",
     };
 
-    render(
+    renderWithQueryClient(
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}

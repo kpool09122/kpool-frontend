@@ -130,6 +130,7 @@ export function MyPageClient({
     reviewingImageIdentifier,
   } = useMyPageDraftImageReview({
     adapter: draftImageAdapter,
+    identityIdentifier: currentIdentity?.identityIdentifier ?? null,
     initialDraftImages,
     messages: draftImageMessages,
   });
@@ -152,6 +153,7 @@ export function MyPageClient({
     reviewingWikiIdentifier,
   } = useMyPageDraftWikis({
     adapter: draftWikiAdapter,
+    identityIdentifier: currentIdentity?.identityIdentifier ?? null,
     initialDraftWikis,
     messages: draftWikiMessages,
   });

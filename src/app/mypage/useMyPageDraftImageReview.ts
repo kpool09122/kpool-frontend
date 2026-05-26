@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 
 import {
@@ -8,6 +13,7 @@ import {
   type WikiDraftImageListResponse,
 } from "@kpool/wiki";
 import type { MyPageDraftImageAdapter } from "@/gateways/mypage/myPageAdapters";
+import { myPageQueryKeys } from "./queryKeys";
 
 export type DraftImageListState = {
   images: WikiDraftImage[];
@@ -31,34 +37,62 @@ export const initialDraftImageListState: DraftImageListState = {
   pageInfo: null,
 };
 
+const draftImageListQuery = {
+  status: "under_review" as const,
+};
+
 export const useMyPageDraftImageReview = ({
   adapter,
+  identityIdentifier,
   initialDraftImages,
   messages,
 }: {
   adapter: MyPageDraftImageAdapter;
+  identityIdentifier: string | null;
   initialDraftImages: DraftImageListState;
   messages: MyPageDraftImageReviewMessages;
 }) => {
-  const [draftImages, setDraftImages] = useState<DraftImageListState>(initialDraftImages);
+  const queryClient = useQueryClient();
+  const listQueryKey = myPageQueryKeys.draftImages.list({
+    ...draftImageListQuery,
+    identityIdentifier,
+  });
+  const { data: cachedDraftImages = initialDraftImages } = useQuery({
+    enabled: false,
+    initialData: initialDraftImages,
+    queryFn: async () => toDraftImageListState(await adapter.listDraftImages({
+      fallbackErrorMessage: messages.draftImageListLoadFailed,
+      page: 1,
+      perPage: defaultWikiImagePerPage,
+      status: draftImageListQuery.status,
+    })),
+    queryKey: listQueryKey,
+  });
   const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const loadDraftImagesPage = useCallback((page: number) => {
-    setDraftImages((state) => ({
+    queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
       ...state,
       isInitialLoading: page === 1,
       isLoadingMore: page > 1,
       loadError: null,
     }));
 
-    void adapter.listDraftImages({
-      fallbackErrorMessage: messages.draftImageListLoadFailed,
-      page,
-      perPage: defaultWikiImagePerPage,
-      status: "under_review",
+    void queryClient.fetchQuery({
+      queryKey: myPageQueryKeys.draftImages.page({
+        ...draftImageListQuery,
+        identityIdentifier,
+        page,
+      }),
+      queryFn: () => adapter.listDraftImages({
+        fallbackErrorMessage: messages.draftImageListLoadFailed,
+        page,
+        perPage: defaultWikiImagePerPage,
+        status: draftImageListQuery.status,
+      }),
     }).then((imagePage) => {
-      setDraftImages((state) => ({
+      queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
         ...state,
         images: page === 1 ? imagePage.images : [...state.images, ...imagePage.images],
         isInitialLoading: false,
@@ -70,7 +104,7 @@ export const useMyPageDraftImageReview = ({
         },
       }));
     }).catch((error: unknown) => {
-      setDraftImages((state) => ({
+      queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
         ...state,
         isInitialLoading: false,
         isLoadingMore: false,
@@ -78,10 +112,10 @@ export const useMyPageDraftImageReview = ({
           error instanceof Error ? error.message : messages.draftImageListLoadFailed,
       }));
     });
-  }, [adapter, messages.draftImageListLoadFailed]);
+  }, [adapter, identityIdentifier, listQueryKey, messages.draftImageListLoadFailed, queryClient]);
 
-  const removeReviewedImage = (imageIdentifier: string) => {
-    setDraftImages((state) => ({
+  const removeReviewedImage = useCallback((imageIdentifier: string) => {
+    queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
       ...state,
       images: state.images.filter((image) => image.imageIdentifier !== imageIdentifier),
       pageInfo: state.pageInfo
@@ -91,26 +125,33 @@ export const useMyPageDraftImageReview = ({
           }
         : state.pageInfo,
     }));
-  };
+  }, [listQueryKey, queryClient]);
 
-  const reviewDraftImage = (
-    imageIdentifier: string,
-    action: "approve" | "reject",
-  ) => {
-    setReviewingImageIdentifier(imageIdentifier);
-    setReviewError(null);
+  const reviewMutation = useMutation({
+    mutationFn: ({
+      action,
+      imageIdentifier,
+    }: {
+      action: "approve" | "reject";
+      imageIdentifier: string;
+    }) => {
+      const fallbackErrorMessage =
+        action === "approve"
+          ? messages.draftImageApproveFailed
+          : messages.draftImageRejectFailed;
 
-    const fallbackErrorMessage =
-      action === "approve"
-        ? messages.draftImageApproveFailed
-        : messages.draftImageRejectFailed;
-    const request = action === "approve"
-      ? adapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage })
-      : adapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
-
-    void request.then(() => {
+      return action === "approve"
+        ? adapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage })
+        : adapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
+    },
+    onMutate: ({ imageIdentifier }) => {
+      setReviewingImageIdentifier(imageIdentifier);
+      setReviewError(null);
+    },
+    onSuccess: (_data, { imageIdentifier }) => {
       removeReviewedImage(imageIdentifier);
-    }).catch((error: unknown) => {
+    },
+    onError: (error, { action }) => {
       setReviewError(
         error instanceof Error
           ? error.message
@@ -118,16 +159,36 @@ export const useMyPageDraftImageReview = ({
             ? messages.draftImageApproveFailed
             : messages.draftImageRejectFailed,
       );
-    }).finally(() => {
+    },
+    onSettled: () => {
       setReviewingImageIdentifier(null);
-    });
+    },
+  });
+
+  const reviewDraftImage = (
+    imageIdentifier: string,
+    action: "approve" | "reject",
+  ) => {
+    reviewMutation.mutate({ imageIdentifier, action });
   };
 
   return {
-    draftImages,
+    draftImages: cachedDraftImages,
     loadDraftImagesPage,
     reviewDraftImage,
     reviewError,
     reviewingImageIdentifier,
   };
 };
+
+const toDraftImageListState = (imagePage: WikiDraftImageListResponse): DraftImageListState => ({
+  images: imagePage.images,
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: {
+    current_page: imagePage.current_page,
+    last_page: imagePage.last_page,
+    total: imagePage.total,
+  },
+});

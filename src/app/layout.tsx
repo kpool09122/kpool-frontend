@@ -3,10 +3,10 @@ import { cookies, headers } from "next/headers";
 
 import "./globals.css";
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
-import { AuthProvider } from "./AuthProvider";
 import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { localeCookieName, resolveLocale } from "../i18n/locales";
+import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
 
 export const metadata: Metadata = {
@@ -35,16 +35,11 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
         <I18nProvider initialLocale={locale}>
-          <AuthProvider
-            key={authenticatedIdentity?.identityIdentifier ?? "guest"}
-            initialIdentity={authenticatedIdentity}
-          >
+          <QueryProvider>
             <ThemeInitializer />
-            <Header
-              initialIsAuthenticated={authenticatedIdentity !== null}
-            />
+            <Header initialIsAuthenticated={authenticatedIdentity !== null} />
             {children}
-          </AuthProvider>
+          </QueryProvider>
         </I18nProvider>
       </body>
     </html>

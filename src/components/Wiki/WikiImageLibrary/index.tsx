@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { useI18n } from "../../../i18n/I18nProvider";
 import { WikiImageLibraryDialog } from "./WikiImageLibraryDialog";
@@ -31,7 +31,6 @@ export function WikiImageLibrary({
   const { dictionary } = useI18n();
   const t = dictionary.wiki.imageLibrary;
   const dialogRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [activeTab, setActiveTab] = useState<WikiImageLibraryTab>("images");
   const isBusy = isInitialLoading || isLoadingMore || isUploading;
@@ -43,20 +42,24 @@ export function WikiImageLibrary({
     uploadError,
   });
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+  const restoreDialogFocus = useCallback(() => {
+    restoreFocusRef.current?.focus();
+    restoreFocusRef.current = null;
+  }, []);
 
-    restoreFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    closeButtonRef.current?.focus();
+  const setCloseButtonRef = useCallback(
+    (button: HTMLButtonElement | null) => {
+      if (!button) {
+        restoreDialogFocus();
+        return;
+      }
 
-    return () => {
-      restoreFocusRef.current?.focus();
-      restoreFocusRef.current = null;
-    };
-  }, [isOpen]);
+      restoreFocusRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      button.focus();
+    },
+    [restoreDialogFocus],
+  );
 
   if (!isOpen) {
     return null;
@@ -80,7 +83,7 @@ export function WikiImageLibrary({
     <WikiImageLibraryDialog
       activeTab={activeTab}
       canLoadMore={canLoadMore}
-      closeButtonRef={closeButtonRef}
+      closeButtonRefCallback={setCloseButtonRef}
       dialogRef={dialogRef}
       imageProps={{
         images,
