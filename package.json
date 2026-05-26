@@ -21,6 +21,7 @@
     "@kpool/types": "workspace:*",
     "@kpool/wiki": "workspace:*",
     "@radix-ui/react-icons": "^1.3.2",
+    "@tanstack/react-query": "5.100.13",
     "@tiptap/extension-link": "^3.22.3",
     "@tiptap/react": "^3.22.3",
     "@tiptap/starter-kit": "^3.22.3",

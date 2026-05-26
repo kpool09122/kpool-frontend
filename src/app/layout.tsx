@@ -7,6 +7,7 @@ import { AuthProvider } from "./AuthProvider";
 import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { localeCookieName, resolveLocale } from "../i18n/locales";
+import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
 
 export const metadata: Metadata = {
@@ -39,11 +40,13 @@ export default async function RootLayout({
             key={authenticatedIdentity?.identityIdentifier ?? "guest"}
             initialIdentity={authenticatedIdentity}
           >
-            <ThemeInitializer />
-            <Header
-              initialIsAuthenticated={authenticatedIdentity !== null}
-            />
-            {children}
+            <QueryProvider>
+              <ThemeInitializer />
+              <Header
+                initialIsAuthenticated={authenticatedIdentity !== null}
+              />
+              {children}
+            </QueryProvider>
           </AuthProvider>
         </I18nProvider>
       </body>
