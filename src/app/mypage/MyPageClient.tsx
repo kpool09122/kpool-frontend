@@ -3,8 +3,10 @@
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
+import Link from "next/link";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
+import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
 import {
@@ -108,6 +110,9 @@ export function MyPageClient({
   initialPrincipalState = { status: "idle" },
   principalAdapter = defaultPrincipalAdapter,
 }: MyPageClientProps) {
+  const authIdentity = useAuthStore((state) => state.identity);
+  const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
+  const currentIdentity = authIdentity ?? initialIdentity;
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("editingWikis");
@@ -159,16 +164,16 @@ export function MyPageClient({
     identityUnavailableMessage: t.identityUnavailableMessage,
   }), [t.accountUnavailableMessage, t.identityUnavailableMessage]);
   const {
-    accountIdentifier,
     activateWikiPrincipal,
     loadCurrentPrincipal,
     principalState,
   } = useMyPageWikiPrincipal({
     adapter: principalAdapter,
-    initialIdentity,
+    initialIdentity: currentIdentity,
     initialPrincipalState,
     messages: principalMessages,
     onPrincipalReady: loadFirstDraftWikiPage,
+    refreshIdentity: () => refreshIdentity({ preserveOnNull: true }),
   });
 
   return (
@@ -219,7 +224,6 @@ export function MyPageClient({
           </header>
 
           <WikiPrincipalPanel
-            accountIdentifier={accountIdentifier}
             draftImages={draftImages}
             draftWikis={draftWikis}
             locale={locale}
@@ -227,7 +231,7 @@ export function MyPageClient({
             draftWikiReviewError={draftWikiReviewError}
             reviewingImageIdentifier={reviewingImageIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
-            isAuthenticated={initialIdentity !== null}
+            isAuthenticated={currentIdentity !== null}
             isPending={isActionPending(principalState)}
             selectedWikiTab={selectedWikiTab}
             state={principalState}
@@ -249,7 +253,6 @@ export function MyPageClient({
 }
 
 function WikiPrincipalPanel({
-  accountIdentifier,
   draftImages,
   draftWikis,
   locale,
@@ -270,7 +273,6 @@ function WikiPrincipalPanel({
   onReviewDraftWiki,
   onSelectWikiTab,
 }: {
-  accountIdentifier: string | null;
   draftImages: DraftImageListState;
   draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
   locale: Locale;
@@ -291,7 +293,7 @@ function WikiPrincipalPanel({
   onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction | "publish") => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
-  const canActivate = isAuthenticated && accountIdentifier !== null && !isPending;
+  const canActivate = isAuthenticated && !isPending;
 
   if (state.status === "loading") {
     return (
@@ -503,6 +505,7 @@ function DraftWikiListPanel({
       <div className="grid gap-4 md:grid-cols-2">
         {state.wikis.map((wiki) => (
           <DraftWikiCard
+            enableCardLink={tab === "editingWikis" || tab === "submittedWikis"}
             isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
             key={wiki.wikiIdentifier}
             showPublishAction={tab === "approvedWikis"}
@@ -532,6 +535,7 @@ function DraftWikiListPanel({
 }
 
 function DraftWikiCard({
+  enableCardLink,
   isReviewing,
   showReviewActions,
   showPublishAction,
@@ -539,6 +543,7 @@ function DraftWikiCard({
   wiki,
   onReviewDraftWiki,
 }: {
+  enableCardLink: boolean;
   isReviewing: boolean;
   showPublishAction: boolean;
   showReviewActions: boolean;
@@ -547,103 +552,127 @@ function DraftWikiCard({
   onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction | "publish") => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
-
-  return (
-    <article
-      className="wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft"
-      style={buildDraftWikiCardStyle(wiki)}
-    >
-      <div className="relative z-10">
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="break-words text-base font-semibold">
+  const href = getDraftWikiHref(wiki);
+  const cardClassName =
+    "wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft";
+  const cardStyle = buildDraftWikiCardStyle(wiki);
+  const content = (
+    <div className="relative z-10">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="break-words text-base font-semibold">
+            {enableCardLink ? (
+              <span
+                className="text-brand-primary underline underline-offset-4"
+                style={{ color: hasImage ? "#fffaf4" : undefined }}
+              >
+                {wiki.name}
+              </span>
+            ) : (
               <a
                 className="text-brand-primary underline underline-offset-4"
-                href={getDraftWikiHref(wiki)}
+                href={href}
                 style={{ color: hasImage ? "#fffaf4" : undefined }}
               >
                 {wiki.name}
               </a>
-            </h3>
-            <p
-              className="mt-1 text-xs font-semibold uppercase text-text-muted"
-              style={{ color: hasImage ? "rgba(255, 250, 244, 0.78)" : undefined }}
-            >
-              {wiki.language}
-            </p>
-          </div>
-          <span
-            className="shrink-0 rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted"
-            style={{
-              backgroundColor: hasImage
-                ? "rgba(255, 255, 255, 0.86)"
-                : wiki.themeColor
-                  ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
-                  : undefined,
-              color: hasImage
-                ? "#15243b"
-                : wiki.themeColor
-                  ? "var(--wiki-accent-text)"
-                  : undefined,
-            }}
+            )}
+          </h3>
+          <p
+            className="mt-1 text-xs font-semibold uppercase text-text-muted"
+            style={{ color: hasImage ? "rgba(255, 250, 244, 0.78)" : undefined }}
           >
-            {getDraftWikiResourceLabel(t, wiki.resourceType)}
-          </span>
+            {wiki.language}
+          </p>
         </div>
-        <dl className="mt-4 grid gap-3 text-sm">
-          <DraftWikiMeta
-            isOnImage={hasImage}
-            label={t.draftWikiStatusLabel}
-            value={getDraftWikiStatusLabel(t, wiki.status)}
-          />
-          <DraftWikiMeta
-            isOnImage={hasImage}
-            label={t.draftWikiEditedAtLabel}
-            value={formatDraftWikiDate(wiki.editedAt)}
-          />
-          <DraftWikiMeta
-            isOnImage={hasImage}
-            label={t.draftWikiUpdatedAtLabel}
-            value={formatDraftWikiDate(wiki.updatedAt)}
-          />
-        </dl>
-        {showReviewActions ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isReviewing}
-              onClick={() => onReviewDraftWiki(wiki, "approve")}
-              type="button"
-            >
-              {isReviewing ? t.draftWikiReviewing : t.approveDraftWiki}
-            </button>
-            <button
-              className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isReviewing}
-              onClick={() => onReviewDraftWiki(wiki, "reject")}
-              style={{
-                backgroundColor: hasImage ? "rgba(255, 255, 255, 0.88)" : undefined,
-                color: hasImage ? "#15243b" : undefined,
-              }}
-              type="button"
-            >
-              {isReviewing ? t.draftWikiReviewing : t.rejectDraftWiki}
-            </button>
-          </div>
-        ) : null}
-        {showPublishAction ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isReviewing}
-              onClick={() => onReviewDraftWiki(wiki, "publish")}
-              type="button"
-            >
-              {isReviewing ? t.draftWikiPublishing : t.publishDraftWiki}
-            </button>
-          </div>
-        ) : null}
+        <span
+          className="shrink-0 rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted"
+          style={{
+            backgroundColor: hasImage
+              ? "rgba(255, 255, 255, 0.86)"
+              : wiki.themeColor
+                ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
+                : undefined,
+            color: hasImage
+              ? "#15243b"
+              : wiki.themeColor
+                ? "var(--wiki-accent-text)"
+                : undefined,
+          }}
+        >
+          {getDraftWikiResourceLabel(t, wiki.resourceType)}
+        </span>
       </div>
+      <dl className="mt-4 grid gap-3 text-sm">
+        <DraftWikiMeta
+          isOnImage={hasImage}
+          label={t.draftWikiStatusLabel}
+          value={getDraftWikiStatusLabel(t, wiki.status)}
+        />
+        <DraftWikiMeta
+          isOnImage={hasImage}
+          label={t.draftWikiEditedAtLabel}
+          value={formatDraftWikiDate(wiki.editedAt)}
+        />
+      </dl>
+      {showReviewActions ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => onReviewDraftWiki(wiki, "approve")}
+            type="button"
+          >
+            {isReviewing ? t.draftWikiReviewing : t.approveDraftWiki}
+          </button>
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => onReviewDraftWiki(wiki, "reject")}
+            style={{
+              backgroundColor: hasImage ? "rgba(255, 255, 255, 0.88)" : undefined,
+              color: hasImage ? "#15243b" : undefined,
+            }}
+            type="button"
+          >
+            {isReviewing ? t.draftWikiReviewing : t.rejectDraftWiki}
+          </button>
+        </div>
+      ) : null}
+      {showPublishAction ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => onReviewDraftWiki(wiki, "publish")}
+            type="button"
+          >
+            {isReviewing ? t.draftWikiPublishing : t.publishDraftWiki}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (enableCardLink) {
+    return (
+      <Link
+        aria-label={wiki.name}
+        className={`${cardClassName} block transition hover:-translate-y-0.5 hover:border-brand-primary/40`}
+        href={href}
+        style={cardStyle}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <article
+      className={cardClassName}
+      style={cardStyle}
+    >
+      {content}
     </article>
   );
 }

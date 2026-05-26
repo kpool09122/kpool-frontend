@@ -47,6 +47,9 @@ const publicWikiListItemSchema = z
     version: z.number().int(),
     themeColor: z.string().nullable().optional(),
     heroImage: publicWikiHeroImageSchema.nullable().optional(),
+    imageIdentifier: z.string().nullable(),
+    imageUrl: z.string().nullable(),
+    imageAltText: z.string().nullable(),
     name: z.string(),
     normalizedName: z.string(),
     publishedAt: z.string().nullable().optional(),
@@ -231,7 +234,20 @@ export const adaptPublicWikiListResponse = (
   lastPage: response.last_page,
   perPage: response.per_page,
   total: response.total,
-  wikis: response.wikis,
+  wikis: response.wikis.map((wiki) => {
+    if (wiki.heroImage?.src || !wiki.imageUrl) {
+      return wiki;
+    }
+
+    return {
+      ...wiki,
+      heroImage: {
+        alt: wiki.imageAltText,
+        imageIdentifier: wiki.imageIdentifier,
+        src: wiki.imageUrl,
+      },
+    };
+  }),
 });
 
 export const fetchPublicWiki = async (

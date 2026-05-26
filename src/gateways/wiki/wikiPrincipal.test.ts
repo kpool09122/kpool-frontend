@@ -179,6 +179,36 @@ describe("wiki principal helpers", () => {
     ).toBe("22222222-2222-2222-2222-222222222222");
   });
 
+  it("reads account identifiers from nested account payloads", () => {
+    expect(
+      getAccountIdentifierFromIdentity({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        username: "member",
+        email: "member@example.com",
+        language: "ja",
+        account: {
+          accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        },
+      }),
+    ).toBe("22222222-2222-2222-2222-222222222222");
+  });
+
+  it("reads account identifiers from account arrays", () => {
+    expect(
+      getAccountIdentifierFromIdentity({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        username: "member",
+        email: "member@example.com",
+        language: "ja",
+        accounts: [
+          {
+            id: "22222222-2222-2222-2222-222222222222",
+          },
+        ],
+      }),
+    ).toBe("22222222-2222-2222-2222-222222222222");
+  });
+
   it("returns null when identity payloads do not include an account id", () => {
     expect(
       getAccountIdentifierFromIdentity({

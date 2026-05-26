@@ -54,6 +54,9 @@ const publicWikiListResponse = {
       language: "ja",
       name: "Aurora Echo",
       normalizedName: "aurora-echo",
+      imageAltText: "Aurora Echo list image",
+      imageIdentifier: "image-1",
+      imageUrl: "https://cdn.example.com/aurora-echo-list.webp",
       publishedAt: "2026-05-01T00:00:00+00:00",
       resourceType: "group",
       slug: "gr-aurora-echo",
@@ -198,6 +201,11 @@ describe("publicWiki", () => {
       total: 31,
       wikis: [
         {
+          heroImage: {
+            alt: "Aurora Echo list image",
+            imageIdentifier: "image-1",
+            src: "https://cdn.example.com/aurora-echo-list.webp",
+          },
           name: "Aurora Echo",
           resourceType: "group",
           slug: "gr-aurora-echo",

@@ -1,13 +1,23 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MyPageClient } from "./MyPageClient";
+import { useAuthStore } from "@/gateways/auth/authStore";
+import { fetchCurrentAuthenticatedIdentity } from "@/gateways/identity/authIdentityBrowserApi";
 import type {
   MyPageDraftImageAdapter,
   MyPageDraftWikiAdapter,
   MyPagePrincipalAdapter,
 } from "@/gateways/mypage/myPageAdapters";
+
+const identityMocks = vi.hoisted(() => ({
+  fetchCurrentAuthenticatedIdentity: vi.fn(),
+}));
+
+vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
+  fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
+}));
 
 const identity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
@@ -115,7 +125,6 @@ const draftWiki = {
   imageUrl: "https://images.example.test/editing-wiki.webp",
   imageAltText: "編集中 Wiki profile",
   editedAt: "2026-05-10T00:00:00Z",
-  updatedAt: "2026-05-11T00:00:00Z",
   approvedAt: null,
   translatedAt: null,
   mergedAt: null,
@@ -189,9 +198,38 @@ const createDraftWikiAdapter = (
   ...overrides,
 });
 
+const emptyDraftWikiListState = {
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: null,
+  wikis: [],
+};
+
+const draftWikiListState = {
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: {
+    current_page: 1,
+    last_page: 1,
+    total: 1,
+  },
+  wikis: [draftWiki],
+};
+
 describe("MyPageClient", () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      identity: null,
+      status: "loading",
+    });
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(null);
+  });
+
   afterEach(() => {
     cleanup();
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockReset();
   });
 
   it("renders the sidebar with Wiki selected by default", async () => {
@@ -202,6 +240,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={adapter}
       />,
     );
@@ -212,7 +251,6 @@ describe("MyPageClient", () => {
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("button", { name: "概要" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
-    await waitFor(() => expect(adapter.getCurrentPrincipal).toHaveBeenCalledOnce());
   });
 
   it("collapses and expands the sidebar with a persistent toggle", () => {
@@ -221,6 +259,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -236,7 +275,7 @@ describe("MyPageClient", () => {
     ).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("loads the current principal on the default Wiki page", async () => {
+  it("renders the default Wiki page from the initial principal state", async () => {
     const adapter = createAdapter();
 
     render(
@@ -244,6 +283,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={adapter}
       />,
     );
@@ -253,7 +293,48 @@ describe("MyPageClient", () => {
     expect(await screen.findByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
-    expect(adapter.getCurrentPrincipal).toHaveBeenCalledOnce();
+    expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("refetches identity on activation when the initial payload has no account id", async () => {
+    const adapter = createAdapter({
+      getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
+    });
+    const identityWithoutAccount = {
+      identityIdentifier: "11111111-1111-1111-1111-111111111111",
+      username: "member",
+      email: "member@example.com",
+      language: "ja",
+    };
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue({
+      ...identityWithoutAccount,
+      account: {
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      },
+    });
+
+    render(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identityWithoutAccount}
+        initialPrincipalState={{ status: "missing" }}
+        principalAdapter={adapter}
+      />,
+    );
+
+    const activateButton = screen.getByRole("button", {
+      name: "Wiki collaborator を有効化",
+    });
+    expect(activateButton).toBeEnabled();
+    fireEvent.click(activateButton);
+
+    await waitFor(() =>
+      expect(adapter.createPrincipal).toHaveBeenCalledWith({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      }),
+    );
   });
 
   it("shows the Wiki subheader tab and loads under review draft images", async () => {
@@ -264,6 +345,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -308,7 +390,14 @@ describe("MyPageClient", () => {
       <MyPageClient
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: draftWikiListState,
+          submittedWikis: emptyDraftWikiListState,
+          unapprovedWikis: emptyDraftWikiListState,
+        }}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -317,20 +406,12 @@ describe("MyPageClient", () => {
       "aria-selected",
       "true",
     );
-    await waitFor(() =>
-      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
-        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        onlyMine: true,
-        page: 1,
-        perPage: 12,
-        status: "pending",
-      }),
-    );
+    expect(draftWikiAdapter.listDraftWikis).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
-    expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
+    expect(screen.getByRole("link", { name: "編集中 Wiki" }).getAttribute("style")).toContain(
       'url("https://images.example.test/editing-wiki.webp")',
     );
     expect(screen.getByText("グループ")).toBeInTheDocument();
@@ -345,6 +426,10 @@ describe("MyPageClient", () => {
         perPage: 12,
         status: "under_review",
       }),
+    );
+    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+      "href",
+      "/wiki/ja/gr-review-wiki/edit",
     );
   });
 
@@ -371,6 +456,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiReviewPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -417,6 +503,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiReviewPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -464,6 +551,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -508,6 +596,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -552,6 +641,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiReviewPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -597,6 +687,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiReviewPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -629,6 +720,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -646,6 +738,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -670,6 +763,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -696,6 +790,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -717,6 +812,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -753,6 +849,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: basicPrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
@@ -785,6 +882,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -803,6 +901,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={draftImageAdapter}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -822,6 +921,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "missing" }}
         principalAdapter={adapter}
       />,
     );
@@ -846,6 +946,7 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{ status: "missing" }}
         principalAdapter={adapter}
       />,
     );
@@ -873,6 +974,10 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
+        initialPrincipalState={{
+          status: "error",
+          message: "Wiki principal request failed with status 500.",
+        }}
         principalAdapter={adapter}
       />,
     );
@@ -883,7 +988,7 @@ describe("MyPageClient", () => {
     expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
   });
 
-  it("does not submit principal creation when accountId is unavailable", async () => {
+  it("does not submit principal creation when accountId remains unavailable", async () => {
     const adapter = createAdapter({
       getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
     });
@@ -899,14 +1004,16 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identityWithoutAccount}
+        initialPrincipalState={{ status: "missing" }}
         principalAdapter={adapter}
       />,
     );
 
+    fireEvent.click(await screen.findByRole("button", { name: "Wiki collaborator を有効化" }));
+
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "principal 作成に必要な accountId を取得できません。",
     );
-    expect(screen.getByRole("button", { name: "Wiki collaborator を有効化" })).toBeDisabled();
     expect(adapter.createPrincipal).not.toHaveBeenCalled();
   });
 });

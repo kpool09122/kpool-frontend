@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import {
   getWikiResourceTypeFromSlug,
+  toWikiSectionContentPayload,
   type WikiResourceType,
 } from "@kpool/wiki";
 import {
@@ -13,6 +14,10 @@ import {
   withWikiApiPrefix,
 } from "@kpool/wiki";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+import {
+  getPublicWikiEndpointPath,
+  publicWikiApiResponseSchema,
+} from "@/gateways/wiki/publicWiki";
 
 const draftWikiApiResponseSchema = z
   .union([
@@ -46,6 +51,9 @@ type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWiki
 type SubmitWikiRequestBody = z.infer<typeof submitWikiRequestBodySchema>;
 type ReviewWikiRequestBody = z.infer<typeof reviewWikiRequestBodySchema>;
 type DraftWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiSummary>;
+type PublishedWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.PublishedWikiSummary>;
+type CreateWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.CreateWikiRequestBody>;
+type PublicWikiApiResponse = z.infer<typeof publicWikiApiResponseSchema>;
 export type WikiDraftWiki = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiListItem>;
 export type WikiDraftWikiStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiStatus>;
 export type WikiDraftWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody>;
@@ -58,12 +66,18 @@ type DraftWikiApiClient = {
     resourceType: WikiResourceType,
     slug: string,
   ) => Promise<DraftWikiApiResponse>;
+  fetchPublicWiki: (
+    language: string,
+    resourceType: WikiResourceType,
+    slug: string,
+  ) => Promise<PublicWikiApiResponse>;
+  createWikiDraft: (body: CreateWikiRequestBody) => Promise<DraftWikiSummary>;
   saveDraftWiki: (wikiId: string, body: EditWikiRequestBody) => Promise<DraftWikiSummary>;
   reviewDraftWiki: (
     wikiId: string,
     action: WikiDraftWorkflowAction,
     body: ReviewWikiRequestBody,
-  ) => Promise<DraftWikiSummary>;
+  ) => Promise<DraftWikiSummary | PublishedWikiSummary>;
   submitDraftWiki: (wikiId: string, body: SubmitWikiRequestBody) => Promise<DraftWikiSummary>;
 };
 
@@ -111,6 +125,15 @@ const parseDraftWikiResponseBody = (body: unknown): DraftWikiApiResponse =>
 const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
   parseWithSchemaLog("wiki draft summary response", wikiPrivateApiTypes.schemas.DraftWikiSummary, body);
 
+const parsePublishedWikiSummaryBody = (body: unknown): PublishedWikiSummary =>
+  parseWithSchemaLog("published wiki summary response", wikiPrivateApiTypes.schemas.PublishedWikiSummary, body);
+
+const parseCreateWikiRequestBody = (body: unknown): CreateWikiRequestBody =>
+  parseWithSchemaLog("wiki create request", wikiPrivateApiTypes.schemas.CreateWikiRequestBody, body);
+
+const parsePublicWikiResponseBody = (body: unknown): PublicWikiApiResponse =>
+  parseWithSchemaLog("public wiki detail response", publicWikiApiResponseSchema, body);
+
 export const adaptDraftWikiResponse = (response: DraftWikiApiResponse): WikiDetail =>
   adaptWikiApiResponse(response);
 
@@ -131,6 +154,8 @@ export const getDraftWikiEndpointPath = (
 
 export const getEditWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/edit`;
+
+export const getCreateWikiEndpointPath = (): string => "/wiki/create";
 
 export const getSubmitWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/submit`;
@@ -167,6 +192,54 @@ const copyStringArrayProperty = (
     target[property] = value;
   }
 };
+
+const getPublicWikiAssociationSource = (
+  publicWiki: PublicWikiApiResponse,
+): Record<string, unknown> => {
+  const basic =
+    typeof publicWiki.basic === "object" && publicWiki.basic !== null
+      ? (publicWiki.basic as Record<string, unknown>)
+      : {};
+
+  return {
+    ...basic,
+    ...publicWiki,
+  };
+};
+
+export const createWikiDraftRequestBodyFromPublicWiki = (
+  publicWiki: PublicWikiApiResponse,
+): CreateWikiRequestBody => {
+  const source = getPublicWikiAssociationSource(publicWiki);
+  const publicWikiDetail = adaptWikiApiResponse(publicWiki);
+  const body: Record<string, unknown> = {
+    basic: publicWiki.basic,
+    publishedWikiIdentifier: publicWiki.wikiIdentifier,
+    sections: toWikiSectionContentPayload(publicWikiDetail.sections),
+  };
+
+  copyStringProperty(source, body, "language");
+  copyStringProperty(source, body, "resourceType");
+  copyStringProperty(source, body, "slug");
+  copyStringProperty(source, body, "themeColor");
+  copyStringProperty(source, body, "agencyIdentifier");
+  copyStringArrayProperty(source, body, "groupIdentifiers");
+  copyStringArrayProperty(source, body, "talentIdentifiers");
+
+  if (typeof publicWiki.heroImage?.imageIdentifier === "string") {
+    body.imageIdentifier = publicWiki.heroImage.imageIdentifier;
+  }
+
+  return parseCreateWikiRequestBody(body);
+};
+
+const isNotFoundApiError = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "response" in error &&
+  typeof (error as { response?: unknown }).response === "object" &&
+  (error as { response?: unknown }).response !== null &&
+  (error as { response: { status?: unknown } }).response.status === 404;
 
 export const createSubmitWikiRequestBody = (
   draft: Pick<WikiDetail, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
@@ -251,9 +324,24 @@ export const fetchDraftWiki = async (
     return null;
   }
 
-  const response = await client.fetchDraftWiki(language, resourceType, slug);
+  try {
+    const response = await client.fetchDraftWiki(language, resourceType, slug);
 
-  return adaptDraftWikiResponse(response);
+    return adaptDraftWikiResponse(response);
+  } catch (error) {
+    if (!isNotFoundApiError(error)) {
+      throw error;
+    }
+
+    const publicWiki = await client.fetchPublicWiki(language, resourceType, slug);
+    const createBody = createWikiDraftRequestBodyFromPublicWiki(publicWiki);
+
+    await client.createWikiDraft(createBody);
+
+    const response = await client.fetchDraftWiki(language, resourceType, slug);
+
+    return adaptDraftWikiResponse(response);
+  }
 };
 
 export const saveDraftWiki = async (
@@ -275,15 +363,15 @@ export const reviewDraftWiki = async (
   wikiId: string,
   action: WikiDraftWorkflowAction,
   body: ReviewWikiRequestBody,
-): Promise<DraftWikiSummary> =>
+): Promise<DraftWikiSummary | PublishedWikiSummary> =>
   client.reviewDraftWiki(wikiId, action, body);
 
 export const publishDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
   body: ReviewWikiRequestBody,
-): Promise<DraftWikiSummary> =>
-  client.reviewDraftWiki(wikiId, "publish", body);
+): Promise<PublishedWikiSummary> =>
+  client.reviewDraftWiki(wikiId, "publish", body) as Promise<PublishedWikiSummary>;
 
 export const createDraftWikiApiClient = (
   baseUrl: string = getDefaultApiBaseUrl(),
@@ -313,6 +401,49 @@ export const createDraftWikiApiClient = (
           const responseBody = await readResponseBody(response);
 
           return parseDraftWikiResponseBody(responseBody);
+        },
+        fetchPublicWiki: async (language, resourceType, slug) => {
+          const response = await fetch(
+            `${apiBaseUrl}${getPublicWikiEndpointPath(language, resourceType, slug)}`,
+            {
+              headers: {
+                ...forwardedHeaders,
+                Accept: "application/json",
+              },
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            await throwApiError(response);
+          }
+
+          const responseBody = await readResponseBody(response);
+
+          return parsePublicWikiResponseBody(responseBody);
+        },
+        createWikiDraft: async (body) => {
+          const response = await fetch(
+            `${apiBaseUrl}${getCreateWikiEndpointPath()}`,
+            {
+              method: "POST",
+              headers: {
+                ...forwardedHeaders,
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(body),
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            await throwApiError(response);
+          }
+
+          const responseBody = await readResponseBody(response);
+
+          return parseDraftWikiSummaryBody(responseBody);
         },
         saveDraftWiki: async (wikiId, body) => {
           const response = await fetch(
@@ -358,7 +489,9 @@ export const createDraftWikiApiClient = (
 
           const responseBody = await readResponseBody(response);
 
-          return parseDraftWikiSummaryBody(responseBody);
+          return action === "publish"
+            ? parsePublishedWikiSummaryBody(responseBody)
+            : parseDraftWikiSummaryBody(responseBody);
         },
         submitDraftWiki: async (wikiId, body) => {
           const response = await fetch(
@@ -468,7 +601,7 @@ const reviewWikiDraftRequest = async ({
   fallbackErrorMessage: string;
   wikiId: string;
   requestBody: ReviewWikiRequestBody;
-}): Promise<DraftWikiSummary> => {
+}): Promise<DraftWikiSummary | PublishedWikiSummary> => {
   const response = await fetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}/${action}`,
     {
@@ -488,7 +621,9 @@ const reviewWikiDraftRequest = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return parseDraftWikiSummaryBody(body);
+  return action === "publish"
+    ? parsePublishedWikiSummaryBody(body)
+    : parseDraftWikiSummaryBody(body);
 };
 
 export const approveWikiDraft = async ({
@@ -505,7 +640,7 @@ export const approveWikiDraft = async ({
     fallbackErrorMessage,
     wikiId,
     requestBody,
-  });
+  }) as Promise<DraftWikiSummary>;
 
 export const rejectWikiDraft = async ({
   fallbackErrorMessage,
@@ -521,7 +656,7 @@ export const rejectWikiDraft = async ({
     fallbackErrorMessage,
     wikiId,
     requestBody,
-  });
+  }) as Promise<DraftWikiSummary>;
 
 export const publishWikiDraft = async ({
   fallbackErrorMessage,
@@ -531,17 +666,18 @@ export const publishWikiDraft = async ({
   fallbackErrorMessage: string;
   wikiId: string;
   requestBody: ReviewWikiRequestBody;
-}): Promise<DraftWikiSummary> =>
+}): Promise<PublishedWikiSummary> =>
   reviewWikiDraftRequest({
     action: "publish",
     fallbackErrorMessage,
     wikiId,
     requestBody,
-  });
+  }) as Promise<PublishedWikiSummary>;
 
 export const loadDraftWikiState = async (
   language: string,
   slug: string,
+  forwardedHeaders: HeadersInit = {},
 ): Promise<DraftWikiState> => {
   if (isMockWikiGatewayEnabled()) {
     return slug === "empty"
@@ -555,7 +691,7 @@ export const loadDraftWikiState = async (
         };
   }
 
-  const client = createDraftWikiApiClient();
+  const client = createDraftWikiApiClient(getDefaultApiBaseUrl(), forwardedHeaders);
 
   if (!client) {
     return {

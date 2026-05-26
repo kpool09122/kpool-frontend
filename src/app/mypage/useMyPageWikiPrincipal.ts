@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
+import type { AuthIdentityRefresh } from "@/gateways/auth/authStore";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import {
   getAccountIdentifierFromIdentity,
@@ -20,16 +21,17 @@ export const useMyPageWikiPrincipal = ({
   initialPrincipalState,
   messages,
   onPrincipalReady,
+  refreshIdentity,
 }: {
   adapter: MyPagePrincipalAdapter;
   initialIdentity: IdentitySummary | null;
   initialPrincipalState: WikiPrincipalState;
   messages: MyPagePrincipalMessages;
   onPrincipalReady: () => unknown;
+  refreshIdentity: AuthIdentityRefresh;
 }) => {
   const [principalState, setPrincipalState] =
     useState<WikiPrincipalState>(initialPrincipalState);
-  const accountIdentifier = getAccountIdentifierFromIdentity(initialIdentity);
 
   const loadCurrentPrincipal = useCallback(async () => {
     setPrincipalState({ status: "loading" });
@@ -43,7 +45,13 @@ export const useMyPageWikiPrincipal = ({
   }, [adapter, onPrincipalReady]);
 
   const activateWikiPrincipal = async () => {
-    if (!initialIdentity) {
+    let identity = initialIdentity;
+
+    if (!identity) {
+      identity = await refreshIdentity();
+    }
+
+    if (!identity) {
       setPrincipalState({
         status: "error",
         message: messages.identityUnavailableMessage,
@@ -51,7 +59,15 @@ export const useMyPageWikiPrincipal = ({
       return;
     }
 
-    if (!accountIdentifier) {
+    let resolvedAccountIdentifier = getAccountIdentifierFromIdentity(identity);
+
+    if (!resolvedAccountIdentifier) {
+      const refreshedIdentity = await refreshIdentity();
+      identity = refreshedIdentity ?? identity;
+      resolvedAccountIdentifier = getAccountIdentifierFromIdentity(identity);
+    }
+
+    if (!resolvedAccountIdentifier) {
       setPrincipalState({
         status: "error",
         message: messages.accountUnavailableMessage,
@@ -61,8 +77,8 @@ export const useMyPageWikiPrincipal = ({
 
     setPrincipalState({ status: "loading" });
     const nextState = await adapter.createPrincipal({
-      identityIdentifier: initialIdentity.identityIdentifier,
-      accountIdentifier,
+      identityIdentifier: identity.identityIdentifier,
+      accountIdentifier: resolvedAccountIdentifier,
     });
 
     setPrincipalState(nextState);
@@ -72,18 +88,7 @@ export const useMyPageWikiPrincipal = ({
     }
   };
 
-  useEffect(() => {
-    if (principalState.status === "idle") {
-      const timeoutId = window.setTimeout(() => {
-        void loadCurrentPrincipal();
-      }, 0);
-
-      return () => window.clearTimeout(timeoutId);
-    }
-  }, [loadCurrentPrincipal, principalState.status]);
-
   return {
-    accountIdentifier,
     activateWikiPrincipal,
     loadCurrentPrincipal,
     principalState,

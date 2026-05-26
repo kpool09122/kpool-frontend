@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
+import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../i18n/I18nProvider";
 import { localeLabels, type Locale } from "../i18n/locales";
 
@@ -39,13 +40,17 @@ export function Header({
   const currentLocale = locale;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const isAuthenticated = initialIsAuthenticated;
+  const authStatus = useAuthStore((state) => state.status);
+  const clearIdentity = useAuthStore((state) => state.clearIdentity);
+  const isAuthenticated =
+    authStatus === "loading" ? initialIsAuthenticated : authStatus === "authenticated";
   const t = dictionary.header;
 
   const handleLogout = () => {
     setIsLoggingOut(true);
 
     void Promise.resolve(logoutAdapter()).finally(() => {
+      clearIdentity();
       if (navigate) {
         navigate("/login");
       } else {

@@ -107,6 +107,8 @@ describe("Wiki edit route", () => {
     expect(mocks.getCurrentWikiPrincipalForRequest).toHaveBeenCalledWith({
       cookieHeader: "session=abc",
     });
-    expect(mocks.loadDraftWikiState).toHaveBeenCalledWith("ja", "gr-aurora-echo");
+    expect(mocks.loadDraftWikiState).toHaveBeenCalledWith("ja", "gr-aurora-echo", {
+      Cookie: "session=abc",
+    });
   });
 });

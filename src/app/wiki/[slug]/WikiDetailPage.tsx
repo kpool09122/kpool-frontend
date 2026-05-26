@@ -66,6 +66,7 @@ export function WikiDetailPage({
   const sections = sortWikiSections(data.sections.map(normalizeWikiSectionContents));
   const effectiveThemeColor = themeColor ?? data.themeColor ?? undefined;
   const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor);
+  const editHref = `${buildWikiEditPath(language, slug)}?authGate=1`;
 
   return (
     <main
@@ -87,7 +88,7 @@ export function WikiDetailPage({
 
         <WikiPublicHeroImage
           basic={data.basic}
-          editHref={`${buildWikiEditPath(language, slug)}?authGate=1`}
+          editHref={editHref}
           flipCardId={flipCardId}
           heroImage={data.heroImage}
           profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}
@@ -97,6 +98,7 @@ export function WikiDetailPage({
           <div className="space-y-4">
             {sections.map((section) => (
               <WikiSectionAccordion
+                editHref={editHref}
                 key={section.sectionIdentifier}
                 language={language}
                 section={section}

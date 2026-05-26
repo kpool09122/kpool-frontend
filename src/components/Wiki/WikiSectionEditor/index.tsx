@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   isWikiBlock,
   isWikiSection,
@@ -73,66 +74,98 @@ export function WikiSectionEditor({
 }: WikiSectionEditorProps) {
   const contents = sortWikiSectionContents(section.contents);
   const sectionEditorId: WikiContentEditorId = `section:${section.sectionIdentifier}`;
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <details className="section-accordion rounded-[1.75rem] border border-stroke-subtle shadow-soft" data-testid={`wiki-edit-section-${section.sectionIdentifier}`} open style={cardSurfaceStyle}>
-      <summary className="flex list-none items-center gap-3 p-5 text-left">
-        <span
+    <article
+      className="section-accordion rounded-[1.75rem] border border-stroke-subtle shadow-soft"
+      data-testid={`wiki-edit-section-${section.sectionIdentifier}`}
+      style={cardSurfaceStyle}
+    >
+      <div className="flex items-center gap-3 p-5 text-left">
+        <button
+          aria-expanded={isOpen}
+          aria-label={`Toggle section ${section.title}`}
           className="section-accordion__chevron rounded-full border border-stroke-subtle p-2 text-text-muted transition-transform"
-          style={cardSurfaceMutedStyle}
+          onClick={() => setIsOpen((open) => !open)}
+          style={{
+            ...cardSurfaceMutedStyle,
+            transform: isOpen ? "rotate(180deg)" : undefined,
+          }}
+          type="button"
         >
           <ChevronIcon />
-        </span>
+        </button>
         <span className="min-w-0 flex-1">
           <span className="block text-2xl font-semibold tracking-[-0.03em] text-text-strong">{section.title}</span>
         </span>
-        <button aria-label={`Edit section ${section.title}`} className="rounded-full border border-stroke-subtle p-3 text-text-strong" onClick={(event) => { event.preventDefault(); onEdit(sectionEditorId); }} style={cardSurfaceMutedStyle} type="button"><EditIcon /></button>
-        <button aria-label={`Delete section ${section.title}`} className="rounded-full border border-status-danger/30 p-3 text-status-danger transition hover:bg-status-danger/10" onClick={(event) => { event.preventDefault(); onDeleteContent(section.sectionIdentifier); }} type="button"><TrashIcon /></button>
-      </summary>
-      <div className="space-y-6 border-t border-stroke-subtle px-5 pb-5 pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
-        {editingId === sectionEditorId ? (
-          <WikiSectionForm
-            onCancel={onCancel}
-            onSave={(changes) => onSaveSection(section.sectionIdentifier, changes)}
+        <button
+          aria-label={`Edit section ${section.title}`}
+          className="rounded-full border border-stroke-subtle p-3 text-text-strong"
+          onClick={() => {
+            setIsOpen(true);
+            onEdit(sectionEditorId);
+          }}
+          style={cardSurfaceMutedStyle}
+          type="button"
+        >
+          <EditIcon />
+        </button>
+        <button
+          aria-label={`Delete section ${section.title}`}
+          className="rounded-full border border-status-danger/30 p-3 text-status-danger transition hover:bg-status-danger/10"
+          onClick={() => onDeleteContent(section.sectionIdentifier)}
+          type="button"
+        >
+          <TrashIcon />
+        </button>
+      </div>
+      {isOpen ? (
+        <div className="space-y-6 border-t border-stroke-subtle px-5 pb-5 pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
+          {editingId === sectionEditorId ? (
+            <WikiSectionForm
+              onCancel={onCancel}
+              onSave={(changes) => onSaveSection(section.sectionIdentifier, changes)}
+              section={section}
+            />
+          ) : null}
+
+          {contents.map((content) =>
+            isWikiBlock(content) ? (
+              <WikiBlockEditorItem
+                block={content}
+                isEditing={editingId === `block:${content.blockIdentifier}`}
+                key={content.blockIdentifier}
+                language={language}
+                onCancel={onCancel}
+                onDelete={() => onDeleteContent(content.blockIdentifier)}
+                onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
+                onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
+              />
+            ) : isWikiSection(content) ? (
+              <WikiSectionEditor
+                editingId={editingId}
+                key={content.sectionIdentifier}
+                language={language}
+                onAddBlock={onAddBlock}
+                onAddSection={onAddSection}
+                onCancel={onCancel}
+                onDeleteContent={onDeleteContent}
+                onEdit={onEdit}
+                onSaveBlock={onSaveBlock}
+                onSaveSection={onSaveSection}
+                section={content}
+              />
+            ) : null,
+          )}
+
+          <WikiAddContentControls
+            onAddBlock={onAddBlock}
+            onAddSection={onAddSection}
             section={section}
           />
-        ) : null}
-
-        {contents.map((content) =>
-          isWikiBlock(content) ? (
-            <WikiBlockEditorItem
-              block={content}
-              isEditing={editingId === `block:${content.blockIdentifier}`}
-              key={content.blockIdentifier}
-              language={language}
-              onCancel={onCancel}
-              onDelete={() => onDeleteContent(content.blockIdentifier)}
-              onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
-              onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
-            />
-          ) : isWikiSection(content) ? (
-            <WikiSectionEditor
-              editingId={editingId}
-              key={content.sectionIdentifier}
-              language={language}
-              onAddBlock={onAddBlock}
-              onAddSection={onAddSection}
-              onCancel={onCancel}
-              onDeleteContent={onDeleteContent}
-              onEdit={onEdit}
-              onSaveBlock={onSaveBlock}
-              onSaveSection={onSaveSection}
-              section={content}
-            />
-          ) : null,
-        )}
-
-        <WikiAddContentControls
-          onAddBlock={onAddBlock}
-          onAddSection={onAddSection}
-          section={section}
-        />
-      </div>
-    </details>
+        </div>
+      ) : null}
+    </article>
   );
 }

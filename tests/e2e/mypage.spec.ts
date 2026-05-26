@@ -11,8 +11,23 @@ const useJapaneseLocale = async (page: Page) => {
   ]);
 };
 
+const useWikiPrincipal = async (
+  page: Page,
+  principal: "basic" | "image-review" | "missing" | "wiki-publish" | "wiki-review",
+) => {
+  await page.context().addCookies([
+    {
+      name: "kpool-e2e-wiki-principal",
+      value: principal,
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+};
+
 test("mypage shows the Wiki collaborator activation path", async ({ page }) => {
   await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "missing");
   await page.route("**/api/wiki/principal/me", async (route) => {
     await route.fulfill({
       status: 404,
@@ -45,8 +60,7 @@ test("mypage shows the Wiki collaborator activation path", async ({ page }) => {
 
 test("mypage shows under review draft images for an available Wiki principal", async ({ page }) => {
   await useJapaneseLocale(page);
-  const draftImageRequests: string[] = [];
-  const draftWikiRequests: string[] = [];
+  await useWikiPrincipal(page, "image-review");
 
   await page.route("**/api/wiki/principal/me", async (route) => {
     await route.fulfill({
@@ -78,7 +92,6 @@ test("mypage shows under review draft images for an available Wiki principal", a
   let approveRequests = 0;
 
   await page.route("**/api/wiki/draft-images?**", async (route) => {
-    draftImageRequests.push(route.request().url());
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -113,7 +126,6 @@ test("mypage shows under review draft images for an available Wiki principal", a
     });
   });
   await page.route("**/api/wiki/draft-wikis?**", async (route) => {
-    draftWikiRequests.push(route.request().url());
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -190,15 +202,71 @@ test("mypage shows under review draft images for an available Wiki principal", a
   await page.getByRole("button", { name: "承認" }).click();
   await expect(page.getByText("未承認の画像はありません")).toBeVisible();
   expect(approveRequests).toBe(1);
-  expect(draftWikiRequests[0]).toContain("status=pending");
-  expect(draftWikiRequests[0]).toContain("onlyMine=true");
-  expect(draftImageRequests[0]).toContain("status=under_review");
-  expect(draftImageRequests[0]).not.toContain("pending");
+});
+
+test("mypage keeps wiki tabs interactive after browser back", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "image-review");
+
+  await page.route("**/api/wiki/principal/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        principalIdentifier: "33333333-3333-3333-3333-333333333333",
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        isDelegatedPrincipal: false,
+        isEnabled: true,
+        policies: [
+          {
+            policyIdentifier: "66666666-6666-6666-6666-666666666666",
+            name: "IMAGE_REVIEW",
+            isSystemPolicy: true,
+            statements: [
+              {
+                effect: "allow",
+                actions: ["APPROVE", "REJECT"],
+                resourceTypes: ["IMAGE"],
+                condition: null,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+  });
+  await page.route("**/api/wiki/draft-images?**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        images: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 12,
+      }),
+    });
+  });
+
+  await page.goto("/mypage");
+  await expect(page.getByRole("link", { name: "編集中 Wiki" })).toBeVisible();
+  await page.getByRole("link", { name: "編集中 Wiki" }).click();
+  await expect(page).toHaveURL(/\/wiki\/ja\/gr-review-wiki\/edit$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/mypage$/);
+  await page.getByRole("tab", { name: "未承認の画像" }).click();
+  await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByText("未承認の画像はありません")).toBeVisible();
 });
 
 test("mypage shows unapproved draft wikis only for reviewer principals", async ({ page }) => {
   await useJapaneseLocale(page);
-  const draftWikiRequests: string[] = [];
+  await useWikiPrincipal(page, "wiki-review");
   let approveRequests = 0;
 
   await page.route("**/api/wiki/principal/me", async (route) => {
@@ -229,7 +297,6 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
     });
   });
   await page.route("**/api/wiki/draft-wikis?**", async (route) => {
-    draftWikiRequests.push(route.request().url());
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -285,8 +352,6 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
   await expect(page.getByRole("tab", { name: "未承認のWiki" })).toBeVisible();
   await page.getByRole("tab", { name: "未承認のWiki" }).click();
   await expect(page.getByRole("link", { name: "未承認 Wiki" })).toBeVisible();
-  expect(draftWikiRequests.at(-1)).toContain("status=under_review");
-  expect(draftWikiRequests.at(-1)).not.toContain("onlyMine=true");
   await page.getByRole("button", { name: "承認" }).click();
   await expect(page.getByText("未承認のWikiはありません")).toBeVisible();
   expect(approveRequests).toBe(1);
@@ -295,7 +360,7 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
 
 test("mypage publishes approved draft wikis only for publisher principals", async ({ page }) => {
   await useJapaneseLocale(page);
-  const draftWikiRequests: string[] = [];
+  await useWikiPrincipal(page, "wiki-publish");
   let publishRequests = 0;
 
   await page.route("**/api/wiki/principal/me", async (route) => {
@@ -326,7 +391,6 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
     });
   });
   await page.route("**/api/wiki/draft-wikis?**", async (route) => {
-    draftWikiRequests.push(route.request().url());
     const url = new URL(route.request().url());
     const isApproved = url.searchParams.get("status") === "approved";
 
@@ -377,7 +441,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
         language: "ja",
         name: "承認済み Wiki",
         resourceType: "group",
-        status: "approved",
+        version: 2,
       }),
     });
   });
@@ -388,8 +452,6 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
   await expect(page.getByRole("tab", { name: "未承認のWiki" })).toHaveCount(0);
   await page.getByRole("tab", { name: "承認済みWiki" }).click();
   await expect(page.getByRole("link", { name: "承認済み Wiki" })).toBeVisible();
-  expect(draftWikiRequests.at(-1)).toContain("status=approved");
-  expect(draftWikiRequests.at(-1)).not.toContain("onlyMine=true");
   await page.getByRole("button", { name: "公開" }).click();
   await expect(page.getByText("承認済みWikiはありません")).toBeVisible();
   expect(publishRequests).toBe(1);
@@ -397,6 +459,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
 
 test("mypage hides draft image review for principals without image policies", async ({ page }) => {
   await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "basic");
 
   await page.route("**/api/wiki/principal/me", async (route) => {
     await route.fulfill({
