@@ -40,6 +40,9 @@ export const getWikiPrincipalApiBaseUrl = (): string =>
     ? withWikiApiPrefix(process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL)
     : "";
 
+const isMockWikiGatewayEnabled = (): boolean =>
+  process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
+
 export const getAccountIdentifierFromIdentity = (
   identity: IdentitySummary | null,
 ): string | null => {
@@ -47,21 +50,63 @@ export const getAccountIdentifierFromIdentity = (
     return null;
   }
 
-  const accountId = (identity as IdentitySummary & {
-    accountId?: unknown;
-  }).accountId;
-  const accountIdentifier = (identity as IdentitySummary & {
-    accountIdentifier?: unknown;
-  }).accountIdentifier;
+  const identityRecord = identity as Record<string, unknown>;
+  const accountRecord = identityRecord.account;
+  const accounts = identityRecord.accounts;
+  const directAccountIdentifier = getAccountIdentifierFromRecord(identityRecord, {
+    includeGenericId: false,
+  });
 
-  if (typeof accountId === "string" && accountId.length > 0) {
-    return accountId;
+  if (directAccountIdentifier) {
+    return directAccountIdentifier;
   }
 
-  return typeof accountIdentifier === "string" && accountIdentifier.length > 0
-    ? accountIdentifier
-    : null;
+  if (isRecord(accountRecord)) {
+    const nestedAccountIdentifier = getAccountIdentifierFromRecord(accountRecord, {
+      includeGenericId: true,
+    });
+
+    if (nestedAccountIdentifier) {
+      return nestedAccountIdentifier;
+    }
+  }
+
+  if (Array.isArray(accounts)) {
+    const account = accounts.find(isRecord);
+
+    return account
+      ? getAccountIdentifierFromRecord(account, { includeGenericId: true })
+      : null;
+  }
+
+  return null;
 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getStringValue = (
+  record: Record<string, unknown>,
+  keys: string[],
+): string | null => {
+  const value = keys
+    .map((key) => record[key])
+    .find((candidate) => typeof candidate === "string" && candidate.length > 0);
+
+  return typeof value === "string" ? value : null;
+};
+
+const getAccountIdentifierFromRecord = (
+  record: Record<string, unknown>,
+  { includeGenericId }: { includeGenericId: boolean },
+): string | null =>
+  getStringValue(record, [
+    "accountId",
+    "accountIdentifier",
+    "account_id",
+    "account_identifier",
+    ...(includeGenericId ? ["id"] : []),
+  ]);
 
 const normalizePolicyValue = (value: string): string => value.trim().toUpperCase();
 
@@ -185,6 +230,12 @@ export const getCurrentWikiPrincipalForRequest = async ({
   cookieHeader?: string;
   fetchAdapter?: FetchAdapter;
 } = {}): Promise<Extract<WikiPrincipalState, { status: "available" | "missing" | "error" }>> => {
+  const mockPrincipalState = getMockWikiPrincipalState(cookieHeader);
+
+  if (mockPrincipalState) {
+    return mockPrincipalState;
+  }
+
   if (!baseUrl) {
     return {
       status: "error",
@@ -276,3 +327,101 @@ export const createWikiCurrentPrincipalUrl = (baseUrl: string): string =>
 
 export const createWikiPrincipalCreateUrl = (baseUrl: string): string =>
   `${trimTrailingSlashes(baseUrl)}/principal/create`;
+
+const getCookieValue = (cookieHeader: string | undefined, name: string): string | null => {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookie = cookieHeader
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith(`${name}=`));
+
+  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
+};
+
+const mockPolicyIdentifiers: Record<string, string> = {
+  BASIC_EDITING: "77777777-7777-7777-7777-777777777777",
+  GROUP_MANAGEMENT: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  GROUP_PUBLISH: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+  IMAGE_REVIEW: "66666666-6666-6666-6666-666666666666",
+};
+
+const createMockPolicy = (
+  name: string,
+  actions: string[],
+  resourceTypes: string[],
+): WikiPrincipalSummary["policies"][number] => ({
+  policyIdentifier: mockPolicyIdentifiers[name] ?? "99999999-9999-9999-9999-999999999999",
+  name,
+  isSystemPolicy: true,
+  statements: [{
+    effect: "allow",
+    actions,
+    resourceTypes,
+    condition: null,
+  }],
+});
+
+const createMockPrincipal = (
+  policies: WikiPrincipalSummary["policies"],
+): WikiPrincipalSummary => ({
+  principalIdentifier: "33333333-3333-3333-3333-333333333333",
+  identityIdentifier: "11111111-1111-1111-1111-111111111111",
+  isDelegatedPrincipal: false,
+  isEnabled: true,
+  policies,
+});
+
+const getMockWikiPrincipalState = (
+  cookieHeader: string | undefined,
+): Extract<WikiPrincipalState, { status: "available" | "missing" }> | null => {
+  if (!isMockWikiGatewayEnabled()) {
+    return null;
+  }
+
+  const principalMode = getCookieValue(cookieHeader, "kpool-e2e-wiki-principal");
+
+  if (principalMode === "missing") {
+    return { status: "missing" };
+  }
+
+  if (principalMode === "basic") {
+    return {
+      status: "available",
+      principal: createMockPrincipal([
+        createMockPolicy("BASIC_EDITING", ["CREATE", "EDIT", "SUBMIT"], ["WIKI"]),
+      ]),
+    };
+  }
+
+  if (principalMode === "wiki-review") {
+    return {
+      status: "available",
+      principal: createMockPrincipal([
+        createMockPolicy("GROUP_MANAGEMENT", ["APPROVE", "REJECT"], ["GROUP"]),
+      ]),
+    };
+  }
+
+  if (principalMode === "wiki-publish") {
+    return {
+      status: "available",
+      principal: createMockPrincipal([
+        createMockPolicy("GROUP_PUBLISH", ["PUBLISH"], ["GROUP"]),
+      ]),
+    };
+  }
+
+  if (principalMode === "image-review") {
+    return {
+      status: "available",
+      principal: createMockPrincipal([
+        createMockPolicy("IMAGE_REVIEW", ["APPROVE", "REJECT"], ["IMAGE"]),
+      ]),
+    };
+  }
+
+  return null;
+};

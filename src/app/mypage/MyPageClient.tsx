@@ -3,8 +3,10 @@
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
+import Link from "next/link";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
+import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
 import {
@@ -108,6 +110,9 @@ export function MyPageClient({
   initialPrincipalState = { status: "idle" },
   principalAdapter = defaultPrincipalAdapter,
 }: MyPageClientProps) {
+  const authIdentity = useAuthStore((state) => state.identity);
+  const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
+  const currentIdentity = authIdentity ?? initialIdentity;
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("editingWikis");
@@ -159,16 +164,16 @@ export function MyPageClient({
     identityUnavailableMessage: t.identityUnavailableMessage,
   }), [t.accountUnavailableMessage, t.identityUnavailableMessage]);
   const {
-    accountIdentifier,
     activateWikiPrincipal,
     loadCurrentPrincipal,
     principalState,
   } = useMyPageWikiPrincipal({
     adapter: principalAdapter,
-    initialIdentity,
+    initialIdentity: currentIdentity,
     initialPrincipalState,
     messages: principalMessages,
     onPrincipalReady: loadFirstDraftWikiPage,
+    refreshIdentity: () => refreshIdentity({ preserveOnNull: true }),
   });
 
   return (
@@ -219,7 +224,6 @@ export function MyPageClient({
           </header>
 
           <WikiPrincipalPanel
-            accountIdentifier={accountIdentifier}
             draftImages={draftImages}
             draftWikis={draftWikis}
             locale={locale}
@@ -227,7 +231,7 @@ export function MyPageClient({
             draftWikiReviewError={draftWikiReviewError}
             reviewingImageIdentifier={reviewingImageIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
-            isAuthenticated={initialIdentity !== null}
+            isAuthenticated={currentIdentity !== null}
             isPending={isActionPending(principalState)}
             selectedWikiTab={selectedWikiTab}
             state={principalState}
@@ -249,7 +253,6 @@ export function MyPageClient({
 }
 
 function WikiPrincipalPanel({
-  accountIdentifier,
   draftImages,
   draftWikis,
   locale,
@@ -270,7 +273,6 @@ function WikiPrincipalPanel({
   onReviewDraftWiki,
   onSelectWikiTab,
 }: {
-  accountIdentifier: string | null;
   draftImages: DraftImageListState;
   draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
   locale: Locale;
@@ -291,7 +293,7 @@ function WikiPrincipalPanel({
   onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction | "publish") => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
-  const canActivate = isAuthenticated && accountIdentifier !== null && !isPending;
+  const canActivate = isAuthenticated && !isPending;
 
   if (state.status === "loading") {
     return (
@@ -612,11 +614,6 @@ function DraftWikiCard({
           label={t.draftWikiEditedAtLabel}
           value={formatDraftWikiDate(wiki.editedAt)}
         />
-        <DraftWikiMeta
-          isOnImage={hasImage}
-          label={t.draftWikiUpdatedAtLabel}
-          value={formatDraftWikiDate(wiki.updatedAt)}
-        />
       </dl>
       {showReviewActions ? (
         <div className="mt-4 flex flex-wrap gap-2">
@@ -659,14 +656,14 @@ function DraftWikiCard({
 
   if (enableCardLink) {
     return (
-      <a
+      <Link
         aria-label={wiki.name}
         className={`${cardClassName} block transition hover:-translate-y-0.5 hover:border-brand-primary/40`}
         href={href}
         style={cardStyle}
       >
         {content}
-      </a>
+      </Link>
     );
   }
 

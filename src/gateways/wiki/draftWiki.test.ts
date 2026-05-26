@@ -518,7 +518,6 @@ describe("draftWiki", () => {
               imageUrl: "https://images.example.test/editing-wiki.webp",
               imageAltText: "編集中 Wiki profile",
               editedAt: "2026-05-10T00:00:00Z",
-              updatedAt: "2026-05-11T00:00:00Z",
               approvedAt: null,
               translatedAt: null,
               mergedAt: null,
