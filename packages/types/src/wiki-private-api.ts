@@ -69,7 +69,6 @@ const DraftWikiListItem = z
     imageUrl: z.string().nullable(),
     imageAltText: z.string().nullable(),
     editedAt: z.string().nullable(),
-    updatedAt: z.string().nullable(),
     approvedAt: z.string().nullable(),
     translatedAt: z.string().nullable(),
     mergedAt: z.string().nullable(),
