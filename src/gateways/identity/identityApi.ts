@@ -55,6 +55,10 @@ export const getIdentityRouteErrorMessage = ({
   status,
   data,
 }: ProblemResponse): string => {
+  if (status && status >= 500) {
+    return "Identity API is temporarily unavailable.";
+  }
+
   if (hasMessage(data)) {
     return data.message;
   }

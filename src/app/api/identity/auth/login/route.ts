@@ -8,46 +8,20 @@ import {
   parseIdentityLoginRequest,
 } from "@/gateways/identity/identityApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
-
-const readResponseBody = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
-const getSetCookieHeaders = (headers: Headers): string[] => {
-  const headersWithSetCookie = headers as Headers & {
-    getSetCookie?: () => string[];
-  };
-  const setCookies = headersWithSetCookie.getSetCookie?.();
-
-  if (setCookies && setCookies.length > 0) {
-    return setCookies;
-  }
-
-  const setCookie = headers.get("set-cookie");
-
-  return setCookie ? [setCookie] : [];
-};
-
-const withSetCookie = (response: NextResponse, apiResponse: Response): NextResponse => {
-  getSetCookieHeaders(apiResponse.headers).forEach((setCookie) => {
-    response.headers.append("set-cookie", setCookie);
-  });
-
-  return response;
-};
+import {
+  getCookieForwardHeaders,
+  identityApiNotConfiguredResponse,
+  identityApiSchemaErrorResponse,
+  identityApiUnavailableResponse,
+  readIdentityRouteResponseBody,
+  withIdentitySetCookie,
+} from "../routeSupport";
 
 export async function POST(request: NextRequest) {
   const baseUrl = getIdentityApiBaseUrl();
 
   if (!baseUrl) {
-    return NextResponse.json(
-      { message: "Identity API is not configured." },
-      { status: 500 },
-    );
+    return identityApiNotConfiguredResponse();
   }
 
   try {
@@ -57,17 +31,15 @@ export async function POST(request: NextRequest) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        ...(request.headers.get("cookie")
-          ? { Cookie: request.headers.get("cookie") ?? "" }
-          : {}),
+        ...getCookieForwardHeaders(request),
       },
       body: JSON.stringify(credentials),
       cache: "no-store",
     });
-    const body = await readResponseBody(apiResponse);
+    const body = await readIdentityRouteResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
-      return withSetCookie(
+      return withIdentitySetCookie(
         NextResponse.json(
           { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
           { status: apiResponse.status },
@@ -76,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return withSetCookie(
+    return withIdentitySetCookie(
       NextResponse.json(
         parseWithSchemaLog("identity login response", identityApiTypes.schemas.IdentitySummary, body),
         { status: 200 },
@@ -85,15 +57,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: "Identity API response did not match the expected schema." },
-        { status: 502 },
-      );
+      return identityApiSchemaErrorResponse();
     }
 
-    return NextResponse.json(
-      { message: getIdentityRouteErrorMessage({ data: error }) },
-      { status: 502 },
-    );
+    return identityApiUnavailableResponse();
   }
 }

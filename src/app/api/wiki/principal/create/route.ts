@@ -6,6 +6,8 @@ import {
   createWikiPrincipalCreateUrl,
   getWikiPrincipalApiBaseUrl,
   getWikiPrincipalErrorMessage,
+  getWikiPrincipalResponseErrorMessage,
+  wikiPrincipalUnavailableMessage,
   wikiPrincipalCreateRequestSchema,
   wikiPrincipalSummarySchema,
 } from "@/gateways/wiki/wikiPrincipal";
@@ -38,8 +40,9 @@ export async function POST(request: NextRequest) {
     if (!apiResponse.ok) {
       return NextResponse.json(
         {
-          message: getWikiPrincipalErrorMessage({
-            response: { status: apiResponse.status, data: responseBody },
+          message: getWikiPrincipalResponseErrorMessage({
+            status: apiResponse.status,
+            data: responseBody,
           }),
         },
         { status: apiResponse.status },
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: getWikiPrincipalErrorMessage(error) },
+      { message: wikiPrincipalUnavailableMessage },
       { status: 502 },
     );
   }

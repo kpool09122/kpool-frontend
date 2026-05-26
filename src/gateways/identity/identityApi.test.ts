@@ -30,7 +30,13 @@ describe("identity API helpers", () => {
       }),
     ).toBe("Invalid credentials.");
     expect(getIdentityRouteErrorMessage({ status: 500, data: {} })).toBe(
-      "Identity API request failed with status 500.",
+      "Identity API is temporarily unavailable.",
     );
+    expect(
+      getIdentityRouteErrorMessage({
+        status: 500,
+        data: { message: "database failed at internal.identity.example.test" },
+      }),
+    ).toBe("Identity API is temporarily unavailable.");
   });
 });

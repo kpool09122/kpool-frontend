@@ -12,6 +12,7 @@ import {
   withWikiApiPrefix,
 } from "@kpool/wiki";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+import { isMockWikiGatewayEnabled } from "./mockWikiGateway";
 
 const publicWikiHeroImageSchema = z
   .object({
@@ -105,8 +106,6 @@ export type PublicWikiApiClient = {
 };
 
 const defaultApiBaseUrl = process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
-const isMockWikiGatewayEnabled = (): boolean =>
-  process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {

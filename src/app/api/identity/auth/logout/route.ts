@@ -4,46 +4,19 @@ import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
 } from "@/gateways/identity/identityApi";
-
-const readResponseBody = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
-const getSetCookieHeaders = (headers: Headers): string[] => {
-  const headersWithSetCookie = headers as Headers & {
-    getSetCookie?: () => string[];
-  };
-  const setCookies = headersWithSetCookie.getSetCookie?.();
-
-  if (setCookies && setCookies.length > 0) {
-    return setCookies;
-  }
-
-  const setCookie = headers.get("set-cookie");
-
-  return setCookie ? [setCookie] : [];
-};
-
-const withSetCookie = (response: NextResponse, apiResponse: Response): NextResponse => {
-  getSetCookieHeaders(apiResponse.headers).forEach((setCookie) => {
-    response.headers.append("set-cookie", setCookie);
-  });
-
-  return response;
-};
+import {
+  getCookieForwardHeaders,
+  identityApiNotConfiguredResponse,
+  identityApiUnavailableResponse,
+  readIdentityRouteResponseBody,
+  withIdentitySetCookie,
+} from "../routeSupport";
 
 export async function POST(request: NextRequest) {
   const baseUrl = getIdentityApiBaseUrl();
 
   if (!baseUrl) {
-    return NextResponse.json(
-      { message: "Identity API is not configured." },
-      { status: 500 },
-    );
+    return identityApiNotConfiguredResponse();
   }
 
   try {
@@ -51,16 +24,14 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         Accept: "application/json",
-        ...(request.headers.get("cookie")
-          ? { Cookie: request.headers.get("cookie") ?? "" }
-          : {}),
+        ...getCookieForwardHeaders(request),
       },
       cache: "no-store",
     });
-    const body = await readResponseBody(apiResponse);
+    const body = await readIdentityRouteResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
-      return withSetCookie(
+      return withIdentitySetCookie(
         NextResponse.json(
           { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
           { status: apiResponse.status },
@@ -69,11 +40,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return withSetCookie(NextResponse.json({}, { status: 200 }), apiResponse);
-  } catch (error) {
-    return NextResponse.json(
-      { message: getIdentityRouteErrorMessage({ data: error }) },
-      { status: 502 },
-    );
+    return withIdentitySetCookie(NextResponse.json({}, { status: 200 }), apiResponse);
+  } catch {
+    return identityApiUnavailableResponse();
   }
 }

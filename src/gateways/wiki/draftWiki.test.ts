@@ -19,6 +19,7 @@ import {
   getReviewWikiEndpointPath,
   getSubmitWikiEndpointPath,
   loadDraftWikiState,
+  loadInitialDraftWikisForRequest,
   publishDraftWiki,
   publishWikiDraft,
   saveDraftWiki,
@@ -30,6 +31,7 @@ import {
 describe("draftWiki", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it("maps slug prefixes to the matching draft endpoint alias", () => {
@@ -496,6 +498,29 @@ describe("draftWiki", () => {
     ).toBe(
       "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=24&page=2&onlyMine=true&resourceType=group&translationSetIdentifier=translation-set-1",
     );
+  });
+
+  it("loads initial mypage draft wikis from the shared mock gateway contract", async () => {
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+
+    await expect(loadInitialDraftWikisForRequest("session=abc")).resolves.toMatchObject({
+      editingWikis: {
+        pageInfo: {
+          current_page: 1,
+          last_page: 1,
+          total: 1,
+        },
+        wikis: [
+          {
+            name: "編集中 Wiki",
+            slug: "gr-review-wiki",
+            status: "pending",
+          },
+        ],
+      },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("fetches draft wiki lists through the browser API route", async () => {
