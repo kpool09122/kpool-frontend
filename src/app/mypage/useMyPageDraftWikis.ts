@@ -9,24 +9,28 @@ import { useCallback, useState } from "react";
 
 import {
   createReviewWikiRequestBody,
+  createTranslateWikiRequestBody,
   defaultWikiDraftPerPage,
   type WikiDraftWiki,
   type WikiDraftWikiListResponse,
-  type WikiDraftReviewAction,
   type WikiDraftWikiStatus,
+  type WikiDraftWorkflowAction,
+  type WikiVersionInconsistentWiki,
+  type WikiVersionInconsistentWikiListResponse,
 } from "@/gateways/wiki/draftWiki";
 import type { MyPageDraftWikiAdapter } from "@/gateways/mypage/myPageAdapters";
 import { myPageQueryKeys } from "./queryKeys";
 
 export type MyPageDraftWikiTab = "editingWikis" | "submittedWikis" | "unapprovedWikis";
-export type MyPageDraftWikiActionTab = MyPageDraftWikiTab | "approvedWikis";
+export type MyPageDraftWikiActionTab = MyPageDraftWikiTab | "approvedWikis" | "untranslatedWikis";
+export type MyPageWikiListItem = WikiDraftWiki | WikiVersionInconsistentWiki;
 
 export type DraftWikiListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   loadError: string | null;
   pageInfo: Pick<WikiDraftWikiListResponse, "current_page" | "last_page" | "total"> | null;
-  wikis: WikiDraftWiki[];
+  wikis: MyPageWikiListItem[];
 };
 
 type DraftWikiListConfig = {
@@ -39,6 +43,7 @@ type MyPageDraftWikiMessages = {
   draftWikiListLoadFailed: string;
   draftWikiPublishFailed: string;
   draftWikiRejectFailed: string;
+  draftWikiTranslateFailed: string;
 };
 
 export const initialDraftWikiListState: DraftWikiListState = {
@@ -64,7 +69,12 @@ export const draftWikiListConfigByTab = {
   approvedWikis: {
     status: "approved",
   },
-} as const satisfies Record<MyPageDraftWikiActionTab, DraftWikiListConfig>;
+} as const satisfies Record<Exclude<MyPageDraftWikiActionTab, "untranslatedWikis">, DraftWikiListConfig>;
+
+const isDraftWikiListTab = (
+  tab: MyPageDraftWikiActionTab,
+): tab is Exclude<MyPageDraftWikiActionTab, "untranslatedWikis"> =>
+  tab !== "untranslatedWikis";
 
 export const useMyPageDraftWikis = ({
   adapter,
@@ -139,13 +149,28 @@ export const useMyPageDraftWikis = ({
         tab: "unapprovedWikis",
       }),
     }),
+    untranslatedWikis: useQuery({
+      enabled: false,
+      initialData: initialDraftWikis.untranslatedWikis,
+      queryFn: async () => toDraftWikiListState(await adapter.listUntranslatedWikis({
+        fallbackErrorMessage: messages.draftWikiListLoadFailed,
+        order: "desc",
+        page: 1,
+        perPage: defaultWikiDraftPerPage,
+        sort: "updatedAt",
+      })),
+      queryKey: myPageQueryKeys.draftWikis.list({
+        identityIdentifier,
+        tab: "untranslatedWikis",
+      }),
+    }),
   };
   const [reviewingWikiIdentifier, setReviewingWikiIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   const loadDraftWikisPage = useCallback((tab: MyPageDraftWikiActionTab, page: number) => {
     const listQueryKey = myPageQueryKeys.draftWikis.list({
-      ...draftWikiListConfigByTab[tab],
+      ...(isDraftWikiListTab(tab) ? draftWikiListConfigByTab[tab] : {}),
       identityIdentifier,
       tab,
     });
@@ -157,19 +182,28 @@ export const useMyPageDraftWikis = ({
         loadError: null,
     }));
 
-    void queryClient.fetchQuery({
+    void queryClient.fetchQuery<WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse>({
       queryKey: myPageQueryKeys.draftWikis.page({
-        ...draftWikiListConfigByTab[tab],
+        ...(isDraftWikiListTab(tab) ? draftWikiListConfigByTab[tab] : {}),
         identityIdentifier,
         page,
         tab,
       }),
-      queryFn: () => adapter.listDraftWikis({
-        ...draftWikiListConfigByTab[tab],
-        fallbackErrorMessage: messages.draftWikiListLoadFailed,
-        page,
-        perPage: defaultWikiDraftPerPage,
-      }),
+      queryFn: () =>
+        isDraftWikiListTab(tab)
+          ? adapter.listDraftWikis({
+              ...draftWikiListConfigByTab[tab],
+              fallbackErrorMessage: messages.draftWikiListLoadFailed,
+              page,
+              perPage: defaultWikiDraftPerPage,
+            })
+          : adapter.listUntranslatedWikis({
+              fallbackErrorMessage: messages.draftWikiListLoadFailed,
+              order: "desc",
+              page,
+              perPage: defaultWikiDraftPerPage,
+              sort: "updatedAt",
+            }),
     }).then((wikiPage) => {
       queryClient.setQueryData<DraftWikiListState>(listQueryKey, (state = initialDraftWikiListState) => ({
         ...state,
@@ -195,7 +229,7 @@ export const useMyPageDraftWikis = ({
 
   const removeWikiFromTab = useCallback((tab: MyPageDraftWikiActionTab, wikiIdentifier: string) => {
     const listQueryKey = myPageQueryKeys.draftWikis.list({
-      ...draftWikiListConfigByTab[tab],
+      ...(isDraftWikiListTab(tab) ? draftWikiListConfigByTab[tab] : {}),
       identityIdentifier,
       tab,
     });
@@ -217,21 +251,31 @@ export const useMyPageDraftWikis = ({
   const reviewMutation = useMutation<
     unknown,
     Error,
-    { action: WikiDraftReviewAction | "publish"; wiki: WikiDraftWiki }
+    { action: WikiDraftWorkflowAction; wiki: MyPageWikiListItem }
   >({
     mutationFn: ({
       action,
       wiki,
     }: {
-      action: WikiDraftReviewAction | "publish";
-      wiki: WikiDraftWiki;
+      action: WikiDraftWorkflowAction;
+      wiki: MyPageWikiListItem;
     }) => {
       const fallbackErrorMessage =
         action === "approve"
           ? messages.draftWikiApproveFailed
           : action === "publish"
             ? messages.draftWikiPublishFailed
-            : messages.draftWikiRejectFailed;
+            : action === "translate"
+              ? messages.draftWikiTranslateFailed
+              : messages.draftWikiRejectFailed;
+      if (action === "translate") {
+        return adapter.translateDraftWiki({
+          fallbackErrorMessage,
+          requestBody: createTranslateWikiRequestBody(wiki),
+          wikiId: wiki.wikiIdentifier,
+        });
+      }
+
       const requestBody = createReviewWikiRequestBody(wiki);
 
       return action === "approve"
@@ -257,6 +301,11 @@ export const useMyPageDraftWikis = ({
       setReviewError(null);
     },
     onSuccess: (_data, { action, wiki }) => {
+      if (action === "translate") {
+        loadDraftWikisPage("untranslatedWikis", 1);
+        return;
+      }
+
       removeWikiFromTab(
         action === "publish" ? "approvedWikis" : "unapprovedWikis",
         wiki.wikiIdentifier,
@@ -270,7 +319,9 @@ export const useMyPageDraftWikis = ({
             ? messages.draftWikiApproveFailed
             : action === "publish"
               ? messages.draftWikiPublishFailed
-              : messages.draftWikiRejectFailed,
+              : action === "translate"
+                ? messages.draftWikiTranslateFailed
+                : messages.draftWikiRejectFailed,
       );
     },
     onSettled: () => {
@@ -283,11 +334,12 @@ export const useMyPageDraftWikis = ({
     editingWikis: wikiQueries.editingWikis.data ?? initialDraftWikis.editingWikis,
     submittedWikis: wikiQueries.submittedWikis.data ?? initialDraftWikis.submittedWikis,
     unapprovedWikis: wikiQueries.unapprovedWikis.data ?? initialDraftWikis.unapprovedWikis,
+    untranslatedWikis: wikiQueries.untranslatedWikis.data ?? initialDraftWikis.untranslatedWikis,
   };
 
   const reviewDraftWiki = (
-    wiki: WikiDraftWiki,
-    action: WikiDraftReviewAction | "publish",
+    wiki: MyPageWikiListItem,
+    action: WikiDraftWorkflowAction,
   ) => {
     reviewMutation.mutate({ wiki, action });
   };
@@ -301,7 +353,9 @@ export const useMyPageDraftWikis = ({
   };
 };
 
-const toDraftWikiListState = (wikiPage: WikiDraftWikiListResponse): DraftWikiListState => ({
+const toDraftWikiListState = (
+  wikiPage: WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse,
+): DraftWikiListState => ({
   isInitialLoading: false,
   isLoadingMore: false,
   loadError: null,

@@ -49,32 +49,42 @@ const reviewWikiRequestBodySchema = wikiPrivateApiTypes.schemas.WikiWorkflowRequ
     resourceType: z.string(),
   }),
 );
+const translateWikiRequestBodySchema = reviewWikiRequestBodySchema.and(
+  z.object({
+    language: z.string(),
+  }),
+);
 
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWikiDraftRequestBody>;
 type SubmitWikiRequestBody = z.infer<typeof submitWikiRequestBodySchema>;
 type ReviewWikiRequestBody = z.infer<typeof reviewWikiRequestBodySchema>;
+type TranslateWikiRequestBody = z.infer<typeof translateWikiRequestBodySchema>;
 type DraftWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiSummary>;
 type PublishedWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.PublishedWikiSummary>;
+type TranslateWikiResponseBody = z.infer<typeof wikiPrivateApiTypes.schemas.TranslateWikiResponseBody>;
 type CreateWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.CreateWikiRequestBody>;
 type PublicWikiApiResponse = z.infer<typeof publicWikiApiResponseSchema>;
 export type WikiDraftWiki = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiListItem>;
 export type WikiDraftWikiStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiStatus>;
 export type WikiDraftWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody>;
+export type WikiVersionInconsistentWiki = z.infer<typeof wikiPrivateApiTypes.schemas.WikiListItem>;
+export type WikiVersionInconsistentWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListWikisResponseBody>;
 export type WikiDraftReviewAction = "approve" | "reject";
-export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish";
+export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish" | "translate";
 type InitialDraftWikiListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   loadError: null;
   pageInfo: { current_page: number; last_page: number; total: number } | null;
-  wikis: WikiDraftWiki[];
+  wikis: Array<WikiDraftWiki | WikiVersionInconsistentWiki>;
 };
 export type InitialDraftWikis = {
   approvedWikis: InitialDraftWikiListState;
   editingWikis: InitialDraftWikiListState;
   submittedWikis: InitialDraftWikiListState;
   unapprovedWikis: InitialDraftWikiListState;
+  untranslatedWikis: InitialDraftWikiListState;
 };
 type DraftWikiApiClient = {
   baseUrl: string;
@@ -93,13 +103,14 @@ type DraftWikiApiClient = {
   reviewDraftWiki: (
     wikiId: string,
     action: WikiDraftWorkflowAction,
-    body: ReviewWikiRequestBody,
-  ) => Promise<DraftWikiSummary | PublishedWikiSummary>;
+    body: ReviewWikiRequestBody | TranslateWikiRequestBody,
+  ) => Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody>;
   submitDraftWiki: (wikiId: string, body: SubmitWikiRequestBody) => Promise<DraftWikiSummary>;
 };
 
 export const defaultWikiDraftPerPage = 12;
 export const wikiDraftWikiListResponseSchema = wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody;
+export const wikiVersionInconsistentWikiListResponseSchema = wikiPrivateApiTypes.schemas.ListWikisResponseBody;
 export const wikiDraftReviewCsrfHeaderName = "X-KPool-Wiki-Review-Request";
 export const wikiDraftReviewCsrfHeaderValue = "1";
 
@@ -116,6 +127,7 @@ export const createInitialDraftWikis = (): InitialDraftWikis => ({
   editingWikis: createEmptyDraftWikiListState(),
   submittedWikis: createEmptyDraftWikiListState(),
   unapprovedWikis: createEmptyDraftWikiListState(),
+  untranslatedWikis: createEmptyDraftWikiListState(),
 });
 
 type DraftWikiState =
@@ -158,6 +170,9 @@ const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
 const parsePublishedWikiSummaryBody = (body: unknown): PublishedWikiSummary =>
   parseWithSchemaLog("published wiki summary response", wikiPrivateApiTypes.schemas.PublishedWikiSummary, body);
 
+const parseTranslateWikiResponseBody = (body: unknown): TranslateWikiResponseBody =>
+  parseWithSchemaLog("translate wiki response", wikiPrivateApiTypes.schemas.TranslateWikiResponseBody, body);
+
 const parseCreateWikiRequestBody = (body: unknown): CreateWikiRequestBody =>
   parseWithSchemaLog("wiki create request", wikiPrivateApiTypes.schemas.CreateWikiRequestBody, body);
 
@@ -198,6 +213,9 @@ export const getReviewWikiEndpointPath = (
 
 export const getPublishWikiEndpointPath = (wikiId: string): string =>
   getReviewWikiEndpointPath(wikiId, "publish");
+
+export const getVersionInconsistentWikisEndpointPath = (): string =>
+  "/wikis/version-inconsistencies";
 
 const copyStringProperty = (
   source: Record<string, unknown>,
@@ -300,6 +318,22 @@ export const createReviewWikiRequestBody = (
   return parseWithSchemaLog("wiki review request", reviewWikiRequestBodySchema, body);
 };
 
+export const createTranslateWikiRequestBody = (
+  wiki: Pick<WikiVersionInconsistentWiki, "language" | "resourceType" | "wikiIdentifier"> &
+    Record<string, unknown>,
+): TranslateWikiRequestBody => {
+  const body: Record<string, unknown> = {
+    language: wiki.language,
+    resourceType: wiki.resourceType,
+  };
+
+  copyStringProperty(wiki, body, "agencyIdentifier");
+  copyStringArrayProperty(wiki, body, "groupIdentifiers");
+  copyStringArrayProperty(wiki, body, "talentIdentifiers");
+
+  return parseWithSchemaLog("wiki translate request", translateWikiRequestBodySchema, body);
+};
+
 export const createWikiDraftWikisUrl = ({
   baseUrl,
   onlyMine,
@@ -333,6 +367,41 @@ export const createWikiDraftWikisUrl = ({
 
   if (translationSetIdentifier) {
     url.searchParams.set("translationSetIdentifier", translationSetIdentifier);
+  }
+
+  return url.toString();
+};
+
+export const createVersionInconsistentWikisUrl = ({
+  baseUrl,
+  order,
+  page,
+  perPage,
+  resourceType,
+  sort,
+}: {
+  baseUrl: string;
+  order?: "asc" | "desc";
+  page: number;
+  perPage: number;
+  resourceType?: string;
+  sort?: "name" | "updatedAt";
+}): string => {
+  const url = new URL(`${trimTrailingSlashes(baseUrl)}${getVersionInconsistentWikisEndpointPath()}`);
+
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  if (resourceType) {
+    url.searchParams.set("resourceType", resourceType);
+  }
+
+  if (sort) {
+    url.searchParams.set("sort", sort);
+  }
+
+  if (order) {
+    url.searchParams.set("order", order);
   }
 
   return url.toString();
@@ -392,8 +461,8 @@ export const reviewDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
   action: WikiDraftWorkflowAction,
-  body: ReviewWikiRequestBody,
-): Promise<DraftWikiSummary | PublishedWikiSummary> =>
+  body: ReviewWikiRequestBody | TranslateWikiRequestBody,
+): Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody> =>
   client.reviewDraftWiki(wikiId, action, body);
 
 export const publishDraftWiki = async (
@@ -402,6 +471,13 @@ export const publishDraftWiki = async (
   body: ReviewWikiRequestBody,
 ): Promise<PublishedWikiSummary> =>
   client.reviewDraftWiki(wikiId, "publish", body) as Promise<PublishedWikiSummary>;
+
+export const translateDraftWiki = async (
+  client: DraftWikiApiClient,
+  wikiId: string,
+  body: TranslateWikiRequestBody,
+): Promise<TranslateWikiResponseBody> =>
+  client.reviewDraftWiki(wikiId, "translate", body) as Promise<TranslateWikiResponseBody>;
 
 export const createDraftWikiApiClient = (
   baseUrl: string = getDefaultApiBaseUrl(),
@@ -521,7 +597,9 @@ export const createDraftWikiApiClient = (
 
           return action === "publish"
             ? parsePublishedWikiSummaryBody(responseBody)
-            : parseDraftWikiSummaryBody(responseBody);
+            : action === "translate"
+              ? parseTranslateWikiResponseBody(responseBody)
+              : parseDraftWikiSummaryBody(responseBody);
         },
         submitDraftWiki: async (wikiId, body) => {
           const response = await fetch(
@@ -621,6 +699,54 @@ export const fetchWikiDraftWikis = async ({
   return parseWithSchemaLog("wiki draft list response", wikiDraftWikiListResponseSchema, body);
 };
 
+export const fetchVersionInconsistentWikis = async ({
+  fallbackErrorMessage,
+  order,
+  page,
+  perPage,
+  resourceType,
+  sort,
+}: {
+  fallbackErrorMessage: string;
+  order?: "asc" | "desc";
+  page: number;
+  perPage: number;
+  resourceType?: string;
+  sort?: "name" | "updatedAt";
+}): Promise<WikiVersionInconsistentWikiListResponse> => {
+  const url = new URL("/api/wiki/version-inconsistent-wikis", window.location.origin);
+
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  if (resourceType) {
+    url.searchParams.set("resourceType", resourceType);
+  }
+
+  if (sort) {
+    url.searchParams.set("sort", sort);
+  }
+
+  if (order) {
+    url.searchParams.set("order", order);
+  }
+
+  const response = await fetch(`${url.pathname}${url.search}`, {
+    credentials: "include",
+  });
+  const body = await readBrowserJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseWithSchemaLog(
+    "wiki version inconsistent list response",
+    wikiVersionInconsistentWikiListResponseSchema,
+    body,
+  );
+};
+
 export const loadInitialDraftWikisForRequest = async (
   cookieHeader: string,
 ): Promise<InitialDraftWikis> => {
@@ -693,8 +819,8 @@ const reviewWikiDraftRequest = async ({
   action: WikiDraftWorkflowAction;
   fallbackErrorMessage: string;
   wikiId: string;
-  requestBody: ReviewWikiRequestBody;
-}): Promise<DraftWikiSummary | PublishedWikiSummary> => {
+  requestBody: ReviewWikiRequestBody | TranslateWikiRequestBody;
+}): Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody> => {
   const response = await fetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}/${action}`,
     {
@@ -716,7 +842,9 @@ const reviewWikiDraftRequest = async ({
 
   return action === "publish"
     ? parsePublishedWikiSummaryBody(body)
-    : parseDraftWikiSummaryBody(body);
+    : action === "translate"
+      ? parseTranslateWikiResponseBody(body)
+      : parseDraftWikiSummaryBody(body);
 };
 
 export const approveWikiDraft = async ({
@@ -766,6 +894,22 @@ export const publishWikiDraft = async ({
     wikiId,
     requestBody,
   }) as Promise<PublishedWikiSummary>;
+
+export const translateWikiDraft = async ({
+  fallbackErrorMessage,
+  wikiId,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  wikiId: string;
+  requestBody: TranslateWikiRequestBody;
+}): Promise<TranslateWikiResponseBody> =>
+  reviewWikiDraftRequest({
+    action: "translate",
+    fallbackErrorMessage,
+    wikiId,
+    requestBody,
+  }) as Promise<TranslateWikiResponseBody>;
 
 export const loadDraftWikiState = async (
   language: string,

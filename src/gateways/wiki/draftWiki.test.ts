@@ -7,8 +7,11 @@ import {
   createWikiDraftRequestBodyFromPublicWiki,
   createReviewWikiRequestBody,
   createSubmitWikiRequestBody,
+  createTranslateWikiRequestBody,
   createWikiDraftWikisUrl,
+  createVersionInconsistentWikisUrl,
   fetchDraftWiki,
+  fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   getCreateWikiEndpointPath,
   getDraftWikiEndpointPath,
@@ -26,6 +29,7 @@ import {
   rejectWikiDraft,
   reviewDraftWiki,
   submitDraftWiki,
+  translateWikiDraft,
 } from "./draftWiki";
 
 describe("draftWiki", () => {
@@ -298,6 +302,7 @@ describe("draftWiki", () => {
     expect(getReviewWikiEndpointPath("wiki-1", "approve")).toBe("/wiki/wiki-1/approve");
     expect(getReviewWikiEndpointPath("wiki-1", "reject")).toBe("/wiki/wiki-1/reject");
     expect(getPublishWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/publish");
+    expect(getReviewWikiEndpointPath("wiki-1", "translate")).toBe("/wiki/wiki-1/translate");
   });
 
   it("builds submit wiki request bodies with the wiki id and resource type", () => {
@@ -335,6 +340,25 @@ describe("draftWiki", () => {
       }),
     ).toEqual({
       resourceType: "group",
+    });
+  });
+
+  it("builds translate wiki request bodies with association targets and language", () => {
+    expect(
+      createTranslateWikiRequestBody({
+        agencyIdentifier: "agency-1",
+        groupIdentifiers: ["group-1"],
+        language: "ja",
+        resourceType: "group",
+        talentIdentifiers: ["talent-1"],
+        wikiIdentifier: "wiki-1",
+      }),
+    ).toEqual({
+      agencyIdentifier: "agency-1",
+      groupIdentifiers: ["group-1"],
+      language: "ja",
+      resourceType: "group",
+      talentIdentifiers: ["talent-1"],
     });
   });
 
@@ -500,6 +524,21 @@ describe("draftWiki", () => {
     );
   });
 
+  it("builds version inconsistent wiki list urls with optional filters", () => {
+    expect(
+      createVersionInconsistentWikisUrl({
+        baseUrl: "https://api.example.test/api/wiki/",
+        order: "desc",
+        page: 2,
+        perPage: 24,
+        resourceType: "group",
+        sort: "updatedAt",
+      }),
+    ).toBe(
+      "https://api.example.test/api/wiki/wikis/version-inconsistencies?perPage=24&page=2&resourceType=group&sort=updatedAt&order=desc",
+    );
+  });
+
   it("loads initial mypage draft wikis from the shared mock gateway contract", async () => {
     vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
     const fetchMock = vi.spyOn(globalThis, "fetch");
@@ -568,6 +607,55 @@ describe("draftWiki", () => {
     ).resolves.toEqual(expect.objectContaining({ total: 1 }));
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/wiki/draft-wikis?status=pending&perPage=12&page=1&onlyMine=true",
+      {
+        credentials: "include",
+      },
+    );
+  });
+
+  it("fetches version inconsistent wiki lists through the browser API route", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          wikis: [
+            {
+              wikiIdentifier: "88888888-8888-8888-8888-888888888888",
+              translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+              slug: "gr-review-wiki",
+              language: "ja",
+              resourceType: "group",
+              version: 3,
+              themeColor: "#4c5cff",
+              imageIdentifier: null,
+              imageUrl: null,
+              imageAltText: null,
+              name: "未翻訳 Wiki",
+              normalizedName: "untranslated-wiki",
+              publishedAt: "2026-05-10T00:00:00Z",
+              updatedAt: "2026-05-11T00:00:00Z",
+            },
+          ],
+          current_page: 1,
+          last_page: 1,
+          total: 1,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(
+      fetchVersionInconsistentWikis({
+        fallbackErrorMessage: "fallback",
+        order: "desc",
+        page: 1,
+        perPage: 12,
+        resourceType: "group",
+        sort: "updatedAt",
+      }),
+    ).resolves.toEqual(expect.objectContaining({ total: 1 }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/version-inconsistent-wikis?perPage=12&page=1&resourceType=group&sort=updatedAt&order=desc",
       {
         credentials: "include",
       },
@@ -1187,6 +1275,58 @@ describe("draftWiki", () => {
     );
   });
 
+  it("forwards cookie headers when translating a wiki through fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          draftWikis: [
+            {
+              language: "en",
+              name: "Aurora Echo",
+              resourceType: "group",
+              status: "pending",
+            },
+          ],
+        }),
+        { status: 201 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Accept: "application/json",
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+    const body = {
+      language: "ja",
+      resourceType: "group",
+    };
+
+    await expect(client!.reviewDraftWiki("wiki-1", "translate", body)).resolves.toEqual({
+      draftWikis: [
+        {
+          language: "en",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "pending",
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/translate",
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
+      }),
+    );
+  });
+
   it("reviews and publishes draft wikis through the browser API routes", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
@@ -1219,6 +1359,21 @@ describe("draftWiki", () => {
             name: "Aurora Echo",
             resourceType: "group",
             version: 2,
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            draftWikis: [
+              {
+                language: "en",
+                name: "Aurora Echo",
+                resourceType: "group",
+                status: "pending",
+              },
+            ],
           }),
           { status: 201 },
         ),
@@ -1269,6 +1424,26 @@ describe("draftWiki", () => {
       "/api/wiki/drafts/wiki-1/publish",
       expect.objectContaining({
         body: JSON.stringify(requestBody),
+        credentials: "include",
+        method: "POST",
+      }),
+    );
+
+    await translateWikiDraft({
+      fallbackErrorMessage: "failed",
+      requestBody: {
+        language: "ja",
+        resourceType: "group",
+      },
+      wikiId: "wiki-1",
+    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/wiki/drafts/wiki-1/translate",
+      expect.objectContaining({
+        body: JSON.stringify({
+          language: "ja",
+          resourceType: "group",
+        }),
         credentials: "include",
         method: "POST",
       }),

@@ -8,6 +8,7 @@ import {
 import { POST as approvePOST } from "./approve/route";
 import { POST as publishPOST } from "./publish/route";
 import { POST as rejectPOST } from "./reject/route";
+import { POST as translatePOST } from "./translate/route";
 
 const wikiId = "44444444-4444-4444-4444-444444444444";
 
@@ -121,6 +122,51 @@ describe("wiki draft review route", () => {
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",
+      }),
+    );
+  });
+
+  it("forwards translate requests to the translate backend action", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        draftWikis: [
+          {
+            language: "en",
+            name: "Aurora Echo",
+            resourceType: "group",
+            status: "pending",
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const body = {
+      agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+      language: "ja",
+      resourceType: "group",
+    };
+    const response = await translatePOST(
+      createRequest(body, {
+        "accept-language": "ja",
+        cookie: "session=abc",
+      }),
+      createContext(),
+    );
+
+    expect(response.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://api.example.test/api/wiki/wiki/${wikiId}/translate`,
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja",
+          "Content-Type": "application/json",
+          Cookie: "session=abc",
+        },
       }),
     );
   });

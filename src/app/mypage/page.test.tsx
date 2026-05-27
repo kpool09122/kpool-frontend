@@ -174,31 +174,56 @@ const createDraftImageAdapter = (
 const createDraftWikiAdapter = (
   overrides: Partial<MyPageDraftWikiAdapter> = {},
 ): MyPageDraftWikiAdapter => ({
-  approveDraftWiki: vi.fn().mockResolvedValue({
-    language: "ja",
-    name: "未承認 Wiki",
+	  approveDraftWiki: vi.fn().mockResolvedValue({
+	    language: "ja",
+	    name: "未承認 Wiki",
     resourceType: "group",
     status: "approved",
   }),
-  listDraftWikis: vi.fn().mockResolvedValue({
-    wikis: [draftWiki],
-    current_page: 1,
+	  listDraftWikis: vi.fn().mockResolvedValue({
+	    wikis: [draftWiki],
+	    current_page: 1,
     last_page: 1,
     total: 1,
-    per_page: 12,
-  }),
+	    per_page: 12,
+	  }),
+	  listUntranslatedWikis: vi.fn().mockResolvedValue({
+	    wikis: [{
+	      wikiIdentifier: "aaaaaaaa-8888-8888-8888-888888888888",
+	      translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+	      slug: "gr-untranslated-wiki",
+	      language: "ja",
+	      resourceType: "group",
+	      version: 3,
+	      themeColor: "#4c5cff",
+	      imageIdentifier: null,
+	      imageUrl: null,
+	      imageAltText: null,
+	      name: "未翻訳 Wiki",
+	      normalizedName: "untranslated-wiki",
+	      publishedAt: "2026-05-10T00:00:00Z",
+	      updatedAt: "2026-05-11T00:00:00Z",
+	    }],
+	    current_page: 1,
+	    last_page: 1,
+	    total: 1,
+	    per_page: 12,
+	  }),
   publishDraftWiki: vi.fn().mockResolvedValue({
     language: "ja",
     name: "承認済み Wiki",
     resourceType: "group",
     status: "approved",
   }),
-  rejectDraftWiki: vi.fn().mockResolvedValue({
-    language: "ja",
-    name: "未承認 Wiki",
-    resourceType: "group",
-    status: "rejected",
-  }),
+	  rejectDraftWiki: vi.fn().mockResolvedValue({
+	    language: "ja",
+	    name: "未承認 Wiki",
+	    resourceType: "group",
+	    status: "rejected",
+	  }),
+	  translateDraftWiki: vi.fn().mockResolvedValue({
+	    draftWikis: [],
+	  }),
   ...overrides,
 });
 
@@ -414,11 +439,12 @@ describe("MyPageClient", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialDraftWikis={{
-          approvedWikis: emptyDraftWikiListState,
-          editingWikis: draftWikiListState,
-          submittedWikis: emptyDraftWikiListState,
-          unapprovedWikis: emptyDraftWikiListState,
-        }}
+	          approvedWikis: emptyDraftWikiListState,
+	          editingWikis: draftWikiListState,
+	          submittedWikis: emptyDraftWikiListState,
+	          unapprovedWikis: emptyDraftWikiListState,
+	          untranslatedWikis: emptyDraftWikiListState,
+	        }}
         initialIdentity={identity}
         initialPrincipalState={{ status: "available", principal }}
         principalAdapter={createAdapter()}
@@ -594,9 +620,100 @@ describe("MyPageClient", () => {
       }),
     );
     expect(await screen.findByRole("link", { name: "承認済み Wiki" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "公開" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "拒否" })).not.toBeInTheDocument();
+	  expect(screen.getByRole("button", { name: "公開" })).toBeInTheDocument();
+	  expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+	  expect(screen.queryByRole("button", { name: "拒否" })).not.toBeInTheDocument();
+	});
+
+  it("shows untranslated wikis after approved wikis and translates them", async () => {
+    const listUntranslatedWikis = vi
+      .fn()
+      .mockResolvedValueOnce({
+        wikis: [{
+          wikiIdentifier: "aaaaaaaa-8888-8888-8888-888888888888",
+          translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+          slug: "gr-untranslated-wiki",
+          language: "ja",
+          resourceType: "group",
+          version: 3,
+          themeColor: null,
+          imageIdentifier: null,
+          imageUrl: null,
+          imageAltText: null,
+          name: "未翻訳 Wiki",
+          normalizedName: "untranslated-wiki",
+          publishedAt: "2026-05-10T00:00:00Z",
+          updatedAt: "2026-05-11T00:00:00Z",
+          agencyIdentifier: "agency-1",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      })
+      .mockResolvedValueOnce({
+        wikis: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 12,
+      });
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listUntranslatedWikis,
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiPublishPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    expect((await screen.findAllByRole("tab")).map((tab) => tab.textContent)).toEqual([
+      "編集中のWiki",
+      "申請中のWiki",
+      "承認済みWiki",
+      "未翻訳のWiki",
+      "未承認の画像",
+    ]);
+    fireEvent.click(screen.getByRole("tab", { name: "未翻訳のWiki" }));
+    await waitFor(() =>
+      expect(listUntranslatedWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+        order: "desc",
+        page: 1,
+        perPage: 12,
+        sort: "updatedAt",
+      }),
+    );
+    expect(await screen.findByRole("link", { name: "未翻訳 Wiki" })).toHaveAttribute(
+      "href",
+      "/wiki/ja/gr-untranslated-wiki",
+    );
+    expect(screen.getByRole("button", { name: "翻訳" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "翻訳" }));
+    await waitFor(() =>
+      expect(draftWikiAdapter.translateDraftWiki).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki を翻訳できませんでした。",
+        requestBody: {
+          agencyIdentifier: "agency-1",
+          language: "ja",
+          resourceType: "group",
+        },
+        wikiId: "aaaaaaaa-8888-8888-8888-888888888888",
+      }),
+    );
+    await waitFor(() => expect(listUntranslatedWikis).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText("未翻訳のWikiはありません")).toBeInTheDocument();
   });
 
   it("publishes an approved draft wiki and removes it from the list", async () => {

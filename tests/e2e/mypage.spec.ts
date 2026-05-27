@@ -458,6 +458,121 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
   expect(publishRequests).toBe(1);
 });
 
+test("mypage translates untranslated wikis for publisher principals", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "wiki-publish");
+  let translateRequests = 0;
+  let listRequests = 0;
+
+  await page.route("**/api/wiki/principal/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        principalIdentifier: "33333333-3333-3333-3333-333333333333",
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        isDelegatedPrincipal: false,
+        isEnabled: true,
+        policies: [
+          {
+            policyIdentifier: "66666666-6666-6666-6666-666666666666",
+            name: "GROUP_PUBLISH",
+            isSystemPolicy: true,
+            statements: [
+              {
+                effect: "allow",
+                actions: ["PUBLISH"],
+                resourceTypes: ["GROUP"],
+                condition: null,
+              },
+            ],
+          },
+        ],
+      }),
+    });
+  });
+  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        wikis: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 12,
+      }),
+    });
+  });
+  await page.route("**/api/wiki/version-inconsistent-wikis?**", async (route) => {
+    listRequests += 1;
+    const url = new URL(route.request().url());
+
+    expect(url.searchParams.get("sort")).toBe("updatedAt");
+    expect(url.searchParams.get("order")).toBe("desc");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        wikis: listRequests === 1
+          ? [
+              {
+                wikiIdentifier: "88888888-8888-8888-8888-888888888888",
+                translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
+                slug: "gr-untranslated-wiki",
+                language: "ja",
+                resourceType: "group",
+                version: 3,
+                themeColor: null,
+                imageIdentifier: null,
+                imageUrl: null,
+                imageAltText: null,
+                name: "未翻訳 Wiki",
+                normalizedName: "untranslated-wiki",
+                publishedAt: "2026-05-10T00:00:00Z",
+                updatedAt: "2026-05-11T00:00:00Z",
+                agencyIdentifier: "agency-1",
+              },
+            ]
+          : [],
+        current_page: 1,
+        last_page: 1,
+        total: listRequests === 1 ? 1 : 0,
+        per_page: 12,
+      }),
+    });
+  });
+  await page.route("**/api/wiki/drafts/*/translate", async (route) => {
+    translateRequests += 1;
+    expect(route.request().postDataJSON()).toEqual({
+      agencyIdentifier: "agency-1",
+      language: "ja",
+      resourceType: "group",
+    });
+    await route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        draftWikis: [],
+      }),
+    });
+  });
+
+  await page.goto("/mypage");
+
+  await expect(page.getByRole("tab", { name: "承認済みWiki" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "未翻訳のWiki" })).toBeVisible();
+  await page.getByRole("tab", { name: "未翻訳のWiki" }).click();
+  await expect(page.getByRole("link", { name: "未翻訳 Wiki" })).toHaveAttribute(
+    "href",
+    "/wiki/ja/gr-untranslated-wiki",
+  );
+  await page.getByRole("button", { name: "翻訳" }).click();
+  await expect(page.getByText("未翻訳のWikiはありません")).toBeVisible();
+  expect(translateRequests).toBe(1);
+  expect(listRequests).toBe(2);
+});
+
 test("mypage hides draft image review for principals without image policies", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "basic");

@@ -46,10 +46,11 @@ export const createMockInitialDraftWikis = () => ({
       total: 1,
     },
     wikis: [createMockEditingDraftWiki()],
-  },
-  submittedWikis: createEmptyMockDraftWikiListState(),
-  unapprovedWikis: createEmptyMockDraftWikiListState(),
-});
+	  },
+	  submittedWikis: createEmptyMockDraftWikiListState(),
+	  unapprovedWikis: createEmptyMockDraftWikiListState(),
+	  untranslatedWikis: createEmptyMockDraftWikiListState(),
+	});
 
 const getCookieValue = (cookieHeader: string | undefined, name: string): string | null => {
   if (!cookieHeader) {
