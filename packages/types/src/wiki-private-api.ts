@@ -2535,6 +2535,53 @@ const endpoints = makeApi([
       },
     ],
   },
+  {
+    method: "get",
+    path: "/wikis/version-inconsistencies",
+    alias: "WikiListOperations_listVersionInconsistentWikis",
+    description: `List published wikis with version inconsistencies across translation sets.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+      {
+        name: "sort",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+      {
+        name: "order",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+    ],
+    response: ListWikisResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
 ]);
 
 export const wikiPrivateApi = new Zodios(endpoints);
