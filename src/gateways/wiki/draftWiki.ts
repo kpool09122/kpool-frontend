@@ -1,4 +1,4 @@
-import { createMockWikiDetail, type WikiDetail } from "@kpool/wiki";
+import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
@@ -8,6 +8,7 @@ import {
   type WikiResourceType,
 } from "@kpool/wiki";
 import {
+  adaptDraftWikiApiResponse,
   adaptWikiApiResponse,
   getWikiApiErrorMessage,
   trimTrailingSlashes,
@@ -131,7 +132,7 @@ export const createInitialDraftWikis = (): InitialDraftWikis => ({
 });
 
 type DraftWikiState =
-  | { status: "success"; data: WikiDetail }
+  | { status: "success"; data: WikiDraftDetail }
   | { status: "empty" }
   | { status: "error"; message: string };
 
@@ -179,8 +180,8 @@ const parseCreateWikiRequestBody = (body: unknown): CreateWikiRequestBody =>
 const parsePublicWikiResponseBody = (body: unknown): PublicWikiApiResponse =>
   parseWithSchemaLog("public wiki detail response", publicWikiApiResponseSchema, body);
 
-export const adaptDraftWikiResponse = (response: DraftWikiApiResponse): WikiDetail =>
-  adaptWikiApiResponse(response);
+export const adaptDraftWikiResponse = (response: DraftWikiApiResponse): WikiDraftDetail =>
+  adaptDraftWikiApiResponse(response);
 
 export const getDraftWikiAlias = (
   slug: string,
@@ -290,7 +291,7 @@ const isNotFoundApiError = (error: unknown): boolean =>
   (error as { response: { status?: unknown } }).response.status === 404;
 
 export const createSubmitWikiRequestBody = (
-  draft: Pick<WikiDetail, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
+  draft: Pick<WikiDraftDetail, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
 ): SubmitWikiRequestBody => {
   const body: Record<string, unknown> = {
     resourceType: draft.resourceType,
@@ -411,7 +412,7 @@ export const fetchDraftWiki = async (
   client: DraftWikiApiClient,
   language: string,
   slug: string,
-): Promise<WikiDetail | null> => {
+): Promise<WikiDraftDetail | null> => {
   const alias = getDraftWikiAlias(slug);
 
   if (!alias) {

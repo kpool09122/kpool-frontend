@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { type WikiDetail } from "@kpool/wiki";
+import { type WikiDraftDetail } from "@kpool/wiki";
 
 import {
   type WikiEditorMode,
@@ -38,8 +38,8 @@ type WikiEditPageProps = {
   slug: string;
   themeColor?: string;
   wikiState: Awaited<ReturnType<typeof loadDraftWikiState>>;
-  saveAdapter?: (draft: WikiDetail) => unknown;
-  submitAdapter?: (draft: WikiDetail) => unknown;
+  saveAdapter?: (draft: WikiDraftDetail) => unknown;
+  submitAdapter?: (draft: WikiDraftDetail) => unknown;
 };
 
 type ImageLibraryState = {
@@ -70,10 +70,10 @@ function WikiEditContent({
   saveAdapter,
   submitAdapter,
 }: {
-  data: WikiDetail;
+  data: WikiDraftDetail;
   language: string;
-  saveAdapter: (draft: WikiDetail) => unknown;
-  submitAdapter: (draft: WikiDetail) => unknown;
+  saveAdapter: (draft: WikiDraftDetail) => unknown;
+  submitAdapter: (draft: WikiDraftDetail) => unknown;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;

@@ -2,7 +2,7 @@
 
 import {
   toWikiEditRequestPayload,
-  type WikiDetail,
+  type WikiDraftDetail,
   type WikiEditRequestPayload,
 } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
@@ -13,7 +13,7 @@ import { createSubmitWikiRequestBody } from "@/gateways/wiki/draftWiki";
 
 export type WikiSaveResult = { ok: true } | { ok: false };
 
-export const saveWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> => {
+export const saveWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveResult> => {
   const response = await fetch(
     `/api/wiki/drafts/${encodeURIComponent(draft.wikiIdentifier)}`,
     {
@@ -34,7 +34,7 @@ export const saveWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> 
   return { ok: true };
 };
 
-export const submitWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult> => {
+export const submitWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveResult> => {
   const response = await fetch(
     `/api/wiki/drafts/${encodeURIComponent(draft.wikiIdentifier)}/submit`,
     {
@@ -56,5 +56,5 @@ export const submitWikiDraft = async (draft: WikiDetail): Promise<WikiSaveResult
 };
 
 export const createSaveWikiDraftBody = (
-  draft: WikiDetail,
+  draft: WikiDraftDetail,
 ): WikiEditRequestPayload => toWikiEditRequestPayload(draft);
