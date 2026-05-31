@@ -556,6 +556,22 @@ const TalentDraftWikiDetail = z
     sections: z.array(z.unknown()),
   })
   .passthrough();
+const RelatedProfileItem = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    name: z.string(),
+    normalizedName: z.string(),
+    imageIdentifier: KPool_Common_Uuid.nullable(),
+    imageUrl: z.string().nullable(),
+    imageAltText: z.string().nullable(),
+  })
+  .passthrough();
+const ListRelatedProfilesResponseBody = z
+  .object({ profiles: z.array(RelatedProfileItem) })
+  .passthrough();
 const WikiWorkflowRequestBody = WikiAssociationTargets;
 const UpdateWikiDraftRequestBody = WikiAssociationTargets;
 const PublishedWikiSummary = z
@@ -661,6 +677,8 @@ export const schemas = {
   TalentDraftWikiBasic,
   TalentWikiDetail,
   TalentDraftWikiDetail,
+  RelatedProfileItem,
+  ListRelatedProfilesResponseBody,
   WikiWorkflowRequestBody,
   UpdateWikiDraftRequestBody,
   PublishedWikiSummary,
@@ -1731,6 +1749,48 @@ const endpoints = makeApi([
     ],
     response: z.void(),
     errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/:language/:slug/related-profiles",
+    alias: "WikiOperations_listRelatedProfiles",
+    description: `List related published wiki profiles for a source wiki.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "slug",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.string(),
+      },
+    ],
+    response: ListRelatedProfilesResponseBody,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
