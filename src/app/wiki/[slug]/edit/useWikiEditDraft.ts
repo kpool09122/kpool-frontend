@@ -13,7 +13,7 @@ import {
   type WikiBlock,
   type WikiBlockType,
   type WikiContentEditorId,
-  type WikiDetail,
+  type WikiDraftDetail,
   type WikiEditPayload,
 } from "@kpool/wiki";
 import { useMemo, useState } from "react";
@@ -58,8 +58,8 @@ type WikiSaveState =
 type WikiPersistenceResult = { ok: true } | { ok: false };
 
 type WikiEditDraftOptions = {
-  saveAdapter?: (draft: WikiDetail) => unknown;
-  submitAdapter?: (draft: WikiDetail) => unknown;
+  saveAdapter?: (draft: WikiDraftDetail) => unknown;
+  submitAdapter?: (draft: WikiDraftDetail) => unknown;
 };
 
 const isWikiPersistenceResult = (value: unknown): value is WikiPersistenceResult =>
@@ -71,12 +71,12 @@ const isWikiPersistenceResult = (value: unknown): value is WikiPersistenceResult
 const optimisticSaveAdapter = async () => ({ ok: true }) as const;
 const optimisticActionAdapter = async () => ({ ok: true }) as const;
 
-const createInitialDraft = (wiki: WikiDetail): WikiDetail => ({
+const createInitialDraft = (wiki: WikiDraftDetail): WikiDraftDetail => ({
   ...wiki,
   sections: normalizeWikiSectionsForEditing(wiki.sections),
 });
 
-const getCodeFromSections = (sections: WikiDetail["sections"]): string =>
+const getCodeFromSections = (sections: WikiDraftDetail["sections"]): string =>
   serializeWikiSectionsToCode(sections);
 
 const getWarningsFromCode = (code: string): string[] => {
@@ -86,12 +86,12 @@ const getWarningsFromCode = (code: string): string[] => {
 };
 
 export const useWikiEditDraft = (
-  wiki: WikiDetail,
+  wiki: WikiDraftDetail,
   options?: WikiEditDraftOptions,
 ) => {
   const initialDraft = useMemo(() => createInitialDraft(wiki), [wiki]);
   const initialCode = useMemo(() => getCodeFromSections(initialDraft.sections), [initialDraft]);
-  const [draft, setDraft] = useState<WikiDetail>(initialDraft);
+  const [draft, setDraft] = useState<WikiDraftDetail>(initialDraft);
   const [code, setCode] = useState(initialCode);
   const [codeParseError, setCodeParseError] = useState<string | null>(null);
   const [codeWarnings, setCodeWarnings] = useState(() => getWarningsFromCode(initialCode));
@@ -107,7 +107,10 @@ export const useWikiEditDraft = (
   const saveAdapter = options?.saveAdapter ?? optimisticSaveAdapter;
   const submitAdapter = options?.submitAdapter ?? optimisticActionAdapter;
 
-  const commitDraft = (nextDraft: WikiDetail, nextCode = getCodeFromSections(nextDraft.sections)) => {
+  const commitDraft = (
+    nextDraft: WikiDraftDetail,
+    nextCode = getCodeFromSections(nextDraft.sections),
+  ) => {
     const parsedCode = parseWikiSectionsFromCode(nextCode);
     const payload = toWikiEditPayload(nextDraft);
 
@@ -231,7 +234,7 @@ export const useWikiEditDraft = (
         nextCode,
       );
     },
-    updateBasic: (basic: WikiDetail["basic"]) =>
+    updateBasic: (basic: WikiDraftDetail["basic"]) =>
       commitDraft({
         ...draft,
         basic,
@@ -241,13 +244,13 @@ export const useWikiEditDraft = (
           basic.resourceType as WikiResourceType,
         ),
       }),
-    updateHeroImage: (heroImage: WikiDetail["heroImage"]) =>
+    updateHeroImage: (heroImage: WikiDraftDetail["heroImage"]) =>
       commitDraft({
         ...draft,
         heroImage,
       }),
     updateSettings: (
-      settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor">>,
+      settings: Partial<Pick<WikiDraftDetail, "resourceType" | "slug" | "themeColor">>,
     ) => {
       const nextResourceType =
         (settings.resourceType as WikiResourceType | undefined) ??

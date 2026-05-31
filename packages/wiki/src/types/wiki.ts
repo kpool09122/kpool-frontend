@@ -237,13 +237,12 @@ export const wikiBasicSchema = z.object({
   bloodType: z.string().optional(),
 });
 
-export const wikiDetailSchema = z.object({
+const wikiDetailBaseSchema = z.object({
   wikiIdentifier: z.string(),
   translationSetIdentifier: z.string(),
   slug: z.string(),
   language: z.string(),
   resourceType: z.enum(["agency", "group", "song", "talent"]),
-  version: z.number().int(),
   themeColor: z.string().nullable().optional(),
   heroImage: z.object({
     imageIdentifier: z.string().nullable().optional(),
@@ -254,5 +253,12 @@ export const wikiDetailSchema = z.object({
   sections: z.array(wikiSectionSchema),
 });
 
+export const wikiDraftDetailSchema = wikiDetailBaseSchema;
+
+export const wikiDetailSchema = wikiDetailBaseSchema.extend({
+  version: z.number().int(),
+});
+
 export type WikiBasic = z.infer<typeof wikiBasicSchema>;
+export type WikiDraftDetail = z.infer<typeof wikiDraftDetailSchema>;
 export type WikiDetail = z.infer<typeof wikiDetailSchema>;

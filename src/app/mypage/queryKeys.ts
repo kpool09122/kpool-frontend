@@ -42,35 +42,35 @@ export const myPageQueryKeys = {
     all: () => [...myPageQueryKeys.all, "draftWikis"] as const,
     list: ({
       identityIdentifier,
-      onlyMine,
-      status,
-      tab,
-    }: {
-      identityIdentifier: string | null;
-      onlyMine?: boolean;
-      status: WikiDraftWikiStatus;
-      tab: MyPageDraftWikiActionTab;
-    }) => [
+	      onlyMine,
+	      status,
+	      tab,
+	    }: {
+	      identityIdentifier: string | null;
+	      onlyMine?: boolean;
+	      status?: WikiDraftWikiStatus;
+	      tab: MyPageDraftWikiActionTab;
+	    }) => [
       ...myPageQueryKeys.draftWikis.all(),
       "list",
-      identityIdentifier ?? "guest",
-      tab,
-      status,
-      onlyMine ?? null,
-    ] as const,
+	      identityIdentifier ?? "guest",
+	      tab,
+	      status ?? null,
+	      onlyMine ?? null,
+	    ] as const,
     page: ({
       identityIdentifier,
-      onlyMine,
-      page,
-      status,
-      tab,
-    }: {
-      identityIdentifier: string | null;
-      onlyMine?: boolean;
-      page: number;
-      status: WikiDraftWikiStatus;
-      tab: MyPageDraftWikiActionTab;
-    }) => [...myPageQueryKeys.draftWikis.list({
+	      onlyMine,
+	      page,
+	      status,
+	      tab,
+	    }: {
+	      identityIdentifier: string | null;
+	      onlyMine?: boolean;
+	      page: number;
+	      status?: WikiDraftWikiStatus;
+	      tab: MyPageDraftWikiActionTab;
+	    }) => [...myPageQueryKeys.draftWikis.list({
       identityIdentifier,
       onlyMine,
       status,

@@ -19,11 +19,13 @@ import {
 } from "@/gateways/wiki/wikiPrincipal";
 import {
   approveWikiDraft,
+  fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   publishWikiDraft,
   rejectWikiDraft,
+  translateWikiDraft,
   type WikiDraftWiki,
-  type WikiDraftReviewAction,
+  type WikiDraftWorkflowAction,
 } from "@/gateways/wiki/draftWiki";
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
 import {
@@ -45,6 +47,7 @@ import {
   initialDraftWikiListState,
   type DraftWikiListState,
   type MyPageDraftWikiActionTab,
+  type MyPageWikiListItem,
   useMyPageDraftWikis,
 } from "./useMyPageDraftWikis";
 import type {
@@ -80,8 +83,10 @@ const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
 const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
   approveDraftWiki: approveWikiDraft,
   listDraftWikis: fetchWikiDraftWikis,
+  listUntranslatedWikis: fetchVersionInconsistentWikis,
   publishDraftWiki: publishWikiDraft,
   rejectDraftWiki: rejectWikiDraft,
+  translateDraftWiki: translateWikiDraft,
 };
 
 const initialDraftWikiLists: Record<MyPageDraftWikiActionTab, DraftWikiListState> = {
@@ -89,6 +94,7 @@ const initialDraftWikiLists: Record<MyPageDraftWikiActionTab, DraftWikiListState
   editingWikis: initialDraftWikiListState,
   submittedWikis: initialDraftWikiListState,
   unapprovedWikis: initialDraftWikiListState,
+  untranslatedWikis: initialDraftWikiListState,
 };
 
 const selectedSectionClass = "bg-brand-highlight/70 text-text-strong";
@@ -139,11 +145,13 @@ export function MyPageClient({
     draftWikiListLoadFailed: t.draftWikiListLoadFailed,
     draftWikiPublishFailed: t.draftWikiPublishFailed,
     draftWikiRejectFailed: t.draftWikiRejectFailed,
+    draftWikiTranslateFailed: t.draftWikiTranslateFailed,
   }), [
     t.draftWikiApproveFailed,
     t.draftWikiListLoadFailed,
     t.draftWikiPublishFailed,
     t.draftWikiRejectFailed,
+    t.draftWikiTranslateFailed,
   ]);
   const {
     draftWikis,
@@ -292,7 +300,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
-  onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction | "publish") => void;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
   const canActivate = isAuthenticated && !isPending;
@@ -318,6 +326,7 @@ function WikiPrincipalPanel({
       createWikiTab("submittedWikis", t.submittedWikisTab),
       ...(canReviewDraftWikis ? [createWikiTab("unapprovedWikis", t.unapprovedWikisTab)] : []),
       ...(canPublishDraftWikis ? [createWikiTab("approvedWikis", t.approvedWikisTab)] : []),
+      ...(canPublishDraftWikis ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
       ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
     ];
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)
@@ -449,7 +458,7 @@ function DraftWikiListPanel({
   tab: MyPageDraftWikiActionTab;
   onLoadMore: () => void;
   onReload: () => void;
-  onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction | "publish") => void;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
 }) {
   const canLoadMore = state.pageInfo
     ? state.pageInfo.current_page < state.pageInfo.last_page
@@ -496,7 +505,11 @@ function DraftWikiListPanel({
           {messages.total(state.pageInfo.total)}
         </p>
       ) : null}
-      {reviewError && (tab === "unapprovedWikis" || tab === "approvedWikis") ? (
+      {reviewError && (
+        tab === "unapprovedWikis" ||
+        tab === "approvedWikis" ||
+        tab === "untranslatedWikis"
+      ) ? (
         <p
           className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
           role="alert"
@@ -512,7 +525,9 @@ function DraftWikiListPanel({
             key={wiki.wikiIdentifier}
             showPublishAction={tab === "approvedWikis"}
             showReviewActions={tab === "unapprovedWikis"}
+            showTranslateAction={tab === "untranslatedWikis"}
             t={t}
+            tab={tab}
             wiki={wiki}
             onReviewDraftWiki={onReviewDraftWiki}
           />
@@ -541,7 +556,9 @@ function DraftWikiCard({
   isReviewing,
   showReviewActions,
   showPublishAction,
+  showTranslateAction,
   t,
+  tab,
   wiki,
   onReviewDraftWiki,
 }: {
@@ -549,12 +566,15 @@ function DraftWikiCard({
   isReviewing: boolean;
   showPublishAction: boolean;
   showReviewActions: boolean;
+  showTranslateAction: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
-  wiki: WikiDraftWiki;
-  onReviewDraftWiki: (wiki: WikiDraftWiki, action: WikiDraftReviewAction | "publish") => void;
+  tab: MyPageDraftWikiActionTab;
+  wiki: MyPageWikiListItem;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
-  const href = getDraftWikiHref(wiki);
+  const href = getDraftWikiHref(wiki, tab);
+  const isDraftWiki = isDraftWikiListItem(wiki);
   const cardClassName =
     "wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft";
   const cardStyle = buildDraftWikiCardStyle(wiki);
@@ -606,15 +626,23 @@ function DraftWikiCard({
         </span>
       </div>
       <dl className="mt-4 grid gap-3 text-sm">
+        {isDraftWiki ? (
+          <DraftWikiMeta
+            isOnImage={hasImage}
+            label={t.draftWikiStatusLabel}
+            value={getDraftWikiStatusLabel(t, wiki.status)}
+          />
+        ) : (
+          <DraftWikiMeta
+            isOnImage={hasImage}
+            label={t.untranslatedWikiVersionLabel}
+            value={String(wiki.version)}
+          />
+        )}
         <DraftWikiMeta
           isOnImage={hasImage}
-          label={t.draftWikiStatusLabel}
-          value={getDraftWikiStatusLabel(t, wiki.status)}
-        />
-        <DraftWikiMeta
-          isOnImage={hasImage}
-          label={t.draftWikiEditedAtLabel}
-          value={formatDraftWikiDate(wiki.editedAt)}
+          label={isDraftWiki ? t.draftWikiEditedAtLabel : t.untranslatedWikiUpdatedAtLabel}
+          value={formatDraftWikiDate(isDraftWiki ? wiki.editedAt : wiki.updatedAt)}
         />
       </dl>
       {showReviewActions ? (
@@ -650,6 +678,18 @@ function DraftWikiCard({
             type="button"
           >
             {isReviewing ? t.draftWikiPublishing : t.publishDraftWiki}
+          </button>
+        </div>
+      ) : null}
+      {showTranslateAction ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => onReviewDraftWiki(wiki, "translate")}
+            type="button"
+          >
+            {isReviewing ? t.draftWikiTranslating : t.translateDraftWiki}
           </button>
         </div>
       ) : null}
@@ -887,6 +927,15 @@ const getDraftWikiListMessages = (
     };
   }
 
+  if (tab === "untranslatedWikis") {
+    return {
+      emptyMessage: t.untranslatedWikiListEmptyMessage,
+      emptyTitle: t.untranslatedWikiListEmptyTitle,
+      loading: t.untranslatedWikiListLoading,
+      total: t.untranslatedWikiListTotal,
+    };
+  }
+
   return {
     emptyMessage: t.unapprovedWikiListEmptyMessage,
     emptyTitle: t.unapprovedWikiListEmptyTitle,
@@ -895,10 +944,19 @@ const getDraftWikiListMessages = (
   };
 };
 
-const getDraftWikiHref = (wiki: WikiDraftWiki): string =>
-  `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+const isDraftWikiListItem = (wiki: MyPageWikiListItem): wiki is WikiDraftWiki =>
+  ["approved", "pending", "rejected", "under_review"].includes(
+    typeof (wiki as { status?: unknown }).status === "string"
+      ? (wiki as { status: string }).status
+      : "",
+  );
 
-const buildDraftWikiCardStyle = (wiki: WikiDraftWiki): CSSProperties | undefined => {
+const getDraftWikiHref = (wiki: MyPageWikiListItem, tab: MyPageDraftWikiActionTab): string =>
+  tab === "untranslatedWikis"
+    ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
+    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+
+const buildDraftWikiCardStyle = (wiki: MyPageWikiListItem): CSSProperties | undefined => {
   if (wiki.imageUrl) {
     return {
       backgroundColor: "#15243b",

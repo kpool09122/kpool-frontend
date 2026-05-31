@@ -1,12 +1,14 @@
 import {
   type WikiBasic,
   type WikiBlock,
+  type WikiDraftDetail,
   type WikiBlockType,
   type WikiDetail,
   type WikiEmbedProvider,
   type WikiSectionContent,
   wikiDetailSchema,
   type WikiResourceType,
+  wikiDraftDetailSchema,
 } from "./types/wiki";
 import { z } from "zod";
 
@@ -44,7 +46,7 @@ export const toOptionalString = (value: unknown): string | undefined =>
 export const toNullableString = (value: unknown): string | null | undefined =>
   typeof value === "string" ? value : value === null ? null : undefined;
 
-type WikiApiResponse = {
+type WikiApiResponseBase = {
   basic?: unknown;
   heroImage?: {
     imageIdentifier?: string | null;
@@ -56,12 +58,17 @@ type WikiApiResponse = {
   sections: unknown[];
   slug: string;
   themeColor?: string | null;
-  version: number;
   translationSetIdentifier: string;
   wikiIdentifier: string;
 };
 
-export const inferResourceType = (response: WikiApiResponse): WikiResourceType => {
+type WikiApiResponse = WikiApiResponseBase & {
+  version: number;
+};
+
+type DraftWikiApiResponse = WikiApiResponseBase;
+
+export const inferResourceType = (response: WikiApiResponseBase): WikiResourceType => {
   const fromSlug = getWikiResourceTypeFromSlug(response.slug);
 
   if (fromSlug) {
@@ -111,7 +118,7 @@ export const createPlaceholderHeroImage = (
     `),
 });
 
-const adaptWikiBasic = (response: WikiApiResponse): WikiBasic => {
+const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
   const basic =
     typeof response.basic === "object" && response.basic !== null
       ? (response.basic as Record<string, unknown>)
@@ -417,7 +424,7 @@ const adaptWikiSection = (
 const adaptWikiSections = (sections: unknown[]): WikiDetail["sections"] =>
   sections.map((section, index) => adaptWikiSection(toRecord(section), index, 1, `section-${index + 1}`));
 
-const getHeroImage = (response: WikiApiResponse): WikiDetail["heroImage"] => {
+const getHeroImage = (response: WikiApiResponseBase): WikiDraftDetail["heroImage"] => {
   const basic =
     typeof response.basic === "object" && response.basic !== null
       ? (response.basic as Record<string, unknown>)
@@ -450,6 +457,19 @@ export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
     themeColor: response.themeColor ?? null,
     translationSetIdentifier: response.translationSetIdentifier,
     version: response.version,
+    wikiIdentifier: response.wikiIdentifier,
+  });
+
+export const adaptDraftWikiApiResponse = (response: DraftWikiApiResponse): WikiDraftDetail =>
+  parseWikiSchema(wikiDraftDetailSchema, {
+    basic: adaptWikiBasic(response),
+    heroImage: getHeroImage(response),
+    language: response.language,
+    resourceType: inferResourceType(response),
+    sections: adaptWikiSections(response.sections),
+    slug: response.slug,
+    themeColor: response.themeColor ?? null,
+    translationSetIdentifier: response.translationSetIdentifier,
     wikiIdentifier: response.wikiIdentifier,
   });
 

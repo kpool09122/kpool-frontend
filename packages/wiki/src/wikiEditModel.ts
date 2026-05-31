@@ -1,7 +1,7 @@
 import type {
   WikiBlock,
   WikiBlockType,
-  WikiDetail,
+  WikiDraftDetail,
   WikiEmbedBlock,
   WikiEmbedProvider,
   WikiSection,
@@ -45,19 +45,18 @@ export type WikiEditPayload = {
   wiki_identifier: string;
   slug: string;
   language: string;
-  version: number;
   theme_color?: string | null;
   hero_image: {
     src: string;
     alt: string;
   };
-  basic: WikiDetail["basic"];
+  basic: WikiDraftDetail["basic"];
   contents: WikiSectionContentPayload[];
 };
 
 export type WikiEditRequestPayload = {
-  resourceType: WikiDetail["resourceType"];
-  basic: WikiDetail["basic"];
+  resourceType: WikiDraftDetail["resourceType"];
+  basic: WikiDraftDetail["basic"];
   sections: WikiSectionContentPayload[];
   themeColor: string | null;
   imageIdentifier?: string | null;
@@ -1321,18 +1320,17 @@ export const toWikiSectionContentPayload = (
     toWikiContentPayload(normalizeWikiSectionContents(section)),
   );
 
-export const toWikiEditPayload = (wiki: WikiDetail): WikiEditPayload => ({
+export const toWikiEditPayload = (wiki: WikiDraftDetail): WikiEditPayload => ({
   wiki_identifier: wiki.wikiIdentifier,
   slug: wiki.slug,
   language: wiki.language,
-  version: wiki.version,
   theme_color: wiki.themeColor ?? null,
   hero_image: wiki.heroImage,
   basic: wiki.basic,
   contents: toWikiSectionContentPayload(wiki.sections),
 });
 
-export const toWikiEditRequestPayload = (wiki: WikiDetail): WikiEditRequestPayload => ({
+export const toWikiEditRequestPayload = (wiki: WikiDraftDetail): WikiEditRequestPayload => ({
   resourceType: wiki.resourceType,
   basic: wiki.basic,
   sections: toWikiSectionContentPayload(wiki.sections),
