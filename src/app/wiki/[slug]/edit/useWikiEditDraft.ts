@@ -95,9 +95,9 @@ export const useWikiEditDraft = (
   const [code, setCode] = useState(initialCode);
   const [codeParseError, setCodeParseError] = useState<string | null>(null);
   const [codeWarnings, setCodeWarnings] = useState(() => getWarningsFromCode(initialCode));
-  const [editingId, setEditingId] = useState<WikiContentEditorId | "basic" | "hero" | null>(
-    null,
-  );
+  const [editingId, setEditingId] = useState<
+    WikiContentEditorId | "basic" | "hero" | "title" | null
+  >(null);
   const [saveState, setSaveState] = useState<WikiSaveState>({
     status: "saved",
     message: "Saved",
