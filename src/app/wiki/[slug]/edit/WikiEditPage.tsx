@@ -15,6 +15,8 @@ import {
   WikiSectionEditor,
   WikiStatePanel,
   cardSurfaceStyle,
+  EditIcon,
+  getString,
   mainBackgroundStyle,
   type WikiImageUsageRequestInput,
 } from "../../../../components/Wiki";
@@ -117,6 +119,10 @@ function WikiEditContent({
   const editBasic = () => {
     setIsBasicFlipped(true);
     setEditingId("basic");
+  };
+  const editTitle = () => {
+    setIsBasicFlipped(false);
+    setEditingId("title");
   };
   const isBusy = saveState.status === "saving" || saveState.status === "submitting";
   const clearChanges = () => {
@@ -227,10 +233,65 @@ function WikiEditContent({
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <header>
-          <div>
-            <h1 className="text-4xl font-semibold tracking-[-0.05em] text-text-strong lg:text-5xl">
-              {draft.basic.name}
-            </h1>
+          <div className="max-w-3xl">
+            {editingId === "title" ? (
+              <form
+                className="grid gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const formData = new FormData(event.currentTarget);
+                  const name = getString(formData, "title");
+
+                  updateBasic({
+                    ...draft.basic,
+                    name,
+                  });
+                  closeEditor();
+                }}
+              >
+                <label className="grid gap-2 text-sm font-semibold text-text-strong">
+                  Title
+                  <input
+                    autoFocus
+                    className="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3 text-3xl font-semibold text-text-strong outline-none focus:border-text-muted lg:text-4xl"
+                    defaultValue={draft.basic.name}
+                    name="title"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong"
+                    style={cardSurfaceStyle}
+                    type="submit"
+                  >
+                    Save
+                  </button>
+                  <button
+                    className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
+                    onClick={closeEditor}
+                    style={cardSurfaceStyle}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-start gap-3">
+                <h1 className="min-w-0 text-4xl font-semibold text-text-strong lg:text-5xl">
+                  {draft.basic.name}
+                </h1>
+                <button
+                  aria-label="Edit wiki title"
+                  className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+                  onClick={editTitle}
+                  style={cardSurfaceStyle}
+                  type="button"
+                >
+                  <EditIcon />
+                </button>
+              </div>
+            )}
             {saveState.showMessage ? (
               <p
                 className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"

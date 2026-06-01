@@ -564,6 +564,32 @@ describe("WikiEditPage", () => {
     expect(screen.getByLabelText("Quote")).toBeInTheDocument();
   });
 
+  it("edits the wiki title and saves it with the draft", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(successState, saveAdapter);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Aurora Echo Updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByRole("heading", { name: "Aurora Echo Updated" })).toBeInTheDocument();
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(saveAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        basic: expect.objectContaining({
+          name: "Aurora Echo Updated",
+        }),
+      }),
+    );
+  });
+
   it("shows the formatting toolbar only while editing a text block", () => {
     renderPage();
 
