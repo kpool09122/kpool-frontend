@@ -96,8 +96,10 @@ export const useWikiEditDraft = (
   const [codeParseError, setCodeParseError] = useState<string | null>(null);
   const [codeWarnings, setCodeWarnings] = useState(() => getWarningsFromCode(initialCode));
   const [editingId, setEditingId] = useState<
-    WikiContentEditorId | "basic" | "hero" | "title" | null
+    WikiContentEditorId | "basic" | "title" | null
   >(null);
+  const [newContentEditorId, setNewContentEditorId] =
+    useState<WikiContentEditorId | null>(null);
   const [saveState, setSaveState] = useState<WikiSaveState>({
     status: "saved",
     message: "Saved",
@@ -209,7 +211,34 @@ export const useWikiEditDraft = (
     clearDraft,
     requestPublication,
     saveDraft,
-    setEditingId,
+    setEditingId: (
+      nextEditingId: WikiContentEditorId | "basic" | "title" | null,
+    ) => {
+      setEditingId(nextEditingId);
+      if (
+        nextEditingId === null ||
+        nextEditingId === "basic" ||
+        nextEditingId === "title" ||
+        nextEditingId !== newContentEditorId
+      ) {
+        setNewContentEditorId(null);
+      }
+    },
+    cancelEditing: () => {
+      if (editingId && editingId === newContentEditorId) {
+        const [, identifier] = editingId.split(":");
+
+        commitDraft({
+          ...draft,
+          sections: deleteWikiContent(draft.sections, identifier),
+        });
+        setNewContentEditorId(null);
+        setEditingId(null);
+        return;
+      }
+
+      setEditingId(null);
+    },
     updateCode: (nextCode: string) => {
       setCode(nextCode);
       const parsed = parseWikiSectionsFromCode(nextCode);
@@ -273,16 +302,24 @@ export const useWikiEditDraft = (
     updateSection: (
       sectionIdentifier: string,
       changes: Parameters<typeof updateWikiSection>[2],
-    ) =>
+    ) => {
       commitDraft({
         ...draft,
         sections: updateWikiSection(draft.sections, sectionIdentifier, changes),
-      }),
-    updateBlock: (blockIdentifier: string, changes: Partial<WikiBlock>) =>
+      });
+      if (editingId === newContentEditorId) {
+        setNewContentEditorId(null);
+      }
+    },
+    updateBlock: (blockIdentifier: string, changes: Partial<WikiBlock>) => {
       commitDraft({
         ...draft,
         sections: updateWikiBlock(draft.sections, blockIdentifier, changes),
-      }),
+      });
+      if (editingId === newContentEditorId) {
+        setNewContentEditorId(null);
+      }
+    },
     addSection: (parentSectionIdentifier?: string) => {
       const [sections, nextEditingId] = addWikiSection(
         draft.sections,
@@ -294,6 +331,7 @@ export const useWikiEditDraft = (
         sections,
       });
       setEditingId(nextEditingId);
+      setNewContentEditorId(nextEditingId);
     },
     addBlock: (sectionIdentifier: string, blockType: WikiBlockType) => {
       const [sections, nextEditingId] = addWikiBlock(
@@ -307,6 +345,7 @@ export const useWikiEditDraft = (
         sections,
       });
       setEditingId(nextEditingId);
+      setNewContentEditorId(nextEditingId);
     },
     deleteContent: (identifier: string) => {
       commitDraft({
@@ -314,6 +353,7 @@ export const useWikiEditDraft = (
         sections: deleteWikiContent(draft.sections, identifier),
       });
       setEditingId(null);
+      setNewContentEditorId(null);
     },
   };
 };

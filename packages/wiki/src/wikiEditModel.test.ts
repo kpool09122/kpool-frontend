@@ -351,6 +351,43 @@ describe("wikiEditModel", () => {
     ]);
   });
 
+  it("round-trips profile card list related resource type through code and payload", () => {
+    const momoWikiIdentifier = "11111111-1111-1111-1111-111111111111";
+    const sanaWikiIdentifier = "22222222-2222-2222-2222-222222222222";
+    const parsed = parseWikiSectionsFromCode([
+      "== Members ==",
+      "",
+      `[[profiles|ids:${momoWikiIdentifier},${sanaWikiIdentifier}|resourceType:talent|title:TWICE Members]]`,
+    ].join("\n"));
+
+    expect(parsed.ok).toBe(true);
+
+    if (!parsed.ok) {
+      return;
+    }
+
+    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+      {
+        type: "section",
+        title: "Members",
+        displayOrder: 10,
+        contents: [
+          {
+            type: "profile_card_list",
+            displayOrder: 10,
+            relatedResourceType: "talent",
+            profiles: [],
+            title: "TWICE Members",
+            wikiIdentifiers: [momoWikiIdentifier, sanaWikiIdentifier],
+          },
+        ],
+      },
+    ]);
+    expect(serializeWikiSectionsToCode(parsed.sections)).toContain(
+      `[[profiles|ids:${momoWikiIdentifier},${sanaWikiIdentifier}|resourceType:talent|title:TWICE Members]]`,
+    );
+  });
+
   it("parses supported table width and colspan syntax into structured table cells", () => {
     const parsed = parseWikiSectionsFromCode([
       "== Highlights ==",

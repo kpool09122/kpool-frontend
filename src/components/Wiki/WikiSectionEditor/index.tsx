@@ -6,9 +6,10 @@ import {
   isWikiSection,
   sortWikiSectionContents,
   type WikiBlock,
-  type WikiBlockType,
-  type WikiContentEditorId,
-  type WikiSection,
+    type WikiBlockType,
+    type WikiContentEditorId,
+    type WikiResourceType,
+    type WikiSection,
 } from "@kpool/wiki";
 
 import { getString } from "../editing";
@@ -21,6 +22,11 @@ import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 type WikiSectionEditorProps = {
   editingId: string | null;
   language: string;
+  sourceWiki?: {
+    language: string;
+    resourceType: WikiResourceType;
+    slug: string;
+  };
   section: WikiSection;
   onEdit: (id: WikiContentEditorId) => void;
   onCancel: () => void;
@@ -64,6 +70,7 @@ export function WikiSectionEditor({
   editingId,
   language,
   section,
+  sourceWiki,
   onEdit,
   onCancel,
   onSaveSection,
@@ -141,6 +148,7 @@ export function WikiSectionEditor({
                 onDelete={() => onDeleteContent(content.blockIdentifier)}
                 onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
                 onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
+                sourceWiki={sourceWiki}
               />
             ) : isWikiSection(content) ? (
               <WikiSectionEditor
@@ -155,6 +163,7 @@ export function WikiSectionEditor({
                 onSaveBlock={onSaveBlock}
                 onSaveSection={onSaveSection}
                 section={content}
+                sourceWiki={sourceWiki}
               />
             ) : null,
           )}

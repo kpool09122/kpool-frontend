@@ -23,4 +23,31 @@ describe("WikiBasicFieldsList", () => {
     expect(screen.getByText("Girl Group")).toBeInTheDocument();
     expect(screen.getByText("Agency")).toBeInTheDocument();
   });
+
+  it("renders basic relation names as public wiki links", () => {
+    render(
+      <WikiBasicFieldsList
+        basic={{
+          ...wikiStoryBasic,
+          groups: [
+            {
+              wikiIdentifier: "group-wiki-1",
+              slug: "gr-twice",
+              language: "ko",
+              name: "TWICE",
+              normalizedName: "twice",
+            },
+          ],
+        }}
+        className="grid gap-4"
+        itemClassName="rounded-xl"
+        itemStyle={cardSurfaceStyle}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "TWICE" })).toHaveAttribute(
+      "href",
+      "/wiki/ko/gr-twice",
+    );
+  });
 });

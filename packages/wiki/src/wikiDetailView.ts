@@ -1,13 +1,36 @@
 import type { WikiBasic, WikiSection } from "./types/wiki";
+import { buildWikiPath } from "./wikiRouting";
+
+export type WikiBasicFieldLink = {
+  href: string;
+  label: string;
+};
 
 export type WikiBasicField = {
   label: string;
   value: string;
+  links?: WikiBasicFieldLink[];
+};
+
+const getRelationLinks = (relations: WikiBasic["groups"] | WikiBasic["talents"]): WikiBasicFieldLink[] | undefined => {
+  const links = relations?.flatMap((relation) =>
+    relation.slug && relation.language
+      ? [
+          {
+            href: buildWikiPath(relation.language, relation.slug),
+            label: relation.name,
+          },
+        ]
+      : [],
+  );
+
+  return links && links.length > 0 ? links : undefined;
 };
 
 const basicFieldLabels: Array<{
   label: string;
   getValue: (basic: WikiBasic) => string | null | undefined;
+  getLinks?: (basic: WikiBasic) => WikiBasicFieldLink[] | undefined;
 }> = [
   { label: "Group Type", getValue: (basic) => basic.groupType },
   { label: "Status", getValue: (basic) => basic.status },
@@ -23,6 +46,11 @@ const basicFieldLabels: Array<{
   },
   { label: "Song Type", getValue: (basic) => basic.songType },
   { label: "Genres", getValue: (basic) => basic.genres?.join(", ") ?? null },
+  {
+    label: "Groups",
+    getLinks: (basic) => getRelationLinks(basic.groups),
+    getValue: (basic) => basic.groups?.map((group) => group.name).join(", ") ?? null,
+  },
   { label: "Release Date", getValue: (basic) => basic.releaseDate },
   { label: "Album", getValue: (basic) => basic.albumName },
   { label: "Lyricist", getValue: (basic) => basic.lyricist },
@@ -40,6 +68,11 @@ const basicFieldLabels: Array<{
   },
   { label: "Blood Type", getValue: (basic) => basic.bloodType },
   {
+    label: "Talents",
+    getLinks: (basic) => getRelationLinks(basic.talents),
+    getValue: (basic) => basic.talents?.map((talent) => talent.name).join(", ") ?? null,
+  },
+  {
     label: "Official Colors",
     getValue: (basic) => basic.officialColors?.join(", ") ?? null,
   },
@@ -54,6 +87,7 @@ export const getWikiBasicFields = (basic: WikiBasic): WikiBasicField[] =>
       ? [
           {
             label: field.label,
+            links: field.getLinks?.(basic),
             value,
           },
         ]

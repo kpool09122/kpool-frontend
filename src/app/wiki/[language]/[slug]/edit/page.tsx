@@ -18,6 +18,9 @@ type WikiEditRouteProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const getSingleSearchParam = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;
 

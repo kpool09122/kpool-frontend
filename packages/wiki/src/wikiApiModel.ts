@@ -5,6 +5,7 @@ import {
   type WikiBlockType,
   type WikiDetail,
   type WikiEmbedProvider,
+  type WikiProfileCardSummary,
   type WikiSectionContent,
   wikiDetailSchema,
   type WikiResourceType,
@@ -38,6 +39,42 @@ export const withWikiApiPrefix = (baseUrl: string): string =>
 export const toStringArray = (value: unknown): string[] | undefined =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
+    : undefined;
+
+const toWikiIdentifierArray = (value: unknown): string[] | undefined =>
+  Array.isArray(value)
+    ? value.flatMap((item) => {
+        const record = toRecord(item);
+        const wikiIdentifier = record.wikiIdentifier ?? record.wiki_identifier;
+
+        return typeof wikiIdentifier === "string" ? [wikiIdentifier] : [];
+      })
+    : undefined;
+
+const toWikiBasicRelationSummaries = (
+  value: unknown,
+): WikiBasic["groups"] | undefined =>
+  Array.isArray(value)
+    ? value.flatMap((item) => {
+        const record = toRecord(item);
+        const wikiIdentifier = record.wikiIdentifier ?? record.wiki_identifier;
+        const name = record.name;
+
+        if (typeof wikiIdentifier !== "string" || typeof name !== "string") {
+          return [];
+        }
+
+        return [
+          {
+            ...record,
+            wikiIdentifier,
+            name,
+            slug: toOptionalString(record.slug),
+            language: toOptionalString(record.language),
+            normalizedName: toOptionalString(record.normalizedName ?? record.normalized_name),
+          },
+        ];
+      })
     : undefined;
 
 export const toOptionalString = (value: unknown): string | undefined =>
@@ -142,6 +179,10 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
     fandomName: toOptionalString(basic.fandomName),
     generation: toOptionalString(basic.generation),
     genres: toStringArray(basic.genres),
+    groups: toWikiBasicRelationSummaries(basic.groups),
+    groupIdentifiers:
+      toStringArray(basic.groupIdentifiers ?? basic.group_identifiers) ??
+      toWikiIdentifierArray(basic.groups),
     groupType: toOptionalString(basic.groupType),
     height: typeof basic.height === "number" ? basic.height : undefined,
     lyricist: toOptionalString(basic.lyricist),
@@ -155,6 +196,10 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
     socialLinks: toStringArray(basic.socialLinks),
     songType: toOptionalString(basic.songType),
     status: toOptionalString(basic.status),
+    talents: toWikiBasicRelationSummaries(basic.talents),
+    talentIdentifiers:
+      toStringArray(basic.talentIdentifiers ?? basic.talent_identifiers) ??
+      toWikiIdentifierArray(basic.talents),
     zodiacSign: toOptionalString(basic.zodiacSign),
   };
 };
@@ -179,6 +224,40 @@ const toNumber = (value: unknown, fallback: number): number =>
 
 const toStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const toWikiResourceType = (value: unknown, fallbackSlug: string): WikiResourceType => {
+  if (value === "agency" || value === "group" || value === "song" || value === "talent") {
+    return value;
+  }
+
+  return getWikiResourceTypeFromSlug(fallbackSlug) ?? "talent";
+};
+
+const toProfileCardSummaries = (value: unknown): WikiProfileCardSummary[] =>
+  Array.isArray(value)
+    ? value.flatMap((profile) => {
+        const record = toRecord(profile);
+        const wikiIdentifier = toString(record.wikiIdentifier ?? record.wiki_identifier);
+        const slug = toString(record.slug);
+        const language = toString(record.language);
+        const name = toString(record.name);
+
+        if (!wikiIdentifier || !slug || !language || !name) {
+          return [];
+        }
+
+        return [{
+          wikiIdentifier,
+          slug,
+          language,
+          resourceType: toWikiResourceType(record.resourceType ?? record.resource_type, slug),
+          name,
+          normalizedName: toString(record.normalizedName ?? record.normalized_name, name),
+          imageUrl: toNullable(record.imageUrl ?? record.image_url),
+          imageAltText: toNullable(record.imageAltText ?? record.image_alt_text),
+        }];
+      })
+    : [];
 
 const toEmbedProvider = (value: unknown): WikiEmbedProvider => {
   const provider = toString(value);
@@ -353,14 +432,19 @@ const adaptWikiBlock = (
             : null,
       };
     }
-    case "profile_card_list":
+    case "profile_card_list": {
+      const profiles = toProfileCardSummaries(content.profiles);
+
       return {
         blockIdentifier,
         blockType,
         displayOrder,
+        relatedResourceType: toNullable(content.relatedResourceType ?? content.related_resource_type) as WikiResourceType | null,
+        profiles,
         wikiIdentifiers: toStringList(content.wikiIdentifiers ?? content.wiki_identifiers),
         title: toNullable(content.title),
       };
+    }
     default:
       return null;
   }

@@ -18,10 +18,10 @@ const successState: WikiDetailState = {
       src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%233560a3'/%3E%3C/svg%3E",
       alt: "Aurora Echo hero image",
     },
-    basic: {
-      name: "Aurora Echo",
-      normalizedName: "aurora-echo",
-      resourceType: "group",
+      basic: {
+        name: "Aurora Echo",
+        normalizedName: "aurora-echo",
+        resourceType: "group",
       groupType: "Girl Group",
       status: "Active",
       generation: "5th",
@@ -29,9 +29,25 @@ const successState: WikiDetailState = {
       fandomName: "Daybreak",
       emoji: "🌅",
       representativeSymbol: "Solar wave",
-      officialColors: ["Solar Gold", "Midnight Blue"],
-      agencyName: "North Harbor Entertainment",
-    },
+        officialColors: ["Solar Gold", "Midnight Blue"],
+        agencyName: "North Harbor Entertainment",
+        talents: [
+          {
+            wikiIdentifier: "talent-wiki-1",
+            slug: "tl-momo",
+            language: "ko",
+            name: "MOMO",
+            normalizedName: "momo",
+          },
+          {
+            wikiIdentifier: "talent-wiki-2",
+            slug: "tl-sana",
+            language: "ko",
+            name: "SANA",
+            normalizedName: "sana",
+          },
+        ],
+      },
     sections: [
       {
         type: "section",
@@ -50,7 +66,19 @@ const successState: WikiDetailState = {
             blockIdentifier: "members-profiles",
             blockType: "profile_card_list",
             displayOrder: 20,
-            wikiIdentifiers: ["gr-aurora-echo"],
+            profiles: [
+              {
+                wikiIdentifier: "related-wiki-1",
+                slug: "gr-aurora-echo",
+                language: "ja",
+                resourceType: "group",
+                name: "Aurora Echo",
+                normalizedName: "aurora-echo",
+                imageUrl: null,
+                imageAltText: null,
+              },
+            ],
+            wikiIdentifiers: ["33333333-3333-3333-3333-333333333333"],
             title: "Related profiles",
           },
         ],
@@ -98,6 +126,15 @@ describe("WikiDetailPage", () => {
     expect(screen.getAllByText("Aurora Echo")[0]).toBeInTheDocument();
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Members")).toBeInTheDocument();
+    expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
+      "href",
+      "/wiki/ko/tl-momo",
+    );
+    expect(screen.getAllByRole("link", { name: "SANA" })[0]).toHaveAttribute(
+      "href",
+      "/wiki/ko/tl-sana",
+    );
     expect(screen.getByText("Overview body")).toBeInTheDocument();
     expect(screen.getByTitle("YouTube embed: Overview video")).toHaveAttribute(
       "src",

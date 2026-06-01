@@ -13,15 +13,12 @@ type WikiHeroBasicFlipCardProps = {
   basic: WikiBasic;
   isFlipped: boolean;
   flipCardId: string;
-  isHeroEditing: boolean;
   isBasicEditing: boolean;
   profileLabel?: string;
   onFlipChange: (isFlipped: boolean) => void;
-  onEditHero: () => void;
   onOpenImageLibrary?: () => void;
   onEditBasic: () => void;
   onCancel: () => void;
-  onSaveHero: (heroImage: WikiDetail["heroImage"]) => void;
   onSaveBasic: (basic: WikiBasic) => void;
 };
 
@@ -30,15 +27,12 @@ export function WikiHeroBasicFlipCard({
   basic,
   isFlipped,
   flipCardId,
-  isHeroEditing,
   isBasicEditing,
   profileLabel = "Basic profile",
   onFlipChange,
-  onEditHero,
   onOpenImageLibrary,
   onEditBasic,
   onCancel,
-  onSaveHero,
   onSaveBasic,
 }: WikiHeroBasicFlipCardProps) {
   return (
@@ -67,23 +61,17 @@ export function WikiHeroBasicFlipCard({
             <div className="absolute inset-0 overflow-hidden rounded-[2rem] [backface-visibility:hidden]">
               <WikiHeroPanel
                 heroImage={heroImage}
-                isEditing={isHeroEditing}
-                onCancel={onCancel}
-                onEdit={onEditHero}
                 onOpenImageLibrary={onOpenImageLibrary}
-                onSave={onSaveHero}
               />
             </div>
-            {!isHeroEditing ? (
-              <label
-                aria-label="Flip wiki edit card to basic details"
-                className={`absolute bottom-0 left-0 right-0 z-20 h-24 rounded-b-[1.75rem] ${
-                  isFlipped ? "pointer-events-none" : "cursor-pointer"
-                }`}
-                data-testid="wiki-edit-flip-front-toggle"
-                htmlFor={flipCardId}
-              />
-            ) : null}
+            <label
+              aria-label="Flip wiki edit card to basic details"
+              className={`absolute bottom-0 left-0 right-0 z-20 h-24 rounded-b-[1.75rem] ${
+                isFlipped ? "pointer-events-none" : "cursor-pointer"
+              }`}
+              data-testid="wiki-edit-flip-front-toggle"
+              htmlFor={flipCardId}
+            />
 
             <div
               className={`absolute inset-0 z-20 flex h-full flex-col overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] ${

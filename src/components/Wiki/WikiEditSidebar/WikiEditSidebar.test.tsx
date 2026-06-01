@@ -41,12 +41,9 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.click(screen.getByRole("button", { name: "Dark" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
-    expect(screen.getByText("gr-")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Resource type"), {
       target: { value: "song" },
-    });
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "new-slug" },
     });
 
     expect(onSave).toHaveBeenCalled();
@@ -56,6 +53,5 @@ describe("WikiEditSidebar", () => {
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
     expect(onToggle).toHaveBeenCalled();
     expect(onUpdateSettings).toHaveBeenCalledWith({ resourceType: "song" });
-    expect(onUpdateSettings).toHaveBeenCalledWith({ slug: "gr-new-slug" });
   });
 });

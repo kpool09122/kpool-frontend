@@ -87,7 +87,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Clear wiki changes" })).toBeVisible();
-  await expect(page.getByLabel("Slug")).toHaveValue("aurora-echo");
+  await expect(page.getByLabel("Slug")).toHaveCount(0);
   await expect(page.getByRole("group", { name: "Preview mode" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Default" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Theme color" })).toBeVisible();
@@ -100,7 +100,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByText("Editable image").first()).toBeVisible();
+  await expect(page.getByText("Selected image").first()).toBeVisible();
   const editFlipInput = page.getByTestId("wiki-edit-flip-input");
   const editFlipButton = page.getByTestId("wiki-edit-flip-front-toggle");
   const editFlipCard = page.getByTestId("wiki-edit-flip-card");
@@ -269,19 +269,96 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   await expect(page.getByLabel("Wiki code")).toHaveValue(/\[\[나연\(TWICE\)\|나연\]\]/);
   await page.getByRole("button", { name: "gui" }).click();
   await expect(page.locator('a[href="/wiki/ja/%EB%82%98%EC%97%B0(TWICE)"]')).toHaveCount(1);
-  await expect(page.locator('a[href="/wiki/ja/tl-nayeon-twice"]')).toHaveAttribute(
-    "href",
-    "/wiki/ja/tl-nayeon-twice",
-  );
+  await expect(page.locator('a[href="/wiki/ja/tl-nayeon-twice"]')).toHaveCount(0);
   await expect(page.getByLabel("Footnote: 오디션 프로그램 SIXTEEN을 통해 결성되었다.")).toBeVisible();
   await expect(page.getByText("Included from 틀:TWICE/음반")).toBeVisible();
   await expect(page.getByTitle("YouTube embed: TWICE \"CHEER UP\" M/V")).toHaveAttribute(
     "src",
     "https://www.youtube-nocookie.com/embed/c7rCyll5AeY",
   );
-  await expect(page.locator('a[href="/wiki/ja/tl-momo-twice"]')).toHaveAttribute(
-    "href",
-    "/wiki/ja/tl-momo-twice",
+  await expect(page.locator('a[href="/wiki/ja/tl-momo-twice"]')).toHaveCount(0);
+  await expect(page.getByText("関連プロフィールはありません")).toBeVisible();
+});
+
+test("wiki edit Profiles block loads related profiles from resource type selection", async ({
+  page,
+}) => {
+  const saveRequests: unknown[] = [];
+  let relatedProfilesRequestUrl = "";
+
+  await page.route("**/api/wiki/ja/gr-twice/related-profiles?**", async (route) => {
+    relatedProfilesRequestUrl = route.request().url();
+    await route.fulfill({
+      contentType: "application/json",
+      status: 200,
+      body: JSON.stringify({
+        profiles: [
+          {
+            wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+            slug: "tl-momo",
+            language: "ja",
+            resourceType: "talent",
+            name: "MOMO",
+            normalizedName: "momo",
+            imageIdentifier: null,
+            imageUrl: null,
+            imageAltText: null,
+          },
+          {
+            wikiIdentifier: "22222222-2222-2222-2222-222222222222",
+            slug: "tl-sana",
+            language: "ja",
+            resourceType: "talent",
+            name: "SANA",
+            normalizedName: "sana",
+            imageIdentifier: null,
+            imageUrl: null,
+            imageAltText: null,
+          },
+        ],
+      }),
+    });
+  });
+  await page.route("**/api/wiki/drafts/*", async (route) => {
+    saveRequests.push(route.request().postDataJSON());
+    await route.fulfill({
+      contentType: "application/json",
+      status: 201,
+      body: JSON.stringify({
+        language: "ja",
+        name: "TWICE",
+        resourceType: "group",
+        status: "draft",
+      }),
+    });
+  });
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/wiki/ja/gr-twice/edit");
+  await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+
+  const profilesBlock = page.getByTestId("wiki-edit-block-block-twice-members-profiles");
+  await profilesBlock.getByRole("button", { name: "Edit profile_card_list block" }).click();
+  const resourceTypeSelect = profilesBlock.getByLabel("Resource type");
+
+  await expect(resourceTypeSelect.locator("option[value='group']")).toHaveCount(0);
+  await resourceTypeSelect.selectOption("talent");
+  expect(relatedProfilesRequestUrl).toBe("");
+  await profilesBlock.getByRole("button", { name: "Load related profiles" }).click();
+
+  await expect(profilesBlock.getByText("MOMO").first()).toBeVisible();
+  await expect(profilesBlock.getByText("SANA").first()).toBeVisible();
+  await expect(profilesBlock.getByLabel("Wiki slugs")).toHaveCount(0);
+  expect(relatedProfilesRequestUrl).toContain(
+    "/api/wiki/ja/gr-twice/related-profiles?resourceType=talent",
+  );
+
+  await profilesBlock.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Expand editor sidebar" }).click();
+  await page.getByRole("button", { name: "Save wiki changes" }).click();
+  await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Saved");
+  expect(JSON.stringify(saveRequests[0])).toContain(
+    '"wikiIdentifiers":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"]',
   );
 });
 
@@ -402,15 +479,12 @@ test("wiki edit page opens the image library and submits an image usage request"
   );
 });
 
-test("twice member profile cards open the member wiki pages", async ({ page }) => {
+test("identifier-only profile cards do not open mock member wiki pages", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/ja/gr-twice/edit");
 
-  await page.locator('a[href="/wiki/ja/tl-nayeon-twice"]').click();
-  await expect(page).toHaveURL(/\/wiki\/ja\/tl-nayeon-twice$/);
-  await expect(page.getByRole("heading", { name: "나연" })).toBeVisible();
-  await page.getByTestId("section-toggle-sec-nayeon-twice-overview").click({ force: true });
-  await expect(page.getByText(/TWICE의 맏언니이자 리드보컬 포지션/)).toBeVisible();
+  await expect(page.locator('a[href="/wiki/ja/tl-nayeon-twice"]')).toHaveCount(0);
+  await expect(page.getByText("関連プロフィールはありません")).toBeVisible();
 });
 
 test("wiki edit page converts supported media includes into embeds", async ({

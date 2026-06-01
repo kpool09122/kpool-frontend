@@ -31,6 +31,29 @@ export type WikiTableCell = {
 
 export type WikiResourceType = "agency" | "group" | "song" | "talent";
 
+const wikiProfileCardSummarySchema = z.object({
+  wikiIdentifier: z.string(),
+  slug: z.string(),
+  language: z.string(),
+  resourceType: z.enum(["agency", "group", "song", "talent"]),
+  name: z.string(),
+  normalizedName: z.string(),
+  imageUrl: z.string().nullable().optional(),
+  imageAltText: z.string().nullable().optional(),
+});
+
+export type WikiProfileCardSummary = z.infer<typeof wikiProfileCardSummarySchema>;
+
+const wikiBasicRelationSummarySchema = z
+  .object({
+    wikiIdentifier: z.string(),
+    slug: z.string().optional(),
+    language: z.string().optional(),
+    name: z.string(),
+    normalizedName: z.string().optional(),
+  })
+  .passthrough();
+
 export type WikiTextBlock = {
   blockIdentifier: string;
   blockType: "text";
@@ -100,6 +123,8 @@ export type WikiProfileCardListBlock = {
   blockIdentifier: string;
   blockType: "profile_card_list";
   displayOrder: number;
+  relatedResourceType?: WikiResourceType | null;
+  profiles?: WikiProfileCardSummary[];
   wikiIdentifiers: string[];
   title: string | null;
 };
@@ -187,6 +212,8 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("profile_card_list"),
+    relatedResourceType: z.enum(["agency", "group", "song", "talent"]).nullable().optional(),
+    profiles: z.array(wikiProfileCardSummarySchema).optional(),
     wikiIdentifiers: z.array(z.string()),
     title: z.string().nullable(),
   }),
@@ -222,6 +249,8 @@ export const wikiBasicSchema = z.object({
   socialLinks: z.array(z.string()).optional(),
   songType: z.string().optional(),
   genres: z.array(z.string()).optional(),
+  groups: z.array(wikiBasicRelationSummarySchema).optional(),
+  groupIdentifiers: z.array(z.string()).optional(),
   releaseDate: z.string().optional(),
   albumName: z.string().optional(),
   lyricist: z.string().optional(),
@@ -235,6 +264,8 @@ export const wikiBasicSchema = z.object({
   englishLevel: z.string().optional(),
   height: z.number().int().optional(),
   bloodType: z.string().optional(),
+  talents: z.array(wikiBasicRelationSummarySchema).optional(),
+  talentIdentifiers: z.array(z.string()).optional(),
 });
 
 const wikiDetailBaseSchema = z.object({

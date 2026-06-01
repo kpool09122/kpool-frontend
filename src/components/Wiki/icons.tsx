@@ -74,7 +74,7 @@ export function ChevronIcon() {
 export function ImageEditableOverlay() {
   return (
     <span className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
-      Editable image
+      Selected image
     </span>
   );
 }
