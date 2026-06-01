@@ -4,6 +4,7 @@ import type {
   WikiDraftDetail,
   WikiEmbedBlock,
   WikiEmbedProvider,
+  WikiProfileCardListBlock,
   WikiSection,
   WikiSectionContent,
 } from "./types/wiki";
@@ -37,6 +38,8 @@ export type WikiSectionContentPayload =
       rowCells?: Array<Array<{ content: string; colspan?: number }>>;
       headerCells?: Array<{ content: string; colspan?: number }> | null;
       tableWidth?: number | null;
+      relatedResourceType?: WikiDraftDetail["resourceType"] | null;
+      profiles?: WikiProfileCardListBlock["profiles"];
       wikiIdentifiers?: string[];
       title?: string | null;
     };
@@ -265,6 +268,7 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
     case "profile_card_list":
       return serializeCodeMacro("profiles", [
         `ids:${block.wikiIdentifiers.map(escapeCodeValue).join(",")}`,
+        serializeCodeField("resourceType", block.relatedResourceType),
         serializeCodeField("title", block.title),
       ].filter((value): value is string => Boolean(value)));
   }
@@ -799,6 +803,9 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
 
         addBlock({
           blockType: "profile_card_list",
+          relatedResourceType: macro.fields.resourceType
+            ? (unescapeCodeValue(macro.fields.resourceType) as WikiDraftDetail["resourceType"])
+            : null,
           title: macro.fields.title ? unescapeCodeValue(macro.fields.title) : null,
           wikiIdentifiers: identifiers,
         });
@@ -1169,7 +1176,9 @@ export const createWikiBlock = (
         blockIdentifier,
         blockType,
         displayOrder,
-        wikiIdentifiers: ["aurora-echo"],
+        relatedResourceType: null,
+        profiles: [],
+        wikiIdentifiers: [],
         title: "Related profiles",
       };
   }
@@ -1408,6 +1417,8 @@ const toWikiContentPayload = (
       return {
         type: content.blockType,
         displayOrder: content.displayOrder,
+        relatedResourceType: content.relatedResourceType ?? null,
+        profiles: content.profiles ?? [],
         wikiIdentifiers: content.wikiIdentifiers,
         title: content.title,
       };

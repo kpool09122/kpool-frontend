@@ -12,14 +12,11 @@ const meta = {
     basic: wikiStoryBasic,
     isFlipped: false,
     flipCardId: "wiki-story-flip-card",
-    isHeroEditing: false,
     isBasicEditing: false,
     onCancel: noop,
     onEditBasic: noop,
-    onEditHero: noop,
     onFlipChange: noop,
     onSaveBasic: noop,
-    onSaveHero: noop,
   },
   parameters: {
     layout: "padded",
@@ -34,10 +31,9 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {},
   render: (args) => {
-    function StoryComponent() {
-      const [isFlipped, setIsFlipped] = useState(args.isFlipped);
-      const [isHeroEditing, setIsHeroEditing] = useState(args.isHeroEditing);
-      const [isBasicEditing, setIsBasicEditing] = useState(args.isBasicEditing);
+      function StoryComponent() {
+        const [isFlipped, setIsFlipped] = useState(args.isFlipped);
+        const [isBasicEditing, setIsBasicEditing] = useState(args.isBasicEditing);
 
       return (
         <div className="max-w-md">
@@ -47,16 +43,12 @@ export const Default: Story = {
             heroImage={args.heroImage}
             isBasicEditing={isBasicEditing}
             isFlipped={isFlipped}
-            isHeroEditing={isHeroEditing}
             onCancel={() => {
-              setIsHeroEditing(false);
               setIsBasicEditing(false);
             }}
             onEditBasic={() => setIsBasicEditing(true)}
-            onEditHero={() => setIsHeroEditing(true)}
             onFlipChange={setIsFlipped}
             onSaveBasic={() => setIsBasicEditing(false)}
-            onSaveHero={() => setIsHeroEditing(false)}
           />
         </div>
       );

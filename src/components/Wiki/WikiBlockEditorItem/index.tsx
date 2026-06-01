@@ -1,6 +1,6 @@
 "use client";
 
-import { type WikiBlock } from "@kpool/wiki";
+import { type WikiBlock, type WikiResourceType } from "@kpool/wiki";
 
 import { EditIcon, TrashIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
@@ -15,6 +15,11 @@ type WikiBlockEditorItemProps = {
   onCancel: () => void;
   onSave: (changes: Partial<WikiBlock>) => void;
   onDelete: () => void;
+  sourceWiki?: {
+    language: string;
+    resourceType: WikiResourceType;
+    slug: string;
+  };
 };
 
 export function WikiBlockEditorItem({
@@ -25,6 +30,7 @@ export function WikiBlockEditorItem({
   onCancel,
   onSave,
   onDelete,
+  sourceWiki,
 }: WikiBlockEditorItemProps) {
   const controls = (
     <div className="flex gap-2">
@@ -39,7 +45,7 @@ export function WikiBlockEditorItem({
         <div className="mb-3 flex justify-end">
           {controls}
         </div>
-        <WikiBlockForm block={block} onCancel={onCancel} onSave={onSave} />
+        <WikiBlockForm block={block} onCancel={onCancel} onSave={onSave} sourceWiki={sourceWiki} />
       </article>
     );
   }

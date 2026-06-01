@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { wikiStoryHeroImage, noop } from "../storybook/fixtures";
+import { wikiStoryHeroImage } from "../storybook/fixtures";
 import { WikiHeroPanel } from "./index";
 
 const meta = {
@@ -8,10 +8,6 @@ const meta = {
   component: WikiHeroPanel,
   args: {
     heroImage: wikiStoryHeroImage,
-    isEditing: false,
-    onEdit: noop,
-    onCancel: noop,
-    onSave: noop,
   },
   parameters: {
     layout: "padded",
@@ -24,17 +20,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const View: Story = {
-  render: (args) => (
-    <div className="max-w-3xl">
-      <WikiHeroPanel {...args} />
-    </div>
-  ),
-};
-
-export const Editing: Story = {
-  args: {
-    isEditing: true,
-  },
   render: (args) => (
     <div className="max-w-3xl">
       <WikiHeroPanel {...args} />

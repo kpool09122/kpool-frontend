@@ -243,7 +243,25 @@ describe("draftWiki", () => {
         bloodType: "A",
         englishLevel: "Advanced",
         fandomName: "ONCE",
-        groups: [],
+        groups: [
+          {
+            wikiIdentifier: "group-wiki-1",
+            slug: "gr-twice",
+            language: "ko",
+            name: "TWICE",
+            normalizedName: "twice",
+            agencyIdentifier: null,
+            groupType: null,
+            status: null,
+            generation: null,
+            debutDate: null,
+            disbandDate: null,
+            fandomName: "ONCE",
+            officialColors: [],
+            emoji: "",
+            representativeSymbol: "",
+          },
+        ],
         height: 163,
         mbti: "ISFP",
         name: "Nayeon",
@@ -272,7 +290,95 @@ describe("draftWiki", () => {
     expect(wiki.basic.resourceType).toBe("talent");
     expect(wiki.basic.realName).toBe("Im Na-yeon");
     expect(wiki.basic.height).toBe(163);
+    expect(wiki.basic.groups).toEqual([
+      expect.objectContaining({
+        name: "TWICE",
+        wikiIdentifier: "group-wiki-1",
+      }),
+    ]);
+    expect(wiki.basic.groupIdentifiers).toEqual(["group-wiki-1"]);
     expect(wiki.themeColor).toBeNull();
+  });
+
+  it("normalizes song relation summaries into editable identifier arrays", () => {
+    const wiki = adaptDraftWikiResponse({
+      basic: {
+        albumName: "Page Two",
+        arranger: "Black Eyed Pilseung",
+        composer: "Black Eyed Pilseung",
+        genres: ["K-pop"],
+        groups: [
+          {
+            wikiIdentifier: "group-wiki-1",
+            slug: "gr-twice",
+            language: "ko",
+            name: "TWICE",
+            normalizedName: "twice",
+            agencyIdentifier: null,
+            groupType: null,
+            status: null,
+            generation: null,
+            debutDate: null,
+            disbandDate: null,
+            fandomName: "ONCE",
+            officialColors: [],
+            emoji: "",
+            representativeSymbol: "",
+          },
+        ],
+        lyricist: "Sam Lewis",
+        name: "Cheer Up",
+        normalizedName: "cheer-up",
+        releaseDate: "2016-04-25",
+        songType: "title",
+        talents: [
+          {
+            wikiIdentifier: "talent-wiki-1",
+            slug: "tl-momo",
+            language: "ko",
+            name: "MOMO",
+            normalizedName: "momo",
+            realName: "Hirai Momo",
+            normalizedRealName: "hirai-momo",
+            birthday: null,
+            agencyIdentifier: null,
+            emoji: "",
+            representativeSymbol: "",
+            position: "Main Dancer",
+            mbti: null,
+            zodiacSign: null,
+            englishLevel: null,
+            height: null,
+            bloodType: null,
+            fandomName: "ONCE",
+          },
+        ],
+      },
+      heroImage: null,
+      language: "ko",
+      resourceType: "song",
+      sections: [],
+      slug: "sg-cheer-up",
+      themeColor: null,
+      translationSetIdentifier: "translation-set-song",
+      version: 2,
+      wikiIdentifier: "song-wiki-1",
+    });
+
+    expect(wiki.basic.groupIdentifiers).toEqual(["group-wiki-1"]);
+    expect(wiki.basic.groups).toEqual([
+      expect.objectContaining({
+        name: "TWICE",
+        wikiIdentifier: "group-wiki-1",
+      }),
+    ]);
+    expect(wiki.basic.talentIdentifiers).toEqual(["talent-wiki-1"]);
+    expect(wiki.basic.talents).toEqual([
+      expect.objectContaining({
+        name: "MOMO",
+        wikiIdentifier: "talent-wiki-1",
+      }),
+    ]);
   });
 
   it("returns an error when the draft api base url is not configured", async () => {

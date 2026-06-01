@@ -37,6 +37,7 @@ describe("WikiEditPage", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("does not expose retired wiki image library compatibility helpers", () => {
@@ -55,8 +56,7 @@ describe("WikiEditPage", () => {
     expect(screen.getByRole("button", { name: "gui" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "code" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByLabelText("Resource type")).toHaveValue("group");
-    expect(screen.getByText("gr-")).toBeInTheDocument();
-    expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo");
+    expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Preview mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Theme color" })).toBeInTheDocument();
@@ -66,16 +66,48 @@ describe("WikiEditPage", () => {
     );
     expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "light");
     expect(screen.getAllByTestId("wiki-edit-flip-input")[0]).not.toBeChecked();
-    expect(screen.getAllByText("Editable image").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Selected image").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Edit hero image" })).not.toBeInTheDocument();
     expect(screen.getByTestId("wiki-edit-section-sec-overview")).toBeInTheDocument();
     expect(screen.getByTestId("wiki-edit-block-block-discography-quote")).toBeInTheDocument();
     expect(screen.getByTitle("YouTube embed: Stage video")).toHaveAttribute(
       "src",
       "https://www.youtube-nocookie.com/embed/low-tide-high-lights",
     );
-    expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
+    expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
+  });
+
+  it("renders relation names in the editable basic view", () => {
+    renderPage({
+      status: "success",
+      data: {
+        ...createMockWikiDetail("gr-twice"),
+        basic: {
+          ...createMockWikiDetail("gr-twice").basic,
+          talents: [
+            {
+              wikiIdentifier: "talent-wiki-1",
+              slug: "tl-momo",
+              language: "ko",
+              name: "MOMO",
+              normalizedName: "momo",
+            },
+            {
+              wikiIdentifier: "talent-wiki-2",
+              slug: "tl-sana",
+              language: "ko",
+              name: "SANA",
+              normalizedName: "sana",
+            },
+          ],
+        },
+      },
+    });
+
+    expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-aurora-echo",
+      "/wiki/ko/tl-momo",
     );
   });
 
@@ -564,6 +596,102 @@ describe("WikiEditPage", () => {
     expect(screen.getByLabelText("Quote")).toBeInTheDocument();
   });
 
+  it("removes a newly added block when its editor is canceled", () => {
+    renderPage();
+
+    const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview"));
+    fireEvent.click(addControls.getByText("+ Block"));
+    fireEvent.click(addControls.getByRole("button", { name: "Quote" }));
+
+    expect(screen.getByLabelText("Quote")).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Cancel" }).at(-1)!);
+
+    expect(screen.queryByLabelText("Quote")).not.toBeInTheDocument();
+    expect(screen.queryByTestId(/wiki-edit-block-block-quote/)).not.toBeInTheDocument();
+  });
+
+  it("removes a newly added section when its editor is canceled", () => {
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "+ Section" }).at(-1)!);
+
+    expect(screen.getByLabelText("Section title")).toHaveValue("New section");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Cancel" }).at(-1)!);
+
+    expect(screen.queryByLabelText("Section title")).not.toBeInTheDocument();
+    expect(screen.queryByText("New section")).not.toBeInTheDocument();
+  });
+
+  it("shows related profile cards from the Profiles block resource type selection", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          profiles: [
+            {
+              wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+              slug: "tl-momo",
+              language: "ja",
+              resourceType: "talent",
+              name: "MOMO",
+              normalizedName: "momo",
+              imageIdentifier: null,
+              imageUrl: null,
+              imageAltText: null,
+            },
+            {
+              wikiIdentifier: "22222222-2222-2222-2222-222222222222",
+              slug: "tl-sana",
+              language: "ja",
+              resourceType: "talent",
+              name: "SANA",
+              normalizedName: "sana",
+              imageIdentifier: null,
+              imageUrl: null,
+              imageAltText: null,
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage({
+      status: "success",
+      data: createMockWikiDetail("gr-twice"),
+    }, saveAdapter);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit profile_card_list block" })[0]);
+    const resourceTypeSelect = screen.getAllByLabelText("Resource type")[0] as HTMLSelectElement;
+
+    expect([...resourceTypeSelect.options].map((option) => option.value)).not.toContain("group");
+
+    fireEvent.change(resourceTypeSelect, {
+      target: { value: "talent" },
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Load related profiles" }));
+
+    expect(await screen.findAllByText("MOMO")).toHaveLength(1);
+    expect(screen.getAllByText("SANA")).toHaveLength(1);
+    expect(screen.queryByLabelText("Wiki slugs")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/ja/gr-twice/related-profiles?resourceType=talent",
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(JSON.stringify(saveAdapter.mock.calls[0]?.[0])).toContain(
+      '"wikiIdentifiers":["11111111-1111-1111-1111-111111111111","22222222-2222-2222-2222-222222222222"]',
+    );
+  });
+
   it("edits the wiki title and saves it with the draft", async () => {
     const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
 
@@ -707,8 +835,8 @@ describe("WikiEditPage", () => {
 
     renderPage(successState, saveAdapter);
 
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "custom-title" },
+    fireEvent.change(screen.getByLabelText("Theme color"), {
+      target: { value: "#123456" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
 
@@ -716,7 +844,8 @@ describe("WikiEditPage", () => {
     await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
     expect(saveAdapter).toHaveBeenCalledWith(
       expect.objectContaining({
-        slug: "gr-custom-title",
+        slug: "gr-aurora-echo",
+        themeColor: "#123456",
         wikiIdentifier: "gr-aurora-echo",
         translationSetIdentifier: "translation-set-gr-aurora-echo",
       }),
@@ -764,8 +893,8 @@ describe("WikiEditPage", () => {
 
     renderPage(successState, saveAdapter);
 
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "retry-title" },
+    fireEvent.change(screen.getByLabelText("Theme color"), {
+      target: { value: "#123456" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
 
@@ -784,8 +913,8 @@ describe("WikiEditPage", () => {
 
     renderPage(successState, saveAdapter, submitAdapter);
 
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "review-title" },
+    fireEvent.change(screen.getByLabelText("Theme color"), {
+      target: { value: "#123456" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
 
@@ -793,7 +922,8 @@ describe("WikiEditPage", () => {
     await waitFor(() => expect(screen.getByText("Submitted for review")).toBeInTheDocument());
     expect(submitAdapter).toHaveBeenCalledWith(
       expect.objectContaining({
-        slug: "gr-review-title",
+        slug: "gr-aurora-echo",
+        themeColor: "#123456",
         wikiIdentifier: "gr-aurora-echo",
         translationSetIdentifier: "translation-set-gr-aurora-echo",
       }),
@@ -809,13 +939,13 @@ describe("WikiEditPage", () => {
 
     renderPage(successState, saveAdapter, submitAdapter);
 
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "retry-review" },
+    fireEvent.change(screen.getByLabelText("Theme color"), {
+      target: { value: "#123456" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
 
     await waitFor(() => expect(screen.getByText("Submit failed")).toBeInTheDocument());
-    expect(screen.getByLabelText("Slug")).toHaveValue("retry-review");
+    expect(screen.getByLabelText("Theme color")).toHaveValue("#123456");
     expect(screen.getByRole("button", { name: "Submit wiki for review" })).toBeEnabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Submit wiki for review" }));
@@ -904,8 +1034,9 @@ describe("WikiEditPage", () => {
 
     expect(screen.queryByTestId("wiki-code-warnings")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "gui" }));
-    expect(document.querySelector('a[href="/wiki/ja/tl-nayeon-twice"]')).not.toBeNull();
+    expect(document.querySelector('a[href="/wiki/ja/tl-nayeon-twice"]')).toBeNull();
     expect(screen.getByText("TWICE Members")).toBeInTheDocument();
+    expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
   });
 
   it("maps supported media include macros into embed blocks in gui mode", () => {
@@ -929,21 +1060,15 @@ describe("WikiEditPage", () => {
     );
   });
 
-  it("moves resource type editing into the sidebar and keeps slug prefixes in sync", () => {
+  it("moves resource type editing into the sidebar without showing slug controls", () => {
     renderPage();
 
     fireEvent.change(screen.getByLabelText("Resource type"), {
       target: { value: "song" },
     });
 
-    expect(screen.getByText("sg-")).toBeInTheDocument();
-    expect(screen.getByLabelText("Slug")).toHaveValue("aurora-echo");
-
-    fireEvent.change(screen.getByLabelText("Slug"), {
-      target: { value: "custom-title" },
-    });
-
-    expect(screen.getByLabelText("Slug")).toHaveValue("custom-title");
+    expect(screen.getByLabelText("Resource type")).toHaveValue("song");
+    expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
   });
 
   it("renders error and empty states", () => {

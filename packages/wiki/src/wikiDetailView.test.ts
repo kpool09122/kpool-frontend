@@ -21,6 +21,22 @@ const basic: WikiBasic = {
   representativeSymbol: "Solar wave",
   officialColors: ["Solar Gold", "Midnight Blue"],
   agencyName: "North Harbor Entertainment",
+  talents: [
+    {
+      wikiIdentifier: "talent-wiki-1",
+      slug: "tl-momo",
+      language: "ko",
+      name: "MOMO",
+      normalizedName: "momo",
+    },
+    {
+      wikiIdentifier: "talent-wiki-2",
+      slug: "tl-sana",
+      language: "ko",
+      name: "SANA",
+      normalizedName: "sana",
+    },
+  ],
 };
 
 const sections: WikiSection[] = [
@@ -72,6 +88,14 @@ describe("wikiDetailView", () => {
       { label: "Debut Date", value: "2022-03-14" },
       { label: "Fandom Name", value: "Daybreak" },
       { label: "Representative Symbol", value: "Solar wave" },
+      {
+        label: "Talents",
+        links: [
+          { href: "/wiki/ko/tl-momo", label: "MOMO" },
+          { href: "/wiki/ko/tl-sana", label: "SANA" },
+        ],
+        value: "MOMO, SANA",
+      },
       { label: "Official Colors", value: "Solar Gold, Midnight Blue" },
       { label: "Agency", value: "North Harbor Entertainment" },
     ]);

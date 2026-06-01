@@ -23,6 +23,15 @@ const publicWikiResponse = {
     officialColors: ["Solar Gold", "Midnight Blue"],
     representativeSymbol: "Solar wave",
     status: "Active",
+    talents: [
+      {
+        wikiIdentifier: "talent-wiki-1",
+        slug: "tl-momo",
+        language: "ko",
+        name: "MOMO",
+        normalizedName: "momo",
+      },
+    ],
   },
   heroImage: {
     alt: "Aurora Echo public image",
@@ -81,6 +90,13 @@ describe("publicWiki", () => {
         agencyName: "North Harbor Entertainment",
         name: "Aurora Echo",
         resourceType: "group",
+        talents: [
+          expect.objectContaining({
+            name: "MOMO",
+            wikiIdentifier: "talent-wiki-1",
+          }),
+        ],
+        talentIdentifiers: ["talent-wiki-1"],
       },
       heroImage: {
         alt: "Aurora Echo public image",

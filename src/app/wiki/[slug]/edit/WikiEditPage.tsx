@@ -96,6 +96,7 @@ function WikiEditContent({
     editingId,
     saveState,
     clearDraft,
+    cancelEditing,
     requestPublication,
     saveDraft,
     setEditingId,
@@ -110,12 +111,13 @@ function WikiEditContent({
     deleteContent,
   } = useWikiEditDraft(data, { saveAdapter, submitAdapter });
   const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
+  const sourceWiki = {
+    language,
+    resourceType: data.resourceType as WikiResourceType,
+    slug: data.slug,
+  };
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const closeEditor = () => setEditingId(null);
-  const editHeroImage = () => {
-    setIsBasicFlipped(false);
-    setEditingId("hero");
-  };
   const editBasic = () => {
     setIsBasicFlipped(true);
     setEditingId("basic");
@@ -311,10 +313,8 @@ function WikiEditContent({
               heroImage={draft.heroImage}
               isBasicEditing={editingId === "basic"}
               isFlipped={isBasicFlipped}
-              isHeroEditing={editingId === "hero"}
               onCancel={closeEditor}
               onEditBasic={editBasic}
-              onEditHero={editHeroImage}
               onFlipChange={setIsBasicFlipped}
               onOpenImageLibrary={openImageLibrary}
               onSaveBasic={(basic) => {
@@ -322,22 +322,11 @@ function WikiEditContent({
                 closeEditor();
               }}
               profileLabel={`${resourceLabel} ${t.profileSuffix}`}
-              onSaveHero={(heroImage) => {
-                updateHeroImage(heroImage);
-                closeEditor();
-              }}
             />
             <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
               <WikiHeroPanel
                 heroImage={draft.heroImage}
-                isEditing={editingId === "hero"}
-                onCancel={closeEditor}
-                onEdit={editHeroImage}
                 onOpenImageLibrary={openImageLibrary}
-                onSave={(heroImage) => {
-                  updateHeroImage(heroImage);
-                  closeEditor();
-                }}
               />
               <WikiBasicPanel
                 basic={draft.basic}
@@ -361,7 +350,7 @@ function WikiEditContent({
                   language={language}
                   onAddBlock={addBlock}
                   onAddSection={addSection}
-                  onCancel={closeEditor}
+                  onCancel={cancelEditing}
                   onDeleteContent={deleteContent}
                   onEdit={setEditingId}
                   onSaveBlock={(blockIdentifier, changes) => {
@@ -373,6 +362,7 @@ function WikiEditContent({
                     closeEditor();
                   }}
                   section={section}
+                  sourceWiki={sourceWiki}
                 />
               ))}
               <button

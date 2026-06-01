@@ -38,7 +38,7 @@ vi.mock("../../../[slug]/edit/WikiEditPage", () => ({
   ),
 }));
 
-import Page from "./page";
+import Page, { dynamic, revalidate } from "./page";
 
 const routeProps = (searchParams: Record<string, string> = {}) => ({
   params: Promise.resolve({
@@ -62,6 +62,11 @@ describe("Wiki edit route", () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it("disables route caching for realtime draft edits", () => {
+    expect(dynamic).toBe("force-dynamic");
+    expect(revalidate).toBe(0);
   });
 
   it("loads the draft directly when the edit auth gate is absent", async () => {

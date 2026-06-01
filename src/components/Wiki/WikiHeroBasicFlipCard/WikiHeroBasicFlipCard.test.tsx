@@ -18,13 +18,10 @@ describe("WikiHeroBasicFlipCard", () => {
         heroImage={wikiStoryHeroImage}
         isBasicEditing={false}
         isFlipped={false}
-        isHeroEditing={false}
         onCancel={() => {}}
         onEditBasic={() => {}}
-        onEditHero={() => {}}
         onFlipChange={onFlipChange}
         onSaveBasic={() => {}}
-        onSaveHero={() => {}}
       />,
     );
 
@@ -42,13 +39,10 @@ describe("WikiHeroBasicFlipCard", () => {
         heroImage={wikiStoryHeroImage}
         isBasicEditing={false}
         isFlipped
-        isHeroEditing={false}
         onCancel={() => {}}
         onEditBasic={() => {}}
-        onEditHero={() => {}}
         onFlipChange={() => {}}
         onSaveBasic={() => {}}
-        onSaveHero={() => {}}
       />,
     );
 

@@ -2,18 +2,24 @@
 
 import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import Image from "next/image";
 import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
 import { type FormEvent, type MouseEvent, useState } from "react";
 import {
+  getSelectableRelatedProfileResourceTypes,
   type WikiBlock,
   type WikiEmbedProvider,
   type WikiListType,
+  type WikiProfileCardSummary,
+  type WikiProfileCardListBlock,
+  type WikiResourceType,
   type WikiTableBlock,
   type WikiTableCell,
   type WikiTextBlock,
 } from "@kpool/wiki";
 
+import { fetchWikiRelatedProfiles } from "@/gateways/wiki/wikiRelatedProfilesBrowserApi";
 import {
   getLines,
   getString,
@@ -27,6 +33,13 @@ type WikiBlockFormProps = {
   block: WikiBlock;
   onCancel: () => void;
   onSave: (changes: Partial<WikiBlock>) => void;
+  sourceWiki?: WikiBlockFormSourceWiki;
+};
+
+type WikiBlockFormSourceWiki = {
+  language: string;
+  resourceType: WikiResourceType;
+  slug: string;
 };
 
 type TextBlockFormProps = {
@@ -48,6 +61,13 @@ type TableEditorState = {
   tableWidth: string;
 };
 
+type ProfileCardListBlockFormProps = {
+  block: WikiProfileCardListBlock;
+  onCancel: () => void;
+  onSave: (changes: Partial<WikiBlock>) => void;
+  sourceWiki?: WikiBlockFormSourceWiki;
+};
+
 type TableCellSelection =
   | {
       kind: "header";
@@ -66,6 +86,60 @@ const createEmptyTableCell = (): WikiTableCell => ({ content: "" });
 
 const createEmptyTableRow = (columnCount: number): WikiTableCell[] =>
   Array.from({ length: Math.max(1, columnCount) }, () => createEmptyTableCell());
+
+const getProfileCardLabel = (profile: WikiProfileCardSummary): string =>
+  profile.name.trim() || profile.slug;
+
+const toWikiResourceType = (value: string): WikiResourceType =>
+  value === "agency" || value === "group" || value === "song" || value === "talent"
+    ? value
+    : "talent";
+
+const toProfileCardSummary = (profile: {
+  wikiIdentifier: string;
+  slug: string;
+  language: string;
+  resourceType: string;
+  name: string;
+  normalizedName: string;
+  imageUrl?: string | null;
+  imageAltText?: string | null;
+}): WikiProfileCardSummary => ({
+  wikiIdentifier: profile.wikiIdentifier,
+  slug: profile.slug,
+  language: profile.language,
+  resourceType: toWikiResourceType(profile.resourceType),
+  name: profile.name,
+  normalizedName: profile.normalizedName,
+  imageUrl: profile.imageUrl ?? null,
+  imageAltText: profile.imageAltText ?? null,
+});
+
+function WikiRelatedProfilePreviewCard({ profile }: { profile: WikiProfileCardSummary }) {
+  const label = getProfileCardLabel(profile);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-surface-base">
+      <div className="relative aspect-[2/3] bg-surface-muted">
+        {profile.imageUrl ? (
+          <Image
+            alt={profile.imageAltText || label}
+            className="object-cover"
+            fill
+            sizes="160px"
+            src={profile.imageUrl}
+            unoptimized
+          />
+        ) : (
+          <div aria-hidden="true" className="h-full w-full" style={cardSurfaceStyle} />
+        )}
+      </div>
+      <div className="px-3 py-2">
+        <p className="truncate text-sm font-semibold text-text-strong">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 const getTableColumnCount = (headerCells: WikiTableCell[], rowCells: WikiTableCell[][]): number =>
   Math.max(
@@ -794,10 +868,140 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
   );
 }
 
+function WikiProfileCardListBlockForm({
+  block,
+  onCancel,
+  onSave,
+  sourceWiki,
+}: ProfileCardListBlockFormProps) {
+  const selectableResourceTypes = sourceWiki
+    ? getSelectableRelatedProfileResourceTypes(sourceWiki.resourceType)
+    : (["agency", "group", "song", "talent"] as const);
+  const initialResourceType =
+    block.relatedResourceType && selectableResourceTypes.includes(block.relatedResourceType)
+      ? block.relatedResourceType
+      : selectableResourceTypes[0] ?? "talent";
+  const [title, setTitle] = useState(block.title ?? "");
+  const [wikiIdentifiers, setWikiIdentifiers] = useState(block.wikiIdentifiers);
+  const [relatedResourceType, setRelatedResourceType] =
+    useState<WikiResourceType>(initialResourceType);
+  const [profiles, setProfiles] = useState<WikiProfileCardSummary[] | null>(block.profiles ?? null);
+  const [loadState, setLoadState] = useState<
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "success" }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
+  const canLoadRelatedProfiles = Boolean(sourceWiki);
+
+  const loadRelatedProfiles = (resourceType: WikiResourceType) => {
+    if (!sourceWiki) {
+      return;
+    }
+
+    setLoadState({ status: "loading" });
+
+    void fetchWikiRelatedProfiles({
+      fallbackErrorMessage: "関連プロフィールの取得に失敗しました",
+      language: sourceWiki.language,
+      resourceType,
+      slug: sourceWiki.slug,
+    }).then((response) => {
+      const loadedProfiles = response.profiles.map(toProfileCardSummary);
+
+      setProfiles(loadedProfiles);
+      setWikiIdentifiers(loadedProfiles.map((profile) => profile.wikiIdentifier));
+      setLoadState({ status: "success" });
+    }).catch((error: unknown) => {
+      setLoadState({
+        status: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "関連プロフィールの取得に失敗しました",
+      });
+    });
+  };
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave({
+          relatedResourceType,
+          profiles: profiles ?? [],
+          title: title.trim() || null,
+          wikiIdentifiers,
+        });
+      }}
+    >
+      <label className="grid gap-2 text-sm font-semibold text-text-strong">
+        Title
+        <input
+          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+          name="title"
+          onChange={(event) => setTitle(event.target.value)}
+          value={title}
+        />
+      </label>
+      <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">
+        Resource type
+        <select
+          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+          disabled={!canLoadRelatedProfiles || loadState.status === "loading"}
+          name="relatedResourceType"
+          onChange={(event) => setRelatedResourceType(event.target.value as WikiResourceType)}
+          value={relatedResourceType}
+        >
+          {selectableResourceTypes.map((resourceType) => (
+            <option key={resourceType} value={resourceType}>
+              {resourceType}
+            </option>
+          ))}
+        </select>
+      </label>
+      {canLoadRelatedProfiles ? (
+        <button
+          className="mt-3 rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={loadState.status === "loading"}
+          onClick={() => loadRelatedProfiles(relatedResourceType)}
+          type="button"
+        >
+          {loadState.status === "loading" ? "Loading related profiles" : "Load related profiles"}
+        </button>
+      ) : (
+        <p className="mt-3 text-sm text-text-muted">
+          Existing related profiles are preserved because source wiki context is unavailable.
+        </p>
+      )}
+      {loadState.status === "error" ? (
+        <p className="mt-3 text-sm font-semibold text-status-danger">{loadState.message}</p>
+      ) : null}
+      {loadState.status === "loading" ? (
+        <p className="mt-3 text-sm text-text-muted">関連プロフィールを取得しています</p>
+      ) : null}
+      {loadState.status === "success" && profiles?.length === 0 ? (
+        <p className="mt-3 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-4 text-sm text-text-muted">
+          関連プロフィールはありません
+        </p>
+      ) : null}
+      {profiles && profiles.length > 0 ? (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {profiles.map((profile) => (
+            <WikiRelatedProfilePreviewCard key={profile.slug} profile={profile} />
+          ))}
+        </div>
+      ) : null}
+      <WikiFormActions onCancel={onCancel} />
+    </form>
+  );
+}
+
 export function WikiBlockForm({
   block,
   onCancel,
   onSave,
+  sourceWiki,
 }: WikiBlockFormProps) {
   const submit = (
     event: FormEvent<HTMLFormElement>,
@@ -861,11 +1065,12 @@ export function WikiBlockForm({
       return <WikiTableBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "profile_card_list":
       return (
-        <form onSubmit={(event) => submit(event, (data) => ({ title: getString(data, "title") || null, wikiIdentifiers: getLines(data, "wikiIdentifiers") }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">Title<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.title ?? ""} name="title" /></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Wiki slugs<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.wikiIdentifiers.join("\n")} name="wikiIdentifiers" /></label>
-          <WikiFormActions onCancel={onCancel} />
-        </form>
+        <WikiProfileCardListBlockForm
+          block={block}
+          onCancel={onCancel}
+          onSave={onSave}
+          sourceWiki={sourceWiki}
+        />
       );
   }
 }

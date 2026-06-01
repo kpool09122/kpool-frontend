@@ -2,39 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  getWikiDetailState,
-  type WikiProfileCardListBlock,
-} from "@kpool/wiki";
+import type { WikiProfileCardListBlock } from "@kpool/wiki";
 import { buildWikiPath } from "@kpool/wiki";
+
+import { cardSurfaceStyle } from "../styles";
 
 const profileCardStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
   borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
 };
-
-type RelatedProfile = {
-  heroImage: {
-    alt: string;
-    src: string;
-  };
-  name: string;
-  slug: string;
-};
-
-function getRelatedProfile(slug: string): RelatedProfile | null {
-  const state = getWikiDetailState(slug, { language: "ja" });
-
-  if (state.status !== "success") {
-    return null;
-  }
-
-  return {
-    heroImage: state.data.heroImage,
-    name: state.data.basic.name,
-    slug: state.data.slug,
-  };
-}
 
 export function WikiRelatedProfiles({
   block,
@@ -43,12 +19,19 @@ export function WikiRelatedProfiles({
   block: WikiProfileCardListBlock;
   language: string;
 }) {
-  const profiles = block.wikiIdentifiers
-    .map((slug) => getRelatedProfile(slug.trim()))
-    .filter((profile): profile is RelatedProfile => profile !== null);
+  const profiles = block.profiles ?? [];
 
   if (profiles.length === 0) {
-    return null;
+    return (
+      <section aria-label={block.title ?? "Related profiles"}>
+        {block.title ? (
+          <h3 className="text-base font-semibold text-text-strong">{block.title}</h3>
+        ) : null}
+        <p className="mt-3 rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-5 text-sm text-text-muted">
+          関連プロフィールはありません
+        </p>
+      </section>
+    );
   }
 
   return (
@@ -60,18 +43,23 @@ export function WikiRelatedProfiles({
         {profiles.map((profile) => (
           <Link
             className="group overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 hover:shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
-            href={buildWikiPath(language, profile.slug)}
+            href={buildWikiPath(profile.language || language, profile.slug)}
             key={profile.slug}
             style={profileCardStyle}
           >
             <div className="relative aspect-[2/3] overflow-hidden bg-surface-base">
-              <Image
-                alt={profile.heroImage.alt}
-                className="object-cover transition duration-300 group-hover:scale-[1.03]"
-                fill
-                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                src={profile.heroImage.src}
-              />
+              {profile.imageUrl ? (
+                <Image
+                  alt={profile.imageAltText || profile.name}
+                  className="object-cover transition duration-300 group-hover:scale-[1.03]"
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  src={profile.imageUrl}
+                  unoptimized
+                />
+              ) : (
+                <div aria-hidden="true" className="h-full w-full" style={cardSurfaceStyle} />
+              )}
             </div>
             <div className="px-4 py-3">
               <p className="text-sm font-semibold text-text-strong">{profile.name}</p>
