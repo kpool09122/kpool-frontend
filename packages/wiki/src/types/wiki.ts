@@ -29,13 +29,17 @@ export type WikiTableCell = {
   colspan?: number;
 };
 
-export type WikiResourceType = "agency" | "group" | "song" | "talent";
+export const wikiResourceTypes = ["agency", "group", "song", "talent"] as const;
+
+export const wikiResourceTypeSchema = z.enum(wikiResourceTypes);
+
+export type WikiResourceType = z.infer<typeof wikiResourceTypeSchema>;
 
 const wikiProfileCardSummarySchema = z.object({
   wikiIdentifier: z.string(),
   slug: z.string(),
   language: z.string(),
-  resourceType: z.enum(["agency", "group", "song", "talent"]),
+  resourceType: wikiResourceTypeSchema,
   name: z.string(),
   normalizedName: z.string(),
   imageUrl: z.string().nullable().optional(),
@@ -212,7 +216,7 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("profile_card_list"),
-    relatedResourceType: z.enum(["agency", "group", "song", "talent"]).nullable().optional(),
+    relatedResourceType: wikiResourceTypeSchema.nullable().optional(),
     profiles: z.array(wikiProfileCardSummarySchema).optional(),
     wikiIdentifiers: z.array(z.string()),
     title: z.string().nullable(),
@@ -234,7 +238,7 @@ const wikiSectionSchema: z.ZodType<WikiSection> = z.lazy(() =>
 export const wikiBasicSchema = z.object({
   name: z.string(),
   normalizedName: z.string(),
-  resourceType: z.enum(["agency", "group", "song", "talent"]),
+  resourceType: wikiResourceTypeSchema,
   groupType: z.string().optional(),
   status: z.string().optional(),
   generation: z.string().optional(),
@@ -273,7 +277,7 @@ const wikiDetailBaseSchema = z.object({
   translationSetIdentifier: z.string(),
   slug: z.string(),
   language: z.string(),
-  resourceType: z.enum(["agency", "group", "song", "talent"]),
+  resourceType: wikiResourceTypeSchema,
   themeColor: z.string().nullable().optional(),
   heroImage: z.object({
     imageIdentifier: z.string().nullable().optional(),

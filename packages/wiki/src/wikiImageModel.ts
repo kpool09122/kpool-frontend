@@ -1,10 +1,7 @@
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
-import {
-  getWikiApiErrorMessage,
-  trimTrailingSlashes,
-} from "./wikiApiModel";
+import { trimTrailingSlashes } from "./wikiApiModel";
 
 const parseWikiSchema = <T>(schema: z.ZodType<T>, body: unknown): T => {
   const result = schema.safeParse(body);
@@ -259,11 +256,3 @@ export const normalizeWikiDraftImageListResponse = (body: unknown): unknown => {
     }),
   };
 };
-
-export const getWikiImageErrorMessage = (error: unknown): string =>
-  getWikiApiErrorMessage(error, {
-    notFound: "Wiki image resource was not found.",
-    requestFailedPrefix: "Wiki image request failed with status",
-    responseSchemaPrefix: "Wiki image response did not match the expected schema",
-    unavailable: "Wiki images are temporarily unavailable. Please try again later.",
-  });

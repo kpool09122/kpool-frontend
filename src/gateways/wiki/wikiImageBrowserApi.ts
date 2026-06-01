@@ -14,22 +14,10 @@ import {
   type WikiImageUploadResponse,
 } from "@kpool/wiki";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
-
-const readJsonResponse = async (response: Response): Promise<unknown> => {
-  try {
-    return await response.json();
-  } catch {
-    return {};
-  }
-};
-
-const getRouteErrorMessage = (body: unknown, fallback: string): string =>
-  typeof body === "object" &&
-  body !== null &&
-  "message" in body &&
-  typeof (body as { message: unknown }).message === "string"
-    ? (body as { message: string }).message
-    : fallback;
+import {
+  getWikiRouteErrorMessage,
+  readWikiRouteJsonResponse,
+} from "./wikiBrowserRouteSupport";
 
 export const fetchWikiDraftImages = async ({
   page,
@@ -55,10 +43,10 @@ export const fetchWikiDraftImages = async ({
   }
 
   const response = await fetch(`${url.pathname}${url.search}`);
-  const body = await readJsonResponse(response);
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
   }
 
   return parseWithSchemaLog("wiki draft image list response", wikiDraftImageListResponseSchema, normalizeWikiDraftImageListResponse(body));
@@ -82,10 +70,10 @@ export const fetchWikiImages = async ({
   url.searchParams.set("page", String(page));
 
   const response = await fetch(`${url.pathname}${url.search}`);
-  const body = await readJsonResponse(response);
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
   }
 
   return parseWithSchemaLog("wiki image list response", wikiImageListResponseSchema, body);
@@ -105,10 +93,10 @@ export const uploadWikiImageRequest = async ({
     },
     body: JSON.stringify(requestBody),
   });
-  const body = await readJsonResponse(response);
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
   }
 
   return parseWithSchemaLog("wiki image upload response", wikiImageUploadResponseSchema, body);
@@ -134,10 +122,10 @@ const reviewWikiDraftImage = async ({
       },
     },
   );
-  const body = await readJsonResponse(response);
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
   }
 
   return parseWithSchemaLog("wiki image review response", wikiImageReviewResponseSchema, body);

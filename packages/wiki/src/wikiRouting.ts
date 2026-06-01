@@ -1,6 +1,7 @@
-import type { WikiResourceType } from "./types/wiki";
+import { wikiResourceTypes, type WikiResourceType } from "./types/wiki";
 
-export const wikiResourceTypes = ["agency", "group", "song", "talent"] as const;
+export const isWikiResourceType = (value: string): value is WikiResourceType =>
+  wikiResourceTypes.some((resourceType) => resourceType === value);
 
 export const wikiResourceTypePrefixes: Record<WikiResourceType, string> = {
   agency: "ag-",

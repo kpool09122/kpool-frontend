@@ -3,25 +3,26 @@ import { z } from "zod";
 
 import {
   createWikiRelatedProfilesUrl,
-  getWikiRelatedProfilesErrorMessage,
+  wikiResourceTypeSchema,
   wikiRelatedProfilesResponseSchema,
-  type WikiResourceType,
 } from "@kpool/wiki";
-import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
+import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
   readJsonResponseBody,
 } from "../../../wikiRouteSupport";
 
-const relatedProfileResourceTypeSchema = z.enum(["agency", "group", "song", "talent"]);
+const relatedProfileResourceTypeSchema = wikiResourceTypeSchema;
+const wikiRelatedProfilesUnavailableMessage =
+  "Related profiles are temporarily unavailable. Please try again later.";
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ language: string; slug: string }> },
 ) {
-  const baseUrl = getWikiImageApiBaseUrl();
+  const baseUrl = getWikiPrivateApiBaseUrl();
 
   if (!baseUrl) {
     return jsonErrorResponse("Wiki API is not configured.", 500);
@@ -42,7 +43,7 @@ export async function GET(
       createWikiRelatedProfilesUrl({
         baseUrl,
         language,
-        resourceType: resourceTypeResult.data as WikiResourceType,
+        resourceType: resourceTypeResult.data,
         slug,
       }),
       {
@@ -54,11 +55,13 @@ export async function GET(
     const body = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
+      console.error("Wiki related profiles backend request failed", {
+        status: apiResponse.status,
+      });
+
       return NextResponse.json(
         {
-          message: getWikiRelatedProfilesErrorMessage({
-            response: { status: apiResponse.status, data: body },
-          }),
+          message: wikiRelatedProfilesUnavailableMessage,
         },
         { status: apiResponse.status },
       );
@@ -73,14 +76,18 @@ export async function GET(
     );
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("Wiki related profiles response schema validation failed", error);
+
       return NextResponse.json(
-        { message: getWikiRelatedProfilesErrorMessage(error) },
+        { message: wikiRelatedProfilesUnavailableMessage },
         { status: 502 },
       );
     }
 
+    console.error("Wiki related profiles route failed", error);
+
     return NextResponse.json(
-      { message: getWikiRelatedProfilesErrorMessage(error) },
+      { message: wikiRelatedProfilesUnavailableMessage },
       { status: 502 },
     );
   }

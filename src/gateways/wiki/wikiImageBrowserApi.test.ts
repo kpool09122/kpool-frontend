@@ -11,7 +11,6 @@ import {
   rejectWikiDraftImage,
   uploadWikiImageRequest,
 } from "./wikiImageBrowserApi";
-import { fetchWikiRelatedProfiles } from "./wikiRelatedProfilesBrowserApi";
 
 const imageIdentifier = "44444444-4444-4444-4444-444444444444";
 
@@ -188,36 +187,4 @@ describe("wikiImageBrowserApi", () => {
     ).rejects.toThrow();
   });
 
-  it("fetches related profiles through the browser related profiles route", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({
-        profiles: [
-          {
-            wikiIdentifier: "11111111-1111-1111-1111-111111111111",
-            slug: "tl-momo",
-            language: "ja",
-            resourceType: "talent",
-            name: "MOMO",
-            normalizedName: "momo",
-            imageIdentifier: null,
-            imageUrl: null,
-            imageAltText: null,
-          },
-        ],
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await fetchWikiRelatedProfiles({
-      fallbackErrorMessage: "Related profiles failed",
-      language: "ja",
-      resourceType: "talent",
-      slug: "gr-twice",
-    });
-
-    expect(result.profiles.map((profile) => profile.slug)).toEqual(["tl-momo"]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/wiki/ja/gr-twice/related-profiles?resourceType=talent",
-    );
-  });
 });

@@ -70,4 +70,36 @@ describe("wiki version inconsistent wikis route", () => {
     );
     await expect(response.json()).resolves.toEqual(expect.objectContaining({ total: 25 }));
   });
+
+  it("logs backend failure status without exposing the backend error body", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: "Internal backend path /var/app" }),
+          {
+            status: 503,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      ),
+    );
+
+    const response = await GET(
+      createRequest("https://app.example.test/api/wiki/version-inconsistent-wikis"),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.message).toBe(
+      "Wiki drafts are temporarily unavailable. Please try again later.",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "Wiki version inconsistent backend request failed",
+      { status: 503 },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
+  });
 });

@@ -1,20 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { wikiPrivateApiTypes } from "@kpool/types";
-import { z } from "zod";
 
 import {
   createWikiDraftWikisUrl,
   defaultWikiDraftPerPage,
-  getDraftWikiErrorMessage,
   wikiDraftWikiListResponseSchema,
 } from "@/gateways/wiki/draftWiki";
-import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
   parsePositiveIntegerParam,
   readJsonResponseBody,
+  wikiDraftUnavailableMessage,
 } from "../wikiRouteSupport";
 
 const parseBooleanParam = (value: string | null): boolean | undefined => {
@@ -26,7 +25,7 @@ const parseBooleanParam = (value: string | null): boolean | undefined => {
 };
 
 export async function GET(request: NextRequest) {
-  const baseUrl = getWikiImageApiBaseUrl();
+  const baseUrl = getWikiPrivateApiBaseUrl();
 
   if (!baseUrl) {
     return jsonErrorResponse("Wiki draft API is not configured.", 500);
@@ -64,8 +63,12 @@ export async function GET(request: NextRequest) {
     const body = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
+      console.error("Wiki draft wikis backend request failed", {
+        status: apiResponse.status,
+      });
+
       return NextResponse.json(
-        { message: getDraftWikiErrorMessage({ response: { status: apiResponse.status, data: body } }) },
+        { message: wikiDraftUnavailableMessage },
         { status: apiResponse.status },
       );
     }
@@ -78,15 +81,10 @@ export async function GET(request: NextRequest) {
       ),
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: getDraftWikiErrorMessage(error) },
-        { status: 502 },
-      );
-    }
+    console.error("Wiki draft wikis route failed", error);
 
     return NextResponse.json(
-      { message: getDraftWikiErrorMessage(error) },
+      { message: wikiDraftUnavailableMessage },
       { status: 502 },
     );
   }

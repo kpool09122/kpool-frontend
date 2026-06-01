@@ -1,25 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { wikiPrivateApiTypes } from "@kpool/types";
-import { z } from "zod";
 
 import {
   createWikiDraftImagesUrl,
   defaultWikiImagePerPage,
-  getWikiImageErrorMessage,
   normalizeWikiDraftImageListResponse,
   wikiDraftImageListResponseSchema,
 } from "@kpool/wiki";
-import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
   parsePositiveIntegerParam,
   readJsonResponseBody,
+  wikiImageUnavailableMessage,
 } from "../wikiRouteSupport";
 
 export async function GET(request: NextRequest) {
-  const baseUrl = getWikiImageApiBaseUrl();
+  const baseUrl = getWikiPrivateApiBaseUrl();
 
   if (!baseUrl) {
     return jsonErrorResponse("Wiki image API is not configured.", 500);
@@ -54,8 +53,12 @@ export async function GET(request: NextRequest) {
     const body = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
+      console.error("Wiki draft images backend request failed", {
+        status: apiResponse.status,
+      });
+
       return NextResponse.json(
-        { message: getWikiImageErrorMessage({ response: { status: apiResponse.status, data: body } }) },
+        { message: wikiImageUnavailableMessage },
         { status: apiResponse.status },
       );
     }
@@ -68,15 +71,10 @@ export async function GET(request: NextRequest) {
       ),
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: getWikiImageErrorMessage(error) },
-        { status: 502 },
-      );
-    }
+    console.error("Wiki draft images route failed", error);
 
     return NextResponse.json(
-      { message: getWikiImageErrorMessage(error) },
+      { message: wikiImageUnavailableMessage },
       { status: 502 },
     );
   }

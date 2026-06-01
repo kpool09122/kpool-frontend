@@ -101,6 +101,7 @@ describe("wiki image upload route", () => {
 
   it("returns 422 when the encoded image exceeds the schema limit", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -111,6 +112,11 @@ describe("wiki image upload route", () => {
 
     expect(response.status).toBe(422);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      "Wiki image upload route failed",
+      expect.any(Error),
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(body.base64EncodedImage);
   });
 
   it("forwards valid uploads to the backend image upload endpoint", async () => {
@@ -142,5 +148,66 @@ describe("wiki image upload route", () => {
         }),
       }),
     );
+    const forwardedRequest = fetchMock.mock.calls[0]?.[1];
+    expect(forwardedRequest).toEqual(
+      expect.objectContaining({
+        body: expect.any(String),
+      }),
+    );
+    const forwardedBody = JSON.parse((forwardedRequest as RequestInit).body as string);
+    expect(forwardedBody).toEqual(body);
+    expect(forwardedBody).not.toHaveProperty("data");
+    expect(forwardedBody).not.toHaveProperty("message");
+  });
+
+  it("logs backend failure status without exposing the backend error body", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({ message: "Internal backend path /var/app" }, 503),
+      ),
+    );
+
+    const body = createUploadBody();
+    const response = await POST(
+      createRequest(body, { "content-length": String(JSON.stringify(body).length) }),
+    );
+    const responseBody = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(responseBody.message).toBe(
+      "Wiki images are temporarily unavailable. Please try again later.",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "Wiki image upload backend request failed",
+      { status: 503 },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(body.base64EncodedImage);
+  });
+
+  it("logs upload route exceptions without exposing the upload request body", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const uploadError = new Error("network unavailable");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(uploadError));
+
+    const body = createUploadBody();
+    const response = await POST(
+      createRequest(body, { "content-length": String(JSON.stringify(body).length) }),
+    );
+    const responseBody = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(responseBody.message).toBe(
+      "Wiki images are temporarily unavailable. Please try again later.",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "Wiki image upload route failed",
+      uploadError,
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(body.base64EncodedImage);
   });
 });

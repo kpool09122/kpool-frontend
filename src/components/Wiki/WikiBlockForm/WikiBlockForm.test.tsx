@@ -279,7 +279,50 @@ describe("WikiBlockForm", () => {
     );
   });
 
-  it("keeps existing profile slugs when loading related profiles fails", async () => {
+  it("does not submit stale profiles after changing resource type before loading", () => {
+    const onSave = vi.fn();
+    const block = {
+      ...wikiStoryProfileListBlock,
+      relatedResourceType: "talent",
+      wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+      profiles: [
+        {
+          wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+          slug: "tl-momo",
+          language: "ja",
+          resourceType: "talent",
+          name: "MOMO",
+          normalizedName: "momo",
+          imageUrl: null,
+          imageAltText: null,
+        },
+      ],
+    } as typeof wikiStoryProfileListBlock;
+
+    render(
+      <WikiBlockForm
+        block={block}
+        onCancel={() => {}}
+        onSave={onSave}
+        sourceWiki={{ language: "ja", resourceType: "group", slug: "gr-twice" }}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Resource type"), {
+      target: { value: "agency" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relatedResourceType: "agency",
+        profiles: [],
+        wikiIdentifiers: [],
+      }),
+    );
+  });
+
+  it("shows a generic related profiles error when loading fails", async () => {
     const onSave = vi.fn();
     vi.stubGlobal(
       "fetch",
@@ -304,12 +347,13 @@ describe("WikiBlockForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Load related profiles" }));
 
-    expect(await screen.findByText("Related profiles failed")).toBeInTheDocument();
+    expect(await screen.findByText("関連プロフィールの取得に失敗しました")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        wikiIdentifiers: wikiStoryProfileListBlock.wikiIdentifiers,
+        profiles: [],
+        wikiIdentifiers: [],
       }),
     );
   });

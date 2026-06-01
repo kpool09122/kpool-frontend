@@ -106,13 +106,25 @@ describe("wiki draft image review route", () => {
 
   it("returns backend errors without parsing them as successful review responses", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ title: "Forbidden" }, 403)));
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({ message: "Internal backend path /var/app" }, 403),
+      ),
+    );
 
     const response = await approvePOST(createRequest(), createContext());
     const body = await response.json();
 
     expect(response.status).toBe(403);
-    expect(body.message).toContain("403");
+    expect(body.message).toBe("Wiki images are temporarily unavailable. Please try again later.");
+    expect(body.message).not.toContain("/var/app");
+    expect(consoleError).toHaveBeenCalledWith(
+      "Wiki draft image approve backend request failed",
+      { status: 403 },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
   });
 
   it("returns 502 when the backend response does not match the schema", async () => {
