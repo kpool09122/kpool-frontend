@@ -572,6 +572,7 @@ const RelatedProfileItem = z
 const ListRelatedProfilesResponseBody = z
   .object({ profiles: z.array(RelatedProfileItem) })
   .passthrough();
+const DeleteWikiRequestBody = WikiAssociationTargets;
 const WikiWorkflowRequestBody = WikiAssociationTargets;
 const UpdateWikiDraftRequestBody = WikiAssociationTargets;
 const PublishedWikiSummary = z
@@ -679,6 +680,7 @@ export const schemas = {
   TalentDraftWikiDetail,
   RelatedProfileItem,
   ListRelatedProfilesResponseBody,
+  DeleteWikiRequestBody,
   WikiWorkflowRequestBody,
   UpdateWikiDraftRequestBody,
   PublishedWikiSummary,
@@ -2109,7 +2111,7 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: WikiWorkflowRequestBody,
+        schema: DeleteWikiRequestBody.optional(),
       },
       {
         name: "wikiId",
