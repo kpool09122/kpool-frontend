@@ -590,6 +590,7 @@ const RollbackWikiResponseBody = z
 const TranslateWikiResponseBody = z
   .object({ draftWikis: z.array(DraftWikiSummary) })
   .passthrough();
+const WithdrawWikiRequestBody = WikiAssociationTargets;
 const WikiListItem = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -687,6 +688,7 @@ export const schemas = {
   RollbackWikiRequestBody,
   RollbackWikiResponseBody,
   TranslateWikiResponseBody,
+  WithdrawWikiRequestBody,
   WikiListItem,
   ListWikisResponseBody,
 };
@@ -2529,7 +2531,7 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: WikiWorkflowRequestBody,
+        schema: WithdrawWikiRequestBody.optional(),
       },
       {
         name: "wikiId",
