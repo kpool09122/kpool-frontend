@@ -109,6 +109,7 @@ type DraftWikiApiClient = {
     body: ReviewWikiRequestBody | TranslateWikiRequestBody,
   ) => Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody>;
   submitDraftWiki: (wikiId: string, body: SubmitWikiRequestBody) => Promise<DraftWikiSummary>;
+  withdrawDraftWiki: (wikiId: string) => Promise<DraftWikiSummary>;
 };
 
 export const defaultWikiDraftPerPage = 12;
@@ -210,6 +211,9 @@ export const getCreateWikiEndpointPath = (): string => "/wiki/create";
 
 export const getSubmitWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/submit`;
+
+export const getWithdrawWikiEndpointPath = (wikiId: string): string =>
+  `/wiki/${encodeURIComponent(wikiId)}/withdraw`;
 
 export const getReviewWikiEndpointPath = (
   wikiId: string,
@@ -486,6 +490,12 @@ export const submitDraftWiki = async (
 ): Promise<DraftWikiSummary> =>
   client.submitDraftWiki(wikiId, body);
 
+export const withdrawDraftWiki = async (
+  client: DraftWikiApiClient,
+  wikiId: string,
+): Promise<DraftWikiSummary> =>
+  client.withdrawDraftWiki(wikiId);
+
 export const reviewDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
@@ -660,6 +670,27 @@ export const createDraftWikiApiClient = (
                 "Content-Type": "application/json",
               },
               body: JSON.stringify(body),
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            await throwApiError(response);
+          }
+
+          const responseBody = await readResponseBody(response);
+
+          return parseDraftWikiSummaryBody(responseBody);
+        },
+        withdrawDraftWiki: async (wikiId) => {
+          const response = await fetch(
+            `${apiBaseUrl}${getWithdrawWikiEndpointPath(wikiId)}`,
+            {
+              method: "POST",
+              headers: {
+                ...forwardedHeaders,
+                Accept: "application/json",
+              },
               cache: "no-store",
             },
           );
@@ -986,6 +1017,32 @@ export const translateWikiDraft = async ({
     wikiId,
     requestBody,
   }) as Promise<TranslateWikiResponseBody>;
+
+export const withdrawWikiDraft = async ({
+  fallbackErrorMessage,
+  wikiId,
+}: {
+  fallbackErrorMessage: string;
+  wikiId: string;
+}): Promise<DraftWikiSummary> => {
+  const response = await fetch(
+    `/api/wiki/drafts/${encodeURIComponent(wikiId)}/withdraw`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    },
+  );
+  const body = await readBrowserJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseDraftWikiSummaryBody(body);
+};
 
 export const loadDraftWikiState = async (
   language: string,

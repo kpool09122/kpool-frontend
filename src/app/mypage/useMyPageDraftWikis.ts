@@ -46,6 +46,7 @@ type MyPageDraftWikiMessages = {
   draftWikiPublishFailed: string;
   draftWikiRejectFailed: string;
   draftWikiTranslateFailed: string;
+  draftWikiWithdrawFailed: string;
 };
 
 export const initialDraftWikiListState: DraftWikiListState = {
@@ -356,6 +357,36 @@ export const useMyPageDraftWikis = ({
     },
   });
 
+  const withdrawMutation = useMutation<unknown, Error, MyPageWikiListItem>({
+    mutationFn: (wiki) =>
+      adapter.withdrawDraftWiki({
+        fallbackErrorMessage: messages.draftWikiWithdrawFailed,
+        wikiId: wiki.wikiIdentifier,
+      }),
+    onMutate: (wiki) => {
+      setReviewingWikiIdentifier(wiki.wikiIdentifier);
+      setReviewError(null);
+    },
+    onSuccess: (_data, wiki) => {
+      removeWikiFromTab("submittedWikis", wiki.wikiIdentifier);
+      queryClient.invalidateQueries({
+        queryKey: myPageQueryKeys.draftWikis.list({
+          ...draftWikiListConfigByTab.editingWikis,
+          identityIdentifier,
+          tab: "editingWikis",
+        }),
+      });
+    },
+    onError: (error) => {
+      setReviewError(
+        error instanceof Error ? error.message : messages.draftWikiWithdrawFailed,
+      );
+    },
+    onSettled: () => {
+      setReviewingWikiIdentifier(null);
+    },
+  });
+
   const draftWikis = {
     approvedWikis: wikiQueries.approvedWikis.data ?? initialDraftWikis.approvedWikis,
     editingWikis: wikiQueries.editingWikis.data ?? initialDraftWikis.editingWikis,
@@ -375,6 +406,10 @@ export const useMyPageDraftWikis = ({
     deleteMutation.mutate(wiki);
   };
 
+  const withdrawDraftWiki = (wiki: MyPageWikiListItem) => {
+    withdrawMutation.mutate(wiki);
+  };
+
   return {
     deleteDraftWiki,
     deletingWikiIdentifier,
@@ -383,6 +418,7 @@ export const useMyPageDraftWikis = ({
     reviewDraftWiki,
     reviewError,
     reviewingWikiIdentifier,
+    withdrawDraftWiki,
   };
 };
 

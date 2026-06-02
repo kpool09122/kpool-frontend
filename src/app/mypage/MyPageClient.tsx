@@ -3,7 +3,6 @@
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import Link from "next/link";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -25,6 +24,7 @@ import {
   publishWikiDraft,
   rejectWikiDraft,
   translateWikiDraft,
+  withdrawWikiDraft,
   type WikiDraftWiki,
   type WikiDraftWorkflowAction,
 } from "@/gateways/wiki/draftWiki";
@@ -89,6 +89,7 @@ const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
   publishDraftWiki: publishWikiDraft,
   rejectDraftWiki: rejectWikiDraft,
   translateDraftWiki: translateWikiDraft,
+  withdrawDraftWiki: withdrawWikiDraft,
 };
 
 const initialDraftWikiLists: Record<MyPageDraftWikiActionTab, DraftWikiListState> = {
@@ -149,6 +150,7 @@ export function MyPageClient({
     draftWikiPublishFailed: t.draftWikiPublishFailed,
     draftWikiRejectFailed: t.draftWikiRejectFailed,
     draftWikiTranslateFailed: t.draftWikiTranslateFailed,
+    draftWikiWithdrawFailed: t.draftWikiWithdrawFailed,
   }), [
     t.draftWikiApproveFailed,
     t.draftWikiDeleteFailed,
@@ -156,6 +158,7 @@ export function MyPageClient({
     t.draftWikiPublishFailed,
     t.draftWikiRejectFailed,
     t.draftWikiTranslateFailed,
+    t.draftWikiWithdrawFailed,
   ]);
   const {
     deleteDraftWiki: deleteDraftWikiFromMyPage,
@@ -165,6 +168,7 @@ export function MyPageClient({
     reviewDraftWiki,
     reviewError: draftWikiReviewError,
     reviewingWikiIdentifier,
+    withdrawDraftWiki: withdrawDraftWikiFromMyPage,
   } = useMyPageDraftWikis({
     adapter: draftWikiAdapter,
     identityIdentifier: currentIdentity?.identityIdentifier ?? null,
@@ -267,6 +271,7 @@ export function MyPageClient({
             }}
             onReviewDraftWiki={(wiki, action) => void reviewDraftWiki(wiki, action)}
             onSelectWikiTab={setSelectedWikiTab}
+            onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
           />
         </section>
       </div>
@@ -296,6 +301,7 @@ function WikiPrincipalPanel({
   onDeleteDraftWiki,
   onReviewDraftWiki,
   onSelectWikiTab,
+  onWithdrawDraftWiki,
 }: {
   draftImages: DraftImageListState;
   draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
@@ -318,6 +324,7 @@ function WikiPrincipalPanel({
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
+  onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
   const canActivate = isAuthenticated && !isPending;
 
@@ -413,6 +420,7 @@ function WikiPrincipalPanel({
             onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
             onDeleteDraftWiki={onDeleteDraftWiki}
             onReviewDraftWiki={onReviewDraftWiki}
+            onWithdrawDraftWiki={onWithdrawDraftWiki}
           />
         ) : null}
       </section>
@@ -472,6 +480,7 @@ function DraftWikiListPanel({
   onReload,
   onDeleteDraftWiki,
   onReviewDraftWiki,
+  onWithdrawDraftWiki,
 }: {
   locale: Locale;
   reviewError: string | null;
@@ -484,6 +493,7 @@ function DraftWikiListPanel({
   onReload: () => void;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
+  onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
   const canLoadMore = state.pageInfo
     ? state.pageInfo.current_page < state.pageInfo.last_page
@@ -532,6 +542,7 @@ function DraftWikiListPanel({
       ) : null}
       {reviewError && (
         tab === "editingWikis" ||
+        tab === "submittedWikis" ||
         tab === "unapprovedWikis" ||
         tab === "approvedWikis" ||
         tab === "untranslatedWikis"
@@ -546,7 +557,6 @@ function DraftWikiListPanel({
       <div className="grid gap-4 md:grid-cols-2">
         {state.wikis.map((wiki) => (
           <DraftWikiCard
-            enableCardLink={tab === "submittedWikis"}
             isDeleting={deletingWikiIdentifier === wiki.wikiIdentifier}
             isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
             key={wiki.wikiIdentifier}
@@ -555,11 +565,13 @@ function DraftWikiListPanel({
             showPublishAction={tab === "approvedWikis"}
             showReviewActions={tab === "unapprovedWikis"}
             showTranslateAction={tab === "untranslatedWikis"}
+            showWithdrawAction={tab === "submittedWikis"}
             t={t}
             tab={tab}
             wiki={wiki}
             onDeleteDraftWiki={onDeleteDraftWiki}
             onReviewDraftWiki={onReviewDraftWiki}
+            onWithdrawDraftWiki={onWithdrawDraftWiki}
           />
         ))}
       </div>
@@ -582,7 +594,6 @@ function DraftWikiListPanel({
 }
 
 function DraftWikiCard({
-  enableCardLink,
   isDeleting,
   isReviewing,
   locale,
@@ -590,13 +601,14 @@ function DraftWikiCard({
   showReviewActions,
   showPublishAction,
   showTranslateAction,
+  showWithdrawAction,
   t,
   tab,
   wiki,
   onDeleteDraftWiki,
   onReviewDraftWiki,
+  onWithdrawDraftWiki,
 }: {
-  enableCardLink: boolean;
   isDeleting: boolean;
   isReviewing: boolean;
   locale: Locale;
@@ -604,11 +616,13 @@ function DraftWikiCard({
   showPublishAction: boolean;
   showReviewActions: boolean;
   showTranslateAction: boolean;
+  showWithdrawAction: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   tab: MyPageDraftWikiActionTab;
   wiki: MyPageWikiListItem;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
+  onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
   const href = getDraftWikiHref(wiki, tab);
@@ -616,27 +630,23 @@ function DraftWikiCard({
   const cardClassName =
     "wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft";
   const cardStyle = buildDraftWikiCardStyle(wiki);
-  const content = (
+
+  return (
+    <article
+      className={cardClassName}
+      style={cardStyle}
+    >
     <div className="relative z-10">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="break-words text-base font-semibold">
-            {enableCardLink ? (
-              <span
-                className="text-brand-primary underline underline-offset-4"
-                style={{ color: hasImage ? "#fffaf4" : undefined }}
-              >
-                {wiki.name}
-              </span>
-            ) : (
-              <a
-                className="text-brand-primary underline underline-offset-4"
-                href={href}
-                style={{ color: hasImage ? "#fffaf4" : undefined }}
-              >
-                {wiki.name}
-              </a>
-            )}
+            <a
+              className="text-brand-primary underline underline-offset-4"
+              href={href}
+              style={{ color: hasImage ? "#fffaf4" : undefined }}
+            >
+              {wiki.name}
+            </a>
           </h3>
           <p
             className="mt-1 text-xs font-semibold uppercase text-text-muted"
@@ -719,6 +729,22 @@ function DraftWikiCard({
           </button>
         </div>
       ) : null}
+      {showWithdrawAction ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => onWithdrawDraftWiki(wiki)}
+            style={{
+              backgroundColor: hasImage ? "rgba(255, 255, 255, 0.88)" : undefined,
+              color: hasImage ? "#15243b" : undefined,
+            }}
+            type="button"
+          >
+            {isReviewing ? t.draftWikiWithdrawing : t.withdrawDraftWiki}
+          </button>
+        </div>
+      ) : null}
       {showPublishAction ? (
         <div className="mt-4 flex flex-wrap gap-2">
           <button
@@ -744,27 +770,6 @@ function DraftWikiCard({
         </div>
       ) : null}
     </div>
-  );
-
-  if (enableCardLink) {
-    return (
-      <Link
-        aria-label={wiki.name}
-        className={`${cardClassName} block transition hover:-translate-y-0.5 hover:border-brand-primary/40`}
-        href={href}
-        style={cardStyle}
-      >
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <article
-      className={cardClassName}
-      style={cardStyle}
-    >
-      {content}
     </article>
   );
 }

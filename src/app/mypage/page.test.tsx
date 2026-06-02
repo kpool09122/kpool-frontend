@@ -225,6 +225,12 @@ const createDraftWikiAdapter = (
 	  translateDraftWiki: vi.fn().mockResolvedValue({
 	    draftWikis: [],
 	  }),
+  withdrawDraftWiki: vi.fn().mockResolvedValue({
+    language: "ja",
+    name: "未承認 Wiki",
+    resourceType: "group",
+    status: "pending",
+  }),
   ...overrides,
 });
 
@@ -482,6 +488,112 @@ describe("MyPageClient", () => {
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
+  });
+
+  it("withdraws a submitted draft wiki and removes it from the list", async () => {
+    const submittedWiki = {
+      ...draftWiki,
+      name: "申請中 Wiki",
+      status: "under_review" as const,
+    };
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockImplementation(({ status }) => Promise.resolve({
+        wikis: status === "under_review" ? [submittedWiki] : [],
+        current_page: 1,
+        last_page: 1,
+        total: status === "under_review" ? 1 : 0,
+        per_page: 12,
+      })),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: emptyDraftWikiListState,
+          submittedWikis: {
+            ...draftWikiListState,
+            wikis: [submittedWiki],
+          },
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "申請中のWiki" }));
+    expect(await screen.findByRole("button", { name: "取り下げ" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "取り下げ" }));
+
+    await waitFor(() =>
+      expect(draftWikiAdapter.withdrawDraftWiki).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki の申請を取り下げできませんでした。",
+        wikiId: draftWiki.wikiIdentifier,
+      }),
+    );
+    expect(await screen.findByText("申請中のWikiはありません")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "編集中のWiki" }));
+    await waitFor(() =>
+      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+        onlyMine: true,
+        page: 1,
+        perPage: 12,
+        status: "pending",
+      }),
+    );
+  });
+
+  it("shows a retryable error when submitted draft wiki withdrawal fails", async () => {
+    const submittedWiki = {
+      ...draftWiki,
+      name: "申請中 Wiki",
+      status: "under_review" as const,
+    };
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [submittedWiki],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+      withdrawDraftWiki: vi.fn().mockRejectedValue(new Error("wiki withdraw failed")),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: emptyDraftWikiListState,
+          submittedWikis: {
+            ...draftWikiListState,
+            wikis: [submittedWiki],
+          },
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "申請中のWiki" }));
+    fireEvent.click(await screen.findByRole("button", { name: "取り下げ" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("wiki withdraw failed");
+    expect(screen.getByRole("button", { name: "取り下げ" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "申請中 Wiki" })).toBeInTheDocument();
   });
 
   it("shows a delete action for editing draft wikis and skips deletion when cancelled", async () => {
