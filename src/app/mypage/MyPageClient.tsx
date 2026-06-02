@@ -3,7 +3,6 @@
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import Link from "next/link";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -543,6 +542,7 @@ function DraftWikiListPanel({
       ) : null}
       {reviewError && (
         tab === "editingWikis" ||
+        tab === "submittedWikis" ||
         tab === "unapprovedWikis" ||
         tab === "approvedWikis" ||
         tab === "untranslatedWikis"
@@ -557,7 +557,6 @@ function DraftWikiListPanel({
       <div className="grid gap-4 md:grid-cols-2">
         {state.wikis.map((wiki) => (
           <DraftWikiCard
-            enableCardLink={tab === "submittedWikis"}
             isDeleting={deletingWikiIdentifier === wiki.wikiIdentifier}
             isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
             key={wiki.wikiIdentifier}
@@ -566,7 +565,7 @@ function DraftWikiListPanel({
             showPublishAction={tab === "approvedWikis"}
             showReviewActions={tab === "unapprovedWikis"}
             showTranslateAction={tab === "untranslatedWikis"}
-            showWithdrawAction={tab === "unapprovedWikis"}
+            showWithdrawAction={tab === "submittedWikis"}
             t={t}
             tab={tab}
             wiki={wiki}
@@ -595,7 +594,6 @@ function DraftWikiListPanel({
 }
 
 function DraftWikiCard({
-  enableCardLink,
   isDeleting,
   isReviewing,
   locale,
@@ -611,7 +609,6 @@ function DraftWikiCard({
   onReviewDraftWiki,
   onWithdrawDraftWiki,
 }: {
-  enableCardLink: boolean;
   isDeleting: boolean;
   isReviewing: boolean;
   locale: Locale;
@@ -633,27 +630,23 @@ function DraftWikiCard({
   const cardClassName =
     "wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft";
   const cardStyle = buildDraftWikiCardStyle(wiki);
-  const content = (
+
+  return (
+    <article
+      className={cardClassName}
+      style={cardStyle}
+    >
     <div className="relative z-10">
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="break-words text-base font-semibold">
-            {enableCardLink ? (
-              <span
-                className="text-brand-primary underline underline-offset-4"
-                style={{ color: hasImage ? "#fffaf4" : undefined }}
-              >
-                {wiki.name}
-              </span>
-            ) : (
-              <a
-                className="text-brand-primary underline underline-offset-4"
-                href={href}
-                style={{ color: hasImage ? "#fffaf4" : undefined }}
-              >
-                {wiki.name}
-              </a>
-            )}
+            <a
+              className="text-brand-primary underline underline-offset-4"
+              href={href}
+              style={{ color: hasImage ? "#fffaf4" : undefined }}
+            >
+              {wiki.name}
+            </a>
           </h3>
           <p
             className="mt-1 text-xs font-semibold uppercase text-text-muted"
@@ -777,27 +770,6 @@ function DraftWikiCard({
         </div>
       ) : null}
     </div>
-  );
-
-  if (enableCardLink) {
-    return (
-      <Link
-        aria-label={wiki.name}
-        className={`${cardClassName} block transition hover:-translate-y-0.5 hover:border-brand-primary/40`}
-        href={href}
-        style={cardStyle}
-      >
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <article
-      className={cardClassName}
-      style={cardStyle}
-    >
-      {content}
     </article>
   );
 }

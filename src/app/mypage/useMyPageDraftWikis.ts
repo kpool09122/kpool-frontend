@@ -368,7 +368,7 @@ export const useMyPageDraftWikis = ({
       setReviewError(null);
     },
     onSuccess: (_data, wiki) => {
-      removeWikiFromTab("unapprovedWikis", wiki.wikiIdentifier);
+      removeWikiFromTab("submittedWikis", wiki.wikiIdentifier);
       queryClient.invalidateQueries({
         queryKey: myPageQueryKeys.draftWikis.list({
           ...draftWikiListConfigByTab.editingWikis,
