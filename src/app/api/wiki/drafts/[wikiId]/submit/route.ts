@@ -2,23 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import {
   createDraftWikiApiClient,
-  getDraftWikiErrorMessage,
   submitDraftWiki,
 } from "@/gateways/wiki/draftWiki";
-import { getForwardedWikiApiHeaders } from "../../../wikiRouteSupport";
+import {
+  getForwardedWikiApiHeaders,
+  getWikiRouteErrorStatus,
+  wikiDraftUnavailableMessage,
+} from "../../../wikiRouteSupport";
 
 type WikiDraftSubmitRouteContext = {
   params: Promise<{
     wikiId: string;
   }>;
-};
-
-const stringifyLogValue = (value: unknown): string => {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
 };
 
 export async function POST(request: NextRequest, context: WikiDraftSubmitRouteContext) {
@@ -44,11 +39,11 @@ export async function POST(request: NextRequest, context: WikiDraftSubmitRouteCo
   } catch (error) {
     console.error("Failed to submit wiki draft.", {
       wikiId,
-      error: stringifyLogValue(error),
+      status: getWikiRouteErrorStatus(error),
     });
 
     return NextResponse.json(
-      { message: getDraftWikiErrorMessage(error) },
+      { message: wikiDraftUnavailableMessage },
       { status: 502 },
     );
   }

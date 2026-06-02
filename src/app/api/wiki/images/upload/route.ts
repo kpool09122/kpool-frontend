@@ -2,18 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import {
-  getWikiImageErrorMessage,
   wikiImageMaxUploadBodyBytes,
   wikiImageUploadRequestSchema,
   wikiImageUploadResponseSchema,
 } from "@kpool/wiki";
-import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { trimTrailingSlashes } from "@kpool/wiki";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
   readJsonResponseBody,
+  wikiImageUnavailableMessage,
 } from "../../wikiRouteSupport";
 
 const validateUploadContentLength = (headers: Headers): Response | null => {
@@ -37,7 +37,7 @@ const validateUploadContentLength = (headers: Headers): Response | null => {
 };
 
 export async function POST(request: NextRequest) {
-  const baseUrl = getWikiImageApiBaseUrl();
+  const baseUrl = getWikiPrivateApiBaseUrl();
 
   if (!baseUrl) {
     return jsonErrorResponse("Wiki image API is not configured.", 500);
@@ -50,7 +50,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = parseWithSchemaLog("wiki image upload request", wikiImageUploadRequestSchema, await request.json());
+    const body = parseWithSchemaLog(
+      "wiki image upload request",
+      wikiImageUploadRequestSchema,
+      await request.json(),
+    );
     const apiResponse = await fetch(`${trimTrailingSlashes(baseUrl)}/image/upload`, {
       method: "POST",
       headers: {
@@ -63,11 +67,13 @@ export async function POST(request: NextRequest) {
     const responseBody = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
+      console.error("Wiki image upload backend request failed", {
+        status: apiResponse.status,
+      });
+
       return NextResponse.json(
         {
-          message: getWikiImageErrorMessage({
-            response: { status: apiResponse.status, data: responseBody },
-          }),
+          message: wikiImageUnavailableMessage,
         },
         { status: apiResponse.status },
       );
@@ -82,15 +88,17 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
+    console.error("Wiki image upload route failed", error);
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: getWikiImageErrorMessage(error) },
+        { message: wikiImageUnavailableMessage },
         { status: 422 },
       );
     }
 
     return NextResponse.json(
-      { message: getWikiImageErrorMessage(error) },
+      { message: wikiImageUnavailableMessage },
       { status: 502 },
     );
   }

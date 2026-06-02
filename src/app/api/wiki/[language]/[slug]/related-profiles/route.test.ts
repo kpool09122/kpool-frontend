@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 
 import { GET } from "./route";
 
+const internalBackendMessage = "Internal backend path /var/app";
+
 const createRequest = (url: string, headers: Record<string, string> = {}): NextRequest =>
   new NextRequest(url, {
     method: "GET",
@@ -91,12 +93,31 @@ describe("wiki related profiles route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("passes backend failures through as related profile load failures", async () => {
+  it("returns a route error without calling backend when resourceType is invalid", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await GET(
+      createRequest(
+        "https://app.example.test/api/wiki/ja/gr-twice/related-profiles?resourceType=invalid",
+      ),
+      createContext(),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toBe("resourceType is required.");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic related profile load failure for backend errors", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ message: "Cannot load related profiles" }), {
+        new Response(JSON.stringify({ message: internalBackendMessage }), {
           status: 422,
         }),
       ),
@@ -111,6 +132,13 @@ describe("wiki related profiles route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(422);
-    expect(body.message).toBe("Cannot load related profiles");
+    expect(body.message).toBe(
+      "Related profiles are temporarily unavailable. Please try again later.",
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "Wiki related profiles backend request failed",
+      expect.objectContaining({ status: 422 }),
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(internalBackendMessage);
   });
 });

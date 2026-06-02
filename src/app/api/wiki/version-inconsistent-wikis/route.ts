@@ -4,16 +4,16 @@ import { z } from "zod";
 import {
   createVersionInconsistentWikisUrl,
   defaultWikiDraftPerPage,
-  getDraftWikiErrorMessage,
   wikiVersionInconsistentWikiListResponseSchema,
 } from "@/gateways/wiki/draftWiki";
-import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
   parsePositiveIntegerParam,
   readJsonResponseBody,
+  wikiDraftUnavailableMessage,
 } from "../wikiRouteSupport";
 
 const sortParamSchema = z.enum(["updatedAt", "name"]);
@@ -33,7 +33,7 @@ const parseEnumParam = <T extends z.ZodEnum<[string, ...string[]]>>(
 };
 
 export async function GET(request: NextRequest) {
-  const baseUrl = getWikiImageApiBaseUrl();
+  const baseUrl = getWikiPrivateApiBaseUrl();
 
   if (!baseUrl) {
     return jsonErrorResponse("Wiki draft API is not configured.", 500);
@@ -61,8 +61,12 @@ export async function GET(request: NextRequest) {
     const body = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
+      console.error("Wiki version inconsistent backend request failed", {
+        status: apiResponse.status,
+      });
+
       return NextResponse.json(
-        { message: getDraftWikiErrorMessage({ response: { status: apiResponse.status, data: body } }) },
+        { message: wikiDraftUnavailableMessage },
         { status: apiResponse.status },
       );
     }
@@ -75,8 +79,10 @@ export async function GET(request: NextRequest) {
       ),
     );
   } catch (error) {
+    console.error("Wiki version inconsistent route failed", error);
+
     return NextResponse.json(
-      { message: getDraftWikiErrorMessage(error) },
+      { message: wikiDraftUnavailableMessage },
       { status: 502 },
     );
   }

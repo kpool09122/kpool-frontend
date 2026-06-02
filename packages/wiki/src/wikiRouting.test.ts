@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { wikiResourceTypeSchema, wikiResourceTypes } from "./types/wiki";
 import {
   buildWikiEditPath,
   buildWikiPath,
@@ -47,5 +48,11 @@ describe("wikiRouting", () => {
     expect(getWikiResourceLabel("group")).toBe("Group");
     expect(getWikiResourceLabel("song")).toBe("Song");
     expect(getWikiResourceLabel("talent")).toBe("Talent");
+  });
+
+  it("uses the shared resource type contract for routing decisions", () => {
+    expect(
+      wikiResourceTypes.map((resourceType) => wikiResourceTypeSchema.safeParse(resourceType).success),
+    ).toEqual([true, true, true, true]);
   });
 });

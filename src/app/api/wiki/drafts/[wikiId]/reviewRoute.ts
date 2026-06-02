@@ -2,26 +2,21 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import {
   createDraftWikiApiClient,
-  getDraftWikiErrorMessage,
   reviewDraftWiki,
   type WikiDraftWorkflowAction,
   wikiDraftReviewCsrfHeaderName,
   wikiDraftReviewCsrfHeaderValue,
 } from "@/gateways/wiki/draftWiki";
-import { getForwardedWikiApiHeaders } from "../../wikiRouteSupport";
+import {
+  getForwardedWikiApiHeaders,
+  getWikiRouteErrorStatus,
+  wikiDraftUnavailableMessage,
+} from "../../wikiRouteSupport";
 
 type WikiDraftReviewRouteContext = {
   params: Promise<{
     wikiId: string;
   }>;
-};
-
-const stringifyLogValue = (value: unknown): string => {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
 };
 
 const hasReviewRequestHeader = (request: NextRequest): boolean =>
@@ -59,11 +54,11 @@ export const createWikiDraftReviewRoute =
     } catch (error) {
       console.error(`Failed to ${action} wiki draft.`, {
         wikiId,
-        error: stringifyLogValue(error),
+        status: getWikiRouteErrorStatus(error),
       });
 
       return NextResponse.json(
-        { message: getDraftWikiErrorMessage(error) },
+        { message: wikiDraftUnavailableMessage },
         { status: 502 },
       );
     }

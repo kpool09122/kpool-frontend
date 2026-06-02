@@ -1,19 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { z } from "zod";
 
 import {
   createWikiDraftImageReviewUrl,
-  getWikiImageErrorMessage,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
   wikiImageReviewResponseSchema,
 } from "@kpool/wiki";
-import { getWikiImageApiBaseUrl } from "@/gateways/wiki/wikiImageServerApi";
+import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getForwardedWikiApiHeaders,
   jsonErrorResponse,
   readJsonResponseBody,
+  wikiImageUnavailableMessage,
 } from "../../wikiRouteSupport";
 
 type WikiDraftImageReviewRouteContext = {
@@ -33,7 +32,7 @@ export const createWikiDraftImageReviewRoute =
       return jsonErrorResponse("Wiki image review request is not allowed.", 403);
     }
 
-    const baseUrl = getWikiImageApiBaseUrl();
+    const baseUrl = getWikiPrivateApiBaseUrl();
 
     if (!baseUrl) {
       return jsonErrorResponse("Wiki image API is not configured.", 500);
@@ -56,8 +55,12 @@ export const createWikiDraftImageReviewRoute =
       const body = await readJsonResponseBody(apiResponse);
 
       if (!apiResponse.ok) {
+        console.error(`Wiki draft image ${action} backend request failed`, {
+          status: apiResponse.status,
+        });
+
         return NextResponse.json(
-          { message: getWikiImageErrorMessage({ response: { status: apiResponse.status, data: body } }) },
+          { message: wikiImageUnavailableMessage },
           { status: apiResponse.status },
         );
       }
@@ -66,15 +69,10 @@ export const createWikiDraftImageReviewRoute =
         parseWithSchemaLog(responseLabel, wikiImageReviewResponseSchema, body),
       );
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return NextResponse.json(
-          { message: getWikiImageErrorMessage(error) },
-          { status: 502 },
-        );
-      }
+      console.error(`Wiki draft image ${action} route failed`, error);
 
       return NextResponse.json(
-        { message: getWikiImageErrorMessage(error) },
+        { message: wikiImageUnavailableMessage },
         { status: 502 },
       );
     }

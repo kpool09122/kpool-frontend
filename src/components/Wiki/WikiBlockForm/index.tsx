@@ -8,15 +8,18 @@ import StarterKit from "@tiptap/starter-kit";
 import { type FormEvent, type MouseEvent, useState } from "react";
 import {
   getSelectableRelatedProfileResourceTypes,
+  isWikiResourceType,
   type WikiBlock,
   type WikiEmbedProvider,
   type WikiListType,
   type WikiProfileCardSummary,
   type WikiProfileCardListBlock,
+  type WikiRelatedProfile,
   type WikiResourceType,
   type WikiTableBlock,
   type WikiTableCell,
   type WikiTextBlock,
+  wikiResourceTypes,
 } from "@kpool/wiki";
 
 import { fetchWikiRelatedProfiles } from "@/gateways/wiki/wikiRelatedProfilesBrowserApi";
@@ -90,30 +93,24 @@ const createEmptyTableRow = (columnCount: number): WikiTableCell[] =>
 const getProfileCardLabel = (profile: WikiProfileCardSummary): string =>
   profile.name.trim() || profile.slug;
 
-const toWikiResourceType = (value: string): WikiResourceType =>
-  value === "agency" || value === "group" || value === "song" || value === "talent"
-    ? value
-    : "talent";
+const toProfileCardSummary = (
+  profile: WikiRelatedProfile,
+): WikiProfileCardSummary | null => {
+  if (!isWikiResourceType(profile.resourceType)) {
+    return null;
+  }
 
-const toProfileCardSummary = (profile: {
-  wikiIdentifier: string;
-  slug: string;
-  language: string;
-  resourceType: string;
-  name: string;
-  normalizedName: string;
-  imageUrl?: string | null;
-  imageAltText?: string | null;
-}): WikiProfileCardSummary => ({
-  wikiIdentifier: profile.wikiIdentifier,
-  slug: profile.slug,
-  language: profile.language,
-  resourceType: toWikiResourceType(profile.resourceType),
-  name: profile.name,
-  normalizedName: profile.normalizedName,
-  imageUrl: profile.imageUrl ?? null,
-  imageAltText: profile.imageAltText ?? null,
-});
+  return {
+    wikiIdentifier: profile.wikiIdentifier,
+    slug: profile.slug,
+    language: profile.language,
+    resourceType: profile.resourceType,
+    name: profile.name,
+    normalizedName: profile.normalizedName,
+    imageUrl: profile.imageUrl ?? null,
+    imageAltText: profile.imageAltText ?? null,
+  };
+};
 
 function WikiRelatedProfilePreviewCard({ profile }: { profile: WikiProfileCardSummary }) {
   const label = getProfileCardLabel(profile);
@@ -876,7 +873,7 @@ function WikiProfileCardListBlockForm({
 }: ProfileCardListBlockFormProps) {
   const selectableResourceTypes = sourceWiki
     ? getSelectableRelatedProfileResourceTypes(sourceWiki.resourceType)
-    : (["agency", "group", "song", "talent"] as const);
+    : wikiResourceTypes;
   const initialResourceType =
     block.relatedResourceType && selectableResourceTypes.includes(block.relatedResourceType)
       ? block.relatedResourceType
@@ -908,17 +905,26 @@ function WikiProfileCardListBlockForm({
       slug: sourceWiki.slug,
     }).then((response) => {
       const loadedProfiles = response.profiles.map(toProfileCardSummary);
+      const validProfiles = loadedProfiles.filter(
+        (profile): profile is WikiProfileCardSummary => profile !== null,
+      );
 
-      setProfiles(loadedProfiles);
-      setWikiIdentifiers(loadedProfiles.map((profile) => profile.wikiIdentifier));
+      if (validProfiles.length !== loadedProfiles.length) {
+        setLoadState({
+          status: "error",
+          message: "関連プロフィールの取得に失敗しました",
+        });
+        return;
+      }
+
+      setProfiles(validProfiles);
+      setWikiIdentifiers(validProfiles.map((profile) => profile.wikiIdentifier));
       setLoadState({ status: "success" });
     }).catch((error: unknown) => {
+      console.error("Failed to load wiki related profiles", error);
       setLoadState({
         status: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "関連プロフィールの取得に失敗しました",
+        message: "関連プロフィールの取得に失敗しました",
       });
     });
   };
@@ -950,7 +956,24 @@ function WikiProfileCardListBlockForm({
           className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
           disabled={!canLoadRelatedProfiles || loadState.status === "loading"}
           name="relatedResourceType"
-          onChange={(event) => setRelatedResourceType(event.target.value as WikiResourceType)}
+          onChange={(event) => {
+            const nextResourceType = selectableResourceTypes.find(
+              (resourceType) => resourceType === event.target.value,
+            );
+
+            if (!nextResourceType) {
+              setLoadState({
+                status: "error",
+                message: "関連プロフィールの種類が不正です",
+              });
+              return;
+            }
+
+            setRelatedResourceType(nextResourceType);
+            setProfiles([]);
+            setWikiIdentifiers([]);
+            setLoadState({ status: "idle" });
+          }}
           value={relatedResourceType}
         >
           {selectableResourceTypes.map((resourceType) => (
