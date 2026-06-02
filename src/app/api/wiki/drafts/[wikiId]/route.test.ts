@@ -21,10 +21,17 @@ const createRequest = (
     body: JSON.stringify(body),
   }) as NextRequest;
 
-const createDeleteRequest = (headers: Record<string, string> = {}): NextRequest =>
+const createDeleteRequest = (
+  body: unknown = {},
+  headers: Record<string, string> = {},
+): NextRequest =>
   new Request(`https://app.example.test/api/wiki/drafts/${wikiId}`, {
     method: "DELETE",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify(body),
   }) as NextRequest;
 
 const createContext = () => ({
@@ -119,10 +126,13 @@ describe("wiki draft save route", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await DELETE(
-      createDeleteRequest({
-        "accept-language": "ja",
-        cookie: "session=abc",
-      }),
+      createDeleteRequest(
+        { groupIdentifiers: ["55555555-5555-5555-5555-555555555555"] },
+        {
+          "accept-language": "ja",
+          cookie: "session=abc",
+        },
+      ),
       createContext(),
     );
 
@@ -133,9 +143,11 @@ describe("wiki draft save route", () => {
         cache: "no-store",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/json",
           Cookie: "session=abc",
           "Accept-Language": "ja",
         },
+        body: JSON.stringify({ groupIdentifiers: ["55555555-5555-5555-5555-555555555555"] }),
         method: "DELETE",
       }),
     );

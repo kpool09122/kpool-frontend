@@ -396,6 +396,7 @@ function WikiPrincipalPanel({
         ) : null}
         {activeWikiTab !== "draftImages" ? (
           <DraftWikiListPanel
+            locale={locale}
             reviewError={draftWikiReviewError}
             deletingWikiIdentifier={deletingWikiIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
@@ -460,6 +461,7 @@ function WikiPrincipalPanel({
 }
 
 function DraftWikiListPanel({
+  locale,
   reviewError,
   deletingWikiIdentifier,
   reviewingWikiIdentifier,
@@ -471,6 +473,7 @@ function DraftWikiListPanel({
   onDeleteDraftWiki,
   onReviewDraftWiki,
 }: {
+  locale: Locale;
   reviewError: string | null;
   deletingWikiIdentifier: string | null;
   reviewingWikiIdentifier: string | null;
@@ -547,6 +550,7 @@ function DraftWikiListPanel({
             isDeleting={deletingWikiIdentifier === wiki.wikiIdentifier}
             isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
             key={wiki.wikiIdentifier}
+            locale={locale}
             showDeleteAction={isDeletableDraftWiki(wiki, tab)}
             showPublishAction={tab === "approvedWikis"}
             showReviewActions={tab === "unapprovedWikis"}
@@ -581,6 +585,7 @@ function DraftWikiCard({
   enableCardLink,
   isDeleting,
   isReviewing,
+  locale,
   showDeleteAction,
   showReviewActions,
   showPublishAction,
@@ -594,6 +599,7 @@ function DraftWikiCard({
   enableCardLink: boolean;
   isDeleting: boolean;
   isReviewing: boolean;
+  locale: Locale;
   showDeleteAction: boolean;
   showPublishAction: boolean;
   showReviewActions: boolean;
@@ -674,7 +680,7 @@ function DraftWikiCard({
         <DraftWikiMeta
           isOnImage={hasImage}
           label={isDraftWiki ? t.draftWikiEditedAtLabel : t.untranslatedWikiUpdatedAtLabel}
-          value={formatDraftWikiDate(isDraftWiki ? wiki.editedAt : wiki.updatedAt)}
+          value={formatDraftDate(isDraftWiki ? wiki.editedAt : wiki.updatedAt, locale)}
         />
       </dl>
       {showReviewActions ? (
@@ -869,7 +875,7 @@ function DraftImageListPanel({
                   />
                   <DraftImageMeta
                     label={t.draftImageUploadedAtLabel}
-                    value={formatDraftImageDate(image.uploadedAt)}
+                    value={formatDraftDate(image.uploadedAt, locale)}
                   />
                 </dl>
                 <div className="flex flex-wrap gap-2">
@@ -1041,14 +1047,25 @@ const getDraftWikiStatusLabel = (
   status: WikiDraftWiki["status"],
 ): string => (t.draftWikiStatusLabels as Record<string, string>)[status] ?? status;
 
-const formatDraftWikiDate = (value: string | null): string => {
+const formatDraftDate = (value: string | null, locale: Locale): string => {
   if (!value) {
     return "-";
   }
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat(locale, {
+        day: "numeric",
+        hour: "numeric",
+        hour12: false,
+        minute: "2-digit",
+        month: "numeric",
+        second: "2-digit",
+        timeZone: "Asia/Tokyo",
+        year: "numeric",
+      }).format(date);
 };
 
 function DraftImageMeta({ label, value }: { label: string; value: string }) {
@@ -1112,16 +1129,6 @@ function DraftImageWikiMeta({
     </div>
   );
 }
-
-const formatDraftImageDate = (value: string | null): string => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-};
 
 const getDraftImageWikiDisplay = (
   image: WikiDraftImage,

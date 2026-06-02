@@ -58,6 +58,7 @@ const translateWikiRequestBodySchema = reviewWikiRequestBodySchema.and(
 
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWikiDraftRequestBody>;
+type DeleteWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.WikiWorkflowRequestBody>;
 type SubmitWikiRequestBody = z.infer<typeof submitWikiRequestBodySchema>;
 type ReviewWikiRequestBody = z.infer<typeof reviewWikiRequestBodySchema>;
 type TranslateWikiRequestBody = z.infer<typeof translateWikiRequestBodySchema>;
@@ -101,7 +102,7 @@ type DraftWikiApiClient = {
   ) => Promise<PublicWikiApiResponse>;
   createWikiDraft: (body: CreateWikiRequestBody) => Promise<DraftWikiSummary>;
   saveDraftWiki: (wikiId: string, body: EditWikiRequestBody) => Promise<DraftWikiSummary>;
-  deleteDraftWiki: (wikiId: string) => Promise<void>;
+  deleteDraftWiki: (wikiId: string, body: DeleteWikiRequestBody) => Promise<void>;
   reviewDraftWiki: (
     wikiId: string,
     action: WikiDraftWorkflowAction,
@@ -323,6 +324,22 @@ export const createReviewWikiRequestBody = (
   return parseWithSchemaLog("wiki review request", reviewWikiRequestBodySchema, body);
 };
 
+export const createDeleteWikiRequestBody = (
+  draft: Record<string, unknown>,
+): DeleteWikiRequestBody => {
+  const body: Record<string, unknown> = {};
+
+  copyStringProperty(draft, body, "agencyIdentifier");
+  copyStringArrayProperty(draft, body, "groupIdentifiers");
+  copyStringArrayProperty(draft, body, "talentIdentifiers");
+
+  return parseWithSchemaLog(
+    "wiki delete request",
+    wikiPrivateApiTypes.schemas.WikiWorkflowRequestBody,
+    body,
+  );
+};
+
 export const createTranslateWikiRequestBody = (
   wiki: Pick<WikiVersionInconsistentWiki, "language" | "resourceType" | "wikiIdentifier"> &
     Record<string, unknown>,
@@ -458,8 +475,9 @@ export const saveDraftWiki = async (
 export const deleteDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
+  body: DeleteWikiRequestBody,
 ): Promise<void> =>
-  client.deleteDraftWiki(wikiId);
+  client.deleteDraftWiki(wikiId, body);
 
 export const submitDraftWiki = async (
   client: DraftWikiApiClient,
@@ -585,7 +603,7 @@ export const createDraftWikiApiClient = (
 
           return parseDraftWikiSummaryBody(responseBody);
         },
-        deleteDraftWiki: async (wikiId) => {
+        deleteDraftWiki: async (wikiId, body) => {
           const response = await fetch(
             `${apiBaseUrl}${getDeleteWikiEndpointPath(wikiId)}`,
             {
@@ -593,7 +611,9 @@ export const createDraftWikiApiClient = (
               headers: {
                 ...forwardedHeaders,
                 Accept: "application/json",
+                "Content-Type": "application/json",
               },
+              body: JSON.stringify(body),
               cache: "no-store",
             },
           );
@@ -909,9 +929,11 @@ export const rejectWikiDraft = async ({
 
 export const deleteWikiDraft = async ({
   fallbackErrorMessage,
+  requestBody,
   wikiId,
 }: {
   fallbackErrorMessage: string;
+  requestBody: DeleteWikiRequestBody;
   wikiId: string;
 }): Promise<void> => {
   const response = await fetch(
@@ -921,7 +943,9 @@ export const deleteWikiDraft = async ({
       credentials: "include",
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(requestBody),
     },
   );
   const body = await readBrowserJsonResponse(response);

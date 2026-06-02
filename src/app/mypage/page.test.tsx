@@ -538,6 +538,7 @@ describe("MyPageClient", () => {
     await waitFor(() =>
       expect(draftWikiAdapter.deleteDraftWiki).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書きを削除できませんでした。",
+        requestBody: {},
         wikiId: draftWiki.wikiIdentifier,
       }),
     );

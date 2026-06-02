@@ -66,7 +66,8 @@ export async function DELETE(request: NextRequest, context: WikiDraftSaveRouteCo
   const { wikiId } = await context.params;
 
   try {
-    await deleteDraftWiki(client, wikiId);
+    const body = await request.json();
+    await deleteDraftWiki(client, wikiId, body);
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

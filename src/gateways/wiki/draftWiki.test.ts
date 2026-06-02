@@ -1252,14 +1252,18 @@ describe("draftWiki", () => {
       Cookie: "laravel_session=session-value",
     });
 
-    await expect(deleteDraftWiki(client!, "wiki-1")).resolves.toBeUndefined();
+    const requestBody = { groupIdentifiers: ["55555555-5555-5555-5555-555555555555"] };
+
+    await expect(deleteDraftWiki(client!, "wiki-1", requestBody)).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1",
       expect.objectContaining({
+        body: JSON.stringify(requestBody),
         cache: "no-store",
         headers: {
           Accept: "application/json",
           "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
           Cookie: "laravel_session=session-value",
         },
         method: "DELETE",
@@ -1593,6 +1597,7 @@ describe("draftWiki", () => {
     await expect(
       deleteWikiDraft({
         fallbackErrorMessage: "failed",
+        requestBody: { groupIdentifiers: ["55555555-5555-5555-5555-555555555555"] },
         wikiId: "wiki-1",
       }),
     ).resolves.toBeUndefined();
@@ -1602,7 +1607,9 @@ describe("draftWiki", () => {
         credentials: "include",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ groupIdentifiers: ["55555555-5555-5555-5555-555555555555"] }),
         method: "DELETE",
       }),
     );

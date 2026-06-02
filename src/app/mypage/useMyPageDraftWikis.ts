@@ -8,6 +8,7 @@ import {
 import { useCallback, useState } from "react";
 
 import {
+  createDeleteWikiRequestBody,
   createReviewWikiRequestBody,
   createTranslateWikiRequestBody,
   defaultWikiDraftPerPage,
@@ -335,6 +336,7 @@ export const useMyPageDraftWikis = ({
     mutationFn: (wiki) =>
       adapter.deleteDraftWiki({
         fallbackErrorMessage: messages.draftWikiDeleteFailed,
+        requestBody: createDeleteWikiRequestBody(wiki),
         wikiId: wiki.wikiIdentifier,
       }),
     onMutate: (wiki) => {
