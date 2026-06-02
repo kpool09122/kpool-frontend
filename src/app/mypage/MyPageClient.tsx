@@ -19,6 +19,7 @@ import {
 } from "@/gateways/wiki/wikiPrincipal";
 import {
   approveWikiDraft,
+  deleteWikiDraft,
   fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   publishWikiDraft,
@@ -82,6 +83,7 @@ const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
 
 const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
   approveDraftWiki: approveWikiDraft,
+  deleteDraftWiki: deleteWikiDraft,
   listDraftWikis: fetchWikiDraftWikis,
   listUntranslatedWikis: fetchVersionInconsistentWikis,
   publishDraftWiki: publishWikiDraft,
@@ -142,18 +144,22 @@ export function MyPageClient({
   });
   const draftWikiMessages = useMemo(() => ({
     draftWikiApproveFailed: t.draftWikiApproveFailed,
+    draftWikiDeleteFailed: t.draftWikiDeleteFailed,
     draftWikiListLoadFailed: t.draftWikiListLoadFailed,
     draftWikiPublishFailed: t.draftWikiPublishFailed,
     draftWikiRejectFailed: t.draftWikiRejectFailed,
     draftWikiTranslateFailed: t.draftWikiTranslateFailed,
   }), [
     t.draftWikiApproveFailed,
+    t.draftWikiDeleteFailed,
     t.draftWikiListLoadFailed,
     t.draftWikiPublishFailed,
     t.draftWikiRejectFailed,
     t.draftWikiTranslateFailed,
   ]);
   const {
+    deleteDraftWiki: deleteDraftWikiFromMyPage,
+    deletingWikiIdentifier,
     draftWikis,
     loadDraftWikisPage,
     reviewDraftWiki,
@@ -240,6 +246,7 @@ export function MyPageClient({
             reviewError={reviewError}
             draftWikiReviewError={draftWikiReviewError}
             reviewingImageIdentifier={reviewingImageIdentifier}
+            deletingWikiIdentifier={deletingWikiIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
             isAuthenticated={currentIdentity !== null}
             isPending={isActionPending(principalState)}
@@ -253,6 +260,11 @@ export function MyPageClient({
             onReviewDraftImage={(imageIdentifier, action) =>
               void reviewDraftImage(imageIdentifier, action)
             }
+            onDeleteDraftWiki={(wiki) => {
+              if (window.confirm(t.deleteDraftWikiConfirm)) {
+                void deleteDraftWikiFromMyPage(wiki);
+              }
+            }}
             onReviewDraftWiki={(wiki, action) => void reviewDraftWiki(wiki, action)}
             onSelectWikiTab={setSelectedWikiTab}
           />
@@ -269,6 +281,7 @@ function WikiPrincipalPanel({
   reviewError,
   draftWikiReviewError,
   reviewingImageIdentifier,
+  deletingWikiIdentifier,
   reviewingWikiIdentifier,
   isAuthenticated,
   isPending,
@@ -280,6 +293,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage,
   onRetry,
   onReviewDraftImage,
+  onDeleteDraftWiki,
   onReviewDraftWiki,
   onSelectWikiTab,
 }: {
@@ -289,6 +303,7 @@ function WikiPrincipalPanel({
   reviewError: string | null;
   draftWikiReviewError: string | null;
   reviewingImageIdentifier: string | null;
+  deletingWikiIdentifier: string | null;
   reviewingWikiIdentifier: string | null;
   isAuthenticated: boolean;
   isPending: boolean;
@@ -300,6 +315,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
@@ -380,7 +396,9 @@ function WikiPrincipalPanel({
         ) : null}
         {activeWikiTab !== "draftImages" ? (
           <DraftWikiListPanel
+            locale={locale}
             reviewError={draftWikiReviewError}
+            deletingWikiIdentifier={deletingWikiIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
             state={draftWikis[activeWikiTab]}
             t={t}
@@ -393,6 +411,7 @@ function WikiPrincipalPanel({
               }
             }}
             onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
+            onDeleteDraftWiki={onDeleteDraftWiki}
             onReviewDraftWiki={onReviewDraftWiki}
           />
         ) : null}
@@ -442,22 +461,28 @@ function WikiPrincipalPanel({
 }
 
 function DraftWikiListPanel({
+  locale,
   reviewError,
+  deletingWikiIdentifier,
   reviewingWikiIdentifier,
   state,
   t,
   tab,
   onLoadMore,
   onReload,
+  onDeleteDraftWiki,
   onReviewDraftWiki,
 }: {
+  locale: Locale;
   reviewError: string | null;
+  deletingWikiIdentifier: string | null;
   reviewingWikiIdentifier: string | null;
   state: DraftWikiListState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   tab: MyPageDraftWikiActionTab;
   onLoadMore: () => void;
   onReload: () => void;
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
 }) {
   const canLoadMore = state.pageInfo
@@ -506,6 +531,7 @@ function DraftWikiListPanel({
         </p>
       ) : null}
       {reviewError && (
+        tab === "editingWikis" ||
         tab === "unapprovedWikis" ||
         tab === "approvedWikis" ||
         tab === "untranslatedWikis"
@@ -520,15 +546,19 @@ function DraftWikiListPanel({
       <div className="grid gap-4 md:grid-cols-2">
         {state.wikis.map((wiki) => (
           <DraftWikiCard
-            enableCardLink={tab === "editingWikis" || tab === "submittedWikis"}
+            enableCardLink={tab === "submittedWikis"}
+            isDeleting={deletingWikiIdentifier === wiki.wikiIdentifier}
             isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
             key={wiki.wikiIdentifier}
+            locale={locale}
+            showDeleteAction={isDeletableDraftWiki(wiki, tab)}
             showPublishAction={tab === "approvedWikis"}
             showReviewActions={tab === "unapprovedWikis"}
             showTranslateAction={tab === "untranslatedWikis"}
             t={t}
             tab={tab}
             wiki={wiki}
+            onDeleteDraftWiki={onDeleteDraftWiki}
             onReviewDraftWiki={onReviewDraftWiki}
           />
         ))}
@@ -553,23 +583,31 @@ function DraftWikiListPanel({
 
 function DraftWikiCard({
   enableCardLink,
+  isDeleting,
   isReviewing,
+  locale,
+  showDeleteAction,
   showReviewActions,
   showPublishAction,
   showTranslateAction,
   t,
   tab,
   wiki,
+  onDeleteDraftWiki,
   onReviewDraftWiki,
 }: {
   enableCardLink: boolean;
+  isDeleting: boolean;
   isReviewing: boolean;
+  locale: Locale;
+  showDeleteAction: boolean;
   showPublishAction: boolean;
   showReviewActions: boolean;
   showTranslateAction: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   tab: MyPageDraftWikiActionTab;
   wiki: MyPageWikiListItem;
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
@@ -642,7 +680,7 @@ function DraftWikiCard({
         <DraftWikiMeta
           isOnImage={hasImage}
           label={isDraftWiki ? t.draftWikiEditedAtLabel : t.untranslatedWikiUpdatedAtLabel}
-          value={formatDraftWikiDate(isDraftWiki ? wiki.editedAt : wiki.updatedAt)}
+          value={formatDraftDate(isDraftWiki ? wiki.editedAt : wiki.updatedAt, locale)}
         />
       </dl>
       {showReviewActions ? (
@@ -666,6 +704,18 @@ function DraftWikiCard({
             type="button"
           >
             {isReviewing ? t.draftWikiReviewing : t.rejectDraftWiki}
+          </button>
+        </div>
+      ) : null}
+      {showDeleteAction ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isDeleting || isReviewing}
+            onClick={() => onDeleteDraftWiki(wiki)}
+            type="button"
+          >
+            {isDeleting ? t.draftWikiDeleting : t.deleteDraftWiki}
           </button>
         </div>
       ) : null}
@@ -825,7 +875,7 @@ function DraftImageListPanel({
                   />
                   <DraftImageMeta
                     label={t.draftImageUploadedAtLabel}
-                    value={formatDraftImageDate(image.uploadedAt)}
+                    value={formatDraftDate(image.uploadedAt, locale)}
                   />
                 </dl>
                 <div className="flex flex-wrap gap-2">
@@ -951,6 +1001,14 @@ const isDraftWikiListItem = (wiki: MyPageWikiListItem): wiki is WikiDraftWiki =>
       : "",
   );
 
+const isDeletableDraftWiki = (
+  wiki: MyPageWikiListItem,
+  tab: MyPageDraftWikiActionTab,
+): wiki is WikiDraftWiki =>
+  tab === "editingWikis" &&
+  isDraftWikiListItem(wiki) &&
+  (wiki.status === "pending" || wiki.status === "rejected");
+
 const getDraftWikiHref = (wiki: MyPageWikiListItem, tab: MyPageDraftWikiActionTab): string =>
   tab === "untranslatedWikis"
     ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
@@ -989,14 +1047,25 @@ const getDraftWikiStatusLabel = (
   status: WikiDraftWiki["status"],
 ): string => (t.draftWikiStatusLabels as Record<string, string>)[status] ?? status;
 
-const formatDraftWikiDate = (value: string | null): string => {
+const formatDraftDate = (value: string | null, locale: Locale): string => {
   if (!value) {
     return "-";
   }
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat(locale, {
+        day: "numeric",
+        hour: "numeric",
+        hour12: false,
+        minute: "2-digit",
+        month: "numeric",
+        second: "2-digit",
+        timeZone: "Asia/Tokyo",
+        year: "numeric",
+      }).format(date);
 };
 
 function DraftImageMeta({ label, value }: { label: string; value: string }) {
@@ -1060,16 +1129,6 @@ function DraftImageWikiMeta({
     </div>
   );
 }
-
-const formatDraftImageDate = (value: string | null): string => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-};
 
 const getDraftImageWikiDisplay = (
   image: WikiDraftImage,
