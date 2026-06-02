@@ -118,16 +118,29 @@ function WikiEditContent({
   };
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const closeEditor = () => setEditingId(null);
+  const isReviewLocked = draft.status === "under_review";
   const editBasic = () => {
+    if (isReviewLocked) {
+      return;
+    }
+
     setIsBasicFlipped(true);
     setEditingId("basic");
   };
   const editTitle = () => {
+    if (isReviewLocked) {
+      return;
+    }
+
     setIsBasicFlipped(false);
     setEditingId("title");
   };
   const isBusy = saveState.status === "saving" || saveState.status === "submitting";
   const clearChanges = () => {
+    if (isReviewLocked) {
+      return;
+    }
+
     if (!window.confirm(t.discardChanges)) {
       return;
     }
@@ -172,9 +185,17 @@ function WikiEditContent({
     });
   };
   const openImageLibrary = () => {
+    if (isReviewLocked) {
+      return;
+    }
+
     void loadImageLibraryPage(1);
   };
   const selectImageFromLibrary = (image: WikiUploadedImage) => {
+    if (isReviewLocked) {
+      return;
+    }
+
     updateHeroImage({
       imageIdentifier: image.imageIdentifier,
       alt: image.altText || image.sourceName || image.imageIdentifier,
@@ -187,6 +208,10 @@ function WikiEditContent({
     translationSetIdentifier: draft.translationSetIdentifier,
   });
   const uploadImage = (input: WikiImageUsageRequestInput) => {
+    if (isReviewLocked) {
+      return Promise.reject(new Error("Draft wiki is under review."));
+    }
+
     setImageLibrary((state) => ({
       ...state,
       isUploading: true,
@@ -285,7 +310,8 @@ function WikiEditContent({
                 </h1>
                 <button
                   aria-label="Edit wiki title"
-                  className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+                  className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+                  disabled={isReviewLocked}
                   onClick={editTitle}
                   style={cardSurfaceStyle}
                   type="button"
@@ -309,6 +335,7 @@ function WikiEditContent({
           <section>
             <WikiHeroBasicFlipCard
               basic={draft.basic}
+              disabled={isReviewLocked}
               flipCardId={flipCardId}
               heroImage={draft.heroImage}
               isBasicEditing={editingId === "basic"}
@@ -326,10 +353,11 @@ function WikiEditContent({
             <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
               <WikiHeroPanel
                 heroImage={draft.heroImage}
-                onOpenImageLibrary={openImageLibrary}
+                onOpenImageLibrary={isReviewLocked ? undefined : openImageLibrary}
               />
               <WikiBasicPanel
                 basic={draft.basic}
+                disabled={isReviewLocked}
                 isEditing={editingId === "basic"}
                 onCancel={closeEditor}
                 onEdit={editBasic}
@@ -352,6 +380,7 @@ function WikiEditContent({
                   onAddSection={addSection}
                   onCancel={cancelEditing}
                   onDeleteContent={deleteContent}
+                  disabled={isReviewLocked}
                   onEdit={setEditingId}
                   onSaveBlock={(blockIdentifier, changes) => {
                     updateBlock(blockIdentifier, changes);
@@ -366,7 +395,8 @@ function WikiEditContent({
                 />
               ))}
               <button
-                className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
+                className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
+                disabled={isReviewLocked}
                 onClick={() => addSection()}
                 style={cardSurfaceStyle}
                 type="button"
@@ -377,6 +407,7 @@ function WikiEditContent({
           ) : (
             <WikiCodeEditor
               code={code}
+              disabled={isReviewLocked}
               errorMessage={codeParseError}
               warnings={codeWarnings}
               onChange={updateCode}
@@ -390,13 +421,30 @@ function WikiEditContent({
           editorMode={editorMode}
           isBusy={isBusy}
           isOpen={isSidebarOpen}
-          onEditorModeChange={setEditorMode}
+          isReviewLocked={isReviewLocked}
+          onEditorModeChange={(mode) => {
+            if (!isReviewLocked) {
+              setEditorMode(mode);
+            }
+          }}
           onClear={clearChanges}
           onPreviewModeChange={setPreviewMode}
-          onSave={saveDraft}
-          onSubmit={() => void requestPublication()}
+          onSave={() => {
+            if (!isReviewLocked) {
+              saveDraft();
+            }
+          }}
+          onSubmit={() => {
+            if (!isReviewLocked) {
+              void requestPublication();
+            }
+          }}
           onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
-          onUpdateSettings={updateSettings}
+          onUpdateSettings={(settings) => {
+            if (!isReviewLocked) {
+              updateSettings(settings);
+            }
+          }}
           previewMode={previewMode}
           resourceType={draft.resourceType}
           slug={draft.slug}

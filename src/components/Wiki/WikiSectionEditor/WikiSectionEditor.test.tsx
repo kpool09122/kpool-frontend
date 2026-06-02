@@ -35,6 +35,41 @@ describe("WikiSectionEditor", () => {
     expect(onDeleteContent).toHaveBeenCalledWith(wikiStorySection.sectionIdentifier);
   });
 
+  it("disables section edit, delete, and add controls", () => {
+    const onEdit = vi.fn();
+    const onDeleteContent = vi.fn();
+
+    render(
+      <WikiSectionEditor
+        disabled
+        editingId={null}
+        language="ja"
+        onAddBlock={() => {}}
+        onAddSection={() => {}}
+        onCancel={() => {}}
+        onDeleteContent={onDeleteContent}
+        onEdit={onEdit}
+        onSaveBlock={() => {}}
+        onSaveSection={() => {}}
+        section={wikiStorySection}
+      />,
+    );
+
+    const editButton = screen.getByRole("button", { name: `Edit section ${wikiStorySection.title}` });
+    const deleteButton = screen.getByRole("button", { name: `Delete section ${wikiStorySection.title}` });
+
+    expect(editButton).toBeDisabled();
+    expect(deleteButton).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "+ Section" })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "+ Block" })[0]).toBeDisabled();
+
+    fireEvent.click(editButton);
+    fireEvent.click(deleteButton);
+
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(onDeleteContent).not.toHaveBeenCalled();
+  });
+
   it("renders the section title form when editing", () => {
     render(
       <WikiSectionEditor

@@ -288,12 +288,22 @@ const wikiDetailBaseSchema = z.object({
   sections: z.array(wikiSectionSchema),
 });
 
-export const wikiDraftDetailSchema = wikiDetailBaseSchema;
+export const wikiDraftStatusSchema = z.enum([
+  "approved",
+  "pending",
+  "rejected",
+  "under_review",
+]);
+
+export const wikiDraftDetailSchema = wikiDetailBaseSchema.extend({
+  status: wikiDraftStatusSchema.optional(),
+});
 
 export const wikiDetailSchema = wikiDetailBaseSchema.extend({
   version: z.number().int(),
 });
 
 export type WikiBasic = z.infer<typeof wikiBasicSchema>;
+export type WikiDraftStatus = z.infer<typeof wikiDraftStatusSchema>;
 export type WikiDraftDetail = z.infer<typeof wikiDraftDetailSchema>;
 export type WikiDetail = z.infer<typeof wikiDetailSchema>;

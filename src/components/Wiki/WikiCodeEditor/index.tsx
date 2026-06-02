@@ -4,6 +4,7 @@ import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiCodeEditorProps = {
   code: string;
+  disabled?: boolean;
   errorMessage: string | null;
   warnings: string[];
   onChange: (value: string) => void;
@@ -12,6 +13,7 @@ type WikiCodeEditorProps = {
 
 export function WikiCodeEditor({
   code,
+  disabled = false,
   errorMessage,
   warnings,
   onChange,
@@ -41,7 +43,8 @@ export function WikiCodeEditor({
         </div>
         {errorMessage ? (
           <button
-            className="rounded-full border border-status-danger/30 px-4 py-2 text-sm font-semibold text-status-danger transition hover:bg-status-danger/10"
+            className="rounded-full border border-status-danger/30 px-4 py-2 text-sm font-semibold text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted"
+            disabled={disabled}
             onClick={onClear}
             type="button"
           >
@@ -92,7 +95,12 @@ export function WikiCodeEditor({
           aria-label="Wiki code"
           className="min-h-[56rem] w-full rounded-[1.5rem] border border-stroke-subtle bg-surface-base px-4 py-4 font-mono text-sm leading-7 outline-none"
           data-testid="wiki-code-textarea"
-          onChange={(event) => onChange(event.currentTarget.value)}
+          disabled={disabled}
+          onChange={(event) => {
+            if (!disabled) {
+              onChange(event.currentTarget.value);
+            }
+          }}
           spellCheck={false}
           value={code}
         />

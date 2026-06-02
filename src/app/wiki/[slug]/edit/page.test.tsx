@@ -2,7 +2,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createMockWikiDetail } from "@kpool/wiki";
+import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
 
 import { WikiEditPage } from "./WikiEditPage";
 import { wikiImageMaxFileSizeBytes } from "@kpool/wiki";
@@ -12,9 +12,16 @@ const successState = {
   status: "success",
   data: createMockWikiDetail("gr-aurora-echo"),
 } as const;
+const underReviewState = {
+  status: "success",
+  data: {
+    ...createMockWikiDetail("gr-aurora-echo"),
+    status: "under_review",
+  },
+} as const;
 
 const renderPage = (
-  wikiState: { status: "success"; data: ReturnType<typeof createMockWikiDetail> } | {
+  wikiState: { status: "success"; data: WikiDraftDetail } | {
     status: "error";
     message: string;
   } | {
@@ -75,6 +82,66 @@ describe("WikiEditPage", () => {
       "https://www.youtube-nocookie.com/embed/low-tide-high-lights",
     );
     expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
+  });
+
+  it("locks under-review drafts from editing, saving, and submitting", () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const submitAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(underReviewState, saveAdapter, submitAdapter);
+
+    const saveButton = screen.getByRole("button", { name: "Save wiki changes" });
+    const submitButton = screen.getByRole("button", { name: "Submit wiki for review" });
+
+    expect(saveButton).toBeDisabled();
+    expect(submitButton).toBeDisabled();
+    expect(submitButton).toHaveTextContent("Under review");
+    expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "code" })).toBeDisabled();
+    expect(screen.getByLabelText("Resource type")).toBeDisabled();
+    expect(screen.getByLabelText("Theme color")).toBeDisabled();
+
+    fireEvent.click(saveButton);
+    fireEvent.click(submitButton);
+
+    expect(saveAdapter).not.toHaveBeenCalled();
+    expect(submitAdapter).not.toHaveBeenCalled();
+
+    expect(screen.getByRole("button", { name: "Edit wiki title" })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Edit basic" })[0]).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Open wiki image library" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Edit section Overview` })).toBeDisabled();
+    expect(screen.getByRole("button", { name: `Delete section Overview` })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Edit text block" })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "+ Section" })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "+ Block" })[0]).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+
+    expect(screen.queryByTestId("wiki-code-editor")).not.toBeInTheDocument();
+  });
+
+  it("keeps rejected drafts editable and submittable", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const submitAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage({
+      status: "success",
+      data: {
+        ...createMockWikiDetail("gr-aurora-echo"),
+        status: "rejected",
+      },
+    }, saveAdapter, submitAdapter);
+
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Submit wiki for review" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "code" })).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "+ Section" })[0]).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(submitAdapter).not.toHaveBeenCalled();
   });
 
   it("renders relation names in the editable basic view", () => {
