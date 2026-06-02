@@ -2100,6 +2100,53 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "delete",
+    path: "/wiki/:wikiId",
+    alias: "WikiOperations_deleteWiki",
+    description: `Delete a wiki draft.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: WikiWorkflowRequestBody,
+      },
+      {
+        name: "wikiId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/wiki/:wikiId/approve",
     alias: "WikiOperations_approveWiki",
@@ -2442,6 +2489,53 @@ const endpoints = makeApi([
       },
     ],
     response: TranslateWikiResponseBody,
+    errors: [
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/wiki/:wikiId/withdraw",
+    alias: "WikiOperations_withdrawWiki",
+    description: `Withdraw a wiki draft review request.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: WikiWorkflowRequestBody,
+      },
+      {
+        name: "wikiId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: DraftWikiSummary,
     errors: [
       {
         status: 403,
