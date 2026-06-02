@@ -11,6 +11,7 @@ import type {
   publishWikiDraft,
   rejectWikiDraft,
   translateWikiDraft,
+  withdrawWikiDraft,
 } from "../wiki/draftWiki";
 import type {
   createWikiPrincipal,
@@ -36,4 +37,5 @@ export type MyPageDraftWikiAdapter = {
   publishDraftWiki: typeof publishWikiDraft;
   rejectDraftWiki: typeof rejectWikiDraft;
   translateDraftWiki: typeof translateWikiDraft;
+  withdrawDraftWiki: typeof withdrawWikiDraft;
 };

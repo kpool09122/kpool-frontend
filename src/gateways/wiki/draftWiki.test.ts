@@ -24,6 +24,7 @@ import {
   getPublishWikiEndpointPath,
   getReviewWikiEndpointPath,
   getSubmitWikiEndpointPath,
+  getWithdrawWikiEndpointPath,
   loadDraftWikiState,
   loadInitialDraftWikisForRequest,
   publishDraftWiki,
@@ -33,6 +34,8 @@ import {
   reviewDraftWiki,
   submitDraftWiki,
   translateWikiDraft,
+  withdrawDraftWiki,
+  withdrawWikiDraft,
 } from "./draftWiki";
 
 describe("draftWiki", () => {
@@ -409,6 +412,7 @@ describe("draftWiki", () => {
     expect(getDeleteWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1");
     expect(getEditWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/edit");
     expect(getSubmitWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/submit");
+    expect(getWithdrawWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/withdraw");
     expect(getReviewWikiEndpointPath("wiki-1", "approve")).toBe("/wiki/wiki-1/approve");
     expect(getReviewWikiEndpointPath("wiki-1", "reject")).toBe("/wiki/wiki-1/reject");
     expect(getPublishWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/publish");
@@ -1315,6 +1319,44 @@ describe("draftWiki", () => {
     );
   });
 
+  it("forwards cookie headers when withdrawing a draft wiki through fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "pending",
+        }),
+        { status: 201 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Accept: "application/json",
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+
+    await expect(withdrawDraftWiki(client!, "wiki-1")).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "pending",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/withdraw",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
+      }),
+    );
+  });
+
   it("forwards cookie headers when reviewing a draft wiki through fetch", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
@@ -1611,6 +1653,42 @@ describe("draftWiki", () => {
         },
         body: JSON.stringify({ groupIdentifiers: ["55555555-5555-5555-5555-555555555555"] }),
         method: "DELETE",
+      }),
+    );
+  });
+
+  it("withdraws draft wikis through the browser API route", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Aurora Echo",
+          resourceType: "group",
+          status: "pending",
+        }),
+        { status: 201 },
+      ),
+    );
+
+    await expect(
+      withdrawWikiDraft({
+        fallbackErrorMessage: "failed",
+        wikiId: "wiki-1",
+      }),
+    ).resolves.toEqual({
+      language: "ja",
+      name: "Aurora Echo",
+      resourceType: "group",
+      status: "pending",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/drafts/wiki-1/withdraw",
+      expect.objectContaining({
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+        method: "POST",
       }),
     );
   });
