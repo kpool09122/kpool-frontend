@@ -180,7 +180,8 @@ const createDraftWikiAdapter = (
     resourceType: "group",
     status: "approved",
   }),
-	  listDraftWikis: vi.fn().mockResolvedValue({
+  deleteDraftWiki: vi.fn().mockResolvedValue(undefined),
+  listDraftWikis: vi.fn().mockResolvedValue({
 	    wikis: [draftWiki],
 	    current_page: 1,
     last_page: 1,
@@ -277,6 +278,7 @@ describe("MyPageClient", () => {
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockReset();
   });
 
@@ -460,7 +462,7 @@ describe("MyPageClient", () => {
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
-    expect(screen.getByRole("link", { name: "編集中 Wiki" }).getAttribute("style")).toContain(
+    expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
       'url("https://images.example.test/editing-wiki.webp")',
     );
     expect(screen.getByText("グループ")).toBeInTheDocument();
@@ -480,6 +482,96 @@ describe("MyPageClient", () => {
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
+  });
+
+  it("shows a delete action for editing draft wikis and skips deletion when cancelled", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const draftWikiAdapter = createDraftWikiAdapter();
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: draftWikiListState,
+          submittedWikis: emptyDraftWikiListState,
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "削除" }));
+
+    expect(confirm).toHaveBeenCalledWith("この Wiki 下書きを削除します。よろしいですか？");
+    expect(draftWikiAdapter.deleteDraftWiki).not.toHaveBeenCalled();
+    expect(screen.getByText("編集中 Wiki")).toBeInTheDocument();
+  });
+
+  it("deletes an editing draft wiki and removes it from the list", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const draftWikiAdapter = createDraftWikiAdapter();
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: draftWikiListState,
+          submittedWikis: emptyDraftWikiListState,
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "削除" }));
+
+    await waitFor(() =>
+      expect(draftWikiAdapter.deleteDraftWiki).toHaveBeenCalledWith({
+        fallbackErrorMessage: "Wiki 下書きを削除できませんでした。",
+        wikiId: draftWiki.wikiIdentifier,
+      }),
+    );
+    expect(await screen.findByText("編集中のWikiはありません")).toBeInTheDocument();
+  });
+
+  it("shows a retryable error when editing draft wiki deletion fails", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const draftWikiAdapter = createDraftWikiAdapter({
+      deleteDraftWiki: vi.fn().mockRejectedValue(new Error("wiki delete failed")),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: draftWikiListState,
+          submittedWikis: emptyDraftWikiListState,
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "削除" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("wiki delete failed");
+    expect(screen.getByRole("button", { name: "削除" })).toBeEnabled();
+    expect(screen.getByText("編集中 Wiki")).toBeInTheDocument();
   });
 
   it("shows unapproved draft wikis only for principals with approve and reject policies", async () => {

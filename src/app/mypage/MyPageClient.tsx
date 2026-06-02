@@ -19,6 +19,7 @@ import {
 } from "@/gateways/wiki/wikiPrincipal";
 import {
   approveWikiDraft,
+  deleteWikiDraft,
   fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   publishWikiDraft,
@@ -82,6 +83,7 @@ const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
 
 const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
   approveDraftWiki: approveWikiDraft,
+  deleteDraftWiki: deleteWikiDraft,
   listDraftWikis: fetchWikiDraftWikis,
   listUntranslatedWikis: fetchVersionInconsistentWikis,
   publishDraftWiki: publishWikiDraft,
@@ -142,18 +144,22 @@ export function MyPageClient({
   });
   const draftWikiMessages = useMemo(() => ({
     draftWikiApproveFailed: t.draftWikiApproveFailed,
+    draftWikiDeleteFailed: t.draftWikiDeleteFailed,
     draftWikiListLoadFailed: t.draftWikiListLoadFailed,
     draftWikiPublishFailed: t.draftWikiPublishFailed,
     draftWikiRejectFailed: t.draftWikiRejectFailed,
     draftWikiTranslateFailed: t.draftWikiTranslateFailed,
   }), [
     t.draftWikiApproveFailed,
+    t.draftWikiDeleteFailed,
     t.draftWikiListLoadFailed,
     t.draftWikiPublishFailed,
     t.draftWikiRejectFailed,
     t.draftWikiTranslateFailed,
   ]);
   const {
+    deleteDraftWiki: deleteDraftWikiFromMyPage,
+    deletingWikiIdentifier,
     draftWikis,
     loadDraftWikisPage,
     reviewDraftWiki,
@@ -240,6 +246,7 @@ export function MyPageClient({
             reviewError={reviewError}
             draftWikiReviewError={draftWikiReviewError}
             reviewingImageIdentifier={reviewingImageIdentifier}
+            deletingWikiIdentifier={deletingWikiIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
             isAuthenticated={currentIdentity !== null}
             isPending={isActionPending(principalState)}
@@ -253,6 +260,11 @@ export function MyPageClient({
             onReviewDraftImage={(imageIdentifier, action) =>
               void reviewDraftImage(imageIdentifier, action)
             }
+            onDeleteDraftWiki={(wiki) => {
+              if (window.confirm(t.deleteDraftWikiConfirm)) {
+                void deleteDraftWikiFromMyPage(wiki);
+              }
+            }}
             onReviewDraftWiki={(wiki, action) => void reviewDraftWiki(wiki, action)}
             onSelectWikiTab={setSelectedWikiTab}
           />
@@ -269,6 +281,7 @@ function WikiPrincipalPanel({
   reviewError,
   draftWikiReviewError,
   reviewingImageIdentifier,
+  deletingWikiIdentifier,
   reviewingWikiIdentifier,
   isAuthenticated,
   isPending,
@@ -280,6 +293,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage,
   onRetry,
   onReviewDraftImage,
+  onDeleteDraftWiki,
   onReviewDraftWiki,
   onSelectWikiTab,
 }: {
@@ -289,6 +303,7 @@ function WikiPrincipalPanel({
   reviewError: string | null;
   draftWikiReviewError: string | null;
   reviewingImageIdentifier: string | null;
+  deletingWikiIdentifier: string | null;
   reviewingWikiIdentifier: string | null;
   isAuthenticated: boolean;
   isPending: boolean;
@@ -300,6 +315,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
 }) {
@@ -381,6 +397,7 @@ function WikiPrincipalPanel({
         {activeWikiTab !== "draftImages" ? (
           <DraftWikiListPanel
             reviewError={draftWikiReviewError}
+            deletingWikiIdentifier={deletingWikiIdentifier}
             reviewingWikiIdentifier={reviewingWikiIdentifier}
             state={draftWikis[activeWikiTab]}
             t={t}
@@ -393,6 +410,7 @@ function WikiPrincipalPanel({
               }
             }}
             onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
+            onDeleteDraftWiki={onDeleteDraftWiki}
             onReviewDraftWiki={onReviewDraftWiki}
           />
         ) : null}
@@ -443,21 +461,25 @@ function WikiPrincipalPanel({
 
 function DraftWikiListPanel({
   reviewError,
+  deletingWikiIdentifier,
   reviewingWikiIdentifier,
   state,
   t,
   tab,
   onLoadMore,
   onReload,
+  onDeleteDraftWiki,
   onReviewDraftWiki,
 }: {
   reviewError: string | null;
+  deletingWikiIdentifier: string | null;
   reviewingWikiIdentifier: string | null;
   state: DraftWikiListState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   tab: MyPageDraftWikiActionTab;
   onLoadMore: () => void;
   onReload: () => void;
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
 }) {
   const canLoadMore = state.pageInfo
@@ -506,6 +528,7 @@ function DraftWikiListPanel({
         </p>
       ) : null}
       {reviewError && (
+        tab === "editingWikis" ||
         tab === "unapprovedWikis" ||
         tab === "approvedWikis" ||
         tab === "untranslatedWikis"
@@ -520,15 +543,18 @@ function DraftWikiListPanel({
       <div className="grid gap-4 md:grid-cols-2">
         {state.wikis.map((wiki) => (
           <DraftWikiCard
-            enableCardLink={tab === "editingWikis" || tab === "submittedWikis"}
+            enableCardLink={tab === "submittedWikis"}
+            isDeleting={deletingWikiIdentifier === wiki.wikiIdentifier}
             isReviewing={reviewingWikiIdentifier === wiki.wikiIdentifier}
             key={wiki.wikiIdentifier}
+            showDeleteAction={isDeletableDraftWiki(wiki, tab)}
             showPublishAction={tab === "approvedWikis"}
             showReviewActions={tab === "unapprovedWikis"}
             showTranslateAction={tab === "untranslatedWikis"}
             t={t}
             tab={tab}
             wiki={wiki}
+            onDeleteDraftWiki={onDeleteDraftWiki}
             onReviewDraftWiki={onReviewDraftWiki}
           />
         ))}
@@ -553,23 +579,29 @@ function DraftWikiListPanel({
 
 function DraftWikiCard({
   enableCardLink,
+  isDeleting,
   isReviewing,
+  showDeleteAction,
   showReviewActions,
   showPublishAction,
   showTranslateAction,
   t,
   tab,
   wiki,
+  onDeleteDraftWiki,
   onReviewDraftWiki,
 }: {
   enableCardLink: boolean;
+  isDeleting: boolean;
   isReviewing: boolean;
+  showDeleteAction: boolean;
   showPublishAction: boolean;
   showReviewActions: boolean;
   showTranslateAction: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   tab: MyPageDraftWikiActionTab;
   wiki: MyPageWikiListItem;
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
@@ -666,6 +698,18 @@ function DraftWikiCard({
             type="button"
           >
             {isReviewing ? t.draftWikiReviewing : t.rejectDraftWiki}
+          </button>
+        </div>
+      ) : null}
+      {showDeleteAction ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isDeleting || isReviewing}
+            onClick={() => onDeleteDraftWiki(wiki)}
+            type="button"
+          >
+            {isDeleting ? t.draftWikiDeleting : t.deleteDraftWiki}
           </button>
         </div>
       ) : null}
@@ -950,6 +994,14 @@ const isDraftWikiListItem = (wiki: MyPageWikiListItem): wiki is WikiDraftWiki =>
       ? (wiki as { status: string }).status
       : "",
   );
+
+const isDeletableDraftWiki = (
+  wiki: MyPageWikiListItem,
+  tab: MyPageDraftWikiActionTab,
+): wiki is WikiDraftWiki =>
+  tab === "editingWikis" &&
+  isDraftWikiListItem(wiki) &&
+  (wiki.status === "pending" || wiki.status === "rejected");
 
 const getDraftWikiHref = (wiki: MyPageWikiListItem, tab: MyPageDraftWikiActionTab): string =>
   tab === "untranslatedWikis"

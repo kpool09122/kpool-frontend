@@ -101,6 +101,7 @@ type DraftWikiApiClient = {
   ) => Promise<PublicWikiApiResponse>;
   createWikiDraft: (body: CreateWikiRequestBody) => Promise<DraftWikiSummary>;
   saveDraftWiki: (wikiId: string, body: EditWikiRequestBody) => Promise<DraftWikiSummary>;
+  deleteDraftWiki: (wikiId: string) => Promise<void>;
   reviewDraftWiki: (
     wikiId: string,
     action: WikiDraftWorkflowAction,
@@ -200,6 +201,9 @@ export const getDraftWikiEndpointPath = (
 
 export const getEditWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/edit`;
+
+export const getDeleteWikiEndpointPath = (wikiId: string): string =>
+  `/wiki/${encodeURIComponent(wikiId)}`;
 
 export const getCreateWikiEndpointPath = (): string => "/wiki/create";
 
@@ -451,6 +455,12 @@ export const saveDraftWiki = async (
 ): Promise<DraftWikiSummary> =>
   client.saveDraftWiki(wikiId, body);
 
+export const deleteDraftWiki = async (
+  client: DraftWikiApiClient,
+  wikiId: string,
+): Promise<void> =>
+  client.deleteDraftWiki(wikiId);
+
 export const submitDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
@@ -574,6 +584,23 @@ export const createDraftWikiApiClient = (
           const responseBody = await readResponseBody(response);
 
           return parseDraftWikiSummaryBody(responseBody);
+        },
+        deleteDraftWiki: async (wikiId) => {
+          const response = await fetch(
+            `${apiBaseUrl}${getDeleteWikiEndpointPath(wikiId)}`,
+            {
+              method: "DELETE",
+              headers: {
+                ...forwardedHeaders,
+                Accept: "application/json",
+              },
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            await throwApiError(response);
+          }
         },
         reviewDraftWiki: async (wikiId, action, body) => {
           const response = await fetch(
@@ -879,6 +906,30 @@ export const rejectWikiDraft = async ({
     wikiId,
     requestBody,
   }) as Promise<DraftWikiSummary>;
+
+export const deleteWikiDraft = async ({
+  fallbackErrorMessage,
+  wikiId,
+}: {
+  fallbackErrorMessage: string;
+  wikiId: string;
+}): Promise<void> => {
+  const response = await fetch(
+    `/api/wiki/drafts/${encodeURIComponent(wikiId)}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    },
+  );
+  const body = await readBrowserJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+};
 
 export const publishWikiDraft = async ({
   fallbackErrorMessage,

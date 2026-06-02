@@ -5,6 +5,7 @@ import type {
 } from "../wiki/wikiImageBrowserApi";
 import type {
   approveWikiDraft,
+  deleteWikiDraft,
   fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   publishWikiDraft,
@@ -29,6 +30,7 @@ export type MyPageDraftImageAdapter = {
 
 export type MyPageDraftWikiAdapter = {
   approveDraftWiki: typeof approveWikiDraft;
+  deleteDraftWiki: typeof deleteWikiDraft;
   listDraftWikis: typeof fetchWikiDraftWikis;
   listUntranslatedWikis: typeof fetchVersionInconsistentWikis;
   publishDraftWiki: typeof publishWikiDraft;

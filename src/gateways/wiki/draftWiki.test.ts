@@ -4,6 +4,8 @@ import {
   adaptDraftWikiResponse,
   approveWikiDraft,
   createDraftWikiApiClient,
+  deleteDraftWiki,
+  deleteWikiDraft,
   createWikiDraftRequestBodyFromPublicWiki,
   createReviewWikiRequestBody,
   createSubmitWikiRequestBody,
@@ -14,6 +16,7 @@ import {
   fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   getCreateWikiEndpointPath,
+  getDeleteWikiEndpointPath,
   getDraftWikiEndpointPath,
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
@@ -403,6 +406,7 @@ describe("draftWiki", () => {
       "/wiki/ja/group/gr-aurora-echo/draft",
     );
     expect(getCreateWikiEndpointPath()).toBe("/wiki/create");
+    expect(getDeleteWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1");
     expect(getEditWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/edit");
     expect(getSubmitWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1/submit");
     expect(getReviewWikiEndpointPath("wiki-1", "approve")).toBe("/wiki/wiki-1/approve");
@@ -1238,6 +1242,31 @@ describe("draftWiki", () => {
     );
   });
 
+  it("forwards cookie headers when deleting a draft wiki through fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Accept: "application/json",
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+
+    await expect(deleteDraftWiki(client!, "wiki-1")).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "DELETE",
+      }),
+    );
+  });
+
   it("forwards cookie headers when submitting a draft wiki through fetch", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
@@ -1552,6 +1581,29 @@ describe("draftWiki", () => {
         }),
         credentials: "include",
         method: "POST",
+      }),
+    );
+  });
+
+  it("deletes draft wikis through the browser API route", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+
+    await expect(
+      deleteWikiDraft({
+        fallbackErrorMessage: "failed",
+        wikiId: "wiki-1",
+      }),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/drafts/wiki-1",
+      expect.objectContaining({
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+        method: "DELETE",
       }),
     );
   });

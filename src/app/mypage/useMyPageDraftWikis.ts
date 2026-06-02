@@ -40,6 +40,7 @@ type DraftWikiListConfig = {
 
 type MyPageDraftWikiMessages = {
   draftWikiApproveFailed: string;
+  draftWikiDeleteFailed: string;
   draftWikiListLoadFailed: string;
   draftWikiPublishFailed: string;
   draftWikiRejectFailed: string;
@@ -167,6 +168,7 @@ export const useMyPageDraftWikis = ({
   };
   const [reviewingWikiIdentifier, setReviewingWikiIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [deletingWikiIdentifier, setDeletingWikiIdentifier] = useState<string | null>(null);
 
   const loadDraftWikisPage = useCallback((tab: MyPageDraftWikiActionTab, page: number) => {
     const listQueryKey = myPageQueryKeys.draftWikis.list({
@@ -329,6 +331,29 @@ export const useMyPageDraftWikis = ({
     },
   });
 
+  const deleteMutation = useMutation<void, Error, MyPageWikiListItem>({
+    mutationFn: (wiki) =>
+      adapter.deleteDraftWiki({
+        fallbackErrorMessage: messages.draftWikiDeleteFailed,
+        wikiId: wiki.wikiIdentifier,
+      }),
+    onMutate: (wiki) => {
+      setDeletingWikiIdentifier(wiki.wikiIdentifier);
+      setReviewError(null);
+    },
+    onSuccess: (_data, wiki) => {
+      removeWikiFromTab("editingWikis", wiki.wikiIdentifier);
+    },
+    onError: (error) => {
+      setReviewError(
+        error instanceof Error ? error.message : messages.draftWikiDeleteFailed,
+      );
+    },
+    onSettled: () => {
+      setDeletingWikiIdentifier(null);
+    },
+  });
+
   const draftWikis = {
     approvedWikis: wikiQueries.approvedWikis.data ?? initialDraftWikis.approvedWikis,
     editingWikis: wikiQueries.editingWikis.data ?? initialDraftWikis.editingWikis,
@@ -344,7 +369,13 @@ export const useMyPageDraftWikis = ({
     reviewMutation.mutate({ wiki, action });
   };
 
+  const deleteDraftWiki = (wiki: MyPageWikiListItem) => {
+    deleteMutation.mutate(wiki);
+  };
+
   return {
+    deleteDraftWiki,
+    deletingWikiIdentifier,
     draftWikis,
     loadDraftWikisPage,
     reviewDraftWiki,
