@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type WikiDraftDetail } from "@kpool/wiki";
 
@@ -89,15 +89,7 @@ function WikiEditContent({
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [previewMode, setPreviewMode] = useState<WikiPreviewMode>("light");
-  const [isSubmitRefreshPending, setIsSubmitRefreshPending] = useState(false);
   const [isSubmittedReviewLocked, setIsSubmittedReviewLocked] = useState(false);
-
-  useEffect(() => {
-    setIsSubmitRefreshPending(false);
-    if (data.status === "under_review") {
-      setIsSubmittedReviewLocked(true);
-    }
-  }, [data]);
 
   const {
     canPersist,
@@ -126,7 +118,6 @@ function WikiEditContent({
       if (result.status === "under_review") {
         setIsSubmittedReviewLocked(true);
       }
-      setIsSubmitRefreshPending(true);
       router.refresh();
     },
     saveAdapter,
@@ -141,6 +132,7 @@ function WikiEditContent({
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const closeEditor = () => setEditingId(null);
   const isReviewLocked = draft.status === "under_review";
+  const isSubmitRefreshPending = isSubmittedReviewLocked && !isReviewLocked;
   const isEditLocked = isReviewLocked || isSubmitRefreshPending || isSubmittedReviewLocked;
   const editBasic = () => {
     if (isEditLocked) {

@@ -22,7 +22,10 @@ describe("saveWikiDraft", () => {
     );
     const draft = createMockWikiDetail("gr-aurora-echo");
 
-    await expect(submitWikiDraft(draft)).resolves.toEqual({ ok: true });
+    await expect(submitWikiDraft(draft)).resolves.toEqual({
+      ok: true,
+      status: "under_review",
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/wiki/drafts/gr-aurora-echo/submit",
       expect.objectContaining({
