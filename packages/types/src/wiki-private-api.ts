@@ -2232,6 +2232,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
