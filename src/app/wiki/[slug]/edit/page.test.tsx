@@ -8,6 +8,16 @@ import { WikiEditPage } from "./WikiEditPage";
 import { wikiImageMaxFileSizeBytes } from "@kpool/wiki";
 import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
 
+const navigationMocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: navigationMocks.refresh,
+  }),
+}));
+
 const successState = {
   status: "success",
   data: createMockWikiDetail("gr-aurora-echo"),
@@ -43,6 +53,7 @@ const renderPage = (
 describe("WikiEditPage", () => {
   afterEach(() => {
     cleanup();
+    navigationMocks.refresh.mockReset();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -976,9 +987,9 @@ describe("WikiEditPage", () => {
 
   it("submits the loaded draft through the injected submit adapter", async () => {
     const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
-    const submitAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const submitAdapter = vi.fn().mockResolvedValue({ ok: true, status: "under_review" });
 
-    renderPage(successState, saveAdapter, submitAdapter);
+    const { rerender } = renderPage(successState, saveAdapter, submitAdapter);
 
     fireEvent.change(screen.getByLabelText("Theme color"), {
       target: { value: "#123456" },
@@ -987,6 +998,25 @@ describe("WikiEditPage", () => {
 
     expect(screen.getByText("Submitting for review")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("Submitted for review")).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Submit wiki for review" })).toHaveTextContent("Under review");
+    });
+    expect(screen.getByRole("button", { name: "Edit wiki title" })).toBeDisabled();
+    expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
+
+    rerender(
+      React.createElement(WikiEditPage, {
+        language: "ja",
+        saveAdapter,
+        slug: "gr-aurora-echo",
+        submitAdapter,
+        wikiState: successState,
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Submit wiki for review" })).toHaveTextContent("Under review");
     expect(submitAdapter).toHaveBeenCalledWith(
       expect.objectContaining({
         slug: "gr-aurora-echo",

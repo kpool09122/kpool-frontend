@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { useRouter } from "next/navigation";
 import { type WikiDraftDetail } from "@kpool/wiki";
 
 import {
@@ -77,6 +78,7 @@ function WikiEditContent({
   saveAdapter: (draft: WikiDraftDetail) => unknown;
   submitAdapter: (draft: WikiDraftDetail) => unknown;
 }) {
+  const router = useRouter();
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
   const flipCardId = useId();
@@ -87,6 +89,16 @@ function WikiEditContent({
   );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [previewMode, setPreviewMode] = useState<WikiPreviewMode>("light");
+  const [isSubmitRefreshPending, setIsSubmitRefreshPending] = useState(false);
+  const [isSubmittedReviewLocked, setIsSubmittedReviewLocked] = useState(false);
+
+  useEffect(() => {
+    setIsSubmitRefreshPending(false);
+    if (data.status === "under_review") {
+      setIsSubmittedReviewLocked(true);
+    }
+  }, [data]);
+
   const {
     canPersist,
     code,
@@ -109,7 +121,17 @@ function WikiEditContent({
     addSection,
     addBlock,
     deleteContent,
-  } = useWikiEditDraft(data, { saveAdapter, submitAdapter });
+  } = useWikiEditDraft(data, {
+    onSubmitSuccess: (result) => {
+      if (result.status === "under_review") {
+        setIsSubmittedReviewLocked(true);
+      }
+      setIsSubmitRefreshPending(true);
+      router.refresh();
+    },
+    saveAdapter,
+    submitAdapter,
+  });
   const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
   const sourceWiki = {
     language,
@@ -119,8 +141,9 @@ function WikiEditContent({
   const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
   const closeEditor = () => setEditingId(null);
   const isReviewLocked = draft.status === "under_review";
+  const isEditLocked = isReviewLocked || isSubmitRefreshPending || isSubmittedReviewLocked;
   const editBasic = () => {
-    if (isReviewLocked) {
+    if (isEditLocked) {
       return;
     }
 
@@ -128,16 +151,16 @@ function WikiEditContent({
     setEditingId("basic");
   };
   const editTitle = () => {
-    if (isReviewLocked) {
+    if (isEditLocked) {
       return;
     }
 
     setIsBasicFlipped(false);
     setEditingId("title");
   };
-  const isBusy = saveState.status === "saving" || saveState.status === "submitting";
+  const isBusy = saveState.status === "saving" || saveState.status === "submitting" || isSubmitRefreshPending;
   const clearChanges = () => {
-    if (isReviewLocked) {
+    if (isEditLocked) {
       return;
     }
 
@@ -185,14 +208,14 @@ function WikiEditContent({
     });
   };
   const openImageLibrary = () => {
-    if (isReviewLocked) {
+    if (isEditLocked) {
       return;
     }
 
     void loadImageLibraryPage(1);
   };
   const selectImageFromLibrary = (image: WikiUploadedImage) => {
-    if (isReviewLocked) {
+    if (isEditLocked) {
       return;
     }
 
@@ -208,7 +231,7 @@ function WikiEditContent({
     translationSetIdentifier: draft.translationSetIdentifier,
   });
   const uploadImage = (input: WikiImageUsageRequestInput) => {
-    if (isReviewLocked) {
+    if (isEditLocked) {
       return Promise.reject(new Error("Draft wiki is under review."));
     }
 
@@ -311,7 +334,7 @@ function WikiEditContent({
                 <button
                   aria-label="Edit wiki title"
                   className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
-                  disabled={isReviewLocked}
+                  disabled={isEditLocked}
                   onClick={editTitle}
                   style={cardSurfaceStyle}
                   type="button"
@@ -335,7 +358,7 @@ function WikiEditContent({
           <section>
             <WikiHeroBasicFlipCard
               basic={draft.basic}
-              disabled={isReviewLocked}
+              disabled={isEditLocked}
               flipCardId={flipCardId}
               heroImage={draft.heroImage}
               isBasicEditing={editingId === "basic"}
@@ -353,11 +376,11 @@ function WikiEditContent({
             <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
               <WikiHeroPanel
                 heroImage={draft.heroImage}
-                onOpenImageLibrary={isReviewLocked ? undefined : openImageLibrary}
+                onOpenImageLibrary={isEditLocked ? undefined : openImageLibrary}
               />
               <WikiBasicPanel
                 basic={draft.basic}
-                disabled={isReviewLocked}
+                disabled={isEditLocked}
                 isEditing={editingId === "basic"}
                 onCancel={closeEditor}
                 onEdit={editBasic}
@@ -380,7 +403,7 @@ function WikiEditContent({
                   onAddSection={addSection}
                   onCancel={cancelEditing}
                   onDeleteContent={deleteContent}
-                  disabled={isReviewLocked}
+                  disabled={isEditLocked}
                   onEdit={setEditingId}
                   onSaveBlock={(blockIdentifier, changes) => {
                     updateBlock(blockIdentifier, changes);
@@ -396,7 +419,7 @@ function WikiEditContent({
               ))}
               <button
                 className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
-                disabled={isReviewLocked}
+                disabled={isEditLocked}
                 onClick={() => addSection()}
                 style={cardSurfaceStyle}
                 type="button"
@@ -407,7 +430,7 @@ function WikiEditContent({
           ) : (
             <WikiCodeEditor
               code={code}
-              disabled={isReviewLocked}
+              disabled={isEditLocked}
               errorMessage={codeParseError}
               warnings={codeWarnings}
               onChange={updateCode}
@@ -421,27 +444,27 @@ function WikiEditContent({
           editorMode={editorMode}
           isBusy={isBusy}
           isOpen={isSidebarOpen}
-          isReviewLocked={isReviewLocked}
+          isReviewLocked={isEditLocked}
           onEditorModeChange={(mode) => {
-            if (!isReviewLocked) {
+            if (!isEditLocked) {
               setEditorMode(mode);
             }
           }}
           onClear={clearChanges}
           onPreviewModeChange={setPreviewMode}
           onSave={() => {
-            if (!isReviewLocked) {
+            if (!isEditLocked) {
               saveDraft();
             }
           }}
           onSubmit={() => {
-            if (!isReviewLocked) {
+            if (!isEditLocked) {
               void requestPublication();
             }
           }}
           onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
           onUpdateSettings={(settings) => {
-            if (!isReviewLocked) {
+            if (!isEditLocked) {
               updateSettings(settings);
             }
           }}

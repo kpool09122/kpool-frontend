@@ -3,6 +3,7 @@
 import {
   toWikiEditRequestPayload,
   type WikiDraftDetail,
+  type WikiDraftStatus,
   type WikiEditRequestPayload,
 } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
@@ -11,7 +12,7 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 import { createSubmitWikiRequestBody } from "@/gateways/wiki/draftWiki";
 
-export type WikiSaveResult = { ok: true } | { ok: false };
+export type WikiSaveResult = { ok: true; status?: WikiDraftStatus } | { ok: false };
 
 export const saveWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveResult> => {
   const response = await fetch(
@@ -50,9 +51,16 @@ export const submitWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveR
     return { ok: false };
   }
 
-  parseWithSchemaLog("wiki draft save response", wikiPrivateApiTypes.schemas.DraftWikiSummary, await response.json());
+  const body = parseWithSchemaLog(
+    "wiki draft submit response",
+    wikiPrivateApiTypes.schemas.DraftWikiSummary,
+    await response.json(),
+  );
 
-  return { ok: true };
+  return {
+    ok: true,
+    status: body.status === "under_review" ? body.status : undefined,
+  };
 };
 
 export const createSaveWikiDraftBody = (
