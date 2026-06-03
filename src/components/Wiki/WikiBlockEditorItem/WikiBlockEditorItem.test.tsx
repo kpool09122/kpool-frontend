@@ -47,4 +47,34 @@ describe("WikiBlockEditorItem", () => {
     expect(onEdit).toHaveBeenCalled();
     expect(onDelete).toHaveBeenCalled();
   });
+
+  it("disables edit and delete handlers", () => {
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+
+    render(
+      <WikiBlockEditorItem
+        block={wikiStoryTextBlock}
+        disabled
+        isEditing={false}
+        language="ja"
+        onCancel={() => {}}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        onSave={() => {}}
+      />,
+    );
+
+    const editButton = screen.getAllByRole("button", { name: "Edit text block" })[0];
+    const deleteButton = screen.getAllByRole("button", { name: "Delete text block" })[0];
+
+    expect(editButton).toBeDisabled();
+    expect(deleteButton).toBeDisabled();
+
+    fireEvent.click(editButton);
+    fireEvent.click(deleteButton);
+
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
 });

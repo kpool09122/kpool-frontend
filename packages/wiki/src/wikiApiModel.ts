@@ -103,7 +103,9 @@ type WikiApiResponse = WikiApiResponseBase & {
   version: number;
 };
 
-type DraftWikiApiResponse = WikiApiResponseBase;
+type DraftWikiApiResponse = WikiApiResponseBase & {
+  status?: unknown;
+};
 
 export const inferResourceType = (response: WikiApiResponseBase): WikiResourceType => {
   const fromSlug = getWikiResourceTypeFromSlug(response.slug);
@@ -552,6 +554,7 @@ export const adaptDraftWikiApiResponse = (response: DraftWikiApiResponse): WikiD
     resourceType: inferResourceType(response),
     sections: adaptWikiSections(response.sections),
     slug: response.slug,
+    status: response.status,
     themeColor: response.themeColor ?? null,
     translationSetIdentifier: response.translationSetIdentifier,
     wikiIdentifier: response.wikiIdentifier,

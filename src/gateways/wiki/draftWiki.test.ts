@@ -916,6 +916,7 @@ describe("draftWiki", () => {
           resourceType: "group",
           sections: [],
           slug: "gr-aurora-echo",
+          status: "pending",
           themeColor: null,
           translationSetIdentifier: "translation-set-1",
           version: 1,
@@ -929,6 +930,7 @@ describe("draftWiki", () => {
     await expect(fetchDraftWiki(client!, "ja", "gr-aurora-echo")).resolves.toEqual(
       expect.objectContaining({
         slug: "gr-aurora-echo",
+        status: "pending",
         translationSetIdentifier: "translation-set-1",
         wikiIdentifier: "wiki-1",
       }),

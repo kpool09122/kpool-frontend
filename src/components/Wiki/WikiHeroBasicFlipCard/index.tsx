@@ -11,6 +11,7 @@ import { cardSurfaceStyle } from "../styles";
 type WikiHeroBasicFlipCardProps = {
   heroImage: WikiDetail["heroImage"];
   basic: WikiBasic;
+  disabled?: boolean;
   isFlipped: boolean;
   flipCardId: string;
   isBasicEditing: boolean;
@@ -25,6 +26,7 @@ type WikiHeroBasicFlipCardProps = {
 export function WikiHeroBasicFlipCard({
   heroImage,
   basic,
+  disabled = false,
   isFlipped,
   flipCardId,
   isBasicEditing,
@@ -61,7 +63,7 @@ export function WikiHeroBasicFlipCard({
             <div className="absolute inset-0 overflow-hidden rounded-[2rem] [backface-visibility:hidden]">
               <WikiHeroPanel
                 heroImage={heroImage}
-                onOpenImageLibrary={onOpenImageLibrary}
+                onOpenImageLibrary={disabled ? undefined : onOpenImageLibrary}
               />
             </div>
             <label
@@ -91,6 +93,7 @@ export function WikiHeroBasicFlipCard({
                 >
                   <WikiBasicPanel
                     basic={basic}
+                    disabled={disabled}
                     isEditing={isBasicEditing}
                     onCancel={onCancel}
                     onEdit={onEditBasic}
@@ -111,7 +114,8 @@ export function WikiHeroBasicFlipCard({
                     </div>
                     <button
                       aria-label="Edit basic"
-                      className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+                      className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+                      disabled={disabled}
                       onClick={(event) => {
                         event.stopPropagation();
                         onEditBasic();

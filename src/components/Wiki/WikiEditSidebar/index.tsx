@@ -35,9 +35,11 @@ function WikiSaveButton({
 
 function WikiSubmitButton({
   disabled,
+  isReviewLocked,
   onSubmit,
 }: {
   disabled: boolean;
+  isReviewLocked: boolean;
   onSubmit: () => void;
 }) {
   return (
@@ -49,7 +51,7 @@ function WikiSubmitButton({
       style={cardSurfaceStyle}
       type="button"
     >
-      Submit for review
+      {isReviewLocked ? "Under review" : "Submit for review"}
     </button>
   );
 }
@@ -59,6 +61,7 @@ type WikiEditSidebarProps = {
   editorMode: WikiEditorMode;
   isBusy: boolean;
   isOpen: boolean;
+  isReviewLocked?: boolean;
   onEditorModeChange: (mode: WikiEditorMode) => void;
   onClear: () => void;
   onPreviewModeChange: (mode: WikiPreviewMode) => void;
@@ -79,6 +82,7 @@ export function WikiEditSidebar({
   editorMode,
   isBusy,
   isOpen,
+  isReviewLocked = false,
   onEditorModeChange,
   onClear,
   onPreviewModeChange,
@@ -92,7 +96,15 @@ export function WikiEditSidebar({
   themeColor,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
-  const isActionDisabled = isBusy || !canPersist;
+  const isActionDisabled = isBusy || !canPersist || isReviewLocked;
+  const isEditControlDisabled = isBusy || isReviewLocked;
+  const updateSettings = (
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor">>,
+  ) => {
+    if (!isEditControlDisabled) {
+      onUpdateSettings(settings);
+    }
+  };
   const resolvedResourceType =
     (resourceType as WikiResourceType | undefined) ??
     getWikiResourceTypeFromSlug(slug) ??
@@ -122,10 +134,15 @@ export function WikiEditSidebar({
         <div className={isOpen ? "block" : "pointer-events-none invisible"}>
           <div className="grid gap-2">
             <WikiSaveButton disabled={isActionDisabled} onSave={onSave} />
-            <WikiSubmitButton disabled={isActionDisabled} onSubmit={onSubmit} />
+            <WikiSubmitButton
+              disabled={isActionDisabled}
+              isReviewLocked={isReviewLocked}
+              onSubmit={onSubmit}
+            />
             <button
               aria-label="Clear wiki changes"
-              className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
+              className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted disabled:cursor-not-allowed"
+              disabled={isEditControlDisabled}
               onClick={onClear}
               style={cardSurfaceMutedStyle}
               type="button"
@@ -141,7 +158,8 @@ export function WikiEditSidebar({
                 {(["gui", "code"] as const).map((mode) => (
                   <button
                     aria-pressed={editorMode === mode}
-                    className="rounded-full px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-text-muted transition aria-pressed:bg-surface-raised aria-pressed:text-text-strong aria-pressed:shadow-soft"
+                    className="rounded-full px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-text-muted transition aria-pressed:bg-surface-raised aria-pressed:text-text-strong aria-pressed:shadow-soft disabled:cursor-not-allowed"
+                    disabled={isEditControlDisabled}
                     key={mode}
                     onClick={() => onEditorModeChange(mode)}
                     type="button"
@@ -173,8 +191,9 @@ export function WikiEditSidebar({
               Resource type
               <select
                 className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+                disabled={isEditControlDisabled}
                 onChange={(event) =>
-                  onUpdateSettings({
+                  updateSettings({
                     resourceType: event.currentTarget.value as WikiResourceType,
                   })
                 }
@@ -193,8 +212,9 @@ export function WikiEditSidebar({
               <div className="grid grid-cols-4 gap-2">
                 <button
                   aria-pressed={!themeColor}
-                  className="h-9 rounded-xl border border-stroke-subtle bg-surface-base text-xs font-semibold text-text-muted"
-                  onClick={() => onUpdateSettings({ themeColor: null })}
+                  className="h-9 rounded-xl border border-stroke-subtle bg-surface-base text-xs font-semibold text-text-muted disabled:cursor-not-allowed"
+                  disabled={isEditControlDisabled}
+                  onClick={() => updateSettings({ themeColor: null })}
                   type="button"
                 >
                   Default
@@ -203,9 +223,10 @@ export function WikiEditSidebar({
                   <button
                     aria-label={`Set theme color ${color}`}
                     aria-pressed={themeColor?.toLowerCase() === color}
-                    className="h-9 rounded-xl border border-stroke-subtle ring-offset-2 ring-offset-surface-raised aria-pressed:ring-2 aria-pressed:ring-text-strong"
+                    className="h-9 rounded-xl border border-stroke-subtle ring-offset-2 ring-offset-surface-raised aria-pressed:ring-2 aria-pressed:ring-text-strong disabled:cursor-not-allowed"
+                    disabled={isEditControlDisabled}
                     key={color}
-                    onClick={() => onUpdateSettings({ themeColor: color })}
+                    onClick={() => updateSettings({ themeColor: color })}
                     style={{ backgroundColor: color }}
                     type="button"
                   />
@@ -216,7 +237,8 @@ export function WikiEditSidebar({
                 <input
                   aria-label="Theme color"
                   className="h-11 w-full rounded-xl border border-stroke-subtle bg-surface-base p-1"
-                  onChange={(event) => onUpdateSettings({ themeColor: event.currentTarget.value })}
+                  disabled={isEditControlDisabled}
+                  onChange={(event) => updateSettings({ themeColor: event.currentTarget.value })}
                   type="color"
                   value={customColorValue}
                 />

@@ -16,6 +16,7 @@ import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiBasicPanelProps = {
   basic: WikiBasic;
+  disabled?: boolean;
   isEditing: boolean;
   profileLabel?: string;
   onEdit: () => void;
@@ -164,6 +165,7 @@ function BasicRelationLinks({
 
 export function WikiBasicPanel({
   basic,
+  disabled = false,
   isEditing,
   profileLabel = `${getWikiResourceLabel(basic.resourceType as WikiResourceType)} profile`,
   onEdit,
@@ -294,7 +296,8 @@ export function WikiBasicPanel({
         </div>
         <button
           aria-label="Edit basic"
-          className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
+          className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+          disabled={disabled}
           onClick={onEdit}
           style={cardSurfaceStyle}
           type="button"

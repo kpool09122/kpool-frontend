@@ -12,12 +12,14 @@ import { cardSurfaceStyle } from "../styles";
 
 type WikiAddContentControlsProps = {
   section: WikiSection;
+  disabled?: boolean;
   onAddSection: (parentSectionIdentifier: string) => void;
   onAddBlock: (sectionIdentifier: string, blockType: WikiBlockType) => void;
 };
 
 export function WikiAddContentControls({
   section,
+  disabled = false,
   onAddSection,
   onAddBlock,
 }: WikiAddContentControlsProps) {
@@ -29,7 +31,7 @@ export function WikiAddContentControls({
       <div className="flex flex-wrap items-start gap-2">
         <button
           className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
-          disabled={!canAddSection}
+          disabled={disabled || !canAddSection}
           onClick={() => onAddSection(section.sectionIdentifier)}
           title={canAddSection ? "Add section" : "Max depth reached"}
           type="button"
@@ -39,7 +41,8 @@ export function WikiAddContentControls({
         <div className="relative">
           <button
             aria-expanded={isBlockMenuOpen}
-            className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong"
+            className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+            disabled={disabled}
             onClick={() => setIsBlockMenuOpen((isOpen) => !isOpen)}
             type="button"
           >
@@ -50,6 +53,7 @@ export function WikiAddContentControls({
               {blockTypes.map((blockType) => (
                 <button
                   className="rounded-xl px-3 py-2 text-left text-sm font-semibold text-text-muted transition hover:bg-brand-highlight/20 hover:text-text-strong"
+                  disabled={disabled}
                   key={blockType}
                   onClick={() => {
                     onAddBlock(section.sectionIdentifier, blockType);

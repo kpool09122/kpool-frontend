@@ -9,6 +9,7 @@ import { cardSurfaceMutedStyle } from "../styles";
 
 type WikiBlockEditorItemProps = {
   block: WikiBlock;
+  disabled?: boolean;
   isEditing: boolean;
   language: string;
   onEdit: () => void;
@@ -24,6 +25,7 @@ type WikiBlockEditorItemProps = {
 
 export function WikiBlockEditorItem({
   block,
+  disabled = false,
   isEditing,
   language,
   onEdit,
@@ -34,8 +36,8 @@ export function WikiBlockEditorItem({
 }: WikiBlockEditorItemProps) {
   const controls = (
     <div className="flex gap-2">
-      <button aria-label={`Edit ${block.blockType} block`} className="rounded-full border border-stroke-subtle p-2" onClick={onEdit} type="button"><EditIcon /></button>
-      <button aria-label={`Delete ${block.blockType} block`} className="rounded-full border border-status-danger/30 p-2 text-status-danger transition hover:bg-status-danger/10" onClick={onDelete} type="button"><TrashIcon /></button>
+      <button aria-label={`Edit ${block.blockType} block`} className="rounded-full border border-stroke-subtle p-2 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button>
+      <button aria-label={`Delete ${block.blockType} block`} className="rounded-full border border-status-danger/30 p-2 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onDelete} type="button"><TrashIcon /></button>
     </div>
   );
 

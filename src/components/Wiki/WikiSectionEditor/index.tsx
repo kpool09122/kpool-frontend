@@ -20,6 +20,7 @@ import { WikiFormActions } from "../WikiFormActions";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiSectionEditorProps = {
+  disabled?: boolean;
   editingId: string | null;
   language: string;
   sourceWiki?: {
@@ -67,6 +68,7 @@ function WikiSectionForm({
 }
 
 export function WikiSectionEditor({
+  disabled = false,
   editingId,
   language,
   section,
@@ -108,7 +110,8 @@ export function WikiSectionEditor({
         </span>
         <button
           aria-label={`Edit section ${section.title}`}
-          className="rounded-full border border-stroke-subtle p-3 text-text-strong"
+          className="rounded-full border border-stroke-subtle p-3 text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+          disabled={disabled}
           onClick={() => {
             setIsOpen(true);
             onEdit(sectionEditorId);
@@ -120,7 +123,8 @@ export function WikiSectionEditor({
         </button>
         <button
           aria-label={`Delete section ${section.title}`}
-          className="rounded-full border border-status-danger/30 p-3 text-status-danger transition hover:bg-status-danger/10"
+          className="rounded-full border border-status-danger/30 p-3 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted"
+          disabled={disabled}
           onClick={() => onDeleteContent(section.sectionIdentifier)}
           type="button"
         >
@@ -141,6 +145,7 @@ export function WikiSectionEditor({
             isWikiBlock(content) ? (
               <WikiBlockEditorItem
                 block={content}
+                disabled={disabled}
                 isEditing={editingId === `block:${content.blockIdentifier}`}
                 key={content.blockIdentifier}
                 language={language}
@@ -152,6 +157,7 @@ export function WikiSectionEditor({
               />
             ) : isWikiSection(content) ? (
               <WikiSectionEditor
+                disabled={disabled}
                 editingId={editingId}
                 key={content.sectionIdentifier}
                 language={language}
@@ -169,6 +175,7 @@ export function WikiSectionEditor({
           )}
 
           <WikiAddContentControls
+            disabled={disabled}
             onAddBlock={onAddBlock}
             onAddSection={onAddSection}
             section={section}
