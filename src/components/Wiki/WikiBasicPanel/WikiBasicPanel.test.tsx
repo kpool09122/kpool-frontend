@@ -52,6 +52,36 @@ describe("WikiBasicPanel", () => {
     );
   });
 
+  it("hides null basic fields in view mode but keeps them editable", () => {
+    const basicWithNullCeo = {
+      ...wikiStoryBasic,
+      ceo: null,
+    } as unknown as typeof wikiStoryBasic;
+    const { rerender } = render(
+      <WikiBasicPanel
+        basic={basicWithNullCeo}
+        isEditing={false}
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText("CEO")).not.toBeInTheDocument();
+
+    rerender(
+      <WikiBasicPanel
+        basic={basicWithNullCeo}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("CEO")).toHaveValue("");
+  });
+
   it("keeps edit mode fields aligned with displayed basic content", () => {
     const { container } = render(
       <WikiBasicPanel
@@ -75,7 +105,7 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("CEO")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("CEO")).toHaveValue("");
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Real Name")).toHaveValue("Aurora Echo Real");
     expect(screen.getByRole("link", { name: "TWICE" })).toHaveAttribute(

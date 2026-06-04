@@ -86,7 +86,7 @@ function BasicTextInput({
   type?: string;
   value: number | string | null | undefined;
 }) {
-  if (!isAlwaysVisible && (value === undefined || value === null || value === "")) {
+  if (!isAlwaysVisible && (value === undefined || value === "")) {
     return null;
   }
 
