@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { wikiStoryBasic } from "../storybook/fixtures";
@@ -52,6 +52,75 @@ describe("WikiBasicPanel", () => {
     );
   });
 
+  it("hides null basic fields in view mode but keeps them editable", () => {
+    const basicWithNullCeo = {
+      ...wikiStoryBasic,
+      resourceType: "agency",
+      ceo: null,
+    } as unknown as typeof wikiStoryBasic;
+    const { rerender } = render(
+      <WikiBasicPanel
+        basic={basicWithNullCeo}
+        isEditing={false}
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.queryByText("CEO")).not.toBeInTheDocument();
+
+    rerender(
+      <WikiBasicPanel
+        basic={basicWithNullCeo}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("CEO")).toHaveValue("");
+  });
+
+  it("keeps resource-specific empty fields editable", () => {
+    const groupBasicWithEmptyFields = {
+      ...wikiStoryBasic,
+      agencyName: undefined,
+      groupType: undefined,
+      officialColors: undefined,
+      status: undefined,
+    } as unknown as typeof wikiStoryBasic;
+    const { container, rerender } = render(
+      <WikiBasicPanel
+        basic={groupBasicWithEmptyFields}
+        isEditing={false}
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+    const panel = within(container);
+
+    expect(panel.queryByText("Group Type")).not.toBeInTheDocument();
+    expect(panel.queryByText("Official Colors")).not.toBeInTheDocument();
+
+    rerender(
+      <WikiBasicPanel
+        basic={groupBasicWithEmptyFields}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(panel.getByLabelText("Group Type")).toHaveValue("");
+    expect(panel.getByLabelText("Status")).toHaveValue("");
+    expect(panel.getByLabelText("Official Colors")).toHaveValue("");
+    expect(panel.getByLabelText("Agency")).toHaveValue("");
+  });
+
   it("keeps edit mode fields aligned with displayed basic content", () => {
     const { container } = render(
       <WikiBasicPanel
@@ -75,7 +144,6 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.queryByLabelText("CEO")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Real Name")).toHaveValue("Aurora Echo Real");
     expect(screen.getByRole("link", { name: "TWICE" })).toHaveAttribute(

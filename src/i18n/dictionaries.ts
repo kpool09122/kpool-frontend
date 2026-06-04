@@ -113,6 +113,15 @@ const ja = {
     wikiHeaderTitle: "Wiki",
     wikiHeaderDescription:
       "Wiki 関連の確認やレビューをここから行えます。",
+    createWiki: "新規作成",
+    createWikiDialogTitle: "Wikiを新規作成",
+    resourceTypeLabel: "リソース種別",
+    languageLabel: "言語",
+    wikiNameLabel: "名前",
+    slugLabel: "Slug",
+    cancelCreateWiki: "キャンセル",
+    creatingWiki: "作成中",
+    createWikiFailed: "Wiki の作成に失敗しました。",
     wikiReviewUnavailableTitle: "利用できる Wiki 機能がありません",
     wikiReviewUnavailableMessage:
       "この principal で利用できる Wiki 機能は現在ありません。",
@@ -373,6 +382,15 @@ const en: typeof ja = {
     wikiHeaderTitle: "Wiki",
     wikiHeaderDescription:
       "Review and check Wiki-related items from here.",
+    createWiki: "Create",
+    createWikiDialogTitle: "Create Wiki",
+    resourceTypeLabel: "Resource type",
+    languageLabel: "Language",
+    wikiNameLabel: "Name",
+    slugLabel: "Slug",
+    cancelCreateWiki: "Cancel",
+    creatingWiki: "Creating",
+    createWikiFailed: "Wiki creation failed.",
     wikiReviewUnavailableTitle: "No Wiki features are available",
     wikiReviewUnavailableMessage:
       "There are currently no Wiki features available for this principal.",
@@ -632,6 +650,15 @@ const ko: typeof ja = {
     wikiHeaderTitle: "Wiki",
     wikiHeaderDescription:
       "Wiki 관련 확인 및 리뷰를 여기에서 진행할 수 있습니다.",
+    createWiki: "새로 만들기",
+    createWikiDialogTitle: "Wiki 새로 만들기",
+    resourceTypeLabel: "리소스 유형",
+    languageLabel: "언어",
+    wikiNameLabel: "이름",
+    slugLabel: "Slug",
+    cancelCreateWiki: "취소",
+    creatingWiki: "생성 중",
+    createWikiFailed: "Wiki를 생성할 수 없습니다.",
     wikiReviewUnavailableTitle: "사용 가능한 Wiki 기능이 없습니다",
     wikiReviewUnavailableMessage:
       "현재 이 principal에서 사용할 수 있는 Wiki 기능이 없습니다.",

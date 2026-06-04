@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { wikiPrivateApiTypes } from "@kpool/types";
 
 import {
+  createDraftWikiApiClient,
   createWikiDraftWikisUrl,
   defaultWikiDraftPerPage,
   wikiDraftWikiListResponseSchema,
@@ -23,6 +24,12 @@ const parseBooleanParam = (value: string | null): boolean | undefined => {
 
   return value === "true";
 };
+
+const createClient = (request: NextRequest) =>
+  createDraftWikiApiClient(
+    undefined,
+    getForwardedWikiApiHeaders(request.headers),
+  );
 
 export async function GET(request: NextRequest) {
   const baseUrl = getWikiPrivateApiBaseUrl();
@@ -82,6 +89,27 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Wiki draft wikis route failed", error);
+
+    return NextResponse.json(
+      { message: wikiDraftUnavailableMessage },
+      { status: 502 },
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const client = createClient(request);
+
+  if (!client) {
+    return jsonErrorResponse("Wiki draft API is not configured.", 500);
+  }
+
+  try {
+    const result = await client.createWikiDraft(await request.json());
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    console.error("Wiki draft wiki creation route failed", error);
 
     return NextResponse.json(
       { message: wikiDraftUnavailableMessage },

@@ -86,7 +86,7 @@ function BasicTextInput({
   type?: string;
   value: number | string | null | undefined;
 }) {
-  if (!isAlwaysVisible && (value === undefined || value === null || value === "")) {
+  if (!isAlwaysVisible && (value === undefined || value === "")) {
     return null;
   }
 
@@ -104,15 +104,17 @@ function BasicTextInput({
 }
 
 function BasicLinesInput({
+  isAlwaysVisible = false,
   label,
   name,
   values,
 }: {
+  isAlwaysVisible?: boolean;
   label: string;
   name: string;
   values: string[] | undefined;
 }) {
-  if (!values?.length) {
+  if (!isAlwaysVisible && !values?.length) {
     return null;
   }
 
@@ -121,7 +123,7 @@ function BasicLinesInput({
       {label}
       <textarea
         className={basicTextareaClassName}
-        defaultValue={values.join("\n")}
+        defaultValue={(values ?? []).join("\n")}
         name={name}
       />
     </label>
@@ -172,6 +174,12 @@ export function WikiBasicPanel({
   onCancel,
   onSave,
 }: WikiBasicPanelProps) {
+  const resourceType = basic.resourceType as WikiResourceType;
+  const isAgency = resourceType === "agency";
+  const isGroup = resourceType === "group";
+  const isSong = resourceType === "song";
+  const isTalent = resourceType === "talent";
+
   if (isEditing) {
     return (
       <form
@@ -229,54 +237,160 @@ export function WikiBasicPanel({
           Basic
         </p>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <BasicTextInput label="Group Type" name="groupType" value={basic.groupType} />
-          <BasicTextInput label="Status" name="status" value={basic.status} />
-          <BasicTextInput label="Generation" name="generation" value={basic.generation} />
-          <BasicTextInput label="Debut Date" name="debutDate" value={basic.debutDate} />
-          <BasicTextInput label="Fandom Name" name="fandomName" value={basic.fandomName} />
           <BasicTextInput
+            isAlwaysVisible={isGroup}
+            label="Group Type"
+            name="groupType"
+            value={basic.groupType}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isAgency || isGroup}
+            label="Status"
+            name="status"
+            value={basic.status}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isGroup}
+            label="Generation"
+            name="generation"
+            value={basic.generation}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isGroup}
+            label="Debut Date"
+            name="debutDate"
+            value={basic.debutDate}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isGroup || isTalent}
+            label="Fandom Name"
+            name="fandomName"
+            value={basic.fandomName}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isGroup || isTalent}
             label="Representative Symbol"
             name="representativeSymbol"
             value={basic.representativeSymbol}
           />
-          <BasicTextInput label="CEO" name="ceo" value={basic.ceo} />
+          <BasicTextInput isAlwaysVisible={isAgency} label="CEO" name="ceo" value={basic.ceo} />
           <BasicTextInput
+            isAlwaysVisible={isAgency}
             label="Official Website"
             name="officialWebsite"
             value={basic.officialWebsite}
           />
-          <BasicLinesInput label="Social Links" name="socialLinks" values={basic.socialLinks} />
-          <BasicTextInput label="Song Type" name="songType" value={basic.songType} />
-          <BasicLinesInput label="Genres" name="genres" values={basic.genres} />
+          <BasicLinesInput
+            isAlwaysVisible={isAgency}
+            label="Social Links"
+            name="socialLinks"
+            values={basic.socialLinks}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isSong}
+            label="Song Type"
+            name="songType"
+            value={basic.songType}
+          />
+          <BasicLinesInput
+            isAlwaysVisible={isSong}
+            label="Genres"
+            name="genres"
+            values={basic.genres}
+          />
           <BasicRelationLinks label="Groups" relations={basic.groups} />
           <BasicTextInput
+            isAlwaysVisible={isSong}
             label="Release Date"
             name="releaseDate"
             value={basic.releaseDate}
           />
-          <BasicTextInput label="Album" name="albumName" value={basic.albumName} />
-          <BasicTextInput label="Lyricist" name="lyricist" value={basic.lyricist} />
-          <BasicTextInput label="Composer" name="composer" value={basic.composer} />
-          <BasicTextInput label="Arranger" name="arranger" value={basic.arranger} />
-          <BasicTextInput label="Real Name" name="realName" value={basic.realName} />
-          <BasicTextInput label="Birthday" name="birthday" value={basic.birthday} />
-          <BasicTextInput label="Position" name="position" value={basic.position} />
-          <BasicTextInput label="MBTI" name="mbti" value={basic.mbti} />
-          <BasicTextInput label="Zodiac Sign" name="zodiacSign" value={basic.zodiacSign} />
           <BasicTextInput
+            isAlwaysVisible={isSong}
+            label="Album"
+            name="albumName"
+            value={basic.albumName}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isSong}
+            label="Lyricist"
+            name="lyricist"
+            value={basic.lyricist}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isSong}
+            label="Composer"
+            name="composer"
+            value={basic.composer}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isSong}
+            label="Arranger"
+            name="arranger"
+            value={basic.arranger}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="Real Name"
+            name="realName"
+            value={basic.realName}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="Birthday"
+            name="birthday"
+            value={basic.birthday}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="Position"
+            name="position"
+            value={basic.position}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="MBTI"
+            name="mbti"
+            value={basic.mbti}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="Zodiac Sign"
+            name="zodiacSign"
+            value={basic.zodiacSign}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
             label="English Level"
             name="englishLevel"
             value={basic.englishLevel}
           />
-          <BasicTextInput label="Height" name="height" type="number" value={basic.height} />
-          <BasicTextInput label="Blood Type" name="bloodType" value={basic.bloodType} />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="Height"
+            name="height"
+            type="number"
+            value={basic.height}
+          />
+          <BasicTextInput
+            isAlwaysVisible={isTalent}
+            label="Blood Type"
+            name="bloodType"
+            value={basic.bloodType}
+          />
           <BasicRelationLinks label="Talents" relations={basic.talents} />
           <BasicLinesInput
+            isAlwaysVisible={isGroup}
             label="Official Colors"
             name="officialColors"
             values={basic.officialColors}
           />
-          <BasicTextInput label="Agency" name="agencyName" value={basic.agencyName} />
+          <BasicTextInput
+            isAlwaysVisible={isGroup || isSong || isTalent}
+            label="Agency"
+            name="agencyName"
+            value={basic.agencyName}
+          />
         </div>
         <WikiFormActions onCancel={onCancel} />
       </form>

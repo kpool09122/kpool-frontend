@@ -67,7 +67,7 @@ const initialImageLibraryState: ImageLibraryState = {
   uploadError: null,
 };
 
-function WikiEditContent({
+export function WikiEditContent({
   data,
   language,
   saveAdapter,
