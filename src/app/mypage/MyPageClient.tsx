@@ -231,6 +231,7 @@ export function MyPageClient({
         });
   };
   const submitCreateDialog = (input: {
+    language: Locale;
     name: string;
     resourceType: WikiResourceType;
     slug: string;
@@ -246,13 +247,13 @@ export function MyPageClient({
     void createWiki({
       fallbackErrorMessage: t.createWikiFailed,
       requestBody: createWikiRequestBodyFromInitialFields({
-        language: locale,
+        language: input.language,
         name: input.name,
         resourceType: input.resourceType,
         slug,
       }),
     }).then(() => {
-      router.push(buildWikiEditPath(locale, slug));
+      router.push(buildWikiEditPath(input.language, slug));
     }).catch((error: unknown) => {
       setCreateDialog({
         error: error instanceof Error ? error.message : t.createWikiFailed,
@@ -571,6 +572,7 @@ function CreateDraftWikiDialog({
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onClose: () => void;
   onSubmit: (input: {
+    language: Locale;
     name: string;
     resourceType: WikiResourceType;
     slug: string;
@@ -592,15 +594,20 @@ function CreateDraftWikiDialog({
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
+          const language = formData.get("language");
           const resourceType = formData.get("resourceType");
           const name = String(formData.get("name") ?? "").trim();
           const slug = String(formData.get("slug") ?? "").trim();
 
-          if (!wikiResourceTypes.some((candidate) => candidate === resourceType)) {
+          if (
+            !Object.keys(localeLabels).some((candidate) => candidate === language) ||
+            !wikiResourceTypes.some((candidate) => candidate === resourceType)
+          ) {
             return;
           }
 
           onSubmit({
+            language: language as Locale,
             name,
             resourceType: resourceType as WikiResourceType,
             slug,
@@ -636,12 +643,22 @@ function CreateDraftWikiDialog({
               ))}
             </select>
           </label>
-          <div className="grid gap-2 text-sm font-semibold">
-            <span>{t.languageLabel}</span>
-            <span className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-muted">
-              {localeLabels[locale]}
-            </span>
-          </div>
+          <label className="grid gap-2 text-sm font-semibold">
+            {t.languageLabel}
+            <select
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              defaultValue={locale}
+              disabled={isCreating}
+              name="language"
+              required
+            >
+              {Object.entries(localeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="grid gap-2 text-sm font-semibold">
             {t.wikiNameLabel}
             <input

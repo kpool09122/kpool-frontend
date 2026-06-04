@@ -364,7 +364,7 @@ describe("MyPageClient", () => {
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
   });
 
-  it("creates a draft wiki from the dialog using the current header language", async () => {
+  it("creates a draft wiki from the dialog using the selected language defaulted from the header", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -392,8 +392,11 @@ describe("MyPageClient", () => {
     const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
 
     expect(dialog).toBeInTheDocument();
-    expect(screen.getByText("日本語")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("言語")).toHaveValue("ja");
 
+    fireEvent.change(within(dialog).getByLabelText("言語"), {
+      target: { value: "en" },
+    });
     fireEvent.change(within(dialog).getByLabelText("名前"), {
       target: { value: "New Wiki" },
     });
@@ -408,7 +411,7 @@ describe("MyPageClient", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            language: "ja",
+            language: "en",
             resourceType: "group",
             slug: "gr-new-wiki",
             basic: {
@@ -421,7 +424,7 @@ describe("MyPageClient", () => {
         }),
       ),
     );
-    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/ja/gr-new-wiki/edit");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/en/gr-new-wiki/edit");
   });
 
   it("keeps the create dialog open when draft wiki creation fails", async () => {
