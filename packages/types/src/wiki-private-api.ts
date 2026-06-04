@@ -329,7 +329,7 @@ const AgencyDraftWikiBasic = z
     foundedIn: z.string().nullable(),
     parentAgencyIdentifier: KPool_Common_Uuid.nullable(),
     status: z.string().nullable(),
-    officialWebsite: z.string(),
+    officialWebsite: z.string().nullable(),
     socialLinks: z.array(z.string()),
   })
   .passthrough();
@@ -366,9 +366,9 @@ const GroupDraftWikiBasic = z
     name: z.string(),
     normalizedName: z.string(),
     agencyIdentifier: KPool_Common_Uuid.nullable(),
-    groupType: z.string(),
+    groupType: z.string().nullable(),
     status: z.string().nullable(),
-    generation: z.string(),
+    generation: z.string().nullable(),
     debutDate: z.string().nullable(),
     disbandDate: z.string().nullable(),
     fandomName: z.string(),
