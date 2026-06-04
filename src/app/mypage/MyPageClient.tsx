@@ -3,6 +3,7 @@
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
+import Link from "next/link";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -358,6 +359,14 @@ function WikiPrincipalPanel({
 
     return (
       <section className="space-y-5">
+        <div className="flex justify-end">
+          <Link
+            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
+            href="/wiki/create"
+          >
+            {t.createWiki}
+          </Link>
+        </div>
         <div className="overflow-x-auto border-b border-stroke-subtle">
           <div aria-label={t.wikiTabsLabel} className="-mb-px flex gap-1" role="tablist">
             {tabs.map((tab) => (

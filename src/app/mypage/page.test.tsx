@@ -348,6 +348,10 @@ describe("MyPageClient", () => {
     expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "新規作成" })).toHaveAttribute(
+      "href",
+      "/wiki/create",
+    );
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
   });

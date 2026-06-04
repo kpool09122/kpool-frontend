@@ -291,6 +291,29 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   return parseCreateWikiRequestBody(body);
 };
 
+export const createWikiRequestBodyFromDraft = (
+  draft: WikiDraftDetail,
+): CreateWikiRequestBody => {
+  const source = {
+    ...draft.basic,
+    ...draft,
+  } as Record<string, unknown>;
+  const body: Record<string, unknown> = {
+    language: draft.language,
+    resourceType: draft.resourceType,
+    basic: draft.basic,
+    sections: toWikiSectionContentPayload(draft.sections),
+    themeColor: draft.themeColor ?? null,
+    imageIdentifier: draft.heroImage.imageIdentifier ?? null,
+  };
+
+  copyStringProperty(source, body, "agencyIdentifier");
+  copyStringArrayProperty(source, body, "groupIdentifiers");
+  copyStringArrayProperty(source, body, "talentIdentifiers");
+
+  return parseCreateWikiRequestBody(body);
+};
+
 const isNotFoundApiError = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
@@ -776,6 +799,31 @@ export const fetchWikiDraftWikis = async ({
   }
 
   return parseWithSchemaLog("wiki draft list response", wikiDraftWikiListResponseSchema, body);
+};
+
+export const createWiki = async ({
+  fallbackErrorMessage,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  requestBody: CreateWikiRequestBody;
+}): Promise<DraftWikiSummary> => {
+  const response = await fetch("/api/wiki/draft-wikis", {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readBrowserJsonResponse(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseDraftWikiSummaryBody(body);
 };
 
 export const fetchVersionInconsistentWikis = async ({

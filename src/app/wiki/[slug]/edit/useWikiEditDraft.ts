@@ -59,6 +59,14 @@ type WikiSaveState =
 type WikiPersistenceResult = { ok: true; status?: WikiDraftStatus } | { ok: false };
 
 type WikiEditDraftOptions = {
+  messages?: {
+    failed: string;
+    saved: string;
+    saving: string;
+    success: string;
+    unsaved: string;
+  };
+  onSaveSuccess?: (result: Extract<WikiPersistenceResult, { ok: true }>) => void;
   onSubmitSuccess?: (result: Extract<WikiPersistenceResult, { ok: true }>) => void;
   saveAdapter?: (draft: WikiDraftDetail) => unknown;
   submitAdapter?: (draft: WikiDraftDetail) => unknown;
@@ -72,6 +80,13 @@ const isWikiPersistenceResult = (value: unknown): value is WikiPersistenceResult
 
 const optimisticSaveAdapter = async () => ({ ok: true }) as const;
 const optimisticActionAdapter = async () => ({ ok: true }) as const;
+const defaultSaveMessages = {
+  failed: "Save failed",
+  saved: "Saved",
+  saving: "Saving changes",
+  success: "Saved",
+  unsaved: "Unsaved changes",
+};
 
 const createInitialDraft = (wiki: WikiDraftDetail): WikiDraftDetail => ({
   ...wiki,
@@ -110,7 +125,9 @@ export const useWikiEditDraft = (
   });
   const saveAdapter = options?.saveAdapter ?? optimisticSaveAdapter;
   const submitAdapter = options?.submitAdapter ?? optimisticActionAdapter;
+  const onSaveSuccess = options?.onSaveSuccess;
   const onSubmitSuccess = options?.onSubmitSuccess;
+  const saveMessages = options?.messages ?? defaultSaveMessages;
 
   useEffect(() => {
     setDraft(initialDraft);
@@ -121,11 +138,11 @@ export const useWikiEditDraft = (
     setNewContentEditorId(null);
     setSaveState({
       status: "saved",
-      message: "Saved",
+      message: saveMessages.saved,
       payload: toWikiEditPayload(initialDraft),
       showMessage: false,
     });
-  }, [initialCode, initialDraft]);
+  }, [initialCode, initialDraft, saveMessages.saved]);
 
   const commitDraft = (
     nextDraft: WikiDraftDetail,
@@ -140,7 +157,7 @@ export const useWikiEditDraft = (
     setCodeWarnings(parsedCode.ok ? parsedCode.warnings : []);
     setSaveState({
       status: "dirty",
-      message: "Unsaved changes",
+      message: saveMessages.unsaved,
       payload,
       showMessage: true,
     });
@@ -151,7 +168,7 @@ export const useWikiEditDraft = (
 
     setSaveState({
       status: "saving",
-      message: "Saving changes",
+      message: saveMessages.saving,
       payload,
       showMessage: true,
     });
@@ -161,14 +178,18 @@ export const useWikiEditDraft = (
 
       setSaveState({
         status: result.ok ? "saved" : "failed",
-        message: result.ok ? "Saved" : "Save failed",
+        message: result.ok ? saveMessages.success : saveMessages.failed,
         payload,
         showMessage: true,
       });
+
+      if (result.ok) {
+        onSaveSuccess?.(result);
+      }
     }).catch(() => {
       setSaveState({
         status: "failed",
-        message: "Save failed",
+        message: saveMessages.failed,
         payload,
         showMessage: true,
       });
@@ -183,7 +204,7 @@ export const useWikiEditDraft = (
     setEditingId(null);
     setSaveState({
       status: "saved",
-      message: "Saved",
+      message: saveMessages.saved,
       payload: toWikiEditPayload(initialDraft),
       showMessage: false,
     });
@@ -270,7 +291,7 @@ export const useWikiEditDraft = (
         setCodeWarnings([]);
         setSaveState({
           status: "dirty",
-          message: "Unsaved changes",
+          message: saveMessages.unsaved,
           payload: toWikiEditPayload(draft),
           showMessage: true,
         });

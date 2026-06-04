@@ -13,22 +13,26 @@ import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 function WikiSaveButton({
+  ariaLabel = "Save wiki changes",
+  label = "Save",
   disabled,
   onSave,
 }: {
+  ariaLabel?: string;
+  label?: string;
   disabled: boolean;
   onSave: () => void;
 }) {
   return (
     <button
-      aria-label="Save wiki changes"
+      aria-label={ariaLabel}
       className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
       disabled={disabled}
       onClick={onSave}
       style={cardSurfaceStyle}
       type="button"
     >
-      Save
+      {label}
     </button>
   );
 }
@@ -58,10 +62,12 @@ function WikiSubmitButton({
 
 type WikiEditSidebarProps = {
   canPersist: boolean;
+  createLabel?: string;
   editorMode: WikiEditorMode;
   isBusy: boolean;
   isOpen: boolean;
   isReviewLocked?: boolean;
+  mode?: "create" | "edit";
   onEditorModeChange: (mode: WikiEditorMode) => void;
   onClear: () => void;
   onPreviewModeChange: (mode: WikiPreviewMode) => void;
@@ -79,10 +85,12 @@ type WikiEditSidebarProps = {
 
 export function WikiEditSidebar({
   canPersist,
+  createLabel = "Create",
   editorMode,
   isBusy,
   isOpen,
   isReviewLocked = false,
+  mode = "edit",
   onEditorModeChange,
   onClear,
   onPreviewModeChange,
@@ -109,6 +117,7 @@ export function WikiEditSidebar({
     (resourceType as WikiResourceType | undefined) ??
     getWikiResourceTypeFromSlug(slug) ??
     "group";
+  const isCreateMode = mode === "create";
 
   return (
     <aside
@@ -133,12 +142,19 @@ export function WikiEditSidebar({
       <div className="relative h-full overflow-y-auto border border-r-0 border-stroke-subtle p-4 shadow-soft" style={cardSurfaceStyle}>
         <div className={isOpen ? "block" : "pointer-events-none invisible"}>
           <div className="grid gap-2">
-            <WikiSaveButton disabled={isActionDisabled} onSave={onSave} />
-            <WikiSubmitButton
+            <WikiSaveButton
+              ariaLabel={isCreateMode ? createLabel : "Save wiki changes"}
               disabled={isActionDisabled}
-              isReviewLocked={isReviewLocked}
-              onSubmit={onSubmit}
+              label={isCreateMode ? createLabel : "Save"}
+              onSave={onSave}
             />
+            {isCreateMode ? null : (
+              <WikiSubmitButton
+                disabled={isActionDisabled}
+                isReviewLocked={isReviewLocked}
+                onSubmit={onSubmit}
+              />
+            )}
             <button
               aria-label="Clear wiki changes"
               className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted disabled:cursor-not-allowed"
@@ -151,6 +167,7 @@ export function WikiEditSidebar({
             </button>
           </div>
 
+          {isCreateMode ? null : (
           <div className="mt-5 grid gap-4 border-t border-stroke-subtle pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
             <fieldset className="grid gap-2">
               <legend className="text-sm font-semibold text-text-strong">Editor mode</legend>
@@ -245,6 +262,7 @@ export function WikiEditSidebar({
               </label>
             </fieldset>
           </div>
+          )}
         </div>
       </div>
     </aside>

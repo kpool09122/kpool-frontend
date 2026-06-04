@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type WikiDraftDetail } from "@kpool/wiki";
 
@@ -24,7 +24,11 @@ import {
 import { useI18n } from "../../../../i18n/I18nProvider";
 import { getWikiResourceLabel, type WikiResourceType } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
-import { type loadDraftWikiState } from "@/gateways/wiki/draftWiki";
+import {
+  createWiki,
+  createWikiRequestBodyFromDraft,
+  type loadDraftWikiState,
+} from "@/gateways/wiki/draftWiki";
 import {
   createWikiImageUploadRequest,
   createWikiImageAssociationInput,
@@ -44,6 +48,8 @@ type WikiEditPageProps = {
   saveAdapter?: (draft: WikiDraftDetail) => unknown;
   submitAdapter?: (draft: WikiDraftDetail) => unknown;
 };
+
+type WikiEditContentMode = "create" | "edit";
 
 type ImageLibraryState = {
   images: WikiUploadedImage[];
@@ -67,14 +73,46 @@ const initialImageLibraryState: ImageLibraryState = {
   uploadError: null,
 };
 
-function WikiEditContent({
+export const createEmptyWikiDraft = (language = "ja"): WikiDraftDetail => ({
+  wikiIdentifier: "new-wiki-draft",
+  translationSetIdentifier: "new-wiki-draft-translation-set",
+  slug: "",
+  language,
+  resourceType: "group",
+  status: "pending",
+  themeColor: null,
+  heroImage: {
+    imageIdentifier: null,
+    src: "data:image/gif;base64,R0lGODlhAQABAAAAACw=",
+    alt: "",
+  },
+  basic: {
+    name: "",
+    normalizedName: "",
+    resourceType: "group",
+    groupType: "",
+    status: "",
+    generation: "",
+    debutDate: "",
+    fandomName: "",
+    emoji: "",
+    representativeSymbol: "",
+    officialColors: [],
+    agencyName: null,
+  },
+  sections: [],
+});
+
+export function WikiEditContent({
   data,
   language,
+  mode = "edit",
   saveAdapter,
   submitAdapter,
 }: {
   data: WikiDraftDetail;
   language: string;
+  mode?: WikiEditContentMode;
   saveAdapter: (draft: WikiDraftDetail) => unknown;
   submitAdapter: (draft: WikiDraftDetail) => unknown;
 }) {
@@ -90,6 +128,23 @@ function WikiEditContent({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [previewMode, setPreviewMode] = useState<WikiPreviewMode>("light");
   const [isSubmittedReviewLocked, setIsSubmittedReviewLocked] = useState(false);
+  const [isCreateRedirecting, setIsCreateRedirecting] = useState(false);
+  const saveMessages = useMemo(() => mode === "create"
+    ? {
+        failed: t.createFailed,
+        saved: t.createReady,
+        saving: t.creating,
+        success: t.createSucceeded,
+        unsaved: t.unsavedChanges,
+      }
+    : undefined, [
+      mode,
+      t.createFailed,
+      t.createReady,
+      t.createSucceeded,
+      t.creating,
+      t.unsavedChanges,
+    ]);
 
   const {
     canPersist,
@@ -114,6 +169,13 @@ function WikiEditContent({
     addBlock,
     deleteContent,
   } = useWikiEditDraft(data, {
+    messages: saveMessages,
+    onSaveSuccess: (result) => {
+      if (mode === "create" && result.ok) {
+        setIsCreateRedirecting(true);
+        router.push("/mypage");
+      }
+    },
     onSubmitSuccess: (result) => {
       if (result.status === "under_review") {
         setIsSubmittedReviewLocked(true);
@@ -133,7 +195,32 @@ function WikiEditContent({
   const closeEditor = () => setEditingId(null);
   const isReviewLocked = draft.status === "under_review";
   const isSubmitRefreshPending = isSubmittedReviewLocked && !isReviewLocked;
-  const isEditLocked = isReviewLocked || isSubmitRefreshPending || isSubmittedReviewLocked;
+  const isEditLocked =
+    isCreateRedirecting ||
+    isReviewLocked ||
+    isSubmitRefreshPending ||
+    isSubmittedReviewLocked;
+  const shouldWarnBeforeCreateLeave =
+    mode === "create" &&
+    !isCreateRedirecting &&
+    (saveState.status === "dirty" ||
+      saveState.status === "failed" ||
+      saveState.status === "saving");
+
+  useEffect(() => {
+    if (!shouldWarnBeforeCreateLeave) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = t.leaveCreateConfirm;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [shouldWarnBeforeCreateLeave, t.leaveCreateConfirm]);
   const editBasic = () => {
     if (isEditLocked) {
       return;
@@ -156,7 +243,7 @@ function WikiEditContent({
       return;
     }
 
-    if (!window.confirm(t.discardChanges)) {
+    if (mode !== "create" && !window.confirm(t.discardChanges)) {
       return;
     }
 
@@ -433,10 +520,12 @@ function WikiEditContent({
 
         <WikiEditSidebar
           canPersist={canPersist}
+          createLabel={t.createAction}
           editorMode={editorMode}
           isBusy={isBusy}
           isOpen={isSidebarOpen}
           isReviewLocked={isEditLocked}
+          mode={mode}
           onEditorModeChange={(mode) => {
             if (!isEditLocked) {
               setEditorMode(mode);
@@ -521,6 +610,35 @@ export function WikiEditPage({
       language={language}
       saveAdapter={saveAdapter}
       submitAdapter={submitAdapter}
+    />
+  );
+}
+
+export function WikiCreatePage({
+  createAdapter,
+  language = "ja",
+}: {
+  createAdapter?: (draft: WikiDraftDetail) => unknown;
+  language?: string;
+}) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki;
+  const saveAdapter = createAdapter ?? (async (draft: WikiDraftDetail) => {
+    await createWiki({
+      fallbackErrorMessage: t.createFailed,
+      requestBody: createWikiRequestBodyFromDraft(draft),
+    });
+
+    return { ok: true };
+  });
+
+  return (
+    <WikiEditContent
+      data={createEmptyWikiDraft(language)}
+      language={language}
+      mode="create"
+      saveAdapter={saveAdapter}
+      submitAdapter={saveAdapter}
     />
   );
 }

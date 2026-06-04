@@ -113,6 +113,7 @@ const ja = {
     wikiHeaderTitle: "Wiki",
     wikiHeaderDescription:
       "Wiki 関連の確認やレビューをここから行えます。",
+    createWiki: "新規作成",
     wikiReviewUnavailableTitle: "利用できる Wiki 機能がありません",
     wikiReviewUnavailableMessage:
       "この principal で利用できる Wiki 機能は現在ありません。",
@@ -214,6 +215,13 @@ const ja = {
     emptyDraftMessage:
       "This resource does not have a wiki draft to edit at the moment.",
     discardChanges: "Discard unsaved wiki changes?",
+    createAction: "新規作成",
+    createReady: "新規作成",
+    creating: "作成中",
+    createSucceeded: "作成しました",
+    createFailed: "Wiki の作成に失敗しました。",
+    unsavedChanges: "Unsaved changes",
+    leaveCreateConfirm: "作成中の Wiki があります。このページを離れますか？",
     addSection: "+ Section",
     theme: "Theme",
     profileSuffix: "profile",
@@ -373,6 +381,7 @@ const en: typeof ja = {
     wikiHeaderTitle: "Wiki",
     wikiHeaderDescription:
       "Review and check Wiki-related items from here.",
+    createWiki: "Create",
     wikiReviewUnavailableTitle: "No Wiki features are available",
     wikiReviewUnavailableMessage:
       "There are currently no Wiki features available for this principal.",
@@ -474,6 +483,13 @@ const en: typeof ja = {
     emptyDraftMessage:
       "This resource does not have a wiki draft to edit at the moment.",
     discardChanges: "Discard unsaved wiki changes?",
+    createAction: "Create",
+    createReady: "Create",
+    creating: "Creating",
+    createSucceeded: "Created",
+    createFailed: "Wiki creation failed.",
+    unsavedChanges: "Unsaved changes",
+    leaveCreateConfirm: "You have a Wiki being created. Leave this page?",
     addSection: "+ Section",
     theme: "Theme",
     profileSuffix: "profile",
@@ -632,6 +648,7 @@ const ko: typeof ja = {
     wikiHeaderTitle: "Wiki",
     wikiHeaderDescription:
       "Wiki 관련 확인 및 리뷰를 여기에서 진행할 수 있습니다.",
+    createWiki: "새로 만들기",
     wikiReviewUnavailableTitle: "사용 가능한 Wiki 기능이 없습니다",
     wikiReviewUnavailableMessage:
       "현재 이 principal에서 사용할 수 있는 Wiki 기능이 없습니다.",
@@ -731,6 +748,13 @@ const ko: typeof ja = {
     emptyDraftTitle: "Wiki 초안이 없습니다",
     emptyDraftMessage: "현재 편집할 Wiki 초안이 없습니다.",
     discardChanges: "저장하지 않은 Wiki 변경 사항을 버릴까요?",
+    createAction: "새로 만들기",
+    createReady: "새로 만들기",
+    creating: "생성 중",
+    createSucceeded: "생성했습니다",
+    createFailed: "Wiki를 생성할 수 없습니다.",
+    unsavedChanges: "저장하지 않은 변경 사항",
+    leaveCreateConfirm: "생성 중인 Wiki가 있습니다. 이 페이지를 떠나시겠습니까?",
     addSection: "+ 섹션",
     theme: "테마",
     profileSuffix: "프로필",
