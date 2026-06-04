@@ -7,6 +7,7 @@ import {
   deleteDraftWiki,
   deleteWikiDraft,
   createWikiDraftRequestBodyFromPublicWiki,
+  createWikiRequestBodyFromInitialFields,
   createReviewWikiRequestBody,
   createSubmitWikiRequestBody,
   createTranslateWikiRequestBody,
@@ -619,6 +620,27 @@ describe("draftWiki", () => {
         },
       ],
       slug: "gr-aurora-echo",
+    });
+  });
+
+  it("builds create wiki request bodies from initial dialog fields", () => {
+    expect(
+      createWikiRequestBodyFromInitialFields({
+        language: "ja",
+        name: "New Wiki",
+        resourceType: "group",
+        slug: "gr-new-wiki",
+      }),
+    ).toEqual({
+      language: "ja",
+      resourceType: "group",
+      slug: "gr-new-wiki",
+      basic: {
+        name: "New Wiki",
+        normalizedName: "",
+        resourceType: "group",
+      },
+      sections: [],
     });
   });
 

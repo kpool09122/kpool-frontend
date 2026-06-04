@@ -291,28 +291,28 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   return parseCreateWikiRequestBody(body);
 };
 
-export const createWikiRequestBodyFromDraft = (
-  draft: WikiDraftDetail,
-): CreateWikiRequestBody => {
-  const source = {
-    ...draft.basic,
-    ...draft,
-  } as Record<string, unknown>;
-  const body: Record<string, unknown> = {
-    language: draft.language,
-    resourceType: draft.resourceType,
-    basic: draft.basic,
-    sections: toWikiSectionContentPayload(draft.sections),
-    themeColor: draft.themeColor ?? null,
-    imageIdentifier: draft.heroImage.imageIdentifier ?? null,
-  };
-
-  copyStringProperty(source, body, "agencyIdentifier");
-  copyStringArrayProperty(source, body, "groupIdentifiers");
-  copyStringArrayProperty(source, body, "talentIdentifiers");
-
-  return parseCreateWikiRequestBody(body);
-};
+export const createWikiRequestBodyFromInitialFields = ({
+  language,
+  name,
+  resourceType,
+  slug,
+}: {
+  language: string;
+  name: string;
+  resourceType: WikiResourceType;
+  slug: string;
+}): CreateWikiRequestBody =>
+  parseCreateWikiRequestBody({
+    language,
+    resourceType,
+    slug,
+    basic: {
+      name,
+      normalizedName: "",
+      resourceType,
+    },
+    sections: [],
+  });
 
 const isNotFoundApiError = (error: unknown): boolean =>
   typeof error === "object" &&

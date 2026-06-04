@@ -3,12 +3,12 @@
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { Locale } from "../../i18n/locales";
+import { localeLabels, type Locale } from "../../i18n/locales";
 import {
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
@@ -19,6 +19,8 @@ import {
 } from "@/gateways/wiki/wikiPrincipal";
 import {
   approveWikiDraft,
+  createWiki,
+  createWikiRequestBodyFromInitialFields,
   deleteWikiDraft,
   fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
@@ -36,10 +38,14 @@ import {
   rejectWikiDraftImage,
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
+  buildWikiEditPath,
+  buildWikiPath,
   isSafeWikiSourceUrl,
+  normalizeWikiSlugForResourceType,
   type WikiDraftImage,
+  type WikiResourceType,
+  wikiResourceTypes,
 } from "@kpool/wiki";
-import { buildWikiPath } from "@kpool/wiki";
 import {
   initialDraftImageListState,
   type DraftImageListState,
@@ -69,6 +75,12 @@ type MyPageClientProps = {
   draftImageAdapter?: MyPageDraftImageAdapter;
   draftWikiAdapter?: MyPageDraftWikiAdapter;
   principalAdapter?: MyPagePrincipalAdapter;
+};
+
+type CreateDraftWikiDialogState = {
+  error: string | null;
+  isCreating: boolean;
+  isOpen: boolean;
 };
 
 const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
@@ -120,6 +132,7 @@ export function MyPageClient({
   initialPrincipalState = { status: "idle" },
   principalAdapter = defaultPrincipalAdapter,
 }: MyPageClientProps) {
+  const router = useRouter();
   const authIdentity = useAuthStore((state) => state.identity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const currentIdentity = authIdentity ?? initialIdentity;
@@ -127,6 +140,11 @@ export function MyPageClient({
   const t = dictionary.mypage;
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("editingWikis");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [createDialog, setCreateDialog] = useState<CreateDraftWikiDialogState>({
+    error: null,
+    isCreating: false,
+    isOpen: false,
+  });
   const draftImageMessages = useMemo(() => ({
     draftImageApproveFailed: t.draftImageApproveFailed,
     draftImageListLoadFailed: t.draftImageListLoadFailed,
@@ -196,6 +214,53 @@ export function MyPageClient({
     onPrincipalReady: loadFirstDraftWikiPage,
     refreshIdentity: () => refreshIdentity({ preserveOnNull: true }),
   });
+  const openCreateDialog = () => {
+    setCreateDialog({
+      error: null,
+      isCreating: false,
+      isOpen: true,
+    });
+  };
+  const closeCreateDialog = () => {
+    setCreateDialog((state) => state.isCreating
+      ? state
+      : {
+          ...state,
+          error: null,
+          isOpen: false,
+        });
+  };
+  const submitCreateDialog = (input: {
+    name: string;
+    resourceType: WikiResourceType;
+    slug: string;
+  }) => {
+    const slug = normalizeWikiSlugForResourceType(input.slug, input.resourceType);
+
+    setCreateDialog((state) => ({
+      ...state,
+      error: null,
+      isCreating: true,
+    }));
+
+    void createWiki({
+      fallbackErrorMessage: t.createWikiFailed,
+      requestBody: createWikiRequestBodyFromInitialFields({
+        language: locale,
+        name: input.name,
+        resourceType: input.resourceType,
+        slug,
+      }),
+    }).then(() => {
+      router.push(buildWikiEditPath(locale, slug));
+    }).catch((error: unknown) => {
+      setCreateDialog({
+        error: error instanceof Error ? error.message : t.createWikiFailed,
+        isCreating: false,
+        isOpen: true,
+      });
+    });
+  };
 
   return (
     <main
@@ -273,6 +338,16 @@ export function MyPageClient({
             onReviewDraftWiki={(wiki, action) => void reviewDraftWiki(wiki, action)}
             onSelectWikiTab={setSelectedWikiTab}
             onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
+            onOpenCreateDraftWiki={openCreateDialog}
+          />
+          <CreateDraftWikiDialog
+            error={createDialog.error}
+            isCreating={createDialog.isCreating}
+            isOpen={createDialog.isOpen}
+            locale={locale}
+            t={t}
+            onClose={closeCreateDialog}
+            onSubmit={submitCreateDialog}
           />
         </section>
       </div>
@@ -303,6 +378,7 @@ function WikiPrincipalPanel({
   onReviewDraftWiki,
   onSelectWikiTab,
   onWithdrawDraftWiki,
+  onOpenCreateDraftWiki,
 }: {
   draftImages: DraftImageListState;
   draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
@@ -326,6 +402,7 @@ function WikiPrincipalPanel({
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
   onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
+  onOpenCreateDraftWiki: () => void;
 }) {
   const canActivate = isAuthenticated && !isPending;
 
@@ -360,12 +437,13 @@ function WikiPrincipalPanel({
     return (
       <section className="space-y-5">
         <div className="flex justify-end">
-          <Link
+          <button
             className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
-            href="/wiki/create"
+            onClick={onOpenCreateDraftWiki}
+            type="button"
           >
             {t.createWiki}
-          </Link>
+          </button>
         </div>
         <div className="overflow-x-auto border-b border-stroke-subtle">
           <div aria-label={t.wikiTabsLabel} className="-mb-px flex gap-1" role="tablist">
@@ -473,6 +551,143 @@ function WikiPrincipalPanel({
       >
         {t.activateWiki}
       </button>
+    </div>
+  );
+}
+
+function CreateDraftWikiDialog({
+  error,
+  isCreating,
+  isOpen,
+  locale,
+  t,
+  onClose,
+  onSubmit,
+}: {
+  error: string | null;
+  isCreating: boolean;
+  isOpen: boolean;
+  locale: Locale;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onClose: () => void;
+  onSubmit: (input: {
+    name: string;
+    resourceType: WikiResourceType;
+    slug: string;
+  }) => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-label={t.createWikiDialogTitle}
+      aria-modal="true"
+      className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4 py-6"
+      role="dialog"
+    >
+      <form
+        className="w-full max-w-md rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const formData = new FormData(event.currentTarget);
+          const resourceType = formData.get("resourceType");
+          const name = String(formData.get("name") ?? "").trim();
+          const slug = String(formData.get("slug") ?? "").trim();
+
+          if (!wikiResourceTypes.some((candidate) => candidate === resourceType)) {
+            return;
+          }
+
+          onSubmit({
+            name,
+            resourceType: resourceType as WikiResourceType,
+            slug,
+          });
+        }}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold">{t.createWikiDialogTitle}</h2>
+          <button
+            aria-label={t.cancelCreateWiki}
+            className="rounded-lg border border-stroke-subtle px-3 py-1.5 text-sm font-semibold text-text-muted transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isCreating}
+            onClick={onClose}
+            type="button"
+          >
+            {t.cancelCreateWiki}
+          </button>
+        </div>
+        <div className="mt-5 grid gap-4">
+          <label className="grid gap-2 text-sm font-semibold">
+            {t.resourceTypeLabel}
+            <select
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              defaultValue="group"
+              disabled={isCreating}
+              name="resourceType"
+              required
+            >
+              {wikiResourceTypes.map((resourceType) => (
+                <option key={resourceType} value={resourceType}>
+                  {getDraftWikiResourceLabel(t, resourceType)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="grid gap-2 text-sm font-semibold">
+            <span>{t.languageLabel}</span>
+            <span className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-muted">
+              {localeLabels[locale]}
+            </span>
+          </div>
+          <label className="grid gap-2 text-sm font-semibold">
+            {t.wikiNameLabel}
+            <input
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              disabled={isCreating}
+              name="name"
+              required
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold">
+            {t.slugLabel}
+            <input
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              disabled={isCreating}
+              name="slug"
+              pattern="[a-z0-9][a-z0-9-]*"
+              required
+            />
+          </label>
+          {error ? (
+            <p
+              className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+              role="alert"
+            >
+              {error}
+            </p>
+          ) : null}
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isCreating}
+            onClick={onClose}
+            type="button"
+          >
+            {t.cancelCreateWiki}
+          </button>
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isCreating}
+            type="submit"
+          >
+            {isCreating ? t.creatingWiki : t.createWiki}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

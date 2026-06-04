@@ -3,7 +3,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MyPageClient } from "./MyPageClient";
@@ -18,9 +18,18 @@ import type {
 const identityMocks = vi.hoisted(() => ({
   fetchCurrentAuthenticatedIdentity: vi.fn(),
 }));
+const navigationMocks = vi.hoisted(() => ({
+  push: vi.fn(),
+}));
 
 vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
   fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: navigationMocks.push,
+  }),
 }));
 
 const identity = {
@@ -285,7 +294,9 @@ describe("MyPageClient", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockReset();
+    navigationMocks.push.mockReset();
   });
 
   it("renders the sidebar with Wiki selected by default", async () => {
@@ -348,12 +359,106 @@ describe("MyPageClient", () => {
     expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "新規作成" })).toHaveAttribute(
-      "href",
-      "/wiki/create",
-    );
+    expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("creates a draft wiki from the dialog using the current header language", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "New Wiki",
+          resourceType: "group",
+          status: "pending",
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByText("日本語")).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByLabelText("名前"), {
+      target: { value: "New Wiki" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Slug"), {
+      target: { value: "new-wiki" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "新規作成" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/wiki/draft-wikis",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            language: "ja",
+            resourceType: "group",
+            slug: "gr-new-wiki",
+            basic: {
+              name: "New Wiki",
+              normalizedName: "",
+              resourceType: "group",
+            },
+            sections: [],
+          }),
+        }),
+      ),
+    );
+    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/ja/gr-new-wiki/edit");
+  });
+
+  it("keeps the create dialog open when draft wiki creation fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: "slug already exists" }), {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+
+    fireEvent.change(within(dialog).getByLabelText("名前"), {
+      target: { value: "Existing Wiki" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Slug"), {
+      target: { value: "existing-wiki" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "新規作成" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("slug already exists");
+    expect(screen.getByRole("dialog", { name: "Wikiを新規作成" })).toBeInTheDocument();
+    expect(navigationMocks.push).not.toHaveBeenCalled();
   });
 
   it("refetches identity on activation when the initial payload has no account id", async () => {

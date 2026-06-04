@@ -4,18 +4,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
 
-import { WikiCreatePage, WikiEditPage } from "./WikiEditPage";
+import { WikiEditPage } from "./WikiEditPage";
 import { wikiImageMaxFileSizeBytes } from "@kpool/wiki";
 import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
 
 const navigationMocks = vi.hoisted(() => ({
-  push: vi.fn(),
   refresh: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: navigationMocks.push,
     refresh: navigationMocks.refresh,
   }),
 }));
@@ -55,7 +53,6 @@ const renderPage = (
 describe("WikiEditPage", () => {
   afterEach(() => {
     cleanup();
-    navigationMocks.push.mockReset();
     navigationMocks.refresh.mockReset();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -96,106 +93,6 @@ describe("WikiEditPage", () => {
       "https://www.youtube-nocookie.com/embed/low-tide-high-lights",
     );
     expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
-  });
-
-  it("renders create mode with create and clear sidebar actions only", () => {
-    render(
-      React.createElement(WikiCreatePage, {
-        createAdapter: vi.fn().mockResolvedValue({ ok: true }),
-      }),
-    );
-
-    expect(screen.getByTestId("wiki-edit-root")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save wiki changes" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Submit wiki for review" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "gui" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
-  });
-
-  it("creates a draft wiki and returns to mypage on success", async () => {
-    const createAdapter = vi.fn().mockResolvedValue({ ok: true });
-
-    render(React.createElement(WikiCreatePage, { createAdapter }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
-    fireEvent.change(screen.getByLabelText("Title"), {
-      target: { value: "New Draft Wiki" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    fireEvent.click(screen.getByRole("button", { name: "新規作成" }));
-
-    expect(screen.getByText("作成中")).toBeInTheDocument();
-    await waitFor(() => expect(createAdapter).toHaveBeenCalled());
-    expect(createAdapter).toHaveBeenCalledWith(
-      expect.objectContaining({
-        basic: expect.objectContaining({
-          name: "New Draft Wiki",
-        }),
-      }),
-    );
-    expect(navigationMocks.push).toHaveBeenCalledWith("/mypage");
-    expect(navigationMocks.refresh).not.toHaveBeenCalled();
-  });
-
-  it("keeps create input values and shows an error when creation fails", async () => {
-    const createAdapter = vi.fn().mockResolvedValue({ ok: false });
-
-    render(React.createElement(WikiCreatePage, { createAdapter }));
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
-    fireEvent.change(screen.getByLabelText("Title"), {
-      target: { value: "Failed Draft Wiki" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    fireEvent.click(screen.getByRole("button", { name: "新規作成" }));
-
-    await waitFor(() => expect(screen.getByText("Wiki の作成に失敗しました。")).toBeInTheDocument());
-    expect(screen.getByRole("heading", { name: "Failed Draft Wiki" })).toBeInTheDocument();
-    expect(navigationMocks.push).not.toHaveBeenCalled();
-  });
-
-  it("clears create mode changes back to the empty initial draft", () => {
-    const confirmSpy = vi.spyOn(window, "confirm");
-
-    render(
-      React.createElement(WikiCreatePage, {
-        createAdapter: vi.fn().mockResolvedValue({ ok: true }),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
-    fireEvent.change(screen.getByLabelText("Title"), {
-      target: { value: "Draft To Clear" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    expect(screen.getByRole("heading", { name: "Draft To Clear" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear wiki changes" }));
-
-    expect(screen.queryByRole("heading", { name: "Draft To Clear" })).not.toBeInTheDocument();
-    expect(confirmSpy).not.toHaveBeenCalled();
-  });
-
-  it("registers a beforeunload confirmation while create mode has unsaved changes", () => {
-    render(
-      React.createElement(WikiCreatePage, {
-        createAdapter: vi.fn().mockResolvedValue({ ok: true }),
-      }),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
-    fireEvent.change(screen.getByLabelText("Title"), {
-      target: { value: "Unsaved Draft Wiki" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    const event = new Event("beforeunload", { cancelable: true });
-
-    window.dispatchEvent(event);
-
-    expect(event.defaultPrevented).toBe(true);
   });
 
   it("locks under-review drafts from editing, saving, and submitting", () => {
