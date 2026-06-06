@@ -28,7 +28,7 @@ export type WikiPrincipalState =
   | { status: "error"; message: string };
 
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
-type WikiPolicyAction = "APPROVE" | "PUBLISH" | "REJECT";
+type WikiPolicyAction = "APPROVE" | "AUTOMATIC_CREATE" | "PUBLISH" | "REJECT";
 type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "SONG" | "TALENT";
 
 type FetchAdapter = typeof fetch;
@@ -154,6 +154,7 @@ export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boole
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
 
 const draftWikiReviewResourceTypes = ["AGENCY", "GROUP", "SONG", "TALENT"] as const;
+export const draftWikiAutoCreateResourceTypes = ["agency", "group", "song", "talent"] as const;
 
 export const canReviewWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
   draftWikiReviewResourceTypes.some(
@@ -165,6 +166,21 @@ export const canReviewWikiDraftWikis = (principal: WikiPrincipalSummary): boolea
 export const canPublishWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
   draftWikiReviewResourceTypes.some((resourceType) =>
     isAllowedWithoutDeny(principal, "PUBLISH", resourceType),
+  );
+
+export const canAutoCreateWikiDraftWikiResourceType = (
+  principal: WikiPrincipalSummary,
+  resourceType: (typeof draftWikiAutoCreateResourceTypes)[number],
+): boolean =>
+  isAllowedWithoutDeny(
+    principal,
+    "AUTOMATIC_CREATE",
+    normalizePolicyValue(resourceType) as WikiPolicyResourceType,
+  );
+
+export const canAutoCreateWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
+  draftWikiAutoCreateResourceTypes.some((resourceType) =>
+    canAutoCreateWikiDraftWikiResourceType(principal, resourceType),
   );
 
 const readResponseBody = async (response: ResponseLike): Promise<unknown> => {

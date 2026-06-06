@@ -102,6 +102,45 @@ const wikiPublishPrincipal = {
   ],
 };
 
+const wikiAutoCreatePrincipal = {
+  ...principal,
+  policies: [
+    ...principal.policies,
+    {
+      policyIdentifier: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      name: "AGENCY_MANAGEMENT",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["AUTOMATIC_CREATE"],
+          resourceTypes: ["AGENCY", "GROUP", "SONG"],
+          condition: null,
+        },
+      ],
+    },
+  ],
+};
+
+const basicEditingPrincipal = {
+  ...principal,
+  policies: [
+    {
+      policyIdentifier: "77777777-7777-7777-7777-777777777777",
+      name: "BASIC_EDITING",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["CREATE", "EDIT", "SUBMIT"],
+          resourceTypes: ["WIKI"],
+          condition: null,
+        },
+      ],
+    },
+  ],
+};
+
 const draftImage = {
   imageIdentifier: "44444444-4444-4444-4444-444444444444",
   publishedImageIdentifier: null,
@@ -425,6 +464,170 @@ describe("MyPageClient", () => {
       ),
     );
     expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/en/gr-new-wiki/edit");
+  });
+
+  it("does not show the auto-create mode for principals with only basic editing", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: basicEditingPrincipal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+
+    expect(within(dialog).queryByRole("button", { name: "自動生成" })).not.toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button", { name: "キャンセル" })).toHaveLength(1);
+    expect(within(dialog).getByRole("button", { name: "新規作成" })).toBeInTheDocument();
+  });
+
+  it("shows the auto-create switch only when automatic create is allowed", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiAutoCreatePrincipal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+
+    expect(within(dialog).getByRole("button", { name: "自動生成" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "空の下書き" })).not.toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button", { name: "キャンセル" })).toHaveLength(1);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
+    expect(within(dialog).getByRole("button", { name: "手動作成" })).toBeInTheDocument();
+  });
+
+  it("switches related Wiki fields by resource type in auto-create mode", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiAutoCreatePrincipal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
+
+    expect(within(dialog).getByLabelText("関連事務所")).toBeDisabled();
+    expect(within(dialog).queryByLabelText("関連グループ")).not.toBeInTheDocument();
+    expect(within(dialog).getByText("選択肢はまだありません")).toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByLabelText("リソース種別"), {
+      target: { value: "song" },
+    });
+
+    expect(within(dialog).getByLabelText("関連事務所")).toBeDisabled();
+    expect(within(dialog).getByLabelText("関連グループ")).toBeDisabled();
+    expect(within(dialog).getByLabelText("関連タレント")).toBeDisabled();
+  });
+
+  it("auto-creates a draft wiki with the normalized request slug and navigates with that slug", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Generated Wiki",
+          resourceType: "song",
+          status: "pending",
+        }),
+        { status: 201, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiAutoCreatePrincipal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
+    fireEvent.change(within(dialog).getByLabelText("リソース種別"), {
+      target: { value: "song" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("名前"), {
+      target: { value: "Generated Wiki" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Slug"), {
+      target: { value: "generated-wiki" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成で作成" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/wiki/draft-wikis/auto-create",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            resourceType: "song",
+            language: "ja",
+            name: "Generated Wiki",
+            slug: "sg-generated-wiki",
+            agencyIdentifier: null,
+            groupIdentifiers: [],
+            talentIdentifiers: [],
+          }),
+        }),
+      ),
+    );
+    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/ja/sg-generated-wiki/edit");
+  });
+
+  it("keeps the auto-create dialog open when auto-create fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: "auto-create failed" }), {
+          status: 422,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiAutoCreatePrincipal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "新規作成" }));
+    const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
+    fireEvent.change(within(dialog).getByLabelText("名前"), {
+      target: { value: "Generated Wiki" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Slug"), {
+      target: { value: "generated-wiki" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成で作成" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("auto-create failed");
+    expect(screen.getByRole("dialog", { name: "Wikiを新規作成" })).toBeInTheDocument();
+    expect(navigationMocks.push).not.toHaveBeenCalled();
   });
 
   it("keeps the create dialog open when draft wiki creation fails", async () => {

@@ -6,6 +6,7 @@ import {
   createDraftWikiApiClient,
   deleteDraftWiki,
   deleteWikiDraft,
+  createAutoCreateWikiRequestBodyFromInitialFields,
   createWikiDraftRequestBodyFromPublicWiki,
   createWikiRequestBodyFromInitialFields,
   createReviewWikiRequestBody,
@@ -644,6 +645,28 @@ describe("draftWiki", () => {
     });
   });
 
+  it("builds auto-create wiki request bodies from initial dialog fields", () => {
+    expect(
+      createAutoCreateWikiRequestBodyFromInitialFields({
+        agencyIdentifier: null,
+        groupIdentifiers: [],
+        language: "ja",
+        name: "Generated Wiki",
+        resourceType: "group",
+        slug: "gr-generated-wiki",
+        talentIdentifiers: [],
+      }),
+    ).toEqual({
+      resourceType: "group",
+      language: "ja",
+      name: "Generated Wiki",
+      slug: "gr-generated-wiki",
+      agencyIdentifier: null,
+      groupIdentifiers: [],
+      talentIdentifiers: [],
+    });
+  });
+
   it("builds draft wiki list urls with status, onlyMine, and optional filters", () => {
     expect(
       createWikiDraftWikisUrl({
@@ -996,6 +1019,54 @@ describe("draftWiki", () => {
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/create",
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja,en;q=0.9",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+        method: "POST",
+      }),
+    );
+  });
+
+  it("auto-creates a draft through fetch with forwarded headers", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          language: "ja",
+          name: "Generated Wiki",
+          resourceType: "group",
+          status: "draft",
+        }),
+        { status: 201 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      "Accept-Language": "ja,en;q=0.9",
+      Cookie: "laravel_session=session-value",
+    });
+    const body = {
+      resourceType: "group" as const,
+      language: "ja",
+      name: "Generated Wiki",
+      slug: "gr-generated-wiki",
+      agencyIdentifier: null,
+      groupIdentifiers: [],
+      talentIdentifiers: [],
+    };
+
+    await expect(client!.autoCreateWikiDraft(body)).resolves.toEqual({
+      language: "ja",
+      name: "Generated Wiki",
+      resourceType: "group",
+      status: "draft",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/auto-create",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",

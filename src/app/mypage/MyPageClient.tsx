@@ -10,14 +10,18 @@ import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
 import { localeLabels, type Locale } from "../../i18n/locales";
 import {
+  canAutoCreateWikiDraftWikiResourceType,
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
   createWikiPrincipal,
+  draftWikiAutoCreateResourceTypes,
   getCurrentWikiPrincipal,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
 import {
+  autoCreateWiki,
+  createAutoCreateWikiRequestBodyFromInitialFields,
   approveWikiDraft,
   createWiki,
   createWikiRequestBodyFromInitialFields,
@@ -66,6 +70,7 @@ import type {
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
 type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages";
+type CreateDraftWikiMode = "manual" | "auto";
 
 type MyPageClientProps = {
   initialIdentity: IdentitySummary | null;
@@ -214,6 +219,15 @@ export function MyPageClient({
     onPrincipalReady: loadFirstDraftWikiPage,
     refreshIdentity: () => refreshIdentity({ preserveOnNull: true }),
   });
+  const autoCreatableResourceTypes = useMemo(
+    () =>
+      principalState.status === "available"
+        ? draftWikiAutoCreateResourceTypes.filter((resourceType) =>
+            canAutoCreateWikiDraftWikiResourceType(principalState.principal, resourceType),
+          )
+        : [],
+    [principalState],
+  );
   const openCreateDialog = () => {
     setCreateDialog({
       error: null,
@@ -231,10 +245,14 @@ export function MyPageClient({
         });
   };
   const submitCreateDialog = (input: {
+    agencyIdentifier: string | null;
+    groupIdentifiers: string[];
     language: Locale;
+    mode: CreateDraftWikiMode;
     name: string;
     resourceType: WikiResourceType;
     slug: string;
+    talentIdentifiers: string[];
   }) => {
     const slug = normalizeWikiSlugForResourceType(input.slug, input.resourceType);
 
@@ -244,15 +262,30 @@ export function MyPageClient({
       isCreating: true,
     }));
 
-    void createWiki({
-      fallbackErrorMessage: t.createWikiFailed,
-      requestBody: createWikiRequestBodyFromInitialFields({
-        language: input.language,
-        name: input.name,
-        resourceType: input.resourceType,
-        slug,
-      }),
-    }).then(() => {
+    const request = input.mode === "auto"
+      ? autoCreateWiki({
+          fallbackErrorMessage: t.createWikiFailed,
+          requestBody: createAutoCreateWikiRequestBodyFromInitialFields({
+            agencyIdentifier: input.agencyIdentifier,
+            groupIdentifiers: input.groupIdentifiers,
+            language: input.language,
+            name: input.name,
+            resourceType: input.resourceType,
+            slug,
+            talentIdentifiers: input.talentIdentifiers,
+          }),
+        })
+      : createWiki({
+          fallbackErrorMessage: t.createWikiFailed,
+          requestBody: createWikiRequestBodyFromInitialFields({
+            language: input.language,
+            name: input.name,
+            resourceType: input.resourceType,
+            slug,
+          }),
+        });
+
+    void request.then(() => {
       router.push(buildWikiEditPath(input.language, slug));
     }).catch((error: unknown) => {
       setCreateDialog({
@@ -347,6 +380,7 @@ export function MyPageClient({
             isOpen={createDialog.isOpen}
             locale={locale}
             t={t}
+            autoCreatableResourceTypes={autoCreatableResourceTypes}
             onClose={closeCreateDialog}
             onSubmit={submitCreateDialog}
           />
@@ -557,6 +591,7 @@ function WikiPrincipalPanel({
 }
 
 function CreateDraftWikiDialog({
+  autoCreatableResourceTypes,
   error,
   isCreating,
   isOpen,
@@ -565,6 +600,7 @@ function CreateDraftWikiDialog({
   onClose,
   onSubmit,
 }: {
+  autoCreatableResourceTypes: WikiResourceType[];
   error: string | null;
   isCreating: boolean;
   isOpen: boolean;
@@ -572,12 +608,26 @@ function CreateDraftWikiDialog({
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onClose: () => void;
   onSubmit: (input: {
+    agencyIdentifier: string | null;
+    groupIdentifiers: string[];
     language: Locale;
+    mode: CreateDraftWikiMode;
     name: string;
     resourceType: WikiResourceType;
     slug: string;
+    talentIdentifiers: string[];
   }) => void;
 }) {
+  const [mode, setMode] = useState<CreateDraftWikiMode>("manual");
+  const [resourceType, setResourceType] = useState<WikiResourceType>("group");
+  const canAutoCreate = autoCreatableResourceTypes.length > 0;
+  const effectiveMode = mode === "auto" && canAutoCreate ? "auto" : "manual";
+  const selectableResourceTypes =
+    effectiveMode === "auto" ? autoCreatableResourceTypes : wikiResourceTypes;
+  const selectedResourceType = selectableResourceTypes.includes(resourceType)
+    ? resourceType
+    : selectableResourceTypes[0] ?? "group";
+
   if (!isOpen) {
     return null;
   }
@@ -595,48 +645,63 @@ function CreateDraftWikiDialog({
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
           const language = formData.get("language");
-          const resourceType = formData.get("resourceType");
           const name = String(formData.get("name") ?? "").trim();
           const slug = String(formData.get("slug") ?? "").trim();
 
           if (
             !Object.keys(localeLabels).some((candidate) => candidate === language) ||
-            !wikiResourceTypes.some((candidate) => candidate === resourceType)
+            !wikiResourceTypes.some((candidate) => candidate === selectedResourceType)
           ) {
             return;
           }
 
           onSubmit({
+            agencyIdentifier: null,
+            groupIdentifiers: [],
             language: language as Locale,
+            mode: effectiveMode,
             name,
-            resourceType: resourceType as WikiResourceType,
+            resourceType: selectedResourceType,
             slug,
+            talentIdentifiers: [],
           });
         }}
       >
         <div className="flex items-start justify-between gap-4">
           <h2 className="text-xl font-semibold">{t.createWikiDialogTitle}</h2>
-          <button
-            aria-label={t.cancelCreateWiki}
-            className="rounded-lg border border-stroke-subtle px-3 py-1.5 text-sm font-semibold text-text-muted transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isCreating}
-            onClick={onClose}
-            type="button"
-          >
-            {t.cancelCreateWiki}
-          </button>
+          {canAutoCreate ? (
+            <button
+              className="rounded-lg border border-stroke-subtle px-3 py-1.5 text-sm font-semibold text-text-muted transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isCreating}
+              onClick={() => {
+                if (effectiveMode === "auto") {
+                  setMode("manual");
+                  return;
+                }
+
+                setMode("auto");
+                if (!autoCreatableResourceTypes.includes(resourceType)) {
+                  setResourceType(autoCreatableResourceTypes[0] ?? "group");
+                }
+              }}
+              type="button"
+            >
+              {effectiveMode === "auto" ? t.createWikiManualMode : t.createWikiAutoMode}
+            </button>
+          ) : null}
         </div>
         <div className="mt-5 grid gap-4">
           <label className="grid gap-2 text-sm font-semibold">
             {t.resourceTypeLabel}
             <select
               className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
-              defaultValue="group"
               disabled={isCreating}
               name="resourceType"
+              onChange={(event) => setResourceType(event.currentTarget.value as WikiResourceType)}
               required
+              value={selectedResourceType}
             >
-              {wikiResourceTypes.map((resourceType) => (
+              {selectableResourceTypes.map((resourceType) => (
                 <option key={resourceType} value={resourceType}>
                   {getDraftWikiResourceLabel(t, resourceType)}
                 </option>
@@ -678,6 +743,12 @@ function CreateDraftWikiDialog({
               required
             />
           </label>
+          {effectiveMode === "auto" ? (
+            <AutoCreateRelatedWikiFields
+              resourceType={selectedResourceType}
+              t={t}
+            />
+          ) : null}
           {error ? (
             <p
               className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
@@ -701,10 +772,51 @@ function CreateDraftWikiDialog({
             disabled={isCreating}
             type="submit"
           >
-            {isCreating ? t.creatingWiki : t.createWiki}
+            {isCreating ? t.creatingWiki : effectiveMode === "auto" ? t.autoCreateWiki : t.createWiki}
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function AutoCreateRelatedWikiFields({
+  resourceType,
+  t,
+}: {
+  resourceType: WikiResourceType;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+}) {
+  const fields = [
+    ...(resourceType === "group" || resourceType === "talent" || resourceType === "song"
+      ? [{ key: "agency", label: t.relatedAgencyLabel }]
+      : []),
+    ...(resourceType === "talent" || resourceType === "song"
+      ? [{ key: "group", label: t.relatedGroupLabel }]
+      : []),
+    ...(resourceType === "song" ? [{ key: "talent", label: t.relatedTalentLabel }] : []),
+  ];
+
+  if (fields.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-3">
+      {fields.map((field) => (
+        <label className="grid gap-2 text-sm font-semibold" key={field.key}>
+          {field.label}
+          <select
+            className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-muted"
+            disabled
+          >
+            <option>{t.relatedWikiOptionsUnavailable}</option>
+          </select>
+        </label>
+      ))}
+      <p className="text-xs leading-5 text-text-muted">
+        {t.relatedWikiBackendTodo}
+      </p>
     </div>
   );
 }
