@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  canAutoCreateWikiDraftWikis,
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -462,6 +463,66 @@ describe("wiki principal helpers", () => {
             effect: "deny",
             name: "DENY_AGENCY_APPROVAL",
             resourceTypes: ["AGENCY"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("allows draft wiki auto-create with automatic create actions and wildcards", () => {
+    expect(
+      canAutoCreateWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["automatic_create"],
+            name: "AGENCY_MANAGEMENT",
+            resourceTypes: ["agency"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      canAutoCreateWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["*"],
+            name: "FULL_ACCESS",
+            resourceTypes: ["ALL"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it("does not allow draft wiki auto-create for basic editing or matching denies", () => {
+    expect(
+      canAutoCreateWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["CREATE", "EDIT", "SUBMIT"],
+            name: "BASIC_EDITING",
+            resourceTypes: ["WIKI"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      canAutoCreateWikiDraftWikis({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["AUTOMATIC_CREATE"],
+            name: "GROUP_MANAGEMENT",
+            resourceTypes: ["GROUP"],
+          }),
+          policy({
+            actions: ["AUTOMATIC_CREATE"],
+            effect: "deny",
+            name: "DENY_GROUP_AUTO_CREATE",
+            resourceTypes: ["GROUP"],
           }),
         ],
       }),
