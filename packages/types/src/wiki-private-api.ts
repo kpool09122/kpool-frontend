@@ -295,24 +295,6 @@ const SaveVideoLinksRequestBody = z
     videoLinks: z.array(VideoLinkInput),
   })
   .passthrough();
-const WikiAssociationTargets = z
-  .object({
-    agencyIdentifier: KPool_Common_Uuid,
-    groupIdentifiers: z.array(KPool_Common_Uuid),
-    talentIdentifiers: z.array(KPool_Common_Uuid),
-  })
-  .partial()
-  .passthrough();
-const AutoCreateWikiRequestBody = WikiAssociationTargets;
-const DraftWikiSummary = z
-  .object({
-    language: z.string(),
-    name: z.string(),
-    resourceType: z.string(),
-    status: z.string(),
-  })
-  .passthrough();
-const CreateWikiRequestBody = WikiAssociationTargets;
 const DraftWikiHeroImage = z
   .object({
     imageIdentifier: KPool_Common_Uuid.nullable(),
@@ -333,20 +315,6 @@ const AgencyDraftWikiBasic = z
     socialLinks: z.array(z.string()),
   })
   .passthrough();
-const AgencyWikiDetail = z
-  .object({
-    wikiIdentifier: KPool_Common_Uuid,
-    translationSetIdentifier: KPool_Common_Uuid,
-    slug: z.string(),
-    language: z.string(),
-    resourceType: z.string(),
-    version: z.number().int(),
-    themeColor: z.string().nullable(),
-    heroImage: DraftWikiHeroImage,
-    basic: AgencyDraftWikiBasic,
-    sections: z.array(z.unknown()),
-  })
-  .passthrough();
 const AgencyDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -361,6 +329,35 @@ const AgencyDraftWikiDetail = z
     sections: z.array(z.unknown()),
   })
   .passthrough();
+const AutoCreateWikiRequestBody = z
+  .object({
+    resourceType: z.string(),
+    language: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    agencyIdentifier: KPool_Common_Uuid.optional(),
+    groupIdentifiers: z.array(KPool_Common_Uuid).optional(),
+    talentIdentifiers: z.array(KPool_Common_Uuid).optional(),
+  })
+  .passthrough();
+const DraftWikiSummary = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    language: z.string(),
+    name: z.string(),
+    resourceType: z.string(),
+    status: z.string(),
+  })
+  .passthrough();
+const WikiAssociationTargets = z
+  .object({
+    agencyIdentifier: KPool_Common_Uuid,
+    groupIdentifiers: z.array(KPool_Common_Uuid),
+    talentIdentifiers: z.array(KPool_Common_Uuid),
+  })
+  .partial()
+  .passthrough();
+const CreateWikiRequestBody = WikiAssociationTargets;
 const GroupDraftWikiBasic = z
   .object({
     name: z.string(),
@@ -375,20 +372,6 @@ const GroupDraftWikiBasic = z
     officialColors: z.array(z.string()),
     emoji: z.string(),
     representativeSymbol: z.string(),
-  })
-  .passthrough();
-const WikiDetail = z
-  .object({
-    wikiIdentifier: KPool_Common_Uuid,
-    translationSetIdentifier: KPool_Common_Uuid,
-    slug: z.string(),
-    language: z.string(),
-    resourceType: z.string(),
-    version: z.number().int(),
-    themeColor: z.string().nullable(),
-    heroImage: DraftWikiHeroImage,
-    basic: GroupDraftWikiBasic,
-    sections: z.array(z.unknown()),
   })
   .passthrough();
 const DraftWikiDetail = z
@@ -465,20 +448,6 @@ const SongDraftWikiBasic = z
     talents: z.array(SongDraftWikiTalentSummary),
   })
   .passthrough();
-const SongWikiDetail = z
-  .object({
-    wikiIdentifier: KPool_Common_Uuid,
-    translationSetIdentifier: KPool_Common_Uuid,
-    slug: z.string(),
-    language: z.string(),
-    resourceType: z.string(),
-    version: z.number().int(),
-    themeColor: z.string().nullable(),
-    heroImage: DraftWikiHeroImage,
-    basic: SongDraftWikiBasic,
-    sections: z.array(z.unknown()),
-  })
-  .passthrough();
 const SongDraftWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -532,7 +501,21 @@ const TalentDraftWikiBasic = z
     groups: z.array(TalentDraftWikiGroupSummary),
   })
   .passthrough();
-const TalentWikiDetail = z
+const TalentDraftWikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    status: z.string(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: TalentDraftWikiBasic,
+    sections: z.array(z.unknown()),
+  })
+  .passthrough();
+const AgencyWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
     translationSetIdentifier: KPool_Common_Uuid,
@@ -542,18 +525,46 @@ const TalentWikiDetail = z
     version: z.number().int(),
     themeColor: z.string().nullable(),
     heroImage: DraftWikiHeroImage,
-    basic: TalentDraftWikiBasic,
+    basic: AgencyDraftWikiBasic,
     sections: z.array(z.unknown()),
   })
   .passthrough();
-const TalentDraftWikiDetail = z
+const WikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
     translationSetIdentifier: KPool_Common_Uuid,
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
-    status: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: GroupDraftWikiBasic,
+    sections: z.array(z.unknown()),
+  })
+  .passthrough();
+const SongWikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    heroImage: DraftWikiHeroImage,
+    basic: SongDraftWikiBasic,
+    sections: z.array(z.unknown()),
+  })
+  .passthrough();
+const TalentWikiDetail = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
     themeColor: z.string().nullable(),
     heroImage: DraftWikiHeroImage,
     basic: TalentDraftWikiBasic,
@@ -663,26 +674,26 @@ export const schemas = {
   AttachPolicyToRoleRequestBody,
   VideoLinkInput,
   SaveVideoLinksRequestBody,
-  WikiAssociationTargets,
-  AutoCreateWikiRequestBody,
-  DraftWikiSummary,
-  CreateWikiRequestBody,
   DraftWikiHeroImage,
   AgencyDraftWikiBasic,
-  AgencyWikiDetail,
   AgencyDraftWikiDetail,
+  AutoCreateWikiRequestBody,
+  DraftWikiSummary,
+  WikiAssociationTargets,
+  CreateWikiRequestBody,
   GroupDraftWikiBasic,
-  WikiDetail,
   DraftWikiDetail,
   SongDraftWikiGroupSummary,
   SongDraftWikiTalentSummary,
   SongDraftWikiBasic,
-  SongWikiDetail,
   SongDraftWikiDetail,
   TalentDraftWikiGroupSummary,
   TalentDraftWikiBasic,
-  TalentWikiDetail,
   TalentDraftWikiDetail,
+  AgencyWikiDetail,
+  WikiDetail,
+  SongWikiDetail,
+  TalentWikiDetail,
   RelatedProfileItem,
   ListRelatedProfilesResponseBody,
   DeleteWikiRequestBody,
@@ -1850,9 +1861,9 @@ const endpoints = makeApi([
   },
   {
     method: "get",
-    path: "/wiki/:language/agency/:slug/draft",
-    alias: "WikiOperations_getAgencyDraftWiki",
-    description: `Fetch the agency draft wiki used by the editor.`,
+    path: "/wiki/:language/agency/:slug/my/draft",
+    alias: "MyWikiOperations_getMyAgencyDraftWiki",
+    description: `Fetch the current principal&#x27;s agency draft wiki by language and slug.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1924,9 +1935,9 @@ const endpoints = makeApi([
   },
   {
     method: "get",
-    path: "/wiki/:language/group/:slug/draft",
-    alias: "WikiOperations_getGroupDraftWiki",
-    description: `Fetch the group draft wiki used by the editor.`,
+    path: "/wiki/:language/group/:slug/my/draft",
+    alias: "MyWikiOperations_getMyGroupDraftWiki",
+    description: `Fetch the current principal&#x27;s group draft wiki by language and slug.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1998,9 +2009,9 @@ const endpoints = makeApi([
   },
   {
     method: "get",
-    path: "/wiki/:language/song/:slug/draft",
-    alias: "WikiOperations_getSongDraftWiki",
-    description: `Fetch the song draft wiki used by the editor.`,
+    path: "/wiki/:language/song/:slug/my/draft",
+    alias: "MyWikiOperations_getMySongDraftWiki",
+    description: `Fetch the current principal&#x27;s song draft wiki by language and slug.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2072,9 +2083,9 @@ const endpoints = makeApi([
   },
   {
     method: "get",
-    path: "/wiki/:language/talent/:slug/draft",
-    alias: "WikiOperations_getTalentDraftWiki",
-    description: `Fetch the talent draft wiki used by the editor.`,
+    path: "/wiki/:language/talent/:slug/my/draft",
+    alias: "MyWikiOperations_getMyTalentDraftWiki",
+    description: `Fetch the current principal&#x27;s talent draft wiki by language and slug.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2578,6 +2589,38 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "get",
+    path: "/wiki/agency/:wikiIdentifier/draft",
+    alias: "WikiOperations_getAgencyDraftWiki",
+    description: `Fetch an agency draft wiki by draft wiki identifier.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "wikiIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AgencyDraftWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/wiki/auto-create",
     alias: "WikiOperations_autoCreateWiki",
@@ -2632,6 +2675,102 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/group/:wikiIdentifier/draft",
+    alias: "WikiOperations_getGroupDraftWiki",
+    description: `Fetch a group draft wiki by draft wiki identifier.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "wikiIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: DraftWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/song/:wikiIdentifier/draft",
+    alias: "WikiOperations_getSongDraftWiki",
+    description: `Fetch a song draft wiki by draft wiki identifier.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "wikiIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: SongDraftWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/talent/:wikiIdentifier/draft",
+    alias: "WikiOperations_getTalentDraftWiki",
+    description: `Fetch a talent draft wiki by draft wiki identifier.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "wikiIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: TalentDraftWikiDetail,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
