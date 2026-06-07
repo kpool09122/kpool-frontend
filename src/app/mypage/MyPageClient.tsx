@@ -980,6 +980,8 @@ function DraftWikiCard({
   const hasImage = Boolean(wiki.imageUrl);
   const href = getDraftWikiHref(wiki, tab);
   const isDraftWiki = isDraftWikiListItem(wiki);
+  const diffHref = getDraftWikiDiffHref(wiki);
+  const canOpenDiff = isDraftWiki && wiki.publishedWikiIdentifier !== null;
   const cardClassName =
     "wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft";
   const cardStyle = buildDraftWikiCardStyle(wiki);
@@ -1068,6 +1070,30 @@ function DraftWikiCard({
           >
             {isReviewing ? t.draftWikiReviewing : t.rejectDraftWiki}
           </button>
+          {canOpenDiff ? (
+            <a
+              className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30"
+              href={diffHref}
+              style={{
+                backgroundColor: hasImage ? "rgba(255, 255, 255, 0.88)" : undefined,
+                color: hasImage ? "#15243b" : undefined,
+              }}
+            >
+              {t.compareDraftWikiDiff}
+            </a>
+          ) : (
+            <button
+              className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold opacity-60 disabled:cursor-not-allowed"
+              disabled
+              style={{
+                backgroundColor: hasImage ? "rgba(255, 255, 255, 0.88)" : undefined,
+                color: hasImage ? "#15243b" : undefined,
+              }}
+              type="button"
+            >
+              {t.compareDraftWikiDiff}
+            </button>
+          )}
         </div>
       ) : null}
       {showDeleteAction ? (
@@ -1371,6 +1397,9 @@ const getDraftWikiHref = (wiki: MyPageWikiListItem, tab: MyPageDraftWikiActionTa
   tab === "untranslatedWikis"
     ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
     : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+
+const getDraftWikiDiffHref = (wiki: MyPageWikiListItem): string =>
+  `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/diff`;
 
 const buildDraftWikiCardStyle = (wiki: MyPageWikiListItem): CSSProperties | undefined => {
   if (wiki.imageUrl) {
