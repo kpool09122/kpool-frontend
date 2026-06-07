@@ -1326,6 +1326,82 @@ describe("MyPageClient", () => {
     expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
   });
 
+  it("links an unapproved draft wiki with a published wiki to the diff page", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          publishedWikiIdentifier: "published-wiki-1",
+          status: "under_review",
+          name: "未承認 Wiki",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiReviewPrincipal }}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiReviewPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
+
+    expect(await screen.findByRole("link", { name: "差分を確認" })).toHaveAttribute(
+      "href",
+      "/wiki/ja/gr-review-wiki/diff",
+    );
+  });
+
+  it("disables the diff action for an unapproved draft wiki without a published wiki", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [{
+          ...draftWiki,
+          publishedWikiIdentifier: null,
+          status: "under_review",
+          name: "新規 Wiki",
+        }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: wikiReviewPrincipal }}
+        principalAdapter={createAdapter({
+          getCurrentPrincipal: vi.fn().mockResolvedValue({
+            status: "available",
+            principal: wikiReviewPrincipal,
+          }),
+        })}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
+
+    expect(await screen.findByRole("button", { name: "差分を確認" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: "差分を確認" })).not.toBeInTheDocument();
+  });
+
   it("shows a retryable error when draft wiki review fails", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       approveDraftWiki: vi.fn().mockRejectedValue(new Error("wiki approve failed")),
