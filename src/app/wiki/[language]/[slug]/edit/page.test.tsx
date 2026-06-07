@@ -69,7 +69,22 @@ describe("Wiki edit route", () => {
     expect(revalidate).toBe(0);
   });
 
-  it("loads the draft directly when the edit auth gate is absent", async () => {
+  it("loads the draft with forwarded cookies when the edit auth gate is absent", async () => {
+    render(await Page(routeProps()));
+
+    expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
+    expect(mocks.fetchAuthenticatedIdentity).not.toHaveBeenCalled();
+    expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadDraftWikiState).toHaveBeenCalledWith("ja", "gr-aurora-echo", {
+      Cookie: "session=abc",
+    });
+  });
+
+  it("loads the draft without forwarded cookies when no request cookies exist", async () => {
+    mocks.cookies.mockResolvedValue({
+      toString: () => "",
+    });
+
     render(await Page(routeProps()));
 
     expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");

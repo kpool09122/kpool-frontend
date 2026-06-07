@@ -411,6 +411,7 @@ describe("MyPageClient", () => {
           name: "New Wiki",
           resourceType: "group",
           status: "pending",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         }),
         { status: 201, headers: { "Content-Type": "application/json" } },
       ),
@@ -543,6 +544,7 @@ describe("MyPageClient", () => {
           name: "Generated Wiki",
           resourceType: "song",
           status: "pending",
+          wikiIdentifier: "99999999-9999-4999-8999-999999999999",
         }),
         { status: 201, headers: { "Content-Type": "application/json" } },
       ),
@@ -781,7 +783,7 @@ describe("MyPageClient", () => {
     expect(draftWikiAdapter.listDraftWikis).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/edit",
+      "/wiki/ja/gr-review-wiki/edit?authGate=1",
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
       'url("https://images.example.test/editing-wiki.webp")',
@@ -801,7 +803,7 @@ describe("MyPageClient", () => {
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/edit",
+      "/wiki/ja/gr-review-wiki/edit?authGate=1",
     );
   });
 
@@ -1361,7 +1363,7 @@ describe("MyPageClient", () => {
 
     expect(await screen.findByRole("link", { name: "差分を確認" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/diff",
+      "/wiki/diff/88888888-8888-8888-8888-888888888888?resourceType=group",
     );
   });
 

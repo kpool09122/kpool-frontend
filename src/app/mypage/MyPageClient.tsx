@@ -1396,10 +1396,10 @@ const isDeletableDraftWiki = (
 const getDraftWikiHref = (wiki: MyPageWikiListItem, tab: MyPageDraftWikiActionTab): string =>
   tab === "untranslatedWikis"
     ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
-    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit?authGate=1`;
 
 const getDraftWikiDiffHref = (wiki: MyPageWikiListItem): string =>
-  `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/diff`;
+  `/wiki/diff/${encodeURIComponent(wiki.wikiIdentifier)}?resourceType=${encodeURIComponent(wiki.resourceType)}`;
 
 const buildDraftWikiCardStyle = (wiki: MyPageWikiListItem): CSSProperties | undefined => {
   if (wiki.imageUrl) {

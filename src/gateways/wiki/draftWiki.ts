@@ -1,4 +1,4 @@
-import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
+import { createMockWikiDetail, type WikiDetailState, type WikiDraftDetail } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
@@ -105,6 +105,10 @@ type DraftWikiApiClient = {
     resourceType: WikiResourceType,
     slug: string,
   ) => Promise<DraftWikiApiResponse>;
+  fetchDraftWikiByIdentifier: (
+    resourceType: WikiResourceType,
+    wikiIdentifier: string,
+  ) => Promise<DraftWikiApiResponse>;
   fetchPublicWiki: (
     language: string,
     resourceType: WikiResourceType,
@@ -145,10 +149,16 @@ export const createInitialDraftWikis = (): InitialDraftWikis => ({
   untranslatedWikis: createEmptyDraftWikiListState(),
 });
 
-type DraftWikiState =
+export type DraftWikiState =
   | { status: "success"; data: WikiDraftDetail }
   | { status: "empty" }
   | { status: "error"; message: string };
+
+export type DraftWikiDiffState = {
+  draftWikiState: DraftWikiState;
+  language: string;
+  publicWikiState: WikiDetailState;
+};
 
 const draftWikiAliasByResourceType = {
   agency: "WikiOperations_getAgencyDraftWiki",
@@ -208,12 +218,18 @@ export const getDraftWikiAlias = (
   return resourceType ? draftWikiAliasByResourceType[resourceType] : null;
 };
 
-export const getDraftWikiEndpointPath = (
+export const getMyDraftWikiEndpointPath = (
   language: string,
   resourceType: WikiResourceType,
   slug: string,
 ): string =>
-  `/wiki/${encodeURIComponent(language)}/${resourceType}/${encodeURIComponent(slug)}/draft`;
+  `/wiki/${encodeURIComponent(language)}/${resourceType}/${encodeURIComponent(slug)}/my/draft`;
+
+export const getDraftWikiByIdentifierEndpointPath = (
+  resourceType: WikiResourceType,
+  wikiIdentifier: string,
+): string =>
+  `/wiki/${resourceType}/${encodeURIComponent(wikiIdentifier)}/draft`;
 
 export const getEditWikiEndpointPath = (wikiId: string): string =>
   `/wiki/${encodeURIComponent(wikiId)}/edit`;
@@ -364,6 +380,12 @@ const isNotFoundApiError = (error: unknown): boolean =>
   typeof (error as { response?: unknown }).response === "object" &&
   (error as { response?: unknown }).response !== null &&
   (error as { response: { status?: unknown } }).response.status === 404;
+
+const getDraftWikiSummaryIdentifier = (summary: DraftWikiSummary): string | null => {
+  const wikiIdentifier = (summary as Record<string, unknown>).wikiIdentifier;
+
+  return typeof wikiIdentifier === "string" ? wikiIdentifier : null;
+};
 
 export const createSubmitWikiRequestBody = (
   draft: Pick<WikiDraftDetail, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
@@ -527,12 +549,29 @@ export const fetchDraftWiki = async (
     const publicWiki = await client.fetchPublicWiki(language, resourceType, slug);
     const createBody = createWikiDraftRequestBodyFromPublicWiki(publicWiki);
 
-    await client.createWikiDraft(createBody);
+    const createdDraft = await client.createWikiDraft(createBody);
+    const createdDraftIdentifier = getDraftWikiSummaryIdentifier(createdDraft);
+
+    if (createdDraftIdentifier) {
+      const response = await client.fetchDraftWikiByIdentifier(resourceType, createdDraftIdentifier);
+
+      return adaptDraftWikiResponse(response);
+    }
 
     const response = await client.fetchDraftWiki(language, resourceType, slug);
 
     return adaptDraftWikiResponse(response);
   }
+};
+
+export const fetchDraftWikiByIdentifier = async (
+  client: DraftWikiApiClient,
+  resourceType: WikiResourceType,
+  wikiIdentifier: string,
+): Promise<WikiDraftDetail> => {
+  const response = await client.fetchDraftWikiByIdentifier(resourceType, wikiIdentifier);
+
+  return adaptDraftWikiResponse(response);
 };
 
 export const saveDraftWiki = async (
@@ -595,7 +634,27 @@ export const createDraftWikiApiClient = (
         baseUrl: apiBaseUrl,
         fetchDraftWiki: async (language, resourceType, slug) => {
           const response = await fetch(
-            `${apiBaseUrl}${getDraftWikiEndpointPath(language, resourceType, slug)}`,
+            `${apiBaseUrl}${getMyDraftWikiEndpointPath(language, resourceType, slug)}`,
+            {
+              headers: {
+                ...forwardedHeaders,
+                Accept: "application/json",
+              },
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            await throwApiError(response);
+          }
+
+          const responseBody = await readResponseBody(response);
+
+          return parseDraftWikiResponseBody(responseBody);
+        },
+        fetchDraftWikiByIdentifier: async (resourceType, wikiIdentifier) => {
+          const response = await fetch(
+            `${apiBaseUrl}${getDraftWikiByIdentifierEndpointPath(resourceType, wikiIdentifier)}`,
             {
               headers: {
                 ...forwardedHeaders,
@@ -1217,6 +1276,71 @@ export const loadDraftWikiState = async (
     return {
       status: "error",
       message: getDraftWikiErrorMessage(error),
+    };
+  }
+};
+
+export const loadDraftWikiDiffState = async (
+  resourceType: WikiResourceType,
+  wikiIdentifier: string,
+  forwardedHeaders: HeadersInit = {},
+): Promise<DraftWikiDiffState> => {
+  if (isMockWikiGatewayEnabled()) {
+    const draftWiki = {
+      ...createMockWikiDetail("gr-aurora-echo"),
+      resourceType,
+      wikiIdentifier,
+    };
+
+    return {
+      draftWikiState: { status: "success", data: draftWiki },
+      language: draftWiki.language,
+      publicWikiState: { status: "success", data: createMockWikiDetail(draftWiki.slug) },
+    };
+  }
+
+  const client = createDraftWikiApiClient(getDefaultApiBaseUrl(), forwardedHeaders);
+
+  if (!client) {
+    return {
+      draftWikiState: {
+        status: "error",
+        message: "Wiki draft API is not configured.",
+      },
+      language: "",
+      publicWikiState: {
+        status: "error",
+        message: "Wiki draft API is not configured.",
+      },
+    };
+  }
+
+  try {
+    const draftWiki = await fetchDraftWikiByIdentifier(client, resourceType, wikiIdentifier);
+    const publicWiki = await client.fetchPublicWiki(
+      draftWiki.language,
+      draftWiki.resourceType,
+      draftWiki.slug,
+    );
+
+    return {
+      draftWikiState: { status: "success", data: draftWiki },
+      language: draftWiki.language,
+      publicWikiState: { status: "success", data: adaptWikiApiResponse(publicWiki) },
+    };
+  } catch (error) {
+    const message = getDraftWikiErrorMessage(error);
+
+    return {
+      draftWikiState: {
+        status: "error",
+        message,
+      },
+      language: "",
+      publicWikiState: {
+        status: "error",
+        message,
+      },
     };
   }
 };

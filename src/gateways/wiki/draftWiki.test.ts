@@ -14,19 +14,22 @@ import {
   createTranslateWikiRequestBody,
   createWikiDraftWikisUrl,
   createVersionInconsistentWikisUrl,
+  fetchDraftWikiByIdentifier,
   fetchDraftWiki,
   fetchVersionInconsistentWikis,
   fetchWikiDraftWikis,
   getCreateWikiEndpointPath,
   getDeleteWikiEndpointPath,
-  getDraftWikiEndpointPath,
+  getDraftWikiByIdentifierEndpointPath,
   getDraftWikiAlias,
   getDraftWikiErrorMessage,
   getEditWikiEndpointPath,
+  getMyDraftWikiEndpointPath,
   getPublishWikiEndpointPath,
   getReviewWikiEndpointPath,
   getSubmitWikiEndpointPath,
   getWithdrawWikiEndpointPath,
+  loadDraftWikiDiffState,
   loadDraftWikiState,
   loadInitialDraftWikisForRequest,
   publishDraftWiki,
@@ -407,8 +410,11 @@ describe("draftWiki", () => {
   });
 
   it("builds draft wiki endpoint paths without using the generated client", () => {
-    expect(getDraftWikiEndpointPath("ja", "group", "gr-aurora-echo")).toBe(
-      "/wiki/ja/group/gr-aurora-echo/draft",
+    expect(getMyDraftWikiEndpointPath("ja", "group", "gr-aurora-echo")).toBe(
+      "/wiki/ja/group/gr-aurora-echo/my/draft",
+    );
+    expect(getDraftWikiByIdentifierEndpointPath("group", "wiki-1")).toBe(
+      "/wiki/group/wiki-1/draft",
     );
     expect(getCreateWikiEndpointPath()).toBe("/wiki/create");
     expect(getDeleteWikiEndpointPath("wiki-1")).toBe("/wiki/wiki-1");
@@ -981,11 +987,183 @@ describe("draftWiki", () => {
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo/draft",
+      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo/my/draft",
       expect.objectContaining({
         cache: "no-store",
         headers: {
           Accept: "application/json",
+        },
+      }),
+    );
+  });
+
+  it("loads a draft wiki by identifier through fetch and parses the response", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          basic: {
+            agencyIdentifier: null,
+            debutDate: null,
+            disbandDate: null,
+            emoji: "☀",
+            fandomName: "Daybreak",
+            generation: "5th",
+            groupType: "Girl Group",
+            name: "Aurora Echo",
+            normalizedName: "aurora-echo",
+            officialColors: ["Solar Gold"],
+            representativeSymbol: "Solar wave",
+            status: null,
+          },
+          heroImage: {
+            alt: null,
+            imageIdentifier: "hero-image-1",
+            src: null,
+          },
+          language: "ja",
+          resourceType: "group",
+          sections: [],
+          slug: "gr-aurora-echo",
+          status: "under_review",
+          themeColor: null,
+          translationSetIdentifier: "translation-set-1",
+          version: 1,
+          wikiIdentifier: "wiki-1",
+        }),
+        { status: 200 },
+      ),
+    );
+    const client = createDraftWikiApiClient("http://127.0.0.1:8080", {
+      Cookie: "laravel_session=session-value",
+    });
+
+    await expect(fetchDraftWikiByIdentifier(client!, "group", "wiki-1")).resolves.toEqual(
+      expect.objectContaining({
+        slug: "gr-aurora-echo",
+        status: "under_review",
+        wikiIdentifier: "wiki-1",
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8080/api/wiki/wiki/group/wiki-1/draft",
+      expect.objectContaining({
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+      }),
+    );
+  });
+
+  it("loads diff state from the identifier draft endpoint and then the public wiki endpoint", async () => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "http://127.0.0.1:8080");
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            basic: {
+              agencyIdentifier: null,
+              debutDate: null,
+              disbandDate: null,
+              emoji: "☀",
+              fandomName: "Daybreak",
+              generation: "5th",
+              groupType: "Girl Group",
+              name: "Aurora Echo Draft",
+              normalizedName: "aurora-echo",
+              officialColors: ["Solar Gold"],
+              representativeSymbol: "Solar wave",
+              status: null,
+            },
+            heroImage: {
+              alt: null,
+              imageIdentifier: "hero-image-1",
+              src: null,
+            },
+            language: "ja",
+            resourceType: "group",
+            sections: [],
+            slug: "gr-aurora-echo",
+            status: "under_review",
+            themeColor: null,
+            translationSetIdentifier: "translation-set-1",
+            version: 1,
+            wikiIdentifier: "wiki-1",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            basic: {
+              agencyIdentifier: null,
+              debutDate: null,
+              disbandDate: null,
+              emoji: "☀",
+              fandomName: "Daybreak",
+              generation: "5th",
+              groupType: "Girl Group",
+              name: "Aurora Echo Public",
+              normalizedName: "aurora-echo",
+              officialColors: ["Solar Gold"],
+              representativeSymbol: "Solar wave",
+              status: null,
+            },
+            heroImage: null,
+            language: "ja",
+            resourceType: "group",
+            sections: [],
+            slug: "gr-aurora-echo",
+            themeColor: null,
+            translationSetIdentifier: "translation-set-1",
+            version: 1,
+            wikiIdentifier: "published-wiki-1",
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await expect(
+      loadDraftWikiDiffState("group", "wiki-1", {
+        Cookie: "laravel_session=session-value",
+      }),
+    ).resolves.toEqual({
+      draftWikiState: {
+        status: "success",
+        data: expect.objectContaining({
+          slug: "gr-aurora-echo",
+          wikiIdentifier: "wiki-1",
+        }),
+      },
+      language: "ja",
+      publicWikiState: {
+        status: "success",
+        data: expect.objectContaining({
+          slug: "gr-aurora-echo",
+          wikiIdentifier: "published-wiki-1",
+        }),
+      },
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:8080/api/wiki/wiki/group/wiki-1/draft",
+      expect.objectContaining({
+        headers: {
+          Accept: "application/json",
+          Cookie: "laravel_session=session-value",
+        },
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo",
+      expect.objectContaining({
+        headers: {
+          Accept: "application/json",
+          Cookie: "laravel_session=session-value",
         },
       }),
     );
@@ -999,6 +1177,7 @@ describe("draftWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           status: "draft",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         }),
         { status: 201 },
       ),
@@ -1016,6 +1195,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "draft",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/create",
@@ -1041,6 +1221,7 @@ describe("draftWiki", () => {
           name: "Generated Wiki",
           resourceType: "group",
           status: "draft",
+          wikiIdentifier: "wiki-2",
         }),
         { status: 201 },
       ),
@@ -1064,6 +1245,7 @@ describe("draftWiki", () => {
       name: "Generated Wiki",
       resourceType: "group",
       status: "draft",
+      wikiIdentifier: "wiki-2",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/auto-create",
@@ -1166,6 +1348,64 @@ describe("draftWiki", () => {
       ],
       slug: "gr-aurora-echo",
     });
+  });
+
+  it("refetches a created draft by wiki identifier when the create response includes it", async () => {
+    const client = {
+      createWikiDraft: vi.fn().mockResolvedValue({
+        language: "ja",
+        name: "Aurora Echo",
+        resourceType: "group",
+        status: "draft",
+        wikiIdentifier: "created-draft-wiki-1",
+      }),
+      fetchDraftWiki: vi.fn().mockRejectedValue({
+        response: {
+          status: 404,
+        },
+      }),
+      fetchDraftWikiByIdentifier: vi.fn().mockResolvedValue({
+        basic: {
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "created-draft-wiki-1",
+      }),
+      fetchPublicWiki: vi.fn().mockResolvedValue({
+        basic: {
+          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
+          name: "Aurora Echo",
+          normalizedName: "aurora-echo",
+        },
+        heroImage: null,
+        language: "ja",
+        resourceType: "group",
+        sections: [],
+        slug: "gr-aurora-echo",
+        translationSetIdentifier: "translation-set-1",
+        version: 1,
+        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+      }),
+    };
+
+    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).resolves.toEqual(
+      expect.objectContaining({
+        slug: "gr-aurora-echo",
+        wikiIdentifier: "created-draft-wiki-1",
+      }),
+    );
+    expect(client.fetchDraftWiki).toHaveBeenCalledTimes(1);
+    expect(client.fetchDraftWikiByIdentifier).toHaveBeenCalledWith(
+      "group",
+      "created-draft-wiki-1",
+    );
   });
 
   it("does not create a draft when the draft detail already exists", async () => {
@@ -1304,6 +1544,7 @@ describe("draftWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           status: "draft",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         }),
         { status: 200 },
       ),
@@ -1325,6 +1566,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "draft",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/edit",
@@ -1378,6 +1620,7 @@ describe("draftWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           status: "under_review",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         }),
         { status: 201 },
       ),
@@ -1397,6 +1640,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "under_review",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/submit",
@@ -1422,6 +1666,7 @@ describe("draftWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           status: "pending",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         }),
         { status: 201 },
       ),
@@ -1437,6 +1682,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "pending",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/withdraw",
@@ -1462,6 +1708,7 @@ describe("draftWiki", () => {
             name: "Aurora Echo",
             resourceType: "group",
             status: "approved",
+            wikiIdentifier: "88888888-8888-4888-8888-888888888888",
           }),
           { status: 201 },
         ),
@@ -1473,6 +1720,7 @@ describe("draftWiki", () => {
             name: "Aurora Echo",
             resourceType: "group",
             status: "rejected",
+            wikiIdentifier: "99999999-9999-4999-8999-999999999999",
           }),
           { status: 201 },
         ),
@@ -1491,6 +1739,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "approved",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/approve",
@@ -1561,6 +1810,7 @@ describe("draftWiki", () => {
               name: "Aurora Echo",
               resourceType: "group",
               status: "pending",
+              wikiIdentifier: "88888888-8888-4888-8888-888888888888",
             },
           ],
         }),
@@ -1584,6 +1834,7 @@ describe("draftWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           status: "pending",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         },
       ],
     });
@@ -1613,6 +1864,7 @@ describe("draftWiki", () => {
             name: "Aurora Echo",
             resourceType: "group",
             status: "approved",
+            wikiIdentifier: "88888888-8888-4888-8888-888888888888",
           }),
           { status: 201 },
         ),
@@ -1624,6 +1876,7 @@ describe("draftWiki", () => {
             name: "Aurora Echo",
             resourceType: "group",
             status: "rejected",
+            wikiIdentifier: "99999999-9999-4999-8999-999999999999",
           }),
           { status: 201 },
         ),
@@ -1648,6 +1901,7 @@ describe("draftWiki", () => {
                 name: "Aurora Echo",
                 resourceType: "group",
                 status: "pending",
+                wikiIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
               },
             ],
           }),
@@ -1667,6 +1921,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "approved",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/wiki/drafts/wiki-1/approve",
@@ -1760,6 +2015,7 @@ describe("draftWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           status: "pending",
+          wikiIdentifier: "88888888-8888-4888-8888-888888888888",
         }),
         { status: 201 },
       ),
@@ -1775,6 +2031,7 @@ describe("draftWiki", () => {
       name: "Aurora Echo",
       resourceType: "group",
       status: "pending",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/wiki/drafts/wiki-1/withdraw",

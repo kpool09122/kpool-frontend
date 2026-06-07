@@ -37,6 +37,7 @@ describe("wiki draft wiki auto-create route", () => {
         name: "Generated Wiki",
         resourceType: "group",
         status: "pending",
+        wikiIdentifier: "99999999-9999-4999-8999-999999999999",
       }, 201),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -63,6 +64,7 @@ describe("wiki draft wiki auto-create route", () => {
       name: "Generated Wiki",
       resourceType: "group",
       status: "pending",
+      wikiIdentifier: "99999999-9999-4999-8999-999999999999",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.example.test/api/wiki/wiki/auto-create",

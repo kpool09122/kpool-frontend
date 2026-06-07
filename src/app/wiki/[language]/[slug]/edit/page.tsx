@@ -46,12 +46,11 @@ export default async function Page({ params, searchParams }: WikiEditRouteProps)
   const normalizedThemeColor = getSingleSearchParam(themeColor);
   const editPath = buildWikiEditPath(language, slug);
   const shouldGateEditAccess = getSingleSearchParam(authGate) === "1";
-  let wikiApiHeaders: HeadersInit | undefined;
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+  const wikiApiHeaders = cookieHeader ? { Cookie: cookieHeader } : undefined;
 
   if (shouldGateEditAccess) {
-    const cookieStore = await cookies();
-    const cookieHeader = cookieStore.toString();
-    wikiApiHeaders = cookieHeader ? { Cookie: cookieHeader } : undefined;
     const authenticatedIdentity = await fetchAuthenticatedIdentity({
       cookieHeader,
     });
