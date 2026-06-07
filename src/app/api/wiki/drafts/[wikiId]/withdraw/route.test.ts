@@ -38,6 +38,7 @@ describe("wiki draft withdraw route", () => {
         name: "Aurora Echo",
         resourceType: "group",
         status: "pending",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);

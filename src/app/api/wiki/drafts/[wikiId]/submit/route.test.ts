@@ -45,6 +45,7 @@ describe("wiki draft submit route", () => {
         name: "Aurora Echo",
         resourceType: "group",
         status: "under_review",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);

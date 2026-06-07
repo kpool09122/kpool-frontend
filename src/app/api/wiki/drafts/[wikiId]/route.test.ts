@@ -58,6 +58,7 @@ describe("wiki draft save route", () => {
         name: "Saved Aurora Echo",
         resourceType: "group",
         status: "editing",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);

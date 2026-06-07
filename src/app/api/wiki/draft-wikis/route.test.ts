@@ -69,6 +69,7 @@ describe("wiki draft wikis route", () => {
         name: "New Wiki",
         resourceType: "group",
         status: "pending",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }, 201),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -89,6 +90,7 @@ describe("wiki draft wikis route", () => {
       name: "New Wiki",
       resourceType: "group",
       status: "pending",
+      wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
       "https://api.example.test/api/wiki/wiki/create",

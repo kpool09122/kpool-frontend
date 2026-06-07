@@ -50,6 +50,7 @@ describe("wiki draft review route", () => {
         name: "Aurora Echo",
         resourceType: "group",
         status: "approved",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -87,6 +88,7 @@ describe("wiki draft review route", () => {
         name: "Aurora Echo",
         resourceType: "group",
         status: "rejected",
+        wikiIdentifier: "99999999-9999-4999-8999-999999999999",
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -139,6 +141,7 @@ describe("wiki draft review route", () => {
             name: "Aurora Echo",
             resourceType: "group",
             status: "pending",
+            wikiIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
           },
         ],
       }),
