@@ -147,6 +147,7 @@ describe("WikiBlockForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
 
+    expect(screen.getByRole("dialog")).toHaveClass("left-0");
     expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
   });
 
@@ -169,7 +170,36 @@ describe("WikiBlockForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
 
+    expect(screen.getByRole("dialog")).toHaveClass("left-0");
     expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
+  });
+
+  it("closes the previous list link popover when another one opens", () => {
+    render(
+      <WikiBlockForm
+        block={{
+          blockIdentifier: "list-2",
+          blockType: "list",
+          displayOrder: 10,
+          items: ["First item", "Second item"],
+          listType: "bullet",
+        }}
+        onCancel={() => {}}
+        onSave={() => {}}
+      />,
+    );
+    const linkButtons = screen.getAllByRole("button", { name: "Insert link" });
+
+    fireEvent.click(linkButtons[0]);
+
+    expect(linkButtons[0]).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+
+    fireEvent.click(linkButtons[1]);
+
+    expect(linkButtons[0]).toHaveAttribute("aria-expanded", "false");
+    expect(linkButtons[1]).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
   it("submits list item inline markdown without requiring raw textarea editing", () => {

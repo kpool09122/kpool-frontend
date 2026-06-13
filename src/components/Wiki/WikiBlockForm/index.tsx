@@ -5,7 +5,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import Image from "next/image";
 import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
-import { type FormEvent, type MouseEvent, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useState } from "react";
 import {
   getSelectableRelatedProfileResourceTypes,
   isWikiResourceType,
@@ -96,6 +96,7 @@ const getRenderedColumnCount = (cells: WikiTableCell[]): number =>
 const formTextWrapClassName = "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
 const textInputClassName = `${formTextWrapClassName} w-full rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2`;
 const textAreaClassName = `${textInputClassName} min-h-24 whitespace-pre-wrap`;
+const linkPopoverOpenEventName = "wiki:inline-link-popover-open";
 
 const createEmptyTableCell = (): WikiTableCell => ({ content: "" });
 
@@ -784,12 +785,51 @@ function InlineMarkdownEditor({
     editor.chain().focus().toggleStrike().run();
   };
 
-  const openLinkEditor = () => setIsLinkEditorOpen(true);
+  const openLinkEditor = () => {
+    window.dispatchEvent(
+      new CustomEvent(linkPopoverOpenEventName, {
+        detail: { editorId },
+      }),
+    );
+    setIsLinkEditorOpen(true);
+  };
 
-  const closeLinkEditor = () => {
+  const closeLinkEditor = ({ restoreFocus = true }: { restoreFocus?: boolean } = {}) => {
     setIsLinkEditorOpen(false);
     setLinkUrl("");
-    editor?.commands.focus();
+    if (restoreFocus) {
+      editor?.commands.focus();
+    }
+  };
+
+  useEffect(() => {
+    const closeOtherLinkEditor = (event: Event) => {
+      const openedEditorId = (event as CustomEvent<{ editorId?: string }>).detail?.editorId;
+
+      if (openedEditorId && openedEditorId !== editorId) {
+        setIsLinkEditorOpen(false);
+        setLinkUrl("");
+      }
+    };
+
+    window.addEventListener(linkPopoverOpenEventName, closeOtherLinkEditor);
+
+    return () => {
+      window.removeEventListener(linkPopoverOpenEventName, closeOtherLinkEditor);
+    };
+  }, [editorId]);
+
+  const handleLinkInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeLinkEditor();
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyFormat("link");
+    }
   };
 
   const preserveSelection = (event: MouseEvent<HTMLButtonElement>) => event.preventDefault();
@@ -814,7 +854,7 @@ function InlineMarkdownEditor({
       <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
         {label}
       </label>
-      <div className="overflow-hidden rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
+      <div className="rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
         <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
           <button
             aria-label="Bold"
@@ -847,35 +887,46 @@ function InlineMarkdownEditor({
             S
           </button>
           <span aria-hidden="true" className="h-5 w-px bg-stroke-subtle" />
-          <button
-            aria-expanded={isLinkEditorOpen}
-            aria-label="Insert link"
-            aria-pressed={editorState.isLinkActive}
-            className={getIconButtonClassName(editorState.isLinkActive)}
-            onClick={openLinkEditor}
-            onMouseDown={preserveSelection}
-            type="button"
-          >
-            <Link2Icon aria-hidden="true" className="size-4" />
-          </button>
+          <span className="relative inline-flex">
+            <button
+              aria-controls={`${editorId}-link-popover`}
+              aria-expanded={isLinkEditorOpen}
+              aria-label="Insert link"
+              aria-pressed={editorState.isLinkActive}
+              className={getIconButtonClassName(editorState.isLinkActive)}
+              onClick={openLinkEditor}
+              onMouseDown={preserveSelection}
+              type="button"
+            >
+              <Link2Icon aria-hidden="true" className="size-4" />
+            </button>
+            {isLinkEditorOpen ? (
+              <div
+                className="absolute left-0 top-full z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-stroke-subtle bg-surface-raised p-3 shadow-soft"
+                id={`${editorId}-link-popover`}
+                role="dialog"
+              >
+                <label className="sr-only" htmlFor={`${editorId}-link`}>
+                  Link destination
+                </label>
+                <input
+                  autoFocus
+                  className={`${formTextWrapClassName} w-full rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal`}
+                  id={`${editorId}-link`}
+                  onChange={(event) => setLinkUrl(event.target.value)}
+                  onKeyDown={handleLinkInputKeyDown}
+                  placeholder="Paste a link"
+                  type="url"
+                  value={linkUrl}
+                />
+                <div className="mt-2 flex justify-end gap-2">
+                  <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={() => closeLinkEditor()} type="button">Cancel</button>
+                  <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">Apply</button>
+                </div>
+              </div>
+            ) : null}
+          </span>
         </div>
-        {isLinkEditorOpen ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle bg-surface-base px-3 py-2">
-            <label className="sr-only" htmlFor={`${editorId}-link`}>
-              Link destination
-            </label>
-            <input
-              className={`${formTextWrapClassName} flex-1 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2 text-sm font-normal`}
-              id={`${editorId}-link`}
-              onChange={(event) => setLinkUrl(event.target.value)}
-              placeholder="Paste a link"
-              type="url"
-              value={linkUrl}
-            />
-            <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">Apply</button>
-            <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={closeLinkEditor} type="button">Cancel</button>
-          </div>
-        ) : null}
         <EditorContent editor={editor} />
       </div>
     </div>
