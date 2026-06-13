@@ -4,6 +4,16 @@ import { describe, expect, it } from "vitest";
 
 import { WikiBlockDisplay } from "./index";
 
+const longUrl =
+  "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHs3TB7sXKlDyoxSSyk2DSanTdj2tnV5_AB96T_61RoI7d4QX532769HJP43NSO31B_gXlGXwFY6Mz1vDM4D_v11M8R5KKBBro17S3QcKK3QsBnpDcGK48hItgtoSyRX5W7D2-EUw==";
+const expectWrappedText = (element: Element | null) => {
+  expect(element).not.toBeNull();
+  expect(element).toHaveClass("min-w-0");
+  expect(element).toHaveClass("break-words");
+  expect(element?.className).toContain("[overflow-wrap:anywhere]");
+  expect(element?.className).toContain("[word-break:break-word]");
+};
+
 describe("WikiBlockDisplay", () => {
   it("renders list blocks", () => {
     render(
@@ -136,5 +146,74 @@ describe("WikiBlockDisplay", () => {
     expect(textBlock).not.toBeNull();
     expect(textBlock).toHaveTextContent("first linesecond line");
     expect(container.querySelector("br")).not.toBeNull();
+  });
+
+  it("applies wrapping classes to long text blocks and inline links", () => {
+    const { container } = render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "text-long-url",
+          blockType: "text",
+          content: `weverse.io (${longUrl}) [source](${longUrl})`,
+          displayOrder: 40,
+        }}
+      />,
+    );
+
+    expectWrappedText(container.querySelector("p"));
+    expectWrappedText(screen.getByRole("link", { name: "source" }));
+  });
+
+  it("applies wrapping classes to long list items", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "list-long-url",
+          blockType: "list",
+          displayOrder: 50,
+          listType: "bullet",
+          items: [`title (${longUrl})`],
+        }}
+      />,
+    );
+
+    expectWrappedText(screen.getByText(`title (${longUrl})`));
+  });
+
+  it("applies wrapping classes to long quote content", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "quote-long-url",
+          blockType: "quote",
+          content: longUrl,
+          displayOrder: 60,
+          source: `source-${longUrl}`,
+        }}
+      />,
+    );
+
+    expectWrappedText(screen.getByText(longUrl));
+    expectWrappedText(screen.getByText(`source-${longUrl}`));
+  });
+
+  it("applies wrapping classes to long table header and cell content", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "table-long-url",
+          blockType: "table",
+          displayOrder: 70,
+          headers: [longUrl],
+          headerCells: [{ content: longUrl }],
+          rows: [[`cell-${longUrl}`]],
+          rowCells: [[{ content: `cell-${longUrl}` }]],
+          tableWidth: 320,
+        }}
+      />,
+    );
+
+    expectWrappedText(screen.getByText(longUrl, { selector: "th" }));
+    expectWrappedText(screen.getByText(`cell-${longUrl}`, { selector: "td" }));
   });
 });

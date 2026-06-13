@@ -85,6 +85,10 @@ type TableCellSelection =
 const getRenderedColumnCount = (cells: WikiTableCell[]): number =>
   cells.reduce((count, cell) => count + Math.max(1, cell.colspan ?? 1), 0);
 
+const formTextWrapClassName = "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
+const textInputClassName = `${formTextWrapClassName} w-full rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2`;
+const textAreaClassName = `${textInputClassName} min-h-24 whitespace-pre-wrap`;
+
 const createEmptyTableCell = (): WikiTableCell => ({ content: "" });
 
 const createEmptyTableRow = (columnCount: number): WikiTableCell[] =>
@@ -532,7 +536,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
         <label className="grid gap-2 text-sm font-semibold text-text-strong">
           Table width
           <input
-            className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+            className={textInputClassName}
             min="1"
             onChange={(event) =>
               setTableState((current) => ({
@@ -608,7 +612,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
                         Header {cellIndex + 1}
                         <input
                           aria-label={`Header cell ${cellIndex + 1}`}
-                          className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong"
+                          className={`${formTextWrapClassName} w-full rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong`}
                           onClick={(event) =>
                             selectCell({ kind: "header", cellIndex }, event.shiftKey)
                           }
@@ -638,7 +642,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
                     <div className="p-3">
                       <input
                         aria-label={`Row ${rowIndex + 1} cell ${cellIndex + 1}`}
-                        className="w-full rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm font-normal text-text-strong outline-none transition focus:border-stroke-subtle focus:bg-surface-base"
+                        className={`${formTextWrapClassName} w-full rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm font-normal text-text-strong outline-none transition focus:border-stroke-subtle focus:bg-surface-base`}
                         onClick={(event) =>
                           selectCell({ kind: "body", rowIndex, cellIndex }, event.shiftKey)
                         }
@@ -672,7 +676,7 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
       attributes: {
         "aria-labelledby": editorLabelId,
         class:
-          "min-h-32 whitespace-pre-wrap break-words px-3 py-3 outline-none before:text-text-muted empty:before:content-['Write_something…'] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2",
+          "min-h-32 min-w-0 whitespace-pre-wrap break-words px-3 py-3 outline-none [overflow-wrap:anywhere] [word-break:break-word] before:text-text-muted empty:before:content-['Write_something…'] [&_a]:break-words [&_a]:[overflow-wrap:anywhere] [&_a]:[word-break:break-word] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2",
         role: "textbox",
       },
       handleKeyDown(view, event) {
@@ -846,7 +850,7 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
                 Link destination
               </label>
               <input
-                className="min-w-0 flex-1 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2 text-sm font-normal"
+                className={`${formTextWrapClassName} flex-1 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2 text-sm font-normal`}
                 id={`wiki-link-${block.blockIdentifier}`}
                 onChange={(event) => setLinkUrl(event.target.value)}
                 placeholder="Paste a link"
@@ -944,7 +948,7 @@ function WikiProfileCardListBlockForm({
       <label className="grid gap-2 text-sm font-semibold text-text-strong">
         Title
         <input
-          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+          className={textInputClassName}
           name="title"
           onChange={(event) => setTitle(event.target.value)}
           value={title}
@@ -1041,10 +1045,22 @@ export function WikiBlockForm({
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ imageIdentifier: getString(data, "imageIdentifier"), imageSrc: getString(data, "imageSrc"), caption: getString(data, "caption") || null, alt: getString(data, "alt") || null }))}>
           <div className="grid gap-3">
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Image identifier<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.imageIdentifier} name="imageIdentifier" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Image URL<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.imageSrc} name="imageSrc" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Alt<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.alt ?? ""} name="alt" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Caption<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.caption ?? ""} name="caption" /></label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Image identifier
+              <input className={textInputClassName} defaultValue={block.imageIdentifier} name="imageIdentifier" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Image URL
+              <input className={textInputClassName} defaultValue={block.imageSrc} name="imageSrc" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Alt
+              <input className={textInputClassName} defaultValue={block.alt ?? ""} name="alt" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Caption
+              <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+            </label>
           </div>
           <WikiFormActions onCancel={onCancel} />
         </form>
@@ -1052,8 +1068,14 @@ export function WikiBlockForm({
     case "image_gallery":
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ images: getLines(data, "images").map((line, index) => ({ imageIdentifier: line, imageSrc: block.images[index]?.imageSrc ?? block.images[0]?.imageSrc ?? "", alt: block.images[index]?.alt ?? line })), caption: getString(data, "caption") || null }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">Image identifiers<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.images.map((image) => image.imageIdentifier).join("\n")} name="images" /></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Caption<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.caption ?? ""} name="caption" /></label>
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Image identifiers
+            <textarea className={textAreaClassName} defaultValue={block.images.map((image) => image.imageIdentifier).join("\n")} name="images" />
+          </label>
+          <label className="mt-3 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Caption
+            <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+          </label>
           <WikiFormActions onCancel={onCancel} />
         </form>
       );
@@ -1062,8 +1084,14 @@ export function WikiBlockForm({
         <form onSubmit={(event) => submit(event, (data) => ({ provider: getString(data, "provider") as WikiEmbedProvider, embedId: getString(data, "embedId"), caption: getString(data, "caption") || null }))}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-semibold text-text-strong">Provider<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.provider} name="provider"><option value="youtube">youtube</option><option value="spotify">spotify</option><option value="x">x</option><option value="tiktok">tiktok</option></select></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Embed ID<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.embedId} name="embedId" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong sm:col-span-2">Caption<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.caption ?? ""} name="caption" /></label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Embed ID
+              <input className={textInputClassName} defaultValue={block.embedId} name="embedId" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong sm:col-span-2">
+              Caption
+              <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+            </label>
           </div>
           <WikiFormActions onCancel={onCancel} />
         </form>
@@ -1071,8 +1099,14 @@ export function WikiBlockForm({
     case "quote":
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ content: getString(data, "content"), source: getString(data, "source") || null }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">Quote<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.content} name="content" /></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Source<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.source ?? ""} name="source" /></label>
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Quote
+            <textarea className={textAreaClassName} defaultValue={block.content} name="content" />
+          </label>
+          <label className="mt-3 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Source
+            <input className={textInputClassName} defaultValue={block.source ?? ""} name="source" />
+          </label>
           <WikiFormActions onCancel={onCancel} />
         </form>
       );
@@ -1080,7 +1114,10 @@ export function WikiBlockForm({
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ listType: getString(data, "listType") as WikiListType, items: getLines(data, "items") }))}>
           <label className="grid gap-2 text-sm font-semibold text-text-strong">List type<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.listType} name="listType"><option value="bullet">bullet</option><option value="numbered">numbered</option></select></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Items<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.items.join("\n")} name="items" /></label>
+          <label className="mt-3 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Items
+            <textarea className={textAreaClassName} defaultValue={block.items.join("\n")} name="items" />
+          </label>
           <WikiFormActions onCancel={onCancel} />
         </form>
       );
