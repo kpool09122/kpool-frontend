@@ -150,6 +150,55 @@ describe("WikiBlockForm", () => {
     expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
   });
 
+  it("opens the link editor from a list item toolbar", () => {
+    render(
+      <WikiBlockForm
+        block={{
+          blockIdentifier: "list-1",
+          blockType: "list",
+          displayOrder: 10,
+          items: ["First item"],
+          listType: "bullet",
+        }}
+        onCancel={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Link destination")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
+
+    expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
+  });
+
+  it("submits list item inline markdown without requiring raw textarea editing", () => {
+    const onSave = vi.fn();
+
+    render(
+      <WikiBlockForm
+        block={{
+          blockIdentifier: "list-2",
+          blockType: "list",
+          displayOrder: 10,
+          items: ["**bold** _italic_ ~~strike~~ [site](https://example.com)"],
+          listType: "numbered",
+        }}
+        onCancel={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Items")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith({
+      items: ["**bold** _italic_ ~~strike~~ [site](https://example.com)"],
+      listType: "numbered",
+    });
+  });
+
   it("loads related profile slugs from selected resource type", async () => {
     const onSave = vi.fn();
     const fetchMock = vi.fn().mockResolvedValue(

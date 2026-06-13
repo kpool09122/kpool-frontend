@@ -51,6 +51,14 @@ type TextBlockFormProps = {
   onSave: (changes: Partial<WikiBlock>) => void;
 };
 
+type WikiListBlock = Extract<WikiBlock, { blockType: "list" }>;
+
+type ListBlockFormProps = {
+  block: WikiListBlock;
+  onCancel: () => void;
+  onSave: (changes: Partial<WikiBlock>) => void;
+};
+
 type TableBlockFormProps = {
   block: WikiTableBlock;
   onCancel: () => void;
@@ -666,17 +674,29 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
   );
 }
 
-function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
-  const editorLabelId = `wiki-text-label-${block.blockIdentifier}`;
+function InlineMarkdownEditor({
+  content,
+  editorId,
+  label,
+  minHeightClassName = "min-h-32",
+  onChange,
+}: {
+  content: string;
+  editorId: string;
+  label: string;
+  minHeightClassName?: string;
+  onChange: (content: string) => void;
+}) {
+  const editorLabelId = `${editorId}-label`;
   const [linkUrl, setLinkUrl] = useState("");
   const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
   const editor = useEditor({
-    content: inlineMarkdownToTiptapHtml(block.content),
+    content: inlineMarkdownToTiptapHtml(content),
     editorProps: {
       attributes: {
         "aria-labelledby": editorLabelId,
         class:
-          "min-h-32 min-w-0 whitespace-pre-wrap break-words px-3 py-3 outline-none [overflow-wrap:anywhere] [word-break:break-word] before:text-text-muted empty:before:content-['Write_something…'] [&_a]:break-words [&_a]:[overflow-wrap:anywhere] [&_a]:[word-break:break-word] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2",
+          `${minHeightClassName} min-w-0 whitespace-pre-wrap break-words px-3 py-3 outline-none [overflow-wrap:anywhere] [word-break:break-word] before:text-text-muted empty:before:content-['Write_something…'] [&_a]:break-words [&_a]:[overflow-wrap:anywhere] [&_a]:[word-break:break-word] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2`,
         role: "textbox",
       },
       handleKeyDown(view, event) {
@@ -713,6 +733,9 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
         openOnClick: false,
       }),
     ],
+    onUpdate({ editor: currentEditor }) {
+      onChange(serializeTiptapJsonToInlineMarkdown(currentEditor.getJSON()));
+    },
     immediatelyRender: false,
   });
   const editorState = useEditorState({
@@ -729,9 +752,6 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
     isStrikeActive: false,
     isLinkActive: false,
   };
-
-  const getMarkdownContent = () =>
-    editor ? serializeTiptapJsonToInlineMarkdown(editor.getJSON()) : block.content;
 
   const applyFormat = (format: "bold" | "italic" | "strike" | "link") => {
     if (!editor) {
@@ -790,80 +810,177 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
     ].join(" ");
 
   return (
+    <div className="grid gap-2">
+      <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
+        {label}
+      </label>
+      <div className="overflow-hidden rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
+        <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+          <button
+            aria-label="Bold"
+            aria-pressed={editorState.isBoldActive}
+            className={getToolbarButtonClassName(editorState.isBoldActive, "font-bold")}
+            onClick={() => applyFormat("bold")}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            B
+          </button>
+          <button
+            aria-label="Italic"
+            aria-pressed={editorState.isItalicActive}
+            className={getToolbarButtonClassName(editorState.isItalicActive, "italic")}
+            onClick={() => applyFormat("italic")}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            I
+          </button>
+          <button
+            aria-label="Strike"
+            aria-pressed={editorState.isStrikeActive}
+            className={getToolbarButtonClassName(editorState.isStrikeActive, "line-through")}
+            onClick={() => applyFormat("strike")}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            S
+          </button>
+          <span aria-hidden="true" className="h-5 w-px bg-stroke-subtle" />
+          <button
+            aria-expanded={isLinkEditorOpen}
+            aria-label="Insert link"
+            aria-pressed={editorState.isLinkActive}
+            className={getIconButtonClassName(editorState.isLinkActive)}
+            onClick={openLinkEditor}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            <Link2Icon aria-hidden="true" className="size-4" />
+          </button>
+        </div>
+        {isLinkEditorOpen ? (
+          <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle bg-surface-base px-3 py-2">
+            <label className="sr-only" htmlFor={`${editorId}-link`}>
+              Link destination
+            </label>
+            <input
+              className={`${formTextWrapClassName} flex-1 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2 text-sm font-normal`}
+              id={`${editorId}-link`}
+              onChange={(event) => setLinkUrl(event.target.value)}
+              placeholder="Paste a link"
+              type="url"
+              value={linkUrl}
+            />
+            <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">Apply</button>
+            <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={closeLinkEditor} type="button">Cancel</button>
+          </div>
+        ) : null}
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
+
+function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
+  const [content, setContent] = useState(block.content);
+
+  return (
     <form onSubmit={(event) => {
       event.preventDefault();
-      onSave({ content: getMarkdownContent() });
+      onSave({ content });
     }}
     >
-      <div className="grid gap-2">
-        <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
-          Text
-        </label>
-        <div className="overflow-hidden rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
-          <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+      <InlineMarkdownEditor
+        content={content}
+        editorId={`wiki-text-${block.blockIdentifier}`}
+        label="Text"
+        onChange={setContent}
+      />
+      <WikiFormActions onCancel={onCancel} />
+    </form>
+  );
+}
+
+function WikiListBlockForm({ block, onCancel, onSave }: ListBlockFormProps) {
+  const [listType, setListType] = useState<WikiListType>(block.listType);
+  const [nextItemId, setNextItemId] = useState(block.items.length);
+  const [items, setItems] = useState(() =>
+    (block.items.length > 0 ? block.items : [""]).map((content, itemIndex) => ({
+      content,
+      id: `${block.blockIdentifier}-${itemIndex}`,
+    })),
+  );
+
+  const updateItem = (itemId: string, content: string) => {
+    setItems((current) =>
+      current.map((item) => (item.id === itemId ? { ...item, content } : item)),
+    );
+  };
+
+  const addItem = () => {
+    setItems((current) => [...current, { content: "", id: `${block.blockIdentifier}-${nextItemId}` }]);
+    setNextItemId((current) => current + 1);
+  };
+
+  const removeItem = (itemId: string) => {
+    setItems((current) => {
+      const nextItems = current.filter((item) => item.id !== itemId);
+
+      return nextItems.length > 0 ? nextItems : [{ content: "", id: `${block.blockIdentifier}-empty` }];
+    });
+  };
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave({
+          items: items.map((item) => item.content.trim()).filter(Boolean),
+          listType,
+        });
+      }}
+    >
+      <label className="grid gap-2 text-sm font-semibold text-text-strong">
+        List type
+        <select
+          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+          name="listType"
+          onChange={(event) => setListType(event.target.value as WikiListType)}
+          value={listType}
+        >
+          <option value="bullet">bullet</option>
+          <option value="numbered">numbered</option>
+        </select>
+      </label>
+      <div className="mt-3 grid gap-3">
+        {items.map((item, itemIndex) => (
+          <div className="grid gap-2" key={item.id}>
+            <InlineMarkdownEditor
+              content={item.content}
+              editorId={`wiki-list-${block.blockIdentifier}-${itemIndex}`}
+              label={`Item ${itemIndex + 1}`}
+              minHeightClassName="min-h-20"
+              onChange={(content) => updateItem(item.id, content)}
+            />
             <button
-              aria-label="Bold"
-              aria-pressed={editorState.isBoldActive}
-              className={getToolbarButtonClassName(editorState.isBoldActive, "font-bold")}
-              onClick={() => applyFormat("bold")}
-              onMouseDown={preserveSelection}
+              className="justify-self-start rounded-md px-2 py-1 text-sm text-text-muted transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={items.length === 1}
+              onClick={() => removeItem(item.id)}
               type="button"
             >
-              B
-            </button>
-            <button
-              aria-label="Italic"
-              aria-pressed={editorState.isItalicActive}
-              className={getToolbarButtonClassName(editorState.isItalicActive, "italic")}
-              onClick={() => applyFormat("italic")}
-              onMouseDown={preserveSelection}
-              type="button"
-            >
-              I
-            </button>
-            <button
-              aria-label="Strike"
-              aria-pressed={editorState.isStrikeActive}
-              className={getToolbarButtonClassName(editorState.isStrikeActive, "line-through")}
-              onClick={() => applyFormat("strike")}
-              onMouseDown={preserveSelection}
-              type="button"
-            >
-              S
-            </button>
-            <span aria-hidden="true" className="h-5 w-px bg-stroke-subtle" />
-            <button
-              aria-expanded={isLinkEditorOpen}
-              aria-label="Insert link"
-              aria-pressed={editorState.isLinkActive}
-              className={getIconButtonClassName(editorState.isLinkActive)}
-              onClick={openLinkEditor}
-              onMouseDown={preserveSelection}
-              type="button"
-            >
-              <Link2Icon aria-hidden="true" className="size-4" />
+              Remove item
             </button>
           </div>
-          {isLinkEditorOpen ? (
-            <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle bg-surface-base px-3 py-2">
-              <label className="sr-only" htmlFor={`wiki-link-${block.blockIdentifier}`}>
-                Link destination
-              </label>
-              <input
-                className={`${formTextWrapClassName} flex-1 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2 text-sm font-normal`}
-                id={`wiki-link-${block.blockIdentifier}`}
-                onChange={(event) => setLinkUrl(event.target.value)}
-                placeholder="Paste a link"
-                type="url"
-                value={linkUrl}
-              />
-              <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">Apply</button>
-              <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={closeLinkEditor} type="button">Cancel</button>
-            </div>
-          ) : null}
-          <EditorContent editor={editor} />
-        </div>
+        ))}
       </div>
+      <button
+        className="mt-3 rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong"
+        onClick={addItem}
+        type="button"
+      >
+        + Item
+      </button>
       <WikiFormActions onCancel={onCancel} />
     </form>
   );
@@ -1111,16 +1228,7 @@ export function WikiBlockForm({
         </form>
       );
     case "list":
-      return (
-        <form onSubmit={(event) => submit(event, (data) => ({ listType: getString(data, "listType") as WikiListType, items: getLines(data, "items") }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">List type<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.listType} name="listType"><option value="bullet">bullet</option><option value="numbered">numbered</option></select></label>
-          <label className="mt-3 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
-            Items
-            <textarea className={textAreaClassName} defaultValue={block.items.join("\n")} name="items" />
-          </label>
-          <WikiFormActions onCancel={onCancel} />
-        </form>
-      );
+      return <WikiListBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "table":
       return <WikiTableBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "profile_card_list":

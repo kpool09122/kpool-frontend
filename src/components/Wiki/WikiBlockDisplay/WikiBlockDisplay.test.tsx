@@ -1,6 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { WikiBlockDisplay } from "./index";
 
@@ -15,6 +15,8 @@ const expectWrappedText = (element: Element | null) => {
 };
 
 describe("WikiBlockDisplay", () => {
+  afterEach(() => cleanup());
+
   it("renders list blocks", () => {
     render(
       <WikiBlockDisplay
@@ -115,6 +117,37 @@ describe("WikiBlockDisplay", () => {
     expect(screen.getByRole("link", { name: "site" })).toHaveAttribute("target", "_blank");
   });
 
+  it("renders supported inline markdown inside list items", () => {
+    const { container } = render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "list-inline-markdown",
+          blockType: "list",
+          displayOrder: 15,
+          listType: "bullet",
+          items: [
+            "**bold** _italic_ ~~strike~~ [site](https://example.com) [[HYBE|agency]]",
+          ],
+        }}
+        language="ko"
+      />,
+    );
+    const listItem = container.querySelector("li");
+
+    expect(listItem).not.toBeNull();
+    expect(within(listItem as HTMLElement).getByText("bold", { selector: "strong" })).toBeInTheDocument();
+    expect(within(listItem as HTMLElement).getByText("italic", { selector: "em" })).toBeInTheDocument();
+    expect(within(listItem as HTMLElement).getByText("strike", { selector: "del" })).toBeInTheDocument();
+    expect(within(listItem as HTMLElement).getByRole("link", { name: "site" })).toHaveAttribute(
+      "href",
+      "https://example.com",
+    );
+    expect(within(listItem as HTMLElement).getByRole("link", { name: "agency" })).toHaveAttribute(
+      "href",
+      "/wiki/ko/HYBE",
+    );
+  });
+
   it("shows invalid markdown as plain text", () => {
     render(
       <WikiBlockDisplay
@@ -165,7 +198,7 @@ describe("WikiBlockDisplay", () => {
   });
 
   it("applies wrapping classes to long list items", () => {
-    render(
+    const { container } = render(
       <WikiBlockDisplay
         block={{
           blockIdentifier: "list-long-url",
@@ -177,7 +210,7 @@ describe("WikiBlockDisplay", () => {
       />,
     );
 
-    expectWrappedText(screen.getByText(`title (${longUrl})`));
+    expectWrappedText(container.querySelector("li"));
   });
 
   it("applies wrapping classes to long quote content", () => {

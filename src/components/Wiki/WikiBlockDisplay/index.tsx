@@ -179,11 +179,11 @@ export function WikiBlockDisplay({
     case "list":
       return block.listType === "numbered" ? (
         <ol className={`${textWrapClassName} list-decimal space-y-2 pl-6 text-sm leading-7 text-text-strong`}>
-          {block.items.map((item) => <li className={textWrapClassName} key={item}>{item}</li>)}
+          {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ol>
       ) : (
         <ul className={`${textWrapClassName} list-disc space-y-2 pl-6 text-sm leading-7 text-text-strong`}>
-          {block.items.map((item) => <li className={textWrapClassName} key={item}>{item}</li>)}
+          {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ul>
       );
     case "table":
