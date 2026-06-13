@@ -25,10 +25,12 @@ type WikiBasicPanelProps = {
 };
 
 const basicInputClassName =
-  "rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2";
+  "min-w-0 break-words rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2 [overflow-wrap:anywhere] [word-break:break-word]";
 const basicTextareaClassName =
-  "min-h-24 rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2";
-const basicLabelClassName = "grid gap-2 text-sm font-semibold text-text-strong";
+  "min-h-24 min-w-0 whitespace-pre-wrap break-words rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2 [overflow-wrap:anywhere] [word-break:break-word]";
+const basicLabelClassName = "grid min-w-0 gap-2 text-sm font-semibold text-text-strong";
+const basicTextWrapClassName =
+  "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
 
 const getOptionalString = (formData: FormData, name: string): string | undefined =>
   getString(formData, name).trim() || undefined;
@@ -142,21 +144,21 @@ function BasicRelationLinks({
   }
 
   return (
-    <div className="rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2">
-      <p className="text-sm font-semibold text-text-strong">{label}</p>
-      <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm leading-6">
+    <div className={`${basicTextWrapClassName} rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2`}>
+      <p className={`${basicTextWrapClassName} text-sm font-semibold text-text-strong`}>{label}</p>
+      <div className={`${basicTextWrapClassName} mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm leading-6`}>
         {relations.map((relation, index) => (
-          <span key={`${relation.wikiIdentifier}-${index}`}>
+          <span className={basicTextWrapClassName} key={`${relation.wikiIdentifier}-${index}`}>
             {index > 0 ? <span className="mr-2 text-text-muted">,</span> : null}
             {relation.slug && relation.language ? (
               <Link
-                className="font-semibold text-brand-primary underline-offset-4 hover:underline"
+                className={`${basicTextWrapClassName} font-semibold text-brand-primary underline-offset-4 hover:underline`}
                 href={buildWikiPath(relation.language, relation.slug)}
               >
                 {relation.name}
               </Link>
             ) : (
-              <span className="text-text-strong">{relation.name}</span>
+              <span className={`${basicTextWrapClassName} text-text-strong`}>{relation.name}</span>
             )}
           </span>
         ))}

@@ -17,6 +17,11 @@ type WikiBlockDisplayProps = {
   textClassName?: string;
 };
 
+const textWrapClassName = "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
+const inlineLinkClassName = `${textWrapClassName} text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800`;
+const captionClassName = `${textWrapClassName} mt-2 text-sm text-text-muted`;
+const tableCellClassName = `${textWrapClassName} border-b border-stroke-subtle px-3 py-2`;
+
 export function WikiBlockDisplay({
   block,
   language = "ja",
@@ -42,7 +47,7 @@ export function WikiBlockDisplay({
       } else {
         nodes.push(
           <a
-            className="text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800"
+            className={inlineLinkClassName}
             href={buildWikiPath(language, target)}
             key={`${keyPrefix}-namu-link-${match.index}`}
             rel="noopener noreferrer"
@@ -85,7 +90,7 @@ export function WikiBlockDisplay({
 
           return (
             <a
-              className="text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800"
+              className={inlineLinkClassName}
               href={href}
               key={`link-${index}`}
               rel="noopener noreferrer"
@@ -108,7 +113,7 @@ export function WikiBlockDisplay({
         case "include":
           return (
             <span
-              className="inline-flex rounded-full border border-stroke-subtle px-2 py-0.5 text-xs font-semibold text-text-muted"
+              className={`${textWrapClassName} inline-flex max-w-full rounded-full border border-stroke-subtle px-2 py-0.5 text-xs font-semibold text-text-muted`}
               key={`include-${index}`}
             >
               Included from {token.target}
@@ -130,7 +135,7 @@ export function WikiBlockDisplay({
   };
 
   const renderTextBlock = (content: string) => (
-    <p className={textClassName}>
+    <p className={`${textWrapClassName} ${textClassName}`}>
       {renderInlineTokens(content)}
     </p>
   );
@@ -145,7 +150,7 @@ export function WikiBlockDisplay({
             <Image alt={block.alt ?? ""} className="object-cover" fill sizes="100vw" src={block.imageSrc} unoptimized />
             {showEditableImageOverlay ? <ImageEditableOverlay /> : null}
           </div>
-          {block.caption ? <figcaption className="mt-2 text-sm text-text-muted">{block.caption}</figcaption> : null}
+          {block.caption ? <figcaption className={captionClassName}>{block.caption}</figcaption> : null}
         </figure>
       );
     case "image_gallery":
@@ -159,26 +164,26 @@ export function WikiBlockDisplay({
               </div>
             ))}
           </div>
-          {block.caption ? <figcaption className="mt-2 text-sm text-text-muted">{block.caption}</figcaption> : null}
+          {block.caption ? <figcaption className={captionClassName}>{block.caption}</figcaption> : null}
         </figure>
       );
     case "embed":
       return <WikiEmbedFrame block={block} />;
     case "quote":
       return (
-        <blockquote className="border-l-4 border-text-muted/30 pl-4 text-base leading-8 text-text-strong">
+        <blockquote className={`${textWrapClassName} border-l-4 border-text-muted/30 pl-4 text-base leading-8 text-text-strong`}>
           {block.content}
-          {block.source ? <cite className="mt-2 block text-sm text-text-muted">{block.source}</cite> : null}
+          {block.source ? <cite className={`${textWrapClassName} mt-2 block text-sm text-text-muted`}>{block.source}</cite> : null}
         </blockquote>
       );
     case "list":
       return block.listType === "numbered" ? (
-        <ol className="list-decimal space-y-2 pl-6 text-sm leading-7 text-text-strong">
-          {block.items.map((item) => <li key={item}>{item}</li>)}
+        <ol className={`${textWrapClassName} list-decimal space-y-2 pl-6 text-sm leading-7 text-text-strong`}>
+          {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ol>
       ) : (
-        <ul className="list-disc space-y-2 pl-6 text-sm leading-7 text-text-strong">
-          {block.items.map((item) => <li key={item}>{item}</li>)}
+        <ul className={`${textWrapClassName} list-disc space-y-2 pl-6 text-sm leading-7 text-text-strong`}>
+          {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ul>
       );
     case "table":
@@ -198,7 +203,7 @@ export function WikiBlockDisplay({
                 <tr>
                   {headerCells.map((header, index) => (
                     <th
-                      className="border-b border-stroke-subtle px-3 py-2"
+                      className={tableCellClassName}
                       colSpan={header.colspan ?? 1}
                       key={`${header.content}-${index}`}
                     >
@@ -213,7 +218,7 @@ export function WikiBlockDisplay({
                 <tr key={`row-${rowIndex}`}>
                   {row.map((cell, cellIndex) => (
                     <td
-                      className="border-b border-stroke-subtle px-3 py-2 text-text-strong"
+                      className={`${tableCellClassName} text-text-strong`}
                       colSpan={cell.colspan ?? 1}
                       key={`${cell.content}-${cellIndex}`}
                     >

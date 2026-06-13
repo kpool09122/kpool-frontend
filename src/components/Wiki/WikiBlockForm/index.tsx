@@ -5,7 +5,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import Image from "next/image";
 import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
-import { type FormEvent, type MouseEvent, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useState } from "react";
 import {
   getSelectableRelatedProfileResourceTypes,
   isWikiResourceType,
@@ -51,6 +51,14 @@ type TextBlockFormProps = {
   onSave: (changes: Partial<WikiBlock>) => void;
 };
 
+type WikiListBlock = Extract<WikiBlock, { blockType: "list" }>;
+
+type ListBlockFormProps = {
+  block: WikiListBlock;
+  onCancel: () => void;
+  onSave: (changes: Partial<WikiBlock>) => void;
+};
+
 type TableBlockFormProps = {
   block: WikiTableBlock;
   onCancel: () => void;
@@ -84,6 +92,11 @@ type TableCellSelection =
 
 const getRenderedColumnCount = (cells: WikiTableCell[]): number =>
   cells.reduce((count, cell) => count + Math.max(1, cell.colspan ?? 1), 0);
+
+const formTextWrapClassName = "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
+const textInputClassName = `${formTextWrapClassName} w-full rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2`;
+const textAreaClassName = `${textInputClassName} min-h-24 whitespace-pre-wrap`;
+const linkPopoverOpenEventName = "wiki:inline-link-popover-open";
 
 const createEmptyTableCell = (): WikiTableCell => ({ content: "" });
 
@@ -532,7 +545,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
         <label className="grid gap-2 text-sm font-semibold text-text-strong">
           Table width
           <input
-            className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+            className={textInputClassName}
             min="1"
             onChange={(event) =>
               setTableState((current) => ({
@@ -608,7 +621,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
                         Header {cellIndex + 1}
                         <input
                           aria-label={`Header cell ${cellIndex + 1}`}
-                          className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong"
+                          className={`${formTextWrapClassName} w-full rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong`}
                           onClick={(event) =>
                             selectCell({ kind: "header", cellIndex }, event.shiftKey)
                           }
@@ -638,7 +651,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
                     <div className="p-3">
                       <input
                         aria-label={`Row ${rowIndex + 1} cell ${cellIndex + 1}`}
-                        className="w-full rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm font-normal text-text-strong outline-none transition focus:border-stroke-subtle focus:bg-surface-base"
+                        className={`${formTextWrapClassName} w-full rounded-lg border border-transparent bg-transparent px-3 py-2 text-sm font-normal text-text-strong outline-none transition focus:border-stroke-subtle focus:bg-surface-base`}
                         onClick={(event) =>
                           selectCell({ kind: "body", rowIndex, cellIndex }, event.shiftKey)
                         }
@@ -662,17 +675,29 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
   );
 }
 
-function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
-  const editorLabelId = `wiki-text-label-${block.blockIdentifier}`;
+function InlineMarkdownEditor({
+  content,
+  editorId,
+  label,
+  minHeightClassName = "min-h-32",
+  onChange,
+}: {
+  content: string;
+  editorId: string;
+  label: string;
+  minHeightClassName?: string;
+  onChange: (content: string) => void;
+}) {
+  const editorLabelId = `${editorId}-label`;
   const [linkUrl, setLinkUrl] = useState("");
   const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
   const editor = useEditor({
-    content: inlineMarkdownToTiptapHtml(block.content),
+    content: inlineMarkdownToTiptapHtml(content),
     editorProps: {
       attributes: {
         "aria-labelledby": editorLabelId,
         class:
-          "min-h-32 whitespace-pre-wrap break-words px-3 py-3 outline-none before:text-text-muted empty:before:content-['Write_something…'] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2",
+          `${minHeightClassName} min-w-0 whitespace-pre-wrap break-words px-3 py-3 outline-none [overflow-wrap:anywhere] [word-break:break-word] before:text-text-muted empty:before:content-['Write_something…'] [&_a]:break-words [&_a]:[overflow-wrap:anywhere] [&_a]:[word-break:break-word] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2`,
         role: "textbox",
       },
       handleKeyDown(view, event) {
@@ -709,6 +734,9 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
         openOnClick: false,
       }),
     ],
+    onUpdate({ editor: currentEditor }) {
+      onChange(serializeTiptapJsonToInlineMarkdown(currentEditor.getJSON()));
+    },
     immediatelyRender: false,
   });
   const editorState = useEditorState({
@@ -725,9 +753,6 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
     isStrikeActive: false,
     isLinkActive: false,
   };
-
-  const getMarkdownContent = () =>
-    editor ? serializeTiptapJsonToInlineMarkdown(editor.getJSON()) : block.content;
 
   const applyFormat = (format: "bold" | "italic" | "strike" | "link") => {
     if (!editor) {
@@ -760,12 +785,51 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
     editor.chain().focus().toggleStrike().run();
   };
 
-  const openLinkEditor = () => setIsLinkEditorOpen(true);
+  const openLinkEditor = () => {
+    window.dispatchEvent(
+      new CustomEvent(linkPopoverOpenEventName, {
+        detail: { editorId },
+      }),
+    );
+    setIsLinkEditorOpen(true);
+  };
 
-  const closeLinkEditor = () => {
+  const closeLinkEditor = ({ restoreFocus = true }: { restoreFocus?: boolean } = {}) => {
     setIsLinkEditorOpen(false);
     setLinkUrl("");
-    editor?.commands.focus();
+    if (restoreFocus) {
+      editor?.commands.focus();
+    }
+  };
+
+  useEffect(() => {
+    const closeOtherLinkEditor = (event: Event) => {
+      const openedEditorId = (event as CustomEvent<{ editorId?: string }>).detail?.editorId;
+
+      if (openedEditorId && openedEditorId !== editorId) {
+        setIsLinkEditorOpen(false);
+        setLinkUrl("");
+      }
+    };
+
+    window.addEventListener(linkPopoverOpenEventName, closeOtherLinkEditor);
+
+    return () => {
+      window.removeEventListener(linkPopoverOpenEventName, closeOtherLinkEditor);
+    };
+  }, [editorId]);
+
+  const handleLinkInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeLinkEditor();
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applyFormat("link");
+    }
   };
 
   const preserveSelection = (event: MouseEvent<HTMLButtonElement>) => event.preventDefault();
@@ -786,49 +850,46 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
     ].join(" ");
 
   return (
-    <form onSubmit={(event) => {
-      event.preventDefault();
-      onSave({ content: getMarkdownContent() });
-    }}
-    >
-      <div className="grid gap-2">
-        <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
-          Text
-        </label>
-        <div className="overflow-hidden rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
-          <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+    <div className="grid gap-2">
+      <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
+        {label}
+      </label>
+      <div className="rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
+        <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+          <button
+            aria-label="Bold"
+            aria-pressed={editorState.isBoldActive}
+            className={getToolbarButtonClassName(editorState.isBoldActive, "font-bold")}
+            onClick={() => applyFormat("bold")}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            B
+          </button>
+          <button
+            aria-label="Italic"
+            aria-pressed={editorState.isItalicActive}
+            className={getToolbarButtonClassName(editorState.isItalicActive, "italic")}
+            onClick={() => applyFormat("italic")}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            I
+          </button>
+          <button
+            aria-label="Strike"
+            aria-pressed={editorState.isStrikeActive}
+            className={getToolbarButtonClassName(editorState.isStrikeActive, "line-through")}
+            onClick={() => applyFormat("strike")}
+            onMouseDown={preserveSelection}
+            type="button"
+          >
+            S
+          </button>
+          <span aria-hidden="true" className="h-5 w-px bg-stroke-subtle" />
+          <span className="relative inline-flex">
             <button
-              aria-label="Bold"
-              aria-pressed={editorState.isBoldActive}
-              className={getToolbarButtonClassName(editorState.isBoldActive, "font-bold")}
-              onClick={() => applyFormat("bold")}
-              onMouseDown={preserveSelection}
-              type="button"
-            >
-              B
-            </button>
-            <button
-              aria-label="Italic"
-              aria-pressed={editorState.isItalicActive}
-              className={getToolbarButtonClassName(editorState.isItalicActive, "italic")}
-              onClick={() => applyFormat("italic")}
-              onMouseDown={preserveSelection}
-              type="button"
-            >
-              I
-            </button>
-            <button
-              aria-label="Strike"
-              aria-pressed={editorState.isStrikeActive}
-              className={getToolbarButtonClassName(editorState.isStrikeActive, "line-through")}
-              onClick={() => applyFormat("strike")}
-              onMouseDown={preserveSelection}
-              type="button"
-            >
-              S
-            </button>
-            <span aria-hidden="true" className="h-5 w-px bg-stroke-subtle" />
-            <button
+              aria-controls={`${editorId}-link-popover`}
               aria-expanded={isLinkEditorOpen}
               aria-label="Insert link"
               aria-pressed={editorState.isLinkActive}
@@ -839,27 +900,138 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
             >
               <Link2Icon aria-hidden="true" className="size-4" />
             </button>
-          </div>
-          {isLinkEditorOpen ? (
-            <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle bg-surface-base px-3 py-2">
-              <label className="sr-only" htmlFor={`wiki-link-${block.blockIdentifier}`}>
-                Link destination
-              </label>
-              <input
-                className="min-w-0 flex-1 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2 text-sm font-normal"
-                id={`wiki-link-${block.blockIdentifier}`}
-                onChange={(event) => setLinkUrl(event.target.value)}
-                placeholder="Paste a link"
-                type="url"
-                value={linkUrl}
-              />
-              <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">Apply</button>
-              <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={closeLinkEditor} type="button">Cancel</button>
-            </div>
-          ) : null}
-          <EditorContent editor={editor} />
+            {isLinkEditorOpen ? (
+              <div
+                className="absolute left-0 top-full z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-stroke-subtle bg-surface-raised p-3 shadow-soft"
+                id={`${editorId}-link-popover`}
+                role="dialog"
+              >
+                <label className="sr-only" htmlFor={`${editorId}-link`}>
+                  Link destination
+                </label>
+                <input
+                  autoFocus
+                  className={`${formTextWrapClassName} w-full rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal`}
+                  id={`${editorId}-link`}
+                  onChange={(event) => setLinkUrl(event.target.value)}
+                  onKeyDown={handleLinkInputKeyDown}
+                  placeholder="Paste a link"
+                  type="url"
+                  value={linkUrl}
+                />
+                <div className="mt-2 flex justify-end gap-2">
+                  <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={() => closeLinkEditor()} type="button">Cancel</button>
+                  <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">Apply</button>
+                </div>
+              </div>
+            ) : null}
+          </span>
         </div>
+        <EditorContent editor={editor} />
       </div>
+    </div>
+  );
+}
+
+function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
+  const [content, setContent] = useState(block.content);
+
+  return (
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      onSave({ content });
+    }}
+    >
+      <InlineMarkdownEditor
+        content={content}
+        editorId={`wiki-text-${block.blockIdentifier}`}
+        label="Text"
+        onChange={setContent}
+      />
+      <WikiFormActions onCancel={onCancel} />
+    </form>
+  );
+}
+
+function WikiListBlockForm({ block, onCancel, onSave }: ListBlockFormProps) {
+  const [listType, setListType] = useState<WikiListType>(block.listType);
+  const [nextItemId, setNextItemId] = useState(block.items.length);
+  const [items, setItems] = useState(() =>
+    (block.items.length > 0 ? block.items : [""]).map((content, itemIndex) => ({
+      content,
+      id: `${block.blockIdentifier}-${itemIndex}`,
+    })),
+  );
+
+  const updateItem = (itemId: string, content: string) => {
+    setItems((current) =>
+      current.map((item) => (item.id === itemId ? { ...item, content } : item)),
+    );
+  };
+
+  const addItem = () => {
+    setItems((current) => [...current, { content: "", id: `${block.blockIdentifier}-${nextItemId}` }]);
+    setNextItemId((current) => current + 1);
+  };
+
+  const removeItem = (itemId: string) => {
+    setItems((current) => {
+      const nextItems = current.filter((item) => item.id !== itemId);
+
+      return nextItems.length > 0 ? nextItems : [{ content: "", id: `${block.blockIdentifier}-empty` }];
+    });
+  };
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave({
+          items: items.map((item) => item.content.trim()).filter(Boolean),
+          listType,
+        });
+      }}
+    >
+      <label className="grid gap-2 text-sm font-semibold text-text-strong">
+        List type
+        <select
+          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+          name="listType"
+          onChange={(event) => setListType(event.target.value as WikiListType)}
+          value={listType}
+        >
+          <option value="bullet">bullet</option>
+          <option value="numbered">numbered</option>
+        </select>
+      </label>
+      <div className="mt-3 grid gap-3">
+        {items.map((item, itemIndex) => (
+          <div className="grid gap-2" key={item.id}>
+            <InlineMarkdownEditor
+              content={item.content}
+              editorId={`wiki-list-${block.blockIdentifier}-${itemIndex}`}
+              label={`Item ${itemIndex + 1}`}
+              minHeightClassName="min-h-20"
+              onChange={(content) => updateItem(item.id, content)}
+            />
+            <button
+              className="justify-self-start rounded-md px-2 py-1 text-sm text-text-muted transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={items.length === 1}
+              onClick={() => removeItem(item.id)}
+              type="button"
+            >
+              Remove item
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        className="mt-3 rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong"
+        onClick={addItem}
+        type="button"
+      >
+        + Item
+      </button>
       <WikiFormActions onCancel={onCancel} />
     </form>
   );
@@ -944,7 +1116,7 @@ function WikiProfileCardListBlockForm({
       <label className="grid gap-2 text-sm font-semibold text-text-strong">
         Title
         <input
-          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+          className={textInputClassName}
           name="title"
           onChange={(event) => setTitle(event.target.value)}
           value={title}
@@ -1041,10 +1213,22 @@ export function WikiBlockForm({
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ imageIdentifier: getString(data, "imageIdentifier"), imageSrc: getString(data, "imageSrc"), caption: getString(data, "caption") || null, alt: getString(data, "alt") || null }))}>
           <div className="grid gap-3">
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Image identifier<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.imageIdentifier} name="imageIdentifier" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Image URL<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.imageSrc} name="imageSrc" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Alt<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.alt ?? ""} name="alt" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Caption<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.caption ?? ""} name="caption" /></label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Image identifier
+              <input className={textInputClassName} defaultValue={block.imageIdentifier} name="imageIdentifier" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Image URL
+              <input className={textInputClassName} defaultValue={block.imageSrc} name="imageSrc" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Alt
+              <input className={textInputClassName} defaultValue={block.alt ?? ""} name="alt" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Caption
+              <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+            </label>
           </div>
           <WikiFormActions onCancel={onCancel} />
         </form>
@@ -1052,8 +1236,14 @@ export function WikiBlockForm({
     case "image_gallery":
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ images: getLines(data, "images").map((line, index) => ({ imageIdentifier: line, imageSrc: block.images[index]?.imageSrc ?? block.images[0]?.imageSrc ?? "", alt: block.images[index]?.alt ?? line })), caption: getString(data, "caption") || null }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">Image identifiers<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.images.map((image) => image.imageIdentifier).join("\n")} name="images" /></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Caption<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.caption ?? ""} name="caption" /></label>
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Image identifiers
+            <textarea className={textAreaClassName} defaultValue={block.images.map((image) => image.imageIdentifier).join("\n")} name="images" />
+          </label>
+          <label className="mt-3 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Caption
+            <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+          </label>
           <WikiFormActions onCancel={onCancel} />
         </form>
       );
@@ -1062,8 +1252,14 @@ export function WikiBlockForm({
         <form onSubmit={(event) => submit(event, (data) => ({ provider: getString(data, "provider") as WikiEmbedProvider, embedId: getString(data, "embedId"), caption: getString(data, "caption") || null }))}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-semibold text-text-strong">Provider<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.provider} name="provider"><option value="youtube">youtube</option><option value="spotify">spotify</option><option value="x">x</option><option value="tiktok">tiktok</option></select></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">Embed ID<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.embedId} name="embedId" /></label>
-            <label className="grid gap-2 text-sm font-semibold text-text-strong sm:col-span-2">Caption<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.caption ?? ""} name="caption" /></label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+              Embed ID
+              <input className={textInputClassName} defaultValue={block.embedId} name="embedId" />
+            </label>
+            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong sm:col-span-2">
+              Caption
+              <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+            </label>
           </div>
           <WikiFormActions onCancel={onCancel} />
         </form>
@@ -1071,19 +1267,19 @@ export function WikiBlockForm({
     case "quote":
       return (
         <form onSubmit={(event) => submit(event, (data) => ({ content: getString(data, "content"), source: getString(data, "source") || null }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">Quote<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.content} name="content" /></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Source<input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.source ?? ""} name="source" /></label>
+          <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Quote
+            <textarea className={textAreaClassName} defaultValue={block.content} name="content" />
+          </label>
+          <label className="mt-3 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+            Source
+            <input className={textInputClassName} defaultValue={block.source ?? ""} name="source" />
+          </label>
           <WikiFormActions onCancel={onCancel} />
         </form>
       );
     case "list":
-      return (
-        <form onSubmit={(event) => submit(event, (data) => ({ listType: getString(data, "listType") as WikiListType, items: getLines(data, "items") }))}>
-          <label className="grid gap-2 text-sm font-semibold text-text-strong">List type<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.listType} name="listType"><option value="bullet">bullet</option><option value="numbered">numbered</option></select></label>
-          <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">Items<textarea className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.items.join("\n")} name="items" /></label>
-          <WikiFormActions onCancel={onCancel} />
-        </form>
-      );
+      return <WikiListBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "table":
       return <WikiTableBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "profile_card_list":
