@@ -1173,6 +1173,7 @@ describe("draftWiki", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
+          wikiIdentifier: "published-wiki-1",
           language: "ja",
           name: "Aurora Echo",
           resourceType: "group",
@@ -1540,6 +1541,7 @@ describe("draftWiki", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
+          wikiIdentifier: "published-wiki-1",
           language: "ja",
           name: "Aurora Echo",
           resourceType: "group",
@@ -1761,6 +1763,7 @@ describe("draftWiki", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
+          wikiIdentifier: "published-wiki-1",
           language: "ja",
           name: "Aurora Echo",
           resourceType: "group",
@@ -1779,6 +1782,7 @@ describe("draftWiki", () => {
     };
 
     await expect(client!.reviewDraftWiki("wiki-1", "publish", body)).resolves.toEqual({
+      wikiIdentifier: "published-wiki-1",
       language: "ja",
       name: "Aurora Echo",
       resourceType: "group",
@@ -1884,6 +1888,7 @@ describe("draftWiki", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
+            wikiIdentifier: "published-wiki-1",
             language: "ja",
             name: "Aurora Echo",
             resourceType: "group",
