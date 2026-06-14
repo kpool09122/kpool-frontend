@@ -592,6 +592,7 @@ const WikiWorkflowRequestBody = WikiAssociationTargets;
 const UpdateWikiDraftRequestBody = WikiAssociationTargets;
 const PublishedWikiSummary = z
   .object({
+    wikiIdentifier: KPool_Common_Uuid,
     language: z.string(),
     name: z.string(),
     resourceType: z.string(),
