@@ -110,6 +110,7 @@ describe("wiki draft review route", () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
+        wikiIdentifier: "published-wiki-1",
         language: "ja",
         name: "Aurora Echo",
         resourceType: "group",
