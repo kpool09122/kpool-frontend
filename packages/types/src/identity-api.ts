@@ -2,7 +2,11 @@ import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
 const LoginRequestBody = z
-  .object({ email: z.string(), password: z.string() })
+  .object({
+    email: z.string(),
+    password: z.string(),
+    return_to: z.string().nullish(),
+  })
   .passthrough();
 const KPool_Common_Uuid = z.string();
 const IdentitySummary = z
@@ -14,6 +18,7 @@ const IdentitySummary = z
     profileImage: z.string().nullish(),
   })
   .passthrough();
+const LoginIdentitySummary = IdentitySummary;
 const KPool_Common_ProblemDetails = z
   .object({
     type: z.string(),
@@ -50,11 +55,13 @@ const KPool_Common_Timestamp = z.string();
 const VerifyEmailResult = z
   .object({ email: z.string(), verifiedAt: KPool_Common_Timestamp.nullish() })
   .passthrough();
+const OkIdentityResponse = z.object({ body: IdentitySummary }).passthrough();
 
 export const schemas = {
   LoginRequestBody,
   KPool_Common_Uuid,
   IdentitySummary,
+  LoginIdentitySummary,
   KPool_Common_ProblemDetails,
   KPool_Common_EmptyJsonObject,
   AuthenticatedIdentitySummary,
@@ -66,6 +73,7 @@ export const schemas = {
   VerifyEmailRequestBody,
   KPool_Common_Timestamp,
   VerifyEmailResult,
+  OkIdentityResponse,
 };
 
 const endpoints = makeApi([
@@ -82,7 +90,7 @@ const endpoints = makeApi([
         schema: LoginRequestBody,
       },
     ],
-    response: IdentitySummary,
+    response: LoginIdentitySummary,
     errors: [
       {
         status: 401,
@@ -273,6 +281,11 @@ const endpoints = makeApi([
         name: "invitationToken",
         type: "Query",
         schema: z.string().optional(),
+      },
+      {
+        name: "return_to",
+        type: "Query",
+        schema: z.string().nullish(),
       },
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
