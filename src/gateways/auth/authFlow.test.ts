@@ -1,12 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getAuthErrorMessage,
   identityProviders,
+  loginWithEmail,
   normalizeReturnTo,
+  requestSocialRedirect,
 } from "./authFlow";
 
 describe("login auth flow helpers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("defines the supported SSO providers in display order", () => {
     expect(identityProviders).toEqual([
       expect.objectContaining({
@@ -44,6 +50,57 @@ describe("login auth flow helpers", () => {
 
     await expect(getAuthErrorMessage(response)).resolves.toBe(
       "メールアドレスまたはパスワードが違います。",
+    );
+  });
+
+  it("sends return_to with email login and normalizes the returned destination", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        username: "member",
+        email: "member@example.com",
+        language: "ja",
+        return_to: "/wiki/ja/gr-aurora-echo/edit",
+      })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      loginWithEmail({
+        email: "member@example.com",
+        password: "secret-password",
+        return_to: "/wiki/ja/gr-aurora-echo/edit",
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      returnTo: "/wiki/ja/gr-aurora-echo/edit",
+    });
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
+      email: "member@example.com",
+      password: "secret-password",
+      return_to: "/wiki/ja/gr-aurora-echo/edit",
+    });
+  });
+
+  it("sends return_to with social redirect requests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        redirectUrl: "https://accounts.example.test/oauth",
+      })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      requestSocialRedirect("google", "/wiki/ja/gr-aurora-echo/edit"),
+    ).resolves.toEqual({
+      ok: true,
+      redirectUrl: "https://accounts.example.test/oauth",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/identity/auth/social/google/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
+      {
+        credentials: "include",
+      },
     );
   });
 });

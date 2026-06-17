@@ -6,6 +6,7 @@ import { POST } from "./route";
 const loginRequestBody = {
   email: "member@example.com",
   password: "secret-password",
+  return_to: "/wiki/ja/gr-aurora-echo/edit",
 };
 
 const createRequest = (

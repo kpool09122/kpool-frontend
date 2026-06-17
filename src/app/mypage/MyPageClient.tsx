@@ -80,6 +80,7 @@ type MyPageClientProps = {
   draftImageAdapter?: MyPageDraftImageAdapter;
   draftWikiAdapter?: MyPageDraftWikiAdapter;
   principalAdapter?: MyPagePrincipalAdapter;
+  returnTo?: string | null;
 };
 
 type CreateDraftWikiDialogState = {
@@ -136,6 +137,7 @@ export function MyPageClient({
   initialIdentity,
   initialPrincipalState = { status: "idle" },
   principalAdapter = defaultPrincipalAdapter,
+  returnTo = null,
 }: MyPageClientProps) {
   const router = useRouter();
   const authIdentity = useAuthStore((state) => state.identity);
@@ -203,6 +205,14 @@ export function MyPageClient({
     () => loadDraftWikisPage("editingWikis", 1),
     [loadDraftWikisPage],
   );
+  const handlePrincipalReady = useCallback(() => {
+    if (returnTo) {
+      router.push(returnTo);
+      return;
+    }
+
+    return loadFirstDraftWikiPage();
+  }, [loadFirstDraftWikiPage, returnTo, router]);
   const principalMessages = useMemo(() => ({
     accountUnavailableMessage: t.accountUnavailableMessage,
     identityUnavailableMessage: t.identityUnavailableMessage,
@@ -216,7 +226,7 @@ export function MyPageClient({
     initialIdentity: currentIdentity,
     initialPrincipalState,
     messages: principalMessages,
-    onPrincipalReady: loadFirstDraftWikiPage,
+    onPrincipalReady: handlePrincipalReady,
     refreshIdentity: () => refreshIdentity({ preserveOnNull: true }),
   });
   const autoCreatableResourceTypes = useMemo(
@@ -1396,7 +1406,7 @@ const isDeletableDraftWiki = (
 const getDraftWikiHref = (wiki: MyPageWikiListItem, tab: MyPageDraftWikiActionTab): string =>
   tab === "untranslatedWikis"
     ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
-    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit?authGate=1`;
+    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
 
 const getDraftWikiDiffHref = (wiki: MyPageWikiListItem): string =>
   `/wiki/diff/${encodeURIComponent(wiki.wikiIdentifier)}?resourceType=${encodeURIComponent(wiki.resourceType)}`;

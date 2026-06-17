@@ -247,6 +247,28 @@ describe("wiki principal helpers", () => {
     });
   });
 
+  it.each([
+    [401, "ログインが必要です。"],
+    [403, "このアカウントでは Wiki principal を作成できません。"],
+  ])("returns a user-facing error when principal creation receives %s", async (status, detail) => {
+    const fetchAdapter = vi.fn().mockResolvedValue({
+      ok: false,
+      status,
+      json: vi.fn().mockResolvedValue({ detail }),
+    });
+
+    await expect(
+      createWikiPrincipal({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        fetchAdapter,
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+      }),
+    ).resolves.toEqual({
+      status: "error",
+      message: detail,
+    });
+  });
+
   it("reads accountId from identity payloads", () => {
     expect(
       getAccountIdentifierFromIdentity({

@@ -783,7 +783,7 @@ describe("MyPageClient", () => {
     expect(draftWikiAdapter.listDraftWikis).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/edit?authGate=1",
+      "/wiki/ja/gr-review-wiki/edit",
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
       'url("https://images.example.test/editing-wiki.webp")',
@@ -803,7 +803,7 @@ describe("MyPageClient", () => {
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/edit?authGate=1",
+      "/wiki/ja/gr-review-wiki/edit",
     );
   });
 
@@ -1697,6 +1697,29 @@ describe("MyPageClient", () => {
       }),
     );
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
+  });
+
+  it("returns to the original edit page after creating a principal when returnTo is provided", async () => {
+    const adapter = createAdapter({
+      getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
+      createPrincipal: vi.fn().mockResolvedValue({ status: "available", principal }),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "missing" }}
+        principalAdapter={adapter}
+        returnTo="/wiki/ja/gr-review-wiki/edit"
+      />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Wiki collaborator を有効化" }));
+
+    await waitFor(() =>
+      expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/ja/gr-review-wiki/edit"),
+    );
   });
 
   it("shows a retry path when the principal lookup fails", async () => {

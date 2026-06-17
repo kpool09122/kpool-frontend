@@ -30,8 +30,16 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
 
   try {
     const { provider } = await context.params;
+    const returnTo = new URL(request.url).searchParams.get("return_to");
+    const searchParams = new URLSearchParams();
+
+    if (returnTo) {
+      searchParams.set("return_to", returnTo);
+    }
+
+    const query = searchParams.toString();
     const apiResponse = await fetch(
-      `${baseUrl}/auth/social/${encodeURIComponent(provider)}/redirect`,
+      `${baseUrl}/auth/social/${encodeURIComponent(provider)}/redirect${query ? `?${query}` : ""}`,
         {
           headers: {
             Accept: "application/json",

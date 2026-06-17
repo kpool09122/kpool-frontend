@@ -90,6 +90,23 @@ describe("/api/wiki/principal/create route", () => {
     expect(body.message).not.toContain("internal.wiki.example.test");
   });
 
+  it.each([
+    [401, "ログインが必要です。"],
+    [403, "このアカウントでは Wiki principal を作成できません。"],
+  ])("forwards upstream %s responses safely", async (status, detail) => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://wiki.example.test");
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ detail }, { status }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(createRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(status);
+    expect(body.message).toBe(detail);
+  });
+
   it("does not expose internal fetch errors to the client", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://internal.wiki.example.test");
     const fetchMock = vi.fn().mockRejectedValue(

@@ -44,9 +44,34 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Googleでログイン" }));
 
     await waitFor(() =>
-      expect(socialRedirectAdapter).toHaveBeenCalledWith("google"),
+      expect(socialRedirectAdapter).toHaveBeenCalledWith("google", "/mypage"),
     );
     expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/oauth");
+  });
+
+  it("passes the return destination to SSO redirect requests", async () => {
+    const socialRedirectAdapter = vi.fn().mockResolvedValue({
+      ok: true,
+      redirectUrl: "https://accounts.example.test/oauth",
+    });
+    const navigate = vi.fn();
+
+    render(
+      <LoginPage
+        socialRedirectAdapter={socialRedirectAdapter}
+        navigate={navigate}
+        returnTo="/wiki/ja/gr-aurora-echo/edit"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Googleでログイン" }));
+
+    await waitFor(() =>
+      expect(socialRedirectAdapter).toHaveBeenCalledWith(
+        "google",
+        "/wiki/ja/gr-aurora-echo/edit",
+      ),
+    );
   });
 
   it("logs in with email and password and opens mypage", async () => {
@@ -72,9 +97,43 @@ describe("LoginPage", () => {
       expect(loginAdapter).toHaveBeenCalledWith({
         email: "member@example.com",
         password: "secret-password",
+        return_to: "/mypage",
       }),
     );
     expect(navigate).toHaveBeenCalledWith("/mypage");
+  });
+
+  it("uses the safe return destination returned by email login", async () => {
+    const loginAdapter = vi.fn().mockResolvedValue({
+      ok: true,
+      returnTo: "/wiki/ja/gr-aurora-echo/edit",
+    });
+    const navigate = vi.fn();
+
+    render(
+      <LoginPage
+        loginAdapter={loginAdapter}
+        navigate={navigate}
+        returnTo="/mypage"
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "member@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "secret-password" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスでログイン" }));
+
+    await waitFor(() =>
+      expect(loginAdapter).toHaveBeenCalledWith({
+        email: "member@example.com",
+        password: "secret-password",
+        return_to: "/mypage",
+      }),
+    );
+    expect(navigate).toHaveBeenCalledWith("/wiki/ja/gr-aurora-echo/edit");
   });
 
   it("shows an understandable error when email login fails", async () => {

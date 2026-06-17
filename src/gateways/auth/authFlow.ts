@@ -14,7 +14,7 @@ export type IdentityProvider = {
 };
 
 export type LoginResult =
-  | { ok: true }
+  | { ok: true; returnTo?: string }
   | {
       ok: false;
       message: string;
@@ -33,6 +33,7 @@ export type SocialRedirectResult =
 export type LoginAdapter = (credentials: IdentityLoginRequest) => Promise<LoginResult>;
 export type SocialRedirectAdapter = (
   provider: IdentityProvider["id"],
+  returnTo?: string,
 ) => Promise<SocialRedirectResult>;
 
 export const identityProviders: IdentityProvider[] = [
@@ -111,14 +112,26 @@ export const loginWithEmail: LoginAdapter = async (credentials) => {
     };
   }
 
-  parseIdentitySummary(await response.json());
+  const body = await response.json();
+  parseIdentitySummary(body);
+  const responseReturnTo = (body as { return_to?: unknown }).return_to;
 
-  return { ok: true };
+  return {
+    ok: true,
+    returnTo: typeof responseReturnTo === "string"
+      ? normalizeReturnTo(responseReturnTo)
+      : undefined,
+  };
 };
 
-export const requestSocialRedirect: SocialRedirectAdapter = async (provider) => {
+export const requestSocialRedirect: SocialRedirectAdapter = async (provider, returnTo) => {
+  const params = new URLSearchParams();
+  const normalizedReturnTo = normalizeReturnTo(returnTo);
+
+  params.set("return_to", normalizedReturnTo);
+
   const response = await fetch(
-    `/api/identity/auth/social/${encodeURIComponent(provider)}/redirect`,
+    `/api/identity/auth/social/${encodeURIComponent(provider)}/redirect?${params.toString()}`,
     {
       credentials: "include",
     },
