@@ -582,13 +582,27 @@ export const getWikiApiErrorMessage = (
         data?: unknown;
       };
     }).response;
-    const detail =
-      typeof response.data === "object" &&
-      response.data !== null &&
-      "message" in response.data &&
-      typeof (response.data as { message: unknown }).message === "string"
-        ? (response.data as { message: string }).message
-        : null;
+    const detail = (() => {
+      if (typeof response.data !== "object" || response.data === null) {
+        return null;
+      }
+
+      if (
+        "message" in response.data &&
+        typeof (response.data as { message: unknown }).message === "string"
+      ) {
+        return (response.data as { message: string }).message;
+      }
+
+      if (
+        "detail" in response.data &&
+        typeof (response.data as { detail: unknown }).detail === "string"
+      ) {
+        return (response.data as { detail: string }).detail;
+      }
+
+      return null;
+    })();
 
     if (response.status === 404) {
       return detail ?? messages.notFound;

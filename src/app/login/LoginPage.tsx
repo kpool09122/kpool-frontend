@@ -53,7 +53,7 @@ export function LoginPage({
   navigate,
   refresh,
   returnTo,
-	}: LoginPageProps) {
+}: LoginPageProps) {
   const router = useRouter();
   const { dictionary } = useI18n();
   const t = dictionary.login;
@@ -71,13 +71,15 @@ export function LoginPage({
     setErrorMessage(null);
     setPendingAction({ type: "email" });
 
-    const result = await loginAdapter({ email, password });
+    const result = await loginAdapter({ email, password, return_to: destination });
 
     if (result.ok) {
+      const nextDestination = result.returnTo ?? destination;
+
       if (navigate) {
-        navigate(destination);
+        navigate(nextDestination);
       } else {
-        router.replace(destination);
+        router.replace(nextDestination);
         router.refresh();
       }
       refresh?.();
@@ -92,7 +94,7 @@ export function LoginPage({
     setErrorMessage(null);
     setPendingAction({ type: "social", provider });
 
-    const result = await socialRedirectAdapter(provider);
+    const result = await socialRedirectAdapter(provider, destination);
 
     if (result.ok) {
       if (navigate) {

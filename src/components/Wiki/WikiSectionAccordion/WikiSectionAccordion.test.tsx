@@ -31,7 +31,7 @@ describe("WikiSectionAccordion", () => {
   it("renders section edit links without using the accordion toggle", () => {
     render(
       <WikiSectionAccordion
-        editHref="/wiki/ja/gr-aurora-echo/edit?authGate=1"
+        editHref="/wiki/ja/gr-aurora-echo/edit"
         language="ja"
         section={wikiStorySection}
       />,
@@ -43,7 +43,7 @@ describe("WikiSectionAccordion", () => {
     });
 
     expect(section).not.toHaveAttribute("open");
-    expect(editLink).toHaveAttribute("href", "/wiki/ja/gr-aurora-echo/edit?authGate=1");
+    expect(editLink).toHaveAttribute("href", "/wiki/ja/gr-aurora-echo/edit");
     editLink.addEventListener("click", (event) => event.preventDefault());
     fireEvent.click(editLink);
     expect(section).not.toHaveAttribute("open");

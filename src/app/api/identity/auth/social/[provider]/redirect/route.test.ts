@@ -3,8 +3,11 @@ import type { NextRequest } from "next/server";
 
 import { GET } from "./route";
 
-const createRequest = (headers: Record<string, string> = {}): NextRequest =>
-  new Request("https://app.example.test/api/identity/auth/social/google/redirect", {
+const createRequest = (
+  headers: Record<string, string> = {},
+  search = "",
+): NextRequest =>
+  new Request(`https://app.example.test/api/identity/auth/social/google/redirect${search}`, {
     method: "GET",
     headers,
   }) as NextRequest;
@@ -26,10 +29,16 @@ describe("/api/identity/auth/social/[provider]/redirect route", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await GET(createRequest({ cookie: "laravel_session=abc" }), createContext("google oauth"));
+    await GET(
+      createRequest(
+        { cookie: "laravel_session=abc" },
+        "?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
+      ),
+      createContext("google oauth"),
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/social/google%20oauth/redirect",
+      "https://identity.example.test/api/identity/auth/social/google%20oauth/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
       {
         headers: {
           Accept: "application/json",

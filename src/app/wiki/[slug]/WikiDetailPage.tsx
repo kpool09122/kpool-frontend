@@ -60,7 +60,7 @@ export function WikiDetailPage({
   const { data } = wikiState;
   const effectiveThemeColor = themeColor ?? data.themeColor ?? undefined;
   const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor);
-  const editHref = `${buildWikiEditPath(language, slug)}?authGate=1`;
+  const editHref = buildWikiEditPath(language, slug);
 
   return (
     <main

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import {
@@ -23,12 +24,33 @@ const getPrincipalStateKey = (
   return principalState.status;
 };
 
-export default async function MyPage() {
+type MyPageProps = {
+  searchParams?: Promise<{
+    returnTo?: string | string[];
+  }>;
+};
+
+const getSingleSearchParam = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
+
+const normalizeOptionalReturnTo = (value: string | undefined): string | null =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+
+export default async function MyPage({ searchParams }: MyPageProps = {}) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const returnTo = normalizeOptionalReturnTo(
+    getSingleSearchParam(resolvedSearchParams.returnTo),
+  );
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
   const authenticatedIdentity = await fetchAuthenticatedIdentity({
     cookieHeader,
   });
+
+  if (!authenticatedIdentity) {
+    redirect("/login?returnTo=/mypage");
+  }
+
   const principalState = await getInitialWikiPrincipalForRequest({
     cookieHeader,
     hasAuthenticatedIdentity: Boolean(authenticatedIdentity),
@@ -43,6 +65,7 @@ export default async function MyPage() {
       initialDraftWikis={initialDraftWikis}
       initialIdentity={authenticatedIdentity}
       initialPrincipalState={principalState}
+      returnTo={returnTo}
     />
   );
 }

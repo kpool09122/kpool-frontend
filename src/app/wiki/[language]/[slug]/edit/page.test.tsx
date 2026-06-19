@@ -58,6 +58,13 @@ describe("Wiki edit route", () => {
       status: "success",
       data: {},
     });
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "identity-1",
+    });
+    mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({
+      status: "available",
+      principal: {},
+    });
   });
 
   afterEach(() => {
@@ -69,12 +76,16 @@ describe("Wiki edit route", () => {
     expect(revalidate).toBe(0);
   });
 
-  it("loads the draft with forwarded cookies when the edit auth gate is absent", async () => {
+  it("loads the draft with forwarded cookies when authenticated principal is available", async () => {
     render(await Page(routeProps()));
 
     expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
-    expect(mocks.fetchAuthenticatedIdentity).not.toHaveBeenCalled();
-    expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalledWith({
+      cookieHeader: "session=abc",
+    });
+    expect(mocks.getCurrentWikiPrincipalForRequest).toHaveBeenCalledWith({
+      cookieHeader: "session=abc",
+    });
     expect(mocks.loadDraftWikiState).toHaveBeenCalledWith("ja", "gr-aurora-echo", {
       Cookie: "session=abc",
     });
@@ -88,40 +99,41 @@ describe("Wiki edit route", () => {
     render(await Page(routeProps()));
 
     expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
-    expect(mocks.fetchAuthenticatedIdentity).not.toHaveBeenCalled();
-    expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalledWith({
+      cookieHeader: "",
+    });
+    expect(mocks.getCurrentWikiPrincipalForRequest).toHaveBeenCalledWith({
+      cookieHeader: "",
+    });
     expect(mocks.loadDraftWikiState).toHaveBeenCalledWith("ja", "gr-aurora-echo");
   });
 
-  it("redirects gated unauthenticated edits to login with the edit return path", async () => {
+  it("redirects unauthenticated edits to login with the edit return path", async () => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
 
-    await expect(Page(routeProps({ authGate: "1" }))).rejects.toThrow(
-      "redirect:/login?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit%3FauthGate%3D1",
+    await expect(Page(routeProps())).rejects.toThrow(
+      "redirect:/login?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
     );
   });
 
-  it("redirects gated edits to mypage when the principal is missing", async () => {
-    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
-      identityIdentifier: "identity-1",
-    });
+  it("keeps allowed edit query values in the login return path", async () => {
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
+
+    await expect(Page(routeProps({ themeColor: "#d94f70" }))).rejects.toThrow(
+      "redirect:/login?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit%3FthemeColor%3D%2523d94f70",
+    );
+  });
+
+  it("redirects edits to mypage with the edit return path when the principal is missing", async () => {
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
 
-    await expect(Page(routeProps({ authGate: "1" }))).rejects.toThrow(
-      "redirect:/mypage",
+    await expect(Page(routeProps())).rejects.toThrow(
+      "redirect:/mypage?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
     );
   });
 
-  it("loads the draft for gated edits when identity and principal are available", async () => {
-    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
-      identityIdentifier: "identity-1",
-    });
-    mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({
-      status: "available",
-      principal: {},
-    });
-
-    render(await Page(routeProps({ authGate: "1" })));
+  it("loads the draft when identity and principal are available without a gate query", async () => {
+    render(await Page(routeProps()));
 
     expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
     expect(mocks.getCurrentWikiPrincipalForRequest).toHaveBeenCalledWith({
