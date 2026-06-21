@@ -15,10 +15,17 @@ describe("WikiSectionAccordion", () => {
 
     expect(section).not.toHaveAttribute("open");
     expect(screen.getByText(wikiStorySection.title)).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "The group balances brisk digital singles with a smaller number of concept-heavy mini albums.",
+      ),
+    ).not.toBeInTheDocument();
   });
 
-  it("renders the section body content", () => {
+  it("renders the section body content after opening", () => {
     render(<WikiSectionAccordion language="ja" section={wikiStorySection} />);
+
+    fireEvent.click(screen.getByTestId(`section-toggle-${wikiStorySection.sectionIdentifier}`));
 
     expect(
       screen.getAllByText(
