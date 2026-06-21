@@ -64,3 +64,54 @@ describe("wikiApiModel SEO metadata", () => {
     });
   });
 });
+
+describe("wikiApiModel section identifiers", () => {
+  it("generates unique fallback identifiers for nested sections without backend ids", () => {
+    const wiki = adaptDraftWikiApiResponse({
+      ...baseApiResponse,
+      status: "editing",
+      sections: [
+        {
+          type: "section",
+          title: "Overview",
+          contents: [
+            {
+              type: "section",
+              title: "Nested one",
+              contents: [
+                {
+                  type: "section",
+                  title: "Deep nested",
+                  contents: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "section",
+          title: "Another root",
+          contents: [
+            {
+              type: "section",
+              title: "Nested two",
+              contents: [],
+            },
+          ],
+        },
+      ],
+    });
+
+    const firstRoot = wiki.sections[0];
+    const firstNested = firstRoot?.children[0];
+    const deepNested = firstNested?.children[0];
+    const secondRoot = wiki.sections[1];
+    const secondNested = secondRoot?.children[0];
+
+    expect(firstRoot?.sectionIdentifier).toBe("section-1");
+    expect(firstNested?.sectionIdentifier).toBe("section-1-1");
+    expect(deepNested?.sectionIdentifier).toBe("section-1-1-1");
+    expect(secondRoot?.sectionIdentifier).toBe("section-2");
+    expect(secondNested?.sectionIdentifier).toBe("section-2-1");
+  });
+});

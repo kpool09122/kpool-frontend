@@ -210,8 +210,8 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
   };
 };
 
-const toSectionIdentifier = (value: unknown, index: number): string =>
-  typeof value === "string" && value.length > 0 ? value : `section-${index + 1}`;
+const toSectionIdentifier = (value: unknown, fallback: string): string =>
+  typeof value === "string" && value.length > 0 ? value : fallback;
 
 const toSectionTitle = (value: unknown, fallback: string): string =>
   typeof value === "string" && value.length > 0 ? value : fallback;
@@ -486,7 +486,7 @@ const adaptWikiSection = (
 ): WikiDetail["sections"][number] => {
   const sectionIdentifier = toSectionIdentifier(
     section.id ?? section.sectionIdentifier ?? section.section_identifier,
-    index,
+    path,
   );
   const rawContents = Array.isArray(section.contents) ? section.contents : [];
   const content = typeof section.content === "string" ? section.content : "";
