@@ -121,7 +121,7 @@ export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
         />
       </div>
       {block.caption ? (
-        <figcaption className="border-t border-stroke-subtle px-4 py-3 text-sm text-text-muted">
+        <figcaption className="border-t border-stroke-subtle px-4 py-3 text-base text-text-muted">
           {block.caption}
         </figcaption>
       ) : null}

@@ -73,7 +73,7 @@ export function WikiSectionAccordion({ editHref, language, section }: WikiSectio
                 block={content}
                 key={content.blockIdentifier}
                 language={language}
-                textClassName="max-w-3xl text-sm leading-7 text-text-muted"
+                textClassName="max-w-3xl text-base leading-7 text-text-muted"
               />
             ) : isWikiSection(content) ? (
               <WikiSectionAccordion
