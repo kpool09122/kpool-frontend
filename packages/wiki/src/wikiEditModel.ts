@@ -920,9 +920,6 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
 
     const nextParent = {
       ...parent,
-      children: parent.children.map((child) =>
-        child.sectionIdentifier === nextSection.sectionIdentifier ? nextSection : child,
-      ),
       contents: parent.contents.map((content) =>
         isWikiSection(content) && content.sectionIdentifier === nextSection.sectionIdentifier
           ? nextSection
@@ -997,13 +994,11 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
         displayOrder: getNextDisplayOrder(parent ? parent.contents : rootSections),
         depth: normalizedHeadingDepth,
         contents: [],
-        children: [],
       };
 
       if (parent) {
         const nextParent = {
           ...parent,
-          children: [...parent.children, nextSection],
           contents: [...parent.contents, nextSection],
         };
 
@@ -1074,22 +1069,13 @@ export const getWikiContentEditorId = (
 export const normalizeWikiSectionContents = (
   section: WikiSection,
 ): WikiSection => {
-  const childSections = section.children.map(normalizeWikiSectionContents);
-  const existingContents = section.contents.length > 0 ? section.contents : [];
-  const childIds = new Set(childSections.map((child) => child.sectionIdentifier));
-  const retainedContents = existingContents.filter(
-    (content) =>
-      !isWikiSection(content) || !childIds.has(content.sectionIdentifier),
+  const normalizedContents = section.contents.map((content) =>
+    isWikiSection(content) ? normalizeWikiSectionContents(content) : content,
   );
-
   return {
     ...section,
     type: "section",
-    contents: sortWikiSectionContents([
-      ...retainedContents,
-      ...childSections,
-    ]),
-    children: childSections,
+    contents: sortWikiSectionContents(normalizedContents),
   };
 };
 
@@ -1110,7 +1096,6 @@ export const sortWikiSectionContents = <T extends WikiSectionContent>(
         ? ({
             ...content,
             contents: sortWikiSectionContents(content.contents),
-            children: sortWikiSectionContents(content.children),
           } as T)
         : content,
     );
@@ -1209,18 +1194,15 @@ const mapSections = (
   mapper: (section: WikiSection) => WikiSection,
 ): WikiSection[] =>
   sections.map((section) => {
-    const mappedChildren = section.children.length
-      ? mapSections(section.children, mapper)
-      : section.children;
-    const mappedContents = section.contents.map((content) =>
+    const normalizedSection = normalizeWikiSectionContents(section);
+    const mappedContents = normalizedSection.contents.map((content) =>
       isWikiSection(content)
         ? mapSections([content], mapper)[0] ?? content
         : content,
     );
 
     return mapper({
-      ...section,
-      children: mappedChildren,
+      ...normalizedSection,
       contents: mappedContents,
     });
   });
@@ -1241,7 +1223,6 @@ export const addWikiSection = (
       displayOrder,
       depth: parentDepth + 1,
       contents: [],
-      children: [],
     };
   };
 
@@ -1265,7 +1246,6 @@ export const addWikiSection = (
     return {
       ...section,
       contents: [...section.contents, child],
-      children: [...section.children, child],
     };
   });
 
@@ -1326,21 +1306,24 @@ export const deleteWikiContent = (
 ): WikiSection[] =>
   sections
     .filter((section) => section.sectionIdentifier !== identifier)
-    .map((section) => ({
-      ...section,
-      children: deleteWikiContent(section.children, identifier),
-      contents: section.contents
-        .filter((content) =>
-          isWikiSection(content)
-            ? content.sectionIdentifier !== identifier
-            : content.blockIdentifier !== identifier,
-        )
-        .map((content) =>
-          isWikiSection(content)
-            ? deleteWikiContent([content], identifier)[0] ?? content
-            : content,
-        ),
-    }));
+    .map((section) => {
+      const normalizedSection = normalizeWikiSectionContents(section);
+
+      return {
+        ...normalizedSection,
+        contents: normalizedSection.contents
+          .filter((content) =>
+            isWikiSection(content)
+              ? content.sectionIdentifier !== identifier
+              : content.blockIdentifier !== identifier,
+          )
+          .map((content) =>
+            isWikiSection(content)
+              ? deleteWikiContent([content], identifier)[0] ?? content
+              : content,
+          ),
+      };
+    });
 
 export const toWikiSectionContentPayload = (
   sections: WikiSection[],

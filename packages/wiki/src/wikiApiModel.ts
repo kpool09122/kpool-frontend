@@ -501,10 +501,6 @@ const adaptWikiSection = (
         ...adaptWikiSectionContents(rawContents, depth + 1, path),
       ]
     : adaptWikiSectionContents(rawContents, depth + 1, path);
-  const children = adaptedContents.filter(
-    (content): content is WikiDetail["sections"][number] => "sectionIdentifier" in content,
-  );
-
   return {
     type: "section",
     sectionIdentifier,
@@ -512,7 +508,6 @@ const adaptWikiSection = (
     displayOrder: toNumber(section.displayOrder ?? section.display_order, index + 1),
     depth,
     contents: adaptedContents,
-    children,
   };
 };
 

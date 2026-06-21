@@ -17,7 +17,7 @@ import {
   type WikiDraftStatus,
   type WikiEditPayload,
 } from "@kpool/wiki";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   normalizeWikiSlugForResourceType,
@@ -94,6 +94,7 @@ export const useWikiEditDraft = (
   const initialDraft = useMemo(() => createInitialDraft(wiki), [wiki]);
   const initialCode = useMemo(() => getCodeFromSections(initialDraft.sections), [initialDraft]);
   const [draft, setDraft] = useState<WikiDraftDetail>(initialDraft);
+  const draftRef = useRef<WikiDraftDetail>(initialDraft);
   const [code, setCode] = useState(initialCode);
   const [codeParseError, setCodeParseError] = useState<string | null>(null);
   const [codeWarnings, setCodeWarnings] = useState(() => getWarningsFromCode(initialCode));
@@ -113,6 +114,7 @@ export const useWikiEditDraft = (
   const onSubmitSuccess = options?.onSubmitSuccess;
 
   useEffect(() => {
+    draftRef.current = initialDraft;
     setDraft(initialDraft);
     setCode(initialCode);
     setCodeParseError(null);
@@ -134,6 +136,7 @@ export const useWikiEditDraft = (
     const parsedCode = parseWikiSectionsFromCode(nextCode);
     const payload = toWikiEditPayload(nextDraft);
 
+    draftRef.current = nextDraft;
     setDraft(nextDraft);
     setCode(nextCode);
     setCodeParseError(null);
@@ -147,7 +150,8 @@ export const useWikiEditDraft = (
   };
 
   const saveDraft = () => {
-    const payload = toWikiEditPayload(draft);
+    const nextDraft = draftRef.current;
+    const payload = toWikiEditPayload(nextDraft);
 
     setSaveState({
       status: "saving",
@@ -156,7 +160,7 @@ export const useWikiEditDraft = (
       showMessage: true,
     });
 
-    void Promise.resolve(saveAdapter(draft)).then((adapterResult) => {
+    void Promise.resolve(saveAdapter(nextDraft)).then((adapterResult) => {
       const result: WikiPersistenceResult = isWikiPersistenceResult(adapterResult) ? adapterResult : { ok: false };
 
       setSaveState({
@@ -176,6 +180,7 @@ export const useWikiEditDraft = (
   };
 
   const clearDraft = () => {
+    draftRef.current = initialDraft;
     setDraft(initialDraft);
     setCode(getCodeFromSections(initialDraft.sections));
     setCodeParseError(null);
@@ -190,7 +195,8 @@ export const useWikiEditDraft = (
   };
 
   const requestPublication = () => {
-    const payload = toWikiEditPayload(draft);
+    const nextDraft = draftRef.current;
+    const payload = toWikiEditPayload(nextDraft);
 
     setSaveState({
       status: "submitting",
@@ -199,7 +205,7 @@ export const useWikiEditDraft = (
       showMessage: true,
     });
 
-    void Promise.resolve(submitAdapter(draft)).then((adapterResult) => {
+    void Promise.resolve(submitAdapter(nextDraft)).then((adapterResult) => {
       const result: WikiPersistenceResult = isWikiPersistenceResult(adapterResult) ? adapterResult : { ok: false };
 
       setSaveState({
@@ -249,10 +255,11 @@ export const useWikiEditDraft = (
     cancelEditing: () => {
       if (editingId && editingId === newContentEditorId) {
         const [, identifier] = editingId.split(":");
+        const currentDraft = draftRef.current;
 
         commitDraft({
-          ...draft,
-          sections: deleteWikiContent(draft.sections, identifier),
+          ...currentDraft,
+          sections: deleteWikiContent(currentDraft.sections, identifier),
         });
         setNewContentEditorId(null);
         setEditingId(null);
@@ -271,15 +278,16 @@ export const useWikiEditDraft = (
         setSaveState({
           status: "dirty",
           message: "Unsaved changes",
-          payload: toWikiEditPayload(draft),
+          payload: toWikiEditPayload(draftRef.current),
           showMessage: true,
         });
         return;
       }
 
+      const currentDraft = draftRef.current;
       commitDraft(
         {
-          ...draft,
+          ...currentDraft,
           sections: parsed.sections,
         },
         nextCode,
@@ -287,43 +295,44 @@ export const useWikiEditDraft = (
     },
     updateBasic: (basic: WikiDraftDetail["basic"]) =>
       commitDraft({
-        ...draft,
+        ...draftRef.current,
         basic,
         resourceType: basic.resourceType,
         slug: normalizeWikiSlugForResourceType(
-          draft.slug,
+          draftRef.current.slug,
           basic.resourceType as WikiResourceType,
         ),
       }),
     updateHeroImage: (heroImage: WikiDraftDetail["heroImage"]) =>
       commitDraft({
-        ...draft,
+        ...draftRef.current,
         heroImage,
       }),
     updateSettings: (
       settings: Partial<Pick<WikiDraftDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
     ) => {
+      const currentDraft = draftRef.current;
       const nextResourceType =
         (settings.resourceType as WikiResourceType | undefined) ??
-        (draft.resourceType as WikiResourceType);
+        (currentDraft.resourceType as WikiResourceType);
 
       commitDraft({
-        ...draft,
+        ...currentDraft,
         ...settings,
-        title: settings.title !== undefined ? settings.title : draft.title,
+        title: settings.title !== undefined ? settings.title : currentDraft.title,
         metaDescription: settings.metaDescription !== undefined
           ? settings.metaDescription
-          : draft.metaDescription,
+          : currentDraft.metaDescription,
         keywords: settings.keywords !== undefined
           ? settings.keywords
-          : draft.keywords,
+          : currentDraft.keywords,
         resourceType: nextResourceType,
         basic: {
-          ...draft.basic,
+          ...currentDraft.basic,
           resourceType: nextResourceType,
         },
         slug: normalizeWikiSlugForResourceType(
-          settings.slug ?? draft.slug,
+          settings.slug ?? currentDraft.slug,
           nextResourceType,
         ),
       });
@@ -332,54 +341,59 @@ export const useWikiEditDraft = (
       sectionIdentifier: string,
       changes: Parameters<typeof updateWikiSection>[2],
     ) => {
+      const currentDraft = draftRef.current;
       commitDraft({
-        ...draft,
-        sections: updateWikiSection(draft.sections, sectionIdentifier, changes),
+        ...currentDraft,
+        sections: updateWikiSection(currentDraft.sections, sectionIdentifier, changes),
       });
       if (editingId === newContentEditorId) {
         setNewContentEditorId(null);
       }
     },
     updateBlock: (blockIdentifier: string, changes: Partial<WikiBlock>) => {
+      const currentDraft = draftRef.current;
       commitDraft({
-        ...draft,
-        sections: updateWikiBlock(draft.sections, blockIdentifier, changes),
+        ...currentDraft,
+        sections: updateWikiBlock(currentDraft.sections, blockIdentifier, changes),
       });
       if (editingId === newContentEditorId) {
         setNewContentEditorId(null);
       }
     },
     addSection: (parentSectionIdentifier?: string) => {
+      const currentDraft = draftRef.current;
       const [sections, nextEditingId] = addWikiSection(
-        draft.sections,
+        currentDraft.sections,
         parentSectionIdentifier,
       );
 
       commitDraft({
-        ...draft,
+        ...currentDraft,
         sections,
       });
       setEditingId(nextEditingId);
       setNewContentEditorId(nextEditingId);
     },
     addBlock: (sectionIdentifier: string, blockType: WikiBlockType) => {
+      const currentDraft = draftRef.current;
       const [sections, nextEditingId] = addWikiBlock(
-        draft.sections,
+        currentDraft.sections,
         sectionIdentifier,
         blockType,
       );
 
       commitDraft({
-        ...draft,
+        ...currentDraft,
         sections,
       });
       setEditingId(nextEditingId);
       setNewContentEditorId(nextEditingId);
     },
     deleteContent: (identifier: string) => {
+      const currentDraft = draftRef.current;
       commitDraft({
-        ...draft,
-        sections: deleteWikiContent(draft.sections, identifier),
+        ...currentDraft,
+        sections: deleteWikiContent(currentDraft.sections, identifier),
       });
       setEditingId(null);
       setNewContentEditorId(null);

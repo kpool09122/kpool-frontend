@@ -1,4 +1,5 @@
 import type { WikiBasic, WikiSection } from "./types/wiki";
+import { isWikiSection, sortWikiSectionContents } from "./wikiEditModel";
 import { buildWikiPath } from "./wikiRouting";
 
 export type WikiBasicFieldLink = {
@@ -99,7 +100,14 @@ export const sortWikiSections = (sections: WikiSection[]): WikiSection[] =>
     .sort((left, right) => left.displayOrder - right.displayOrder)
     .map((section) => ({
       ...section,
-      children: sortWikiSections(section.children),
+      contents: sortWikiSectionContents(section.contents).map((content) =>
+        isWikiSection(content)
+          ? {
+              ...content,
+              contents: sortWikiSectionContents(content.contents),
+            }
+          : content,
+      ),
     }));
 
 export const getSectionOffset = (depth: number): number =>

@@ -885,6 +885,60 @@ describe("WikiEditPage", () => {
     expect(screen.getByText("Updated overview from code mode.")).toBeInTheDocument();
   });
 
+  it("keeps embed block edits out of code mode until the block form is saved", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(successState, saveAdapter);
+
+    const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview"));
+    fireEvent.click(addControls.getByText("+ Block"));
+    fireEvent.click(addControls.getByRole("button", { name: "Embed" }));
+    fireEvent.change(screen.getByLabelText("Embed ID"), {
+      target: { value: "ohVNJ2gxsmo" },
+    });
+
+    expect(screen.getByRole("button", { name: "code" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeDisabled();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+
+    const code = screen.getByLabelText("Wiki code") as HTMLTextAreaElement;
+    expect(code.value).toContain(
+      "[[embed|provider:youtube|id:ohVNJ2gxsmo|caption:New embed caption]]",
+    );
+    expect(code.value).not.toContain("id:new-embed-id");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(JSON.stringify(saveAdapter.mock.calls[0]?.[0])).toContain(
+      '"embedId":"ohVNJ2gxsmo"',
+    );
+    expect(JSON.stringify(saveAdapter.mock.calls[0]?.[0])).not.toContain(
+      '"embedId":"new-embed-id"',
+    );
+  });
+
+  it("keeps new nested embed block edits when switching to code mode", () => {
+    renderPage();
+
+    const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview-style"));
+    fireEvent.click(addControls.getByText("+ Block"));
+    fireEvent.click(addControls.getByRole("button", { name: "Embed" }));
+    fireEvent.change(screen.getByLabelText("Embed ID"), {
+      target: { value: "ohVNJ2gxsmo" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" }).at(-1)!);
+    fireEvent.click(screen.getByRole("button", { name: "code" }));
+
+    const code = screen.getByLabelText("Wiki code") as HTMLTextAreaElement;
+    expect(code.value).toContain(
+      "[[embed|provider:youtube|id:ohVNJ2gxsmo|caption:New embed caption]]",
+    );
+    expect(code.value).not.toContain("id:new-embed-id");
+  });
+
   it("shows a parse error for invalid code and clears back to the last loaded draft", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
@@ -991,6 +1045,7 @@ describe("WikiEditPage", () => {
     const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview-style"));
     fireEvent.click(addControls.getByText("+ Block"));
     fireEvent.click(addControls.getByRole("button", { name: "Quote" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Save" }).at(-1)!);
     fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
 
     await waitFor(() => expect(saveAdapter).toHaveBeenCalled());

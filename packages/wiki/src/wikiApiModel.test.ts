@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { adaptDraftWikiApiResponse, adaptWikiApiResponse } from "./wikiApiModel";
+import { isWikiSection } from "./wikiEditModel";
 
 const baseApiResponse = {
   basic: {
@@ -103,10 +104,10 @@ describe("wikiApiModel section identifiers", () => {
     });
 
     const firstRoot = wiki.sections[0];
-    const firstNested = firstRoot?.children[0];
-    const deepNested = firstNested?.children[0];
+    const firstNested = firstRoot?.contents.find(isWikiSection);
+    const deepNested = firstNested?.contents.find(isWikiSection);
     const secondRoot = wiki.sections[1];
-    const secondNested = secondRoot?.children[0];
+    const secondNested = secondRoot?.contents.find(isWikiSection);
 
     expect(firstRoot?.sectionIdentifier).toBe("section-1");
     expect(firstNested?.sectionIdentifier).toBe("section-1-1");

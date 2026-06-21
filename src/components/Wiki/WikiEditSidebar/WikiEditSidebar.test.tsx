@@ -160,4 +160,38 @@ describe("WikiEditSidebar", () => {
     expect(onUpdateSettings).not.toHaveBeenCalled();
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
   });
+
+  it("disables editor mode controls while inline edits are pending", () => {
+    const onEditorModeChange = vi.fn();
+
+    render(
+      <WikiEditSidebar
+        canPersist
+        editorMode="gui"
+        isBusy={false}
+        isEditorModeDisabled
+        isOpen
+        onEditorModeChange={onEditorModeChange}
+        onClear={vi.fn()}
+        onPreviewModeChange={vi.fn()}
+        onSave={vi.fn()}
+        onSubmit={vi.fn()}
+        onToggle={vi.fn()}
+        onUpdateSettings={vi.fn()}
+        previewMode="light"
+        resourceType="group"
+        slug={wikiStoryDetail.slug}
+        themeColor={wikiStoryDetail.themeColor}
+        title="Aurora Echo SEO"
+        metaDescription="Aurora Echo meta description"
+        keywords={["aurora", "echo"]}
+      />,
+    );
+
+    const codeButton = screen.getByRole("button", { name: "code" });
+
+    expect(codeButton).toBeDisabled();
+    fireEvent.click(codeButton);
+    expect(onEditorModeChange).not.toHaveBeenCalled();
+  });
 });

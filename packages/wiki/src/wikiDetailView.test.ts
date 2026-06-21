@@ -46,8 +46,7 @@ const sections: WikiSection[] = [
     title: "Second",
     displayOrder: 20,
     depth: 1,
-    contents: [],
-    children: [
+    contents: [
       {
         type: "section",
         sectionIdentifier: "child-b",
@@ -55,7 +54,6 @@ const sections: WikiSection[] = [
         displayOrder: 20,
         depth: 2,
         contents: [],
-        children: [],
       },
       {
         type: "section",
@@ -64,7 +62,6 @@ const sections: WikiSection[] = [
         displayOrder: 10,
         depth: 2,
         contents: [],
-        children: [],
       },
     ],
   },
@@ -75,7 +72,6 @@ const sections: WikiSection[] = [
     displayOrder: 10,
     depth: 1,
     contents: [],
-    children: [],
   },
 ];
 
@@ -110,7 +106,6 @@ describe("wikiDetailView", () => {
         displayOrder: 10,
         depth: 1,
         contents: [],
-        children: [],
       },
       {
         type: "section",
@@ -118,8 +113,7 @@ describe("wikiDetailView", () => {
         title: "Second",
         displayOrder: 20,
         depth: 1,
-        contents: [],
-        children: [
+        contents: [
           {
             type: "section",
             sectionIdentifier: "child-a",
@@ -127,7 +121,6 @@ describe("wikiDetailView", () => {
             displayOrder: 10,
             depth: 2,
             contents: [],
-            children: [],
           },
           {
             type: "section",
@@ -136,7 +129,6 @@ describe("wikiDetailView", () => {
             displayOrder: 20,
             depth: 2,
             contents: [],
-            children: [],
           },
         ],
       },

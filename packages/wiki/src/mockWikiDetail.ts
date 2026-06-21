@@ -57,7 +57,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
         caption: "TWICE \"CHEER UP\" M/V",
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -74,7 +73,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
         title: "TWICE Members",
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -91,7 +89,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
           "2015년 데뷔 이후 한국과 일본을 중심으로 활동을 이어 왔으며, 대표곡으로는 \"CHEER UP\", \"TT\", \"FANCY\" 등이 있다.",
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -114,7 +111,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
         content: "[include(틀:TWICE/음반)]",
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -131,7 +127,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
           "한국 활동, 일본 활동, 월드투어, 유닛 및 솔로 활동이 병렬적으로 정리되는 편이며 시기별 정리와 하위 문서 분리가 잦다.",
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -154,7 +149,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
         content: "[include(틀:TWICE의 기록)]",
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -171,7 +165,6 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
           "뮤직비디오, 리얼리티, 광고, 화보, SNS 활동 등이 방대한 편이라 관련 하위 문서나 목록성 서술로 분리되는 경우가 많다.",
       },
     ],
-    children: [],
   },
 ];
 
@@ -319,7 +312,6 @@ const createTwiceMemberSections = (name: string, overview: string): WikiDetail["
         content: overview,
       },
     ],
-    children: [],
   },
   {
     type: "section",
@@ -336,7 +328,6 @@ const createTwiceMemberSections = (name: string, overview: string): WikiDetail["
         title: "Group",
       },
     ],
-    children: [],
   },
 ];
 
@@ -511,8 +502,6 @@ export const createMockWikiDetail = (
             wikiIdentifiers: [],
             title: "Related profiles",
           },
-        ],
-        children: [
           {
             type: "section",
             sectionIdentifier: "sec-discography-highlights",
@@ -542,10 +531,8 @@ export const createMockWikiDetail = (
                       "Depth three content is editable but cannot receive a child section.",
                   },
                 ],
-                children: [],
               },
             ],
-            children: [],
           },
           {
             type: "section",
@@ -562,7 +549,6 @@ export const createMockWikiDetail = (
                   "Their first two mini albums framed a dusk-to-dawn narrative and expanded the live arrangement palette with brass and guitar sections.",
               },
             ],
-            children: [],
           },
         ],
       },
@@ -580,8 +566,6 @@ export const createMockWikiDetail = (
             content:
               "Aurora Echo debuted with a performance style built around fluid formations, layered harmonies, and warm retro production.",
           },
-        ],
-        children: [
           {
             type: "section",
             sectionIdentifier: "sec-overview-style",
@@ -597,7 +581,6 @@ export const createMockWikiDetail = (
                   "The visual direction mixes marine tailoring, brushed metal details, and sunset-toned lighting for a polished but lived-in stage mood.",
               },
             ],
-            children: [],
           },
         ],
       },
@@ -616,7 +599,6 @@ export const createMockWikiDetail = (
               "The lineup consists of five members handling a rotating balance of vocal, rap, and dance center duties.",
           },
         ],
-        children: [],
       },
     ],
   };

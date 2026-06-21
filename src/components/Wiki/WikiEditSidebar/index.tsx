@@ -66,6 +66,7 @@ function WikiSubmitButton({
 type WikiEditSidebarProps = {
   canPersist: boolean;
   editorMode: WikiEditorMode;
+  isEditorModeDisabled?: boolean;
   isBusy: boolean;
   isOpen: boolean;
   isReviewLocked?: boolean;
@@ -90,6 +91,7 @@ type WikiEditSidebarProps = {
 export function WikiEditSidebar({
   canPersist,
   editorMode,
+  isEditorModeDisabled = false,
   isBusy,
   isOpen,
   isReviewLocked = false,
@@ -111,6 +113,7 @@ export function WikiEditSidebar({
   const customColorValue = themeColor ?? themeColorOptions[2];
   const isActionDisabled = isBusy || !canPersist || isReviewLocked;
   const isEditControlDisabled = isBusy || isReviewLocked;
+  const isEditorModeControlDisabled = isEditControlDisabled || isEditorModeDisabled;
   const [keywordInputs, setKeywordInputs] = useState<string[]>(
     () => keywords && keywords.length > 0 ? keywords : [""],
   );
@@ -187,9 +190,13 @@ export function WikiEditSidebar({
                   <button
                     aria-pressed={editorMode === mode}
                     className="rounded-full px-3 py-2 text-sm font-semibold uppercase tracking-[0.12em] text-text-muted transition aria-pressed:bg-surface-raised aria-pressed:text-text-strong aria-pressed:shadow-soft disabled:cursor-not-allowed"
-                    disabled={isEditControlDisabled}
+                    disabled={isEditorModeControlDisabled}
                     key={mode}
-                    onClick={() => onEditorModeChange(mode)}
+                    onClick={() => {
+                      if (!isEditorModeControlDisabled) {
+                        onEditorModeChange(mode);
+                      }
+                    }}
                     type="button"
                   >
                     {mode}

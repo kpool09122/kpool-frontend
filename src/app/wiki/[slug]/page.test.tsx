@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { WikiDetailPage } from "./WikiDetailPage";
@@ -82,7 +82,6 @@ const successState: WikiDetailState = {
             title: "Related profiles",
           },
         ],
-        children: [],
       },
       {
         type: "section",
@@ -106,7 +105,6 @@ const successState: WikiDetailState = {
             caption: "Overview video",
           },
         ],
-        children: [],
       },
     ],
   },
@@ -135,11 +133,13 @@ describe("WikiDetailPage", () => {
       "href",
       "/wiki/ko/tl-sana",
     );
+    fireEvent.click(screen.getByTestId("section-toggle-overview"));
     expect(screen.getByText("Overview body")).toBeInTheDocument();
     expect(screen.getByTitle("YouTube embed: Overview video")).toHaveAttribute(
       "src",
       "https://www.youtube-nocookie.com/embed/abc123",
     );
+    fireEvent.click(screen.getByTestId("section-toggle-members"));
     expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-aurora-echo",
