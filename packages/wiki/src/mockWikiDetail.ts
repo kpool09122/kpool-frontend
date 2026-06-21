@@ -371,6 +371,9 @@ export const createMockWikiDetail = (
     resourceType: twiceMember ? "talent" : "group",
     version: 3,
     themeColor: options?.themeColor ?? null,
+    title: null,
+    metaDescription: null,
+    keywords: null,
     heroImage: {
       src: twiceMember?.heroImageSrc ?? heroImageDataUri,
       alt:

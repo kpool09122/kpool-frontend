@@ -776,10 +776,13 @@ describe("WikiEditPage", () => {
     renderPage(successState, saveAdapter);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
-    fireEvent.change(screen.getByLabelText("Title"), {
+    const titleForm = screen.getByDisplayValue("Aurora Echo").closest("form");
+
+    expect(titleForm).not.toBeNull();
+    fireEvent.change(within(titleForm as HTMLFormElement).getByLabelText("Title"), {
       target: { value: "Aurora Echo Updated" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(within(titleForm as HTMLFormElement).getByRole("button", { name: "Save" }));
 
     expect(screen.getByRole("heading", { name: "Aurora Echo Updated" })).toBeInTheDocument();
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
@@ -927,6 +930,56 @@ describe("WikiEditPage", () => {
         wikiIdentifier: "gr-aurora-echo",
         translationSetIdentifier: "translation-set-gr-aurora-echo",
       }),
+    );
+  });
+
+  it("saves SEO metadata updated from the sidebar", async () => {
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+
+    renderPage(successState, saveAdapter);
+
+    fireEvent.change(screen.getByLabelText("Metadata title"), {
+      target: { value: "  Aurora Echo SEO  " },
+    });
+    fireEvent.change(screen.getByLabelText("Metadata meta description"), {
+      target: { value: "  Aurora Echo meta description.  " },
+    });
+    fireEvent.change(screen.getByLabelText("Keyword 1"), {
+      target: { value: " aurora " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add keyword" }));
+    fireEvent.change(screen.getByLabelText("Keyword 2"), {
+      target: { value: " echo " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add keyword" }));
+    fireEvent.change(screen.getByLabelText("Keyword 3"), {
+      target: { value: " k-pop " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+
+    await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
+    expect(saveAdapter).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "  Aurora Echo SEO  ",
+        metaDescription: "  Aurora Echo meta description.  ",
+        keywords: [" aurora ", " echo ", " k-pop "],
+      }),
+    );
+  });
+
+  it("keeps spaces while editing SEO text fields", () => {
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText("Metadata title"), {
+      target: { value: "Aurora Echo SEO Title" },
+    });
+    fireEvent.change(screen.getByLabelText("Metadata meta description"), {
+      target: { value: "Aurora Echo meta description with spaces." },
+    });
+
+    expect(screen.getByLabelText("Metadata title")).toHaveValue("Aurora Echo SEO Title");
+    expect(screen.getByLabelText("Metadata meta description")).toHaveValue(
+      "Aurora Echo meta description with spaces.",
     );
   });
 

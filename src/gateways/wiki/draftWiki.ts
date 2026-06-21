@@ -65,6 +65,35 @@ const autoCreateWikiRequestBodySchema = z.object({
   talentIdentifiers: z.array(z.string()),
 });
 
+const withDefaultSeoMetadata = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(withDefaultSeoMetadata);
+  }
+
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const nextRecord: Record<string, unknown> = { ...record };
+
+  if (
+    "wikiIdentifier" in nextRecord ||
+    "publishedWikiIdentifier" in nextRecord ||
+    "sections" in nextRecord
+  ) {
+    nextRecord.title ??= null;
+    nextRecord.metaDescription ??= null;
+    nextRecord.keywords ??= null;
+  }
+
+  if (Array.isArray(nextRecord.wikis)) {
+    nextRecord.wikis = nextRecord.wikis.map(withDefaultSeoMetadata);
+  }
+
+  return nextRecord;
+};
+
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWikiDraftRequestBody>;
 type DeleteWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.WikiWorkflowRequestBody>;
@@ -128,8 +157,17 @@ type DraftWikiApiClient = {
 };
 
 export const defaultWikiDraftPerPage = 12;
-export const wikiDraftWikiListResponseSchema = wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody;
-export const wikiVersionInconsistentWikiListResponseSchema = wikiPrivateApiTypes.schemas.ListWikisResponseBody;
+const createSeoDefaultedSchema = <Output>(
+  schema: z.ZodType<Output>,
+): z.ZodType<Output, z.ZodTypeDef, unknown> =>
+  z.preprocess(withDefaultSeoMetadata, schema);
+
+export const wikiDraftWikiListResponseSchema = createSeoDefaultedSchema(
+  wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody,
+);
+export const wikiVersionInconsistentWikiListResponseSchema = createSeoDefaultedSchema(
+  wikiPrivateApiTypes.schemas.ListWikisResponseBody,
+);
 export const wikiDraftReviewCsrfHeaderName = "X-KPool-Wiki-Review-Request";
 export const wikiDraftReviewCsrfHeaderValue = "1";
 
@@ -187,7 +225,11 @@ const throwApiError = async (response: Response): Promise<never> => {
 };
 
 const parseDraftWikiResponseBody = (body: unknown): DraftWikiApiResponse =>
-  parseWithSchemaLog("wiki draft detail response", draftWikiApiResponseSchema, body);
+  parseWithSchemaLog(
+    "wiki draft detail response",
+    draftWikiApiResponseSchema,
+    withDefaultSeoMetadata(body),
+  );
 
 const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
   parseWithSchemaLog("wiki draft summary response", wikiPrivateApiTypes.schemas.DraftWikiSummary, body);
@@ -283,6 +325,42 @@ const copyStringArrayProperty = (
   }
 };
 
+const copyNullableStringProperty = (
+  source: Record<string, unknown>,
+  target: Record<string, unknown>,
+  property: string,
+) => {
+  const value = source[property];
+
+  if (typeof value === "string" || value === null) {
+    target[property] = value;
+  }
+};
+
+const copyNullableStringArrayProperty = (
+  source: Record<string, unknown>,
+  target: Record<string, unknown>,
+  property: string,
+) => {
+  const value = source[property];
+
+  if (
+    value === null ||
+    (Array.isArray(value) && value.every((item) => typeof item === "string"))
+  ) {
+    target[property] = value;
+  }
+};
+
+const copySeoProperties = (
+  source: Record<string, unknown>,
+  target: Record<string, unknown>,
+) => {
+  copyNullableStringProperty(source, target, "title");
+  copyNullableStringProperty(source, target, "metaDescription");
+  copyNullableStringArrayProperty(source, target, "keywords");
+};
+
 const getPublicWikiAssociationSource = (
   publicWiki: PublicWikiApiResponse,
 ): Record<string, unknown> => {
@@ -312,6 +390,7 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   copyStringProperty(source, body, "resourceType");
   copyStringProperty(source, body, "slug");
   copyStringProperty(source, body, "themeColor");
+  copySeoProperties(source, body);
   copyStringProperty(source, body, "agencyIdentifier");
   copyStringArrayProperty(source, body, "groupIdentifiers");
   copyStringArrayProperty(source, body, "talentIdentifiers");
@@ -398,6 +477,7 @@ export const createSubmitWikiRequestBody = (
   copyStringProperty(draft, body, "agencyIdentifier");
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
+  copySeoProperties(draft, body);
 
   return parseWithSchemaLog("wiki submit request", submitWikiRequestBodySchema, body);
 };
@@ -412,6 +492,7 @@ export const createReviewWikiRequestBody = (
   copyStringProperty(draft, body, "agencyIdentifier");
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
+  copySeoProperties(draft, body);
 
   return parseWithSchemaLog("wiki review request", reviewWikiRequestBodySchema, body);
 };
@@ -444,6 +525,7 @@ export const createTranslateWikiRequestBody = (
   copyStringProperty(wiki, body, "agencyIdentifier");
   copyStringArrayProperty(wiki, body, "groupIdentifiers");
   copyStringArrayProperty(wiki, body, "talentIdentifiers");
+  copySeoProperties(wiki, body);
 
   return parseWithSchemaLog("wiki translate request", translateWikiRequestBodySchema, body);
 };

@@ -27,7 +27,7 @@ export const logZodSchemaError = (context: string, error: z.ZodError): void => {
 
 export const parseWithSchemaLog = <T>(
   context: string,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   body: unknown,
 ): T => {
   const result = schema.safeParse(body);

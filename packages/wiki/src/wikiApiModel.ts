@@ -95,6 +95,10 @@ type WikiApiResponseBase = {
   sections: unknown[];
   slug: string;
   themeColor?: string | null;
+  title?: string | null;
+  metaDescription?: string | null;
+  meta_description?: string | null;
+  keywords?: string[] | null;
   translationSetIdentifier: string;
   wikiIdentifier: string;
 };
@@ -226,6 +230,11 @@ const toNumber = (value: unknown, fallback: number): number =>
 
 const toStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const toNullableStringList = (value: unknown): string[] | null =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : null;
 
 const toWikiResourceType = (value: unknown, fallbackSlug: string): WikiResourceType => {
   if (value === "agency" || value === "group" || value === "song" || value === "talent") {
@@ -536,11 +545,14 @@ export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
   parseWikiSchema(wikiDetailSchema, {
     basic: adaptWikiBasic(response),
     heroImage: getHeroImage(response),
+    keywords: toNullableStringList(response.keywords),
     language: response.language,
+    metaDescription: response.metaDescription ?? response.meta_description ?? null,
     resourceType: inferResourceType(response),
     sections: adaptWikiSections(response.sections),
     slug: response.slug,
     themeColor: response.themeColor ?? null,
+    title: response.title ?? null,
     translationSetIdentifier: response.translationSetIdentifier,
     version: response.version,
     wikiIdentifier: response.wikiIdentifier,
@@ -550,12 +562,15 @@ export const adaptDraftWikiApiResponse = (response: DraftWikiApiResponse): WikiD
   parseWikiSchema(wikiDraftDetailSchema, {
     basic: adaptWikiBasic(response),
     heroImage: getHeroImage(response),
+    keywords: toNullableStringList(response.keywords),
     language: response.language,
+    metaDescription: response.metaDescription ?? response.meta_description ?? null,
     resourceType: inferResourceType(response),
     sections: adaptWikiSections(response.sections),
     slug: response.slug,
     status: response.status,
     themeColor: response.themeColor ?? null,
+    title: response.title ?? null,
     translationSetIdentifier: response.translationSetIdentifier,
     wikiIdentifier: response.wikiIdentifier,
   });

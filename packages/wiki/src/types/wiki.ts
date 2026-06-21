@@ -279,6 +279,9 @@ const wikiDetailBaseSchema = z.object({
   language: z.string(),
   resourceType: wikiResourceTypeSchema,
   themeColor: z.string().nullable().optional(),
+  title: z.string().nullable(),
+  metaDescription: z.string().nullable(),
+  keywords: z.array(z.string()).nullable(),
   heroImage: z.object({
     imageIdentifier: z.string().nullable().optional(),
     src: z.string(),
