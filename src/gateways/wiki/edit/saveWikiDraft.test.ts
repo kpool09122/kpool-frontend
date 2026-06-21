@@ -33,6 +33,9 @@ describe("saveWikiDraft", () => {
         body: JSON.stringify({
           resourceType: "group",
           wikiId: "gr-aurora-echo",
+          title: null,
+          metaDescription: null,
+          keywords: null,
         }),
         headers: {
           "Content-Type": "application/json",

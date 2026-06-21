@@ -49,6 +49,9 @@ export type WikiEditPayload = {
   slug: string;
   language: string;
   theme_color?: string | null;
+  title: string | null;
+  meta_description: string | null;
+  keywords: string[] | null;
   hero_image: {
     src: string;
     alt: string;
@@ -62,6 +65,9 @@ export type WikiEditRequestPayload = {
   basic: WikiDraftDetail["basic"];
   sections: WikiSectionContentPayload[];
   themeColor: string | null;
+  title: string | null;
+  metaDescription: string | null;
+  keywords: string[] | null;
   imageIdentifier?: string | null;
 };
 
@@ -1037,6 +1043,20 @@ const getNextDisplayOrder = (contents: WikiSectionContent[]): number =>
 const createIdentifier = (prefix: string): string =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+export const normalizeSeoText = (value: string | null | undefined): string | null => {
+  const trimmed = value?.trim();
+
+  return trimmed ? trimmed : null;
+};
+
+export const normalizeSeoKeywords = (
+  value: string[] | null | undefined,
+): string[] | null => {
+  const keywords = value?.map((keyword) => keyword.trim()).filter(Boolean) ?? [];
+
+  return keywords.length > 0 ? keywords : null;
+};
+
 export const isWikiSection = (
   content: WikiSectionContent,
 ): content is WikiSection => "sectionIdentifier" in content;
@@ -1334,6 +1354,9 @@ export const toWikiEditPayload = (wiki: WikiDraftDetail): WikiEditPayload => ({
   slug: wiki.slug,
   language: wiki.language,
   theme_color: wiki.themeColor ?? null,
+  title: normalizeSeoText(wiki.title),
+  meta_description: normalizeSeoText(wiki.metaDescription),
+  keywords: normalizeSeoKeywords(wiki.keywords),
   hero_image: wiki.heroImage,
   basic: wiki.basic,
   contents: toWikiSectionContentPayload(wiki.sections),
@@ -1344,6 +1367,9 @@ export const toWikiEditRequestPayload = (wiki: WikiDraftDetail): WikiEditRequest
   basic: wiki.basic,
   sections: toWikiSectionContentPayload(wiki.sections),
   themeColor: wiki.themeColor ?? null,
+  title: normalizeSeoText(wiki.title),
+  metaDescription: normalizeSeoText(wiki.metaDescription),
+  keywords: normalizeSeoKeywords(wiki.keywords),
   imageIdentifier: wiki.heroImage.imageIdentifier ?? null,
 });
 

@@ -9,6 +9,7 @@ import {
   parseWikiSectionsFromCode,
   serializeWikiSectionsToCode,
   toWikiEditRequestPayload,
+  toWikiEditPayload,
   toWikiSectionContentPayload,
   updateWikiBlock,
   updateWikiSection,
@@ -138,11 +139,34 @@ describe("wikiEditModel", () => {
       basic: wiki.basic,
       sections: toWikiSectionContentPayload(wiki.sections),
       themeColor: "#4c5cff",
+      title: null,
+      metaDescription: null,
+      keywords: null,
       imageIdentifier: null,
     });
     expect(payload).not.toHaveProperty("wiki_identifier");
     expect(payload).not.toHaveProperty("theme_color");
     expect(payload).not.toHaveProperty("contents");
+  });
+
+  it("includes normalized SEO metadata in edit payloads", () => {
+    const wiki = {
+      ...createMockWikiDetail("gr-aurora-echo"),
+      title: "  Aurora Echo SEO  ",
+      metaDescription: "  Aurora Echo meta description.  ",
+      keywords: [" aurora ", "", "echo"],
+    };
+
+    expect(toWikiEditPayload(wiki)).toMatchObject({
+      title: "Aurora Echo SEO",
+      meta_description: "Aurora Echo meta description.",
+      keywords: ["aurora", "echo"],
+    });
+    expect(toWikiEditRequestPayload(wiki)).toMatchObject({
+      title: "Aurora Echo SEO",
+      metaDescription: "Aurora Echo meta description.",
+      keywords: ["aurora", "echo"],
+    });
   });
 
   it("includes the selected hero image identifier in the EditWiki request body", () => {

@@ -1,6 +1,8 @@
 "use client";
 
 import { type WikiDetail } from "@kpool/wiki";
+import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
+import { useState } from "react";
 
 import {
   getWikiResourceTypeFromSlug,
@@ -11,6 +13,11 @@ import {
 import { type WikiEditorMode, type WikiPreviewMode, themeColorOptions } from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
+
+const seoTitleMaxLength = 40;
+const metaDescriptionMaxLength = 140;
+const seoKeywordMaxLength = 20;
+const seoKeywordsMaxItems = 5;
 
 function WikiSaveButton({
   disabled,
@@ -69,12 +76,15 @@ type WikiEditSidebarProps = {
   onSubmit: () => void;
   onToggle: () => void;
   onUpdateSettings: (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor">>,
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
   ) => void;
   previewMode: WikiPreviewMode;
   resourceType: WikiDetail["resourceType"];
   slug: string;
   themeColor: string | null | undefined;
+  title: string | null;
+  metaDescription: string | null;
+  keywords: string[] | null;
 };
 
 export function WikiEditSidebar({
@@ -94,12 +104,18 @@ export function WikiEditSidebar({
   resourceType,
   slug,
   themeColor,
+  title,
+  metaDescription,
+  keywords,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
   const isActionDisabled = isBusy || !canPersist || isReviewLocked;
   const isEditControlDisabled = isBusy || isReviewLocked;
+  const [keywordInputs, setKeywordInputs] = useState<string[]>(
+    () => keywords && keywords.length > 0 ? keywords : [""],
+  );
   const updateSettings = (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor">>,
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
   ) => {
     if (!isEditControlDisabled) {
       onUpdateSettings(settings);
@@ -109,6 +125,18 @@ export function WikiEditSidebar({
     (resourceType as WikiResourceType | undefined) ??
     getWikiResourceTypeFromSlug(slug) ??
     "group";
+  const updateKeywords = (nextKeywords: string[]) => {
+    setKeywordInputs(nextKeywords);
+    updateSettings({ keywords: nextKeywords });
+  };
+  const removeKeyword = (index: number) => {
+    const nextKeywords =
+      keywordInputs.length > 1
+        ? keywordInputs.filter((_, currentIndex) => currentIndex !== index)
+        : [""];
+
+    updateKeywords(nextKeywords);
+  };
 
   return (
     <aside
@@ -244,6 +272,82 @@ export function WikiEditSidebar({
                 />
               </label>
             </fieldset>
+
+            <div className="mt-2 grid gap-4 border-t border-stroke-subtle pt-5">
+              <label className="grid gap-2 text-sm font-semibold text-text-strong">
+                Title
+                <input
+                  aria-label="Metadata title"
+                  className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+                  disabled={isEditControlDisabled}
+                  maxLength={seoTitleMaxLength}
+                  onChange={(event) => updateSettings({ title: event.currentTarget.value })}
+                  value={title ?? ""}
+                />
+                <span className="text-right text-xs font-medium text-text-muted">
+                  {(title ?? "").length} / {seoTitleMaxLength}
+                </span>
+              </label>
+              <label className="grid gap-2 text-sm font-semibold text-text-strong">
+                Meta description
+                <textarea
+                  aria-label="Metadata meta description"
+                  className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+                  disabled={isEditControlDisabled}
+                  maxLength={metaDescriptionMaxLength}
+                  onChange={(event) => updateSettings({ metaDescription: event.currentTarget.value })}
+                  value={metaDescription ?? ""}
+                />
+                <span className="text-right text-xs font-medium text-text-muted">
+                  {(metaDescription ?? "").length} / {metaDescriptionMaxLength}
+                </span>
+              </label>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-semibold text-text-strong">Keywords</legend>
+                <div className="mt-2 grid gap-2">
+                  {keywordInputs.map((keyword, index) => (
+                    <div className="grid gap-1" key={index}>
+                      <div className="flex overflow-hidden rounded-xl border border-stroke-subtle bg-surface-base">
+                        <input
+                          aria-label={`Keyword ${index + 1}`}
+                          className="min-w-0 flex-1 bg-transparent px-3 py-2 outline-none"
+                          disabled={isEditControlDisabled}
+                          maxLength={seoKeywordMaxLength}
+                          onChange={(event) => {
+                            const nextKeywords = [...keywordInputs];
+                            nextKeywords[index] = event.currentTarget.value;
+                            updateKeywords(nextKeywords);
+                          }}
+                          value={keyword}
+                        />
+                        <button
+                          aria-label={`Remove keyword ${index + 1}`}
+                          className="grid w-9 place-items-center text-text-muted disabled:cursor-not-allowed disabled:text-text-muted/50"
+                          disabled={isEditControlDisabled}
+                          onClick={() => removeKeyword(index)}
+                          type="button"
+                        >
+                          <Cross2Icon />
+                        </button>
+                      </div>
+                      <span className="text-right text-xs font-medium text-text-muted">
+                        {keyword.length} / {seoKeywordMaxLength}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  aria-label="Add keyword"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-stroke-subtle pb-0.5 text-lg font-semibold leading-none text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+                  disabled={isEditControlDisabled || keywordInputs.length >= seoKeywordsMaxItems}
+                  onClick={() => setKeywordInputs([...keywordInputs, ""])}
+                  style={cardSurfaceMutedStyle}
+                  type="button"
+                >
+                  <PlusIcon />
+                </button>
+              </fieldset>
+            </div>
           </div>
         </div>
       </div>

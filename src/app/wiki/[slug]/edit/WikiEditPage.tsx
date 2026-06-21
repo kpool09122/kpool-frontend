@@ -464,6 +464,9 @@ export function WikiEditContent({
           resourceType={draft.resourceType}
           slug={draft.slug}
           themeColor={draft.themeColor}
+          title={draft.title}
+          metaDescription={draft.metaDescription}
+          keywords={draft.keywords}
         />
         <WikiImageLibrary
           images={imageLibrary.images}

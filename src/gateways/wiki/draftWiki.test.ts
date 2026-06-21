@@ -443,6 +443,9 @@ describe("draftWiki", () => {
         groupIdentifiers: ["group-1"],
         resourceType: "talent",
         talentIdentifiers: ["talent-1"],
+        title: "Draft SEO",
+        metaDescription: "Draft meta description.",
+        keywords: ["draft", "seo"],
         wikiIdentifier: "wiki-2",
       }),
     ).toEqual({
@@ -450,6 +453,9 @@ describe("draftWiki", () => {
       groupIdentifiers: ["group-1"],
       resourceType: "talent",
       talentIdentifiers: ["talent-1"],
+      title: "Draft SEO",
+      metaDescription: "Draft meta description.",
+      keywords: ["draft", "seo"],
       wikiId: "wiki-2",
     });
   });
@@ -458,10 +464,16 @@ describe("draftWiki", () => {
     expect(
       createReviewWikiRequestBody({
         resourceType: "group",
+        title: "Review SEO",
+        metaDescription: "Review meta description.",
+        keywords: ["review", "seo"],
         wikiIdentifier: "wiki-1",
       }),
     ).toEqual({
       resourceType: "group",
+      title: "Review SEO",
+      metaDescription: "Review meta description.",
+      keywords: ["review", "seo"],
     });
   });
 
@@ -473,6 +485,9 @@ describe("draftWiki", () => {
         language: "ja",
         resourceType: "group",
         talentIdentifiers: ["talent-1"],
+        title: "Translate SEO",
+        metaDescription: "Translate meta description.",
+        keywords: ["translate", "seo"],
         wikiIdentifier: "wiki-1",
       }),
     ).toEqual({
@@ -481,6 +496,9 @@ describe("draftWiki", () => {
       language: "ja",
       resourceType: "group",
       talentIdentifiers: ["talent-1"],
+      title: "Translate SEO",
+      metaDescription: "Translate meta description.",
+      keywords: ["translate", "seo"],
     });
   });
 
@@ -512,6 +530,9 @@ describe("draftWiki", () => {
         ],
         slug: "gr-aurora-echo",
         themeColor: "#4c5cff",
+        title: "Aurora Echo SEO",
+        metaDescription: "Aurora Echo public meta description.",
+        keywords: ["aurora", "echo"],
         translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
         version: 1,
         wikiIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -543,6 +564,9 @@ describe("draftWiki", () => {
       ],
       slug: "gr-aurora-echo",
       themeColor: "#4c5cff",
+      title: "Aurora Echo SEO",
+      metaDescription: "Aurora Echo public meta description.",
+      keywords: ["aurora", "echo"],
     });
 
     expect(

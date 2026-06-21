@@ -23,6 +23,9 @@ const meta = {
     resourceType: wikiStoryDetail.resourceType,
     slug: wikiStoryDetail.slug,
     themeColor: wikiStoryDetail.themeColor,
+    title: wikiStoryDetail.title,
+    metaDescription: wikiStoryDetail.metaDescription,
+    keywords: wikiStoryDetail.keywords,
   },
   parameters: {
     layout: "fullscreen",
@@ -43,6 +46,9 @@ export const Default: Story = {
       const [previewMode, setPreviewMode] = useState(args.previewMode);
       const [slug, setSlug] = useState(args.slug);
       const [themeColor, setThemeColor] = useState(args.themeColor);
+      const [title, setTitle] = useState(args.title);
+      const [metaDescription, setMetaDescription] = useState(args.metaDescription);
+      const [keywords, setKeywords] = useState(args.keywords);
 
       return (
         <div className="min-h-screen bg-background">
@@ -55,6 +61,9 @@ export const Default: Story = {
             onClear={() => {
               setSlug(wikiStoryDetail.slug);
               setThemeColor(wikiStoryDetail.themeColor);
+              setTitle(wikiStoryDetail.title);
+              setMetaDescription(wikiStoryDetail.metaDescription);
+              setKeywords(wikiStoryDetail.keywords);
             }}
             onPreviewModeChange={setPreviewMode}
             onSave={() => {}}
@@ -67,11 +76,23 @@ export const Default: Story = {
               if (settings.themeColor !== undefined) {
                 setThemeColor(settings.themeColor);
               }
+              if (settings.title !== undefined) {
+                setTitle(settings.title);
+              }
+              if (settings.metaDescription !== undefined) {
+                setMetaDescription(settings.metaDescription);
+              }
+              if (settings.keywords !== undefined) {
+                setKeywords(settings.keywords);
+              }
             }}
             previewMode={previewMode}
             resourceType={args.resourceType}
             slug={slug}
             themeColor={themeColor}
+            title={title}
+            metaDescription={metaDescription}
+            keywords={keywords}
           />
         </div>
       );

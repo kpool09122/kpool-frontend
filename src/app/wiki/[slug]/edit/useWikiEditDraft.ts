@@ -301,7 +301,7 @@ export const useWikiEditDraft = (
         heroImage,
       }),
     updateSettings: (
-      settings: Partial<Pick<WikiDraftDetail, "resourceType" | "slug" | "themeColor">>,
+      settings: Partial<Pick<WikiDraftDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
     ) => {
       const nextResourceType =
         (settings.resourceType as WikiResourceType | undefined) ??
@@ -310,6 +310,13 @@ export const useWikiEditDraft = (
       commitDraft({
         ...draft,
         ...settings,
+        title: settings.title !== undefined ? settings.title : draft.title,
+        metaDescription: settings.metaDescription !== undefined
+          ? settings.metaDescription
+          : draft.metaDescription,
+        keywords: settings.keywords !== undefined
+          ? settings.keywords
+          : draft.keywords,
         resourceType: nextResourceType,
         basic: {
           ...draft.basic,
