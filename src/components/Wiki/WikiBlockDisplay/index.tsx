@@ -19,14 +19,14 @@ type WikiBlockDisplayProps = {
 
 const textWrapClassName = "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
 const inlineLinkClassName = `${textWrapClassName} text-sky-700 underline decoration-sky-500 underline-offset-2 transition hover:text-sky-800`;
-const captionClassName = `${textWrapClassName} mt-2 text-sm text-text-muted`;
+const captionClassName = `${textWrapClassName} mt-2 text-base text-text-muted`;
 const tableCellClassName = `${textWrapClassName} border-b border-stroke-subtle px-3 py-2`;
 
 export function WikiBlockDisplay({
   block,
   language = "ja",
   showEditableImageOverlay = false,
-  textClassName = "text-sm leading-7 text-text-strong",
+  textClassName = "text-base leading-7 text-text-strong",
 }: WikiBlockDisplayProps) {
   const renderPlainTextWithNamuLinks = (text: string, keyPrefix: string) => {
     const pattern = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
@@ -103,7 +103,7 @@ export function WikiBlockDisplay({
           return (
             <sup
               aria-label={`Footnote: ${token.content}`}
-              className="ml-1 text-xs font-semibold text-text-muted"
+              className="ml-1 text-sm font-semibold text-text-muted"
               key={`footnote-${index}`}
               title={token.content}
             >
@@ -113,7 +113,7 @@ export function WikiBlockDisplay({
         case "include":
           return (
             <span
-              className={`${textWrapClassName} inline-flex max-w-full rounded-full border border-stroke-subtle px-2 py-0.5 text-xs font-semibold text-text-muted`}
+              className={`${textWrapClassName} inline-flex max-w-full rounded-full border border-stroke-subtle px-2 py-0.5 text-sm font-semibold text-text-muted`}
               key={`include-${index}`}
             >
               Included from {token.target}
@@ -171,18 +171,18 @@ export function WikiBlockDisplay({
       return <WikiEmbedFrame block={block} />;
     case "quote":
       return (
-        <blockquote className={`${textWrapClassName} border-l-4 border-text-muted/30 pl-4 text-base leading-8 text-text-strong`}>
+        <blockquote className={`${textWrapClassName} border-l-4 border-text-muted/30 pl-4 text-lg leading-8 text-text-strong`}>
           {block.content}
-          {block.source ? <cite className={`${textWrapClassName} mt-2 block text-sm text-text-muted`}>{block.source}</cite> : null}
+          {block.source ? <cite className={`${textWrapClassName} mt-2 block text-base text-text-muted`}>{block.source}</cite> : null}
         </blockquote>
       );
     case "list":
       return block.listType === "numbered" ? (
-        <ol className={`${textWrapClassName} list-decimal space-y-2 pl-6 text-sm leading-7 text-text-strong`}>
+        <ol className={`${textWrapClassName} list-decimal space-y-2 pl-6 text-base leading-7 text-text-strong`}>
           {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ol>
       ) : (
-        <ul className={`${textWrapClassName} list-disc space-y-2 pl-6 text-sm leading-7 text-text-strong`}>
+        <ul className={`${textWrapClassName} list-disc space-y-2 pl-6 text-base leading-7 text-text-strong`}>
           {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ul>
       );
@@ -195,7 +195,7 @@ export function WikiBlockDisplay({
       return (
         <div className="overflow-x-auto">
           <table
-            className="min-w-full text-left text-sm"
+            className="min-w-full text-left text-base"
             style={block.tableWidth ? { width: `${block.tableWidth}px` } : undefined}
           >
             {headerCells ? (

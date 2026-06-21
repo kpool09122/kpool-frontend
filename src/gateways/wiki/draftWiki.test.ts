@@ -118,7 +118,6 @@ describe("draftWiki", () => {
             content: "Draft sample for checking the editor state.",
           },
         ],
-        children: [],
       },
     ]);
   });
@@ -240,11 +239,12 @@ describe("draftWiki", () => {
         ],
       }),
     ]);
-    expect(wiki.sections[0]?.children).toEqual([
+    expect(wiki.sections[0]?.contents[1]).toEqual(
       expect.objectContaining({
+        type: "section",
         title: "Highlights",
       }),
-    ]);
+    );
   });
 
   it("normalizes a talent draft response into the shared detail shape", () => {

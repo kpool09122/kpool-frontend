@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { adaptDraftWikiApiResponse, adaptWikiApiResponse } from "./wikiApiModel";
+import { isWikiSection } from "./wikiEditModel";
 
 const baseApiResponse = {
   basic: {
@@ -62,5 +63,56 @@ describe("wikiApiModel SEO metadata", () => {
       metaDescription: "Draft meta description.",
       keywords: ["draft", "seo"],
     });
+  });
+});
+
+describe("wikiApiModel section identifiers", () => {
+  it("generates unique fallback identifiers for nested sections without backend ids", () => {
+    const wiki = adaptDraftWikiApiResponse({
+      ...baseApiResponse,
+      status: "editing",
+      sections: [
+        {
+          type: "section",
+          title: "Overview",
+          contents: [
+            {
+              type: "section",
+              title: "Nested one",
+              contents: [
+                {
+                  type: "section",
+                  title: "Deep nested",
+                  contents: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "section",
+          title: "Another root",
+          contents: [
+            {
+              type: "section",
+              title: "Nested two",
+              contents: [],
+            },
+          ],
+        },
+      ],
+    });
+
+    const firstRoot = wiki.sections[0];
+    const firstNested = firstRoot?.contents.find(isWikiSection);
+    const deepNested = firstNested?.contents.find(isWikiSection);
+    const secondRoot = wiki.sections[1];
+    const secondNested = secondRoot?.contents.find(isWikiSection);
+
+    expect(firstRoot?.sectionIdentifier).toBe("section-1");
+    expect(firstNested?.sectionIdentifier).toBe("section-1-1");
+    expect(deepNested?.sectionIdentifier).toBe("section-1-1-1");
+    expect(secondRoot?.sectionIdentifier).toBe("section-2");
+    expect(secondNested?.sectionIdentifier).toBe("section-2-1");
   });
 });

@@ -25,9 +25,9 @@ export function WikiRelatedProfiles({
     return (
       <section aria-label={block.title ?? "Related profiles"}>
         {block.title ? (
-          <h3 className="text-base font-semibold text-text-strong">{block.title}</h3>
+          <h3 className="text-lg font-semibold text-text-strong">{block.title}</h3>
         ) : null}
-        <p className="mt-3 rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-5 text-sm text-text-muted">
+        <p className="mt-3 rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-5 text-base text-text-muted">
           関連プロフィールはありません
         </p>
       </section>
@@ -37,7 +37,7 @@ export function WikiRelatedProfiles({
   return (
     <section aria-label={block.title ?? "Related profiles"}>
       {block.title ? (
-        <h3 className="text-base font-semibold text-text-strong">{block.title}</h3>
+        <h3 className="text-lg font-semibold text-text-strong">{block.title}</h3>
       ) : null}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {profiles.map((profile) => (
@@ -62,7 +62,7 @@ export function WikiRelatedProfiles({
               )}
             </div>
             <div className="px-4 py-3">
-              <p className="text-sm font-semibold text-text-strong">{profile.name}</p>
+              <p className="text-base font-semibold text-text-strong">{profile.name}</p>
             </div>
           </Link>
         ))}

@@ -432,25 +432,26 @@ export function WikiEditContent({
         </div>
 
         <WikiEditSidebar
-          canPersist={canPersist}
+          canPersist={canPersist && !editingId}
           editorMode={editorMode}
+          isEditorModeDisabled={Boolean(editingId)}
           isBusy={isBusy}
           isOpen={isSidebarOpen}
           isReviewLocked={isEditLocked}
           onEditorModeChange={(mode) => {
-            if (!isEditLocked) {
+            if (!isEditLocked && !editingId) {
               setEditorMode(mode);
             }
           }}
           onClear={clearChanges}
           onPreviewModeChange={setPreviewMode}
           onSave={() => {
-            if (!isEditLocked) {
+            if (!isEditLocked && !editingId) {
               saveDraft();
             }
           }}
           onSubmit={() => {
-            if (!isEditLocked) {
+            if (!isEditLocked && !editingId) {
               void requestPublication();
             }
           }}

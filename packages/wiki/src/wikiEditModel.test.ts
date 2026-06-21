@@ -6,6 +6,7 @@ import {
   createWikiBlock,
   deleteWikiContent,
   getWikiContentEditorId,
+  isWikiSection,
   parseWikiSectionsFromCode,
   serializeWikiSectionsToCode,
   toWikiEditRequestPayload,
@@ -30,7 +31,6 @@ const createSection = (overrides?: Partial<WikiSection>): WikiSection => ({
       content: "Root text",
     },
   ],
-  children: [],
   ...overrides,
 });
 
@@ -70,6 +70,45 @@ describe("wikiEditModel", () => {
       }),
     );
     expect(editId).toMatch(/^block:/);
+  });
+
+  it("adds one editable block to a nested section with contents as the canonical edit tree", () => {
+    const childSection = createSection({
+      sectionIdentifier: "sec-child",
+      title: "Child",
+      displayOrder: 20,
+      depth: 2,
+      contents: [],
+    });
+    const rootSection = createSection({
+      contents: [
+        ...(createSection().contents),
+        childSection,
+      ],
+    });
+
+    const [addedSections, editId] = addWikiBlock([rootSection], "sec-child", "embed");
+    const blockIdentifier = editId?.replace("block:", "");
+
+    expect(blockIdentifier).toBeTruthy();
+
+    const [updatedSections] = blockIdentifier
+      ? [updateWikiBlock(addedSections, blockIdentifier, { embedId: "ohVNJ2gxsmo" } as Partial<WikiBlock>)]
+      : [addedSections];
+    const normalizedRoot = updatedSections[0];
+    const contentsChild = normalizedRoot?.contents.find(isWikiSection);
+
+    expect(normalizedRoot).not.toHaveProperty("children");
+    expect(contentsChild?.sectionIdentifier).toBe("sec-child");
+    expect(contentsChild?.contents).toHaveLength(1);
+    expect(contentsChild).not.toHaveProperty("children");
+    expect((contentsChild?.contents[0] as WikiBlock | undefined)?.blockIdentifier).toBe(
+      blockIdentifier,
+    );
+    expect(serializeWikiSectionsToCode(updatedSections)).toContain(
+      "[[embed|provider:youtube|id:ohVNJ2gxsmo|caption:New embed caption]]",
+    );
+    expect(serializeWikiSectionsToCode(updatedSections)).not.toContain("id:new-embed-id");
   });
 
   it("creates new text blocks with empty content", () => {

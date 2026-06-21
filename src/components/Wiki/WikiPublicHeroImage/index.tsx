@@ -9,7 +9,6 @@ import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import {
   cardSurfaceMutedStyle,
   cardSurfaceStyle,
-  heroOverlayStyle,
   transparentFrameStyle,
 } from "../styles";
 import { EditIcon } from "../icons";
@@ -68,22 +67,6 @@ export function WikiPublicHeroImage({
                       src={heroImage.src}
                       unoptimized
                     />
-                  </div>
-                  <div className="absolute inset-0" style={heroOverlayStyle} />
-                  <div className="absolute inset-x-0 bottom-0 px-5 py-6 text-white">
-                    <p
-                      className="text-xs font-semibold uppercase tracking-[0.28em]"
-                      style={{ color: "var(--wiki-hero-accent, var(--brand-highlight))" }}
-                    >
-                      Tap The Card
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                      Flip to reveal the basic profile
-                    </p>
-                    <p className="mt-3 max-w-xs text-sm leading-6 text-white/78">
-                      The card turns like a physical profile card and exposes
-                      the group basics on the reverse side.
-                    </p>
                   </div>
                 </div>
                 <label

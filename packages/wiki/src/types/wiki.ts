@@ -7,7 +7,6 @@ export type WikiSection = {
   displayOrder: number;
   depth: number;
   contents: WikiSectionContent[];
-  children: WikiSection[];
 };
 
 export type WikiBlockType =
@@ -231,7 +230,22 @@ const wikiSectionSchema: z.ZodType<WikiSection> = z.lazy(() =>
     displayOrder: z.number().int(),
     depth: z.number().int().min(1),
     contents: z.array(z.union([wikiSectionSchema, wikiBlockSchema])),
-    children: z.array(wikiSectionSchema),
+    children: z.array(wikiSectionSchema).optional(),
+  }).transform(({ children, contents, ...section }) => {
+    const contentSectionIds = new Set(
+      contents
+        .filter((content): content is WikiSection => "sectionIdentifier" in content)
+        .map((content) => content.sectionIdentifier),
+    );
+    const mergedContents = [
+      ...contents,
+      ...(children ?? []).filter((child) => !contentSectionIds.has(child.sectionIdentifier)),
+    ].sort((left, right) => left.displayOrder - right.displayOrder);
+
+    return {
+      ...section,
+      contents: mergedContents,
+    };
   }),
 );
 

@@ -8,7 +8,7 @@ import { WikiPublicHeroImage } from "./index";
 describe("WikiPublicHeroImage", () => {
   afterEach(() => cleanup());
 
-  it("renders the hero intro copy", () => {
+  it("renders the mobile flip helper copy outside the card", () => {
     render(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
@@ -17,7 +17,8 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    expect(screen.getByText("Flip to reveal the basic profile")).toBeInTheDocument();
+    expect(screen.getByText("Tap anywhere on the card to flip to the basic details.")).toBeInTheDocument();
+    expect(screen.queryByText("Flip to reveal the basic profile")).not.toBeInTheDocument();
   });
 
   it("toggles the mobile helper copy when flipped", () => {

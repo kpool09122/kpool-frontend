@@ -130,7 +130,6 @@ describe("publicWiki", () => {
             content: "Published overview from the backend.",
           },
         ],
-        children: [],
       },
     ]);
   });
