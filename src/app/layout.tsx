@@ -6,13 +6,18 @@ import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { localeCookieName, resolveLocale } from "../i18n/locales";
+import { siteTitle } from "./metadata";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
 
 export const metadata: Metadata = {
-  title: "K-Pool Theme Preview",
+  title: siteTitle,
   description:
     "Brand color tokens and a minimal palette preview for the K-Pool frontend.",
+  icons: {
+    icon: "/kpool.ico",
+    shortcut: "/kpool.ico",
+  },
 };
 
 export default async function RootLayout({

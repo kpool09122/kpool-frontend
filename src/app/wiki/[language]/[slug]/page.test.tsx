@@ -28,7 +28,7 @@ describe("wiki localized page metadata", () => {
     });
 
     await expect(generateMetadata(routeParams())).resolves.toEqual({
-      title: "Aurora Echo SEO | K-Pool",
+      title: "Aurora Echo SEO | k-pool",
       description: "Aurora Echo meta description.",
       keywords: ["aurora", "echo"],
     });
@@ -41,7 +41,7 @@ describe("wiki localized page metadata", () => {
     });
 
     await expect(generateMetadata(routeParams())).resolves.toMatchObject({
-      title: "Aurora Echo | K-Pool",
+      title: "Aurora Echo | k-pool",
     });
   });
 
@@ -51,7 +51,7 @@ describe("wiki localized page metadata", () => {
     });
 
     await expect(generateMetadata(routeParams())).resolves.toEqual({
-      title: "K-Pool",
+      title: "k-pool",
     });
   });
 });

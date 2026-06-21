@@ -1,6 +1,7 @@
 import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
 import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
 import type { Metadata } from "next";
+import { siteTitle } from "@/app/metadata";
 
 type WikiDetailRouteProps = {
   params: Promise<{
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
 
   if (wikiState.status !== "success") {
     return {
-      title: "K-Pool",
+      title: siteTitle,
     };
   }
 
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
   const title = wiki.title ?? wiki.basic.name;
 
   return {
-    title: `${title} | K-Pool`,
+    title: `${title} | ${siteTitle}`,
     description: wiki.metaDescription ?? undefined,
     keywords: wiki.keywords ?? undefined,
   };
