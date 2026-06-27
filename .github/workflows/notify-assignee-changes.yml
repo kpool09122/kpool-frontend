@@ -41,13 +41,15 @@ jobs:
           if [ "${ACTION}" = "assigned" ]; then
             ICON=":bust_in_silhouette:"
             ACTION_LABEL="assigned"
+            ASSIGNEE_LABEL="Assignee"
           else
             ICON=":no_entry_sign:"
             ACTION_LABEL="unassigned"
+            ASSIGNEE_LABEL="Unassigned"
           fi
 
           MESSAGE="${ICON} ${ITEM_LABEL} ${ACTION_LABEL}: #${ITEM_NUMBER} ${ITEM_TITLE}
-          Assignee: ${ASSIGNEE}
+          ${ASSIGNEE_LABEL}: ${ASSIGNEE}
           Changed by: ${ACTOR}
           ${ITEM_URL}"
 
