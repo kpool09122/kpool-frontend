@@ -39,6 +39,10 @@ const baseRestrictedSyntax = [
     message: "TypeScript enum is forbidden. Prefer const objects or union types.",
   },
   {
+    selector: "TSAnyKeyword",
+    message: "TypeScript any is forbidden. Use unknown with explicit narrowing or a specific type.",
+  },
+  {
     selector: "ClassDeclaration, ClassExpression",
     message: "Classes are discouraged unless framework or interoperability constraints require them.",
   },
