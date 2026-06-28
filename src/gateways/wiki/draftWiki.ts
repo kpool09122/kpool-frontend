@@ -530,32 +530,28 @@ export const createTranslateWikiRequestBody = (
   return parseWithSchemaLog("wiki translate request", translateWikiRequestBodySchema, body);
 };
 
-export const createWikiDraftWikisUrl = ({
-  baseUrl,
-  onlyMine,
-  page,
-  perPage,
-  resourceType,
-  status,
-  translationSetIdentifier,
-}: {
+type WikiDraftWikisUrlParams = {
   baseUrl: string;
-  onlyMine?: boolean;
   page: number;
   perPage: number;
   resourceType?: string;
   status: WikiDraftWikiStatus;
   translationSetIdentifier?: string;
-}): string => {
-  const url = new URL(`${trimTrailingSlashes(baseUrl)}/draft-wikis`);
+};
 
+const appendWikiDraftWikisSearchParams = (
+  url: URL,
+  {
+    page,
+    perPage,
+    resourceType,
+    status,
+    translationSetIdentifier,
+  }: Omit<WikiDraftWikisUrlParams, "baseUrl">,
+): URL => {
   url.searchParams.set("status", status);
   url.searchParams.set("perPage", String(perPage));
   url.searchParams.set("page", String(page));
-
-  if (onlyMine !== undefined) {
-    url.searchParams.set("onlyMine", String(onlyMine));
-  }
 
   if (resourceType) {
     url.searchParams.set("resourceType", resourceType);
@@ -565,8 +561,20 @@ export const createWikiDraftWikisUrl = ({
     url.searchParams.set("translationSetIdentifier", translationSetIdentifier);
   }
 
-  return url.toString();
+  return url;
 };
+
+export const createManagedWikiDraftWikisUrl = (params: WikiDraftWikisUrlParams): string =>
+  appendWikiDraftWikisSearchParams(
+    new URL(`${trimTrailingSlashes(params.baseUrl)}/draft-wikis`),
+    params,
+  ).toString();
+
+export const createMyWikiDraftWikisUrl = (params: WikiDraftWikisUrlParams): string =>
+  appendWikiDraftWikisSearchParams(
+    new URL(`${trimTrailingSlashes(params.baseUrl)}/my/draft-wikis`),
+    params,
+  ).toString();
 
 export const createVersionInconsistentWikisUrl = ({
   baseUrl,
@@ -961,40 +969,36 @@ const getRouteErrorMessage = (body: unknown, fallback: string): string =>
     ? (body as { message: string }).message
     : fallback;
 
-export const fetchWikiDraftWikis = async ({
-  fallbackErrorMessage,
-  onlyMine,
-  page,
-  perPage,
-  resourceType,
-  status,
-  translationSetIdentifier,
-}: {
+type FetchWikiDraftWikisParams = {
   fallbackErrorMessage: string;
-  onlyMine?: boolean;
   page: number;
   perPage: number;
   resourceType?: string;
   status: WikiDraftWikiStatus;
   translationSetIdentifier?: string;
-}): Promise<WikiDraftWikiListResponse> => {
-  const url = new URL("/api/wiki/draft-wikis", window.location.origin);
+};
 
-  url.searchParams.set("status", status);
-  url.searchParams.set("perPage", String(perPage));
-  url.searchParams.set("page", String(page));
-
-  if (onlyMine !== undefined) {
-    url.searchParams.set("onlyMine", String(onlyMine));
-  }
-
-  if (resourceType) {
-    url.searchParams.set("resourceType", resourceType);
-  }
-
-  if (translationSetIdentifier) {
-    url.searchParams.set("translationSetIdentifier", translationSetIdentifier);
-  }
+const fetchWikiDraftWikisFromRoute = async (
+  routePath: "/api/wiki/draft-wikis" | "/api/wiki/my/draft-wikis",
+  {
+    fallbackErrorMessage,
+    page,
+    perPage,
+    resourceType,
+    status,
+    translationSetIdentifier,
+  }: FetchWikiDraftWikisParams,
+): Promise<WikiDraftWikiListResponse> => {
+  const url = appendWikiDraftWikisSearchParams(
+    new URL(routePath, window.location.origin),
+    {
+      page,
+      perPage,
+      resourceType,
+      status,
+      translationSetIdentifier,
+    },
+  );
 
   const response = await fetch(`${url.pathname}${url.search}`, {
     credentials: "include",
@@ -1007,6 +1011,16 @@ export const fetchWikiDraftWikis = async ({
 
   return parseWithSchemaLog("wiki draft list response", wikiDraftWikiListResponseSchema, body);
 };
+
+export const fetchManagedWikiDraftWikis = (
+  params: FetchWikiDraftWikisParams,
+): Promise<WikiDraftWikiListResponse> =>
+  fetchWikiDraftWikisFromRoute("/api/wiki/draft-wikis", params);
+
+export const fetchMyWikiDraftWikis = (
+  params: FetchWikiDraftWikisParams,
+): Promise<WikiDraftWikiListResponse> =>
+  fetchWikiDraftWikisFromRoute("/api/wiki/my/draft-wikis", params);
 
 export const createWiki = async ({
   fallbackErrorMessage,
@@ -1122,9 +1136,8 @@ export const loadInitialDraftWikisForRequest = async (
 
   try {
     const response = await fetch(
-      createWikiDraftWikisUrl({
+      createMyWikiDraftWikisUrl({
         baseUrl,
-        onlyMine: true,
         page: 1,
         perPage: defaultWikiDraftPerPage,
         status: "pending",

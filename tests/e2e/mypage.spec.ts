@@ -126,7 +126,7 @@ test("mypage shows under review draft images for an available Wiki principal", a
       }),
     });
   });
-  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -297,7 +297,7 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
       }),
     });
   });
-  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -391,7 +391,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
       }),
     });
   });
-  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     const url = new URL(route.request().url());
     const isApproved = url.searchParams.get("status") === "approved";
 
@@ -491,7 +491,7 @@ test("mypage translates untranslated wikis for publisher principals", async ({ p
       }),
     });
   });
-  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -605,7 +605,7 @@ test("mypage hides draft image review for principals without image policies", as
     });
   });
 
-  await page.route("**/api/wiki/draft-wikis?**", async (route) => {
+  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",

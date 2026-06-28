@@ -34,8 +34,10 @@ export type DraftWikiListState = {
   wikis: MyPageWikiListItem[];
 };
 
+type DraftWikiListScope = "managed" | "my";
+
 type DraftWikiListConfig = {
-  onlyMine?: boolean;
+  scope: DraftWikiListScope;
   status: WikiDraftWikiStatus;
 };
 
@@ -59,17 +61,19 @@ export const initialDraftWikiListState: DraftWikiListState = {
 
 export const draftWikiListConfigByTab = {
   editingWikis: {
-    onlyMine: true,
+    scope: "my",
     status: "pending",
   },
   submittedWikis: {
-    onlyMine: true,
+    scope: "my",
     status: "under_review",
   },
   unapprovedWikis: {
+    scope: "managed",
     status: "under_review",
   },
   approvedWikis: {
+    scope: "managed",
     status: "approved",
   },
 } as const satisfies Record<Exclude<MyPageDraftWikiActionTab, "untranslatedWikis">, DraftWikiListConfig>;
@@ -95,8 +99,8 @@ export const useMyPageDraftWikis = ({
     approvedWikis: useQuery({
       enabled: false,
       initialData: initialDraftWikis.approvedWikis,
-      queryFn: async () => toDraftWikiListState(await adapter.listDraftWikis({
-        ...draftWikiListConfigByTab.approvedWikis,
+      queryFn: async () => toDraftWikiListState(await adapter.listManagedDraftWikis({
+        status: draftWikiListConfigByTab.approvedWikis.status,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -110,8 +114,8 @@ export const useMyPageDraftWikis = ({
     editingWikis: useQuery({
       enabled: false,
       initialData: initialDraftWikis.editingWikis,
-      queryFn: async () => toDraftWikiListState(await adapter.listDraftWikis({
-        ...draftWikiListConfigByTab.editingWikis,
+      queryFn: async () => toDraftWikiListState(await adapter.listMyDraftWikis({
+        status: draftWikiListConfigByTab.editingWikis.status,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -125,8 +129,8 @@ export const useMyPageDraftWikis = ({
     submittedWikis: useQuery({
       enabled: false,
       initialData: initialDraftWikis.submittedWikis,
-      queryFn: async () => toDraftWikiListState(await adapter.listDraftWikis({
-        ...draftWikiListConfigByTab.submittedWikis,
+      queryFn: async () => toDraftWikiListState(await adapter.listMyDraftWikis({
+        status: draftWikiListConfigByTab.submittedWikis.status,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -140,8 +144,8 @@ export const useMyPageDraftWikis = ({
     unapprovedWikis: useQuery({
       enabled: false,
       initialData: initialDraftWikis.unapprovedWikis,
-      queryFn: async () => toDraftWikiListState(await adapter.listDraftWikis({
-        ...draftWikiListConfigByTab.unapprovedWikis,
+      queryFn: async () => toDraftWikiListState(await adapter.listManagedDraftWikis({
+        status: draftWikiListConfigByTab.unapprovedWikis.status,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -193,21 +197,29 @@ export const useMyPageDraftWikis = ({
         page,
         tab,
       }),
-      queryFn: () =>
-        isDraftWikiListTab(tab)
-          ? adapter.listDraftWikis({
-              ...draftWikiListConfigByTab[tab],
-              fallbackErrorMessage: messages.draftWikiListLoadFailed,
-              page,
-              perPage: defaultWikiDraftPerPage,
-            })
-          : adapter.listUntranslatedWikis({
-              fallbackErrorMessage: messages.draftWikiListLoadFailed,
-              order: "desc",
-              page,
-              perPage: defaultWikiDraftPerPage,
-              sort: "updatedAt",
-            }),
+      queryFn: () => {
+        if (!isDraftWikiListTab(tab)) {
+          return adapter.listUntranslatedWikis({
+            fallbackErrorMessage: messages.draftWikiListLoadFailed,
+            order: "desc",
+            page,
+            perPage: defaultWikiDraftPerPage,
+            sort: "updatedAt",
+          });
+        }
+
+        const config = draftWikiListConfigByTab[tab];
+        const listDraftWikis = config.scope === "my"
+          ? adapter.listMyDraftWikis
+          : adapter.listManagedDraftWikis;
+
+        return listDraftWikis({
+          fallbackErrorMessage: messages.draftWikiListLoadFailed,
+          page,
+          perPage: defaultWikiDraftPerPage,
+          status: config.status,
+        });
+      },
     }).then((wikiPage) => {
       queryClient.setQueryData<DraftWikiListState>(listQueryKey, (state = initialDraftWikiListState) => ({
         ...state,

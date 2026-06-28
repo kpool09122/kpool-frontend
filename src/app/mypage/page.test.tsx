@@ -229,13 +229,20 @@ const createDraftWikiAdapter = (
     status: "approved",
   }),
   deleteDraftWiki: vi.fn().mockResolvedValue(undefined),
-  listDraftWikis: vi.fn().mockResolvedValue({
+  listManagedDraftWikis: vi.fn().mockResolvedValue({
 	    wikis: [draftWiki],
 	    current_page: 1,
     last_page: 1,
     total: 1,
 	    per_page: 12,
 	  }),
+  listMyDraftWikis: vi.fn().mockResolvedValue({
+    wikis: [draftWiki],
+    current_page: 1,
+    last_page: 1,
+    total: 1,
+    per_page: 12,
+  }),
 	  listUntranslatedWikis: vi.fn().mockResolvedValue({
 	    wikis: [{
 	      wikiIdentifier: "aaaaaaaa-8888-8888-8888-888888888888",
@@ -780,7 +787,8 @@ describe("MyPageClient", () => {
       "aria-selected",
       "true",
     );
-    expect(draftWikiAdapter.listDraftWikis).not.toHaveBeenCalled();
+    expect(draftWikiAdapter.listMyDraftWikis).not.toHaveBeenCalled();
+    expect(draftWikiAdapter.listManagedDraftWikis).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-review-wiki/edit",
@@ -793,9 +801,8 @@ describe("MyPageClient", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "申請中のWiki" }));
     await waitFor(() =>
-      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+      expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        onlyMine: true,
         page: 1,
         perPage: 12,
         status: "under_review",
@@ -814,7 +821,7 @@ describe("MyPageClient", () => {
       status: "under_review" as const,
     };
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockImplementation(({ status }) => Promise.resolve({
+      listMyDraftWikis: vi.fn().mockImplementation(({ status }) => Promise.resolve({
         wikis: status === "under_review" ? [submittedWiki] : [],
         current_page: 1,
         last_page: 1,
@@ -858,9 +865,8 @@ describe("MyPageClient", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "編集中のWiki" }));
     await waitFor(() =>
-      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+      expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        onlyMine: true,
         page: 1,
         perPage: 12,
         status: "pending",
@@ -875,7 +881,7 @@ describe("MyPageClient", () => {
       status: "under_review" as const,
     };
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listMyDraftWikis: vi.fn().mockResolvedValue({
         wikis: [submittedWiki],
         current_page: 1,
         last_page: 1,
@@ -1006,7 +1012,7 @@ describe("MyPageClient", () => {
 
   it("shows unapproved draft wikis only for principals with approve and reject policies", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           status: "under_review",
@@ -1039,7 +1045,7 @@ describe("MyPageClient", () => {
 
     fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
     await waitFor(() =>
-      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+      expect(draftWikiAdapter.listManagedDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
@@ -1056,7 +1062,7 @@ describe("MyPageClient", () => {
 
   it("approves an unapproved draft wiki and removes it from the list", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           status: "under_review",
@@ -1101,7 +1107,7 @@ describe("MyPageClient", () => {
 
   it("shows approved draft wikis only for principals with publish policies", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           status: "approved",
@@ -1134,7 +1140,7 @@ describe("MyPageClient", () => {
 
     fireEvent.click(await screen.findByRole("tab", { name: "承認済みWiki" }));
     await waitFor(() =>
-      expect(draftWikiAdapter.listDraftWikis).toHaveBeenCalledWith({
+      expect(draftWikiAdapter.listManagedDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
@@ -1240,7 +1246,7 @@ describe("MyPageClient", () => {
 
   it("publishes an approved draft wiki and removes it from the list", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           status: "approved",
@@ -1285,7 +1291,7 @@ describe("MyPageClient", () => {
 
   it("rejects an unapproved draft wiki and removes it from the list", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           status: "under_review",
@@ -1330,7 +1336,7 @@ describe("MyPageClient", () => {
 
   it("links an unapproved draft wiki with a published wiki to the diff page", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           publishedWikiIdentifier: "published-wiki-1",
@@ -1369,7 +1375,7 @@ describe("MyPageClient", () => {
 
   it("disables the diff action for an unapproved draft wiki without a published wiki", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           publishedWikiIdentifier: null,
@@ -1407,7 +1413,7 @@ describe("MyPageClient", () => {
   it("shows a retryable error when draft wiki review fails", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       approveDraftWiki: vi.fn().mockRejectedValue(new Error("wiki approve failed")),
-      listDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
           status: "under_review",
