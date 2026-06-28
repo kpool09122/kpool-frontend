@@ -792,7 +792,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/draft-wikis",
     alias: "DraftWikiListOperations_listDraftWikis",
-    description: `List draft wikis.`,
+    description: `List draft wikis with read policy authorization.`,
     requestFormat: "json",
     parameters: [
       {
@@ -815,17 +815,17 @@ const endpoints = makeApi([
         type: "Query",
         schema: z.string().optional(),
       },
-      {
-        name: "onlyMine",
-        type: "Query",
-        schema: z.boolean().optional(),
-      },
     ],
     response: ListDraftWikisResponseBody,
     errors: [
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1194,6 +1194,58 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/draft-wikis",
+    alias: "MyDraftWikiListOperations_listMyDraftWikis",
+    description: `List draft wikis edited by the current principal.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+      {
+        name: "translationSetIdentifier",
+        type: "Query",
+        schema: z.string().uuid().optional(),
+      },
+      {
+        name: "status",
+        type: "Query",
+        schema: z.enum(["approved", "pending", "rejected", "under_review"]),
+      },
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.string().optional(),
+      },
+    ],
+    response: ListDraftWikisResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
