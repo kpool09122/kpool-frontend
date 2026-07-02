@@ -9,6 +9,7 @@ import { useCallback, useState } from "react";
 
 import {
   createDeleteWikiRequestBody,
+  createRejectWikiRequestBody,
   createReviewWikiRequestBody,
   createTranslateWikiRequestBody,
   defaultWikiDraftPerPage,
@@ -267,13 +268,15 @@ export const useMyPageDraftWikis = ({
   const reviewMutation = useMutation<
     unknown,
     Error,
-    { action: WikiDraftWorkflowAction; wiki: MyPageWikiListItem }
+    { action: WikiDraftWorkflowAction; reason?: string; wiki: MyPageWikiListItem }
   >({
     mutationFn: ({
       action,
+      reason,
       wiki,
     }: {
       action: WikiDraftWorkflowAction;
+      reason?: string;
       wiki: MyPageWikiListItem;
     }) => {
       const fallbackErrorMessage =
@@ -292,6 +295,14 @@ export const useMyPageDraftWikis = ({
         });
       }
 
+      if (action === "reject") {
+        return adapter.rejectDraftWiki({
+          fallbackErrorMessage,
+          requestBody: createRejectWikiRequestBody(wiki, reason ?? ""),
+          wikiId: wiki.wikiIdentifier,
+        });
+      }
+
       const requestBody = createReviewWikiRequestBody(wiki);
 
       return action === "approve"
@@ -300,17 +311,11 @@ export const useMyPageDraftWikis = ({
             requestBody,
             wikiId: wiki.wikiIdentifier,
           })
-        : action === "publish"
-          ? adapter.publishDraftWiki({
-              fallbackErrorMessage,
-              requestBody,
-              wikiId: wiki.wikiIdentifier,
-            })
-          : adapter.rejectDraftWiki({
-              fallbackErrorMessage,
-              requestBody,
-              wikiId: wiki.wikiIdentifier,
-            });
+        : adapter.publishDraftWiki({
+            fallbackErrorMessage,
+            requestBody,
+            wikiId: wiki.wikiIdentifier,
+          });
     },
     onMutate: ({ wiki }) => {
       setReviewingWikiIdentifier(wiki.wikiIdentifier);
@@ -410,8 +415,9 @@ export const useMyPageDraftWikis = ({
   const reviewDraftWiki = (
     wiki: MyPageWikiListItem,
     action: WikiDraftWorkflowAction,
+    reason?: string,
   ) => {
-    reviewMutation.mutate({ wiki, action });
+    reviewMutation.mutate({ wiki, action, reason });
   };
 
   const deleteDraftWiki = (wiki: MyPageWikiListItem) => {

@@ -27,6 +27,7 @@ export const createMockEditingDraftWiki = (): WikiDraftWiki => ({
   approvedAt: null,
   translatedAt: null,
   mergedAt: null,
+  rejectionReason: null,
 });
 
 const createEmptyMockDraftWikiListState = () => ({

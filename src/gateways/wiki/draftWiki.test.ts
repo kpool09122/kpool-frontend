@@ -9,6 +9,7 @@ import {
   createAutoCreateWikiRequestBodyFromInitialFields,
   createWikiDraftRequestBodyFromPublicWiki,
   createWikiRequestBodyFromInitialFields,
+  createRejectWikiRequestBody,
   createReviewWikiRequestBody,
   createSubmitWikiRequestBody,
   createTranslateWikiRequestBody,
@@ -49,6 +50,7 @@ describe("draftWiki", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("maps slug prefixes to the matching draft endpoint alias", () => {
@@ -429,6 +431,60 @@ describe("draftWiki", () => {
     expect(getReviewWikiEndpointPath("wiki-1", "translate")).toBe("/wiki/wiki-1/translate");
   });
 
+
+  it("accepts rejection reasons from draft wiki list responses", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          wikis: [
+            {
+              wikiIdentifier: "88888888-8888-4888-8888-888888888888",
+              publishedWikiIdentifier: null,
+              translationSetIdentifier: "99999999-9999-4999-8999-999999999999",
+              slug: "gr-review-wiki",
+              language: "ja",
+              resourceType: "group",
+              themeColor: null,
+              title: null,
+              metaDescription: null,
+              keywords: null,
+              status: "rejected",
+              name: "レビュー対象 Wiki",
+              normalizedName: "review-wiki",
+              imageIdentifier: null,
+              imageUrl: null,
+              imageAltText: null,
+              editedAt: null,
+              approvedAt: null,
+              translatedAt: null,
+              mergedAt: null,
+              rejectionReason: "内容が不足しています。",
+            },
+          ],
+          current_page: 1,
+          last_page: 1,
+          total: 1,
+          per_page: 12,
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(fetchMyWikiDraftWikis({
+      fallbackErrorMessage: "failed",
+      page: 1,
+      perPage: 12,
+      status: "rejected",
+    })).resolves.toMatchObject({
+      wikis: [
+        {
+          name: "レビュー対象 Wiki",
+          rejectionReason: "内容が不足しています。",
+        },
+      ],
+    });
+  });
+
   it("builds submit wiki request bodies with the wiki id and resource type", () => {
     expect(
       createSubmitWikiRequestBody({
@@ -476,6 +532,27 @@ describe("draftWiki", () => {
       title: "Review SEO",
       metaDescription: "Review meta description.",
       keywords: ["review", "seo"],
+    });
+  });
+
+  it("builds reject wiki request bodies with a trimmed reason", () => {
+    expect(
+      createRejectWikiRequestBody(
+        {
+          resourceType: "group",
+          title: "Review SEO",
+          metaDescription: "Review meta description.",
+          keywords: ["review", "seo"],
+          wikiIdentifier: "wiki-1",
+        },
+        "  内容が不足しています。  ",
+      ),
+    ).toEqual({
+      resourceType: "group",
+      title: "Review SEO",
+      metaDescription: "Review meta description.",
+      keywords: ["review", "seo"],
+      rejectionReason: "内容が不足しています。",
     });
   });
 
