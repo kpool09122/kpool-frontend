@@ -55,6 +55,11 @@ const translateWikiRequestBodySchema = reviewWikiRequestBodySchema.and(
     language: z.string(),
   }),
 );
+const rejectWikiRequestBodySchema = reviewWikiRequestBodySchema.and(
+  z.object({
+    reason: z.string().min(1),
+  }),
+);
 const autoCreateWikiRequestBodySchema = z.object({
   resourceType: z.enum(["agency", "group", "song", "talent"]),
   language: z.string(),
@@ -87,6 +92,10 @@ const withDefaultSeoMetadata = (value: unknown): unknown => {
     nextRecord.keywords ??= null;
   }
 
+  if ("wikiIdentifier" in nextRecord) {
+    nextRecord.reason ??= null;
+  }
+
   if (Array.isArray(nextRecord.wikis)) {
     nextRecord.wikis = nextRecord.wikis.map(withDefaultSeoMetadata);
   }
@@ -100,6 +109,7 @@ type DeleteWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.WikiWork
 type SubmitWikiRequestBody = z.infer<typeof submitWikiRequestBodySchema>;
 type ReviewWikiRequestBody = z.infer<typeof reviewWikiRequestBodySchema>;
 type TranslateWikiRequestBody = z.infer<typeof translateWikiRequestBodySchema>;
+type RejectWikiRequestBody = z.infer<typeof rejectWikiRequestBodySchema>;
 type DraftWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiSummary>;
 type PublishedWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.PublishedWikiSummary>;
 type TranslateWikiResponseBody = z.infer<typeof wikiPrivateApiTypes.schemas.TranslateWikiResponseBody>;
@@ -150,7 +160,7 @@ type DraftWikiApiClient = {
   reviewDraftWiki: (
     wikiId: string,
     action: WikiDraftWorkflowAction,
-    body: ReviewWikiRequestBody | TranslateWikiRequestBody,
+    body: ReviewWikiRequestBody | RejectWikiRequestBody | TranslateWikiRequestBody,
   ) => Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody>;
   submitDraftWiki: (wikiId: string, body: SubmitWikiRequestBody) => Promise<DraftWikiSummary>;
   withdrawDraftWiki: (wikiId: string) => Promise<DraftWikiSummary>;
@@ -497,6 +507,18 @@ export const createReviewWikiRequestBody = (
   return parseWithSchemaLog("wiki review request", reviewWikiRequestBodySchema, body);
 };
 
+export const createRejectWikiRequestBody = (
+  draft: Pick<WikiDraftWiki, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
+  reason: string,
+): RejectWikiRequestBody => {
+  const body: Record<string, unknown> = {
+    ...createReviewWikiRequestBody(draft),
+    reason: reason.trim(),
+  };
+
+  return parseWithSchemaLog("wiki reject request", rejectWikiRequestBodySchema, body);
+};
+
 export const createDeleteWikiRequestBody = (
   draft: Record<string, unknown>,
 ): DeleteWikiRequestBody => {
@@ -695,7 +717,7 @@ export const reviewDraftWiki = async (
   client: DraftWikiApiClient,
   wikiId: string,
   action: WikiDraftWorkflowAction,
-  body: ReviewWikiRequestBody | TranslateWikiRequestBody,
+  body: ReviewWikiRequestBody | RejectWikiRequestBody | TranslateWikiRequestBody,
 ): Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody> =>
   client.reviewDraftWiki(wikiId, action, body);
 
@@ -1191,7 +1213,7 @@ const reviewWikiDraftRequest = async ({
   action: WikiDraftWorkflowAction;
   fallbackErrorMessage: string;
   wikiId: string;
-  requestBody: ReviewWikiRequestBody | TranslateWikiRequestBody;
+  requestBody: ReviewWikiRequestBody | RejectWikiRequestBody | TranslateWikiRequestBody;
 }): Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody> => {
   const response = await fetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}/${action}`,
@@ -1242,7 +1264,7 @@ export const rejectWikiDraft = async ({
 }: {
   fallbackErrorMessage: string;
   wikiId: string;
-  requestBody: ReviewWikiRequestBody;
+  requestBody: RejectWikiRequestBody;
 }): Promise<DraftWikiSummary> =>
   reviewWikiDraftRequest({
     action: "reject",
