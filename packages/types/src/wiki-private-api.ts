@@ -78,6 +78,7 @@ const DraftWikiListItem = z
     approvedAt: z.string().nullable(),
     translatedAt: z.string().nullable(),
     mergedAt: z.string().nullable(),
+    reason: z.string().nullable(),
   })
   .passthrough();
 const ListDraftWikisResponseBody = z
@@ -336,6 +337,7 @@ const AgencyDraftWikiDetail = z
     heroImage: DraftWikiHeroImage,
     basic: AgencyDraftWikiBasic,
     sections: z.array(z.unknown()),
+    reason: z.string().nullable(),
   })
   .passthrough();
 const AutoCreateWikiRequestBody = z
@@ -398,6 +400,7 @@ const DraftWikiDetail = z
     heroImage: DraftWikiHeroImage,
     basic: GroupDraftWikiBasic,
     sections: z.array(z.unknown()),
+    reason: z.string().nullable(),
   })
   .passthrough();
 const SongDraftWikiGroupSummary = z
@@ -475,6 +478,7 @@ const SongDraftWikiDetail = z
     heroImage: DraftWikiHeroImage,
     basic: SongDraftWikiBasic,
     sections: z.array(z.unknown()),
+    reason: z.string().nullable(),
   })
   .passthrough();
 const TalentDraftWikiGroupSummary = z
@@ -531,6 +535,7 @@ const TalentDraftWikiDetail = z
     heroImage: DraftWikiHeroImage,
     basic: TalentDraftWikiBasic,
     sections: z.array(z.unknown()),
+    reason: z.string().nullable(),
   })
   .passthrough();
 const AgencyWikiDetail = z

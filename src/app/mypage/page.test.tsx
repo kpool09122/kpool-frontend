@@ -1289,7 +1289,7 @@ describe("MyPageClient", () => {
     expect(await screen.findByText("承認済みWikiはありません")).toBeInTheDocument();
   });
 
-  it("rejects an unapproved draft wiki and removes it from the list", async () => {
+  it("opens a reject reason dialog before rejecting an unapproved draft wiki", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
@@ -1321,17 +1321,99 @@ describe("MyPageClient", () => {
 
     fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
     fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+    const dialog = await screen.findByRole("dialog", { name: "Wikiを拒否" });
+
+    expect(draftWikiAdapter.rejectDraftWiki).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole("button", { name: "拒否理由を送信" })).toBeDisabled();
+
+    fireEvent.change(within(dialog).getByLabelText("拒否理由"), {
+      target: { value: "  内容が不足しています。  " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "拒否理由を送信" }));
 
     await waitFor(() =>
       expect(draftWikiAdapter.rejectDraftWiki).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki を拒否できませんでした。",
         requestBody: {
           resourceType: "group",
+          reason: "内容が不足しています。",
         },
         wikiId: draftWiki.wikiIdentifier,
       }),
     );
     expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
+  });
+
+
+
+  it("shows rejection reason icon only for draft wikis with a non-empty reason", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listMyDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [
+          {
+            ...draftWiki,
+            name: "拒否理由あり Wiki",
+            reason: "内容が不足しています。",
+          },
+          {
+            ...draftWiki,
+            wikiIdentifier: "99999999-8888-8888-8888-888888888888",
+            name: "拒否理由なし Wiki",
+            reason: null,
+          },
+        ],
+        current_page: 1,
+        last_page: 1,
+        total: 2,
+        per_page: 12,
+      }),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: {
+            ...draftWikiListState,
+            pageInfo: {
+              current_page: 1,
+              last_page: 1,
+              total: 2,
+            },
+            wikis: [
+              {
+                ...draftWiki,
+                name: "拒否理由あり Wiki",
+                reason: "内容が不足しています。",
+              },
+              {
+                ...draftWiki,
+                wikiIdentifier: "99999999-8888-8888-8888-888888888888",
+                name: "拒否理由なし Wiki",
+                reason: null,
+              },
+            ],
+          },
+          submittedWikis: emptyDraftWikiListState,
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("link", { name: "拒否理由あり Wiki" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "拒否理由なし Wiki" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "拒否理由を表示" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "拒否理由を表示" }));
+    const dialog = await screen.findByRole("dialog", { name: "拒否理由" });
+
+    expect(within(dialog).getByText("内容が不足しています。")).toBeInTheDocument();
   });
 
   it("links an unapproved draft wiki with a published wiki to the diff page", async () => {

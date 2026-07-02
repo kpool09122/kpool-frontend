@@ -93,7 +93,7 @@ describe("wiki draft review route", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const body = { resourceType: "group" };
+    const body = { resourceType: "group", reason: "内容が不足しています。" };
     const response = await rejectPOST(createRequest(body), createContext());
 
     expect(response.status).toBe(201);

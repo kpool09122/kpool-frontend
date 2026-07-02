@@ -90,6 +90,12 @@ type CreateDraftWikiDialogState = {
   isOpen: boolean;
 };
 
+type RejectDraftWikiDialogState = {
+  isOpen: boolean;
+  reason: string;
+  wiki: MyPageWikiListItem | null;
+};
+
 const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
   createPrincipal: createWikiPrincipal,
   getCurrentPrincipal: getCurrentWikiPrincipal,
@@ -153,6 +159,11 @@ export function MyPageClient({
     error: null,
     isCreating: false,
     isOpen: false,
+  });
+  const [rejectDialog, setRejectDialog] = useState<RejectDraftWikiDialogState>({
+    isOpen: false,
+    reason: "",
+    wiki: null,
   });
   const draftImageMessages = useMemo(() => ({
     draftImageApproveFailed: t.draftImageApproveFailed,
@@ -256,6 +267,39 @@ export function MyPageClient({
           isOpen: false,
         });
   };
+  const openRejectDialog = (wiki: MyPageWikiListItem) => {
+    setRejectDialog({
+      isOpen: true,
+      reason: "",
+      wiki,
+    });
+  };
+  const closeRejectDialog = () => {
+    if (reviewingWikiIdentifier) {
+      return;
+    }
+
+    setRejectDialog({
+      isOpen: false,
+      reason: "",
+      wiki: null,
+    });
+  };
+  const submitRejectDialog = (reason: string) => {
+    const wiki = rejectDialog.wiki;
+
+    if (!wiki) {
+      return;
+    }
+
+    void reviewDraftWiki(wiki, "reject", reason);
+    setRejectDialog({
+      isOpen: false,
+      reason: "",
+      wiki: null,
+    });
+  };
+
   const submitCreateDialog = (input: {
     agencyIdentifier: string | null;
     groupIdentifiers: string[];
@@ -381,7 +425,14 @@ export function MyPageClient({
                 void deleteDraftWikiFromMyPage(wiki);
               }
             }}
-            onReviewDraftWiki={(wiki, action) => void reviewDraftWiki(wiki, action)}
+            onReviewDraftWiki={(wiki, action) => {
+              if (action === "reject") {
+                openRejectDialog(wiki);
+                return;
+              }
+
+              void reviewDraftWiki(wiki, action);
+            }}
             onSelectWikiTab={setSelectedWikiTab}
             onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
             onOpenCreateDraftWiki={openCreateDialog}
@@ -395,6 +446,13 @@ export function MyPageClient({
             autoCreatableResourceTypes={autoCreatableResourceTypes}
             onClose={closeCreateDialog}
             onSubmit={submitCreateDialog}
+          />
+          <RejectDraftWikiDialog
+            isOpen={rejectDialog.isOpen}
+            isSubmitting={Boolean(reviewingWikiIdentifier)}
+            t={t}
+            onClose={closeRejectDialog}
+            onSubmit={submitRejectDialog}
           />
         </section>
       </div>
@@ -446,7 +504,7 @@ function WikiPrincipalPanel({
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
-  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
   onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
   onOpenCreateDraftWiki: () => void;
@@ -792,6 +850,126 @@ function CreateDraftWikiDialog({
   );
 }
 
+
+type RejectDraftWikiDialogProps = { isOpen: boolean; isSubmitting: boolean; t: ReturnType<typeof useI18n>["dictionary"]["mypage"]; onClose: () => void; onSubmit: (reason: string) => void };
+
+function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
+  const { isOpen, isSubmitting, onClose, onSubmit, t } = props;
+  const [reason, setReason] = useState("");
+  const trimmedReason = reason.trim();
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <section
+      aria-label={t.rejectDraftWikiDialogTitle}
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      role="dialog"
+    >
+      <form
+        className="mx-auto w-full max-w-[30rem] rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft"
+        onSubmit={(event) => {
+          event.preventDefault();
+
+          if (!trimmedReason) {
+            return;
+          }
+
+          onSubmit(trimmedReason);
+          setReason("");
+        }}
+      >
+        <header className="flex items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold">{t.rejectDraftWikiDialogTitle}</h2>
+          <button
+            className="inline-flex rounded-md border border-stroke-subtle px-3 py-1.5 text-sm font-semibold text-text-muted transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={() => {
+              setReason("");
+              onClose();
+            }}
+            type="button"
+          >
+            {t.closeDraftWikiRejectReason}
+          </button>
+        </header>
+        <label className="mt-5 grid gap-2 text-sm font-semibold">
+          {t.rejectDraftWikiReasonLabel}
+          <textarea
+            className="min-h-32 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+            disabled={isSubmitting}
+            onChange={(event) => setReason(event.currentTarget.value)}
+            required
+            value={reason}
+          />
+        </label>
+        {!trimmedReason ? (
+          <p className="mt-2 text-sm font-semibold text-red-700" role="alert">
+            {t.rejectDraftWikiReasonRequired}
+          </p>
+        ) : null}
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={() => {
+              setReason("");
+              onClose();
+            }}
+            type="button"
+          >
+            {t.cancelDraftWikiRejectReason}
+          </button>
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting || !trimmedReason}
+            type="submit"
+          >
+            {isSubmitting ? t.draftWikiReviewing : t.submitDraftWikiRejectReason}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+type DraftWikiRejectReasonDialogProps = { reason: string | null; t: ReturnType<typeof useI18n>["dictionary"]["mypage"]; onClose: () => void };
+
+function DraftWikiRejectReasonDialog(props: DraftWikiRejectReasonDialogProps) {
+  const { reason, t, onClose } = props;
+  if (!reason) {
+    return null;
+  }
+
+  return (
+    <section
+      aria-label={t.draftWikiRejectReasonDialogTitle}
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+      role="dialog"
+    >
+      <div className="mx-auto w-full max-w-[30rem] rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
+        <header className="flex items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold">{t.draftWikiRejectReasonDialogTitle}</h2>
+          <button
+            className="inline-flex rounded-md border border-stroke-subtle px-3 py-1.5 text-sm font-semibold text-text-muted transition hover:bg-brand-highlight/30"
+            onClick={onClose}
+            type="button"
+          >
+            {t.closeDraftWikiRejectReason}
+          </button>
+        </header>
+        <p className="mt-4 whitespace-pre-wrap rounded-lg bg-surface-base p-3 text-sm leading-6">
+          {reason}
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function AutoCreateRelatedWikiFields({
   resourceType,
   t,
@@ -857,7 +1035,7 @@ function DraftWikiListPanel({
   onLoadMore: () => void;
   onReload: () => void;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
-  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
   const canLoadMore = state.pageInfo
@@ -986,7 +1164,7 @@ function DraftWikiCard({
   tab: MyPageDraftWikiActionTab;
   wiki: MyPageWikiListItem;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
-  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
   const hasImage = Boolean(wiki.imageUrl);
@@ -994,6 +1172,8 @@ function DraftWikiCard({
   const isDraftWiki = isDraftWikiListItem(wiki);
   const diffHref = getDraftWikiDiffHref(wiki);
   const canOpenDiff = isDraftWiki && wiki.publishedWikiIdentifier !== null;
+  const rejectionReason = getDraftWikiRejectionReason(wiki);
+  const [isRejectionReasonOpen, setIsRejectionReasonOpen] = useState(false);
   const cardClassName =
     "wiki-theme-scope min-w-0 rounded-lg border border-stroke-subtle bg-surface-base bg-cover bg-center p-4 shadow-soft";
   const cardStyle = buildDraftWikiCardStyle(wiki);
@@ -1022,23 +1202,35 @@ function DraftWikiCard({
             {wiki.language}
           </p>
         </div>
-        <span
-          className="shrink-0 rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted"
-          style={{
-            backgroundColor: hasImage
-              ? "rgba(255, 255, 255, 0.86)"
-              : wiki.themeColor
-                ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
-                : undefined,
-            color: hasImage
-              ? "#15243b"
-              : wiki.themeColor
-                ? "var(--wiki-accent-text)"
-                : undefined,
-          }}
-        >
-          {getDraftWikiResourceLabel(t, wiki.resourceType)}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {rejectionReason ? (
+            <button
+              aria-label={t.showDraftWikiRejectReason}
+              className="rounded-full border border-red-300 bg-red-50 px-2 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100"
+              onClick={() => setIsRejectionReasonOpen(true)}
+              type="button"
+            >
+              !
+            </button>
+          ) : null}
+          <span
+            className="rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted"
+            style={{
+              backgroundColor: hasImage
+                ? "rgba(255, 255, 255, 0.86)"
+                : wiki.themeColor
+                  ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
+                  : undefined,
+              color: hasImage
+                ? "#15243b"
+                : wiki.themeColor
+                  ? "var(--wiki-accent-text)"
+                  : undefined,
+            }}
+          >
+            {getDraftWikiResourceLabel(t, wiki.resourceType)}
+          </span>
+        </div>
       </div>
       <dl className="mt-4 grid gap-3 text-sm">
         {isDraftWiki ? (
@@ -1161,6 +1353,11 @@ function DraftWikiCard({
         </div>
       ) : null}
     </div>
+      <DraftWikiRejectReasonDialog
+        reason={isRejectionReasonOpen ? rejectionReason : null}
+        t={t}
+        onClose={() => setIsRejectionReasonOpen(false)}
+      />
     </article>
   );
 }
@@ -1341,6 +1538,12 @@ function DraftWikiMeta({
     </div>
   );
 }
+
+const getDraftWikiRejectionReason = (wiki: MyPageWikiListItem): string | null => {
+  const reason = "reason" in wiki ? wiki.reason : null;
+
+  return typeof reason === "string" && reason.trim() ? reason : null;
+};
 
 const getDraftWikiListMessages = (
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"],
