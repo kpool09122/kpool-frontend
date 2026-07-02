@@ -6,8 +6,9 @@ import type {
 import type {
   approveWikiDraft,
   deleteWikiDraft,
+  fetchManagedWikiDraftWikis,
+  fetchMyWikiDraftWikis,
   fetchVersionInconsistentWikis,
-  fetchWikiDraftWikis,
   publishWikiDraft,
   rejectWikiDraft,
   translateWikiDraft,
@@ -32,7 +33,8 @@ export type MyPageDraftImageAdapter = {
 export type MyPageDraftWikiAdapter = {
   approveDraftWiki: typeof approveWikiDraft;
   deleteDraftWiki: typeof deleteWikiDraft;
-  listDraftWikis: typeof fetchWikiDraftWikis;
+  listManagedDraftWikis: typeof fetchManagedWikiDraftWikis;
+  listMyDraftWikis: typeof fetchMyWikiDraftWikis;
   listUntranslatedWikis: typeof fetchVersionInconsistentWikis;
   publishDraftWiki: typeof publishWikiDraft;
   rejectDraftWiki: typeof rejectWikiDraft;

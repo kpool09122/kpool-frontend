@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { GET as getDraftImages } from "./draft-images/route";
 import { GET as getDraftWikis } from "./draft-wikis/route";
 import { GET as getImages } from "./images/route";
+import { GET as getMyDraftWikis } from "./my/draft-wikis/route";
 import { POST as uploadImage } from "./images/upload/route";
 import { GET as getVersionInconsistentWikis } from "./version-inconsistent-wikis/route";
 
@@ -87,6 +88,9 @@ describe("wiki API route error messages", () => {
     const responses = await Promise.all([
       getDraftWikis(
         createRequest("https://app.example.test/api/wiki/draft-wikis?status=pending"),
+      ),
+      getMyDraftWikis(
+        createRequest("https://app.example.test/api/wiki/my/draft-wikis?status=pending"),
       ),
       getVersionInconsistentWikis(
         createRequest("https://app.example.test/api/wiki/version-inconsistent-wikis"),

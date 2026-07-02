@@ -3,6 +3,8 @@ import type { WikiDraftImageStatus } from "@kpool/wiki";
 import type { MyPageDraftWikiActionTab } from "./useMyPageDraftWikis";
 import type { WikiDraftWikiStatus } from "@/gateways/wiki/draftWiki";
 
+type WikiDraftWikiListScope = "managed" | "my";
+
 export const myPageQueryKeys = {
   all: ["mypage"] as const,
   draftImages: {
@@ -42,12 +44,12 @@ export const myPageQueryKeys = {
     all: () => [...myPageQueryKeys.all, "draftWikis"] as const,
     list: ({
       identityIdentifier,
-	      onlyMine,
+	      scope,
 	      status,
 	      tab,
 	    }: {
 	      identityIdentifier: string | null;
-	      onlyMine?: boolean;
+	      scope?: WikiDraftWikiListScope;
 	      status?: WikiDraftWikiStatus;
 	      tab: MyPageDraftWikiActionTab;
 	    }) => [
@@ -56,23 +58,23 @@ export const myPageQueryKeys = {
 	      identityIdentifier ?? "guest",
 	      tab,
 	      status ?? null,
-	      onlyMine ?? null,
+	      scope ?? null,
 	    ] as const,
     page: ({
       identityIdentifier,
-	      onlyMine,
 	      page,
+      scope,
 	      status,
 	      tab,
 	    }: {
 	      identityIdentifier: string | null;
-	      onlyMine?: boolean;
 	      page: number;
+	      scope?: WikiDraftWikiListScope;
 	      status?: WikiDraftWikiStatus;
 	      tab: MyPageDraftWikiActionTab;
 	    }) => [...myPageQueryKeys.draftWikis.list({
       identityIdentifier,
-      onlyMine,
+      scope,
       status,
       tab,
     }), page] as const,

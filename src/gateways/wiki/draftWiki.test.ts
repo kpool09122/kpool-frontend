@@ -12,12 +12,14 @@ import {
   createReviewWikiRequestBody,
   createSubmitWikiRequestBody,
   createTranslateWikiRequestBody,
-  createWikiDraftWikisUrl,
+  createManagedWikiDraftWikisUrl,
+  createMyWikiDraftWikisUrl,
   createVersionInconsistentWikisUrl,
   fetchDraftWikiByIdentifier,
   fetchDraftWiki,
+  fetchManagedWikiDraftWikis,
+  fetchMyWikiDraftWikis,
   fetchVersionInconsistentWikis,
-  fetchWikiDraftWikis,
   getCreateWikiEndpointPath,
   getDeleteWikiEndpointPath,
   getDraftWikiByIdentifierEndpointPath,
@@ -697,19 +699,21 @@ describe("draftWiki", () => {
     });
   });
 
-  it("builds draft wiki list urls with status, onlyMine, and optional filters", () => {
-    expect(
-      createWikiDraftWikisUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
-        onlyMine: true,
-        page: 2,
-        perPage: 24,
-        resourceType: "group",
-        status: "under_review",
-        translationSetIdentifier: "translation-set-1",
-      }),
-    ).toBe(
-      "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=24&page=2&onlyMine=true&resourceType=group&translationSetIdentifier=translation-set-1",
+  it("builds my and managed draft wiki list urls without legacy filtering query", () => {
+    const params = {
+      baseUrl: "https://api.example.test/api/wiki/",
+      page: 2,
+      perPage: 24,
+      resourceType: "group",
+      status: "under_review" as const,
+      translationSetIdentifier: "translation-set-1",
+    };
+
+    expect(createMyWikiDraftWikisUrl(params)).toBe(
+      "https://api.example.test/api/wiki/my/draft-wikis?status=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+    );
+    expect(createManagedWikiDraftWikisUrl(params)).toBe(
+      "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
     );
   });
 
@@ -786,19 +790,37 @@ describe("draftWiki", () => {
     );
 
     await expect(
-      fetchWikiDraftWikis({
+      fetchMyWikiDraftWikis({
         fallbackErrorMessage: "fallback",
-        onlyMine: true,
         page: 1,
         perPage: 12,
         status: "pending",
       }),
     ).resolves.toEqual(expect.objectContaining({ total: 1 }));
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/wiki/draft-wikis?status=pending&perPage=12&page=1&onlyMine=true",
+      "/api/wiki/my/draft-wikis?status=pending&perPage=12&page=1",
       {
         credentials: "include",
       },
+    );
+  });
+
+  it("fetches managed draft wiki lists through the browser API route", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 }), { status: 200 }),
+    );
+
+    await expect(
+      fetchManagedWikiDraftWikis({
+        fallbackErrorMessage: "fallback",
+        page: 1,
+        perPage: 12,
+        status: "under_review",
+      }),
+    ).resolves.toEqual(expect.objectContaining({ total: 0 }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/draft-wikis?status=under_review&perPage=12&page=1",
+      { credentials: "include" },
     );
   });
 

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 import { GET, POST } from "./route";
+import { GET as GET_MY_DRAFT_WIKIS } from "../my/draft-wikis/route";
 
 const createRequest = (url: string, headers: Record<string, string> = {}): NextRequest =>
   new NextRequest(url, {
@@ -59,6 +60,42 @@ describe("wiki draft wikis route", () => {
       { status: 503 },
     );
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
+  });
+
+  it("forwards managed draft wiki list requests without legacy filtering query", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 }, 200),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await GET(
+      createRequest("https://app.example.test/api/wiki/draft-wikis?status=under_review"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=12&page=1",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("forwards my draft wiki list requests to the separated backend endpoint", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 }, 200),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await GET_MY_DRAFT_WIKIS(
+      createRequest("https://app.example.test/api/wiki/my/draft-wikis?status=pending"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/api/wiki/my/draft-wikis?status=pending&perPage=12&page=1",
+      expect.objectContaining({ method: "GET" }),
+    );
   });
 
   it("forwards draft wiki creation to the backend create endpoint", async () => {
