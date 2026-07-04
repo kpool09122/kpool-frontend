@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { wikiPrivateApiTypes } from "@kpool/types";
+import { z } from "zod";
 
 import {
   defaultWikiDraftPerPage,
@@ -21,7 +22,7 @@ type CreateDraftWikiListUrl = (params: {
   page: number;
   perPage: number;
   resourceType?: string;
-  status: WikiDraftWikiStatus;
+  statuses: readonly WikiDraftWikiStatus[];
   translationSetIdentifier?: string;
 }) => string;
 
@@ -36,12 +37,13 @@ export const createDraftWikiListRouteGetHandler = (
     return jsonErrorResponse("Wiki draft API is not configured.", 500);
   }
 
-  const statusResult = wikiPrivateApiTypes.schemas.DraftWikiStatus.safeParse(
-    request.nextUrl.searchParams.get("status"),
-  );
+  const statusesResult = z
+    .array(wikiPrivateApiTypes.schemas.DraftWikiStatus)
+    .min(1)
+    .safeParse(request.nextUrl.searchParams.getAll("statuses[]"));
 
-  if (!statusResult.success) {
-    return jsonErrorResponse("Valid draft wiki status is required.", 400);
+  if (!statusesResult.success) {
+    return jsonErrorResponse("At least one valid draft wiki status is required.", 400);
   }
 
   try {
@@ -54,7 +56,7 @@ export const createDraftWikiListRouteGetHandler = (
           defaultWikiDraftPerPage,
         ),
         resourceType: request.nextUrl.searchParams.get("resourceType") ?? undefined,
-        status: statusResult.data,
+        statuses: statusesResult.data,
         translationSetIdentifier:
           request.nextUrl.searchParams.get("translationSetIdentifier") ?? undefined,
       }),

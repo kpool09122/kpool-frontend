@@ -47,7 +47,7 @@ describe("wiki draft wikis route", () => {
     );
 
     const response = await GET(
-      createRequest("https://app.example.test/api/wiki/draft-wikis?status=pending"),
+      createRequest("https://app.example.test/api/wiki/draft-wikis?statuses%5B%5D=pending"),
     );
     const body = await response.json();
 
@@ -70,12 +70,12 @@ describe("wiki draft wikis route", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await GET(
-      createRequest("https://app.example.test/api/wiki/draft-wikis?status=under_review"),
+      createRequest("https://app.example.test/api/wiki/draft-wikis?statuses%5B%5D=under_review"),
     );
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=12&page=1",
+      "https://api.example.test/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12&page=1",
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -88,12 +88,12 @@ describe("wiki draft wikis route", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await GET_MY_DRAFT_WIKIS(
-      createRequest("https://app.example.test/api/wiki/my/draft-wikis?status=pending"),
+      createRequest("https://app.example.test/api/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected"),
     );
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/my/draft-wikis?status=pending&perPage=12&page=1",
+      "https://api.example.test/api/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12&page=1",
       expect.objectContaining({ method: "GET" }),
     );
   });

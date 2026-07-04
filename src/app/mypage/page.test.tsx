@@ -805,7 +805,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "under_review",
+        statuses: ["under_review"],
       }),
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
@@ -821,11 +821,11 @@ describe("MyPageClient", () => {
       status: "under_review" as const,
     };
     const draftWikiAdapter = createDraftWikiAdapter({
-      listMyDraftWikis: vi.fn().mockImplementation(({ status }) => Promise.resolve({
-        wikis: status === "under_review" ? [submittedWiki] : [],
+      listMyDraftWikis: vi.fn().mockImplementation(({ statuses }) => Promise.resolve({
+        wikis: statuses.includes("under_review") ? [submittedWiki] : [],
         current_page: 1,
         last_page: 1,
-        total: status === "under_review" ? 1 : 0,
+        total: statuses.includes("under_review") ? 1 : 0,
         per_page: 12,
       })),
     });
@@ -869,7 +869,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "pending",
+        statuses: ["pending", "rejected"],
       }),
     );
   });
@@ -1049,7 +1049,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "under_review",
+        statuses: ["under_review"],
       }),
     );
     expect(await screen.findByRole("link", { name: "未承認 Wiki" })).toBeInTheDocument();
@@ -1057,7 +1057,7 @@ describe("MyPageClient", () => {
       "--wiki-page-background-light",
     );
     expect(screen.getByRole("button", { name: "承認" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "拒否" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "却下" })).toBeInTheDocument();
   });
 
   it("approves an unapproved draft wiki and removes it from the list", async () => {
@@ -1144,13 +1144,13 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "approved",
+        statuses: ["approved"],
       }),
     );
     expect(await screen.findByRole("link", { name: "承認済み Wiki" })).toBeInTheDocument();
 	  expect(screen.getByRole("button", { name: "公開" })).toBeInTheDocument();
 	  expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
-	  expect(screen.queryByRole("button", { name: "拒否" })).not.toBeInTheDocument();
+	  expect(screen.queryByRole("button", { name: "却下" })).not.toBeInTheDocument();
 	});
 
   it("shows untranslated wikis after approved wikis and translates them", async () => {
@@ -1289,7 +1289,7 @@ describe("MyPageClient", () => {
     expect(await screen.findByText("承認済みWikiはありません")).toBeInTheDocument();
   });
 
-  it("rejects an unapproved draft wiki and removes it from the list", async () => {
+  it("opens a reject reason dialog before rejecting an unapproved draft wiki", async () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
@@ -1320,18 +1320,100 @@ describe("MyPageClient", () => {
     );
 
     fireEvent.click(await screen.findByRole("tab", { name: "未承認のWiki" }));
-    fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+    fireEvent.click(await screen.findByRole("button", { name: "却下" }));
+    const dialog = await screen.findByRole("dialog", { name: "Wikiを却下" });
+
+    expect(draftWikiAdapter.rejectDraftWiki).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole("button", { name: "却下理由を送信" })).toBeDisabled();
+
+    fireEvent.change(within(dialog).getByLabelText("却下理由"), {
+      target: { value: "  内容が不足しています。  " },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "却下理由を送信" }));
 
     await waitFor(() =>
       expect(draftWikiAdapter.rejectDraftWiki).toHaveBeenCalledWith({
-        fallbackErrorMessage: "Wiki を拒否できませんでした。",
+        fallbackErrorMessage: "Wiki を却下できませんでした。",
         requestBody: {
           resourceType: "group",
+          rejectionReason: "内容が不足しています。",
         },
         wikiId: draftWiki.wikiIdentifier,
       }),
     );
     expect(await screen.findByText("未承認のWikiはありません")).toBeInTheDocument();
+  });
+
+
+
+  it("shows rejection reason icon only for draft wikis with a non-empty reason", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listMyDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [
+          {
+            ...draftWiki,
+            name: "却下理由あり Wiki",
+            rejectionReason: "内容が不足しています。",
+          },
+          {
+            ...draftWiki,
+            wikiIdentifier: "99999999-8888-8888-8888-888888888888",
+            name: "却下理由なし Wiki",
+            rejectionReason: null,
+          },
+        ],
+        current_page: 1,
+        last_page: 1,
+        total: 2,
+        per_page: 12,
+      }),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{
+          approvedWikis: emptyDraftWikiListState,
+          editingWikis: {
+            ...draftWikiListState,
+            pageInfo: {
+              current_page: 1,
+              last_page: 1,
+              total: 2,
+            },
+            wikis: [
+              {
+                ...draftWiki,
+                name: "却下理由あり Wiki",
+                rejectionReason: "内容が不足しています。",
+              },
+              {
+                ...draftWiki,
+                wikiIdentifier: "99999999-8888-8888-8888-888888888888",
+                name: "却下理由なし Wiki",
+                rejectionReason: null,
+              },
+            ],
+          },
+          submittedWikis: emptyDraftWikiListState,
+          unapprovedWikis: emptyDraftWikiListState,
+          untranslatedWikis: emptyDraftWikiListState,
+        }}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("link", { name: "却下理由あり Wiki" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "却下理由なし Wiki" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "却下理由を表示" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "却下理由を表示" }));
+    const dialog = await screen.findByRole("dialog", { name: "却下理由" });
+
+    expect(within(dialog).getByText("内容が不足しています。")).toBeInTheDocument();
   });
 
   it("links an unapproved draft wiki with a published wiki to the diff page", async () => {
@@ -1513,11 +1595,11 @@ describe("MyPageClient", () => {
     );
 
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
-    fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+    fireEvent.click(await screen.findByRole("button", { name: "却下" }));
 
     await waitFor(() =>
       expect(draftImageAdapter.rejectDraftImage).toHaveBeenCalledWith({
-        fallbackErrorMessage: "画像を拒否できませんでした。",
+        fallbackErrorMessage: "画像を却下できませんでした。",
         imageIdentifier: draftImage.imageIdentifier,
       }),
     );
@@ -1562,10 +1644,10 @@ describe("MyPageClient", () => {
     );
 
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
-    fireEvent.click(await screen.findByRole("button", { name: "拒否" }));
+    fireEvent.click(await screen.findByRole("button", { name: "却下" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("reject failed");
-    expect(screen.getByRole("button", { name: "拒否" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "却下" })).toBeEnabled();
   });
 
   it("does not show draft image tabs when policies do not allow image review", async () => {

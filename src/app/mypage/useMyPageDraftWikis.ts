@@ -9,6 +9,7 @@ import { useCallback, useState } from "react";
 
 import {
   createDeleteWikiRequestBody,
+  createRejectWikiRequestBody,
   createReviewWikiRequestBody,
   createTranslateWikiRequestBody,
   defaultWikiDraftPerPage,
@@ -38,7 +39,7 @@ type DraftWikiListScope = "managed" | "my";
 
 type DraftWikiListConfig = {
   scope: DraftWikiListScope;
-  status: WikiDraftWikiStatus;
+  statuses: WikiDraftWikiStatus[];
 };
 
 type MyPageDraftWikiMessages = {
@@ -62,19 +63,19 @@ export const initialDraftWikiListState: DraftWikiListState = {
 export const draftWikiListConfigByTab = {
   editingWikis: {
     scope: "my",
-    status: "pending",
+    statuses: ["pending", "rejected"],
   },
   submittedWikis: {
     scope: "my",
-    status: "under_review",
+    statuses: ["under_review"],
   },
   unapprovedWikis: {
     scope: "managed",
-    status: "under_review",
+    statuses: ["under_review"],
   },
   approvedWikis: {
     scope: "managed",
-    status: "approved",
+    statuses: ["approved"],
   },
 } as const satisfies Record<Exclude<MyPageDraftWikiActionTab, "untranslatedWikis">, DraftWikiListConfig>;
 
@@ -100,7 +101,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.approvedWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listManagedDraftWikis({
-        status: draftWikiListConfigByTab.approvedWikis.status,
+        statuses: draftWikiListConfigByTab.approvedWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -115,7 +116,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.editingWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listMyDraftWikis({
-        status: draftWikiListConfigByTab.editingWikis.status,
+        statuses: draftWikiListConfigByTab.editingWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -130,7 +131,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.submittedWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listMyDraftWikis({
-        status: draftWikiListConfigByTab.submittedWikis.status,
+        statuses: draftWikiListConfigByTab.submittedWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -145,7 +146,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.unapprovedWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listManagedDraftWikis({
-        status: draftWikiListConfigByTab.unapprovedWikis.status,
+        statuses: draftWikiListConfigByTab.unapprovedWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -217,7 +218,7 @@ export const useMyPageDraftWikis = ({
           fallbackErrorMessage: messages.draftWikiListLoadFailed,
           page,
           perPage: defaultWikiDraftPerPage,
-          status: config.status,
+          statuses: config.statuses,
         });
       },
     }).then((wikiPage) => {
@@ -267,13 +268,15 @@ export const useMyPageDraftWikis = ({
   const reviewMutation = useMutation<
     unknown,
     Error,
-    { action: WikiDraftWorkflowAction; wiki: MyPageWikiListItem }
+    { action: WikiDraftWorkflowAction; reason?: string; wiki: MyPageWikiListItem }
   >({
     mutationFn: ({
       action,
+      reason,
       wiki,
     }: {
       action: WikiDraftWorkflowAction;
+      reason?: string;
       wiki: MyPageWikiListItem;
     }) => {
       const fallbackErrorMessage =
@@ -292,6 +295,14 @@ export const useMyPageDraftWikis = ({
         });
       }
 
+      if (action === "reject") {
+        return adapter.rejectDraftWiki({
+          fallbackErrorMessage,
+          requestBody: createRejectWikiRequestBody(wiki, reason ?? ""),
+          wikiId: wiki.wikiIdentifier,
+        });
+      }
+
       const requestBody = createReviewWikiRequestBody(wiki);
 
       return action === "approve"
@@ -300,17 +311,11 @@ export const useMyPageDraftWikis = ({
             requestBody,
             wikiId: wiki.wikiIdentifier,
           })
-        : action === "publish"
-          ? adapter.publishDraftWiki({
-              fallbackErrorMessage,
-              requestBody,
-              wikiId: wiki.wikiIdentifier,
-            })
-          : adapter.rejectDraftWiki({
-              fallbackErrorMessage,
-              requestBody,
-              wikiId: wiki.wikiIdentifier,
-            });
+        : adapter.publishDraftWiki({
+            fallbackErrorMessage,
+            requestBody,
+            wikiId: wiki.wikiIdentifier,
+          });
     },
     onMutate: ({ wiki }) => {
       setReviewingWikiIdentifier(wiki.wikiIdentifier);
@@ -410,8 +415,9 @@ export const useMyPageDraftWikis = ({
   const reviewDraftWiki = (
     wiki: MyPageWikiListItem,
     action: WikiDraftWorkflowAction,
+    reason?: string,
   ) => {
-    reviewMutation.mutate({ wiki, action });
+    reviewMutation.mutate({ wiki, action, reason });
   };
 
   const deleteDraftWiki = (wiki: MyPageWikiListItem) => {

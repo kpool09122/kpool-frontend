@@ -87,10 +87,10 @@ describe("wiki API route error messages", () => {
 
     const responses = await Promise.all([
       getDraftWikis(
-        createRequest("https://app.example.test/api/wiki/draft-wikis?status=pending"),
+        createRequest("https://app.example.test/api/wiki/draft-wikis?statuses%5B%5D=pending"),
       ),
       getMyDraftWikis(
-        createRequest("https://app.example.test/api/wiki/my/draft-wikis?status=pending"),
+        createRequest("https://app.example.test/api/wiki/my/draft-wikis?statuses%5B%5D=pending"),
       ),
       getVersionInconsistentWikis(
         createRequest("https://app.example.test/api/wiki/version-inconsistent-wikis"),
