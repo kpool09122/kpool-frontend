@@ -553,7 +553,7 @@ type WikiDraftWikisUrlParams = {
   page: number;
   perPage: number;
   resourceType?: string;
-  status: WikiDraftWikiStatus;
+  statuses: readonly WikiDraftWikiStatus[];
   translationSetIdentifier?: string;
 };
 
@@ -563,11 +563,13 @@ const appendWikiDraftWikisSearchParams = (
     page,
     perPage,
     resourceType,
-    status,
+    statuses,
     translationSetIdentifier,
   }: Omit<WikiDraftWikisUrlParams, "baseUrl">,
 ): URL => {
-  url.searchParams.set("status", status);
+  statuses.forEach((status) => {
+    url.searchParams.append("statuses[]", status);
+  });
   url.searchParams.set("perPage", String(perPage));
   url.searchParams.set("page", String(page));
 
@@ -992,7 +994,7 @@ type FetchWikiDraftWikisParams = {
   page: number;
   perPage: number;
   resourceType?: string;
-  status: WikiDraftWikiStatus;
+  statuses: readonly WikiDraftWikiStatus[];
   translationSetIdentifier?: string;
 };
 
@@ -1003,7 +1005,7 @@ const fetchWikiDraftWikisFromRoute = async (
     page,
     perPage,
     resourceType,
-    status,
+    statuses,
     translationSetIdentifier,
   }: FetchWikiDraftWikisParams,
 ): Promise<WikiDraftWikiListResponse> => {
@@ -1013,7 +1015,7 @@ const fetchWikiDraftWikisFromRoute = async (
       page,
       perPage,
       resourceType,
-      status,
+      statuses,
       translationSetIdentifier,
     },
   );
@@ -1158,7 +1160,7 @@ export const loadInitialDraftWikisForRequest = async (
         baseUrl,
         page: 1,
         perPage: defaultWikiDraftPerPage,
-        status: "pending",
+        statuses: ["pending", "rejected"],
       }),
       {
         cache: "no-store",

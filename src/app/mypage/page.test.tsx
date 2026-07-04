@@ -805,7 +805,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "under_review",
+        statuses: ["under_review"],
       }),
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
@@ -821,11 +821,11 @@ describe("MyPageClient", () => {
       status: "under_review" as const,
     };
     const draftWikiAdapter = createDraftWikiAdapter({
-      listMyDraftWikis: vi.fn().mockImplementation(({ status }) => Promise.resolve({
-        wikis: status === "under_review" ? [submittedWiki] : [],
+      listMyDraftWikis: vi.fn().mockImplementation(({ statuses }) => Promise.resolve({
+        wikis: statuses.includes("under_review") ? [submittedWiki] : [],
         current_page: 1,
         last_page: 1,
-        total: status === "under_review" ? 1 : 0,
+        total: statuses.includes("under_review") ? 1 : 0,
         per_page: 12,
       })),
     });
@@ -869,7 +869,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "pending",
+        statuses: ["pending", "rejected"],
       }),
     );
   });
@@ -1049,7 +1049,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "under_review",
+        statuses: ["under_review"],
       }),
     );
     expect(await screen.findByRole("link", { name: "未承認 Wiki" })).toBeInTheDocument();
@@ -1144,7 +1144,7 @@ describe("MyPageClient", () => {
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
         page: 1,
         perPage: 12,
-        status: "approved",
+        statuses: ["approved"],
       }),
     );
     expect(await screen.findByRole("link", { name: "承認済み Wiki" })).toBeInTheDocument();

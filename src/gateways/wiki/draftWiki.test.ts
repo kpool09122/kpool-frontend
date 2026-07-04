@@ -474,7 +474,7 @@ describe("draftWiki", () => {
       fallbackErrorMessage: "failed",
       page: 1,
       perPage: 12,
-      status: "rejected",
+      statuses: ["rejected"],
     })).resolves.toMatchObject({
       wikis: [
         {
@@ -782,15 +782,15 @@ describe("draftWiki", () => {
       page: 2,
       perPage: 24,
       resourceType: "group",
-      status: "under_review" as const,
+      statuses: ["under_review"] as const,
       translationSetIdentifier: "translation-set-1",
     };
 
     expect(createMyWikiDraftWikisUrl(params)).toBe(
-      "https://api.example.test/api/wiki/my/draft-wikis?status=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+      "https://api.example.test/api/wiki/my/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
     );
     expect(createManagedWikiDraftWikisUrl(params)).toBe(
-      "https://api.example.test/api/wiki/draft-wikis?status=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+      "https://api.example.test/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
     );
   });
 
@@ -871,11 +871,11 @@ describe("draftWiki", () => {
         fallbackErrorMessage: "fallback",
         page: 1,
         perPage: 12,
-        status: "pending",
+        statuses: ["pending", "rejected"],
       }),
     ).resolves.toEqual(expect.objectContaining({ total: 1 }));
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/wiki/my/draft-wikis?status=pending&perPage=12&page=1",
+      "/api/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12&page=1",
       {
         credentials: "include",
       },
@@ -892,11 +892,11 @@ describe("draftWiki", () => {
         fallbackErrorMessage: "fallback",
         page: 1,
         perPage: 12,
-        status: "under_review",
+        statuses: ["under_review"],
       }),
     ).resolves.toEqual(expect.objectContaining({ total: 0 }));
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/wiki/draft-wikis?status=under_review&perPage=12&page=1",
+      "/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12&page=1",
       { credentials: "include" },
     );
   });

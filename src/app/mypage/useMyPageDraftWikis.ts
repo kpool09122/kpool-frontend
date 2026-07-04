@@ -39,7 +39,7 @@ type DraftWikiListScope = "managed" | "my";
 
 type DraftWikiListConfig = {
   scope: DraftWikiListScope;
-  status: WikiDraftWikiStatus;
+  statuses: WikiDraftWikiStatus[];
 };
 
 type MyPageDraftWikiMessages = {
@@ -63,19 +63,19 @@ export const initialDraftWikiListState: DraftWikiListState = {
 export const draftWikiListConfigByTab = {
   editingWikis: {
     scope: "my",
-    status: "pending",
+    statuses: ["pending", "rejected"],
   },
   submittedWikis: {
     scope: "my",
-    status: "under_review",
+    statuses: ["under_review"],
   },
   unapprovedWikis: {
     scope: "managed",
-    status: "under_review",
+    statuses: ["under_review"],
   },
   approvedWikis: {
     scope: "managed",
-    status: "approved",
+    statuses: ["approved"],
   },
 } as const satisfies Record<Exclude<MyPageDraftWikiActionTab, "untranslatedWikis">, DraftWikiListConfig>;
 
@@ -101,7 +101,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.approvedWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listManagedDraftWikis({
-        status: draftWikiListConfigByTab.approvedWikis.status,
+        statuses: draftWikiListConfigByTab.approvedWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -116,7 +116,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.editingWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listMyDraftWikis({
-        status: draftWikiListConfigByTab.editingWikis.status,
+        statuses: draftWikiListConfigByTab.editingWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -131,7 +131,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.submittedWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listMyDraftWikis({
-        status: draftWikiListConfigByTab.submittedWikis.status,
+        statuses: draftWikiListConfigByTab.submittedWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -146,7 +146,7 @@ export const useMyPageDraftWikis = ({
       enabled: false,
       initialData: initialDraftWikis.unapprovedWikis,
       queryFn: async () => toDraftWikiListState(await adapter.listManagedDraftWikis({
-        status: draftWikiListConfigByTab.unapprovedWikis.status,
+        statuses: draftWikiListConfigByTab.unapprovedWikis.statuses,
         fallbackErrorMessage: messages.draftWikiListLoadFailed,
         page: 1,
         perPage: defaultWikiDraftPerPage,
@@ -218,7 +218,7 @@ export const useMyPageDraftWikis = ({
           fallbackErrorMessage: messages.draftWikiListLoadFailed,
           page,
           perPage: defaultWikiDraftPerPage,
-          status: config.status,
+          statuses: config.statuses,
         });
       },
     }).then((wikiPage) => {

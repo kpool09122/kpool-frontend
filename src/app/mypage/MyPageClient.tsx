@@ -1,7 +1,7 @@
 "use client";
 
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
-import { ChevronRightIcon } from "@radix-ui/react-icons";
+import { ChevronRightIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
@@ -1195,11 +1195,11 @@ function DraftWikiCard({
           {rejectionReason ? (
             <button
               aria-label={t.showDraftWikiRejectReason}
-              className="rounded-full border border-red-300 bg-red-50 px-2 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100"
+              className="grid size-8 place-items-center text-yellow-500 transition hover:text-yellow-600"
               onClick={() => setIsRejectionReasonOpen(true)}
               type="button"
             >
-              !
+              <ExclamationTriangleIcon aria-hidden="true" className="size-6" />
             </button>
           ) : null}
           <span
