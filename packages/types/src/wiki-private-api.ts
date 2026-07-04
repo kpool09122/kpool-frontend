@@ -2913,7 +2913,7 @@ const endpoints = makeApi([
       {
         name: "sort",
         type: "Query",
-        schema: z.string().optional(),
+        schema: z.enum(["updatedAt", "name", "createdAt", "version"]).nullish(),
       },
       {
         name: "order",
