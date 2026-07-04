@@ -56,6 +56,7 @@ const DraftWikiStatus = z.enum([
   "rejected",
   "under_review",
 ]);
+const DraftWikiRejectionReasonText = z.string();
 const DraftWikiListItem = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -69,6 +70,7 @@ const DraftWikiListItem = z
     metaDescription: MetaDescriptionText.nullable(),
     keywords: z.array(SeoKeywordText).max(5).nullable(),
     status: DraftWikiStatus,
+    rejectionReason: DraftWikiRejectionReasonText.nullable(),
     name: z.string(),
     normalizedName: z.string(),
     imageIdentifier: KPool_Common_Uuid.nullable(),
@@ -329,6 +331,7 @@ const AgencyDraftWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     status: z.string(),
+    rejectionReason: DraftWikiRejectionReasonText.nullable(),
     themeColor: z.string().nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -391,6 +394,7 @@ const DraftWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     status: z.string(),
+    rejectionReason: DraftWikiRejectionReasonText.nullable(),
     themeColor: z.string().nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -468,6 +472,7 @@ const SongDraftWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     status: z.string(),
+    rejectionReason: DraftWikiRejectionReasonText.nullable(),
     themeColor: z.string().nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -524,6 +529,7 @@ const TalentDraftWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     status: z.string(),
+    rejectionReason: DraftWikiRejectionReasonText.nullable(),
     themeColor: z.string().nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -629,6 +635,7 @@ const PublishedWikiSummary = z
     version: z.number().int(),
   })
   .passthrough();
+const RejectWikiRequestBody = WikiAssociationTargets;
 const RollbackWikiRequestBody = WikiAssociationTargets;
 const RollbackWikiResponseBody = z
   .object({ wikis: z.array(PublishedWikiSummary) })
@@ -680,6 +687,7 @@ export const schemas = {
   MetaDescriptionText,
   SeoKeywordText,
   DraftWikiStatus,
+  DraftWikiRejectionReasonText,
   DraftWikiListItem,
   ListDraftWikisResponseBody,
   UploadImageRequestBody,
@@ -737,6 +745,7 @@ export const schemas = {
   WikiWorkflowRequestBody,
   UpdateWikiDraftRequestBody,
   PublishedWikiSummary,
+  RejectWikiRequestBody,
   RollbackWikiRequestBody,
   RollbackWikiResponseBody,
   TranslateWikiResponseBody,
@@ -2452,7 +2461,7 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: WikiWorkflowRequestBody,
+        schema: RejectWikiRequestBody,
       },
       {
         name: "wikiId",
