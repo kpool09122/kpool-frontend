@@ -112,7 +112,7 @@ describe("Wiki edit route", () => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
 
     await expect(Page(routeProps())).rejects.toThrow(
-      "redirect:/login?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
+      "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
     );
   });
 
@@ -120,7 +120,7 @@ describe("Wiki edit route", () => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
 
     await expect(Page(routeProps({ themeColor: "#d94f70" }))).rejects.toThrow(
-      "redirect:/login?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit%3FthemeColor%3D%2523d94f70",
+      "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit%3FthemeColor%3D%2523d94f70",
     );
   });
 
@@ -128,7 +128,7 @@ describe("Wiki edit route", () => {
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
 
     await expect(Page(routeProps())).rejects.toThrow(
-      "redirect:/mypage?returnTo=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
+      "redirect:/mypage?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
     );
   });
 

@@ -144,7 +144,7 @@ describe("WikiBlockDisplay", () => {
     );
     expect(within(listItem as HTMLElement).getByRole("link", { name: "agency" })).toHaveAttribute(
       "href",
-      "/wiki/ko/HYBE",
+      "/ko/wiki/HYBE",
     );
   });
 

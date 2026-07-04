@@ -49,12 +49,12 @@ describe("WikiRelatedProfiles", () => {
     );
     expect(screen.getByRole("link", { name: /MOMO/i })).toHaveAttribute(
       "href",
-      "/wiki/ko/tl-momo",
+      "/ko/wiki/tl-momo",
     );
     expect(screen.getAllByText("SANA")).toHaveLength(1);
     expect(screen.getByRole("link", { name: /SANA/i })).toHaveAttribute(
       "href",
-      "/wiki/ko/tl-sana",
+      "/ko/wiki/tl-sana",
     );
     expect(screen.queryByText("Aurora Echo")).not.toBeInTheDocument();
   });

@@ -15,7 +15,7 @@ const wikiResourceTypeEntries = Object.entries(
 ) as Array<[WikiResourceType, string]>;
 
 export const buildWikiPath = (language: string, slug: string): string =>
-  `/wiki/${encodeURIComponent(language)}/${encodeURIComponent(slug)}`;
+  `/${encodeURIComponent(language)}/wiki/${encodeURIComponent(slug)}`;
 
 export const buildWikiEditPath = (language: string, slug: string): string =>
   `${buildWikiPath(language, slug)}/edit`;

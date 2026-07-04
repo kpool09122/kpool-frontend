@@ -57,7 +57,7 @@ describe("WikiBasicFieldsList", () => {
 
     expect(screen.getByRole("link", { name: "TWICE" })).toHaveAttribute(
       "href",
-      "/wiki/ko/gr-twice",
+      "/ko/wiki/gr-twice",
     );
   });
 

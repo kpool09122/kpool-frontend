@@ -1,8 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Header } from "./Header";
-import { I18nProvider } from "../i18n/I18nProvider";
+import { buildLocaleChangePath, Header } from "./Header";
 
 afterEach(() => {
   cleanup();
@@ -17,7 +16,7 @@ describe("Header", () => {
       screen.getByRole("link", {
         name: "K-Pool",
       }),
-    ).toHaveAttribute("href", "/");
+    ).toHaveAttribute("href", "/ja");
 
     const desktopLoginLink = screen.getByRole("link", {
       name: "ログイン",
@@ -124,22 +123,27 @@ describe("Header", () => {
     expect(navigate).toHaveBeenCalledWith("/login");
   });
 
-  it("switches fixed header text when the locale selector changes", () => {
-    const refresh = vi.fn();
-
-    render(
-      <I18nProvider initialLocale="en">
-        <Header refresh={refresh} />
-      </I18nProvider>,
-    );
-
-    expect(screen.getByRole("link", { name: "Log in" })).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Language"), {
-      target: { value: "ko" },
-    });
-
-    expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
-    expect(refresh).toHaveBeenCalled();
+  it("builds language-prefixed navigation paths when switching locale", () => {
+    expect(
+      buildLocaleChangePath({
+        nextLocale: "en",
+        pathname: "/ja",
+        searchParams: new URLSearchParams("updatedResourceType=group"),
+      }),
+    ).toBe("/en?updatedResourceType=group");
+    expect(
+      buildLocaleChangePath({
+        nextLocale: "ko",
+        pathname: "/ja/wiki/gr-aurora-echo",
+        searchParams: new URLSearchParams("themeColor=%23fff"),
+      }),
+    ).toBe("/ko/wiki/gr-aurora-echo?themeColor=%23fff");
+    expect(
+      buildLocaleChangePath({
+        nextLocale: "en",
+        pathname: "/login",
+        searchParams: new URLSearchParams(),
+      }),
+    ).toBeNull();
   });
 });

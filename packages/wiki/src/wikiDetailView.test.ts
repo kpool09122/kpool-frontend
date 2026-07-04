@@ -87,8 +87,8 @@ describe("wikiDetailView", () => {
       {
         label: "Talents",
         links: [
-          { href: "/wiki/ko/tl-momo", label: "MOMO" },
-          { href: "/wiki/ko/tl-sana", label: "SANA" },
+          { href: "/ko/wiki/tl-momo", label: "MOMO" },
+          { href: "/ko/wiki/tl-sana", label: "SANA" },
         ],
         value: "MOMO, SANA",
       },
