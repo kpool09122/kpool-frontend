@@ -96,7 +96,7 @@ export type PublicWikiListQuery = {
   page?: number;
   perPage?: number;
   resourceType?: WikiResourceType;
-  sort?: "name" | "updatedAt";
+  sort?: "name" | "updatedAt" | "createdAt" | "version";
 };
 
 export type PublicWikiApiClient = {

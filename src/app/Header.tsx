@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../i18n/I18nProvider";
-import { localeLabels, type Locale } from "../i18n/locales";
+import { localeLabels, supportedLocales, type Locale } from "../i18n/locales";
 
 type HeaderProps = {
   initialIsAuthenticated?: boolean;
@@ -21,6 +21,31 @@ const guestNavigation = {
   href: "/login",
 };
 const mobileNavigationId = "mobile-navigation";
+
+export const buildLocaleChangePath = ({
+  nextLocale,
+  pathname,
+  searchParams,
+}: {
+  nextLocale: Locale;
+  pathname: string;
+  searchParams: URLSearchParams;
+}): string | null => {
+  const segments = pathname.split("/");
+  const currentPathLocale = segments[1];
+  const hasLanguagePrefix = supportedLocales.includes(currentPathLocale as Locale);
+  const isLanguageTopPath = segments.length === 2 && hasLanguagePrefix;
+  const isLanguageWikiPath = segments.length >= 3 && hasLanguagePrefix && segments[2] === "wiki";
+
+  if (!isLanguageTopPath && !isLanguageWikiPath) {
+    return null;
+  }
+
+  segments[1] = nextLocale;
+  const query = searchParams.toString();
+
+  return `${segments.join("/")}${query ? `?${query}` : ""}`;
+};
 
 const logoutFromIdentity = async () => {
   await fetch("/api/identity/auth/logout", {
@@ -36,6 +61,8 @@ export function Header({
   refresh,
 }: HeaderProps = {}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { locale, dictionary, setLocale } = useI18n();
   const currentLocale = locale;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -62,6 +89,23 @@ export function Header({
   };
   const handleLocaleChange = (nextLocale: Locale) => {
     setLocale(nextLocale);
+
+    const nextPath = buildLocaleChangePath({
+      nextLocale,
+      pathname,
+      searchParams,
+    });
+
+    if (nextPath) {
+      if (navigate) {
+        navigate(nextPath);
+      } else {
+        router.replace(nextPath);
+        router.refresh();
+      }
+      refresh?.();
+      return;
+    }
 
     if (refresh) {
       refresh();
@@ -97,7 +141,7 @@ export function Header({
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10 lg:px-16">
         <Link
           className="inline-flex items-center rounded-lg bg-white/88 px-2 py-1 ring-1 ring-stroke-subtle transition hover:bg-white"
-          href="/"
+          href={`/${currentLocale}`}
         >
           <Image
             src="/kpool-logo.webp"

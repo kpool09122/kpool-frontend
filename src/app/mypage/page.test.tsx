@@ -471,7 +471,7 @@ describe("MyPageClient", () => {
         }),
       ),
     );
-    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/en/gr-new-wiki/edit");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/en/wiki/gr-new-wiki/edit");
   });
 
   it("does not show the auto-create mode for principals with only basic editing", async () => {
@@ -599,7 +599,7 @@ describe("MyPageClient", () => {
         }),
       ),
     );
-    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/ja/sg-generated-wiki/edit");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/ja/wiki/sg-generated-wiki/edit");
   });
 
   it("keeps the auto-create dialog open when auto-create fails", async () => {
@@ -756,7 +756,7 @@ describe("MyPageClient", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "レビュー対象 Wiki（ja）" })).toHaveAttribute(
       "href",
-      "/wiki/ja/review-wiki",
+      "/ja/wiki/review-wiki",
     );
     expect(screen.queryByText("group")).not.toBeInTheDocument();
     expect(screen.queryByText("under_review")).not.toBeInTheDocument();
@@ -1800,13 +1800,13 @@ describe("MyPageClient", () => {
         initialIdentity={identity}
         initialPrincipalState={{ status: "missing" }}
         principalAdapter={adapter}
-        returnTo="/wiki/ja/gr-review-wiki/edit"
+        returnTo="/ja/wiki/gr-review-wiki/edit"
       />,
     );
     fireEvent.click(await screen.findByRole("button", { name: "Wiki collaborator を有効化" }));
 
     await waitFor(() =>
-      expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/ja/gr-review-wiki/edit"),
+      expect(navigationMocks.push).toHaveBeenCalledWith("/ja/wiki/gr-review-wiki/edit"),
     );
   });
 

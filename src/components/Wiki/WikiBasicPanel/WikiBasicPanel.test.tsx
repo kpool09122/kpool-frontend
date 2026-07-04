@@ -148,7 +148,7 @@ describe("WikiBasicPanel", () => {
     expect(screen.getByLabelText("Real Name")).toHaveValue("Aurora Echo Real");
     expect(screen.getByRole("link", { name: "TWICE" })).toHaveAttribute(
       "href",
-      "/wiki/ko/gr-twice",
+      "/ko/wiki/gr-twice",
     );
 
     const fieldGrid = container.querySelector("form > div");

@@ -185,7 +185,7 @@ describe("WikiEditPage", () => {
     expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
       "href",
-      "/wiki/ko/tl-momo",
+      "/ko/wiki/tl-momo",
     );
   });
 
@@ -1223,7 +1223,7 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "gui" }));
 
     expect(
-      document.querySelector('a[href="/wiki/ja/%EB%AC%B8%EC%84%9C"]'),
+      document.querySelector('a[href="/ja/wiki/%EB%AC%B8%EC%84%9C"]'),
     ).not.toBeNull();
     expect(screen.getByLabelText("Footnote: 주석 예시")).toBeInTheDocument();
     expect(screen.getByText("Included from 틀:Discography")).toBeInTheDocument();
@@ -1239,7 +1239,7 @@ describe("WikiEditPage", () => {
 
     expect(screen.queryByTestId("wiki-code-warnings")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "gui" }));
-    expect(document.querySelector('a[href="/wiki/ja/tl-nayeon-twice"]')).toBeNull();
+    expect(document.querySelector('a[href="/ja/wiki/tl-nayeon-twice"]')).toBeNull();
     expect(screen.getByText("TWICE Members")).toBeInTheDocument();
     expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
   });

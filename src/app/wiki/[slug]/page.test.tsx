@@ -127,11 +127,11 @@ describe("WikiDetailPage", () => {
     expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
       "href",
-      "/wiki/ko/tl-momo",
+      "/ko/wiki/tl-momo",
     );
     expect(screen.getAllByRole("link", { name: "SANA" })[0]).toHaveAttribute(
       "href",
-      "/wiki/ko/tl-sana",
+      "/ko/wiki/tl-sana",
     );
     fireEvent.click(screen.getByTestId("section-toggle-overview"));
     expect(screen.getByText("Overview body")).toBeInTheDocument();
@@ -142,17 +142,17 @@ describe("WikiDetailPage", () => {
     fireEvent.click(screen.getByTestId("section-toggle-members"));
     expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-aurora-echo",
+      "/ja/wiki/gr-aurora-echo",
     );
     expect(screen.getAllByRole("link", { name: "Edit basic" })[0]).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-aurora-echo/edit",
+      "/ja/wiki/gr-aurora-echo/edit",
     );
     const sectionEditLinks = screen.getAllByRole("link", { name: /Edit section/i });
     expect(sectionEditLinks).toHaveLength(2);
     expect(sectionEditLinks[0]).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-aurora-echo/edit",
+      "/ja/wiki/gr-aurora-echo/edit",
     );
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
   });

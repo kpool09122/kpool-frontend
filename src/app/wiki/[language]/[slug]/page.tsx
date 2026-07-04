@@ -21,9 +21,7 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
   const wikiState = await loadPublicWikiState(language, slug);
 
   if (wikiState.status !== "success") {
-    return {
-      title: siteTitle,
-    };
+    return { title: siteTitle };
   }
 
   const wiki = wikiState.data;

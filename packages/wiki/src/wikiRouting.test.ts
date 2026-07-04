@@ -14,9 +14,9 @@ import {
 
 describe("wikiRouting", () => {
   it("builds language-aware wiki paths", () => {
-    expect(buildWikiPath("ja", "gr-aurora-echo")).toBe("/wiki/ja/gr-aurora-echo");
+    expect(buildWikiPath("ja", "gr-aurora-echo")).toBe("/ja/wiki/gr-aurora-echo");
     expect(buildWikiEditPath("ko", "tl-nayeon-twice")).toBe(
-      "/wiki/ko/tl-nayeon-twice/edit",
+      "/ko/wiki/tl-nayeon-twice/edit",
     );
   });
 
