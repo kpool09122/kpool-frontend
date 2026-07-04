@@ -47,15 +47,15 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
-const SeoTitleText = z.string();
-const MetaDescriptionText = z.string();
-const SeoKeywordText = z.string();
 const DraftWikiStatus = z.enum([
   "approved",
   "pending",
   "rejected",
   "under_review",
 ]);
+const SeoTitleText = z.string();
+const MetaDescriptionText = z.string();
+const SeoKeywordText = z.string();
 const DraftWikiRejectionReasonText = z.string();
 const DraftWikiListItem = z
   .object({
@@ -683,10 +683,10 @@ export const schemas = {
   DraftImageListItem,
   ListDraftImagesResponseBody,
   KPool_Common_ProblemDetails,
+  DraftWikiStatus,
   SeoTitleText,
   MetaDescriptionText,
   SeoKeywordText,
-  DraftWikiStatus,
   DraftWikiRejectionReasonText,
   DraftWikiListItem,
   ListDraftWikisResponseBody,
@@ -815,9 +815,9 @@ const endpoints = makeApi([
         schema: z.string().uuid().optional(),
       },
       {
-        name: "status",
+        name: "statuses",
         type: "Query",
-        schema: z.enum(["approved", "pending", "rejected", "under_review"]),
+        schema: z.array(DraftWikiStatus),
       },
       {
         name: "resourceType",
@@ -1235,9 +1235,9 @@ const endpoints = makeApi([
         schema: z.string().uuid().optional(),
       },
       {
-        name: "status",
+        name: "statuses",
         type: "Query",
-        schema: z.enum(["approved", "pending", "rejected", "under_review"]),
+        schema: z.array(DraftWikiStatus),
       },
       {
         name: "resourceType",
