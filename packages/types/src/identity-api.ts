@@ -12,7 +12,7 @@ const KPool_Common_Uuid = z.string();
 const IdentitySummary = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
-    username: z.string(),
+    identityName: z.string(),
     email: z.string(),
     language: z.string(),
     profileImage: z.string().nullish(),
@@ -33,7 +33,7 @@ const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const AuthenticatedIdentitySummary = IdentitySummary;
 const CreateIdentityRequestBody = z
   .object({
-    username: z.string(),
+    identityName: z.string(),
     email: z.string(),
     password: z.string(),
     confirmedPassword: z.string(),
@@ -55,7 +55,14 @@ const KPool_Common_Timestamp = z.string();
 const VerifyEmailResult = z
   .object({ email: z.string(), verifiedAt: KPool_Common_Timestamp.nullish() })
   .passthrough();
-const OkIdentityResponse = z.object({ body: IdentitySummary }).passthrough();
+const UpdateIdentityRequestBody = z
+  .object({
+    identityName: z.string().nullable(),
+    language: z.string().nullable(),
+    base64EncodedImage: z.string().nullable(),
+  })
+  .partial()
+  .passthrough();
 
 export const schemas = {
   LoginRequestBody,
@@ -73,7 +80,7 @@ export const schemas = {
   VerifyEmailRequestBody,
   KPool_Common_Timestamp,
   VerifyEmailResult,
-  OkIdentityResponse,
+  UpdateIdentityRequestBody,
 };
 
 const endpoints = makeApi([
@@ -354,6 +361,48 @@ const endpoints = makeApi([
     ],
     response: VerifyEmailResult,
     errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/identities/me",
+    alias: "IdentityOperations_updateIdentity",
+    description: `Update the current identity profile.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdateIdentityRequestBody,
+      },
+    ],
+    response: IdentitySummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
