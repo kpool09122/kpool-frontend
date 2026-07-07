@@ -28,7 +28,7 @@ const getInitialValues = (language: Locale): SignupAccountFormValues => ({
   accountName: "",
   accountType: "individual",
   language,
-  username: "",
+  identityName: "",
   password: "",
   confirmedPassword: "",
   base64EncodedImage: "",
@@ -77,7 +77,7 @@ export function SignupPage({
     setValues((current) => ({
       ...current,
       accountName,
-      username: accountName,
+      identityName: accountName,
     }));
   };
 

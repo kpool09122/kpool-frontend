@@ -25,9 +25,10 @@ describe("Header", () => {
     expect(desktopLoginLink).toHaveClass("hidden", "sm:inline-flex");
   });
 
-  it("renders the desktop mypage and logout links when authenticated", () => {
+  it("renders the desktop profile menu with mypage and logout when authenticated", () => {
     render(<Header initialIsAuthenticated />);
 
+    expect(screen.getByRole("button", { name: "マイページ" })).toHaveClass("rounded-full");
     const desktopMyPageLink = screen.getByRole("link", {
       name: "マイページ",
     });
@@ -40,7 +41,25 @@ describe("Header", () => {
     const logoutButton = screen.getByRole("button", {
       name: "ログアウト",
     });
-    expect(logoutButton).toHaveClass("hidden", "sm:inline-flex");
+    expect(logoutButton).toHaveClass("text-left");
+  });
+
+  it("renders the initial profile image while the auth store is loading", () => {
+    const { container } = render(
+      <Header
+        initialIdentity={{
+          identityIdentifier: "11111111-1111-1111-1111-111111111111",
+          identityName: "member",
+          email: "member@example.com",
+          language: "ja",
+          profileImage: "https://images.example.test/member.jpg",
+        }}
+        initialIsAuthenticated
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "member" })).toBeInTheDocument();
+    expect(container.querySelector('img[src="https://images.example.test/member.jpg"]')).toBeInTheDocument();
   });
 
   it("opens and closes the mobile login menu from the hamburger button", () => {

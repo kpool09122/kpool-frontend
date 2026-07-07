@@ -1,11 +1,27 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./LoginPage";
 import { I18nProvider } from "../../i18n/I18nProvider";
+import { useAuthStore } from "@/gateways/auth/authStore";
+
+const loginIdentity = {
+  identityIdentifier: "11111111-1111-1111-1111-111111111111",
+  identityName: "member",
+  email: "member@example.com",
+  language: "ja",
+  profileImage: "https://images.example.test/member.jpg",
+};
 
 describe("LoginPage", () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      identity: null,
+      status: "loading",
+    });
+  });
+
   afterEach(() => {
     cleanup();
   });
@@ -75,7 +91,7 @@ describe("LoginPage", () => {
   });
 
   it("logs in with email and password and opens mypage", async () => {
-    const loginAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const loginAdapter = vi.fn().mockResolvedValue({ identity: loginIdentity, ok: true });
     const navigate = vi.fn();
 
     render(
@@ -101,10 +117,15 @@ describe("LoginPage", () => {
       }),
     );
     expect(navigate).toHaveBeenCalledWith("/mypage");
+    expect(useAuthStore.getState()).toMatchObject({
+      identity: loginIdentity,
+      status: "authenticated",
+    });
   });
 
   it("uses the safe return destination returned by email login", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({
+      identity: loginIdentity,
       ok: true,
       returnTo: "/wiki/ja/gr-aurora-echo/edit",
     });

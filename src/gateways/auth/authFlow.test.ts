@@ -57,7 +57,7 @@ describe("login auth flow helpers", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
         return_to: "/wiki/ja/gr-aurora-echo/edit",
@@ -72,6 +72,12 @@ describe("login auth flow helpers", () => {
         return_to: "/wiki/ja/gr-aurora-echo/edit",
       }),
     ).resolves.toEqual({
+      identity: {
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        identityName: "member",
+        email: "member@example.com",
+        language: "ja",
+      },
       ok: true,
       returnTo: "/wiki/ja/gr-aurora-echo/edit",
     });

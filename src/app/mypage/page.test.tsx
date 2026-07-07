@@ -34,7 +34,7 @@ vi.mock("next/navigation", () => ({
 
 const identity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
-  username: "member",
+  identityName: "member",
   email: "member@example.com",
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
@@ -364,6 +364,7 @@ describe("MyPageClient", () => {
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("button", { name: "概要" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "設定" })).not.toHaveAttribute("aria-current");
   });
 
   it("collapses and expands the sidebar with a persistent toggle", () => {
@@ -408,6 +409,212 @@ describe("MyPageClient", () => {
     expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("shows profile settings and saves identityName without socialConnections", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        identityIdentifier: identity.identityIdentifier,
+        identityName: "updated member",
+        email: identity.email,
+        language: "ja",
+        profileImage: null,
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    expect(await screen.findByRole("heading", { name: "設定", level: 1 })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
+    fireEvent.change(screen.getByLabelText("Identity名"), {
+      target: { value: "updated member" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/identity",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          identityName: "updated member",
+          language: "ja",
+        }),
+      }),
+    ));
+    expect(fetchMock.mock.calls[0]?.[1]?.body).not.toContain("socialConnections");
+    expect(await screen.findByRole("status")).toHaveTextContent("設定を保存しました。");
+    expect(useAuthStore.getState().identity).toMatchObject({
+      identityName: "updated member",
+      profileImage: null,
+    });
+  });
+
+  it("sends selected profile image as base64EncodedImage when saving profile settings", async () => {
+    function MockFileReader(this: {
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      readAsDataURL: () => void;
+      result: string | ArrayBuffer | null;
+    }) {
+      this.onload = null;
+      this.onerror = null;
+      this.result = null;
+      this.readAsDataURL = () => {
+        this.result = "data:image/png;base64,PROFILE_IMAGE";
+        this.onload?.();
+      };
+    }
+
+    vi.stubGlobal("FileReader", MockFileReader);
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        identityIdentifier: identity.identityIdentifier,
+        identityName: identity.identityName,
+        email: identity.email,
+        language: "ja",
+        profileImage: "https://images.example.test/member.png",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
+    fireEvent.change(screen.getByLabelText("画像を選択"), {
+      target: { files: [new File(["image"], "profile.png", { type: "image/png" })] },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("img", { name: "プロフィール画像プレビュー" })).toHaveAttribute(
+        "src",
+        "data:image/png;base64,PROFILE_IMAGE",
+      ),
+    );
+    expect(screen.getByLabelText("画像を選択")).toHaveClass("sr-only");
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/identity",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          identityName: "member",
+          language: "ja",
+          base64EncodedImage: "data:image/png;base64,PROFILE_IMAGE",
+        }),
+      }),
+    ));
+  });
+
+  it("sends null base64EncodedImage when deleting the profile image", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        identityIdentifier: identity.identityIdentifier,
+        identityName: identity.identityName,
+        email: identity.email,
+        language: "ja",
+        profileImage: "https://images.example.test/stale-member.png",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={{
+          ...identity,
+          profileImage: "https://images.example.test/member.png",
+        }}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
+    expect(screen.getByRole("img", { name: "プロフィール画像プレビュー" })).toHaveAttribute(
+      "src",
+      "https://images.example.test/member.png",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "画像を削除" }));
+    expect(screen.queryByRole("img", { name: "プロフィール画像プレビュー" })).not.toBeInTheDocument();
+    expect(screen.getByText("画像なし")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/identity",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          identityName: "member",
+          language: "ja",
+          base64EncodedImage: null,
+        }),
+      }),
+    ));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("設定を保存しました。"));
+    expect(screen.queryByRole("img", { name: "プロフィール画像プレビュー" })).not.toBeInTheDocument();
+    expect(useAuthStore.getState().identity).toMatchObject({
+      identityName: "member",
+      profileImage: null,
+    });
+  });
+
+  it("saves language settings through the identity update API", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        identityIdentifier: identity.identityIdentifier,
+        identityName: identity.identityName,
+        email: identity.email,
+        language: "en",
+        profileImage: null,
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "言語" }));
+    fireEvent.change(screen.getByLabelText("言語"), { target: { value: "en" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/identity",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          identityName: "member",
+          language: "en",
+        }),
+      }),
+    ));
   });
 
   it("creates a draft wiki from the dialog using the selected language defaulted from the header", async () => {
@@ -682,7 +889,7 @@ describe("MyPageClient", () => {
     });
     const identityWithoutAccount = {
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
-      username: "member",
+      identityName: "member",
       email: "member@example.com",
       language: "ja",
     };
@@ -1843,7 +2050,7 @@ describe("MyPageClient", () => {
     });
     const identityWithoutAccount = {
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
-      username: "member",
+      identityName: "member",
       email: "member@example.com",
       language: "ja",
     };

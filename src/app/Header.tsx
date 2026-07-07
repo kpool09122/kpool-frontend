@@ -3,14 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDownIcon } from "@radix-ui/react-icons";
+import { ChevronDownIcon, PersonIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
+import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { useI18n } from "../i18n/I18nProvider";
 import { localeLabels, supportedLocales, type Locale } from "../i18n/locales";
 
 type HeaderProps = {
+  initialIdentity?: IdentitySummary | null;
   initialIsAuthenticated?: boolean;
   logoutAdapter?: () => unknown;
   navigate?: (url: string) => void;
@@ -55,6 +57,7 @@ const logoutFromIdentity = async () => {
 };
 
 export function Header({
+  initialIdentity = null,
   initialIsAuthenticated = false,
   logoutAdapter = logoutFromIdentity,
   navigate,
@@ -66,9 +69,12 @@ export function Header({
   const { locale, dictionary, setLocale } = useI18n();
   const currentLocale = locale;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileLanguageViewOpen, setIsMobileLanguageViewOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const identity = useAuthStore((state) => state.identity);
   const authStatus = useAuthStore((state) => state.status);
   const clearIdentity = useAuthStore((state) => state.clearIdentity);
+  const currentIdentity = identity ?? (authStatus === "loading" ? initialIdentity : null);
   const isAuthenticated =
     authStatus === "loading" ? initialIsAuthenticated : authStatus === "authenticated";
   const t = dictionary.header;
@@ -114,6 +120,13 @@ export function Header({
 
     window.location.reload();
   };
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    setIsMobileLanguageViewOpen(false);
+  };
+  const mobileRowClassName = "flex w-full items-center justify-between px-1 py-3 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/20 focus:bg-brand-highlight/20 focus:outline-none active:bg-brand-highlight/30";
+  const profileImage = currentIdentity?.profileImage ?? null;
+  const profileLabel = currentIdentity?.identityName || t.mypage;
   const languageSwitcher = (
     <label className="relative inline-flex items-center text-sm font-semibold text-text-muted">
       <span className="sr-only">{t.language}</span>
@@ -156,22 +169,44 @@ export function Header({
         <div className="hidden items-center gap-2 sm:flex">
           {languageSwitcher}
           {isAuthenticated ? (
-            <>
-            <Link
-              className="inline-flex items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
-              href="/mypage"
-            >
-              {t.mypage}
-            </Link>
-            <button
-              type="button"
-              className="hidden items-center rounded-full border border-stroke-subtle bg-surface-base px-5 py-2.5 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 sm:inline-flex disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={isLoggingOut}
-              onClick={() => void handleLogout()}
-            >
-              {isLoggingOut ? t.loggingOut : t.logout}
-            </button>
-            </>
+            <div className="group relative">
+              <button
+                type="button"
+                className="grid size-11 place-items-center overflow-hidden rounded-full border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none focus:ring-2 focus:ring-brand-highlight"
+                aria-label={profileLabel}
+              >
+                {profileImage ? (
+                  <Image
+                    alt=""
+                    className="size-full object-cover"
+                    height={44}
+                    src={profileImage}
+                    unoptimized
+                    width={44}
+                  />
+                ) : (
+                  <PersonIcon aria-hidden="true" className="size-5" />
+                )}
+              </button>
+              <div className="invisible absolute right-0 top-full z-50 min-w-44 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
+                  <Link
+                    className="rounded-lg px-4 py-2 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
+                    href="/mypage"
+                  >
+                    {t.mypage}
+                  </Link>
+                  <button
+                    type="button"
+                    className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                    disabled={isLoggingOut}
+                    onClick={() => void handleLogout()}
+                  >
+                    {isLoggingOut ? t.loggingOut : t.logout}
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             <Link
               className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 sm:inline-flex"
@@ -188,7 +223,10 @@ export function Header({
           aria-label={t.navigationMenu}
           aria-controls={mobileNavigationId}
           aria-expanded={isMobileMenuOpen}
-          onClick={() => setIsMobileMenuOpen((current) => !current)}
+          onClick={() => {
+            setIsMobileMenuOpen((current) => !current);
+            setIsMobileLanguageViewOpen(false);
+          }}
         >
           <span className="flex flex-col gap-1.5" aria-hidden="true">
             <span className="block h-0.5 w-5 rounded-full bg-current" />
@@ -204,31 +242,60 @@ export function Header({
           aria-label={t.mobileMenu}
           className="border-t border-stroke-subtle bg-surface-raised px-6 py-4 sm:hidden"
         >
-          <div className="mb-3">{languageSwitcher}</div>
-          {isAuthenticated ? (
-            <div className="grid gap-3">
-              <Link
-                className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
-                href="/mypage"
-              >
-                {t.mypage}
-              </Link>
+          {isMobileLanguageViewOpen ? (
+            <div className="grid divide-y divide-stroke-subtle">
               <button
+                className={mobileRowClassName}
+                onClick={() => setIsMobileLanguageViewOpen(false)}
                 type="button"
-                className="flex items-center rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
-                disabled={isLoggingOut}
-                onClick={() => void handleLogout()}
               >
-                {isLoggingOut ? t.loggingOut : t.logout}
+                <span>{t.backToMenu}</span>
               </button>
+              {Object.entries(localeLabels).map(([value, label]) => (
+                <button
+                  aria-current={value === currentLocale ? "page" : undefined}
+                  className={mobileRowClassName}
+                  key={value}
+                  onClick={() => {
+                    handleLocaleChange(value as Locale);
+                    closeMobileMenu();
+                  }}
+                  type="button"
+                >
+                  <span>{label}</span>
+                </button>
+              ))}
             </div>
           ) : (
-            <Link
-              className="flex items-center rounded-lg bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105"
-              href={guestNavigation.href}
-            >
-              {t.login}
-            </Link>
+            <div className="grid divide-y divide-stroke-subtle">
+              <button
+                className={mobileRowClassName}
+                onClick={() => setIsMobileLanguageViewOpen(true)}
+                type="button"
+              >
+                <span>{t.language}</span>
+                <span aria-hidden="true">›</span>
+              </button>
+              {isAuthenticated ? (
+                <>
+                  <Link className={mobileRowClassName} href="/mypage" onClick={closeMobileMenu}>
+                    {t.mypage}
+                  </Link>
+                  <button
+                    type="button"
+                    className={`${mobileRowClassName} disabled:cursor-not-allowed disabled:opacity-70`}
+                    disabled={isLoggingOut}
+                    onClick={() => void handleLogout()}
+                  >
+                    {isLoggingOut ? t.loggingOut : t.logout}
+                  </button>
+                </>
+              ) : (
+                <Link className={mobileRowClassName} href={guestNavigation.href} onClick={closeMobileMenu}>
+                  {t.login}
+                </Link>
+              )}
+            </div>
           )}
         </nav>
       ) : null}

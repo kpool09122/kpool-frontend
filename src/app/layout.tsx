@@ -42,7 +42,10 @@ export default async function RootLayout({
         <I18nProvider initialLocale={locale}>
           <QueryProvider>
             <ThemeInitializer />
-            <Header initialIsAuthenticated={authenticatedIdentity !== null} />
+            <Header
+              initialIdentity={authenticatedIdentity}
+              initialIsAuthenticated={authenticatedIdentity !== null}
+            />
             {children}
           </QueryProvider>
         </I18nProvider>

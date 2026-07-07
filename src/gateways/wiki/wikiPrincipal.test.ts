@@ -273,7 +273,7 @@ describe("wiki principal helpers", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
         accountId: "22222222-2222-2222-2222-222222222222",
@@ -285,7 +285,7 @@ describe("wiki principal helpers", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
@@ -297,7 +297,7 @@ describe("wiki principal helpers", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
         account: {
@@ -311,7 +311,7 @@ describe("wiki principal helpers", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
         accounts: [
@@ -327,7 +327,7 @@ describe("wiki principal helpers", () => {
     expect(
       getAccountIdentifierFromIdentity({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
       }),

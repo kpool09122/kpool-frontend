@@ -21,7 +21,7 @@ describe("fetchAuthenticatedIdentity", () => {
       new Response(
         JSON.stringify({
           identityIdentifier: "11111111-1111-1111-1111-111111111111",
-          username: "member",
+          identityName: "member",
           email: "member@example.com",
           language: "ja",
         }),
@@ -35,7 +35,7 @@ describe("fetchAuthenticatedIdentity", () => {
         fetchAdapter,
       }),
     ).resolves.toMatchObject({
-      username: "member",
+      identityName: "member",
       email: "member@example.com",
     });
     expect(fetchAdapter).toHaveBeenCalledWith(

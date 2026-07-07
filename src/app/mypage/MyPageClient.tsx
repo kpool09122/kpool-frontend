@@ -63,6 +63,7 @@ import {
   type MyPageWikiListItem,
   useMyPageDraftWikis,
 } from "./useMyPageDraftWikis";
+import { updateAuthenticatedIdentity } from "@/gateways/identity/updateIdentityBrowserApi";
 import type {
   MyPageDraftImageAdapter,
   MyPageDraftWikiAdapter,
@@ -70,6 +71,8 @@ import type {
 } from "@/gateways/mypage/myPageAdapters";
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
+type MyPageSettingsTab = "profileSettings" | "languageSettings";
+type MyPageSection = "wiki" | "settings";
 type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages";
 type CreateDraftWikiMode = "manual" | "auto";
 
@@ -95,6 +98,50 @@ type RejectDraftWikiDialogState = {
   reason: string;
   wiki: MyPageWikiListItem | null;
 };
+
+
+type MyPageIdentitySettingsState = {
+  error: string | null;
+  imagePreview: string | null;
+  imageReadError: string | null;
+  identityName: string;
+  isSaving: boolean;
+  language: Locale;
+  profileImageMarkedForDeletion: boolean;
+  profileImageBase64: string | null;
+  syncError: string | null;
+  success: string | null;
+};
+
+const createIdentitySettingsState = (identity: IdentitySummary | null, fallbackLanguage: Locale): MyPageIdentitySettingsState => ({
+  error: null,
+  imagePreview: identity?.profileImage ?? null,
+  imageReadError: null,
+  identityName: identity?.identityName ?? "",
+  isSaving: false,
+  language: isSupportedLocale(identity?.language) ? identity.language : fallbackLanguage,
+  profileImageMarkedForDeletion: false,
+  profileImageBase64: null,
+  syncError: null,
+  success: null,
+});
+
+const isSupportedLocale = (value: unknown): value is Locale =>
+  typeof value === "string" && Object.prototype.hasOwnProperty.call(localeLabels, value);
+
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("FileReader did not return a data URL."));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("FileReader failed."));
+    reader.readAsDataURL(file);
+  });
 
 const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
   createPrincipal: createWikiPrincipal,
@@ -137,6 +184,14 @@ const createWikiTab = (id: MyPageWikiTab, label: string): { id: MyPageWikiTab; l
   label,
 });
 
+const createSettingsTab = (
+  id: MyPageSettingsTab,
+  label: string,
+): { id: MyPageSettingsTab; label: string } => ({
+  id,
+  label,
+});
+
 export function MyPageClient({
   draftImageAdapter = defaultDraftImageAdapter,
   draftWikiAdapter = defaultDraftWikiAdapter,
@@ -150,10 +205,16 @@ export function MyPageClient({
   const router = useRouter();
   const authIdentity = useAuthStore((state) => state.identity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
+  const setIdentity = useAuthStore((state) => state.setIdentity);
   const currentIdentity = authIdentity ?? initialIdentity;
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
+  const [settingsState, setSettingsState] = useState<MyPageIdentitySettingsState>(() =>
+    createIdentitySettingsState(currentIdentity, locale),
+  );
+  const [selectedSection, setSelectedSection] = useState<MyPageSection>("wiki");
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("editingWikis");
+  const [selectedSettingsTab, setSelectedSettingsTab] = useState<MyPageSettingsTab>("profileSettings");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [createDialog, setCreateDialog] = useState<CreateDraftWikiDialogState>({
     error: null,
@@ -300,6 +361,111 @@ export function MyPageClient({
     });
   };
 
+  const updateSettingsField = (field: "identityName" | "language", value: string) => {
+    setSettingsState((state) => ({
+      ...state,
+      [field]: field === "language" && isSupportedLocale(value) ? value : value,
+      error: null,
+      imageReadError: null,
+      success: null,
+      syncError: null,
+    }));
+  };
+
+  const updateProfileImage = (file: File | null) => {
+    if (!file) {
+      setSettingsState((state) => ({
+        ...state,
+        imageReadError: null,
+        imagePreview: currentIdentity?.profileImage ?? null,
+        profileImageMarkedForDeletion: false,
+        profileImageBase64: null,
+        success: null,
+      }));
+      return;
+    }
+
+    void readFileAsDataUrl(file).then((dataUrl) => {
+      setSettingsState((state) => ({
+        ...state,
+        imageReadError: null,
+        imagePreview: dataUrl,
+        profileImageMarkedForDeletion: false,
+        profileImageBase64: dataUrl,
+        success: null,
+      }));
+    }).catch(() => {
+      setSettingsState((state) => ({
+        ...state,
+        imageReadError: t.profileImageReadFailed,
+        success: null,
+      }));
+    });
+  };
+
+  const deleteProfileImage = () => {
+    setSettingsState((state) => ({
+      ...state,
+      imagePreview: null,
+      imageReadError: null,
+      profileImageBase64: null,
+      profileImageMarkedForDeletion: true,
+      success: null,
+    }));
+  };
+
+  const saveIdentitySettings = () => {
+    const identityName = settingsState.identityName.trim();
+    const shouldDeleteProfileImage = settingsState.profileImageMarkedForDeletion;
+
+    if (!currentIdentity) {
+      setSettingsState((state) => ({ ...state, error: t.identityUnavailableMessage, success: null }));
+      return;
+    }
+
+    if (!identityName) {
+      setSettingsState((state) => ({ ...state, error: t.profileIdentityNameRequired, success: null }));
+      return;
+    }
+
+    setSettingsState((state) => ({
+      ...state,
+      error: null,
+      imageReadError: null,
+      isSaving: true,
+      success: null,
+      syncError: null,
+    }));
+
+    void updateAuthenticatedIdentity({
+      fallbackErrorMessage: t.identitySettingsSaveFailed,
+      requestBody: {
+        identityName,
+        language: settingsState.language,
+        ...(settingsState.profileImageBase64
+          ? { base64EncodedImage: settingsState.profileImageBase64 }
+          : settingsState.profileImageMarkedForDeletion
+            ? { base64EncodedImage: null }
+            : {}),
+      },
+    }).then((updatedIdentity) => {
+      const effectiveIdentity = shouldDeleteProfileImage
+        ? { ...updatedIdentity, profileImage: null }
+        : updatedIdentity;
+
+      setIdentity(effectiveIdentity);
+      setSettingsState(createIdentitySettingsState(effectiveIdentity, settingsState.language));
+      setSettingsState((state) => ({ ...state, success: t.identitySettingsSaved }));
+    }).catch((error: unknown) => {
+      setSettingsState((state) => ({
+        ...state,
+        error: error instanceof Error ? error.message : t.identitySettingsSaveFailed,
+        isSaving: false,
+        success: null,
+      }));
+    });
+  };
+
   const submitCreateDialog = (input: {
     agencyIdentifier: string | null;
     groupIdentifiers: string[];
@@ -380,10 +546,27 @@ export function MyPageClient({
             <nav className="grid gap-2">
               <button
                 type="button"
-                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${selectedSectionClass}`}
-                aria-current="page"
+                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+                  selectedSection === "wiki"
+                    ? selectedSectionClass
+                    : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
+                }`}
+                aria-current={selectedSection === "wiki" ? "page" : undefined}
+                onClick={() => setSelectedSection("wiki")}
               >
                 {t.wikiMenu}
+              </button>
+              <button
+                type="button"
+                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+                  selectedSection === "settings"
+                    ? selectedSectionClass
+                    : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
+                }`}
+                aria-current={selectedSection === "settings" ? "page" : undefined}
+                onClick={() => setSelectedSection("settings")}
+              >
+                {t.settingsMenu}
               </button>
             </nav>
           </div>
@@ -393,67 +576,85 @@ export function MyPageClient({
       <div className="mx-auto max-w-5xl">
         <section className="min-w-0 space-y-6">
           <header className="space-y-3">
-            <h1 className="text-3xl font-bold">{t.wikiHeaderTitle}</h1>
+            <h1 className="text-3xl font-bold">
+              {selectedSection === "wiki" ? t.wikiHeaderTitle : t.settingsHeaderTitle}
+            </h1>
             <p className="max-w-3xl text-sm leading-7 text-text-muted">
-              {t.wikiHeaderDescription}
+              {selectedSection === "wiki" ? t.wikiHeaderDescription : t.settingsHeaderDescription}
             </p>
           </header>
 
-          <WikiPrincipalPanel
-            draftImages={draftImages}
-            draftWikis={draftWikis}
-            locale={locale}
-            reviewError={reviewError}
-            draftWikiReviewError={draftWikiReviewError}
-            reviewingImageIdentifier={reviewingImageIdentifier}
-            deletingWikiIdentifier={deletingWikiIdentifier}
-            reviewingWikiIdentifier={reviewingWikiIdentifier}
-            isAuthenticated={currentIdentity !== null}
-            isPending={isActionPending(principalState)}
-            selectedWikiTab={selectedWikiTab}
-            state={principalState}
-            t={t}
-            onActivate={() => void activateWikiPrincipal()}
-            onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
-            onLoadDraftWikisPage={(tab, page) => void loadDraftWikisPage(tab, page)}
-            onRetry={() => void loadCurrentPrincipal()}
-            onReviewDraftImage={(imageIdentifier, action) =>
-              void reviewDraftImage(imageIdentifier, action)
-            }
-            onDeleteDraftWiki={(wiki) => {
-              if (window.confirm(t.deleteDraftWikiConfirm)) {
-                void deleteDraftWikiFromMyPage(wiki);
-              }
-            }}
-            onReviewDraftWiki={(wiki, action) => {
-              if (action === "reject") {
-                openRejectDialog(wiki);
-                return;
-              }
+          {selectedSection === "wiki" ? (
+            <>
+              <WikiPrincipalPanel
+                draftImages={draftImages}
+                draftWikis={draftWikis}
+                locale={locale}
+                reviewError={reviewError}
+                draftWikiReviewError={draftWikiReviewError}
+                reviewingImageIdentifier={reviewingImageIdentifier}
+                deletingWikiIdentifier={deletingWikiIdentifier}
+                reviewingWikiIdentifier={reviewingWikiIdentifier}
+                isAuthenticated={currentIdentity !== null}
+                isPending={isActionPending(principalState)}
+                selectedWikiTab={selectedWikiTab}
+                state={principalState}
+                t={t}
+                onActivate={() => void activateWikiPrincipal()}
+                onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
+                onLoadDraftWikisPage={(tab, page) => void loadDraftWikisPage(tab, page)}
+                onRetry={() => void loadCurrentPrincipal()}
+                onReviewDraftImage={(imageIdentifier, action) =>
+                  void reviewDraftImage(imageIdentifier, action)
+                }
+                onDeleteDraftWiki={(wiki) => {
+                  if (window.confirm(t.deleteDraftWikiConfirm)) {
+                    void deleteDraftWikiFromMyPage(wiki);
+                  }
+                }}
+                onReviewDraftWiki={(wiki, action) => {
+                  if (action === "reject") {
+                    openRejectDialog(wiki);
+                    return;
+                  }
 
-              void reviewDraftWiki(wiki, action);
-            }}
-            onSelectWikiTab={setSelectedWikiTab}
-            onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
-            onOpenCreateDraftWiki={openCreateDialog}
-          />
-          <CreateDraftWikiDialog
-            error={createDialog.error}
-            isCreating={createDialog.isCreating}
-            isOpen={createDialog.isOpen}
-            locale={locale}
-            t={t}
-            autoCreatableResourceTypes={autoCreatableResourceTypes}
-            onClose={closeCreateDialog}
-            onSubmit={submitCreateDialog}
-          />
-          <RejectDraftWikiDialog
-            isOpen={rejectDialog.isOpen}
-            isSubmitting={Boolean(reviewingWikiIdentifier)}
-            t={t}
-            onClose={closeRejectDialog}
-            onSubmit={submitRejectDialog}
-          />
+                  void reviewDraftWiki(wiki, action);
+                }}
+                onSelectWikiTab={setSelectedWikiTab}
+                onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
+                onOpenCreateDraftWiki={openCreateDialog}
+              />
+              <CreateDraftWikiDialog
+                error={createDialog.error}
+                isCreating={createDialog.isCreating}
+                isOpen={createDialog.isOpen}
+                locale={locale}
+                t={t}
+                autoCreatableResourceTypes={autoCreatableResourceTypes}
+                onClose={closeCreateDialog}
+                onSubmit={submitCreateDialog}
+              />
+              <RejectDraftWikiDialog
+                isOpen={rejectDialog.isOpen}
+                isSubmitting={Boolean(reviewingWikiIdentifier)}
+                t={t}
+                onClose={closeRejectDialog}
+                onSubmit={submitRejectDialog}
+              />
+            </>
+          ) : (
+            <SettingsSection
+              currentIdentity={currentIdentity}
+              selectedSettingsTab={selectedSettingsTab}
+              settingsState={settingsState}
+              t={t}
+            onProfileImageChange={updateProfileImage}
+            onProfileImageDelete={deleteProfileImage}
+            onSaveIdentitySettings={saveIdentitySettings}
+              onSelectSettingsTab={setSelectedSettingsTab}
+              onUpdateSettingsField={updateSettingsField}
+            />
+          )}
         </section>
       </div>
     </main>
@@ -657,6 +858,208 @@ function WikiPrincipalPanel({
         {t.activateWiki}
       </button>
     </div>
+  );
+}
+
+function SettingsSection({
+  currentIdentity,
+  selectedSettingsTab,
+  settingsState,
+  t,
+  onProfileImageChange,
+  onProfileImageDelete,
+  onSaveIdentitySettings,
+  onSelectSettingsTab,
+  onUpdateSettingsField,
+}: {
+  currentIdentity: IdentitySummary | null;
+  selectedSettingsTab: MyPageSettingsTab;
+  settingsState: MyPageIdentitySettingsState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onProfileImageChange: (file: File | null) => void;
+  onProfileImageDelete: () => void;
+  onSaveIdentitySettings: () => void;
+  onSelectSettingsTab: (tab: MyPageSettingsTab) => void;
+  onUpdateSettingsField: (field: "identityName" | "language", value: string) => void;
+}) {
+  const tabs = [
+    createSettingsTab("profileSettings", t.profileSettingsTab),
+    createSettingsTab("languageSettings", t.languageSettingsTab),
+  ];
+
+  return (
+    <section className="space-y-5">
+      <div className="overflow-x-auto border-b border-stroke-subtle">
+        <div aria-label={t.settingsTabsLabel} className="-mb-px flex gap-1" role="tablist">
+          {tabs.map((tab) => (
+            <button
+              aria-selected={selectedSettingsTab === tab.id}
+              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                selectedSettingsTab === tab.id
+                  ? "border-brand-primary text-text-strong"
+                  : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
+              }`}
+              key={tab.id}
+              onClick={() => onSelectSettingsTab(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <IdentitySettingsPanel
+        activeTab={selectedSettingsTab}
+        currentIdentity={currentIdentity}
+        settingsState={settingsState}
+        t={t}
+        onProfileImageChange={onProfileImageChange}
+        onProfileImageDelete={onProfileImageDelete}
+        onSave={onSaveIdentitySettings}
+        onUpdateField={onUpdateSettingsField}
+      />
+    </section>
+  );
+}
+
+function IdentitySettingsPanel({
+  activeTab,
+  currentIdentity,
+  settingsState,
+  t,
+  onProfileImageChange,
+  onProfileImageDelete,
+  onSave,
+  onUpdateField,
+}: {
+  activeTab: MyPageSettingsTab;
+  currentIdentity: IdentitySummary | null;
+  settingsState: MyPageIdentitySettingsState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onProfileImageChange: (file: File | null) => void;
+  onProfileImageDelete: () => void;
+  onSave: () => void;
+  onUpdateField: (field: "identityName" | "language", value: string) => void;
+}) {
+  const isProfileTab = activeTab === "profileSettings";
+  const profileImageSrc = settingsState.imagePreview;
+
+  return (
+    <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">
+            {isProfileTab ? t.profileSettingsTitle : t.languageSettingsTitle}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-text-muted">
+            {isProfileTab ? t.profileSettingsDescription : t.languageSettingsDescription}
+          </p>
+        </div>
+        <button
+          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={settingsState.isSaving || !currentIdentity}
+          onClick={onSave}
+          type="button"
+        >
+          {settingsState.isSaving ? t.identitySettingsSaving : t.identitySettingsSave}
+        </button>
+      </div>
+      <div className="mt-5 grid gap-5">
+        {isProfileTab ? (
+          <>
+            <label className="grid gap-2 text-sm font-semibold">
+              {t.profileIdentityNameLabel}
+              <input
+                className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+                disabled={settingsState.isSaving || !currentIdentity}
+                onChange={(event) => onUpdateField("identityName", event.currentTarget.value)}
+                value={settingsState.identityName}
+              />
+            </label>
+            <div className="grid gap-3 text-sm font-semibold">
+              <span>{t.profileImageLabel}</span>
+              <div className="flex flex-wrap items-center gap-4">
+                <label
+                  className="group relative grid size-28 cursor-pointer place-items-center overflow-hidden rounded-full border border-stroke-subtle bg-surface-base transition hover:ring-4 hover:ring-brand-highlight/30 focus-within:ring-4 focus-within:ring-brand-highlight/40"
+                  title={t.profileImageSelect}
+                >
+                  {profileImageSrc ? (
+                    <Image
+                      alt={t.profileImagePreviewAlt}
+                      className="size-full object-cover transition group-hover:brightness-90"
+                      height={112}
+                      src={profileImageSrc}
+                      unoptimized
+                      width={112}
+                    />
+                  ) : (
+                    <span className="grid size-full place-items-center border border-dashed border-stroke-subtle text-xs text-text-muted">
+                      {t.profileImageEmpty}
+                    </span>
+                  )}
+                  <span className="sr-only">{t.profileImageSelect}</span>
+                  <input
+                    aria-label={t.profileImageSelect}
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={settingsState.isSaving || !currentIdentity}
+                    onChange={(event) => onProfileImageChange(event.currentTarget.files?.[0] ?? null)}
+                    type="file"
+                  />
+                </label>
+                {profileImageSrc ? (
+                  <button
+                    className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={settingsState.isSaving || !currentIdentity}
+                    onClick={onProfileImageDelete}
+                    type="button"
+                  >
+                    {t.profileImageDelete}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </>
+        ) : (
+          <label className="grid gap-2 text-sm font-semibold">
+            {t.languageLabel}
+            <select
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              disabled={settingsState.isSaving || !currentIdentity}
+              onChange={(event) => onUpdateField("language", event.currentTarget.value)}
+              value={settingsState.language}
+            >
+              {Object.entries(localeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {settingsState.imageReadError ? (
+          <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+            {settingsState.imageReadError}
+          </p>
+        ) : null}
+        {settingsState.error ? (
+          <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+            {settingsState.error}
+          </p>
+        ) : null}
+        {settingsState.syncError ? (
+          <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800" role="alert">
+            {settingsState.syncError}
+          </p>
+        ) : null}
+        {settingsState.success ? (
+          <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+            {settingsState.success}
+          </p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 

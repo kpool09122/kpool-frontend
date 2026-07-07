@@ -36,7 +36,7 @@ describe("Home", () => {
       email: "member@example.com",
       identityIdentifier: "identity-1",
       language: "ko",
-      username: "member",
+      identityName: "member",
     });
   });
 

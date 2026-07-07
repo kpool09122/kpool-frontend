@@ -5,7 +5,7 @@ import { GET } from "./route";
 
 const identityResponse = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
-  username: "member",
+  identityName: "member",
   email: "member@example.com",
   language: "ja",
 };
@@ -81,7 +81,7 @@ describe("/api/identity/auth/me route", () => {
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
       identityIdentifier: identityResponse.identityIdentifier,
-      username: "member",
+      identityName: "member",
     });
     expect(response.headers.get("set-cookie")).toContain("laravel_session=refreshed");
   });
@@ -120,7 +120,7 @@ describe("/api/identity/auth/me route", () => {
 
   it("returns 502 when the upstream identity payload does not match the schema", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ username: "member" }));
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ identityName: "member" }));
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await GET(createRequest());

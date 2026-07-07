@@ -9,6 +9,7 @@ export type RedirectUrlResult = z.infer<typeof identityApiTypes.schemas.Redirect
 export type CreateIdentityRequest = z.infer<typeof identityApiTypes.schemas.CreateIdentityRequestBody>;
 export type VerifyEmailRequest = z.infer<typeof identityApiTypes.schemas.VerifyEmailRequestBody>;
 export type VerifyEmailResult = z.infer<typeof identityApiTypes.schemas.VerifyEmailResult>;
+export type UpdateIdentityRequest = z.infer<typeof identityApiTypes.schemas.UpdateIdentityRequestBody>;
 
 type IdentityApiEnv = Record<string, string | undefined>;
 
@@ -51,6 +52,26 @@ export const getIdentityApiBaseUrl = (
     ? withIdentityApiPrefix(env.KPOOL_IDENTITY_API_BASE_URL)
     : null;
 
+export const stripIdentityImageDataUrlPrefix = (value: string): string => {
+  const marker = ";base64,";
+  const markerIndex = value.indexOf(marker);
+
+  return markerIndex >= 0 ? value.slice(markerIndex + marker.length) : value;
+};
+
+export const normalizeIdentityImageRequest = <
+  T extends { base64EncodedImage?: string | null },
+>(requestBody: T): T => {
+  if (!requestBody.base64EncodedImage) {
+    return requestBody;
+  }
+
+  return {
+    ...requestBody,
+    base64EncodedImage: stripIdentityImageDataUrlPrefix(requestBody.base64EncodedImage),
+  };
+};
+
 export const getIdentityRouteErrorMessage = ({
   status,
   data,
@@ -90,6 +111,12 @@ export const parseCreateIdentityRequest = (body: unknown): CreateIdentityRequest
 
 export const parseVerifyEmailRequest = (body: unknown): VerifyEmailRequest =>
   parseWithSchemaLog("identity verify email request", identityApiTypes.schemas.VerifyEmailRequestBody, body);
+
+export const parseUpdateIdentityRequest = (body: unknown): UpdateIdentityRequest =>
+  parseWithSchemaLog("identity update request", identityApiTypes.schemas.UpdateIdentityRequestBody, body);
+
+export const parseUpdateIdentityResult = (body: unknown): IdentitySummary =>
+  parseWithSchemaLog("identity update response", identityApiTypes.schemas.IdentitySummary, body);
 
 export const parseVerifyEmailResult = (body: unknown): VerifyEmailResult =>
   parseWithSchemaLog("identity verify email response", identityApiTypes.schemas.VerifyEmailResult, body);

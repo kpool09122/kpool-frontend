@@ -4,13 +4,18 @@ import type { NextRequest } from "next/server";
 import { POST } from "./route";
 
 const registerRequestBody = {
-  username: "New Member",
+  identityName: "New Member",
   email: "new-member@example.com",
   password: "secret-password",
   confirmedPassword: "secret-password",
-  base64EncodedImage: null,
+  base64EncodedImage: "data:image/jpeg;base64,PROFILE_IMAGE",
   invitationToken: null,
   requestLanguage: "ja",
+};
+
+const upstreamRegisterRequestBody = {
+  ...registerRequestBody,
+  base64EncodedImage: "PROFILE_IMAGE",
 };
 
 const createRequest = (
@@ -37,7 +42,7 @@ describe("/api/identity/auth/register route", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "New Member",
+        identityName: "New Member",
         email: "new-member@example.com",
         language: "ja",
       })),
@@ -59,7 +64,7 @@ describe("/api/identity/auth/register route", () => {
           "Content-Type": "application/json",
           Cookie: "laravel_session=abc",
         },
-        body: JSON.stringify(registerRequestBody),
+        body: JSON.stringify(upstreamRegisterRequestBody),
         cache: "no-store",
       },
     );

@@ -21,7 +21,7 @@ const createAdapter = (overrides: Partial<SignupAdapter> = {}): SignupAdapter =>
   }),
   createIdentity: vi.fn().mockResolvedValue({
     identityIdentifier: "11111111-1111-1111-1111-111111111111",
-    username: "member",
+    identityName: "member",
     email: "member@example.com",
     language: "ja",
   }),
@@ -90,7 +90,7 @@ describe("SignupPage", () => {
     await waitFor(() =>
       expect(adapter.createIdentity).toHaveBeenCalledWith(
         {
-          username: "Member Account",
+          identityName: "Member Account",
           email: "member@example.com",
           password: "secret-password",
           confirmedPassword: "secret-password",
