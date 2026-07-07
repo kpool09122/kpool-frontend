@@ -1,24 +1,15 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
-const LoginRequestBody = z
-  .object({
-    email: z.string(),
-    password: z.string(),
-    return_to: z.string().nullish(),
-  })
-  .passthrough();
 const KPool_Common_Uuid = z.string();
-const IdentitySummary = z
+const IdentityProfileSummary = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
     identityName: z.string(),
-    email: z.string(),
     language: z.string(),
     profileImage: z.string().nullish(),
   })
   .passthrough();
-const LoginIdentitySummary = IdentitySummary;
 const KPool_Common_ProblemDetails = z
   .object({
     type: z.string(),
@@ -29,6 +20,23 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
+const LoginRequestBody = z
+  .object({
+    email: z.string(),
+    password: z.string(),
+    return_to: z.string().nullish(),
+  })
+  .passthrough();
+const IdentitySummary = z
+  .object({
+    identityIdentifier: KPool_Common_Uuid,
+    identityName: z.string(),
+    email: z.string(),
+    language: z.string(),
+    profileImage: z.string().nullish(),
+  })
+  .passthrough();
+const LoginIdentitySummary = IdentitySummary;
 const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const AuthenticatedIdentitySummary = IdentitySummary;
 const CreateIdentityRequestBody = z
@@ -65,11 +73,12 @@ const UpdateIdentityRequestBody = z
   .passthrough();
 
 export const schemas = {
-  LoginRequestBody,
   KPool_Common_Uuid,
+  IdentityProfileSummary,
+  KPool_Common_ProblemDetails,
+  LoginRequestBody,
   IdentitySummary,
   LoginIdentitySummary,
-  KPool_Common_ProblemDetails,
   KPool_Common_EmptyJsonObject,
   AuthenticatedIdentitySummary,
   CreateIdentityRequestBody,
@@ -84,6 +93,43 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/auth/identities/:identityIdentifier/profile",
+    alias: "IdentityAuthOperations_getIdentityProfile",
+    description: `Get profile fields for the requested identity. Any authenticated identity may fetch the profile.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "identityIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: IdentityProfileSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
   {
     method: "post",
     path: "/auth/login",
