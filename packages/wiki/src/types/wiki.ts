@@ -262,6 +262,7 @@ export const wikiBasicSchema = z.object({
   representativeSymbol: z.string().optional(),
   officialColors: z.array(z.string()).optional(),
   agencyName: z.string().nullable().optional(),
+  agencyIdentifier: z.string().nullable().optional(),
   ceo: z.string().optional(),
   officialWebsite: z.string().optional(),
   socialLinks: z.array(z.string()).optional(),

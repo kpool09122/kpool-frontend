@@ -6,4 +6,5 @@ export * from "./wikiDetailView";
 export * from "./wikiApiModel";
 export * from "./wikiImageModel";
 export * from "./wikiRelatedProfilesModel";
+export * from "./wikiMasterSearchModel";
 export * from "./wikiRouting";

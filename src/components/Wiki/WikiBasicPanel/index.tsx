@@ -1,23 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import {
   buildWikiPath,
   getWikiResourceLabel,
   type WikiBasic,
+  type WikiMasterSearchItem,
   type WikiResourceType,
 } from "@kpool/wiki";
 import { getLines, getString } from "../editing";
 import { EditIcon } from "../icons";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import { WikiFormActions } from "../WikiFormActions";
+import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiBasicPanelProps = {
   basic: WikiBasic;
   disabled?: boolean;
   isEditing: boolean;
+  language?: string;
   profileLabel?: string;
   onEdit: () => void;
   onCancel: () => void;
@@ -171,6 +175,7 @@ export function WikiBasicPanel({
   basic,
   disabled = false,
   isEditing,
+  language = "ja",
   profileLabel = `${getWikiResourceLabel(basic.resourceType as WikiResourceType)} profile`,
   onEdit,
   onCancel,
@@ -181,6 +186,24 @@ export function WikiBasicPanel({
   const isGroup = resourceType === "group";
   const isSong = resourceType === "song";
   const isTalent = resourceType === "talent";
+  const toSearchItem = (relation: { wikiIdentifier: string; name: string; slug?: string; normalizedName?: string }): WikiMasterSearchItem => ({
+    id: relation.wikiIdentifier,
+    wikiIdentifier: relation.wikiIdentifier,
+    name: relation.name,
+    slug: relation.slug ?? relation.normalizedName ?? relation.name,
+    resourceType: "group",
+  });
+  const [selectedAgency, setSelectedAgency] = useState<WikiMasterSearchItem[]>(() =>
+    basic.agencyName
+      ? [{ id: basic.agencyIdentifier ?? "", wikiIdentifier: basic.agencyIdentifier ?? "", name: basic.agencyName, slug: basic.agencyName, resourceType: "agency" }]
+      : [],
+  );
+  const [selectedGroups, setSelectedGroups] = useState<WikiMasterSearchItem[]>(() =>
+    (basic.groups ?? []).map((group) => ({ ...toSearchItem(group), resourceType: "group" })),
+  );
+  const [selectedTalents, setSelectedTalents] = useState<WikiMasterSearchItem[]>(() =>
+    (basic.talents ?? []).map((talent) => ({ ...toSearchItem(talent), resourceType: "talent" })),
+  );
 
   if (isEditing) {
     return (
@@ -193,7 +216,10 @@ export function WikiBasicPanel({
           onSave({
             ...basic,
             name: basic.name,
-            agencyName: getAgencyNameUpdate(formData, basic.agencyName),
+            agencyIdentifier: selectedAgency[0]?.wikiIdentifier || basic.agencyIdentifier || null,
+            groupIdentifiers: selectedGroups.map((group) => group.wikiIdentifier),
+            talentIdentifiers: selectedTalents.map((talent) => talent.wikiIdentifier),
+            agencyName: selectedAgency[0]?.name ?? getAgencyNameUpdate(formData, basic.agencyName),
             albumName: getOptionalStringUpdate(formData, "albumName", basic.albumName),
             arranger: getOptionalStringUpdate(formData, "arranger", basic.arranger),
             birthday: getOptionalStringUpdate(formData, "birthday", basic.birthday),
@@ -387,12 +413,36 @@ export function WikiBasicPanel({
             name="officialColors"
             values={basic.officialColors}
           />
-          <BasicTextInput
-            isAlwaysVisible={isGroup || isSong || isTalent}
-            label="Agency"
-            name="agencyName"
-            value={basic.agencyName}
-          />
+          {isGroup || isSong || isTalent ? (
+            <WikiMasterSearchSelect
+              language={language}
+              label="Agency"
+              mode="single"
+              onChange={setSelectedAgency}
+              resourceType="agency"
+              selectedItems={selectedAgency}
+            />
+          ) : null}
+          {isTalent || isSong ? (
+            <WikiMasterSearchSelect
+              language={language}
+              label="Groups"
+              mode="multiple"
+              onChange={setSelectedGroups}
+              resourceType="group"
+              selectedItems={selectedGroups}
+            />
+          ) : null}
+          {isSong ? (
+            <WikiMasterSearchSelect
+              language={language}
+              label="Talents"
+              mode="multiple"
+              onChange={setSelectedTalents}
+              resourceType="talent"
+              selectedItems={selectedTalents}
+            />
+          ) : null}
         </div>
         <WikiFormActions onCancel={onCancel} />
       </form>

@@ -756,32 +756,51 @@ describe("MyPageClient", () => {
     const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
     fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
 
-    expect(within(dialog).getByLabelText("関連事務所")).toBeDisabled();
-    expect(within(dialog).queryByLabelText("関連グループ")).not.toBeInTheDocument();
-    expect(within(dialog).getByText("選択肢はまだありません")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("関連事務所 keyword")).toBeEnabled();
+    expect(within(dialog).queryByLabelText("関連グループ keyword")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("選択肢はまだありません")).not.toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByLabelText("リソース種別"), {
       target: { value: "song" },
     });
 
-    expect(within(dialog).getByLabelText("関連事務所")).toBeDisabled();
-    expect(within(dialog).getByLabelText("関連グループ")).toBeDisabled();
-    expect(within(dialog).getByLabelText("関連タレント")).toBeDisabled();
+    expect(within(dialog).getByLabelText("関連事務所 keyword")).toBeEnabled();
+    expect(within(dialog).getByLabelText("関連グループ keyword")).toBeEnabled();
+    expect(within(dialog).getByLabelText("関連タレント keyword")).toBeEnabled();
   });
 
   it("auto-creates a draft wiki with the normalized request slug and navigates with that slug", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          language: "ja",
-          name: "Generated Wiki",
-          resourceType: "song",
-          status: "pending",
-          wikiIdentifier: "99999999-9999-4999-8999-999999999999",
-        }),
-        { status: 201, headers: { "Content-Type": "application/json" } },
-      ),
-    );
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/api/wiki/master-search")) {
+        const parsedUrl = new URL(url, "https://app.example.test");
+        const resourceType = parsedUrl.searchParams.get("resourceType");
+        const item = resourceType === "agency"
+          ? { id: "agency-wiki-1", name: "JYP Entertainment", slug: "ag-jyp", resourceType: "agency" }
+          : resourceType === "group"
+            ? { id: "group-wiki-1", name: "TWICE", slug: "gr-twice", resourceType: "group" }
+            : { id: "talent-wiki-1", name: "MOMO", slug: "tl-momo", resourceType: "talent" };
+
+        return Promise.resolve(
+          new Response(JSON.stringify({ wikis: [item] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            language: "ja",
+            name: "Generated Wiki",
+            resourceType: "song",
+            status: "pending",
+            wikiIdentifier: "99999999-9999-4999-8999-999999999999",
+          }),
+          { status: 201, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     renderWithQueryClient(
@@ -800,6 +819,20 @@ describe("MyPageClient", () => {
     fireEvent.change(within(dialog).getByLabelText("リソース種別"), {
       target: { value: "song" },
     });
+
+    const searchAndSelect = async (label: string, keyword: string, option: string) => {
+      const input = within(dialog).getByLabelText(`${label} keyword`);
+      fireEvent.change(input, {
+        target: { value: keyword },
+      });
+      fireEvent.keyDown(input, { key: "Enter" });
+      fireEvent.click(await within(dialog).findByRole("button", { name: new RegExp(option) }));
+    };
+
+    await searchAndSelect("関連事務所", "jyp", "JYP Entertainment");
+    await searchAndSelect("関連グループ", "twice", "TWICE");
+    await searchAndSelect("関連タレント", "momo", "MOMO");
+
     fireEvent.change(within(dialog).getByLabelText("名前"), {
       target: { value: "Generated Wiki" },
     });
@@ -818,9 +851,9 @@ describe("MyPageClient", () => {
             language: "ja",
             name: "Generated Wiki",
             slug: "sg-generated-wiki",
-            agencyIdentifier: null,
-            groupIdentifiers: [],
-            talentIdentifiers: [],
+            agencyIdentifier: "agency-wiki-1",
+            groupIdentifiers: ["group-wiki-1"],
+            talentIdentifiers: ["talent-wiki-1"],
           }),
         }),
       ),

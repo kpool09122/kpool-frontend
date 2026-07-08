@@ -46,7 +46,7 @@ describe("WikiBasicPanel", () => {
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
         name: wikiStoryBasic.name,
-        agencyName: null,
+        agencyName: "North Harbor Entertainment",
         officialColors: ["Red", "Blue"],
       }),
     );
@@ -154,9 +154,8 @@ describe("WikiBasicPanel", () => {
     const fieldGrid = container.querySelector("form > div");
     const labels = Array.from(fieldGrid?.children ?? []).map((element) => {
       const heading = element.querySelector("p")?.textContent;
-      const labelText = Array.from(element.childNodes).find(
-        (node) => node.nodeType === Node.TEXT_NODE,
-      )?.textContent;
+      const labelElement = element.matches("label") ? element : element.querySelector("label");
+      const labelText = labelElement?.childNodes[0]?.textContent;
 
       return (heading ?? labelText ?? "").trim();
     });

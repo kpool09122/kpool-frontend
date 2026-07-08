@@ -140,8 +140,6 @@ const ja = {
     relatedGroupLabel: "関連グループ",
     relatedTalentLabel: "関連タレント",
     relatedWikiOptionsUnavailable: "選択肢はまだありません",
-    relatedWikiBackendTodo:
-      "関連 Wiki の検索 API が未整備のため、未選択のまま送信します。",
     cancelCreateWiki: "キャンセル",
     creatingWiki: "作成中",
     createWikiFailed: "Wiki の作成に失敗しました。",
@@ -487,8 +485,6 @@ const en: typeof ja = {
     relatedGroupLabel: "Related group",
     relatedTalentLabel: "Related talent",
     relatedWikiOptionsUnavailable: "No options available yet",
-    relatedWikiBackendTodo:
-      "Related Wiki search API is not available yet, so this will be submitted without selections.",
     cancelCreateWiki: "Cancel",
     creatingWiki: "Creating",
     createWikiFailed: "Wiki creation failed.",
@@ -833,8 +829,6 @@ const ko: typeof ja = {
     relatedGroupLabel: "관련 그룹",
     relatedTalentLabel: "관련 탤런트",
     relatedWikiOptionsUnavailable: "아직 선택지가 없습니다",
-    relatedWikiBackendTodo:
-      "관련 Wiki 검색 API가 아직 없어 선택 없이 전송합니다.",
     cancelCreateWiki: "취소",
     creatingWiki: "생성 중",
     createWikiFailed: "Wiki를 생성할 수 없습니다.",
