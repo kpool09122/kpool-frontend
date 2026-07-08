@@ -24,6 +24,11 @@ export type WikiImageRequestFormState = {
   rightsConfirmed: boolean;
 };
 
+export type WikiImageCropState = {
+  file: File;
+  sourceDataUrl: string;
+} | null;
+
 export type WikiImageLibraryDictionary = ReturnType<typeof useI18n>["dictionary"]["wiki"]["imageLibrary"];
 
 export type WikiImageLibraryProps = {
@@ -44,14 +49,21 @@ export type WikiImageLibraryProps = {
 
 export type WikiImageRequestFormController = {
   canSubmitRequest: boolean;
+  cropState: WikiImageCropState;
   errorMessage: string | null;
   isDragActive: boolean;
   requestForm: WikiImageRequestFormState;
   selectedFile: File | null;
+  selectedFileDataUrl: string | null;
   successMessage: string | null;
   inputRef: RefObject<HTMLInputElement | null>;
   clearRequest: () => void;
   selectFirstFile: (fileList: FileList | null) => void;
+  cancelSelectedFileCrop: () => void;
+  confirmSelectedFileCrop: (croppedDataUrl: string) => void;
+  clearSelectedFile: () => void;
+  reportImageCropError: (message: string) => void;
+  setCropState: Dispatch<SetStateAction<WikiImageCropState>>;
   setIsDragActive: Dispatch<SetStateAction<boolean>>;
   setRequestForm: Dispatch<SetStateAction<WikiImageRequestFormState>>;
   setSelectedFile: Dispatch<SetStateAction<File | null>>;
