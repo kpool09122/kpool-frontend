@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 
+import { readFileAsDataUrl } from "../../ImageCropper";
 import {
   isAcceptedWikiImageFile,
   isSafeWikiSourceUrl,
   isWikiImageFileSizeAllowed,
+  stripDataUrlPrefix,
+  wikiImageMaxBase64Length,
 } from "@kpool/wiki";
 import {
   type WikiImageLibraryDictionary,
@@ -19,27 +22,13 @@ const emptyRequestForm: WikiImageRequestFormState = {
   rightsConfirmed: false,
 };
 
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("file-read-failed"));
-    });
-    reader.addEventListener("error", () => reject(new Error("file-read-failed")));
-    reader.readAsDataURL(file);
-  });
-
 const hasCompleteRequestForm = (
   selectedFile: File | null,
+  selectedFileDataUrl: string | null,
   form: WikiImageRequestFormState,
 ): selectedFile is File =>
   Boolean(selectedFile) &&
+  Boolean(selectedFileDataUrl) &&
   form.sourceUrl.trim().length > 0 &&
   isSafeWikiSourceUrl(form.sourceUrl) &&
   form.sourceName.trim().length > 0 &&
@@ -61,9 +50,11 @@ export const useWikiImageRequestForm = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileDataUrl, setSelectedFileDataUrl] = useState<string | null>(null);
+  const [cropState, setCropState] = useState<{ file: File; sourceDataUrl: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [requestForm, setRequestForm] = useState<WikiImageRequestFormState>(emptyRequestForm);
-  const canSubmitRequest = hasCompleteRequestForm(selectedFile, requestForm) && !isBusy;
+  const canSubmitRequest = hasCompleteRequestForm(selectedFile, selectedFileDataUrl, requestForm) && !cropState && !isBusy;
   const errorMessage = localError ?? uploadError;
 
   const selectFile = (file: File) => {
@@ -72,17 +63,27 @@ export const useWikiImageRequestForm = ({
 
     if (!isAcceptedWikiImageFile(file)) {
       setSelectedFile(null);
+      setSelectedFileDataUrl(null);
+      setCropState(null);
       setLocalError(t.invalidFormat);
       return;
     }
 
     if (!isWikiImageFileSizeAllowed(file)) {
       setSelectedFile(null);
+      setSelectedFileDataUrl(null);
+      setCropState(null);
       setLocalError(t.fileTooLarge);
       return;
     }
 
-    setSelectedFile(file);
+    setCropState(null);
+    readFileAsDataUrl(file).then((sourceDataUrl) => {
+      setCropState({ file, sourceDataUrl });
+    }).catch(() => {
+      setCropState(null);
+      setLocalError(t.readFailed);
+    });
   };
 
   const selectFirstFile = (fileList: FileList | null) => {
@@ -95,54 +96,94 @@ export const useWikiImageRequestForm = ({
     selectFile(file);
   };
 
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    setSelectedFileDataUrl(null);
+    setCropState(null);
+  };
+
+  const confirmSelectedFileCrop = (croppedDataUrl: string) => {
+    if (!cropState) {
+      setLocalError(t.readFailed);
+      return;
+    }
+
+    if (stripDataUrlPrefix(croppedDataUrl).length > wikiImageMaxBase64Length) {
+      setLocalError(t.fileTooLarge);
+      return;
+    }
+
+    setSelectedFile(cropState.file);
+    setSelectedFileDataUrl(croppedDataUrl);
+    setCropState(null);
+    setLocalError(null);
+    setSuccessMessage(null);
+  };
+
+  const cancelSelectedFileCrop = () => {
+    setCropState(null);
+    setLocalError(null);
+  };
+
+  const reportImageCropError = (message: string) => {
+    setLocalError(message);
+  };
+
   const clearRequest = () => {
     setLocalError(null);
     setIsDragActive(false);
     setSelectedFile(null);
+    setSelectedFileDataUrl(null);
+    setCropState(null);
     setSuccessMessage(null);
     setRequestForm(emptyRequestForm);
   };
 
   const submitRequest = () => {
-    if (!hasCompleteRequestForm(selectedFile, requestForm)) {
+    if (!hasCompleteRequestForm(selectedFile, selectedFileDataUrl, requestForm)) {
       setLocalError(t.requiredFields);
       return;
     }
 
     setLocalError(null);
 
-    void readFileAsDataUrl(selectedFile).then((base64Image) =>
-      Promise.resolve(onUpload({
-        file: selectedFile,
-        base64Image,
-        sourceUrl: requestForm.sourceUrl.trim(),
-        sourceName: requestForm.sourceName.trim(),
-        altText: requestForm.altText.trim(),
-        rightsConfirmationAgreed: requestForm.rightsConfirmed,
-      })),
-    ).then(() => {
+    void Promise.resolve(onUpload({
+      file: selectedFile,
+      base64Image: selectedFileDataUrl ?? "",
+      sourceUrl: requestForm.sourceUrl.trim(),
+      sourceName: requestForm.sourceName.trim(),
+      altText: requestForm.altText.trim(),
+      rightsConfirmationAgreed: requestForm.rightsConfirmed,
+    })).then(() => {
       setSelectedFile(null);
+      setSelectedFileDataUrl(null);
+      setCropState(null);
       setRequestForm(emptyRequestForm);
       setSuccessMessage(t.requestSubmitted);
     }).catch((error: unknown) => {
       setLocalError(
-        error instanceof Error && error.message !== "file-read-failed"
-          ? error.message
-          : t.readFailed,
+        error instanceof Error ? error.message : t.uploadFailed,
       );
     });
   };
 
   return {
     canSubmitRequest,
+    cropState,
     errorMessage,
     inputRef,
     isDragActive,
     requestForm,
     selectedFile,
+    selectedFileDataUrl,
     successMessage,
     clearRequest,
+    clearSelectedFile,
+    cancelSelectedFileCrop,
+    confirmSelectedFileCrop,
+    reportImageCropError,
     selectFirstFile,
+    setCropState,
     setIsDragActive,
     setRequestForm,
     setSelectedFile,

@@ -1,11 +1,11 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
 
 import { WikiEditPage } from "./WikiEditPage";
-import { wikiImageMaxFileSizeBytes } from "@kpool/wiki";
+import { wikiImageMaxBase64Length, wikiImageMaxFileSizeBytes } from "@kpool/wiki";
 import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
 
 const navigationMocks = vi.hoisted(() => ({
@@ -50,7 +50,26 @@ const renderPage = (
     }),
   );
 
+const loadCropperImage = () => {
+  const image = screen.getByTestId("image-cropper-image") as HTMLImageElement;
+
+  Object.defineProperties(image, {
+    naturalWidth: { configurable: true, value: 100 },
+    naturalHeight: { configurable: true, value: 100 },
+    width: { configurable: true, value: 100 },
+    height: { configurable: true, value: 100 },
+  });
+  fireEvent.load(image);
+};
+
 describe("WikiEditPage", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,CROPPED_IMAGE");
+  });
+
   afterEach(() => {
     cleanup();
     navigationMocks.refresh.mockReset();
@@ -449,7 +468,18 @@ describe("WikiEditPage", () => {
       },
     });
 
-    expect(screen.getByText("選択中: upload.png")).toBeInTheDocument();
+    await screen.findByText("画像を切り取る");
+    expect(screen.queryByText("画像を選択またはここにドロップ")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "画像を選び直す" })).not.toBeInTheDocument();
+    loadCropperImage();
+    fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
+
+    expect(await screen.findByText("選択中: upload.png")).toBeInTheDocument();
+    expect(screen.queryByText("画像を選択またはここにドロップ")).not.toBeInTheDocument();
+    expect(screen.getByAltText("選択中の画像プレビュー")).toHaveAttribute(
+      "src",
+      "data:image/png;base64,CROPPED_IMAGE",
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     fireEvent.change(screen.getByLabelText("参照元URL"), {
       target: { value: "https://commons.wikimedia.org/wiki/File:Upload.png" },
@@ -542,6 +572,9 @@ describe("WikiEditPage", () => {
         files: [new File(["image"], "upload.png", { type: "image/png" })],
       },
     });
+    await screen.findByText("画像を切り取る");
+    loadCropperImage();
+    fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
     fireEvent.change(screen.getByLabelText("参照元URL"), {
       target: { value: "https://commons.wikimedia.org/wiki/File:Upload.png" },
     });
@@ -630,6 +663,62 @@ describe("WikiEditPage", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects cropped wiki images that exceed the encoded upload limit", async () => {
+    function MockFileReader(this: {
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      readAsDataURL: () => void;
+      result: string | ArrayBuffer | null;
+    }) {
+      this.onload = null;
+      this.onerror = null;
+      this.result = null;
+      this.readAsDataURL = () => {
+        this.result = `data:image/png;base64,${"A".repeat(wikiImageMaxBase64Length + 1)}`;
+        this.onload?.();
+      };
+    }
+
+    vi.stubGlobal("FileReader", MockFileReader);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          images: [],
+          current_page: 1,
+          last_page: 1,
+          total: 0,
+          per_page: 12,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
+
+    fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
+      target: {
+        files: [new File(["image"], "oversized-crop.png", { type: "image/png" })],
+      },
+    });
+
+    await screen.findByText("画像を切り取る");
+    vi.mocked(HTMLCanvasElement.prototype.toDataURL).mockReturnValue(
+      `data:image/png;base64,${"A".repeat(wikiImageMaxBase64Length + 1)}`,
+    );
+    loadCropperImage();
+    fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
+
+    expect(
+      await screen.findByText("画像は5MB以下のファイルを選択してください。"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("選択中: oversized-crop.png")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("removes a selected image before upload", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(
@@ -656,7 +745,11 @@ describe("WikiEditPage", () => {
       },
     });
 
-    expect(screen.getByText("選択中: remove-me.webp")).toBeInTheDocument();
+    await screen.findByText("画像を切り取る");
+    loadCropperImage();
+    fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
+
+    expect(await screen.findByText("選択中: remove-me.webp")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "選択を解除" }));
 
     expect(screen.queryByText("選択中: remove-me.webp")).not.toBeInTheDocument();

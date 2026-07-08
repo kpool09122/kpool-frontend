@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 
+import "react-image-crop/dist/ReactCrop.css";
 import "./globals.css";
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import { Header } from "./Header";

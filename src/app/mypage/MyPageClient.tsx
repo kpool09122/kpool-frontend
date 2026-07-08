@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
+import { ImageCropper, readFileAsDataUrl } from "../../components/ImageCropper";
 import { useI18n } from "../../i18n/I18nProvider";
 import { localeLabels, type Locale } from "../../i18n/locales";
 import {
@@ -45,10 +46,13 @@ import {
 import {
   buildWikiEditPath,
   buildWikiPath,
+  isAcceptedWikiImageFile,
   isSafeWikiSourceUrl,
+  isWikiImageFileSizeAllowed,
   normalizeWikiSlugForResourceType,
   type WikiDraftImage,
   type WikiResourceType,
+  wikiImageAcceptAttribute,
   wikiResourceTypes,
 } from "@kpool/wiki";
 import {
@@ -104,6 +108,7 @@ type MyPageIdentitySettingsState = {
   error: string | null;
   imagePreview: string | null;
   imageReadError: string | null;
+  imageCropState: { file: File; sourceDataUrl: string } | null;
   identityName: string;
   isSaving: boolean;
   language: Locale;
@@ -117,6 +122,7 @@ const createIdentitySettingsState = (identity: IdentitySummary | null, fallbackL
   error: null,
   imagePreview: identity?.profileImage ?? null,
   imageReadError: null,
+  imageCropState: null,
   identityName: identity?.identityName ?? "",
   isSaving: false,
   language: isSupportedLocale(identity?.language) ? identity.language : fallbackLanguage,
@@ -128,20 +134,6 @@ const createIdentitySettingsState = (identity: IdentitySummary | null, fallbackL
 
 const isSupportedLocale = (value: unknown): value is Locale =>
   typeof value === "string" && Object.prototype.hasOwnProperty.call(localeLabels, value);
-
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-      reject(new Error("FileReader did not return a data URL."));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error("FileReader failed."));
-    reader.readAsDataURL(file);
-  });
 
 const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
   createPrincipal: createWikiPrincipal,
@@ -377,6 +369,7 @@ export function MyPageClient({
       setSettingsState((state) => ({
         ...state,
         imageReadError: null,
+        imageCropState: null,
         imagePreview: currentIdentity?.profileImage ?? null,
         profileImageMarkedForDeletion: false,
         profileImageBase64: null,
@@ -385,27 +378,83 @@ export function MyPageClient({
       return;
     }
 
+    if (!isAcceptedWikiImageFile(file)) {
+      setSettingsState((state) => ({
+        ...state,
+        imageCropState: null,
+        imageReadError: t.profileImageInvalidFormat,
+        success: null,
+      }));
+      return;
+    }
+
+    if (!isWikiImageFileSizeAllowed(file)) {
+      setSettingsState((state) => ({
+        ...state,
+        imageCropState: null,
+        imageReadError: t.profileImageTooLarge,
+        success: null,
+      }));
+      return;
+    }
+
+    setSettingsState((state) => ({
+      ...state,
+      imageCropState: null,
+      imageReadError: null,
+      success: null,
+    }));
+
     void readFileAsDataUrl(file).then((dataUrl) => {
       setSettingsState((state) => ({
         ...state,
+        imageCropState: { file, sourceDataUrl: dataUrl },
         imageReadError: null,
-        imagePreview: dataUrl,
-        profileImageMarkedForDeletion: false,
-        profileImageBase64: dataUrl,
         success: null,
       }));
     }).catch(() => {
       setSettingsState((state) => ({
         ...state,
+        imageCropState: null,
         imageReadError: t.profileImageReadFailed,
         success: null,
       }));
     });
   };
 
+  const confirmProfileImageCrop = (croppedDataUrl: string) => {
+    setSettingsState((state) => ({
+      ...state,
+      imageCropState: null,
+      imageReadError: null,
+      imagePreview: croppedDataUrl,
+      profileImageMarkedForDeletion: false,
+      profileImageBase64: croppedDataUrl,
+      success: null,
+    }));
+  };
+
+  const cancelProfileImageCrop = () => {
+    setSettingsState((state) => ({
+      ...state,
+      imageCropState: null,
+      imageReadError: null,
+      success: null,
+    }));
+  };
+
+  const reportProfileImageCropError = (message: string) => {
+    setSettingsState((state) => ({
+      ...state,
+      imageReadError: message,
+      success: null,
+    }));
+  };
+
   const deleteProfileImage = () => {
     setSettingsState((state) => ({
       ...state,
+      imageCropState: null,
       imagePreview: null,
       imageReadError: null,
       profileImageBase64: null,
@@ -425,6 +474,15 @@ export function MyPageClient({
 
     if (!identityName) {
       setSettingsState((state) => ({ ...state, error: t.profileIdentityNameRequired, success: null }));
+      return;
+    }
+
+    if (settingsState.imageCropState) {
+      setSettingsState((state) => ({
+        ...state,
+        imageReadError: t.profileImageCropRequired,
+        success: null,
+      }));
       return;
     }
 
@@ -649,6 +707,9 @@ export function MyPageClient({
               settingsState={settingsState}
               t={t}
             onProfileImageChange={updateProfileImage}
+            onProfileImageCropCancel={cancelProfileImageCrop}
+            onProfileImageCropConfirm={confirmProfileImageCrop}
+            onProfileImageCropError={reportProfileImageCropError}
             onProfileImageDelete={deleteProfileImage}
             onSaveIdentitySettings={saveIdentitySettings}
               onSelectSettingsTab={setSelectedSettingsTab}
@@ -867,6 +928,9 @@ function SettingsSection({
   settingsState,
   t,
   onProfileImageChange,
+  onProfileImageCropCancel,
+  onProfileImageCropConfirm,
+  onProfileImageCropError,
   onProfileImageDelete,
   onSaveIdentitySettings,
   onSelectSettingsTab,
@@ -877,6 +941,9 @@ function SettingsSection({
   settingsState: MyPageIdentitySettingsState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onProfileImageChange: (file: File | null) => void;
+  onProfileImageCropCancel: () => void;
+  onProfileImageCropConfirm: (croppedDataUrl: string) => void;
+  onProfileImageCropError: (message: string) => void;
   onProfileImageDelete: () => void;
   onSaveIdentitySettings: () => void;
   onSelectSettingsTab: (tab: MyPageSettingsTab) => void;
@@ -915,6 +982,9 @@ function SettingsSection({
         settingsState={settingsState}
         t={t}
         onProfileImageChange={onProfileImageChange}
+        onProfileImageCropCancel={onProfileImageCropCancel}
+        onProfileImageCropConfirm={onProfileImageCropConfirm}
+        onProfileImageCropError={onProfileImageCropError}
         onProfileImageDelete={onProfileImageDelete}
         onSave={onSaveIdentitySettings}
         onUpdateField={onUpdateSettingsField}
@@ -929,6 +999,9 @@ function IdentitySettingsPanel({
   settingsState,
   t,
   onProfileImageChange,
+  onProfileImageCropCancel,
+  onProfileImageCropConfirm,
+  onProfileImageCropError,
   onProfileImageDelete,
   onSave,
   onUpdateField,
@@ -938,6 +1011,9 @@ function IdentitySettingsPanel({
   settingsState: MyPageIdentitySettingsState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onProfileImageChange: (file: File | null) => void;
+  onProfileImageCropCancel: () => void;
+  onProfileImageCropConfirm: (croppedDataUrl: string) => void;
+  onProfileImageCropError: (message: string) => void;
   onProfileImageDelete: () => void;
   onSave: () => void;
   onUpdateField: (field: "identityName" | "language", value: string) => void;
@@ -1001,10 +1077,13 @@ function IdentitySettingsPanel({
                   <span className="sr-only">{t.profileImageSelect}</span>
                   <input
                     aria-label={t.profileImageSelect}
-                    accept="image/*"
+                    accept={wikiImageAcceptAttribute}
                     className="sr-only"
                     disabled={settingsState.isSaving || !currentIdentity}
-                    onChange={(event) => onProfileImageChange(event.currentTarget.files?.[0] ?? null)}
+                    onChange={(event) => {
+                      onProfileImageChange(event.currentTarget.files?.[0] ?? null);
+                      event.currentTarget.value = "";
+                    }}
                     type="file"
                   />
                 </label>
@@ -1019,6 +1098,17 @@ function IdentitySettingsPanel({
                   </button>
                 ) : null}
               </div>
+              {settingsState.imageCropState ? (
+                <ImageCropper
+                  aspect={1}
+                  disabled={settingsState.isSaving || !currentIdentity}
+                  sourceDataUrl={settingsState.imageCropState.sourceDataUrl}
+                  t={t.profileImageCropper}
+                  onCancel={onProfileImageCropCancel}
+                  onConfirm={onProfileImageCropConfirm}
+                  onError={onProfileImageCropError}
+                />
+              ) : null}
             </div>
           </>
         ) : (

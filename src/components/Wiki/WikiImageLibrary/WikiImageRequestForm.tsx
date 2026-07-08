@@ -1,6 +1,7 @@
 import { UploadIcon } from "@radix-ui/react-icons";
 
 import { wikiImageAcceptAttribute } from "@kpool/wiki";
+import { ImageCropper } from "../../ImageCropper";
 import {
   type WikiImageLibraryDictionary,
   type WikiImageRequestFormController,
@@ -21,19 +22,25 @@ export function WikiImageRequestForm({
 }) {
   const {
     canSubmitRequest,
+    cropState,
     errorMessage,
     inputRef,
     isDragActive,
     requestForm,
     selectedFile,
+    selectedFileDataUrl,
     successMessage,
+    cancelSelectedFileCrop,
+    clearSelectedFile,
+    confirmSelectedFileCrop,
+    reportImageCropError,
     selectFirstFile,
     setIsDragActive,
     setRequestForm,
-    setSelectedFile,
     setSuccessMessage,
     submitRequest,
   } = controller;
+  const canSelectFile = !selectedFile && !cropState;
 
   return (
     <div
@@ -47,67 +54,94 @@ export function WikiImageRequestForm({
         <p className="mt-1">{t.requestDescriptionSharedLanguages}</p>
       </div>
       <div>
-        <button
-          className={`grid w-full place-items-center rounded-2xl border border-dashed p-8 text-center transition ${
-            isDragActive
-              ? "border-brand-primary bg-brand-highlight/30"
-              : "border-stroke-subtle bg-surface-base hover:bg-brand-highlight/20"
-          } disabled:cursor-not-allowed disabled:opacity-60`}
-          disabled={isBusy}
-          onClick={() => inputRef.current?.click()}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            setIsDragActive(true);
-          }}
-          onDragLeave={(event) => {
-            event.preventDefault();
-            setIsDragActive(false);
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDragActive(true);
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            setIsDragActive(false);
-            selectFirstFile(event.dataTransfer.files);
-          }}
-          type="button"
-        >
-          <UploadIcon className="h-6 w-6 text-text-muted" />
-          <span className="mt-3 font-semibold">{isUploading ? t.requesting : t.chooseOrDrop}</span>
-          <span className="mt-1 text-sm text-text-muted">{t.acceptedFormats}</span>
-        </button>
-        <input
-          ref={inputRef}
-          accept={wikiImageAcceptAttribute}
-          aria-label={t.chooseOrDrop}
-          className="sr-only"
-          data-resource-type={resourceType}
-          data-testid="wiki-image-upload-input"
-          onChange={(event) => {
-            selectFirstFile(event.currentTarget.files);
-            event.currentTarget.value = "";
-          }}
-          tabIndex={-1}
-          type="file"
-        />
-        {selectedFile ? (
-          <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="min-w-0 truncate text-sm font-semibold">
-              {t.selectedFile(selectedFile.name)}
-            </p>
+        {canSelectFile ? (
+          <>
             <button
-              className="w-fit rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`grid w-full place-items-center rounded-2xl border border-dashed p-8 text-center transition ${
+                isDragActive
+                  ? "border-brand-primary bg-brand-highlight/30"
+                  : "border-stroke-subtle bg-surface-base hover:bg-brand-highlight/20"
+              } disabled:cursor-not-allowed disabled:opacity-60`}
               disabled={isBusy}
-              onClick={() => setSelectedFile(null)}
+              onClick={() => inputRef.current?.click()}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                setIsDragActive(false);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                setIsDragActive(false);
+                selectFirstFile(event.dataTransfer.files);
+              }}
               type="button"
             >
-              {t.removeSelectedFile}
+              <UploadIcon className="h-6 w-6 text-text-muted" />
+              <span className="mt-3 font-semibold">{isUploading ? t.requesting : t.chooseOrDrop}</span>
+              <span className="mt-1 text-sm text-text-muted">{t.acceptedFormats}</span>
             </button>
+            <input
+              ref={inputRef}
+              accept={wikiImageAcceptAttribute}
+              aria-label={t.chooseOrDrop}
+              className="sr-only"
+              data-resource-type={resourceType}
+              data-testid="wiki-image-upload-input"
+              onChange={(event) => {
+                selectFirstFile(event.currentTarget.files);
+                event.currentTarget.value = "";
+              }}
+              tabIndex={-1}
+              type="file"
+            />
+          </>
+        ) : null}
+        {selectedFile ? (
+          <div className="grid gap-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
+            {selectedFileDataUrl ? (
+              <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-surface-raised">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt={t.selectedImagePreviewAlt}
+                  className="aspect-square h-full w-full object-cover"
+                  src={selectedFileDataUrl}
+                />
+              </div>
+            ) : null}
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="min-w-0 truncate text-sm font-semibold">
+                {t.selectedFile(selectedFile.name)}
+              </p>
+              <button
+                className="w-fit rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy}
+                onClick={clearSelectedFile}
+                type="button"
+              >
+                {t.removeSelectedFile}
+              </button>
+            </div>
           </div>
         ) : null}
       </div>
+      {cropState ? (
+        <ImageCropper
+          disabled={isBusy}
+          size="compact"
+          sourceDataUrl={cropState.sourceDataUrl}
+          t={t.cropper}
+          onCancel={cancelSelectedFileCrop}
+          onConfirm={confirmSelectedFileCrop}
+          onError={reportImageCropError}
+        />
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm font-semibold text-text-strong sm:col-span-2">

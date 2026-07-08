@@ -328,8 +328,24 @@ const renderWithQueryClient = (ui: React.ReactElement) => {
   );
 };
 
+const loadCropperImage = () => {
+  const image = screen.getByTestId("image-cropper-image") as HTMLImageElement;
+
+  Object.defineProperties(image, {
+    naturalWidth: { configurable: true, value: 100 },
+    naturalHeight: { configurable: true, value: 100 },
+    width: { configurable: true, value: 100 },
+    height: { configurable: true, value: 100 },
+  });
+  fireEvent.load(image);
+};
+
 describe("MyPageClient", () => {
   beforeEach(() => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,CROPPED_IMAGE");
     useAuthStore.setState({
       identity: null,
       status: "loading",
@@ -500,10 +516,13 @@ describe("MyPageClient", () => {
     fireEvent.change(screen.getByLabelText("画像を選択"), {
       target: { files: [new File(["image"], "profile.png", { type: "image/png" })] },
     });
+    await screen.findByText("プロフィール画像を切り取る");
+    loadCropperImage();
+    fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
     await waitFor(() =>
       expect(screen.getByRole("img", { name: "プロフィール画像プレビュー" })).toHaveAttribute(
         "src",
-        "data:image/png;base64,PROFILE_IMAGE",
+        "data:image/png;base64,CROPPED_IMAGE",
       ),
     );
     expect(screen.getByLabelText("画像を選択")).toHaveClass("sr-only");
@@ -516,7 +535,7 @@ describe("MyPageClient", () => {
         body: JSON.stringify({
           identityName: "member",
           language: "ja",
-          base64EncodedImage: "data:image/png;base64,PROFILE_IMAGE",
+          base64EncodedImage: "data:image/png;base64,CROPPED_IMAGE",
         }),
       }),
     ));
