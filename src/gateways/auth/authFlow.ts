@@ -1,6 +1,7 @@
 import {
   parseIdentitySummary,
   parseRedirectUrlResult,
+  type IdentitySummary,
   type IdentityLoginRequest,
 } from "@/gateways/identity/identityApi";
 
@@ -14,7 +15,7 @@ export type IdentityProvider = {
 };
 
 export type LoginResult =
-  | { ok: true; returnTo?: string }
+  | { ok: true; identity?: IdentitySummary; returnTo?: string }
   | {
       ok: false;
       message: string;
@@ -113,11 +114,13 @@ export const loginWithEmail: LoginAdapter = async (credentials) => {
   }
 
   const body = await response.json();
-  parseIdentitySummary(body);
+  const identity = { ...parseIdentitySummary(body) };
+  delete (identity as IdentitySummary & { return_to?: unknown }).return_to;
   const responseReturnTo = (body as { return_to?: unknown }).return_to;
 
   return {
     ok: true,
+    identity,
     returnTo: typeof responseReturnTo === "string"
       ? normalizeReturnTo(responseReturnTo)
       : undefined,

@@ -14,6 +14,7 @@ import {
   type LoginAdapter,
   type SocialRedirectAdapter,
 } from "@/gateways/auth/authFlow";
+import { useAuthStore } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
 
 type LoginPageProps = {
@@ -61,6 +62,8 @@ export function LoginPage({
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
+  const setIdentity = useAuthStore((state) => state.setIdentity);
   const destination = useMemo(
     () => normalizeReturnTo(returnTo ?? getCurrentReturnTo()),
     [returnTo],
@@ -75,6 +78,12 @@ export function LoginPage({
 
     if (result.ok) {
       const nextDestination = result.returnTo ?? destination;
+
+      if (result.identity) {
+        setIdentity(result.identity);
+      } else {
+        await refreshIdentity();
+      }
 
       if (navigate) {
         navigate(nextDestination);

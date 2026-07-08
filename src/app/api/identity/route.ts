@@ -6,7 +6,7 @@ import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
   normalizeIdentityImageRequest,
-  parseCreateIdentityRequest,
+  parseUpdateIdentityRequest,
 } from "@/gateways/identity/identityApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
@@ -17,9 +17,9 @@ import {
   identityApiUnavailableResponse,
   readIdentityRouteResponseBody,
   withIdentitySetCookie,
-} from "../routeSupport";
+} from "./auth/routeSupport";
 
-export async function POST(request: NextRequest) {
+export async function PATCH(request: NextRequest) {
   const baseUrl = getIdentityApiBaseUrl();
 
   if (!baseUrl) {
@@ -27,16 +27,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const identity = normalizeIdentityImageRequest(parseCreateIdentityRequest(await request.json()));
-    const apiResponse = await fetch(`${baseUrl}/auth/register`, {
-      method: "POST",
+    const requestBody = normalizeIdentityImageRequest(parseUpdateIdentityRequest(await request.json()));
+    const apiResponse = await fetch(`${baseUrl}/identities/me`, {
+      method: "PATCH",
       headers: {
         Accept: "application/json",
         ...getAcceptLanguageForwardHeaders(request),
         "Content-Type": "application/json",
         ...getCookieForwardHeaders(request),
       },
-      body: JSON.stringify(identity),
+      body: JSON.stringify(requestBody),
       cache: "no-store",
     });
     const body = await readIdentityRouteResponseBody(apiResponse);
@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
 
     return withIdentitySetCookie(
       NextResponse.json(
-        parseWithSchemaLog("identity register response", identityApiTypes.schemas.IdentitySummary, body),
-        { status: 201 },
+        parseWithSchemaLog("identity update response", identityApiTypes.schemas.IdentitySummary, body),
+        { status: 200 },
       ),
       apiResponse,
     );

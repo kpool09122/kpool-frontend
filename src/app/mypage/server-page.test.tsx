@@ -49,7 +49,7 @@ describe("MyPage server route", () => {
     });
     mocks.fetchAuthenticatedIdentity.mockResolvedValue({
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
-      username: "member",
+      identityName: "member",
       email: "member@example.com",
       language: "ja",
     });

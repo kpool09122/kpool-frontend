@@ -28,7 +28,7 @@ export type SignupAccountFormValues = {
   accountName: string;
   accountType: string;
   language: string;
-  username: string;
+  identityName: string;
   password: string;
   confirmedPassword: string;
   base64EncodedImage: string;
@@ -121,7 +121,7 @@ export const buildCreateAccountRequest = (
 export const buildCreateIdentityRequest = (
   values: SignupAccountFormValues,
 ): CreateIdentityRequest & { requestLanguage: string } => ({
-  username: values.username,
+  identityName: values.identityName,
   email: values.email,
   password: values.password,
   confirmedPassword: values.confirmedPassword,

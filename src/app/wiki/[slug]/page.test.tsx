@@ -1,6 +1,6 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { WikiDetailPage } from "./WikiDetailPage";
 import type { WikiDetailState } from "@kpool/wiki";
@@ -111,6 +111,8 @@ const successState: WikiDetailState = {
 };
 
 describe("WikiDetailPage", () => {
+  afterEach(() => cleanup());
+
   it("renders the public wiki detail view", () => {
     render(
       React.createElement(WikiDetailPage, {

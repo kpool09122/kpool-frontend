@@ -12,7 +12,7 @@ const values: SignupAccountFormValues = {
   accountName: "Member Account",
   accountType: "individual",
   language: "ja",
-  username: "member",
+  identityName: "member",
   password: "secret-password",
   confirmedPassword: "secret-password",
   base64EncodedImage: "",
@@ -28,7 +28,7 @@ describe("signup flow helpers", () => {
       identityIdentifier: null,
     });
     expect(buildCreateIdentityRequest(values)).toEqual({
-      username: "member",
+      identityName: "member",
       email: "member@example.com",
       password: "secret-password",
       confirmedPassword: "secret-password",
