@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveLocale } from "./locales";
+import { resolveLocale, resolveWikiListLocale } from "./locales";
 
 describe("resolveLocale", () => {
   it("prefers saved locale over identity language and country", () => {
@@ -17,8 +17,13 @@ describe("resolveLocale", () => {
     expect(resolveLocale({ savedLocale: "ja", country: "KR" })).toBe("ja");
   });
 
-  it("maps country headers to guest locale", () => {
+  it("prefers identity language over country when the saved locale is unavailable", () => {
+    expect(resolveLocale({ identityLanguage: "ko", country: "JP" })).toBe("ko");
+  });
+
+  it("maps app country headers to guest locale", () => {
     expect(resolveLocale({ country: "JP" })).toBe("ja");
+    expect(resolveLocale({ country: "jp" })).toBe("ja");
     expect(resolveLocale({ country: "KR" })).toBe("ko");
   });
 
@@ -30,5 +35,23 @@ describe("resolveLocale", () => {
         country: "US",
       }),
     ).toBe("en");
+    expect(resolveLocale({ country: "JPN" })).toBe("en");
+  });
+});
+
+describe("resolveWikiListLocale", () => {
+  it("uses the same priority as the root layout locale resolver", () => {
+    expect(
+      resolveWikiListLocale({
+        identityLanguage: "ko",
+        savedLocale: "ja",
+        country: "KR",
+      }),
+    ).toBe("ja");
+    expect(resolveWikiListLocale({ identityLanguage: "ko", country: "JP" })).toBe(
+      "ko",
+    );
+    expect(resolveWikiListLocale({ country: "JP" })).toBe("ja");
+    expect(resolveWikiListLocale({ country: "US" })).toBe("en");
   });
 });
