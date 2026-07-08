@@ -674,6 +674,17 @@ const ListWikisResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const WikiMasterSearchItem = z
+  .object({
+    id: KPool_Common_Uuid,
+    name: z.string(),
+    slug: z.string(),
+    resourceType: z.string(),
+  })
+  .passthrough();
+const SearchMasterWikisResponseBody = z
+  .object({ wikis: z.array(WikiMasterSearchItem) })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -752,6 +763,8 @@ export const schemas = {
   WithdrawWikiRequestBody,
   WikiListItem,
   ListWikisResponseBody,
+  WikiMasterSearchItem,
+  SearchMasterWikisResponseBody,
 };
 
 const endpoints = makeApi([
@@ -2922,6 +2935,48 @@ const endpoints = makeApi([
       },
     ],
     response: ListWikisResponseBody,
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wikis/:language/masters",
+    alias: "WikiListOperations_searchMasterWikis",
+    description: `Search published wiki masters for lightweight selection candidates.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.enum(["agency", "group", "talent", "song"]),
+      },
+      {
+        name: "keyword",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "limit",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+    ],
+    response: SearchMasterWikisResponseBody,
     errors: [
       {
         status: 422,
