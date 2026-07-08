@@ -4,6 +4,7 @@ export type Locale = (typeof supportedLocales)[number];
 
 export const fallbackLocale: Locale = "en";
 export const localeCookieName = "kpool-locale";
+export const appCountryHeaderName = "x-kpool-country";
 
 const localeSet = new Set<string>(supportedLocales);
 
@@ -21,12 +22,18 @@ export const normalizeLocale = (value: unknown): Locale | null => {
   return isSupportedLocale(language) ? language : null;
 };
 
-export const localeFromCountry = (country: unknown): Locale | null => {
+export const normalizeCountryCode = (country: unknown): string | null => {
   if (typeof country !== "string") {
     return null;
   }
 
   const normalizedCountry = country.trim().toUpperCase();
+
+  return /^[A-Z]{2}$/.test(normalizedCountry) ? normalizedCountry : null;
+};
+
+export const localeFromCountry = (country: unknown): Locale | null => {
+  const normalizedCountry = normalizeCountryCode(country);
 
   if (normalizedCountry === "JP") {
     return "ja";
@@ -56,13 +63,13 @@ export const resolveLocale = ({
 export const resolveWikiListLocale = ({
   identityLanguage,
   savedLocale,
+  country,
 }: {
   identityLanguage?: unknown;
   savedLocale?: unknown;
+  country?: unknown;
 }): Locale =>
-  normalizeLocale(savedLocale) ??
-  normalizeLocale(identityLanguage) ??
-  fallbackLocale;
+  resolveLocale({ identityLanguage, savedLocale, country });
 
 export const localeLabels: Record<Locale, string> = {
   ja: "日本語",

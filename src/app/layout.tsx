@@ -6,7 +6,11 @@ import "./globals.css";
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
-import { localeCookieName, resolveLocale } from "../i18n/locales";
+import {
+  appCountryHeaderName,
+  localeCookieName,
+  resolveLocale,
+} from "../i18n/locales";
 import { siteTitle } from "./metadata";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
@@ -34,7 +38,7 @@ export default async function RootLayout({
   const locale = resolveLocale({
     identityLanguage: authenticatedIdentity?.language,
     savedLocale: cookieStore.get(localeCookieName)?.value,
-    country: headerStore.get("x-vercel-ip-country"),
+    country: headerStore.get(appCountryHeaderName),
   });
 
   return (
