@@ -370,11 +370,21 @@ const WikiAssociationTargets = z
   .partial()
   .passthrough();
 const CreateWikiRequestBody = WikiAssociationTargets;
+const WikiAgencySummary = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    name: z.string(),
+    normalizedName: z.string(),
+  })
+  .passthrough();
 const GroupDraftWikiBasic = z
   .object({
     name: z.string(),
     normalizedName: z.string(),
     agencyIdentifier: KPool_Common_Uuid.nullable(),
+    agency: WikiAgencySummary.nullable(),
     groupType: z.string().nullable(),
     status: z.string().nullable(),
     generation: z.string().nullable(),
@@ -452,6 +462,7 @@ const SongDraftWikiBasic = z
     songType: z.string().nullable(),
     genres: z.array(z.string()),
     agencyIdentifier: KPool_Common_Uuid.nullable(),
+    agency: WikiAgencySummary.nullable(),
     releaseDate: z.string().nullable(),
     albumName: z.string().nullable(),
     lyricist: z.string(),
@@ -509,6 +520,7 @@ const TalentDraftWikiBasic = z
     normalizedRealName: z.string(),
     birthday: z.string().nullable(),
     agencyIdentifier: KPool_Common_Uuid.nullable(),
+    agency: WikiAgencySummary.nullable(),
     emoji: z.string(),
     representativeSymbol: z.string(),
     position: z.string(),
@@ -737,6 +749,7 @@ export const schemas = {
   DraftWikiSummary,
   WikiAssociationTargets,
   CreateWikiRequestBody,
+  WikiAgencySummary,
   GroupDraftWikiBasic,
   DraftWikiDetail,
   SongDraftWikiGroupSummary,
