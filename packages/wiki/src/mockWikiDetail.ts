@@ -20,6 +20,7 @@ const heroImageDataUri =
 
 type CreateMockWikiDetailOptions = {
   themeColor?: string;
+  fontStyle?: import("./types/wiki").WikiFontStyle | null;
 };
 
 const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
@@ -362,6 +363,7 @@ export const createMockWikiDetail = (
     resourceType: twiceMember ? "talent" : "group",
     version: 3,
     themeColor: options?.themeColor ?? null,
+    fontStyle: options?.fontStyle ?? null,
     title: null,
     metaDescription: null,
     keywords: null,

@@ -48,13 +48,20 @@ describe("wikiThemePalette", () => {
   });
 
   it("builds paired light and dark css variables for the page", () => {
-    const variables = buildWikiThemeCssVariables("#4c7dff");
+    const variables = buildWikiThemeCssVariables("#4c7dff", "ja_mincho");
 
     expect(variables).toMatchObject({
       "--wiki-page-background-light": expect.stringContaining("radial-gradient"),
       "--wiki-page-background-dark": expect.stringContaining("linear-gradient"),
       "--wiki-header-background-light": expect.stringMatching(/^#/),
       "--wiki-header-background-dark": expect.stringMatching(/^#/),
+      "--wiki-font-family": expect.stringContaining("Yu Mincho"),
+    });
+  });
+
+  it("builds font variables even when theme color is not set", () => {
+    expect(buildWikiThemeCssVariables(null, "en_serif")).toMatchObject({
+      "--wiki-font-family": expect.stringContaining("Georgia"),
     });
   });
 });

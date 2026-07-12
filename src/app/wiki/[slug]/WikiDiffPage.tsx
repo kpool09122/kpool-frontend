@@ -78,11 +78,11 @@ export function WikiDiffPage({
   }
 
   const publicThemeStyles = {
-    ...buildWikiThemeCssVariables(publicWikiState.data.themeColor ?? themeColor ?? undefined),
+    ...buildWikiThemeCssVariables(publicWikiState.data.themeColor ?? themeColor ?? undefined, publicWikiState.data.fontStyle),
     ...mainBackgroundStyle,
   };
   const draftThemeStyles = {
-    ...buildWikiThemeCssVariables(draftWikiState.data.themeColor ?? themeColor ?? undefined),
+    ...buildWikiThemeCssVariables(draftWikiState.data.themeColor ?? themeColor ?? undefined, draftWikiState.data.fontStyle),
     ...mainBackgroundStyle,
   };
 

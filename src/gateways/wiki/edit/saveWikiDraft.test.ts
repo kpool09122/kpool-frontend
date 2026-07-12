@@ -21,7 +21,7 @@ describe("saveWikiDraft", () => {
         { status: 201 },
       ),
     );
-    const draft = createMockWikiDetail("gr-aurora-echo");
+    const draft = createMockWikiDetail("gr-aurora-echo", { fontStyle: "ja_gothic" });
 
     await expect(submitWikiDraft(draft)).resolves.toEqual({
       ok: true,
@@ -36,6 +36,7 @@ describe("saveWikiDraft", () => {
           title: null,
           metaDescription: null,
           keywords: null,
+          fontStyle: "ja_gothic",
         }),
         headers: {
           "Content-Type": "application/json",

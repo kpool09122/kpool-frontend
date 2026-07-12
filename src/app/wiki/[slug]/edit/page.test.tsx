@@ -1091,6 +1091,8 @@ describe("WikiEditPage", () => {
     fireEvent.change(screen.getByLabelText("Metadata meta description"), {
       target: { value: "  Aurora Echo meta description.  " },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Set font style EN Serif" }));
+    expect(screen.getByTestId("wiki-edit-root").getAttribute("style")).toContain("Georgia");
     fireEvent.change(screen.getByLabelText("Keyword 1"), {
       target: { value: " aurora " },
     });
@@ -1110,6 +1112,7 @@ describe("WikiEditPage", () => {
         title: "  Aurora Echo SEO  ",
         metaDescription: "  Aurora Echo meta description.  ",
         keywords: [" aurora ", " echo ", " k-pop "],
+        fontStyle: "en_serif",
       }),
     );
   });

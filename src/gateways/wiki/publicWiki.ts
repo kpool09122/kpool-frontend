@@ -30,6 +30,7 @@ export type PublicWikiApiResponse = {
   resourceType?: unknown;
   version: number;
   themeColor?: string | null;
+  fontStyle?: string | null;
   title?: string | null;
   metaDescription?: string | null;
   keywords?: string[] | null;
@@ -66,6 +67,7 @@ const publicWikiListItemSchema = z
     resourceType: z.enum(wikiResourceTypes),
     version: z.number().int(),
     themeColor: z.string().nullable().optional(),
+    fontStyle: z.string().nullable().optional(),
     title: z.string().nullable().optional(),
     metaDescription: z.string().nullable().optional(),
     keywords: z.array(z.string()).nullable().optional(),

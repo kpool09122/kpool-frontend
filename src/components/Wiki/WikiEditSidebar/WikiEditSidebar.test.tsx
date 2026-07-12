@@ -34,6 +34,7 @@ describe("WikiEditSidebar", () => {
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
+        fontStyle="ja_gothic"
         title="Aurora Echo SEO"
         metaDescription="Aurora Echo meta description"
         keywords={["aurora", "echo"]}
@@ -50,6 +51,7 @@ describe("WikiEditSidebar", () => {
     fireEvent.change(screen.getByLabelText("Resource type"), {
       target: { value: "song" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Set font style JP Mincho" }));
     fireEvent.change(screen.getByLabelText("Metadata title"), {
       target: { value: "Updated SEO title" },
     });
@@ -78,6 +80,7 @@ describe("WikiEditSidebar", () => {
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
     expect(onToggle).toHaveBeenCalled();
     expect(onUpdateSettings).toHaveBeenCalledWith({ resourceType: "song" });
+    expect(onUpdateSettings).toHaveBeenCalledWith({ fontStyle: "ja_mincho" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ title: "Updated SEO title" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ metaDescription: "Updated meta description" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ keywords: ["updated", "echo"] });
@@ -112,6 +115,7 @@ describe("WikiEditSidebar", () => {
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
+        fontStyle="ja_gothic"
         title="Aurora Echo SEO"
         metaDescription="Aurora Echo meta description"
         keywords={["aurora", "echo"]}
@@ -125,6 +129,7 @@ describe("WikiEditSidebar", () => {
     const previewDarkButton = screen.getByRole("button", { name: "Dark" });
     const resourceTypeSelect = screen.getByLabelText("Resource type");
     const themeColorInput = screen.getByLabelText("Theme color");
+    const fontStyleButton = screen.getByRole("button", { name: "Set font style JP Mincho" });
     const seoTitleInput = screen.getByLabelText("Metadata title");
     const metaDescriptionInput = screen.getByLabelText("Metadata meta description");
     const keywordsInput = screen.getByLabelText("Keyword 1");
@@ -138,6 +143,7 @@ describe("WikiEditSidebar", () => {
     expect(codeButton).toBeDisabled();
     expect(resourceTypeSelect).toBeDisabled();
     expect(themeColorInput).toBeDisabled();
+    expect(fontStyleButton).toBeDisabled();
     expect(seoTitleInput).toBeDisabled();
     expect(metaDescriptionInput).toBeDisabled();
     expect(keywordsInput).toBeDisabled();
@@ -151,6 +157,7 @@ describe("WikiEditSidebar", () => {
     fireEvent.change(resourceTypeSelect, {
       target: { value: "song" },
     });
+    fireEvent.click(fontStyleButton);
     fireEvent.click(previewDarkButton);
 
     expect(onSave).not.toHaveBeenCalled();
@@ -182,6 +189,7 @@ describe("WikiEditSidebar", () => {
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
+        fontStyle="ja_gothic"
         title="Aurora Echo SEO"
         metaDescription="Aurora Echo meta description"
         keywords={["aurora", "echo"]}

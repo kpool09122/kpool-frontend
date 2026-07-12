@@ -23,6 +23,7 @@ const meta = {
     resourceType: wikiStoryDetail.resourceType,
     slug: wikiStoryDetail.slug,
     themeColor: wikiStoryDetail.themeColor,
+    fontStyle: wikiStoryDetail.fontStyle,
     title: wikiStoryDetail.title,
     metaDescription: wikiStoryDetail.metaDescription,
     keywords: wikiStoryDetail.keywords,
@@ -46,6 +47,7 @@ export const Default: Story = {
       const [previewMode, setPreviewMode] = useState(args.previewMode);
       const [slug, setSlug] = useState(args.slug);
       const [themeColor, setThemeColor] = useState(args.themeColor);
+      const [fontStyle, setFontStyle] = useState(args.fontStyle);
       const [title, setTitle] = useState(args.title);
       const [metaDescription, setMetaDescription] = useState(args.metaDescription);
       const [keywords, setKeywords] = useState(args.keywords);
@@ -61,6 +63,7 @@ export const Default: Story = {
             onClear={() => {
               setSlug(wikiStoryDetail.slug);
               setThemeColor(wikiStoryDetail.themeColor);
+              setFontStyle(wikiStoryDetail.fontStyle);
               setTitle(wikiStoryDetail.title);
               setMetaDescription(wikiStoryDetail.metaDescription);
               setKeywords(wikiStoryDetail.keywords);
@@ -76,6 +79,9 @@ export const Default: Story = {
               if (settings.themeColor !== undefined) {
                 setThemeColor(settings.themeColor);
               }
+              if (settings.fontStyle !== undefined) {
+                setFontStyle(settings.fontStyle);
+              }
               if (settings.title !== undefined) {
                 setTitle(settings.title);
               }
@@ -90,6 +96,7 @@ export const Default: Story = {
             resourceType={args.resourceType}
             slug={slug}
             themeColor={themeColor}
+            fontStyle={fontStyle}
             title={title}
             metaDescription={metaDescription}
             keywords={keywords}

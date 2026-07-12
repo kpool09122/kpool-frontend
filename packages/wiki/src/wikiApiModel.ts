@@ -101,6 +101,7 @@ type WikiApiResponseBase = {
   sections: unknown[];
   slug: string;
   themeColor?: string | null;
+  fontStyle?: string | null;
   title?: string | null;
   metaDescription?: string | null;
   meta_description?: string | null;
@@ -555,6 +556,7 @@ export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
     sections: adaptWikiSections(response.sections),
     slug: response.slug,
     themeColor: response.themeColor ?? null,
+    fontStyle: response.fontStyle ?? null,
     title: response.title ?? null,
     translationSetIdentifier: response.translationSetIdentifier,
     version: response.version,
@@ -573,6 +575,7 @@ export const adaptDraftWikiApiResponse = (response: DraftWikiApiResponse): WikiD
     slug: response.slug,
     status: response.status,
     themeColor: response.themeColor ?? null,
+    fontStyle: response.fontStyle ?? null,
     title: response.title ?? null,
     translationSetIdentifier: response.translationSetIdentifier,
     wikiIdentifier: response.wikiIdentifier,

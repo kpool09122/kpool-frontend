@@ -14,6 +14,7 @@ export const createMockEditingDraftWiki = (): WikiDraftWiki => ({
   language: "ja",
   resourceType: "group",
   themeColor: "#4c5cff",
+  fontStyle: "ja_gothic",
   status: "pending",
   name: "編集中 Wiki",
   title: "編集中 Wiki SEO",

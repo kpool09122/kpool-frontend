@@ -504,6 +504,7 @@ describe("draftWiki", () => {
         title: "Draft SEO",
         metaDescription: "Draft meta description.",
         keywords: ["draft", "seo"],
+        fontStyle: "ko_modern",
         wikiIdentifier: "wiki-2",
       }),
     ).toEqual({
@@ -514,6 +515,7 @@ describe("draftWiki", () => {
       title: "Draft SEO",
       metaDescription: "Draft meta description.",
       keywords: ["draft", "seo"],
+      fontStyle: "ko_modern",
       wikiId: "wiki-2",
     });
   });

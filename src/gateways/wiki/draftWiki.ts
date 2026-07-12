@@ -364,6 +364,7 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   copyStringProperty(source, body, "resourceType");
   copyStringProperty(source, body, "slug");
   copyStringProperty(source, body, "themeColor");
+  copyNullableStringProperty(source, body, "fontStyle");
   copySeoProperties(source, body);
   copyNullableStringProperty(source, body, "agencyIdentifier");
   copyStringArrayProperty(source, body, "groupIdentifiers");
@@ -452,6 +453,7 @@ export const createSubmitWikiRequestBody = (
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
   copySeoProperties(draft, body);
+  copyNullableStringProperty(draft, body, "fontStyle");
 
   return parseWithSchemaLog("wiki submit request", submitWikiRequestBodySchema, body);
 };

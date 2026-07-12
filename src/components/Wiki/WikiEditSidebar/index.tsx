@@ -1,6 +1,6 @@
 "use client";
 
-import { type WikiDetail } from "@kpool/wiki";
+import { type WikiDetail, type WikiFontStyle } from "@kpool/wiki";
 import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
@@ -10,7 +10,14 @@ import {
   getWikiResourceLabel,
   wikiResourceTypes,
 } from "@kpool/wiki";
-import { type WikiEditorMode, type WikiPreviewMode, themeColorOptions } from "../editing";
+import {
+  getWikiFontStyleOption,
+  type WikiEditorMode,
+  type WikiPreviewMode,
+  themeColorOptions,
+  wikiFontStyleGroups,
+  wikiFontStyleOptions,
+} from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
@@ -77,12 +84,13 @@ type WikiEditSidebarProps = {
   onSubmit: () => void;
   onToggle: () => void;
   onUpdateSettings: (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => void;
   previewMode: WikiPreviewMode;
   resourceType: WikiDetail["resourceType"];
   slug: string;
   themeColor: string | null | undefined;
+  fontStyle: WikiFontStyle | string | null | undefined;
   title: string | null;
   metaDescription: string | null;
   keywords: string[] | null;
@@ -106,11 +114,13 @@ export function WikiEditSidebar({
   resourceType,
   slug,
   themeColor,
+  fontStyle,
   title,
   metaDescription,
   keywords,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
+  const selectedFontStyle = getWikiFontStyleOption(fontStyle);
   const isActionDisabled = isBusy || !canPersist || isReviewLocked;
   const isEditControlDisabled = isBusy || isReviewLocked;
   const isEditorModeControlDisabled = isEditControlDisabled || isEditorModeDisabled;
@@ -118,7 +128,7 @@ export function WikiEditSidebar({
     () => keywords && keywords.length > 0 ? keywords : [""],
   );
   const updateSettings = (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => {
     if (!isEditControlDisabled) {
       onUpdateSettings(settings);
@@ -278,6 +288,51 @@ export function WikiEditSidebar({
                   value={customColorValue}
                 />
               </label>
+            </fieldset>
+
+            <fieldset className="grid gap-3">
+              <legend className="text-sm font-semibold text-text-strong">Font style</legend>
+              <button
+                aria-pressed={!selectedFontStyle}
+                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 text-left text-xs font-semibold text-text-muted aria-pressed:ring-2 aria-pressed:ring-text-strong disabled:cursor-not-allowed"
+                disabled={isEditControlDisabled}
+                onClick={() => updateSettings({ fontStyle: null })}
+                type="button"
+              >
+                Default font
+              </button>
+              {wikiFontStyleGroups.map((group) => (
+                <div className="grid gap-2" key={group.language}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
+                    {group.label}
+                  </p>
+                  <div className="grid gap-2">
+                    {wikiFontStyleOptions
+                      .filter((option) => option.language === group.language)
+                      .map((option) => (
+                        <button
+                          aria-label={`Set font style ${option.label}`}
+                          aria-pressed={fontStyle === option.value}
+                          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 text-left transition aria-pressed:ring-2 aria-pressed:ring-text-strong disabled:cursor-not-allowed"
+                          disabled={isEditControlDisabled}
+                          key={option.value}
+                          onClick={() => updateSettings({ fontStyle: option.value })}
+                          type="button"
+                        >
+                          <span className="block text-sm font-semibold text-text-strong">
+                            {option.label}
+                          </span>
+                          <span className="block text-xs text-text-muted">
+                            {option.description}
+                          </span>
+                          <span className="mt-1 block text-base text-text-strong">
+                            {option.previewText}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              ))}
             </fieldset>
 
             <div className="mt-2 grid gap-4 border-t border-stroke-subtle pt-5">

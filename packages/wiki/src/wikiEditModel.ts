@@ -49,6 +49,7 @@ export type WikiEditPayload = {
   slug: string;
   language: string;
   theme_color?: string | null;
+  font_style?: string | null;
   title: string | null;
   meta_description: string | null;
   keywords: string[] | null;
@@ -65,6 +66,7 @@ export type WikiEditRequestPayload = {
   basic: WikiDraftDetail["basic"];
   sections: WikiSectionContentPayload[];
   themeColor: string | null;
+  fontStyle: string | null;
   title: string | null;
   metaDescription: string | null;
   keywords: string[] | null;
@@ -1337,6 +1339,7 @@ export const toWikiEditPayload = (wiki: WikiDraftDetail): WikiEditPayload => ({
   slug: wiki.slug,
   language: wiki.language,
   theme_color: wiki.themeColor ?? null,
+  font_style: wiki.fontStyle ?? null,
   title: normalizeSeoText(wiki.title),
   meta_description: normalizeSeoText(wiki.metaDescription),
   keywords: normalizeSeoKeywords(wiki.keywords),
@@ -1350,6 +1353,7 @@ export const toWikiEditRequestPayload = (wiki: WikiDraftDetail): WikiEditRequest
   basic: wiki.basic,
   sections: toWikiSectionContentPayload(wiki.sections),
   themeColor: wiki.themeColor ?? null,
+  fontStyle: wiki.fontStyle ?? null,
   title: normalizeSeoText(wiki.title),
   metaDescription: normalizeSeoText(wiki.metaDescription),
   keywords: normalizeSeoKeywords(wiki.keywords),

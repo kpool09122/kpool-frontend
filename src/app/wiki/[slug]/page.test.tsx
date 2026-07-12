@@ -169,6 +169,7 @@ describe("WikiDetailPage", () => {
           data: {
             ...successState.data,
             themeColor: "#d94f70",
+            fontStyle: "ko_myungjo",
           },
         },
       }),
@@ -181,6 +182,7 @@ describe("WikiDetailPage", () => {
 
     expect(rootStyle).toContain("--wiki-page-background-light:");
     expect(rootStyle).toContain("--wiki-header-background-dark:");
+    expect(rootStyle).toContain("AppleMyungjo");
   });
 
   it("renders the empty state", () => {

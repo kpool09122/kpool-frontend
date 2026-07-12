@@ -1,6 +1,73 @@
 import type { CSSProperties } from "react";
 
+import type { WikiFontStyle } from "@kpool/wiki";
+
 import type { ThemeMode } from "@/app/themeMode";
+
+
+type WikiFontStyleDefinition = {
+  fontFamily: string;
+};
+
+export const wikiFontStyleDefinitions: Record<WikiFontStyle, WikiFontStyleDefinition> = {
+  ja_pop: {
+    fontFamily: '"Hiragino Maru Gothic ProN", "Yu Gothic", "Meiryo", var(--font-sans), sans-serif',
+  },
+  ja_gothic: {
+    fontFamily: '"Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", var(--font-sans), sans-serif',
+  },
+  ja_mincho: {
+    fontFamily: '"Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", serif',
+  },
+  ja_artistic: {
+    fontFamily: '"Hiragino Sans", "Yu Gothic", "Arial Rounded MT Bold", var(--font-sans), sans-serif',
+  },
+  ja_handwritten: {
+    fontFamily: '"YuKyokasho", "Hiragino Maru Gothic ProN", "Comic Sans MS", cursive, sans-serif',
+  },
+  ko_rounded: {
+    fontFamily: '"Apple SD Gothic Neo", "Malgun Gothic", "Arial Rounded MT Bold", var(--font-sans), sans-serif',
+  },
+  ko_gothic: {
+    fontFamily: '"Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", var(--font-sans), sans-serif',
+  },
+  ko_myungjo: {
+    fontFamily: '"AppleMyungjo", "Batang", "Noto Serif KR", serif',
+  },
+  ko_modern: {
+    fontFamily: '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", var(--font-sans), sans-serif',
+  },
+  ko_handwritten: {
+    fontFamily: '"Nanum Pen Script", "Apple SD Gothic Neo", "Comic Sans MS", cursive, sans-serif',
+  },
+  en_sans: {
+    fontFamily: '"Inter", "Helvetica Neue", Arial, var(--font-sans), sans-serif',
+  },
+  en_serif: {
+    fontFamily: 'Georgia, "Times New Roman", serif',
+  },
+  en_display: {
+    fontFamily: '"Trebuchet MS", "Arial Black", "Helvetica Neue", var(--font-sans), sans-serif',
+  },
+  en_modern: {
+    fontFamily: '"Avenir Next", "Montserrat", "Helvetica Neue", var(--font-sans), sans-serif',
+  },
+  en_handwritten: {
+    fontFamily: '"Bradley Hand", "Comic Sans MS", cursive, sans-serif',
+  },
+};
+
+const createWikiFontCssVariables = (
+  fontStyle: WikiFontStyle | string | null | undefined,
+): CSSProperties | undefined => {
+  if (!fontStyle || !(fontStyle in wikiFontStyleDefinitions)) {
+    return undefined;
+  }
+
+  return {
+    "--wiki-font-family": wikiFontStyleDefinitions[fontStyle as WikiFontStyle].fontFamily,
+  } as CSSProperties;
+};
 
 type RgbColor = {
   red: number;
@@ -248,17 +315,20 @@ export const createWikiThemePalette = (
 
 export const buildWikiThemeCssVariables = (
   themeColor: string | null | undefined,
+  fontStyle?: WikiFontStyle | string | null,
 ): CSSProperties | undefined => {
   const normalizedThemeColor = normalizeHexColor(themeColor);
+  const fontVariables = createWikiFontCssVariables(fontStyle);
 
   if (!normalizedThemeColor) {
-    return undefined;
+    return fontVariables;
   }
 
   const lightPalette = createWikiThemePalette(normalizedThemeColor, "light");
   const darkPalette = createWikiThemePalette(normalizedThemeColor, "dark");
 
   return {
+    ...fontVariables,
     "--wiki-page-background-light": lightPalette.pageBackground,
     "--wiki-page-background-dark": darkPalette.pageBackground,
     "--wiki-header-background-light": lightPalette.headerBackground,
