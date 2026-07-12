@@ -31,9 +31,11 @@ describe("WikiEditSidebar", () => {
         onToggle={onToggle}
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
+        language="ja"
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
+        fontStyle="ja_gothic"
         title="Aurora Echo SEO"
         metaDescription="Aurora Echo meta description"
         keywords={["aurora", "echo"]}
@@ -47,8 +49,17 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dark" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
     expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
+    const fontStyleSelect = screen.getByLabelText("Font style");
+    expect(fontStyleSelect).toHaveValue("ja_gothic");
+    expect(screen.getByRole("option", { name: "Default font" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "JP Pop" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "KR Gothic" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "EN Serif" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Resource type"), {
       target: { value: "song" },
+    });
+    fireEvent.change(fontStyleSelect, {
+      target: { value: "ja_mincho" },
     });
     fireEvent.change(screen.getByLabelText("Metadata title"), {
       target: { value: "Updated SEO title" },
@@ -78,6 +89,7 @@ describe("WikiEditSidebar", () => {
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
     expect(onToggle).toHaveBeenCalled();
     expect(onUpdateSettings).toHaveBeenCalledWith({ resourceType: "song" });
+    expect(onUpdateSettings).toHaveBeenCalledWith({ fontStyle: "ja_mincho" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ title: "Updated SEO title" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ metaDescription: "Updated meta description" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ keywords: ["updated", "echo"] });
@@ -109,9 +121,11 @@ describe("WikiEditSidebar", () => {
         onToggle={onToggle}
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
+        language="ja"
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
+        fontStyle="ja_gothic"
         title="Aurora Echo SEO"
         metaDescription="Aurora Echo meta description"
         keywords={["aurora", "echo"]}
@@ -125,6 +139,7 @@ describe("WikiEditSidebar", () => {
     const previewDarkButton = screen.getByRole("button", { name: "Dark" });
     const resourceTypeSelect = screen.getByLabelText("Resource type");
     const themeColorInput = screen.getByLabelText("Theme color");
+    const fontStyleSelect = screen.getByLabelText("Font style");
     const seoTitleInput = screen.getByLabelText("Metadata title");
     const metaDescriptionInput = screen.getByLabelText("Metadata meta description");
     const keywordsInput = screen.getByLabelText("Keyword 1");
@@ -138,6 +153,7 @@ describe("WikiEditSidebar", () => {
     expect(codeButton).toBeDisabled();
     expect(resourceTypeSelect).toBeDisabled();
     expect(themeColorInput).toBeDisabled();
+    expect(fontStyleSelect).toBeDisabled();
     expect(seoTitleInput).toBeDisabled();
     expect(metaDescriptionInput).toBeDisabled();
     expect(keywordsInput).toBeDisabled();
@@ -150,6 +166,9 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(codeButton);
     fireEvent.change(resourceTypeSelect, {
       target: { value: "song" },
+    });
+    fireEvent.change(fontStyleSelect, {
+      target: { value: "ja_mincho" },
     });
     fireEvent.click(previewDarkButton);
 
@@ -179,9 +198,11 @@ describe("WikiEditSidebar", () => {
         onToggle={vi.fn()}
         onUpdateSettings={vi.fn()}
         previewMode="light"
+        language="ja"
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
+        fontStyle="ja_gothic"
         title="Aurora Echo SEO"
         metaDescription="Aurora Echo meta description"
         keywords={["aurora", "echo"]}

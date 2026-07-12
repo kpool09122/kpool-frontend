@@ -24,6 +24,7 @@ export const withDefaultWikiResponseMetadata = (value: unknown): unknown => {
     for (const key of nullableSeoMetadataKeys) {
       nextRecord[key] ??= null;
     }
+    nextRecord.fontStyle ??= null;
   }
 
   if ("wikiIdentifier" in nextRecord && "status" in nextRecord) {

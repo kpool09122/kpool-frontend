@@ -34,6 +34,28 @@ export const wikiResourceTypeSchema = z.enum(wikiResourceTypes);
 
 export type WikiResourceType = z.infer<typeof wikiResourceTypeSchema>;
 
+export const wikiFontStyles = [
+  "ja_pop",
+  "ja_gothic",
+  "ja_mincho",
+  "ja_artistic",
+  "ja_handwritten",
+  "ko_rounded",
+  "ko_gothic",
+  "ko_myungjo",
+  "ko_modern",
+  "ko_handwritten",
+  "en_sans",
+  "en_serif",
+  "en_display",
+  "en_modern",
+  "en_handwritten",
+] as const;
+
+export const wikiFontStyleSchema = z.enum(wikiFontStyles);
+
+export type WikiFontStyle = z.infer<typeof wikiFontStyleSchema>;
+
 const wikiProfileCardSummarySchema = z.object({
   wikiIdentifier: z.string(),
   slug: z.string(),
@@ -295,6 +317,7 @@ const wikiDetailBaseSchema = z.object({
   language: z.string(),
   resourceType: wikiResourceTypeSchema,
   themeColor: z.string().nullable().optional(),
+  fontStyle: wikiFontStyleSchema.nullable().optional(),
   title: z.string().nullable(),
   metaDescription: z.string().nullable(),
   keywords: z.array(z.string()).nullable(),

@@ -2,6 +2,7 @@ export const mainBackgroundStyle = {
   backgroundColor: "var(--background)",
   backgroundImage:
     "var(--wiki-page-background, radial-gradient(circle at top, rgba(255,214,194,0.85), transparent 38%), linear-gradient(180deg, var(--background) 0%, var(--surface-raised) 100%))",
+  fontFamily: "var(--wiki-font-family, var(--font-sans))",
 };
 
 export const cardSurfaceStyle = {

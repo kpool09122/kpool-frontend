@@ -16,6 +16,7 @@ describe("WikiDiffPage", () => {
         name: "公開中 Wiki",
       },
       themeColor: "#4c5cff",
+      fontStyle: "ja_mincho",
     };
     const draftWiki = {
       ...baseDraftWiki,
@@ -24,6 +25,7 @@ describe("WikiDiffPage", () => {
         name: "下書き Wiki",
       },
       themeColor: "#d94f70",
+      fontStyle: "en_serif",
     };
 
     render(
@@ -62,6 +64,8 @@ describe("WikiDiffPage", () => {
 
     expect(publicThemeStyle).toContain("--wiki-page-background-light:");
     expect(draftThemeStyle).toContain("--wiki-page-background-light:");
+    expect(publicThemeStyle).toContain("Yu Mincho");
+    expect(draftThemeStyle).toContain("Georgia");
     expect(publicThemeStyle).not.toBe(draftThemeStyle);
   });
 });

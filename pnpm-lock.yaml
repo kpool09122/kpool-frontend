@@ -8,6 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/gowun-dodum':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/nanum-pen-script':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/pretendard':
+        specifier: ^5.2.5
+        version: 5.2.5
       '@kpool/types':
         specifier: workspace:*
         version: link:packages/types
@@ -482,6 +491,15 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource/gowun-dodum@5.2.8':
+    resolution: {integrity: sha512-DZBZxz80w/IE8PMDtz0atDsTsXKsn6TfWcZDW0KTCdZoXWZr66/R9IWaB5Ym7OFWyDUJKzoBhHQTmgahRUKN/Q==}
+
+  '@fontsource/nanum-pen-script@5.2.7':
+    resolution: {integrity: sha512-gi/nJVtdjSP510Ekdo7NRZqkMtMPI1GmR1273e9tW3KczYenytKKG/F6veo9fWpPou0InqG9OUiAGG0LOYApQw==}
+
+  '@fontsource/pretendard@5.2.5':
+    resolution: {integrity: sha512-UAj3l+Exfx6Sq5hySbhTQhNzkZnhzBxQdHySmjo2lifXyXpMAHv7GD7hAQTLgZfBd1WixJJkmynfJbOp+TAckg==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -3864,6 +3882,12 @@ snapshots:
 
   '@floating-ui/utils@0.2.11':
     optional: true
+
+  '@fontsource/gowun-dodum@5.2.8': {}
+
+  '@fontsource/nanum-pen-script@5.2.7': {}
+
+  '@fontsource/pretendard@5.2.5': {}
 
   '@humanfs/core@0.19.1': {}
 

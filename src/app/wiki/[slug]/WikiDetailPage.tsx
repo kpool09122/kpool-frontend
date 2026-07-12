@@ -59,7 +59,7 @@ export function WikiDetailPage({
 
   const { data } = wikiState;
   const effectiveThemeColor = themeColor ?? data.themeColor ?? undefined;
-  const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor);
+  const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor, data.fontStyle);
   const editHref = buildWikiEditPath(language, slug);
 
   return (

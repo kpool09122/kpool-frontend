@@ -1,4 +1,4 @@
-import { type WikiBlockType } from "@kpool/wiki";
+import { type WikiBlockType, type WikiFontStyle, wikiFontStyles } from "@kpool/wiki";
 
 export type WikiPreviewMode = "light" | "dark";
 export type WikiEditorMode = "gui" | "code";
@@ -24,6 +24,57 @@ export const blockTypeLabels: Record<WikiBlockType, string> = {
   table: "Table",
   profile_card_list: "Profiles",
 };
+
+
+export type WikiFontStyleLanguage = "ja" | "ko" | "en";
+
+export type WikiFontStyleOption = {
+  value: WikiFontStyle;
+  language: WikiFontStyleLanguage;
+  label: string;
+};
+
+export const wikiFontStyleOptions: WikiFontStyleOption[] = [
+  { value: "ja_pop", language: "ja", label: "JP Pop" },
+  { value: "ja_gothic", language: "ja", label: "JP Gothic" },
+  { value: "ja_mincho", language: "ja", label: "JP Mincho" },
+  { value: "ja_artistic", language: "ja", label: "JP Artistic" },
+  { value: "ja_handwritten", language: "ja", label: "JP Handwritten" },
+  { value: "ko_rounded", language: "ko", label: "KR Rounded" },
+  { value: "ko_gothic", language: "ko", label: "KR Gothic" },
+  { value: "ko_myungjo", language: "ko", label: "KR Myungjo" },
+  { value: "ko_modern", language: "ko", label: "KR Modern" },
+  { value: "ko_handwritten", language: "ko", label: "KR Handwritten" },
+  { value: "en_sans", language: "en", label: "EN Sans" },
+  { value: "en_serif", language: "en", label: "EN Serif" },
+  { value: "en_display", language: "en", label: "EN Display" },
+  { value: "en_modern", language: "en", label: "EN Modern" },
+  { value: "en_handwritten", language: "en", label: "EN Handwritten" },
+];
+
+const wikiFontStyleLanguages: WikiFontStyleLanguage[] = ["ja", "ko", "en"];
+
+const getWikiFontStyleLanguage = (
+  language: string | null | undefined,
+): WikiFontStyleLanguage | undefined => {
+  const languagePrefix = language?.toLowerCase().split(/[-_]/)[0];
+
+  return wikiFontStyleLanguages.find((fontStyleLanguage) => fontStyleLanguage === languagePrefix);
+};
+
+export const getWikiFontStyleOptionsForLanguage = (
+  language: string | null | undefined,
+): WikiFontStyleOption[] => {
+  const fontStyleLanguage = getWikiFontStyleLanguage(language);
+
+  return fontStyleLanguage
+    ? wikiFontStyleOptions.filter((option) => option.language === fontStyleLanguage)
+    : wikiFontStyleOptions;
+};
+
+export const hasEveryWikiFontStyleOption = wikiFontStyles.every((fontStyle) =>
+  wikiFontStyleOptions.some((option) => option.value === fontStyle),
+);
 
 export const themeColorOptions = [
   "#d94f70",

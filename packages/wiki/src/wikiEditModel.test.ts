@@ -35,6 +35,16 @@ const createSection = (overrides?: Partial<WikiSection>): WikiSection => ({
 });
 
 describe("wikiEditModel", () => {
+  it("includes font style in edit payloads", () => {
+    const wiki = createMockWikiDetail("gr-aurora-echo", { fontStyle: "en_serif" });
+
+    expect(toWikiEditPayload(wiki)).toMatchObject({
+      font_style: "en_serif",
+    });
+    expect(toWikiEditRequestPayload(wiki)).toMatchObject({
+      fontStyle: "en_serif",
+    });
+  });
   it("adds nested sections until backend max depth and opens the new section editor", () => {
     const [updated, editId] = addWikiSection([createSection()], "sec-root");
 
@@ -178,6 +188,7 @@ describe("wikiEditModel", () => {
       basic: wiki.basic,
       sections: toWikiSectionContentPayload(wiki.sections),
       themeColor: "#4c5cff",
+      fontStyle: null,
       title: null,
       metaDescription: null,
       keywords: null,

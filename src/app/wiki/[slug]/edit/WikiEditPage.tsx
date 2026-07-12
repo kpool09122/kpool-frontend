@@ -129,7 +129,7 @@ export function WikiEditContent({
     resourceType: data.resourceType as WikiResourceType,
     slug: data.slug,
   };
-  const themeStyles = buildWikiThemeCssVariables(draft.themeColor);
+  const themeStyles = buildWikiThemeCssVariables(draft.themeColor, draft.fontStyle);
   const closeEditor = () => setEditingId(null);
   const isReviewLocked = draft.status === "under_review";
   const isSubmitRefreshPending = isSubmittedReviewLocked && !isReviewLocked;
@@ -463,9 +463,11 @@ export function WikiEditContent({
             }
           }}
           previewMode={previewMode}
+          language={draft.language}
           resourceType={draft.resourceType}
           slug={draft.slug}
           themeColor={draft.themeColor}
+          fontStyle={draft.fontStyle}
           title={draft.title}
           metaDescription={draft.metaDescription}
           keywords={draft.keywords}

@@ -1,6 +1,6 @@
 "use client";
 
-import { type WikiDetail } from "@kpool/wiki";
+import { type WikiDetail, type WikiFontStyle } from "@kpool/wiki";
 import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
@@ -10,7 +10,12 @@ import {
   getWikiResourceLabel,
   wikiResourceTypes,
 } from "@kpool/wiki";
-import { type WikiEditorMode, type WikiPreviewMode, themeColorOptions } from "../editing";
+import {
+  getWikiFontStyleOptionsForLanguage,
+  type WikiEditorMode,
+  type WikiPreviewMode,
+  themeColorOptions,
+} from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
@@ -77,12 +82,14 @@ type WikiEditSidebarProps = {
   onSubmit: () => void;
   onToggle: () => void;
   onUpdateSettings: (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => void;
   previewMode: WikiPreviewMode;
+  language: string;
   resourceType: WikiDetail["resourceType"];
   slug: string;
   themeColor: string | null | undefined;
+  fontStyle: WikiFontStyle | string | null | undefined;
   title: string | null;
   metaDescription: string | null;
   keywords: string[] | null;
@@ -103,14 +110,18 @@ export function WikiEditSidebar({
   onToggle,
   onUpdateSettings,
   previewMode,
+  language,
   resourceType,
   slug,
   themeColor,
+  fontStyle,
   title,
   metaDescription,
   keywords,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
+  const fontStyleOptions = getWikiFontStyleOptionsForLanguage(language);
+  const selectedFontStyle = fontStyleOptions.find((option) => option.value === fontStyle);
   const isActionDisabled = isBusy || !canPersist || isReviewLocked;
   const isEditControlDisabled = isBusy || isReviewLocked;
   const isEditorModeControlDisabled = isEditControlDisabled || isEditorModeDisabled;
@@ -118,7 +129,7 @@ export function WikiEditSidebar({
     () => keywords && keywords.length > 0 ? keywords : [""],
   );
   const updateSettings = (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "title" | "metaDescription" | "keywords">>,
+    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => {
     if (!isEditControlDisabled) {
       onUpdateSettings(settings);
@@ -279,6 +290,29 @@ export function WikiEditSidebar({
                 />
               </label>
             </fieldset>
+
+            <label className="grid gap-2 text-sm font-semibold text-text-strong">
+              Font style
+              <select
+                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
+                disabled={isEditControlDisabled}
+                onChange={(event) =>
+                  updateSettings({
+                    fontStyle: event.currentTarget.value
+                      ? (event.currentTarget.value as WikiFontStyle)
+                      : null,
+                  })
+                }
+                value={selectedFontStyle?.value ?? ""}
+              >
+                <option value="">Default font</option>
+                {fontStyleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <div className="mt-2 grid gap-4 border-t border-stroke-subtle pt-5">
               <label className="grid gap-2 text-sm font-semibold text-text-strong">

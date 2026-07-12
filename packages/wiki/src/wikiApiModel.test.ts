@@ -17,6 +17,7 @@ const baseApiResponse = {
   sections: [],
   slug: "gr-aurora-echo",
   themeColor: "#4c5cff",
+  fontStyle: "ja_gothic",
   translationSetIdentifier: "translation-set-aurora-echo",
   wikiIdentifier: "wiki-1",
 };
@@ -35,6 +36,7 @@ describe("wikiApiModel SEO metadata", () => {
       title: "Aurora Echo SEO",
       metaDescription: "Aurora Echo profile and discography.",
       keywords: ["aurora", "echo"],
+      fontStyle: "ja_gothic",
     });
   });
 
@@ -62,6 +64,7 @@ describe("wikiApiModel SEO metadata", () => {
       title: "Draft SEO",
       metaDescription: "Draft meta description.",
       keywords: ["draft", "seo"],
+      fontStyle: "ja_gothic",
     });
   });
 });

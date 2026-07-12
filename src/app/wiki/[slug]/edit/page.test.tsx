@@ -1091,6 +1091,10 @@ describe("WikiEditPage", () => {
     fireEvent.change(screen.getByLabelText("Metadata meta description"), {
       target: { value: "  Aurora Echo meta description.  " },
     });
+    fireEvent.change(screen.getByLabelText("Font style"), {
+      target: { value: "ja_mincho" },
+    });
+    expect(screen.getByTestId("wiki-edit-root").getAttribute("style")).toContain("Yu Mincho");
     fireEvent.change(screen.getByLabelText("Keyword 1"), {
       target: { value: " aurora " },
     });
@@ -1110,6 +1114,7 @@ describe("WikiEditPage", () => {
         title: "  Aurora Echo SEO  ",
         metaDescription: "  Aurora Echo meta description.  ",
         keywords: [" aurora ", " echo ", " k-pop "],
+        fontStyle: "ja_mincho",
       }),
     );
   });
