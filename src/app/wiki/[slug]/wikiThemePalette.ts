@@ -26,7 +26,7 @@ export const wikiFontStyleDefinitions: Record<WikiFontStyle, WikiFontStyleDefini
     fontFamily: '"YuKyokasho", "Hiragino Maru Gothic ProN", "Comic Sans MS", cursive, sans-serif',
   },
   ko_rounded: {
-    fontFamily: '"Apple SD Gothic Neo", "Malgun Gothic", "Arial Rounded MT Bold", var(--font-sans), sans-serif',
+    fontFamily: '"Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", var(--font-sans), sans-serif',
   },
   ko_gothic: {
     fontFamily: '"Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", var(--font-sans), sans-serif',

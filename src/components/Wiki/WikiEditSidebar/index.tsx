@@ -11,12 +11,10 @@ import {
   wikiResourceTypes,
 } from "@kpool/wiki";
 import {
-  getWikiFontStyleOption,
+  getWikiFontStyleOptionsForLanguage,
   type WikiEditorMode,
   type WikiPreviewMode,
   themeColorOptions,
-  wikiFontStyleGroups,
-  wikiFontStyleOptions,
 } from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
@@ -87,6 +85,7 @@ type WikiEditSidebarProps = {
     settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => void;
   previewMode: WikiPreviewMode;
+  language: string;
   resourceType: WikiDetail["resourceType"];
   slug: string;
   themeColor: string | null | undefined;
@@ -111,6 +110,7 @@ export function WikiEditSidebar({
   onToggle,
   onUpdateSettings,
   previewMode,
+  language,
   resourceType,
   slug,
   themeColor,
@@ -120,7 +120,8 @@ export function WikiEditSidebar({
   keywords,
 }: WikiEditSidebarProps) {
   const customColorValue = themeColor ?? themeColorOptions[2];
-  const selectedFontStyle = getWikiFontStyleOption(fontStyle);
+  const fontStyleOptions = getWikiFontStyleOptionsForLanguage(language);
+  const selectedFontStyle = fontStyleOptions.find((option) => option.value === fontStyle);
   const isActionDisabled = isBusy || !canPersist || isReviewLocked;
   const isEditControlDisabled = isBusy || isReviewLocked;
   const isEditorModeControlDisabled = isEditControlDisabled || isEditorModeDisabled;
@@ -290,50 +291,28 @@ export function WikiEditSidebar({
               </label>
             </fieldset>
 
-            <fieldset className="grid gap-3">
-              <legend className="text-sm font-semibold text-text-strong">Font style</legend>
-              <button
-                aria-pressed={!selectedFontStyle}
-                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 text-left text-xs font-semibold text-text-muted aria-pressed:ring-2 aria-pressed:ring-text-strong disabled:cursor-not-allowed"
+            <label className="grid gap-2 text-sm font-semibold text-text-strong">
+              Font style
+              <select
+                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
                 disabled={isEditControlDisabled}
-                onClick={() => updateSettings({ fontStyle: null })}
-                type="button"
+                onChange={(event) =>
+                  updateSettings({
+                    fontStyle: event.currentTarget.value
+                      ? (event.currentTarget.value as WikiFontStyle)
+                      : null,
+                  })
+                }
+                value={selectedFontStyle?.value ?? ""}
               >
-                Default font
-              </button>
-              {wikiFontStyleGroups.map((group) => (
-                <div className="grid gap-2" key={group.language}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">
-                    {group.label}
-                  </p>
-                  <div className="grid gap-2">
-                    {wikiFontStyleOptions
-                      .filter((option) => option.language === group.language)
-                      .map((option) => (
-                        <button
-                          aria-label={`Set font style ${option.label}`}
-                          aria-pressed={fontStyle === option.value}
-                          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 text-left transition aria-pressed:ring-2 aria-pressed:ring-text-strong disabled:cursor-not-allowed"
-                          disabled={isEditControlDisabled}
-                          key={option.value}
-                          onClick={() => updateSettings({ fontStyle: option.value })}
-                          type="button"
-                        >
-                          <span className="block text-sm font-semibold text-text-strong">
-                            {option.label}
-                          </span>
-                          <span className="block text-xs text-text-muted">
-                            {option.description}
-                          </span>
-                          <span className="mt-1 block text-base text-text-strong">
-                            {option.previewText}
-                          </span>
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              ))}
-            </fieldset>
+                <option value="">Default font</option>
+                {fontStyleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <div className="mt-2 grid gap-4 border-t border-stroke-subtle pt-5">
               <label className="grid gap-2 text-sm font-semibold text-text-strong">

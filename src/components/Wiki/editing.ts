@@ -32,38 +32,45 @@ export type WikiFontStyleOption = {
   value: WikiFontStyle;
   language: WikiFontStyleLanguage;
   label: string;
-  description: string;
-  previewText: string;
 };
 
 export const wikiFontStyleOptions: WikiFontStyleOption[] = [
-  { value: "ja_pop", language: "ja", label: "JP Pop", description: "丸みのある親しみやすい日本語", previewText: "推しの物語" },
-  { value: "ja_gothic", language: "ja", label: "JP Gothic", description: "読みやすい標準的な日本語ゴシック", previewText: "推しの物語" },
-  { value: "ja_mincho", language: "ja", label: "JP Mincho", description: "落ち着いた本文向けの明朝体", previewText: "推しの物語" },
-  { value: "ja_artistic", language: "ja", label: "JP Artistic", description: "見出しに映える個性的な雰囲気", previewText: "推しの物語" },
-  { value: "ja_handwritten", language: "ja", label: "JP Handwritten", description: "手書き感のあるやわらかい印象", previewText: "推しの物語" },
-  { value: "ko_rounded", language: "ko", label: "KR Rounded", description: "丸みのある韓国語向けスタイル", previewText: "팬덤 이야기" },
-  { value: "ko_gothic", language: "ko", label: "KR Gothic", description: "読みやすい標準的な韓国語ゴシック", previewText: "팬덤 이야기" },
-  { value: "ko_myungjo", language: "ko", label: "KR Myungjo", description: "落ち着いた韓国語セリフ系", previewText: "팬덤 이야기" },
-  { value: "ko_modern", language: "ko", label: "KR Modern", description: "現代的ですっきりした印象", previewText: "팬덤 이야기" },
-  { value: "ko_handwritten", language: "ko", label: "KR Handwritten", description: "手書き風の親しみやすい韓国語", previewText: "팬덤 이야기" },
-  { value: "en_sans", language: "en", label: "EN Sans", description: "英語本文向けのクリーンなサンセリフ", previewText: "Fan story" },
-  { value: "en_serif", language: "en", label: "EN Serif", description: "落ち着いたクラシックな英語セリフ", previewText: "Fan story" },
-  { value: "en_display", language: "en", label: "EN Display", description: "見出しで目を引く力強い英語", previewText: "Fan story" },
-  { value: "en_modern", language: "en", label: "EN Modern", description: "モダンで洗練された英語スタイル", previewText: "Fan story" },
-  { value: "en_handwritten", language: "en", label: "EN Handwritten", description: "手書き感のあるカジュアルな英語", previewText: "Fan story" },
+  { value: "ja_pop", language: "ja", label: "JP Pop" },
+  { value: "ja_gothic", language: "ja", label: "JP Gothic" },
+  { value: "ja_mincho", language: "ja", label: "JP Mincho" },
+  { value: "ja_artistic", language: "ja", label: "JP Artistic" },
+  { value: "ja_handwritten", language: "ja", label: "JP Handwritten" },
+  { value: "ko_rounded", language: "ko", label: "KR Rounded" },
+  { value: "ko_gothic", language: "ko", label: "KR Gothic" },
+  { value: "ko_myungjo", language: "ko", label: "KR Myungjo" },
+  { value: "ko_modern", language: "ko", label: "KR Modern" },
+  { value: "ko_handwritten", language: "ko", label: "KR Handwritten" },
+  { value: "en_sans", language: "en", label: "EN Sans" },
+  { value: "en_serif", language: "en", label: "EN Serif" },
+  { value: "en_display", language: "en", label: "EN Display" },
+  { value: "en_modern", language: "en", label: "EN Modern" },
+  { value: "en_handwritten", language: "en", label: "EN Handwritten" },
 ];
 
-export const wikiFontStyleGroups: Array<{ language: WikiFontStyleLanguage; label: string }> = [
-  { language: "ja", label: "Japanese" },
-  { language: "ko", label: "Korean" },
-  { language: "en", label: "English" },
-];
+const wikiFontStyleLanguages: WikiFontStyleLanguage[] = ["ja", "ko", "en"];
 
-export const getWikiFontStyleOption = (
-  value: WikiFontStyle | string | null | undefined,
-): WikiFontStyleOption | undefined =>
-  wikiFontStyleOptions.find((option) => option.value === value);
+const getWikiFontStyleLanguage = (
+  language: string | null | undefined,
+): WikiFontStyleLanguage | undefined => {
+  const languagePrefix = language?.toLowerCase().split(/[-_]/)[0];
+
+  return wikiFontStyleLanguages.find((fontStyleLanguage) => fontStyleLanguage === languagePrefix);
+};
+
+export const getWikiFontStyleOptionsForLanguage = (
+  language: string | null | undefined,
+): WikiFontStyleOption[] => {
+  const fontStyleLanguage = getWikiFontStyleLanguage(language);
+
+  return fontStyleLanguage
+    ? wikiFontStyleOptions.filter((option) => option.language === fontStyleLanguage)
+    : wikiFontStyleOptions;
+};
 
 export const hasEveryWikiFontStyleOption = wikiFontStyles.every((fontStyle) =>
   wikiFontStyleOptions.some((option) => option.value === fontStyle),

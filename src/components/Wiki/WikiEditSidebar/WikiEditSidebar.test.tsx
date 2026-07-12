@@ -31,6 +31,7 @@ describe("WikiEditSidebar", () => {
         onToggle={onToggle}
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
+        language="ja"
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
@@ -48,10 +49,18 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Dark" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
     expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
+    const fontStyleSelect = screen.getByLabelText("Font style");
+    expect(fontStyleSelect).toHaveValue("ja_gothic");
+    expect(screen.getByRole("option", { name: "Default font" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "JP Pop" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "KR Gothic" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "EN Serif" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Resource type"), {
       target: { value: "song" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Set font style JP Mincho" }));
+    fireEvent.change(fontStyleSelect, {
+      target: { value: "ja_mincho" },
+    });
     fireEvent.change(screen.getByLabelText("Metadata title"), {
       target: { value: "Updated SEO title" },
     });
@@ -112,6 +121,7 @@ describe("WikiEditSidebar", () => {
         onToggle={onToggle}
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
+        language="ja"
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
@@ -129,7 +139,7 @@ describe("WikiEditSidebar", () => {
     const previewDarkButton = screen.getByRole("button", { name: "Dark" });
     const resourceTypeSelect = screen.getByLabelText("Resource type");
     const themeColorInput = screen.getByLabelText("Theme color");
-    const fontStyleButton = screen.getByRole("button", { name: "Set font style JP Mincho" });
+    const fontStyleSelect = screen.getByLabelText("Font style");
     const seoTitleInput = screen.getByLabelText("Metadata title");
     const metaDescriptionInput = screen.getByLabelText("Metadata meta description");
     const keywordsInput = screen.getByLabelText("Keyword 1");
@@ -143,7 +153,7 @@ describe("WikiEditSidebar", () => {
     expect(codeButton).toBeDisabled();
     expect(resourceTypeSelect).toBeDisabled();
     expect(themeColorInput).toBeDisabled();
-    expect(fontStyleButton).toBeDisabled();
+    expect(fontStyleSelect).toBeDisabled();
     expect(seoTitleInput).toBeDisabled();
     expect(metaDescriptionInput).toBeDisabled();
     expect(keywordsInput).toBeDisabled();
@@ -157,7 +167,9 @@ describe("WikiEditSidebar", () => {
     fireEvent.change(resourceTypeSelect, {
       target: { value: "song" },
     });
-    fireEvent.click(fontStyleButton);
+    fireEvent.change(fontStyleSelect, {
+      target: { value: "ja_mincho" },
+    });
     fireEvent.click(previewDarkButton);
 
     expect(onSave).not.toHaveBeenCalled();
@@ -186,6 +198,7 @@ describe("WikiEditSidebar", () => {
         onToggle={vi.fn()}
         onUpdateSettings={vi.fn()}
         previewMode="light"
+        language="ja"
         resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}

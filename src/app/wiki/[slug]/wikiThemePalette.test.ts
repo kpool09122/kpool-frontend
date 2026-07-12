@@ -64,4 +64,16 @@ describe("wikiThemePalette", () => {
       "--wiki-font-family": expect.stringContaining("Georgia"),
     });
   });
+
+  it("uses self-hosted Korean font families for styles without reliable OS defaults", () => {
+    expect(buildWikiThemeCssVariables(null, "ko_rounded")).toMatchObject({
+      "--wiki-font-family": expect.stringContaining("Gowun Dodum"),
+    });
+    expect(buildWikiThemeCssVariables(null, "ko_modern")).toMatchObject({
+      "--wiki-font-family": expect.stringContaining("Pretendard"),
+    });
+    expect(buildWikiThemeCssVariables(null, "ko_handwritten")).toMatchObject({
+      "--wiki-font-family": expect.stringContaining("Nanum Pen Script"),
+    });
+  });
 });

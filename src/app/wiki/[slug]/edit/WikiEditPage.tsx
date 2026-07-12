@@ -463,6 +463,7 @@ export function WikiEditContent({
             }
           }}
           previewMode={previewMode}
+          language={draft.language}
           resourceType={draft.resourceType}
           slug={draft.slug}
           themeColor={draft.themeColor}
