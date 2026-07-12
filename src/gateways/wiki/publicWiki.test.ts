@@ -14,6 +14,14 @@ import {
 const publicWikiResponse = {
   basic: {
     agencyName: "North Harbor Entertainment",
+    agencyIdentifier: "agency-wiki-1",
+    agency: {
+      wikiIdentifier: "agency-wiki-1",
+      slug: "ag-north-harbor-entertainment",
+      language: "ko",
+      name: "North Harbor Entertainment",
+      normalizedName: "north-harbor-entertainment",
+    },
     debutDate: "2022-03-14",
     fandomName: "Daybreak",
     generation: "5th",
@@ -91,6 +99,11 @@ describe("publicWiki", () => {
     expect(wiki).toMatchObject({
       basic: {
         agencyName: "North Harbor Entertainment",
+        agencyIdentifier: "agency-wiki-1",
+        agency: expect.objectContaining({
+          name: "North Harbor Entertainment",
+          slug: "ag-north-harbor-entertainment",
+        }),
         name: "Aurora Echo",
         resourceType: "group",
         talents: [

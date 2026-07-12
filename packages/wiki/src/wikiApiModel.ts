@@ -77,6 +77,12 @@ const toWikiBasicRelationSummaries = (
       })
     : undefined;
 
+const toWikiBasicRelationSummary = (value: unknown): NonNullable<WikiBasic["agency"]> | undefined => {
+  const summaries = toWikiBasicRelationSummaries(Array.isArray(value) ? value : [value]);
+
+  return summaries?.[0];
+};
+
 export const toOptionalString = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
 
@@ -172,7 +178,9 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
     name: String(basic.name ?? response.slug),
     normalizedName: String(basic.normalizedName ?? basic.name ?? response.slug),
     resourceType,
+    agency: toWikiBasicRelationSummary(basic.agency),
     agencyName: toNullableString(basic.agencyName),
+    agencyIdentifier: toNullableString(basic.agencyIdentifier ?? basic.agency_identifier),
     albumName: toOptionalString(basic.albumName),
     arranger: toOptionalString(basic.arranger),
     birthday: toOptionalString(basic.birthday),

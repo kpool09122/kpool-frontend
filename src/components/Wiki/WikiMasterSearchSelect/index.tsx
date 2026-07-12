@@ -28,7 +28,7 @@ type SearchState =
   | { status: "error"; message: string };
 
 const chipClassName =
-  "inline-flex items-center gap-2 rounded-full border border-stroke-subtle bg-surface-raised px-3 py-1 text-xs font-semibold text-text-strong";
+  "inline-flex max-w-full items-center gap-1.5 rounded-full border border-stroke-subtle bg-surface-raised px-2.5 py-1 text-xs font-semibold text-text-strong";
 
 export function WikiMasterSearchSelect({
   disabled = false,
@@ -104,13 +104,13 @@ export function WikiMasterSearchSelect({
     : selectedItems.map((item) => item.wikiIdentifier).join(",");
 
   return (
-    <div className="grid gap-2 text-sm font-semibold text-text-strong">
-      <label className="grid gap-2">
+    <div className="grid min-w-0 self-start gap-2 text-sm font-semibold text-text-strong">
+      <label className="grid min-w-0 gap-2">
         {label}
-        <div className="flex gap-2">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1.5">
           <input
             aria-label={`${label} keyword`}
-            className="min-w-0 flex-1 rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2"
+            className="h-9 min-w-0 rounded-lg border border-stroke-subtle bg-surface-raised px-2.5 text-sm"
             disabled={disabled || searchState.status === "loading"}
             onChange={(event) => {
               const nextValue = event.currentTarget.value;
@@ -130,7 +130,7 @@ export function WikiMasterSearchSelect({
             value={keyword}
           />
           <button
-            className="rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-9 w-14 shrink-0 whitespace-nowrap rounded-lg border border-stroke-subtle px-2 text-xs font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-60"
             disabled={disabled || searchState.status === "loading"}
             onClick={search}
             type="button"
@@ -141,13 +141,13 @@ export function WikiMasterSearchSelect({
       </label>
       {name ? <input name={name} type="hidden" value={hiddenValue} /> : null}
       {showSelectedItems && selectedItems.length > 0 ? (
-        <div className="flex flex-wrap gap-2" aria-label={`${label} selected`}>
+        <div className="flex min-w-0 max-w-full flex-wrap gap-1.5" aria-label={`${label} selected`}>
           {selectedItems.map((item) => (
             <span className={chipClassName} key={item.wikiIdentifier}>
-              {item.name}
+              <span className="min-w-0 truncate">{item.name}</span>
               <button
                 aria-label={`${item.name} を削除`}
-                className="text-text-muted hover:text-status-danger"
+                className="shrink-0 text-text-muted hover:text-status-danger"
                 disabled={disabled}
                 onClick={() => removeItem(item.wikiIdentifier)}
                 type="button"
@@ -159,32 +159,32 @@ export function WikiMasterSearchSelect({
         </div>
       ) : null}
       {isOpen && searchState.status === "loading" ? (
-        <p className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-3 text-sm text-text-muted">
+        <p className="min-w-0 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-3 text-sm text-text-muted">
           Wiki候補を検索しています
         </p>
       ) : null}
       {isOpen && searchState.status === "error" ? (
-        <p className="rounded-xl border border-status-danger/40 bg-surface-base px-3 py-3 text-sm font-semibold text-status-danger" role="alert">
+        <p className="min-w-0 rounded-xl border border-status-danger/40 bg-surface-base px-3 py-3 text-sm font-semibold text-status-danger" role="alert">
           {searchState.message}
         </p>
       ) : null}
       {isOpen && searchState.status === "success" && searchState.items.length === 0 ? (
-        <p className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-3 text-sm text-text-muted">
+        <p className="min-w-0 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-3 text-sm text-text-muted">
           候補が見つかりません
         </p>
       ) : null}
       {isOpen && searchState.status === "success" && searchState.items.length > 0 ? (
-        <ul className="max-h-56 overflow-auto rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
+        <ul className="min-w-0 max-h-56 overflow-auto rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
           {searchState.items.map((item) => (
             <li key={item.wikiIdentifier}>
               <button
-                className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full min-w-0 items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={disabled || selectedIds.has(item.wikiIdentifier)}
                 onClick={() => selectItem(item)}
                 type="button"
               >
-                <span>{item.name}</span>
-                <span className="text-xs text-text-muted">{item.slug}</span>
+                <span className="min-w-0 truncate">{item.name}</span>
+                <span className="shrink-0 text-xs text-text-muted">{item.slug}</span>
               </button>
             </li>
           ))}

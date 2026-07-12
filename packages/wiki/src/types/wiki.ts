@@ -261,6 +261,7 @@ export const wikiBasicSchema = z.object({
   emoji: z.string().optional(),
   representativeSymbol: z.string().optional(),
   officialColors: z.array(z.string()).optional(),
+  agency: wikiBasicRelationSummarySchema.nullable().optional(),
   agencyName: z.string().nullable().optional(),
   agencyIdentifier: z.string().nullable().optional(),
   ceo: z.string().optional(),

@@ -13,7 +13,13 @@ export type WikiBasicField = {
   links?: WikiBasicFieldLink[];
 };
 
-const getRelationLinks = (relations: WikiBasic["groups"] | WikiBasic["talents"]): WikiBasicFieldLink[] | undefined => {
+type LinkableRelation = {
+  slug?: string;
+  language?: string;
+  name: string;
+};
+
+const getRelationLinks = (relations: LinkableRelation[] | undefined | null): WikiBasicFieldLink[] | undefined => {
   const links = relations?.flatMap((relation) =>
     relation.slug && relation.language
       ? [
@@ -27,6 +33,9 @@ const getRelationLinks = (relations: WikiBasic["groups"] | WikiBasic["talents"])
 
   return links && links.length > 0 ? links : undefined;
 };
+
+const getRelationLink = (relation: LinkableRelation | undefined | null): WikiBasicFieldLink[] | undefined =>
+  relation ? getRelationLinks([relation]) : undefined;
 
 const basicFieldLabels: Array<{
   label: string;
@@ -48,9 +57,19 @@ const basicFieldLabels: Array<{
   { label: "Song Type", getValue: (basic) => basic.songType },
   { label: "Genres", getValue: (basic) => basic.genres?.join(", ") ?? null },
   {
+    label: "Agency",
+    getLinks: (basic) => getRelationLink(basic.agency),
+    getValue: (basic) => basic.agency?.name ?? basic.agencyName,
+  },
+  {
     label: "Groups",
     getLinks: (basic) => getRelationLinks(basic.groups),
     getValue: (basic) => basic.groups?.map((group) => group.name).join(", ") ?? null,
+  },
+  {
+    label: "Talents",
+    getLinks: (basic) => getRelationLinks(basic.talents),
+    getValue: (basic) => basic.talents?.map((talent) => talent.name).join(", ") ?? null,
   },
   { label: "Release Date", getValue: (basic) => basic.releaseDate },
   { label: "Album", getValue: (basic) => basic.albumName },
@@ -69,30 +88,28 @@ const basicFieldLabels: Array<{
   },
   { label: "Blood Type", getValue: (basic) => basic.bloodType },
   {
-    label: "Talents",
-    getLinks: (basic) => getRelationLinks(basic.talents),
-    getValue: (basic) => basic.talents?.map((talent) => talent.name).join(", ") ?? null,
-  },
-  {
     label: "Official Colors",
     getValue: (basic) => basic.officialColors?.join(", ") ?? null,
   },
-  { label: "Agency", getValue: (basic) => basic.agencyName },
 ];
 
 export const getWikiBasicFields = (basic: WikiBasic): WikiBasicField[] =>
   basicFieldLabels.flatMap((field) => {
     const value = field.getValue(basic);
 
-    return value
-      ? [
-          {
-            label: field.label,
-            links: field.getLinks?.(basic),
-            value,
-          },
-        ]
-      : [];
+    if (!value) {
+      return [];
+    }
+
+    const links = field.getLinks?.(basic);
+
+    return [
+      {
+        label: field.label,
+        ...(links ? { links } : {}),
+        value,
+      },
+    ];
   });
 
 export const sortWikiSections = (sections: WikiSection[]): WikiSection[] =>
