@@ -23,6 +23,8 @@ const publicWikiResponse = {
       normalizedName: "north-harbor-entertainment",
     },
     debutDate: "2022-03-14",
+    disbandDate: null,
+    emoji: "☀",
     fandomName: "Daybreak",
     generation: "5th",
     groupType: "Girl Group",
@@ -43,6 +45,7 @@ const publicWikiResponse = {
   },
   heroImage: {
     alt: "Aurora Echo public image",
+    imageIdentifier: null,
     src: "https://cdn.example.com/aurora-echo.webp",
   },
   language: "ja",

@@ -18,7 +18,9 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getPublicWikiEndpointPath,
   publicWikiApiResponseSchema,
+  type PublicWikiApiResponse,
 } from "@/gateways/wiki/publicWiki";
+import { withDefaultWikiResponseMetadata } from "@/gateways/wiki/wikiApiSchemaDefaults";
 import {
   createMockInitialDraftWikis,
   isMockWikiGatewayEnabled,
@@ -66,39 +68,6 @@ const autoCreateWikiRequestBodySchema = z.object({
   talentIdentifiers: z.array(z.string()),
 });
 
-const withDefaultSeoMetadata = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value.map(withDefaultSeoMetadata);
-  }
-
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  const record = value as Record<string, unknown>;
-  const nextRecord: Record<string, unknown> = { ...record };
-
-  if (
-    "wikiIdentifier" in nextRecord ||
-    "publishedWikiIdentifier" in nextRecord ||
-    "sections" in nextRecord
-  ) {
-    nextRecord.title ??= null;
-    nextRecord.metaDescription ??= null;
-    nextRecord.keywords ??= null;
-  }
-
-  if ("wikiIdentifier" in nextRecord) {
-    nextRecord.rejectionReason ??= null;
-  }
-
-  if (Array.isArray(nextRecord.wikis)) {
-    nextRecord.wikis = nextRecord.wikis.map(withDefaultSeoMetadata);
-  }
-
-  return nextRecord;
-};
-
 type DraftWikiApiResponse = z.infer<typeof draftWikiApiResponseSchema>;
 type EditWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.UpdateWikiDraftRequestBody>;
 type DeleteWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.WikiWorkflowRequestBody>;
@@ -111,7 +80,6 @@ type PublishedWikiSummary = z.infer<typeof wikiPrivateApiTypes.schemas.Published
 type TranslateWikiResponseBody = z.infer<typeof wikiPrivateApiTypes.schemas.TranslateWikiResponseBody>;
 type CreateWikiRequestBody = z.infer<typeof wikiPrivateApiTypes.schemas.CreateWikiRequestBody>;
 type AutoCreateWikiRequestBody = z.infer<typeof autoCreateWikiRequestBodySchema>;
-type PublicWikiApiResponse = z.infer<typeof publicWikiApiResponseSchema>;
 export type WikiDraftWiki = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiListItem>;
 export type WikiDraftWikiStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftWikiStatus>;
 export type WikiDraftWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody>;
@@ -166,7 +134,7 @@ export const defaultWikiDraftPerPage = 12;
 const createSeoDefaultedSchema = <Output>(
   schema: z.ZodType<Output>,
 ): z.ZodType<Output, z.ZodTypeDef, unknown> =>
-  z.preprocess(withDefaultSeoMetadata, schema);
+  z.preprocess(withDefaultWikiResponseMetadata, schema);
 
 export const wikiDraftWikiListResponseSchema = createSeoDefaultedSchema(
   wikiPrivateApiTypes.schemas.ListDraftWikisResponseBody,
@@ -234,7 +202,7 @@ const parseDraftWikiResponseBody = (body: unknown): DraftWikiApiResponse =>
   parseWithSchemaLog(
     "wiki draft detail response",
     draftWikiApiResponseSchema,
-    withDefaultSeoMetadata(body),
+    withDefaultWikiResponseMetadata(body),
   );
 
 const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
