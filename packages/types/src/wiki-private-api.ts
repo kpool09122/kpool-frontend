@@ -366,7 +366,7 @@ const AutoCreateWikiRequestBody = z
     language: z.string(),
     slug: z.string(),
     name: z.string(),
-    agencyIdentifier: KPool_Common_Uuid.optional(),
+    agencyIdentifier: KPool_Common_Uuid.nullish(),
     groupIdentifiers: z.array(KPool_Common_Uuid).optional(),
     talentIdentifiers: z.array(KPool_Common_Uuid).optional(),
   })
@@ -382,7 +382,7 @@ const DraftWikiSummary = z
   .passthrough();
 const WikiAssociationTargets = z
   .object({
-    agencyIdentifier: KPool_Common_Uuid,
+    agencyIdentifier: KPool_Common_Uuid.nullable(),
     groupIdentifiers: z.array(KPool_Common_Uuid),
     talentIdentifiers: z.array(KPool_Common_Uuid),
   })
