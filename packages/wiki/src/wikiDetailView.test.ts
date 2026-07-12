@@ -20,6 +20,14 @@ const basic: WikiBasic = {
   emoji: "🌅",
   representativeSymbol: "Solar wave",
   officialColors: ["Solar Gold", "Midnight Blue"],
+  agency: {
+    wikiIdentifier: "agency-wiki-1",
+    slug: "ag-north-harbor-entertainment",
+    language: "ko",
+    name: "North Harbor Entertainment",
+    normalizedName: "north-harbor-entertainment",
+  },
+  agencyIdentifier: "agency-wiki-1",
   agencyName: "North Harbor Entertainment",
   talents: [
     {
@@ -85,6 +93,16 @@ describe("wikiDetailView", () => {
       { label: "Fandom Name", value: "Daybreak" },
       { label: "Representative Symbol", value: "Solar wave" },
       {
+        label: "Agency",
+        links: [
+          {
+            href: "/ko/wiki/ag-north-harbor-entertainment",
+            label: "North Harbor Entertainment",
+          },
+        ],
+        value: "North Harbor Entertainment",
+      },
+      {
         label: "Talents",
         links: [
           { href: "/ko/wiki/tl-momo", label: "MOMO" },
@@ -93,8 +111,36 @@ describe("wikiDetailView", () => {
         value: "MOMO, SANA",
       },
       { label: "Official Colors", value: "Solar Gold, Midnight Blue" },
-      { label: "Agency", value: "North Harbor Entertainment" },
     ]);
+  });
+
+  it("places song talents immediately after groups", () => {
+    expect(
+      getWikiBasicFields({
+        name: "Signal",
+        normalizedName: "signal",
+        resourceType: "song",
+        groups: [
+          {
+            wikiIdentifier: "group-wiki-1",
+            slug: "gr-twice",
+            language: "ko",
+            name: "TWICE",
+            normalizedName: "twice",
+          },
+        ],
+        talents: [
+          {
+            wikiIdentifier: "talent-wiki-1",
+            slug: "tl-nayeon",
+            language: "ko",
+            name: "NAYEON",
+            normalizedName: "nayeon",
+          },
+        ],
+        releaseDate: "2017-05-15",
+      }).map((field) => field.label),
+    ).toEqual(["Groups", "Talents", "Release Date"]);
   });
 
   it("sorts sections recursively by display order", () => {

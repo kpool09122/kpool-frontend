@@ -8,6 +8,7 @@ import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { ImageCropper, readFileAsDataUrl } from "../../components/ImageCropper";
+import { WikiMasterSearchSelect } from "../../components/Wiki/WikiMasterSearchSelect";
 import { useI18n } from "../../i18n/I18nProvider";
 import { localeLabels, type Locale } from "../../i18n/locales";
 import {
@@ -51,6 +52,7 @@ import {
   isWikiImageFileSizeAllowed,
   normalizeWikiSlugForResourceType,
   type WikiDraftImage,
+  type WikiMasterSearchItem,
   type WikiResourceType,
   wikiImageAcceptAttribute,
   wikiResourceTypes,
@@ -1183,6 +1185,10 @@ function CreateDraftWikiDialog({
 }) {
   const [mode, setMode] = useState<CreateDraftWikiMode>("manual");
   const [resourceType, setResourceType] = useState<WikiResourceType>("group");
+  const [language, setLanguage] = useState<Locale>(locale);
+  const [selectedAgency, setSelectedAgency] = useState<WikiMasterSearchItem[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<WikiMasterSearchItem[]>([]);
+  const [selectedTalents, setSelectedTalents] = useState<WikiMasterSearchItem[]>([]);
   const canAutoCreate = autoCreatableResourceTypes.length > 0;
   const effectiveMode = mode === "auto" && canAutoCreate ? "auto" : "manual";
   const selectableResourceTypes =
@@ -1219,14 +1225,14 @@ function CreateDraftWikiDialog({
           }
 
           onSubmit({
-            agencyIdentifier: null,
-            groupIdentifiers: [],
+            agencyIdentifier: effectiveMode === "auto" ? selectedAgency[0]?.wikiIdentifier ?? null : null,
+            groupIdentifiers: effectiveMode === "auto" ? selectedGroups.map((item) => item.wikiIdentifier) : [],
             language: language as Locale,
             mode: effectiveMode,
             name,
             resourceType: selectedResourceType,
             slug,
-            talentIdentifiers: [],
+            talentIdentifiers: effectiveMode === "auto" ? selectedTalents.map((item) => item.wikiIdentifier) : [],
           });
         }}
       >
@@ -1260,7 +1266,12 @@ function CreateDraftWikiDialog({
               className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
               disabled={isCreating}
               name="resourceType"
-              onChange={(event) => setResourceType(event.currentTarget.value as WikiResourceType)}
+              onChange={(event) => {
+                setResourceType(event.currentTarget.value as WikiResourceType);
+                setSelectedAgency([]);
+                setSelectedGroups([]);
+                setSelectedTalents([]);
+              }}
               required
               value={selectedResourceType}
             >
@@ -1275,10 +1286,11 @@ function CreateDraftWikiDialog({
             {t.languageLabel}
             <select
               className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
-              defaultValue={locale}
               disabled={isCreating}
               name="language"
+              onChange={(event) => setLanguage(event.currentTarget.value as Locale)}
               required
+              value={language}
             >
               {Object.entries(localeLabels).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -1308,7 +1320,15 @@ function CreateDraftWikiDialog({
           </label>
           {effectiveMode === "auto" ? (
             <AutoCreateRelatedWikiFields
+              disabled={isCreating}
+              language={language}
               resourceType={selectedResourceType}
+              selectedAgency={selectedAgency}
+              selectedGroups={selectedGroups}
+              selectedTalents={selectedTalents}
+              setSelectedAgency={setSelectedAgency}
+              setSelectedGroups={setSelectedGroups}
+              setSelectedTalents={setSelectedTalents}
               t={t}
             />
           ) : null}
@@ -1453,42 +1473,71 @@ function DraftWikiRejectReasonDialog(props: DraftWikiRejectReasonDialogProps) {
 }
 
 function AutoCreateRelatedWikiFields({
+  disabled,
+  language,
   resourceType,
+  selectedAgency,
+  selectedGroups,
+  selectedTalents,
+  setSelectedAgency,
+  setSelectedGroups,
+  setSelectedTalents,
   t,
 }: {
+  disabled: boolean;
+  language: Locale;
   resourceType: WikiResourceType;
+  selectedAgency: WikiMasterSearchItem[];
+  selectedGroups: WikiMasterSearchItem[];
+  selectedTalents: WikiMasterSearchItem[];
+  setSelectedAgency: (items: WikiMasterSearchItem[]) => void;
+  setSelectedGroups: (items: WikiMasterSearchItem[]) => void;
+  setSelectedTalents: (items: WikiMasterSearchItem[]) => void;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
 }) {
-  const fields = [
-    ...(resourceType === "group" || resourceType === "talent" || resourceType === "song"
-      ? [{ key: "agency", label: t.relatedAgencyLabel }]
-      : []),
-    ...(resourceType === "talent" || resourceType === "song"
-      ? [{ key: "group", label: t.relatedGroupLabel }]
-      : []),
-    ...(resourceType === "song" ? [{ key: "talent", label: t.relatedTalentLabel }] : []),
-  ];
+  const showsAgency = resourceType === "group" || resourceType === "talent" || resourceType === "song";
+  const showsGroups = resourceType === "talent" || resourceType === "song";
+  const showsTalents = resourceType === "song";
 
-  if (fields.length === 0) {
+  if (!showsAgency && !showsGroups && !showsTalents) {
     return null;
   }
 
   return (
     <div className="grid gap-3">
-      {fields.map((field) => (
-        <label className="grid gap-2 text-sm font-semibold" key={field.key}>
-          {field.label}
-          <select
-            className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-muted"
-            disabled
-          >
-            <option>{t.relatedWikiOptionsUnavailable}</option>
-          </select>
-        </label>
-      ))}
-      <p className="text-xs leading-5 text-text-muted">
-        {t.relatedWikiBackendTodo}
-      </p>
+      {showsAgency ? (
+        <WikiMasterSearchSelect
+          disabled={disabled}
+          language={language}
+          label={t.relatedAgencyLabel}
+          mode="single"
+          onChange={setSelectedAgency}
+          resourceType="agency"
+          selectedItems={selectedAgency}
+        />
+      ) : null}
+      {showsGroups ? (
+        <WikiMasterSearchSelect
+          disabled={disabled}
+          language={language}
+          label={t.relatedGroupLabel}
+          mode="multiple"
+          onChange={setSelectedGroups}
+          resourceType="group"
+          selectedItems={selectedGroups}
+        />
+      ) : null}
+      {showsTalents ? (
+        <WikiMasterSearchSelect
+          disabled={disabled}
+          language={language}
+          label={t.relatedTalentLabel}
+          mode="multiple"
+          onChange={setSelectedTalents}
+          resourceType="talent"
+          selectedItems={selectedTalents}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,23 +1,25 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
 
 import {
-  buildWikiPath,
   getWikiResourceLabel,
   type WikiBasic,
+  type WikiMasterSearchItem,
   type WikiResourceType,
 } from "@kpool/wiki";
 import { getLines, getString } from "../editing";
 import { EditIcon } from "../icons";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import { WikiFormActions } from "../WikiFormActions";
+import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiBasicPanelProps = {
   basic: WikiBasic;
   disabled?: boolean;
   isEditing: boolean;
+  language?: string;
   profileLabel?: string;
   onEdit: () => void;
   onCancel: () => void;
@@ -29,8 +31,6 @@ const basicInputClassName =
 const basicTextareaClassName =
   "min-h-24 min-w-0 whitespace-pre-wrap break-words rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2 [overflow-wrap:anywhere] [word-break:break-word]";
 const basicLabelClassName = "grid min-w-0 gap-2 text-sm font-semibold text-text-strong";
-const basicTextWrapClassName =
-  "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
 
 const getOptionalString = (formData: FormData, name: string): string | undefined =>
   getString(formData, name).trim() || undefined;
@@ -132,45 +132,11 @@ function BasicLinesInput({
   );
 }
 
-function BasicRelationLinks({
-  label,
-  relations,
-}: {
-  label: string;
-  relations: WikiBasic["groups"] | WikiBasic["talents"];
-}) {
-  if (!relations?.length) {
-    return null;
-  }
-
-  return (
-    <div className={`${basicTextWrapClassName} rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2`}>
-      <p className={`${basicTextWrapClassName} text-sm font-semibold text-text-strong`}>{label}</p>
-      <div className={`${basicTextWrapClassName} mt-2 flex flex-wrap gap-x-2 gap-y-1 text-sm leading-6`}>
-        {relations.map((relation, index) => (
-          <span className={basicTextWrapClassName} key={`${relation.wikiIdentifier}-${index}`}>
-            {index > 0 ? <span className="mr-2 text-text-muted">,</span> : null}
-            {relation.slug && relation.language ? (
-              <Link
-                className={`${basicTextWrapClassName} font-semibold text-brand-primary underline-offset-4 hover:underline`}
-                href={buildWikiPath(relation.language, relation.slug)}
-              >
-                {relation.name}
-              </Link>
-            ) : (
-              <span className={`${basicTextWrapClassName} text-text-strong`}>{relation.name}</span>
-            )}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function WikiBasicPanel({
   basic,
   disabled = false,
   isEditing,
+  language = "ja",
   profileLabel = `${getWikiResourceLabel(basic.resourceType as WikiResourceType)} profile`,
   onEdit,
   onCancel,
@@ -181,6 +147,43 @@ export function WikiBasicPanel({
   const isGroup = resourceType === "group";
   const isSong = resourceType === "song";
   const isTalent = resourceType === "talent";
+  const showsAgencySearch = isGroup || isSong || isTalent || Boolean(basic.agency ?? basic.agencyName);
+  const showsGroupsSearch = isTalent || isSong || Boolean(basic.groups?.length);
+  const showsTalentsSearch = isSong || Boolean(basic.talents?.length);
+  const toSearchItem = (relation: { wikiIdentifier: string; name: string; slug?: string; normalizedName?: string }): WikiMasterSearchItem => ({
+    id: relation.wikiIdentifier,
+    wikiIdentifier: relation.wikiIdentifier,
+    name: relation.name,
+    slug: relation.slug ?? relation.normalizedName ?? relation.name,
+    resourceType: "group",
+  });
+  const toBasicRelation = (item: WikiMasterSearchItem) => ({
+    wikiIdentifier: item.wikiIdentifier,
+    slug: item.slug,
+    language,
+    name: item.name,
+  });
+  const [selectedAgency, setSelectedAgency] = useState<WikiMasterSearchItem[]>(() =>
+    basic.agency
+      ? [{ ...toSearchItem(basic.agency), resourceType: "agency" }]
+      : basic.agencyName
+        ? [
+            {
+              id: basic.agencyIdentifier ?? "",
+              wikiIdentifier: basic.agencyIdentifier ?? "",
+              name: basic.agencyName,
+              slug: basic.agencyName,
+              resourceType: "agency",
+            },
+          ]
+      : [],
+  );
+  const [selectedGroups, setSelectedGroups] = useState<WikiMasterSearchItem[]>(() =>
+    (basic.groups ?? []).map((group) => ({ ...toSearchItem(group), resourceType: "group" })),
+  );
+  const [selectedTalents, setSelectedTalents] = useState<WikiMasterSearchItem[]>(() =>
+    (basic.talents ?? []).map((talent) => ({ ...toSearchItem(talent), resourceType: "talent" })),
+  );
 
   if (isEditing) {
     return (
@@ -193,7 +196,20 @@ export function WikiBasicPanel({
           onSave({
             ...basic,
             name: basic.name,
-            agencyName: getAgencyNameUpdate(formData, basic.agencyName),
+            agency: selectedAgency[0]
+              ? {
+                  wikiIdentifier: selectedAgency[0].wikiIdentifier,
+                  slug: selectedAgency[0].slug,
+                  language,
+                  name: selectedAgency[0].name,
+                }
+              : null,
+            agencyIdentifier: selectedAgency[0]?.wikiIdentifier ?? null,
+            groups: selectedGroups.map(toBasicRelation),
+            groupIdentifiers: selectedGroups.map((group) => group.wikiIdentifier),
+            talents: selectedTalents.map(toBasicRelation),
+            talentIdentifiers: selectedTalents.map((talent) => talent.wikiIdentifier),
+            agencyName: selectedAgency[0]?.name ?? null,
             albumName: getOptionalStringUpdate(formData, "albumName", basic.albumName),
             arranger: getOptionalStringUpdate(formData, "arranger", basic.arranger),
             birthday: getOptionalStringUpdate(formData, "birthday", basic.birthday),
@@ -238,7 +254,7 @@ export function WikiBasicPanel({
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
           Basic
         </p>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="mt-5 grid items-start gap-4 md:grid-cols-2">
           <BasicTextInput
             isAlwaysVisible={isGroup}
             label="Group Type"
@@ -300,7 +316,36 @@ export function WikiBasicPanel({
             name="genres"
             values={basic.genres}
           />
-          <BasicRelationLinks label="Groups" relations={basic.groups} />
+          {showsAgencySearch ? (
+            <WikiMasterSearchSelect
+              language={language}
+              label="Agency"
+              mode="single"
+              onChange={setSelectedAgency}
+              resourceType="agency"
+              selectedItems={selectedAgency}
+            />
+          ) : null}
+          {showsGroupsSearch ? (
+            <WikiMasterSearchSelect
+              language={language}
+              label="Groups"
+              mode="multiple"
+              onChange={setSelectedGroups}
+              resourceType="group"
+              selectedItems={selectedGroups}
+            />
+          ) : null}
+          {showsTalentsSearch ? (
+            <WikiMasterSearchSelect
+              language={language}
+              label="Talents"
+              mode="multiple"
+              onChange={setSelectedTalents}
+              resourceType="talent"
+              selectedItems={selectedTalents}
+            />
+          ) : null}
           <BasicTextInput
             isAlwaysVisible={isSong}
             label="Release Date"
@@ -380,18 +425,11 @@ export function WikiBasicPanel({
             name="bloodType"
             value={basic.bloodType}
           />
-          <BasicRelationLinks label="Talents" relations={basic.talents} />
           <BasicLinesInput
             isAlwaysVisible={isGroup}
             label="Official Colors"
             name="officialColors"
             values={basic.officialColors}
-          />
-          <BasicTextInput
-            isAlwaysVisible={isGroup || isSong || isTalent}
-            label="Agency"
-            name="agencyName"
-            value={basic.agencyName}
           />
         </div>
         <WikiFormActions onCancel={onCancel} />

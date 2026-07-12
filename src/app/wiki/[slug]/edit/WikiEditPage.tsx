@@ -374,6 +374,7 @@ export function WikiEditContent({
                 basic={draft.basic}
                 disabled={isEditLocked}
                 isEditing={editingId === "basic"}
+                language={language}
                 onCancel={closeEditor}
                 onEdit={editBasic}
                 onSave={(basic) => {

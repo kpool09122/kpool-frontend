@@ -12,6 +12,7 @@ import {
   type WikiBlock,
   type WikiEmbedProvider,
   type WikiListType,
+  type WikiMasterSearchItem,
   type WikiProfileCardSummary,
   type WikiProfileCardListBlock,
   type WikiRelatedProfile,
@@ -31,6 +32,7 @@ import {
 } from "../editing";
 import { cardSurfaceStyle } from "../styles";
 import { WikiFormActions } from "../WikiFormActions";
+import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
 
 type WikiBlockFormProps = {
   block: WikiBlock;
@@ -124,6 +126,29 @@ const toProfileCardSummary = (
     imageAltText: profile.imageAltText ?? null,
   };
 };
+
+const profileToMasterSearchItem = (profile: WikiProfileCardSummary): WikiMasterSearchItem => ({
+  id: profile.wikiIdentifier,
+  wikiIdentifier: profile.wikiIdentifier,
+  name: profile.name,
+  slug: profile.slug,
+  resourceType: profile.resourceType,
+});
+
+const masterSearchItemToProfile = (
+  item: WikiMasterSearchItem,
+  language: string,
+  resourceType: WikiResourceType,
+): WikiProfileCardSummary => ({
+  wikiIdentifier: item.wikiIdentifier,
+  slug: item.slug,
+  language,
+  resourceType,
+  name: item.name,
+  normalizedName: item.name,
+  imageUrl: null,
+  imageAltText: null,
+});
 
 function WikiRelatedProfilePreviewCard({ profile }: { profile: WikiProfileCardSummary }) {
   const label = getProfileCardLabel(profile);
@@ -1175,6 +1200,25 @@ function WikiProfileCardListBlockForm({
       {loadState.status === "loading" ? (
         <p className="mt-3 text-sm text-text-muted">関連プロフィールを取得しています</p>
       ) : null}
+      <div className="mt-3">
+        <WikiMasterSearchSelect
+          disabled={!sourceWiki}
+          language={sourceWiki?.language ?? "ja"}
+          label="Related Wiki search"
+          mode="multiple"
+          onChange={(items) => {
+            const selectedProfiles = items.map((item) =>
+              masterSearchItemToProfile(item, sourceWiki?.language ?? "ja", relatedResourceType),
+            );
+            setProfiles(selectedProfiles);
+            setWikiIdentifiers(selectedProfiles.map((profile) => profile.wikiIdentifier));
+            setLoadState({ status: "idle" });
+          }}
+          resourceType={relatedResourceType}
+          selectedItems={(profiles ?? []).map(profileToMasterSearchItem)}
+          showSelectedItems={false}
+        />
+      </div>
       {loadState.status === "success" && profiles?.length === 0 ? (
         <p className="mt-3 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-4 text-sm text-text-muted">
           関連プロフィールはありません

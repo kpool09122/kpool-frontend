@@ -397,7 +397,7 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   copyStringProperty(source, body, "slug");
   copyStringProperty(source, body, "themeColor");
   copySeoProperties(source, body);
-  copyStringProperty(source, body, "agencyIdentifier");
+  copyNullableStringProperty(source, body, "agencyIdentifier");
   copyStringArrayProperty(source, body, "groupIdentifiers");
   copyStringArrayProperty(source, body, "talentIdentifiers");
 
@@ -480,7 +480,7 @@ export const createSubmitWikiRequestBody = (
     wikiId: draft.wikiIdentifier,
   };
 
-  copyStringProperty(draft, body, "agencyIdentifier");
+  copyNullableStringProperty(draft, body, "agencyIdentifier");
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
   copySeoProperties(draft, body);
@@ -495,7 +495,7 @@ export const createReviewWikiRequestBody = (
     resourceType: draft.resourceType,
   };
 
-  copyStringProperty(draft, body, "agencyIdentifier");
+  copyNullableStringProperty(draft, body, "agencyIdentifier");
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
   copySeoProperties(draft, body);
@@ -520,7 +520,7 @@ export const createDeleteWikiRequestBody = (
 ): DeleteWikiRequestBody => {
   const body: Record<string, unknown> = {};
 
-  copyStringProperty(draft, body, "agencyIdentifier");
+  copyNullableStringProperty(draft, body, "agencyIdentifier");
   copyStringArrayProperty(draft, body, "groupIdentifiers");
   copyStringArrayProperty(draft, body, "talentIdentifiers");
 
@@ -540,7 +540,7 @@ export const createTranslateWikiRequestBody = (
     resourceType: wiki.resourceType,
   };
 
-  copyStringProperty(wiki, body, "agencyIdentifier");
+  copyNullableStringProperty(wiki, body, "agencyIdentifier");
   copyStringArrayProperty(wiki, body, "groupIdentifiers");
   copyStringArrayProperty(wiki, body, "talentIdentifiers");
   copySeoProperties(wiki, body);
