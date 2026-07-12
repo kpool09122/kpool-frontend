@@ -1,4 +1,5 @@
 import { getWikiDetailState, type WikiDetail, type WikiDetailState } from "@kpool/wiki";
+import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import {
@@ -13,6 +14,30 @@ import {
 } from "@kpool/wiki";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import { isMockWikiGatewayEnabled } from "./mockWikiGateway";
+import { withDefaultWikiResponseMetadata } from "./wikiApiSchemaDefaults";
+
+type PublicWikiHeroImage = {
+  imageIdentifier?: string | null;
+  src?: string | null;
+  alt?: string | null;
+};
+
+export type PublicWikiApiResponse = {
+  [key: string]: unknown;
+  wikiIdentifier: string;
+  slug: string;
+  language: string;
+  resourceType?: unknown;
+  version: number;
+  themeColor?: string | null;
+  title?: string | null;
+  metaDescription?: string | null;
+  keywords?: string[] | null;
+  heroImage?: PublicWikiHeroImage | null;
+  basic?: unknown;
+  sections: unknown[];
+  translationSetIdentifier: string;
+};
 
 const publicWikiHeroImageSchema = z
   .object({
@@ -23,24 +48,15 @@ const publicWikiHeroImageSchema = z
   .passthrough();
 
 export const publicWikiApiResponseSchema = z
-  .object({
-    wikiIdentifier: z.string(),
-    slug: z.string(),
-    language: z.string(),
-    resourceType: z.string(),
-    version: z.number().int(),
-    themeColor: z.string().nullable().optional(),
-    title: z.string().nullable().optional(),
-    metaDescription: z.string().nullable().optional(),
-    keywords: z.array(z.string()).nullable().optional(),
-    heroImage: publicWikiHeroImageSchema.nullable().optional(),
-    basic: z.unknown(),
-    sections: z.array(z.unknown()),
-    translationSetIdentifier: z.string(),
-  })
-  .passthrough();
-
-type PublicWikiApiResponse = z.infer<typeof publicWikiApiResponseSchema>;
+  .preprocess(
+    withDefaultWikiResponseMetadata,
+    z.union([
+      wikiPrivateApiTypes.schemas.AgencyWikiDetail,
+      wikiPrivateApiTypes.schemas.WikiDetail,
+      wikiPrivateApiTypes.schemas.SongWikiDetail,
+      wikiPrivateApiTypes.schemas.TalentWikiDetail,
+    ]),
+  );
 
 const publicWikiListItemSchema = z
   .object({
