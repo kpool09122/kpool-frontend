@@ -44,7 +44,7 @@ export function WikiRelatedProfiles({
           <Link
             className="group overflow-hidden rounded-2xl border transition hover:-translate-y-0.5 hover:shadow-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
             href={buildWikiPath(profile.language || language, profile.slug)}
-            key={profile.slug}
+            key={profile.wikiIdentifier}
             style={profileCardStyle}
           >
             <div className="relative aspect-[2/3] overflow-hidden bg-surface-base">

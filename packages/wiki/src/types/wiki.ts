@@ -63,6 +63,7 @@ const wikiProfileCardSummarySchema = z.object({
   resourceType: wikiResourceTypeSchema,
   name: z.string(),
   normalizedName: z.string(),
+  imageIdentifier: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   imageAltText: z.string().nullable().optional(),
 });

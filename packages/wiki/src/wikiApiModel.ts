@@ -273,6 +273,7 @@ const toProfileCardSummaries = (value: unknown): WikiProfileCardSummary[] =>
           resourceType: toWikiResourceType(record.resourceType ?? record.resource_type, slug),
           name,
           normalizedName: toString(record.normalizedName ?? record.normalized_name, name),
+          imageIdentifier: toNullable(record.imageIdentifier ?? record.image_identifier),
           imageUrl: toNullable(record.imageUrl ?? record.image_url),
           imageAltText: toNullable(record.imageAltText ?? record.image_alt_text),
         }];

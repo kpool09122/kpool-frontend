@@ -153,6 +153,98 @@ describe("publicWiki", () => {
     ]);
   });
 
+  it("keeps profile_card_list summaries from the public wiki response", () => {
+    const wiki = adaptPublicWikiResponse({
+      ...publicWikiResponse,
+      sections: [
+        {
+          id: "members",
+          title: "Members",
+          contents: [
+            {
+              id: "members-profiles",
+              type: "profile_card_list",
+              displayOrder: 10,
+              relatedResourceType: "talent",
+              title: "Related profiles",
+              wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+              profiles: [
+                {
+                  wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+                  slug: "tl-momo",
+                  language: "ko",
+                  resourceType: "talent",
+                  name: "MOMO",
+                  normalizedName: "momo",
+                  imageIdentifier: "99999999-9999-9999-9999-999999999999",
+                  imageUrl: "https://cdn.example.com/momo.webp",
+                  imageAltText: "MOMO public image",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wiki.sections[0].contents).toEqual([
+      {
+        blockIdentifier: "members-profiles",
+        blockType: "profile_card_list",
+        displayOrder: 10,
+        profiles: [
+          {
+            wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+            slug: "tl-momo",
+            language: "ko",
+            resourceType: "talent",
+            name: "MOMO",
+            normalizedName: "momo",
+            imageIdentifier: "99999999-9999-9999-9999-999999999999",
+            imageUrl: "https://cdn.example.com/momo.webp",
+            imageAltText: "MOMO public image",
+          },
+        ],
+        relatedResourceType: "talent",
+        title: "Related profiles",
+        wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+      },
+    ]);
+  });
+
+  it("does not synthesize profile summaries when the API only returns identifiers", () => {
+    const wiki = adaptPublicWikiResponse({
+      ...publicWikiResponse,
+      sections: [
+        {
+          id: "members",
+          title: "Members",
+          contents: [
+            {
+              id: "members-profiles",
+              type: "profile_card_list",
+              displayOrder: 10,
+              title: "Related profiles",
+              wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wiki.sections[0].contents).toEqual([
+      {
+        blockIdentifier: "members-profiles",
+        blockType: "profile_card_list",
+        displayOrder: 10,
+        profiles: [],
+        relatedResourceType: null,
+        title: "Related profiles",
+        wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+      },
+    ]);
+  });
+
   it("builds the public wiki endpoint from language, resource type, and slug", () => {
     expect(getPublicWikiEndpointPath("ja", "group", "gr-aurora echo")).toBe(
       "/wiki/ja/group/gr-aurora%20echo",
