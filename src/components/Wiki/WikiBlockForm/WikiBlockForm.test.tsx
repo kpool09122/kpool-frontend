@@ -253,8 +253,8 @@ describe("WikiBlockForm", () => {
               resourceType: "talent",
               name: "SANA",
               normalizedName: "sana",
-              imageIdentifier: null,
-              imageUrl: "https://images.example.test/sana.jpg",
+              imageIdentifier: "33333333-3333-3333-3333-333333333333",
+              imageUrl: "https://upload.wikimedia.org/wikipedia/commons/example/sana.jpg",
               imageAltText: "SANA profile",
             },
           ],
@@ -287,7 +287,7 @@ describe("WikiBlockForm", () => {
     expect(await screen.findByText("MOMO")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "SANA profile" })).toHaveAttribute(
       "src",
-      "https://images.example.test/sana.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/example/sana.jpg",
     );
     expect(screen.queryByText("tl-sana")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Wiki slugs")).not.toBeInTheDocument();
@@ -307,7 +307,8 @@ describe("WikiBlockForm", () => {
               slug: "tl-momo",
             }),
             expect.objectContaining({
-              imageUrl: "https://images.example.test/sana.jpg",
+              imageIdentifier: "33333333-3333-3333-3333-333333333333",
+              imageUrl: "https://upload.wikimedia.org/wikipedia/commons/example/sana.jpg",
               name: "SANA",
               slug: "tl-sana",
             }),

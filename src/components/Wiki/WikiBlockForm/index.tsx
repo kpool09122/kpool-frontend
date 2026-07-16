@@ -9,6 +9,7 @@ import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useStat
 import {
   getSelectableRelatedProfileResourceTypes,
   isWikiResourceType,
+  toSafeWikiImageUrl,
   type WikiBlock,
   type WikiEmbedProvider,
   type WikiListType,
@@ -122,7 +123,8 @@ const toProfileCardSummary = (
     resourceType: profile.resourceType,
     name: profile.name,
     normalizedName: profile.normalizedName,
-    imageUrl: profile.imageUrl ?? null,
+    imageIdentifier: profile.imageIdentifier ?? null,
+    imageUrl: toSafeWikiImageUrl(profile.imageUrl),
     imageAltText: profile.imageAltText ?? null,
   };
 };
@@ -146,23 +148,25 @@ const masterSearchItemToProfile = (
   resourceType,
   name: item.name,
   normalizedName: item.name,
+  imageIdentifier: null,
   imageUrl: null,
   imageAltText: null,
 });
 
 function WikiRelatedProfilePreviewCard({ profile }: { profile: WikiProfileCardSummary }) {
   const label = getProfileCardLabel(profile);
+  const safeImageUrl = toSafeWikiImageUrl(profile.imageUrl);
 
   return (
     <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-surface-base">
       <div className="relative aspect-[2/3] bg-surface-muted">
-        {profile.imageUrl ? (
+        {safeImageUrl ? (
           <Image
             alt={profile.imageAltText || label}
             className="object-cover"
             fill
             sizes="160px"
-            src={profile.imageUrl}
+            src={safeImageUrl}
             unoptimized
           />
         ) : (
