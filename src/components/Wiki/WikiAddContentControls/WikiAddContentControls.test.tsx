@@ -1,9 +1,13 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStorySection } from "../storybook/fixtures";
 import { WikiAddContentControls } from "./index";
+
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiAddContentControls", () => {
   afterEach(() => cleanup());
@@ -12,7 +16,7 @@ describe("WikiAddContentControls", () => {
     const onAddSection = vi.fn();
     const onAddBlock = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiAddContentControls
         onAddBlock={onAddBlock}
         onAddSection={onAddSection}
@@ -29,7 +33,7 @@ describe("WikiAddContentControls", () => {
   });
 
   it("disables section creation at max depth", () => {
-    const { getByTestId } = render(
+    const { getByTestId } = renderWithI18n(
       <WikiAddContentControls
         onAddBlock={() => {}}
         onAddSection={() => {}}
@@ -51,7 +55,7 @@ describe("WikiAddContentControls", () => {
     const onAddSection = vi.fn();
     const onAddBlock = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiAddContentControls
         disabled
         onAddBlock={onAddBlock}

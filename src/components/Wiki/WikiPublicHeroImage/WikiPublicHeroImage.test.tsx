@@ -1,15 +1,19 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryBasic, wikiStoryHeroImage } from "../storybook/fixtures";
 import { WikiPublicHeroImage } from "./index";
+
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiPublicHeroImage", () => {
   afterEach(() => cleanup());
 
   it("renders the mobile flip helper copy outside the card", () => {
-    render(
+    renderWithI18n(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
         flipCardId="public-flip-card"
@@ -22,7 +26,7 @@ describe("WikiPublicHeroImage", () => {
   });
 
   it("toggles the mobile helper copy when flipped", () => {
-    render(
+    renderWithI18n(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
         flipCardId="public-flip-card"

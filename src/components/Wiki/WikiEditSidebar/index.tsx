@@ -18,6 +18,7 @@ import {
 } from "../editing";
 import { ChevronLeftIcon } from "../icons";
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 const seoTitleMaxLength = 40;
 const metaDescriptionMaxLength = 140;
@@ -31,16 +32,19 @@ function WikiSaveButton({
   disabled: boolean;
   onSave: () => void;
 }) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.editSidebar;
+
   return (
     <button
-      aria-label="Save wiki changes"
+      aria-label={t.save}
       className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
       disabled={disabled}
       onClick={onSave}
       style={cardSurfaceStyle}
       type="button"
     >
-      Save
+      {t.saveShort}
     </button>
   );
 }
@@ -54,16 +58,19 @@ function WikiSubmitButton({
   isReviewLocked: boolean;
   onSubmit: () => void;
 }) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.editSidebar;
+
   return (
     <button
-      aria-label="Submit wiki for review"
+      aria-label={t.submit}
       className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
       disabled={disabled}
       onClick={onSubmit}
       style={cardSurfaceStyle}
       type="button"
     >
-      {isReviewLocked ? "Under review" : "Submit for review"}
+      {isReviewLocked ? t.underReview : t.submitShort}
     </button>
   );
 }
@@ -119,6 +126,8 @@ export function WikiEditSidebar({
   metaDescription,
   keywords,
 }: WikiEditSidebarProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.editSidebar;
   const customColorValue = themeColor ?? themeColorOptions[2];
   const fontStyleOptions = getWikiFontStyleOptionsForLanguage(language);
   const selectedFontStyle = fontStyleOptions.find((option) => option.value === fontStyle);
@@ -160,7 +169,7 @@ export function WikiEditSidebar({
       data-testid="wiki-edit-sidebar"
     >
       <button
-        aria-label={isOpen ? "Collapse editor sidebar" : "Expand editor sidebar"}
+        aria-label={isOpen ? t.collapse : t.expand}
         aria-expanded={isOpen}
         className="absolute -left-11 top-6 z-10 grid h-20 w-11 place-items-center rounded-l-2xl border-y border-l border-stroke-subtle text-text-strong shadow-soft transition hover:bg-brand-highlight/20"
         onClick={onToggle}
@@ -182,20 +191,20 @@ export function WikiEditSidebar({
               onSubmit={onSubmit}
             />
             <button
-              aria-label="Clear wiki changes"
+              aria-label={t.clear}
               className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted disabled:cursor-not-allowed"
               disabled={isEditControlDisabled}
               onClick={onClear}
               style={cardSurfaceMutedStyle}
               type="button"
             >
-              Clear
+              {t.clearShort}
             </button>
           </div>
 
           <div className="mt-5 grid gap-4 border-t border-stroke-subtle pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
             <fieldset className="grid gap-2">
-              <legend className="text-sm font-semibold text-text-strong">Editor mode</legend>
+              <legend className="text-sm font-semibold text-text-strong">{t.editorMode}</legend>
               <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke-subtle bg-surface-base p-1">
                 {(["gui", "code"] as const).map((mode) => (
                   <button
@@ -210,14 +219,14 @@ export function WikiEditSidebar({
                     }}
                     type="button"
                   >
-                    {mode}
+                    {t.modeLabels[mode]}
                   </button>
                 ))}
               </div>
             </fieldset>
 
             <fieldset className="grid gap-2">
-              <legend className="text-sm font-semibold text-text-strong">Preview mode</legend>
+              <legend className="text-sm font-semibold text-text-strong">{t.previewMode}</legend>
               <div className="grid grid-cols-2 gap-2 rounded-full border border-stroke-subtle bg-surface-base p-1">
                 {(["light", "dark"] as const).map((mode) => (
                   <button
@@ -227,14 +236,14 @@ export function WikiEditSidebar({
                     onClick={() => onPreviewModeChange(mode)}
                     type="button"
                   >
-                    {mode === "light" ? "Light" : "Dark"}
+                    {t.modeLabels[mode]}
                   </button>
                 ))}
               </div>
             </fieldset>
 
             <label className="grid gap-2 text-sm font-semibold text-text-strong">
-              Resource type
+              {t.resourceType}
               <select
                 className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
                 disabled={isEditControlDisabled}
@@ -254,7 +263,7 @@ export function WikiEditSidebar({
             </label>
 
             <fieldset className="grid gap-3">
-              <legend className="text-sm font-semibold text-text-strong">Theme color</legend>
+              <legend className="text-sm font-semibold text-text-strong">{t.themeColor}</legend>
               <div className="grid grid-cols-4 gap-2">
                 <button
                   aria-pressed={!themeColor}
@@ -263,11 +272,11 @@ export function WikiEditSidebar({
                   onClick={() => updateSettings({ themeColor: null })}
                   type="button"
                 >
-                  Default
+                  {t.defaultThemeColor}
                 </button>
                 {themeColorOptions.map((color) => (
                   <button
-                    aria-label={`Set theme color ${color}`}
+                    aria-label={t.setThemeColor(color)}
                     aria-pressed={themeColor?.toLowerCase() === color}
                     className="h-9 rounded-xl border border-stroke-subtle ring-offset-2 ring-offset-surface-raised aria-pressed:ring-2 aria-pressed:ring-text-strong disabled:cursor-not-allowed"
                     disabled={isEditControlDisabled}
@@ -279,9 +288,9 @@ export function WikiEditSidebar({
                 ))}
               </div>
               <label className="grid gap-2 text-sm font-semibold text-text-strong">
-                Custom color
+                {t.customColor}
                 <input
-                  aria-label="Theme color"
+                  aria-label={t.themeColor}
                   className="h-11 w-full rounded-xl border border-stroke-subtle bg-surface-base p-1"
                   disabled={isEditControlDisabled}
                   onChange={(event) => updateSettings({ themeColor: event.currentTarget.value })}
@@ -292,7 +301,7 @@ export function WikiEditSidebar({
             </fieldset>
 
             <label className="grid gap-2 text-sm font-semibold text-text-strong">
-              Font style
+              {t.fontStyle}
               <select
                 className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
                 disabled={isEditControlDisabled}
@@ -305,7 +314,7 @@ export function WikiEditSidebar({
                 }
                 value={selectedFontStyle?.value ?? ""}
               >
-                <option value="">Default font</option>
+                <option value="">{t.defaultFont}</option>
                 {fontStyleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -316,9 +325,9 @@ export function WikiEditSidebar({
 
             <div className="mt-2 grid gap-4 border-t border-stroke-subtle pt-5">
               <label className="grid gap-2 text-sm font-semibold text-text-strong">
-                Title
+                {t.metadataTitle}
                 <input
-                  aria-label="Metadata title"
+                  aria-label={t.metadataTitle}
                   className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
                   disabled={isEditControlDisabled}
                   maxLength={seoTitleMaxLength}
@@ -330,9 +339,9 @@ export function WikiEditSidebar({
                 </span>
               </label>
               <label className="grid gap-2 text-sm font-semibold text-text-strong">
-                Meta description
+                {t.metadataDescription}
                 <textarea
-                  aria-label="Metadata meta description"
+                  aria-label={t.metadataDescription}
                   className="min-h-24 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
                   disabled={isEditControlDisabled}
                   maxLength={metaDescriptionMaxLength}
@@ -344,13 +353,13 @@ export function WikiEditSidebar({
                 </span>
               </label>
               <fieldset className="grid gap-2">
-                <legend className="text-sm font-semibold text-text-strong">Keywords</legend>
+                <legend className="text-sm font-semibold text-text-strong">{t.keywords}</legend>
                 <div className="mt-2 grid gap-2">
                   {keywordInputs.map((keyword, index) => (
                     <div className="grid gap-1" key={index}>
                       <div className="flex overflow-hidden rounded-xl border border-stroke-subtle bg-surface-base">
                         <input
-                          aria-label={`Keyword ${index + 1}`}
+                          aria-label={t.keyword(index + 1)}
                           className="min-w-0 flex-1 bg-transparent px-3 py-2 outline-none"
                           disabled={isEditControlDisabled}
                           maxLength={seoKeywordMaxLength}
@@ -362,7 +371,7 @@ export function WikiEditSidebar({
                           value={keyword}
                         />
                         <button
-                          aria-label={`Remove keyword ${index + 1}`}
+                          aria-label={t.removeKeyword(index + 1)}
                           className="grid w-9 place-items-center text-text-muted disabled:cursor-not-allowed disabled:text-text-muted/50"
                           disabled={isEditControlDisabled}
                           onClick={() => removeKeyword(index)}
@@ -378,7 +387,7 @@ export function WikiEditSidebar({
                   ))}
                 </div>
                 <button
-                  aria-label="Add keyword"
+                  aria-label={t.addKeyword}
                   className="flex h-9 w-9 items-center justify-center rounded-full border border-stroke-subtle pb-0.5 text-lg font-semibold leading-none text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
                   disabled={isEditControlDisabled || keywordInputs.length >= seoKeywordsMaxItems}
                   onClick={() => setKeywordInputs([...keywordInputs, ""])}

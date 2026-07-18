@@ -9,6 +9,7 @@ import {
 
 import { blockTypeLabels, blockTypes } from "../editing";
 import { cardSurfaceStyle } from "../styles";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiAddContentControlsProps = {
   section: WikiSection;
@@ -23,6 +24,8 @@ export function WikiAddContentControls({
   onAddSection,
   onAddBlock,
 }: WikiAddContentControlsProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.addContentControls;
   const canAddSection = section.depth < WIKI_SECTION_MAX_DEPTH;
   const [isBlockMenuOpen, setIsBlockMenuOpen] = useState(false);
 
@@ -33,10 +36,10 @@ export function WikiAddContentControls({
           className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
           disabled={disabled || !canAddSection}
           onClick={() => onAddSection(section.sectionIdentifier)}
-          title={canAddSection ? "Add section" : "Max depth reached"}
+          title={canAddSection ? t.addSectionTitle : t.maxDepthReached}
           type="button"
         >
-          + Section
+          {t.addSection}
         </button>
         <div className="relative">
           <button
@@ -46,7 +49,7 @@ export function WikiAddContentControls({
             onClick={() => setIsBlockMenuOpen((isOpen) => !isOpen)}
             type="button"
           >
-            + Block
+            {t.addBlock}
           </button>
           {isBlockMenuOpen ? (
             <div className="absolute left-0 z-20 mt-2 grid min-w-44 gap-1 rounded-2xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft" style={cardSurfaceStyle}>
@@ -68,7 +71,7 @@ export function WikiAddContentControls({
           ) : null}
         </div>
         {!canAddSection ? (
-          <span className="px-2 py-2 text-sm text-text-muted">Max depth reached</span>
+          <span className="px-2 py-2 text-sm text-text-muted">{t.maxDepthReached}</span>
         ) : null}
       </div>
     </div>

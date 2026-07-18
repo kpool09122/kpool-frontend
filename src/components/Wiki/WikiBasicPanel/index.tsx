@@ -255,6 +255,8 @@ export function WikiBasicPanel({
   const isTalent = resourceType === "talent";
   const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const enumLabels = dictionary.wiki.enumLabels;
+  const heroT = dictionary.wiki.heroCard;
+  const resolvedProfileLabel = profileLabel === "Basic profile" ? heroT.basicProfile : profileLabel;
   const groupTypeOptions = toSelectOptions(wikiGroupTypes, enumLabels.groupType);
   const statusOptions = isAgency
     ? toSelectOptions(wikiAgencyStatuses, enumLabels.agencyStatus)
@@ -587,14 +589,14 @@ export function WikiBasicPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-            Basic
+            {heroT.basic}
           </p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-            {profileLabel}
+            {resolvedProfileLabel}
           </p>
         </div>
         <button
-          aria-label="Edit basic"
+          aria-label={heroT.editBasic}
           className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
           disabled={disabled}
           onClick={onEdit}

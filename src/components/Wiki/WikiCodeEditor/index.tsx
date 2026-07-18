@@ -1,6 +1,7 @@
 "use client";
 
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiCodeEditorProps = {
   code: string;
@@ -19,6 +20,9 @@ export function WikiCodeEditor({
   onChange,
   onClear,
 }: WikiCodeEditorProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.codeEditor;
+
   return (
     <section
       className="rounded-[1.75rem] border border-stroke-subtle p-5 shadow-soft"
@@ -28,17 +32,10 @@ export function WikiCodeEditor({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-[-0.03em] text-text-strong">
-            Code mode
+            {t.title}
           </h2>
           <p className="max-w-3xl text-sm text-text-muted">
-            Edit the whole section tree with headings like
-            {" "}
-            <code>== Overview ==</code>
-            {" "}
-            and
-            {" "}
-            <code>=== Style ===</code>
-            .
+            {t.description}
           </p>
         </div>
         {errorMessage ? (
@@ -48,7 +45,7 @@ export function WikiCodeEditor({
             onClick={onClear}
             type="button"
           >
-            Clear invalid code
+            {t.clearInvalidCode}
           </button>
         ) : null}
       </div>
@@ -68,8 +65,7 @@ export function WikiCodeEditor({
             className="mt-4 rounded-2xl border border-stroke-subtle px-4 py-3 text-sm text-text-muted"
             style={cardSurfaceMutedStyle}
           >
-            Supported blocks: plain text, quotes with <code>&gt;</code>, lists, tables,
-            and structured macros for image, gallery, embed, and profiles.
+            {t.supportedBlocks}
           </div>
           {warnings.length > 0 ? (
             <div
@@ -78,7 +74,7 @@ export function WikiCodeEditor({
               role="status"
               style={cardSurfaceMutedStyle}
             >
-              <p className="font-semibold text-status-warning">Compatibility notes</p>
+              <p className="font-semibold text-status-warning">{t.compatibilityNotes}</p>
               <ul className="mt-2 list-disc pl-5">
                 {warnings.map((warning) => (
                   <li key={warning}>{warning}</li>
@@ -90,9 +86,9 @@ export function WikiCodeEditor({
       )}
 
       <label className="mt-4 grid gap-2 text-sm font-semibold text-text-strong">
-        Wiki code
+        {t.wikiCode}
         <textarea
-          aria-label="Wiki code"
+          aria-label={t.wikiCode}
           className="min-h-[56rem] w-full rounded-[1.5rem] border border-stroke-subtle bg-surface-base px-4 py-4 font-mono text-sm leading-7 outline-none"
           data-testid="wiki-code-textarea"
           disabled={disabled}

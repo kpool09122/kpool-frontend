@@ -1,6 +1,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { WikiDetailPage } from "./WikiDetailPage";
 import type { WikiDetailState } from "@kpool/wiki";
@@ -110,11 +111,14 @@ const successState: WikiDetailState = {
   },
 };
 
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
+
 describe("WikiDetailPage", () => {
   afterEach(() => cleanup());
 
   it("renders the public wiki detail view", () => {
-    render(
+    renderWithI18n(
       React.createElement(WikiDetailPage, {
         language: "ja",
         slug: "gr-aurora-echo",

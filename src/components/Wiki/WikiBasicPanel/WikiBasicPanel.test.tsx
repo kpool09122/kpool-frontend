@@ -1,6 +1,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryBasic } from "../storybook/fixtures";
 import { WikiBasicPanel } from "./index";
@@ -11,6 +12,9 @@ const jsonResponse = (body: unknown, status = 200): Response =>
     headers: { "Content-Type": "application/json" },
   });
 
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
+
 describe("WikiBasicPanel", () => {
   afterEach(() => {
     cleanup();
@@ -18,7 +22,7 @@ describe("WikiBasicPanel", () => {
   });
 
   it("renders the view mode panel", () => {
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={wikiStoryBasic}
         isEditing={false}
@@ -35,7 +39,7 @@ describe("WikiBasicPanel", () => {
   it("submits edited basic fields", () => {
     const onSave = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={wikiStoryBasic}
         isEditing
@@ -64,7 +68,7 @@ describe("WikiBasicPanel", () => {
   });
 
   it("uses date inputs for group, song, and talent date fields", () => {
-    const { rerender } = render(
+    const { rerender } = renderWithI18n(
       <WikiBasicPanel
         basic={{ ...wikiStoryBasic, debutDate: "2021-05-06" }}
         isEditing
@@ -115,7 +119,7 @@ describe("WikiBasicPanel", () => {
   it("submits changed date fields as YYYY-MM-DD strings", () => {
     const onSave = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{ ...wikiStoryBasic, debutDate: "2021-05-06" }}
         isEditing
@@ -136,7 +140,7 @@ describe("WikiBasicPanel", () => {
 
     cleanup();
     onSave.mockClear();
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -161,7 +165,7 @@ describe("WikiBasicPanel", () => {
 
     cleanup();
     onSave.mockClear();
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -188,7 +192,7 @@ describe("WikiBasicPanel", () => {
   it("treats cleared date fields as unset", () => {
     const onSave = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -216,7 +220,7 @@ describe("WikiBasicPanel", () => {
       resourceType: "agency",
       ceo: null,
     } as unknown as typeof wikiStoryBasic;
-    const { rerender } = render(
+    const { rerender } = renderWithI18n(
       <WikiBasicPanel
         basic={basicWithNullCeo}
         isEditing={false}
@@ -249,7 +253,7 @@ describe("WikiBasicPanel", () => {
       officialColors: undefined,
       status: undefined,
     } as unknown as typeof wikiStoryBasic;
-    const { container, rerender } = render(
+    const { container, rerender } = renderWithI18n(
       <WikiBasicPanel
         basic={groupBasicWithEmptyFields}
         isEditing={false}
@@ -281,7 +285,7 @@ describe("WikiBasicPanel", () => {
 
 
   it("renders enum-backed basic fields as select controls with localized labels", () => {
-    const { rerender } = render(
+    const { rerender } = renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -365,7 +369,7 @@ describe("WikiBasicPanel", () => {
   it("submits enum raw values and clears unselected enum fields", () => {
     const onSave = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -399,7 +403,7 @@ describe("WikiBasicPanel", () => {
 
     cleanup();
     onSave.mockClear();
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -425,7 +429,7 @@ describe("WikiBasicPanel", () => {
 
     cleanup();
     onSave.mockClear();
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -476,7 +480,7 @@ describe("WikiBasicPanel", () => {
       ),
     );
 
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -516,7 +520,7 @@ describe("WikiBasicPanel", () => {
   });
 
   it("keeps edit mode fields aligned with displayed basic content", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -568,7 +572,7 @@ describe("WikiBasicPanel", () => {
   });
 
   it("places song talents immediately after groups in edit mode", () => {
-    const { container } = render(
+    const { container } = renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,
@@ -633,7 +637,7 @@ describe("WikiBasicPanel", () => {
       ),
     );
 
-    render(
+    renderWithI18n(
       <WikiBasicPanel
         basic={{
           ...wikiStoryBasic,

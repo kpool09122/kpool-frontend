@@ -1,9 +1,13 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryBasic, wikiStoryHeroImage } from "../storybook/fixtures";
 import { WikiHeroBasicFlipCard } from "./index";
+
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiHeroBasicFlipCard", () => {
   afterEach(() => cleanup());
@@ -11,7 +15,7 @@ describe("WikiHeroBasicFlipCard", () => {
   it("triggers flip changes from the front label", () => {
     const onFlipChange = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiHeroBasicFlipCard
         basic={wikiStoryBasic}
         flipCardId="test-flip-card"
@@ -32,7 +36,7 @@ describe("WikiHeroBasicFlipCard", () => {
   });
 
   it("renders the flipped helper copy", () => {
-    render(
+    renderWithI18n(
       <WikiHeroBasicFlipCard
         basic={wikiStoryBasic}
         flipCardId="test-flip-card"
