@@ -279,6 +279,185 @@ describe("WikiBasicPanel", () => {
     expect(panel.getByLabelText("Agency")).toHaveValue("");
   });
 
+
+  it("renders enum-backed basic fields as select controls with localized labels", () => {
+    const { rerender } = render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          groupType: "girl_group",
+          status: "hiatus",
+          generation: "4th",
+        }}
+        isEditing
+        language="en"
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Group Type").tagName).toBe("SELECT");
+    expect(screen.getByRole("option", { name: "Girl group" })).toHaveValue("girl_group");
+    expect(screen.getByRole("option", { name: "On hiatus" })).toHaveValue("hiatus");
+    expect(screen.getByRole("option", { name: "4th generation" })).toHaveValue("4th");
+
+    rerender(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, resourceType: "agency", status: "rebranded" }}
+        isEditing
+        language="ko"
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Status").tagName).toBe("SELECT");
+    expect(screen.getByRole("option", { name: "리브랜딩됨" })).toHaveValue("rebranded");
+
+    rerender(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "song",
+          songType: "title_track",
+          genres: ["pop", "dance"],
+        }}
+        isEditing
+        language="ja"
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Song Type").tagName).toBe("SELECT");
+    expect(screen.getByLabelText("Genres").tagName).toBe("SELECT");
+    expect(screen.getByRole("option", { name: "タイトル曲" })).toHaveValue("title_track");
+    expect(screen.getByRole("option", { name: "ダンス" })).toHaveValue("dance");
+
+    rerender(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "talent",
+          mbti: "ENFP",
+          zodiacSign: "leo",
+          englishLevel: "fluent",
+          bloodType: "AB",
+        }}
+        isEditing
+        language="en"
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("MBTI").tagName).toBe("SELECT");
+    expect(screen.getByRole("option", { name: "ENFP" })).toHaveValue("ENFP");
+    expect(screen.getByRole("option", { name: "Leo" })).toHaveValue("leo");
+    expect(screen.getByRole("option", { name: "Fluent" })).toHaveValue("fluent");
+    expect(screen.getByRole("option", { name: "Type AB" })).toHaveValue("AB");
+  });
+
+  it("submits enum raw values and clears unselected enum fields", () => {
+    const onSave = vi.fn();
+
+    render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "song",
+          songType: undefined,
+          genres: undefined,
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Song Type"), {
+      target: { value: "pre_release" },
+    });
+    const genresSelect = screen.getByLabelText("Genres") as HTMLSelectElement;
+    Array.from(genresSelect.options).forEach((option) => {
+      option.selected = option.value === "pop" || option.value === "edm";
+    });
+    fireEvent.change(genresSelect);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        songType: "pre_release",
+        genres: ["pop", "edm"],
+      }),
+    );
+
+    cleanup();
+    onSave.mockClear();
+    render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "song",
+          songType: "title_track",
+          genres: ["pop", "edm"],
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    const existingGenresSelect = screen.getByLabelText("Genres") as HTMLSelectElement;
+    Array.from(existingGenresSelect.options).forEach((option) => {
+      option.selected = false;
+    });
+    fireEvent.change(existingGenresSelect);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ genres: undefined }));
+
+    cleanup();
+    onSave.mockClear();
+    render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "talent",
+          mbti: "INTJ",
+          zodiacSign: "aries",
+          englishLevel: "basic",
+          bloodType: "A",
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("MBTI"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Zodiac Sign"), { target: { value: "pisces" } });
+    fireEvent.change(screen.getByLabelText("English Level"), { target: { value: "native" } });
+    fireEvent.change(screen.getByLabelText("Blood Type"), { target: { value: "O" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mbti: undefined,
+        zodiacSign: "pisces",
+        englishLevel: "native",
+        bloodType: "O",
+      }),
+    );
+  });
+
   it("uses the selected agency search result for the local preview state", async () => {
     const onSave = vi.fn();
     vi.stubGlobal(

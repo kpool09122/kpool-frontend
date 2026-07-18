@@ -34,6 +34,83 @@ export const wikiResourceTypeSchema = z.enum(wikiResourceTypes);
 
 export type WikiResourceType = z.infer<typeof wikiResourceTypeSchema>;
 
+export const wikiAgencyStatuses = ["active", "closed", "merged", "rebranded"] as const;
+export type WikiAgencyStatus = (typeof wikiAgencyStatuses)[number];
+
+export const wikiGroupTypes = ["boy_group", "girl_group", "co_ed"] as const;
+export type WikiGroupType = (typeof wikiGroupTypes)[number];
+
+export const wikiGroupStatuses = ["active", "disbanded", "hiatus"] as const;
+export type WikiGroupStatus = (typeof wikiGroupStatuses)[number];
+
+export const wikiGenerations = ["1st", "2nd", "3rd", "4th", "5th"] as const;
+export type WikiGeneration = (typeof wikiGenerations)[number];
+
+export const wikiSongTypes = [
+  "title_track",
+  "b_side",
+  "ost",
+  "solo",
+  "collaboration",
+  "pre_release",
+] as const;
+export type WikiSongType = (typeof wikiSongTypes)[number];
+
+export const wikiSongGenres = [
+  "pop",
+  "dance",
+  "ballad",
+  "rnb",
+  "hiphop",
+  "edm",
+  "rock",
+  "jazz",
+  "acoustic",
+] as const;
+export type WikiSongGenre = (typeof wikiSongGenres)[number];
+
+export const wikiMbtiTypes = [
+  "INTJ",
+  "INTP",
+  "ENTJ",
+  "ENTP",
+  "INFJ",
+  "INFP",
+  "ENFJ",
+  "ENFP",
+  "ISTJ",
+  "ISFJ",
+  "ESTJ",
+  "ESFJ",
+  "ISTP",
+  "ISFP",
+  "ESTP",
+  "ESFP",
+] as const;
+export type WikiMbtiType = (typeof wikiMbtiTypes)[number];
+
+export const wikiZodiacSigns = [
+  "aries",
+  "taurus",
+  "gemini",
+  "cancer",
+  "leo",
+  "virgo",
+  "libra",
+  "scorpio",
+  "sagittarius",
+  "capricorn",
+  "aquarius",
+  "pisces",
+] as const;
+export type WikiZodiacSign = (typeof wikiZodiacSigns)[number];
+
+export const wikiEnglishLevels = ["native", "fluent", "conversational", "basic", "none"] as const;
+export type WikiEnglishLevel = (typeof wikiEnglishLevels)[number];
+
+export const wikiBloodTypes = ["A", "B", "O", "AB"] as const;
+export type WikiBloodType = (typeof wikiBloodTypes)[number];
+
 export const wikiFontStyles = [
   "ja_pop",
   "ja_gothic",

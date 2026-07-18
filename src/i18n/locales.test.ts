@@ -1,5 +1,18 @@
+import {
+  wikiAgencyStatuses,
+  wikiBloodTypes,
+  wikiEnglishLevels,
+  wikiGenerations,
+  wikiGroupStatuses,
+  wikiGroupTypes,
+  wikiMbtiTypes,
+  wikiSongGenres,
+  wikiSongTypes,
+  wikiZodiacSigns,
+} from "@kpool/wiki";
 import { describe, expect, it } from "vitest";
 
+import { dictionaries } from "./dictionaries";
 import { resolveLocale, resolveWikiListLocale } from "./locales";
 
 describe("resolveLocale", () => {
@@ -53,5 +66,33 @@ describe("resolveWikiListLocale", () => {
     );
     expect(resolveWikiListLocale({ country: "JP" })).toBe("ja");
     expect(resolveWikiListLocale({ country: "US" })).toBe("en");
+  });
+});
+
+
+describe("wiki enum labels", () => {
+  it("has localized labels for every Wiki Basic enum raw value", () => {
+    const requiredEntries = {
+      agencyStatus: wikiAgencyStatuses,
+      groupType: wikiGroupTypes,
+      groupStatus: wikiGroupStatuses,
+      generation: wikiGenerations,
+      songType: wikiSongTypes,
+      songGenre: wikiSongGenres,
+      mbti: wikiMbtiTypes,
+      zodiacSign: wikiZodiacSigns,
+      englishLevel: wikiEnglishLevels,
+      bloodType: wikiBloodTypes,
+    } as const;
+
+    Object.values(dictionaries).forEach((dictionary) => {
+      Object.entries(requiredEntries).forEach(([labelGroup, rawValues]) => {
+        const labels = dictionary.wiki.enumLabels[labelGroup as keyof typeof requiredEntries];
+
+        rawValues.forEach((rawValue) => {
+          expect(labels[rawValue as keyof typeof labels]).toBeTruthy();
+        });
+      });
+    });
   });
 });
