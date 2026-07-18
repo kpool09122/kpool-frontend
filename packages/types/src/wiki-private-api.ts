@@ -398,6 +398,9 @@ const WikiAgencySummary = z
     normalizedName: z.string(),
   })
   .passthrough();
+const OfficialColor = z
+  .object({ colorCode: z.string(), label: z.string().max(16) })
+  .passthrough();
 const GroupDraftWikiBasic = z
   .object({
     name: z.string(),
@@ -410,7 +413,7 @@ const GroupDraftWikiBasic = z
     debutDate: z.string().nullable(),
     disbandDate: z.string().nullable(),
     fandomName: z.string(),
-    officialColors: z.array(z.string()),
+    officialColors: z.array(OfficialColor),
     emoji: z.string(),
     representativeSymbol: z.string(),
   })
@@ -448,7 +451,7 @@ const SongDraftWikiGroupSummary = z
     debutDate: z.string().nullable(),
     disbandDate: z.string().nullable(),
     fandomName: z.string(),
-    officialColors: z.array(z.string()),
+    officialColors: z.array(OfficialColor),
     emoji: z.string(),
     representativeSymbol: z.string(),
   })
@@ -528,7 +531,7 @@ const TalentDraftWikiGroupSummary = z
     debutDate: z.string().nullable(),
     disbandDate: z.string().nullable(),
     fandomName: z.string(),
-    officialColors: z.array(z.string()),
+    officialColors: z.array(OfficialColor),
     emoji: z.string(),
     representativeSymbol: z.string(),
   })
@@ -778,6 +781,7 @@ export const schemas = {
   WikiAssociationTargets,
   CreateWikiRequestBody,
   WikiAgencySummary,
+  OfficialColor,
   GroupDraftWikiBasic,
   DraftWikiDetail,
   SongDraftWikiGroupSummary,
