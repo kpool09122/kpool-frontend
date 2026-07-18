@@ -51,8 +51,17 @@ describe("WikiBasicPanel", () => {
 
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "North Harbor Entertainment を削除" }));
-    fireEvent.change(screen.getByLabelText("Official Colors"), {
-      target: { value: "Red\nBlue" },
+    fireEvent.change(screen.getByLabelText("Official Colors color 1"), {
+      target: { value: "#ff0000" },
+    });
+    fireEvent.change(screen.getByLabelText("Official Colors label 1"), {
+      target: { value: "Red" },
+    });
+    fireEvent.change(screen.getByLabelText("Official Colors color 2"), {
+      target: { value: "#0000ff" },
+    });
+    fireEvent.change(screen.getByLabelText("Official Colors label 2"), {
+      target: { value: "Blue" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -62,7 +71,10 @@ describe("WikiBasicPanel", () => {
         agency: null,
         agencyIdentifier: null,
         agencyName: null,
-        officialColors: ["Red", "Blue"],
+        officialColors: [
+          { colorCode: "#ff0000", label: "Red" },
+          { colorCode: "#0000ff", label: "Blue" },
+        ],
       }),
     );
   });
@@ -279,10 +291,76 @@ describe("WikiBasicPanel", () => {
 
     expect(panel.getByLabelText("Group Type")).toHaveValue("");
     expect(panel.getByLabelText("Status")).toHaveValue("");
-    expect(panel.getByLabelText("Official Colors")).toHaveValue("");
+    expect(panel.queryByLabelText("Official Colors label 1")).not.toBeInTheDocument();
+    fireEvent.click(panel.getByRole("button", { name: "Official Colors を追加" }));
+    expect(panel.getByLabelText("Official Colors label 1")).toHaveValue("");
+    expect(panel.getByLabelText("Official Colors label 1")).toHaveAttribute("maxLength", "16");
+    expect(panel.getByLabelText("Official Colors color 1")).toHaveValue("#000000");
+    expect(panel.getByRole("button", { name: "Official Colors を追加" })).toBeInTheDocument();
     expect(panel.getByLabelText("Agency")).toHaveValue("");
   });
 
+
+  it("limits official color labels to valid labeled entries", () => {
+    const onSave = vi.fn();
+
+    renderWithI18n(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, officialColors: undefined }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Official Colors を追加" }));
+    fireEvent.click(screen.getByRole("button", { name: "Official Colors を追加" }));
+    expect(screen.queryByRole("button", { name: "Official Colors を追加" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Official Colors color 1"), {
+      target: { value: "#abcdef" },
+    });
+    fireEvent.change(screen.getByLabelText("Official Colors label 1"), {
+      target: { value: "12345678901234567890" },
+    });
+    fireEvent.change(screen.getByLabelText("Official Colors color 2"), {
+      target: { value: "#123456" },
+    });
+    fireEvent.change(screen.getByLabelText("Official Colors label 2"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        officialColors: [{ colorCode: "#abcdef", label: "1234567890123456" }],
+      }),
+    );
+  });
+
+  it("removes all official colors from the edit form", () => {
+    const onSave = vi.fn();
+
+    renderWithI18n(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, officialColors: [{ colorCode: "#abcdef", label: "Mint" }] }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Official Colors color 1 を削除" }));
+    expect(screen.queryByLabelText("Official Colors color 1")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        officialColors: undefined,
+      }),
+    );
+  });
 
   it("renders enum-backed basic fields as select controls with localized labels", () => {
     const { rerender } = renderWithI18n(
@@ -550,7 +628,7 @@ describe("WikiBasicPanel", () => {
 
     const fieldGrid = container.querySelector("form > div");
     const labels = Array.from(fieldGrid?.children ?? []).map((element) => {
-      const heading = element.querySelector("p")?.textContent;
+      const heading = element.querySelector("legend")?.textContent ?? element.querySelector("p")?.textContent;
       const labelElement = element.matches("label") ? element : element.querySelector("label");
       const labelText = labelElement?.childNodes[0]?.textContent;
 
@@ -606,10 +684,11 @@ describe("WikiBasicPanel", () => {
 
     const fieldGrid = container.querySelector("form > div");
     const labels = Array.from(fieldGrid?.children ?? []).map((element) => {
+      const heading = element.querySelector("legend")?.textContent;
       const labelElement = element.matches("label") ? element : element.querySelector("label");
       const labelText = labelElement?.childNodes[0]?.textContent;
 
-      return (labelText ?? "").trim();
+      return (heading ?? labelText ?? "").trim();
     });
 
     expect(labels.slice(labels.indexOf("Groups"), labels.indexOf("Groups") + 3)).toEqual([

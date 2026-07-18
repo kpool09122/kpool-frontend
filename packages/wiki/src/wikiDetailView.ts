@@ -1,4 +1,4 @@
-import type { WikiBasic, WikiSection } from "./types/wiki";
+import type { WikiBasic, WikiOfficialColor, WikiSection } from "./types/wiki";
 import { isWikiSection, sortWikiSectionContents } from "./wikiEditModel";
 import { buildWikiPath } from "./wikiRouting";
 
@@ -11,6 +11,7 @@ export type WikiBasicField = {
   label: string;
   value: string;
   links?: WikiBasicFieldLink[];
+  colors?: WikiOfficialColor[];
 };
 
 type LinkableRelation = {
@@ -41,6 +42,7 @@ const basicFieldLabels: Array<{
   label: string;
   getValue: (basic: WikiBasic) => string | null | undefined;
   getLinks?: (basic: WikiBasic) => WikiBasicFieldLink[] | undefined;
+  getColors?: (basic: WikiBasic) => WikiOfficialColor[] | undefined;
 }> = [
   { label: "Group Type", getValue: (basic) => basic.groupType },
   { label: "Status", getValue: (basic) => basic.status },
@@ -89,7 +91,8 @@ const basicFieldLabels: Array<{
   { label: "Blood Type", getValue: (basic) => basic.bloodType },
   {
     label: "Official Colors",
-    getValue: (basic) => basic.officialColors?.join(", ") ?? null,
+    getColors: (basic) => basic.officialColors,
+    getValue: (basic) => basic.officialColors?.map((color) => color.label).join(", ") ?? null,
   },
 ];
 
@@ -102,11 +105,13 @@ export const getWikiBasicFields = (basic: WikiBasic): WikiBasicField[] =>
     }
 
     const links = field.getLinks?.(basic);
+    const colors = field.getColors?.(basic);
 
     return [
       {
         label: field.label,
         ...(links ? { links } : {}),
+        ...(colors ? { colors } : {}),
         value,
       },
     ];

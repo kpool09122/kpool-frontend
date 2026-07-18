@@ -1,10 +1,12 @@
 "use client";
 
+import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import {
   getWikiResourceLabel,
   type WikiBasic,
+  type WikiOfficialColor,
   type WikiMasterSearchItem,
   type WikiResourceType,
   wikiAgencyStatuses,
@@ -60,6 +62,40 @@ const getLinesUpdate = (
   currentValue: string[] | undefined,
 ): string[] | undefined =>
   formData.has(name) ? getLines(formData, name) : currentValue;
+
+const colorCodePattern = /^#[0-9a-fA-F]{6}$/;
+
+const toFormColorCode = (value: string | undefined): string =>
+  value && colorCodePattern.test(value) ? value : "#000000";
+
+const getOfficialColorsUpdate = (
+  formData: FormData,
+  currentValue: WikiOfficialColor[] | undefined,
+): WikiOfficialColor[] | undefined => {
+  if (
+    !formData.has("officialColorsField") &&
+    !formData.has("officialColorCode") &&
+    !formData.has("officialColorLabel")
+  ) {
+    return currentValue;
+  }
+
+  const colorCodes = formData.getAll("officialColorCode");
+  const labels = formData.getAll("officialColorLabel");
+  const colors = colorCodes.flatMap((colorCodeValue, index): WikiOfficialColor[] => {
+    const colorCode = typeof colorCodeValue === "string" ? colorCodeValue.trim() : "";
+    const labelValue = labels[index];
+    const label = typeof labelValue === "string" ? labelValue.trim().slice(0, 16) : "";
+
+    if (!colorCodePattern.test(colorCode) || !label) {
+      return [];
+    }
+
+    return [{ colorCode, label }];
+  });
+
+  return colors.length > 0 ? colors.slice(0, 2) : undefined;
+};
 
 const getOptionalStringListUpdate = (
   formData: FormData,
@@ -151,6 +187,92 @@ function BasicLinesInput({
         name={name}
       />
     </label>
+  );
+}
+
+function OfficialColorsInput({
+  isAlwaysVisible = false,
+  label,
+  values,
+}: {
+  isAlwaysVisible?: boolean;
+  label: string;
+  values: WikiOfficialColor[] | undefined;
+}) {
+  const [colors, setColors] = useState<WikiOfficialColor[]>(() => (values ?? []).slice(0, 2));
+
+  if (!isAlwaysVisible && !values?.length) {
+    return null;
+  }
+
+  const addColor = () => {
+    if (colors.length >= 2) {
+      return;
+    }
+
+    setColors([...colors, { colorCode: "#000000", label: "" }]);
+  };
+  const updateColor = (index: number, color: WikiOfficialColor) => {
+    setColors(colors.map((currentColor, currentIndex) => (currentIndex === index ? color : currentColor)));
+  };
+  const removeColor = (index: number) => {
+    setColors(colors.filter((_, currentIndex) => currentIndex !== index));
+  };
+
+  return (
+    <div className="md:col-span-2 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+      <p>{label}</p>
+      <div className="grid min-w-0 gap-3 rounded-2xl border border-stroke-subtle bg-surface-raised p-4">
+        <input name="officialColorsField" type="hidden" value="1" />
+        <div className="grid gap-3">
+          {colors.map((color, index) => (
+            <div
+              className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-2"
+              key={index}
+            >
+              <input
+                aria-label={`${label} color ${index + 1}`}
+                className={`${basicInputClassName} h-10 w-16 p-1`}
+                name="officialColorCode"
+                onChange={(event) => updateColor(index, { ...color, colorCode: event.currentTarget.value })}
+                pattern="^#[0-9a-fA-F]{6}$"
+                type="color"
+                value={toFormColorCode(color.colorCode)}
+              />
+              <input
+                aria-label={`${label} label ${index + 1}`}
+                className={basicInputClassName}
+                maxLength={16}
+                name="officialColorLabel"
+                onChange={(event) => updateColor(index, { ...color, label: event.currentTarget.value })}
+                placeholder="例: Solar Gold"
+                type="text"
+                value={color.label}
+              />
+              <button
+                aria-label={`${label} color ${index + 1} を削除`}
+                className="grid h-8 w-8 place-items-center rounded-full border border-stroke-subtle text-text-muted transition hover:bg-surface-base"
+                onClick={() => removeColor(index)}
+                type="button"
+              >
+                <Cross2Icon />
+              </button>
+            </div>
+          ))}
+        </div>
+        {colors.length < 2 ? (
+          <button
+            aria-label={`${label} を追加`}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-stroke-subtle text-text-strong"
+            onClick={addColor}
+            style={cardSurfaceMutedStyle}
+            type="button"
+          >
+            <PlusIcon />
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -349,11 +471,7 @@ export function WikiBasicPanel({
             height: getOptionalNumberUpdate(formData, "height", basic.height),
             lyricist: getOptionalStringUpdate(formData, "lyricist", basic.lyricist),
             mbti: getOptionalStringUpdate(formData, "mbti", basic.mbti),
-            officialColors: getLinesUpdate(
-              formData,
-              "officialColors",
-              basic.officialColors,
-            ),
+            officialColors: getOfficialColorsUpdate(formData, basic.officialColors),
             officialWebsite: getOptionalStringUpdate(
               formData,
               "officialWebsite",
@@ -573,10 +691,9 @@ export function WikiBasicPanel({
             options={bloodTypeOptions}
             value={basic.bloodType}
           />
-          <BasicLinesInput
+          <OfficialColorsInput
             isAlwaysVisible={isGroup}
             label={fieldLabels.officialColors}
-            name="officialColors"
             values={basic.officialColors}
           />
         </div>

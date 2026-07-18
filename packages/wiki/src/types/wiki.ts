@@ -133,6 +133,13 @@ export const wikiFontStyleSchema = z.enum(wikiFontStyles);
 
 export type WikiFontStyle = z.infer<typeof wikiFontStyleSchema>;
 
+export const wikiOfficialColorSchema = z.object({
+  colorCode: z.string(),
+  label: z.string(),
+});
+
+export type WikiOfficialColor = z.infer<typeof wikiOfficialColorSchema>;
+
 const wikiProfileCardSummarySchema = z.object({
   wikiIdentifier: z.string(),
   slug: z.string(),
@@ -360,7 +367,7 @@ export const wikiBasicSchema = z.object({
   fandomName: z.string().optional(),
   emoji: z.string().optional(),
   representativeSymbol: z.string().optional(),
-  officialColors: z.array(z.string()).optional(),
+  officialColors: z.array(wikiOfficialColorSchema).optional(),
   agency: wikiBasicRelationSummarySchema.nullable().optional(),
   agencyName: z.string().nullable().optional(),
   agencyIdentifier: z.string().nullable().optional(),

@@ -206,3 +206,40 @@ describe("wikiApiModel profile card list blocks", () => {
     });
   });
 });
+
+
+describe("wikiApiModel official colors", () => {
+  it("normalizes structured official colors and legacy string arrays", () => {
+    expect(
+      adaptWikiApiResponse({
+        ...baseApiResponse,
+        version: 4,
+        basic: {
+          ...baseApiResponse.basic,
+          officialColors: [
+            { color_code: "#f6c453", label: "Solar Gold" },
+            { colorCode: "#1f3b73", label: "Midnight Blue" },
+            { colorCode: "#ffffff", label: "Ignored third color" },
+          ],
+        },
+      }).basic.officialColors,
+    ).toEqual([
+      { colorCode: "#f6c453", label: "Solar Gold" },
+      { colorCode: "#1f3b73", label: "Midnight Blue" },
+    ]);
+
+    expect(
+      adaptDraftWikiApiResponse({
+        ...baseApiResponse,
+        status: "pending",
+        basic: {
+          ...baseApiResponse.basic,
+          officialColors: ["#ff0000", "Legacy Blue"],
+        },
+      }).basic.officialColors,
+    ).toEqual([
+      { colorCode: "#ff0000", label: "#ff0000" },
+      { colorCode: "Legacy Blue", label: "Legacy Blue" },
+    ]);
+  });
+});

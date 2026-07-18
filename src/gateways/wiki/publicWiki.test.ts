@@ -30,7 +30,7 @@ const publicWikiResponse = {
     groupType: "Girl Group",
     name: "Aurora Echo",
     normalizedName: "aurora-echo",
-    officialColors: ["Solar Gold", "Midnight Blue"],
+    officialColors: [{ colorCode: "#f6c453", label: "Solar Gold" }, { colorCode: "#1f3b73", label: "Midnight Blue" }],
     representativeSymbol: "Solar wave",
     status: "Active",
     talents: [

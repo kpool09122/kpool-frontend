@@ -5,6 +5,7 @@ import {
   type WikiBlockType,
   type WikiDetail,
   type WikiEmbedProvider,
+  type WikiOfficialColor,
   type WikiProfileCardSummary,
   type WikiSectionContent,
   wikiDetailSchema,
@@ -41,6 +42,27 @@ export const toStringArray = (value: unknown): string[] | undefined =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
     : undefined;
+
+export const toOfficialColors = (value: unknown): WikiOfficialColor[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const colors = value.flatMap((item): WikiOfficialColor[] => {
+    if (typeof item === "string" && item.trim()) {
+      const legacyValue = item.trim();
+      return [{ colorCode: legacyValue, label: legacyValue }];
+    }
+
+    const record = toRecord(item);
+    const colorCode = toOptionalString(record.colorCode ?? record.color_code);
+    const label = toOptionalString(record.label);
+
+    return colorCode && label ? [{ colorCode, label }] : [];
+  });
+
+  return colors.length > 0 ? colors.slice(0, 2) : undefined;
+};
 
 const toWikiIdentifierArray = (value: unknown): string[] | undefined =>
   Array.isArray(value)
@@ -203,7 +225,7 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
     height: typeof basic.height === "number" ? basic.height : undefined,
     lyricist: toOptionalString(basic.lyricist),
     mbti: toOptionalString(basic.mbti),
-    officialColors: toStringArray(basic.officialColors),
+    officialColors: toOfficialColors(basic.officialColors),
     officialWebsite: toOptionalString(basic.officialWebsite),
     position: toOptionalString(basic.position),
     realName: toOptionalString(basic.realName),
