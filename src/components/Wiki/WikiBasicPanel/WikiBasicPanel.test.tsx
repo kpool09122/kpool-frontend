@@ -63,6 +63,153 @@ describe("WikiBasicPanel", () => {
     );
   });
 
+  it("uses date inputs for group, song, and talent date fields", () => {
+    const { rerender } = render(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, debutDate: "2021-05-06" }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Debut Date")).toHaveAttribute("type", "date");
+    expect(screen.getByLabelText("Debut Date")).toHaveValue("2021-05-06");
+
+    rerender(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "song",
+          releaseDate: "2024-01-15",
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Release Date")).toHaveAttribute("type", "date");
+    expect(screen.getByLabelText("Release Date")).toHaveValue("2024-01-15");
+
+    rerender(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "talent",
+          birthday: "2000-12-31",
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("Birthday")).toHaveAttribute("type", "date");
+    expect(screen.getByLabelText("Birthday")).toHaveValue("2000-12-31");
+  });
+
+  it("submits changed date fields as YYYY-MM-DD strings", () => {
+    const onSave = vi.fn();
+
+    render(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, debutDate: "2021-05-06" }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Debut Date"), {
+      target: { value: "2026-02-03" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenLastCalledWith(
+      expect.objectContaining({ debutDate: "2026-02-03" }),
+    );
+
+    cleanup();
+    onSave.mockClear();
+    render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "song",
+          releaseDate: "2024-01-15",
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Release Date"), {
+      target: { value: "2026-03-04" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenLastCalledWith(
+      expect.objectContaining({ releaseDate: "2026-03-04" }),
+    );
+
+    cleanup();
+    onSave.mockClear();
+    render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "talent",
+          birthday: "2000-12-31",
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Birthday"), {
+      target: { value: "2001-01-02" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenLastCalledWith(
+      expect.objectContaining({ birthday: "2001-01-02" }),
+    );
+  });
+
+  it("treats cleared date fields as unset", () => {
+    const onSave = vi.fn();
+
+    render(
+      <WikiBasicPanel
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "talent",
+          birthday: "2000-12-31",
+        }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Birthday"), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ birthday: undefined }));
+  });
+
   it("hides null basic fields in view mode but keeps them editable", () => {
     const basicWithNullCeo = {
       ...wikiStoryBasic,

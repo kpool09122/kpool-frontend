@@ -69,12 +69,6 @@ const getOptionalNumberUpdate = (
   return Number.isFinite(numberValue) ? numberValue : undefined;
 };
 
-const getAgencyNameUpdate = (
-  formData: FormData,
-  currentValue: string | null | undefined,
-): string | null | undefined =>
-  formData.has("agencyName") ? getString(formData, "agencyName") || null : currentValue;
-
 function BasicTextInput({
   isAlwaysVisible = false,
   label,
@@ -277,6 +271,7 @@ export function WikiBasicPanel({
             isAlwaysVisible={isGroup}
             label="Debut Date"
             name="debutDate"
+            type="date"
             value={basic.debutDate}
           />
           <BasicTextInput
@@ -350,6 +345,7 @@ export function WikiBasicPanel({
             isAlwaysVisible={isSong}
             label="Release Date"
             name="releaseDate"
+            type="date"
             value={basic.releaseDate}
           />
           <BasicTextInput
@@ -386,6 +382,7 @@ export function WikiBasicPanel({
             isAlwaysVisible={isTalent}
             label="Birthday"
             name="birthday"
+            type="date"
             value={basic.birthday}
           />
           <BasicTextInput
