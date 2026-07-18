@@ -18,6 +18,7 @@ type WikiPublicHeroImageProps = {
   heroImage: WikiDetail["heroImage"];
   editHref?: string;
   flipCardId: string;
+  language?: string;
   profileLabel?: string;
 };
 
@@ -26,6 +27,7 @@ export function WikiPublicHeroImage({
   editHref,
   heroImage,
   flipCardId,
+  language = "ja",
   profileLabel = "Basic profile",
 }: WikiPublicHeroImageProps) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -115,6 +117,7 @@ export function WikiPublicHeroImage({
                       className="grid gap-4"
                       itemClassName="rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-3"
                       itemStyle={cardSurfaceMutedStyle}
+                      language={language}
                     />
                   </div>
                 </div>
@@ -179,6 +182,7 @@ export function WikiPublicHeroImage({
             className="mt-6 grid gap-4 sm:grid-cols-2"
             itemClassName="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3"
             itemStyle={cardSurfaceStyle}
+            language={language}
           />
         </div>
       </div>

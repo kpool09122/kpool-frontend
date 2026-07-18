@@ -34,6 +34,69 @@ describe("WikiBasicFieldsList", () => {
     expect(screen.getByText("Agency")).toBeInTheDocument();
   });
 
+  it("localizes enum raw values in displayed basic details", () => {
+    const { rerender } = render(
+      <WikiBasicFieldsList
+        basic={{
+          ...wikiStoryBasic,
+          groupType: "girl_group",
+          status: "hiatus",
+          generation: "4th",
+        }}
+        className="grid gap-4"
+        itemClassName="rounded-xl"
+        itemStyle={cardSurfaceStyle}
+        language="en"
+      />,
+    );
+
+    expect(screen.getByText("Girl group")).toBeInTheDocument();
+    expect(screen.getByText("On hiatus")).toBeInTheDocument();
+    expect(screen.getByText("4th generation")).toBeInTheDocument();
+    expect(screen.queryByText("girl_group")).not.toBeInTheDocument();
+
+    rerender(
+      <WikiBasicFieldsList
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "song",
+          songType: "title_track",
+          genres: ["pop", "dance"],
+        }}
+        className="grid gap-4"
+        itemClassName="rounded-xl"
+        itemStyle={cardSurfaceStyle}
+        language="ja"
+      />,
+    );
+
+    expect(screen.getByText("タイトル曲")).toBeInTheDocument();
+    expect(screen.getByText("ポップ, ダンス")).toBeInTheDocument();
+    expect(screen.queryByText("title_track")).not.toBeInTheDocument();
+
+    rerender(
+      <WikiBasicFieldsList
+        basic={{
+          ...wikiStoryBasic,
+          resourceType: "talent",
+          bloodType: "AB",
+          englishLevel: "fluent",
+          mbti: "ENFP",
+          zodiacSign: "leo",
+        }}
+        className="grid gap-4"
+        itemClassName="rounded-xl"
+        itemStyle={cardSurfaceStyle}
+        language="ko"
+      />,
+    );
+
+    expect(screen.getByText("ENFP")).toBeInTheDocument();
+    expect(screen.getByText("사자자리")).toBeInTheDocument();
+    expect(screen.getByText("유창")).toBeInTheDocument();
+    expect(screen.getByText("AB형")).toBeInTheDocument();
+  });
+
   it("renders basic relation names as public wiki links", () => {
     render(
       <WikiBasicFieldsList

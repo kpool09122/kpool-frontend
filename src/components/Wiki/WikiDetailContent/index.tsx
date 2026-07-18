@@ -42,6 +42,7 @@ export function WikiDetailContent({
         editHref={editHref}
         flipCardId={flipCardId}
         heroImage={data.heroImage}
+        language={language}
         profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}
       />
 

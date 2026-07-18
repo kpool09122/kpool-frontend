@@ -7,7 +7,19 @@ import {
   type WikiBasic,
   type WikiMasterSearchItem,
   type WikiResourceType,
+  wikiAgencyStatuses,
+  wikiBloodTypes,
+  wikiEnglishLevels,
+  wikiGenerations,
+  wikiGroupStatuses,
+  wikiGroupTypes,
+  wikiMbtiTypes,
+  wikiSongGenres,
+  wikiSongTypes,
+  wikiZodiacSigns,
 } from "@kpool/wiki";
+import { dictionaries } from "../../../i18n/dictionaries";
+import { normalizeLocale } from "../../../i18n/locales";
 import { getLines, getString } from "../editing";
 import { EditIcon } from "../icons";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
@@ -48,6 +60,22 @@ const getLinesUpdate = (
   currentValue: string[] | undefined,
 ): string[] | undefined =>
   formData.has(name) ? getLines(formData, name) : currentValue;
+
+const getOptionalStringListUpdate = (
+  formData: FormData,
+  name: string,
+  currentValue: string[] | undefined,
+): string[] | undefined => {
+  if (!formData.has(name)) {
+    return currentValue;
+  }
+
+  const values = formData
+    .getAll(name)
+    .flatMap((value) => (typeof value === "string" && value.trim() ? [value.trim()] : []));
+
+  return values.length > 0 ? values : undefined;
+};
 
 const getOptionalNumberUpdate = (
   formData: FormData,
@@ -126,6 +154,90 @@ function BasicLinesInput({
   );
 }
 
+type BasicSelectOption = {
+  label: string;
+  value: string;
+};
+
+function BasicSelectInput({
+  emptyLabel,
+  isAlwaysVisible = false,
+  label,
+  name,
+  options,
+  value,
+}: {
+  emptyLabel: string;
+  isAlwaysVisible?: boolean;
+  label: string;
+  name: string;
+  options: BasicSelectOption[];
+  value: string | null | undefined;
+}) {
+  if (!isAlwaysVisible && (value === undefined || value === "")) {
+    return null;
+  }
+
+  return (
+    <label className={basicLabelClassName}>
+      {label}
+      <select className={basicInputClassName} defaultValue={value ?? ""} name={name}>
+        <option value="">{emptyLabel}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function BasicMultiSelectInput({
+  isAlwaysVisible = false,
+  label,
+  name,
+  options,
+  values,
+}: {
+  isAlwaysVisible?: boolean;
+  label: string;
+  name: string;
+  options: BasicSelectOption[];
+  values: string[] | undefined;
+}) {
+  if (!isAlwaysVisible && !values?.length) {
+    return null;
+  }
+
+  return (
+    <div className="md:col-span-2">
+      <input name={name} type="hidden" value="" />
+      <label className={basicLabelClassName}>
+        {label}
+        <select
+          className={basicInputClassName}
+          defaultValue={values ?? []}
+          multiple
+          name={name}
+          size={Math.min(6, options.length)}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
+const toSelectOptions = <T extends string>(
+  values: readonly T[],
+  labels: Record<T, string>,
+): BasicSelectOption[] => values.map((value) => ({ value, label: labels[value] ?? value }));
+
 export function WikiBasicPanel({
   basic,
   disabled = false,
@@ -141,6 +253,21 @@ export function WikiBasicPanel({
   const isGroup = resourceType === "group";
   const isSong = resourceType === "song";
   const isTalent = resourceType === "talent";
+  const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
+  const enumLabels = dictionary.wiki.enumLabels;
+  const groupTypeOptions = toSelectOptions(wikiGroupTypes, enumLabels.groupType);
+  const statusOptions = isAgency
+    ? toSelectOptions(wikiAgencyStatuses, enumLabels.agencyStatus)
+    : isGroup
+      ? toSelectOptions(wikiGroupStatuses, enumLabels.groupStatus)
+      : null;
+  const generationOptions = toSelectOptions(wikiGenerations, enumLabels.generation);
+  const songTypeOptions = toSelectOptions(wikiSongTypes, enumLabels.songType);
+  const songGenreOptions = toSelectOptions(wikiSongGenres, enumLabels.songGenre);
+  const mbtiOptions = toSelectOptions(wikiMbtiTypes, enumLabels.mbti);
+  const zodiacSignOptions = toSelectOptions(wikiZodiacSigns, enumLabels.zodiacSign);
+  const englishLevelOptions = toSelectOptions(wikiEnglishLevels, enumLabels.englishLevel);
+  const bloodTypeOptions = toSelectOptions(wikiBloodTypes, enumLabels.bloodType);
   const showsAgencySearch = isGroup || isSong || isTalent || Boolean(basic.agency ?? basic.agencyName);
   const showsGroupsSearch = isTalent || isSong || Boolean(basic.groups?.length);
   const showsTalentsSearch = isSong || Boolean(basic.talents?.length);
@@ -214,7 +341,7 @@ export function WikiBasicPanel({
             englishLevel: getOptionalStringUpdate(formData, "englishLevel", basic.englishLevel),
             fandomName: getOptionalStringUpdate(formData, "fandomName", basic.fandomName),
             generation: getOptionalStringUpdate(formData, "generation", basic.generation),
-            genres: getLinesUpdate(formData, "genres", basic.genres),
+            genres: getOptionalStringListUpdate(formData, "genres", basic.genres),
             groupType: getOptionalStringUpdate(formData, "groupType", basic.groupType),
             height: getOptionalNumberUpdate(formData, "height", basic.height),
             lyricist: getOptionalStringUpdate(formData, "lyricist", basic.lyricist),
@@ -249,22 +376,32 @@ export function WikiBasicPanel({
           Basic
         </p>
         <div className="mt-5 grid items-start gap-4 md:grid-cols-2">
-          <BasicTextInput
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isGroup}
             label="Group Type"
             name="groupType"
+            options={groupTypeOptions}
             value={basic.groupType}
           />
-          <BasicTextInput
-            isAlwaysVisible={isAgency || isGroup}
-            label="Status"
-            name="status"
-            value={basic.status}
-          />
-          <BasicTextInput
+          {statusOptions ? (
+            <BasicSelectInput
+              emptyLabel={enumLabels.empty}
+              isAlwaysVisible={isAgency || isGroup}
+              label="Status"
+              name="status"
+              options={statusOptions}
+              value={basic.status}
+            />
+          ) : (
+            <BasicTextInput label="Status" name="status" value={basic.status} />
+          )}
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isGroup}
             label="Generation"
             name="generation"
+            options={generationOptions}
             value={basic.generation}
           />
           <BasicTextInput
@@ -299,16 +436,19 @@ export function WikiBasicPanel({
             name="socialLinks"
             values={basic.socialLinks}
           />
-          <BasicTextInput
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isSong}
             label="Song Type"
             name="songType"
+            options={songTypeOptions}
             value={basic.songType}
           />
-          <BasicLinesInput
+          <BasicMultiSelectInput
             isAlwaysVisible={isSong}
             label="Genres"
             name="genres"
+            options={songGenreOptions}
             values={basic.genres}
           />
           {showsAgencySearch ? (
@@ -391,22 +531,28 @@ export function WikiBasicPanel({
             name="position"
             value={basic.position}
           />
-          <BasicTextInput
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
             label="MBTI"
             name="mbti"
+            options={mbtiOptions}
             value={basic.mbti}
           />
-          <BasicTextInput
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
             label="Zodiac Sign"
             name="zodiacSign"
+            options={zodiacSignOptions}
             value={basic.zodiacSign}
           />
-          <BasicTextInput
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
             label="English Level"
             name="englishLevel"
+            options={englishLevelOptions}
             value={basic.englishLevel}
           />
           <BasicTextInput
@@ -416,10 +562,12 @@ export function WikiBasicPanel({
             type="number"
             value={basic.height}
           />
-          <BasicTextInput
+          <BasicSelectInput
+            emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
             label="Blood Type"
             name="bloodType"
+            options={bloodTypeOptions}
             value={basic.bloodType}
           />
           <BasicLinesInput
@@ -461,6 +609,7 @@ export function WikiBasicPanel({
         className="mt-6 grid gap-4 md:grid-cols-2"
         itemClassName="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3"
         itemStyle={cardSurfaceStyle}
+        language={language}
       />
     </div>
   );
