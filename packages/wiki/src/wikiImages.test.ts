@@ -7,6 +7,7 @@ import {
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
+  isSafeWikiImageUrl,
   isSafeWikiSourceUrl,
   isWikiImageFileSizeAllowed,
   normalizeWikiDraftImageListResponse,
@@ -65,6 +66,15 @@ describe("wikiImages", () => {
       }),
     );
     expect(request.agreedToTermsAt).toEqual(expect.any(String));
+  });
+
+  it("allows only trusted wiki image delivery URLs for rendered images", () => {
+    expect(isSafeWikiImageUrl("https://upload.wikimedia.org/wikipedia/commons/example/stage.webp")).toBe(true);
+    expect(isSafeWikiImageUrl("http://localhost:8080/images/stage.webp")).toBe(true);
+    expect(isSafeWikiImageUrl("http://127.0.0.1:8080/images/stage.webp")).toBe(true);
+    expect(isSafeWikiImageUrl("https://tracker.example.test/stage.webp")).toBe(false);
+    expect(isSafeWikiImageUrl("http://upload.wikimedia.org/wikipedia/commons/example/stage.webp")).toBe(false);
+    expect(isSafeWikiImageUrl("data:image/svg+xml,<svg></svg>")).toBe(false);
   });
 
   it("removes dangerous source URL schemes from upload requests", () => {

@@ -73,6 +73,35 @@ export const isSafeWikiSourceUrl = (value: string): boolean => {
   return url.protocol === "http:" || url.protocol === "https:";
 };
 
+export const isSafeWikiImageUrl = (value: string): boolean => {
+  const trimmedValue = value.trim();
+
+  if (!URL.canParse(trimmedValue)) {
+    return false;
+  }
+
+  const url = new URL(trimmedValue);
+
+  if (url.protocol === "https:" && url.hostname === "upload.wikimedia.org") {
+    return true;
+  }
+
+  return (
+    url.protocol === "http:" &&
+    (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+  );
+};
+
+export const toSafeWikiImageUrl = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return isSafeWikiImageUrl(trimmedValue) ? trimmedValue : null;
+};
+
 export const createWikiImageAssociationInput = ({
   resourceType,
   translationSetIdentifier,

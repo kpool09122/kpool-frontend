@@ -19,7 +19,7 @@ describe("WikiRelatedProfiles", () => {
           resourceType: "talent",
           name: "MOMO",
           normalizedName: "momo",
-          imageUrl: "https://example.test/momo.jpg",
+          imageUrl: "https://upload.wikimedia.org/wikipedia/commons/example/momo.jpg",
           imageAltText: "MOMO top image",
         },
         {
@@ -45,7 +45,7 @@ describe("WikiRelatedProfiles", () => {
 
     expect(screen.getByRole("img", { name: "MOMO top image" })).toHaveAttribute(
       "src",
-      "https://example.test/momo.jpg",
+      "https://upload.wikimedia.org/wikipedia/commons/example/momo.jpg",
     );
     expect(screen.getByRole("link", { name: /MOMO/i })).toHaveAttribute(
       "href",

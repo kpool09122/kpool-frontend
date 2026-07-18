@@ -14,6 +14,7 @@ import {
 import { z } from "zod";
 
 import { getWikiResourceTypeFromSlug } from "./wikiRouting";
+import { toSafeWikiImageUrl } from "./wikiImageModel";
 
 const parseWikiSchema = <T>(schema: z.ZodType<T>, body: unknown): T => {
   const result = schema.safeParse(body);
@@ -273,7 +274,8 @@ const toProfileCardSummaries = (value: unknown): WikiProfileCardSummary[] =>
           resourceType: toWikiResourceType(record.resourceType ?? record.resource_type, slug),
           name,
           normalizedName: toString(record.normalizedName ?? record.normalized_name, name),
-          imageUrl: toNullable(record.imageUrl ?? record.image_url),
+          imageIdentifier: toNullable(record.imageIdentifier ?? record.image_identifier),
+          imageUrl: toSafeWikiImageUrl(record.imageUrl ?? record.image_url),
           imageAltText: toNullable(record.imageAltText ?? record.image_alt_text),
         }];
       })

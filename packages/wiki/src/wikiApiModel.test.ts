@@ -119,3 +119,90 @@ describe("wikiApiModel section identifiers", () => {
     expect(secondNested?.sectionIdentifier).toBe("section-2-1");
   });
 });
+
+describe("wikiApiModel profile card list blocks", () => {
+  it("keeps expanded related profile summaries from the API response", () => {
+    const wiki = adaptWikiApiResponse({
+      ...baseApiResponse,
+      version: 4,
+      sections: [
+        {
+          id: "members",
+          title: "Members",
+          contents: [
+            {
+              type: "profile_card_list",
+              id: "members-profiles",
+              display_order: 20,
+              related_resource_type: "talent",
+              title: "Related profiles",
+              wiki_identifiers: ["11111111-1111-1111-1111-111111111111"],
+              profiles: [
+                {
+                  wiki_identifier: "11111111-1111-1111-1111-111111111111",
+                  slug: "tl-momo",
+                  language: "ko",
+                  resource_type: "talent",
+                  name: "MOMO",
+                  normalized_name: "momo",
+                  image_identifier: "99999999-9999-9999-9999-999999999999",
+                  image_url: "https://upload.wikimedia.org/wikipedia/commons/example/momo.webp",
+                  image_alt_text: "MOMO profile image",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wiki.sections[0]?.contents[0]).toMatchObject({
+      blockIdentifier: "members-profiles",
+      blockType: "profile_card_list",
+      displayOrder: 20,
+      relatedResourceType: "talent",
+      title: "Related profiles",
+      wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+      profiles: [
+        {
+          wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+          slug: "tl-momo",
+          language: "ko",
+          resourceType: "talent",
+          name: "MOMO",
+          normalizedName: "momo",
+          imageIdentifier: "99999999-9999-9999-9999-999999999999",
+          imageUrl: "https://upload.wikimedia.org/wikipedia/commons/example/momo.webp",
+          imageAltText: "MOMO profile image",
+        },
+      ],
+    });
+  });
+
+  it("does not synthesize profile summaries when the API only returns identifiers", () => {
+    const wiki = adaptWikiApiResponse({
+      ...baseApiResponse,
+      version: 4,
+      sections: [
+        {
+          id: "members",
+          title: "Members",
+          contents: [
+            {
+              type: "profile_card_list",
+              id: "members-profiles",
+              relatedResourceType: "talent",
+              wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wiki.sections[0]?.contents[0]).toMatchObject({
+      blockType: "profile_card_list",
+      profiles: [],
+      wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+    });
+  });
+});
