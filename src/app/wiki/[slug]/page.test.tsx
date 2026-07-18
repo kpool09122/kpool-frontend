@@ -130,7 +130,7 @@ describe("WikiDetailPage", () => {
     expect(screen.getAllByText("Aurora Echo")[0]).toBeInTheDocument();
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Members")).toBeInTheDocument();
-    expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("タレント").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
       "href",
       "/ko/wiki/tl-momo",

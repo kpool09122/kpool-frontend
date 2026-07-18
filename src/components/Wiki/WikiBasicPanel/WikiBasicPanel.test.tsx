@@ -317,7 +317,7 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Status").tagName).toBe("SELECT");
+    expect(screen.getByLabelText("상태").tagName).toBe("SELECT");
     expect(screen.getByRole("option", { name: "리브랜딩됨" })).toHaveValue("rebranded");
 
     rerender(
@@ -336,8 +336,8 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Song Type").tagName).toBe("SELECT");
-    expect(screen.getByLabelText("Genres").tagName).toBe("SELECT");
+    expect(screen.getByLabelText("楽曲種別").tagName).toBe("SELECT");
+    expect(screen.getByLabelText("ジャンル").tagName).toBe("SELECT");
     expect(screen.getByRole("option", { name: "タイトル曲" })).toHaveValue("title_track");
     expect(screen.getByRole("option", { name: "ダンス" })).toHaveValue("dance");
 
@@ -496,7 +496,7 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Agency keyword"), {
+    fireEvent.change(screen.getByLabelText("소속사 keyword"), {
       target: { value: "JYP" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
@@ -655,10 +655,10 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("Talents keyword"), {
+    fireEvent.change(screen.getByLabelText("아티스트 keyword"), {
       target: { value: "NAYEON" },
     });
-    fireEvent.keyDown(screen.getByLabelText("Talents keyword"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByLabelText("아티스트 keyword"), { key: "Enter" });
     fireEvent.click(await screen.findByRole("button", { name: /NAYEON/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 

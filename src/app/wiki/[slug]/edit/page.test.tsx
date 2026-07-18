@@ -205,7 +205,7 @@ describe("WikiEditPage", () => {
       },
     });
 
-    expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("タレント").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
       "href",
       "/ko/wiki/tl-momo",

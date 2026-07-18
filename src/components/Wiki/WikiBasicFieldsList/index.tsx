@@ -28,8 +28,40 @@ type WikiBasicFieldsListProps = {
 };
 
 type EnumLabelMap = Record<string, string>;
+type BasicFieldLabelKey = keyof (typeof dictionaries)["ja"]["wiki"]["basicFieldLabels"];
 
-const createEnumValueFormatter = (basic: WikiBasic, language = "ja") => {
+const basicFieldLabelKeys: Record<string, BasicFieldLabelKey> = {
+  "Group Type": "groupType",
+  Status: "status",
+  Generation: "generation",
+  "Debut Date": "debutDate",
+  "Fandom Name": "fandomName",
+  "Representative Symbol": "representativeSymbol",
+  CEO: "ceo",
+  "Official Website": "officialWebsite",
+  "Social Links": "socialLinks",
+  "Song Type": "songType",
+  Genres: "genres",
+  Agency: "agency",
+  Groups: "groups",
+  Talents: "talents",
+  "Release Date": "releaseDate",
+  Album: "album",
+  Lyricist: "lyricist",
+  Composer: "composer",
+  Arranger: "arranger",
+  "Real Name": "realName",
+  Birthday: "birthday",
+  Position: "position",
+  MBTI: "mbti",
+  "Zodiac Sign": "zodiacSign",
+  "English Level": "englishLevel",
+  Height: "height",
+  "Blood Type": "bloodType",
+  "Official Colors": "officialColors",
+};
+
+const createEnumValueFormatter = (basic: WikiBasic, language = "en") => {
   const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const enumLabels = dictionary.wiki.enumLabels;
   const resourceType = basic.resourceType as WikiResourceType;
@@ -90,17 +122,24 @@ export function WikiBasicFieldsList({
   className,
   itemClassName,
   itemStyle,
-  language,
+  language = "en",
 }: WikiBasicFieldsListProps) {
   const fields = getWikiBasicFields(basic);
+  const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
+  const fieldLabels = dictionary.wiki.basicFieldLabels;
   const formatEnumValue = createEnumValueFormatter(basic, language);
+  const formatFieldLabel = (label: string) => {
+    const labelKey = basicFieldLabelKeys[label];
+
+    return labelKey ? fieldLabels[labelKey] : label;
+  };
 
   return (
     <dl className={className}>
       {fields.map((field) => (
         <div className={`${basicFieldTextWrapClassName} ${itemClassName}`} key={field.label} style={itemStyle}>
           <dt className="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
-            {field.label}
+            {formatFieldLabel(field.label)}
           </dt>
           <dd className={`${basicFieldTextWrapClassName} mt-1 text-sm leading-6 text-text-strong`}>
             {field.links ? (
