@@ -355,6 +355,7 @@ export function WikiEditContent({
               heroImage={draft.heroImage}
               isBasicEditing={editingId === "basic"}
               isFlipped={isBasicFlipped}
+              language={language}
               onCancel={closeEditor}
               onEditBasic={editBasic}
               onFlipChange={setIsBasicFlipped}

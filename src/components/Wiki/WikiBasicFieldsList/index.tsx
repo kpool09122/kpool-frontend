@@ -1,12 +1,85 @@
 import Link from "next/link";
-import { getWikiBasicFields, type WikiBasic } from "@kpool/wiki";
+import {
+  getWikiBasicFields,
+  type WikiBasic,
+  type WikiResourceType,
+  wikiAgencyStatuses,
+  wikiBloodTypes,
+  wikiEnglishLevels,
+  wikiGenerations,
+  wikiGroupStatuses,
+  wikiGroupTypes,
+  wikiMbtiTypes,
+  wikiSongGenres,
+  wikiSongTypes,
+  wikiZodiacSigns,
+} from "@kpool/wiki";
 import { type CSSProperties } from "react";
+
+import { dictionaries } from "../../../i18n/dictionaries";
+import { normalizeLocale } from "../../../i18n/locales";
 
 type WikiBasicFieldsListProps = {
   basic: WikiBasic;
   className: string;
   itemClassName: string;
   itemStyle: CSSProperties;
+  language?: string;
+};
+
+type EnumLabelMap = Record<string, string>;
+
+const createEnumValueFormatter = (basic: WikiBasic, language = "ja") => {
+  const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
+  const enumLabels = dictionary.wiki.enumLabels;
+  const resourceType = basic.resourceType as WikiResourceType;
+  const labelMaps: Record<string, EnumLabelMap | undefined> = {
+    "Blood Type": enumLabels.bloodType,
+    "English Level": enumLabels.englishLevel,
+    Generation: enumLabels.generation,
+    "Group Type": enumLabels.groupType,
+    MBTI: enumLabels.mbti,
+    Genres: enumLabels.songGenre,
+    "Song Type": enumLabels.songType,
+    Status:
+      resourceType === "agency"
+        ? enumLabels.agencyStatus
+        : resourceType === "group"
+          ? enumLabels.groupStatus
+          : undefined,
+    "Zodiac Sign": enumLabels.zodiacSign,
+  };
+  const knownRawValues: Record<string, readonly string[] | undefined> = {
+    "Blood Type": wikiBloodTypes,
+    "English Level": wikiEnglishLevels,
+    Generation: wikiGenerations,
+    "Group Type": wikiGroupTypes,
+    MBTI: wikiMbtiTypes,
+    Genres: wikiSongGenres,
+    "Song Type": wikiSongTypes,
+    Status:
+      resourceType === "agency"
+        ? wikiAgencyStatuses
+        : resourceType === "group"
+          ? wikiGroupStatuses
+          : undefined,
+    "Zodiac Sign": wikiZodiacSigns,
+  };
+
+  return (fieldLabel: string, value: string) => {
+    const labels = labelMaps[fieldLabel];
+    const rawValues = knownRawValues[fieldLabel];
+
+    if (!labels || !rawValues) {
+      return value;
+    }
+
+    return value
+      .split(",")
+      .map((part) => part.trim())
+      .map((rawValue) => (rawValues.includes(rawValue) ? labels[rawValue] ?? rawValue : rawValue))
+      .join(", ");
+  };
 };
 
 const basicFieldTextWrapClassName =
@@ -17,8 +90,10 @@ export function WikiBasicFieldsList({
   className,
   itemClassName,
   itemStyle,
+  language,
 }: WikiBasicFieldsListProps) {
   const fields = getWikiBasicFields(basic);
+  const formatEnumValue = createEnumValueFormatter(basic, language);
 
   return (
     <dl className={className}>
@@ -43,7 +118,7 @@ export function WikiBasicFieldsList({
                 ))}
               </span>
             ) : (
-              <span className={basicFieldTextWrapClassName}>{field.value}</span>
+              <span className={basicFieldTextWrapClassName}>{formatEnumValue(field.label, field.value)}</span>
             )}
           </dd>
         </div>

@@ -609,6 +609,7 @@ export function WikiBasicPanel({
         className="mt-6 grid gap-4 md:grid-cols-2"
         itemClassName="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3"
         itemStyle={cardSurfaceStyle}
+        language={language}
       />
     </div>
   );

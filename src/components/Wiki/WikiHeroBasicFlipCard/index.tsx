@@ -15,6 +15,7 @@ type WikiHeroBasicFlipCardProps = {
   isFlipped: boolean;
   flipCardId: string;
   isBasicEditing: boolean;
+  language?: string;
   profileLabel?: string;
   onFlipChange: (isFlipped: boolean) => void;
   onOpenImageLibrary?: () => void;
@@ -30,6 +31,7 @@ export function WikiHeroBasicFlipCard({
   isFlipped,
   flipCardId,
   isBasicEditing,
+  language = "ja",
   profileLabel = "Basic profile",
   onFlipChange,
   onOpenImageLibrary,
@@ -95,6 +97,7 @@ export function WikiHeroBasicFlipCard({
                     basic={basic}
                     disabled={disabled}
                     isEditing={isBasicEditing}
+                    language={language}
                     onCancel={onCancel}
                     onEdit={onEditBasic}
                     profileLabel={profileLabel}
@@ -132,6 +135,7 @@ export function WikiHeroBasicFlipCard({
                       className="grid gap-4"
                       itemClassName="rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-3"
                       itemStyle={cardSurfaceStyle}
+                      language={language}
                     />
                   </div>
                 </>
