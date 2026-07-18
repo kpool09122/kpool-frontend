@@ -1,5 +1,6 @@
 "use client";
 
+import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import {
@@ -71,7 +72,11 @@ const getOfficialColorsUpdate = (
   formData: FormData,
   currentValue: WikiOfficialColor[] | undefined,
 ): WikiOfficialColor[] | undefined => {
-  if (!formData.has("officialColorCode") && !formData.has("officialColorLabel")) {
+  if (
+    !formData.has("officialColorsField") &&
+    !formData.has("officialColorCode") &&
+    !formData.has("officialColorLabel")
+  ) {
     return currentValue;
   }
 
@@ -194,57 +199,80 @@ function OfficialColorsInput({
   label: string;
   values: WikiOfficialColor[] | undefined;
 }) {
+  const [colors, setColors] = useState<WikiOfficialColor[]>(() => (values ?? []).slice(0, 2));
+
   if (!isAlwaysVisible && !values?.length) {
     return null;
   }
 
-  const colorSlots = [0, 1].map((index) => values?.[index]);
+  const addColor = () => {
+    if (colors.length >= 2) {
+      return;
+    }
+
+    setColors([...colors, { colorCode: "#000000", label: "" }]);
+  };
+  const updateColor = (index: number, color: WikiOfficialColor) => {
+    setColors(colors.map((currentColor, currentIndex) => (currentIndex === index ? color : currentColor)));
+  };
+  const removeColor = (index: number) => {
+    setColors(colors.filter((_, currentIndex) => currentIndex !== index));
+  };
 
   return (
-    <fieldset className="md:col-span-2 grid min-w-0 gap-3 rounded-2xl border border-stroke-subtle bg-surface-raised p-4">
-      <legend className="px-1 text-sm font-semibold text-text-strong">{label}</legend>
-      <p className="text-sm font-semibold text-text-strong">{label}</p>
-      <span className="text-xs text-text-muted">最大2色まで、カラーコードと16文字以内のラベルを設定できます。</span>
-      <div className="grid gap-3 md:grid-cols-2">
-        {colorSlots.map((color, index) => (
-          <div className="grid min-w-0 gap-2 rounded-xl border border-stroke-subtle p-3" key={index}>
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-              Color {index + 1}
-            </span>
-            <label className="grid gap-1 text-xs font-semibold text-text-strong">
-              {`${label} color ${index + 1}`}
-              <div className="flex items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className="h-9 w-9 rounded-full border border-stroke-subtle"
-                  style={{ backgroundColor: toFormColorCode(color?.colorCode) }}
-                />
-                <input
-                  aria-label={`${label} color ${index + 1}`}
-                  className={`${basicInputClassName} h-10 flex-1 p-1`}
-                  defaultValue={toFormColorCode(color?.colorCode)}
-                  name="officialColorCode"
-                  pattern="^#[0-9a-fA-F]{6}$"
-                  type="color"
-                />
-              </div>
-            </label>
-            <label className="grid gap-1 text-xs font-semibold text-text-strong">
-              {`${label} label ${index + 1}`}
+    <div className="md:col-span-2 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+      <p>{label}</p>
+      <div className="grid min-w-0 gap-3 rounded-2xl border border-stroke-subtle bg-surface-raised p-4">
+        <input name="officialColorsField" type="hidden" value="1" />
+        <div className="grid gap-3">
+          {colors.map((color, index) => (
+            <div
+              className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-2"
+              key={index}
+            >
+              <input
+                aria-label={`${label} color ${index + 1}`}
+                className={`${basicInputClassName} h-10 w-16 p-1`}
+                name="officialColorCode"
+                onChange={(event) => updateColor(index, { ...color, colorCode: event.currentTarget.value })}
+                pattern="^#[0-9a-fA-F]{6}$"
+                type="color"
+                value={toFormColorCode(color.colorCode)}
+              />
               <input
                 aria-label={`${label} label ${index + 1}`}
                 className={basicInputClassName}
-                defaultValue={color?.label ?? ""}
                 maxLength={16}
                 name="officialColorLabel"
+                onChange={(event) => updateColor(index, { ...color, label: event.currentTarget.value })}
                 placeholder="例: Solar Gold"
                 type="text"
+                value={color.label}
               />
-            </label>
-          </div>
-        ))}
+              <button
+                aria-label={`${label} color ${index + 1} を削除`}
+                className="grid h-8 w-8 place-items-center rounded-full border border-stroke-subtle text-text-muted transition hover:bg-surface-base"
+                onClick={() => removeColor(index)}
+                type="button"
+              >
+                <Cross2Icon />
+              </button>
+            </div>
+          ))}
+        </div>
+        {colors.length < 2 ? (
+          <button
+            aria-label={`${label} を追加`}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-stroke-subtle text-text-strong"
+            onClick={addColor}
+            style={cardSurfaceMutedStyle}
+            type="button"
+          >
+            <PlusIcon />
+          </button>
+        ) : null}
       </div>
-    </fieldset>
+    </div>
   );
 }
 

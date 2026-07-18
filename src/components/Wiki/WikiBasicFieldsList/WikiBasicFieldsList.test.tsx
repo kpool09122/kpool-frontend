@@ -97,7 +97,7 @@ describe("WikiBasicFieldsList", () => {
     expect(screen.getByText("AB형")).toBeInTheDocument();
   });
 
-  it("renders official colors as swatches with labels", () => {
+  it("renders official colors as plain swatches with labels", () => {
     render(
       <WikiBasicFieldsList
         basic={{
@@ -115,11 +115,14 @@ describe("WikiBasicFieldsList", () => {
 
     expect(screen.getByText("Solar Gold")).toBeInTheDocument();
     expect(screen.getByText("Midnight Blue")).toBeInTheDocument();
-    expect(screen.getByLabelText("Solar Gold color swatch")).toHaveStyle({
+    const solarGoldSwatch = screen.getByLabelText("Solar Gold color swatch");
+    expect(solarGoldSwatch).toHaveStyle({
       backgroundColor: "#f6c453",
     });
+    expect(solarGoldSwatch).not.toHaveClass("border");
+    expect(solarGoldSwatch.parentElement).not.toHaveClass("border");
+    expect(solarGoldSwatch.parentElement).not.toHaveClass("bg-surface-base");
   });
-
 
   it("renders basic relation names as public wiki links", () => {
     render(

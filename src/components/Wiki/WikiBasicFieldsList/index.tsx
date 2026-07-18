@@ -149,15 +149,15 @@ export function WikiBasicFieldsList({
           </dt>
           <dd className={`${basicFieldTextWrapClassName} mt-1 text-sm leading-6 text-text-strong`}>
             {field.colors ? (
-              <span className="flex flex-wrap gap-2">
+              <span className="flex flex-wrap gap-x-4 gap-y-2">
                 {field.colors.map((color, index) => (
                   <span
-                    className="inline-flex min-w-0 items-center gap-2 rounded-full border border-stroke-subtle bg-surface-base px-2.5 py-1"
+                    className="inline-flex min-w-0 items-center gap-2"
                     key={`${color.colorCode}-${color.label}-${index}`}
                   >
                     <span
                       aria-label={`${color.label} color swatch`}
-                      className="h-4 w-4 shrink-0 rounded-full border border-stroke-subtle"
+                      className="h-4 w-4 shrink-0 rounded-full"
                       role="img"
                       style={getColorSwatchStyle(color)}
                     />

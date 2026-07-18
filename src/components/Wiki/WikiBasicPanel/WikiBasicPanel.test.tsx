@@ -291,9 +291,12 @@ describe("WikiBasicPanel", () => {
 
     expect(panel.getByLabelText("Group Type")).toHaveValue("");
     expect(panel.getByLabelText("Status")).toHaveValue("");
+    expect(panel.queryByLabelText("Official Colors label 1")).not.toBeInTheDocument();
+    fireEvent.click(panel.getByRole("button", { name: "Official Colors を追加" }));
     expect(panel.getByLabelText("Official Colors label 1")).toHaveValue("");
     expect(panel.getByLabelText("Official Colors label 1")).toHaveAttribute("maxLength", "16");
     expect(panel.getByLabelText("Official Colors color 1")).toHaveValue("#000000");
+    expect(panel.getByRole("button", { name: "Official Colors を追加" })).toBeInTheDocument();
     expect(panel.getByLabelText("Agency")).toHaveValue("");
   });
 
@@ -311,6 +314,9 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Official Colors を追加" }));
+    fireEvent.click(screen.getByRole("button", { name: "Official Colors を追加" }));
+    expect(screen.queryByRole("button", { name: "Official Colors を追加" })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Official Colors color 1"), {
       target: { value: "#abcdef" },
     });
@@ -332,6 +338,29 @@ describe("WikiBasicPanel", () => {
     );
   });
 
+  it("removes all official colors from the edit form", () => {
+    const onSave = vi.fn();
+
+    renderWithI18n(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, officialColors: [{ colorCode: "#abcdef", label: "Mint" }] }}
+        isEditing
+        onCancel={() => {}}
+        onEdit={() => {}}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Official Colors color 1 を削除" }));
+    expect(screen.queryByLabelText("Official Colors color 1")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        officialColors: undefined,
+      }),
+    );
+  });
 
   it("renders enum-backed basic fields as select controls with localized labels", () => {
     const { rerender } = renderWithI18n(
@@ -599,7 +628,7 @@ describe("WikiBasicPanel", () => {
 
     const fieldGrid = container.querySelector("form > div");
     const labels = Array.from(fieldGrid?.children ?? []).map((element) => {
-      const heading = element.querySelector("p")?.textContent;
+      const heading = element.querySelector("legend")?.textContent ?? element.querySelector("p")?.textContent;
       const labelElement = element.matches("label") ? element : element.querySelector("label");
       const labelText = labelElement?.childNodes[0]?.textContent;
 
@@ -655,10 +684,11 @@ describe("WikiBasicPanel", () => {
 
     const fieldGrid = container.querySelector("form > div");
     const labels = Array.from(fieldGrid?.children ?? []).map((element) => {
+      const heading = element.querySelector("legend")?.textContent;
       const labelElement = element.matches("label") ? element : element.querySelector("label");
       const labelText = labelElement?.childNodes[0]?.textContent;
 
-      return (labelText ?? "").trim();
+      return (heading ?? labelText ?? "").trim();
     });
 
     expect(labels.slice(labels.indexOf("Groups"), labels.indexOf("Groups") + 3)).toEqual([
