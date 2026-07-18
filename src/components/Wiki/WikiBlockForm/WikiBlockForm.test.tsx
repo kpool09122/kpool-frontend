@@ -1,9 +1,13 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryProfileListBlock, wikiStoryTextBlock, wikiStoryTableBlock } from "../storybook/fixtures";
 import { WikiBlockForm } from "./index";
+
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiBlockForm", () => {
   afterEach(() => {
@@ -15,7 +19,7 @@ describe("WikiBlockForm", () => {
   it("submits text block content", () => {
     const onSave = vi.fn();
 
-    render(<WikiBlockForm block={wikiStoryTextBlock} onCancel={() => {}} onSave={onSave} />);
+    renderWithI18n(<WikiBlockForm block={wikiStoryTextBlock} onCancel={() => {}} onSave={onSave} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Save" })[0]);
 
@@ -28,7 +32,7 @@ describe("WikiBlockForm", () => {
   it("submits structured table cell edits", () => {
     const onSave = vi.fn();
 
-    render(<WikiBlockForm block={wikiStoryTableBlock} onCancel={() => {}} onSave={onSave} />);
+    renderWithI18n(<WikiBlockForm block={wikiStoryTableBlock} onCancel={() => {}} onSave={onSave} />);
 
     fireEvent.change(screen.getByLabelText("Row 1 cell 1"), {
       target: { value: "Album" },
@@ -49,7 +53,7 @@ describe("WikiBlockForm", () => {
   it("submits table width changes", () => {
     const onSave = vi.fn();
 
-    render(<WikiBlockForm block={wikiStoryTableBlock} onCancel={() => {}} onSave={onSave} />);
+    renderWithI18n(<WikiBlockForm block={wikiStoryTableBlock} onCancel={() => {}} onSave={onSave} />);
 
     fireEvent.change(screen.getByLabelText("Table width"), {
       target: { value: "320" },
@@ -66,7 +70,7 @@ describe("WikiBlockForm", () => {
   it("adds a column and preserves structured cells", () => {
     const onSave = vi.fn();
 
-    render(<WikiBlockForm block={wikiStoryTableBlock} onCancel={() => {}} onSave={onSave} />);
+    renderWithI18n(<WikiBlockForm block={wikiStoryTableBlock} onCancel={() => {}} onSave={onSave} />);
 
     fireEvent.click(screen.getByRole("button", { name: "+ Column" }));
     fireEvent.change(screen.getByLabelText("Row 1 cell 1"), {
@@ -101,7 +105,7 @@ describe("WikiBlockForm", () => {
       rowCells: [[{ content: "Aurora Echo" }, { content: "2024" }]],
     };
 
-    render(<WikiBlockForm block={block} onCancel={() => {}} onSave={onSave} />);
+    renderWithI18n(<WikiBlockForm block={block} onCancel={() => {}} onSave={onSave} />);
 
     fireEvent.click(screen.getByLabelText("Row 1 cell 1"));
     fireEvent.click(screen.getByLabelText("Row 1 cell 2"), { shiftKey: true });
@@ -126,7 +130,7 @@ describe("WikiBlockForm", () => {
       rowCells: [[{ content: "Aurora Echo", colspan: 2 }]],
     };
 
-    render(<WikiBlockForm block={block} onCancel={() => {}} onSave={onSave} />);
+    renderWithI18n(<WikiBlockForm block={block} onCancel={() => {}} onSave={onSave} />);
 
     fireEvent.click(screen.getByLabelText("Row 1 cell 1"));
     fireEvent.click(screen.getByRole("button", { name: "+ Cancel connect" }));
@@ -141,7 +145,7 @@ describe("WikiBlockForm", () => {
   });
 
   it("opens the link editor from the toolbar", () => {
-    render(<WikiBlockForm block={wikiStoryTextBlock} onCancel={() => {}} onSave={() => {}} />);
+    renderWithI18n(<WikiBlockForm block={wikiStoryTextBlock} onCancel={() => {}} onSave={() => {}} />);
 
     expect(screen.queryByLabelText("Link destination")).not.toBeInTheDocument();
 
@@ -152,7 +156,7 @@ describe("WikiBlockForm", () => {
   });
 
   it("opens the link editor from a list item toolbar", () => {
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={{
           blockIdentifier: "list-1",
@@ -175,7 +179,7 @@ describe("WikiBlockForm", () => {
   });
 
   it("closes the previous list link popover when another one opens", () => {
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={{
           blockIdentifier: "list-2",
@@ -205,7 +209,7 @@ describe("WikiBlockForm", () => {
   it("submits list item inline markdown without requiring raw textarea editing", () => {
     const onSave = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={{
           blockIdentifier: "list-2",
@@ -264,7 +268,7 @@ describe("WikiBlockForm", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={wikiStoryProfileListBlock}
         onCancel={() => {}}
@@ -333,7 +337,7 @@ describe("WikiBlockForm", () => {
       ),
     );
 
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={wikiStoryProfileListBlock}
         onCancel={() => {}}
@@ -379,7 +383,7 @@ describe("WikiBlockForm", () => {
       ],
     } as typeof wikiStoryProfileListBlock;
 
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={block}
         onCancel={() => {}}
@@ -413,7 +417,7 @@ describe("WikiBlockForm", () => {
       ),
     );
 
-    render(
+    renderWithI18n(
       <WikiBlockForm
         block={wikiStoryProfileListBlock}
         onCancel={() => {}}
@@ -427,7 +431,7 @@ describe("WikiBlockForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Load related profiles" }));
 
-    expect(await screen.findByText("関連プロフィールの取得に失敗しました")).toBeInTheDocument();
+    expect(await screen.findByText("Failed to load related profiles")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).toHaveBeenCalledWith(

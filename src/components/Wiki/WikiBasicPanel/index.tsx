@@ -242,7 +242,7 @@ export function WikiBasicPanel({
   basic,
   disabled = false,
   isEditing,
-  language = "ja",
+  language = "en",
   profileLabel = `${getWikiResourceLabel(basic.resourceType as WikiResourceType)} profile`,
   onEdit,
   onCancel,
@@ -255,6 +255,9 @@ export function WikiBasicPanel({
   const isTalent = resourceType === "talent";
   const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const enumLabels = dictionary.wiki.enumLabels;
+  const heroT = dictionary.wiki.heroCard;
+  const fieldLabels = dictionary.wiki.basicFieldLabels;
+  const resolvedProfileLabel = profileLabel === "Basic profile" ? heroT.basicProfile : profileLabel;
   const groupTypeOptions = toSelectOptions(wikiGroupTypes, enumLabels.groupType);
   const statusOptions = isAgency
     ? toSelectOptions(wikiAgencyStatuses, enumLabels.agencyStatus)
@@ -379,7 +382,7 @@ export function WikiBasicPanel({
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isGroup}
-            label="Group Type"
+            label={fieldLabels.groupType}
             name="groupType"
             options={groupTypeOptions}
             value={basic.groupType}
@@ -388,65 +391,65 @@ export function WikiBasicPanel({
             <BasicSelectInput
               emptyLabel={enumLabels.empty}
               isAlwaysVisible={isAgency || isGroup}
-              label="Status"
+              label={fieldLabels.status}
               name="status"
               options={statusOptions}
               value={basic.status}
             />
           ) : (
-            <BasicTextInput label="Status" name="status" value={basic.status} />
+            <BasicTextInput label={fieldLabels.status} name="status" value={basic.status} />
           )}
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isGroup}
-            label="Generation"
+            label={fieldLabels.generation}
             name="generation"
             options={generationOptions}
             value={basic.generation}
           />
           <BasicTextInput
             isAlwaysVisible={isGroup}
-            label="Debut Date"
+            label={fieldLabels.debutDate}
             name="debutDate"
             type="date"
             value={basic.debutDate}
           />
           <BasicTextInput
             isAlwaysVisible={isGroup || isTalent}
-            label="Fandom Name"
+            label={fieldLabels.fandomName}
             name="fandomName"
             value={basic.fandomName}
           />
           <BasicTextInput
             isAlwaysVisible={isGroup || isTalent}
-            label="Representative Symbol"
+            label={fieldLabels.representativeSymbol}
             name="representativeSymbol"
             value={basic.representativeSymbol}
           />
-          <BasicTextInput isAlwaysVisible={isAgency} label="CEO" name="ceo" value={basic.ceo} />
+          <BasicTextInput isAlwaysVisible={isAgency} label={fieldLabels.ceo} name="ceo" value={basic.ceo} />
           <BasicTextInput
             isAlwaysVisible={isAgency}
-            label="Official Website"
+            label={fieldLabels.officialWebsite}
             name="officialWebsite"
             value={basic.officialWebsite}
           />
           <BasicLinesInput
             isAlwaysVisible={isAgency}
-            label="Social Links"
+            label={fieldLabels.socialLinks}
             name="socialLinks"
             values={basic.socialLinks}
           />
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isSong}
-            label="Song Type"
+            label={fieldLabels.songType}
             name="songType"
             options={songTypeOptions}
             value={basic.songType}
           />
           <BasicMultiSelectInput
             isAlwaysVisible={isSong}
-            label="Genres"
+            label={fieldLabels.genres}
             name="genres"
             options={songGenreOptions}
             values={basic.genres}
@@ -454,7 +457,7 @@ export function WikiBasicPanel({
           {showsAgencySearch ? (
             <WikiMasterSearchSelect
               language={language}
-              label="Agency"
+              label={fieldLabels.agency}
               mode="single"
               onChange={setSelectedAgency}
               resourceType="agency"
@@ -464,7 +467,7 @@ export function WikiBasicPanel({
           {showsGroupsSearch ? (
             <WikiMasterSearchSelect
               language={language}
-              label="Groups"
+              label={fieldLabels.groups}
               mode="multiple"
               onChange={setSelectedGroups}
               resourceType="group"
@@ -474,7 +477,7 @@ export function WikiBasicPanel({
           {showsTalentsSearch ? (
             <WikiMasterSearchSelect
               language={language}
-              label="Talents"
+              label={fieldLabels.talents}
               mode="multiple"
               onChange={setSelectedTalents}
               resourceType="talent"
@@ -483,58 +486,58 @@ export function WikiBasicPanel({
           ) : null}
           <BasicTextInput
             isAlwaysVisible={isSong}
-            label="Release Date"
+            label={fieldLabels.releaseDate}
             name="releaseDate"
             type="date"
             value={basic.releaseDate}
           />
           <BasicTextInput
             isAlwaysVisible={isSong}
-            label="Album"
+            label={fieldLabels.album}
             name="albumName"
             value={basic.albumName}
           />
           <BasicTextInput
             isAlwaysVisible={isSong}
-            label="Lyricist"
+            label={fieldLabels.lyricist}
             name="lyricist"
             value={basic.lyricist}
           />
           <BasicTextInput
             isAlwaysVisible={isSong}
-            label="Composer"
+            label={fieldLabels.composer}
             name="composer"
             value={basic.composer}
           />
           <BasicTextInput
             isAlwaysVisible={isSong}
-            label="Arranger"
+            label={fieldLabels.arranger}
             name="arranger"
             value={basic.arranger}
           />
           <BasicTextInput
             isAlwaysVisible={isTalent}
-            label="Real Name"
+            label={fieldLabels.realName}
             name="realName"
             value={basic.realName}
           />
           <BasicTextInput
             isAlwaysVisible={isTalent}
-            label="Birthday"
+            label={fieldLabels.birthday}
             name="birthday"
             type="date"
             value={basic.birthday}
           />
           <BasicTextInput
             isAlwaysVisible={isTalent}
-            label="Position"
+            label={fieldLabels.position}
             name="position"
             value={basic.position}
           />
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
-            label="MBTI"
+            label={fieldLabels.mbti}
             name="mbti"
             options={mbtiOptions}
             value={basic.mbti}
@@ -542,7 +545,7 @@ export function WikiBasicPanel({
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
-            label="Zodiac Sign"
+            label={fieldLabels.zodiacSign}
             name="zodiacSign"
             options={zodiacSignOptions}
             value={basic.zodiacSign}
@@ -550,14 +553,14 @@ export function WikiBasicPanel({
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
-            label="English Level"
+            label={fieldLabels.englishLevel}
             name="englishLevel"
             options={englishLevelOptions}
             value={basic.englishLevel}
           />
           <BasicTextInput
             isAlwaysVisible={isTalent}
-            label="Height"
+            label={fieldLabels.height}
             name="height"
             type="number"
             value={basic.height}
@@ -565,14 +568,14 @@ export function WikiBasicPanel({
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
-            label="Blood Type"
+            label={fieldLabels.bloodType}
             name="bloodType"
             options={bloodTypeOptions}
             value={basic.bloodType}
           />
           <BasicLinesInput
             isAlwaysVisible={isGroup}
-            label="Official Colors"
+            label={fieldLabels.officialColors}
             name="officialColors"
             values={basic.officialColors}
           />
@@ -587,14 +590,14 @@ export function WikiBasicPanel({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-            Basic
+            {heroT.basic}
           </p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-            {profileLabel}
+            {resolvedProfileLabel}
           </p>
         </div>
         <button
-          aria-label="Edit basic"
+          aria-label={heroT.editBasic}
           className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
           disabled={disabled}
           onClick={onEdit}

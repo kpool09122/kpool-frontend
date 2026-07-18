@@ -7,6 +7,7 @@ import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
 import { WikiEditPage } from "./WikiEditPage";
 import { wikiImageMaxBase64Length, wikiImageMaxFileSizeBytes } from "@kpool/wiki";
 import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
+import { I18nProvider } from "../../../../i18n/I18nProvider";
 
 const navigationMocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -39,15 +40,18 @@ const renderPage = (
   } = successState,
   saveAdapter = vi.fn().mockResolvedValue({ ok: true }),
   submitAdapter = vi.fn().mockResolvedValue({ ok: true }),
+  initialLocale: "en" | "ja" | "ko" = "en",
 ) =>
   render(
-    React.createElement(WikiEditPage, {
-      language: "ja",
-      saveAdapter,
-      slug: "gr-aurora-echo",
-      submitAdapter,
-      wikiState,
-    }),
+    <I18nProvider initialLocale={initialLocale}>
+      {React.createElement(WikiEditPage, {
+        language: "ja",
+        saveAdapter,
+        slug: "gr-aurora-echo",
+        submitAdapter,
+        wikiState,
+      })}
+    </I18nProvider>,
   );
 
 const loadCropperImage = () => {
@@ -201,7 +205,7 @@ describe("WikiEditPage", () => {
       },
     });
 
-    expect(screen.getAllByText("Talents").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("タレント").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "MOMO" })[0]).toHaveAttribute(
       "href",
       "/ko/wiki/tl-momo",
@@ -265,7 +269,7 @@ describe("WikiEditPage", () => {
         ),
       );
 
-    renderPage(successState, saveAdapter);
+    renderPage(successState, saveAdapter, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
 
@@ -289,7 +293,7 @@ describe("WikiEditPage", () => {
       "https://images.example.test/image-2.webp",
     );
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Wikiの変更を保存" }));
     await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
     expect(saveAdapter).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -336,7 +340,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     const opener = screen.getAllByRole("button", { name: "Open wiki image library" })[0];
 
@@ -379,7 +383,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -443,7 +447,7 @@ describe("WikiEditPage", () => {
         ),
       );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -558,7 +562,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -607,7 +611,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -639,7 +643,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -693,7 +697,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -733,7 +737,7 @@ describe("WikiEditPage", () => {
       ),
     );
 
-    renderPage();
+    renderPage(undefined, undefined, undefined, "ja");
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
@@ -1212,13 +1216,15 @@ describe("WikiEditPage", () => {
     expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
 
     rerender(
-      React.createElement(WikiEditPage, {
-        language: "ja",
-        saveAdapter,
-        slug: "gr-aurora-echo",
-        submitAdapter,
-        wikiState: successState,
-      }),
+      <I18nProvider initialLocale="en">
+        {React.createElement(WikiEditPage, {
+          language: "ja",
+          saveAdapter,
+          slug: "gr-aurora-echo",
+          submitAdapter,
+          wikiState: successState,
+        })}
+      </I18nProvider>,
     );
 
     expect(screen.getByRole("button", { name: "Save wiki changes" })).toBeDisabled();

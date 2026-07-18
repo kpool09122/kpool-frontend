@@ -1,10 +1,14 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 import type { WikiContentEditorId } from "@kpool/wiki";
 
 import { wikiStorySection } from "../storybook/fixtures";
 import { WikiSectionEditor } from "./index";
+
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiSectionEditor", () => {
   afterEach(() => cleanup());
@@ -13,7 +17,7 @@ describe("WikiSectionEditor", () => {
     const onEdit = vi.fn();
     const onDeleteContent = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiSectionEditor
         editingId={null}
         language="ja"
@@ -39,7 +43,7 @@ describe("WikiSectionEditor", () => {
     const onEdit = vi.fn();
     const onDeleteContent = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiSectionEditor
         disabled
         editingId={null}
@@ -71,7 +75,7 @@ describe("WikiSectionEditor", () => {
   });
 
   it("renders the section title form when editing", () => {
-    render(
+    renderWithI18n(
       <WikiSectionEditor
         editingId={`section:${wikiStorySection.sectionIdentifier}`}
         language="ja"
@@ -109,7 +113,7 @@ describe("WikiSectionEditor", () => {
       );
     }
 
-    render(<TestSectionEditor />);
+    renderWithI18n(<TestSectionEditor />);
 
     const section = screen
       .getByTestId(`wiki-edit-section-${wikiStorySection.sectionIdentifier}`);

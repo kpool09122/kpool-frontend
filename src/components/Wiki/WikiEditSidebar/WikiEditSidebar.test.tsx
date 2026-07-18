@@ -1,9 +1,13 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryDetail } from "../storybook/fixtures";
 import { WikiEditSidebar } from "./index";
+
+const renderWithI18n = (ui: React.ReactElement) =>
+  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiEditSidebar", () => {
   afterEach(() => cleanup());
@@ -17,7 +21,7 @@ describe("WikiEditSidebar", () => {
     const onToggle = vi.fn();
     const onUpdateSettings = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiEditSidebar
         canPersist
         editorMode="gui"
@@ -106,7 +110,7 @@ describe("WikiEditSidebar", () => {
     const onToggle = vi.fn();
     const onUpdateSettings = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiEditSidebar
         canPersist
         editorMode="gui"
@@ -183,7 +187,7 @@ describe("WikiEditSidebar", () => {
   it("disables editor mode controls while inline edits are pending", () => {
     const onEditorModeChange = vi.fn();
 
-    render(
+    renderWithI18n(
       <WikiEditSidebar
         canPersist
         editorMode="gui"

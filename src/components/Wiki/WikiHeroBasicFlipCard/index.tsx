@@ -7,6 +7,7 @@ import { WikiBasicPanel } from "../WikiBasicPanel";
 import { WikiHeroPanel } from "../WikiHeroPanel";
 import { EditIcon } from "../icons";
 import { cardSurfaceStyle } from "../styles";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiHeroBasicFlipCardProps = {
   heroImage: WikiDetail["heroImage"];
@@ -32,13 +33,17 @@ export function WikiHeroBasicFlipCard({
   flipCardId,
   isBasicEditing,
   language = "ja",
-  profileLabel = "Basic profile",
+  profileLabel,
   onFlipChange,
   onOpenImageLibrary,
   onEditBasic,
   onCancel,
   onSaveBasic,
 }: WikiHeroBasicFlipCardProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.heroCard;
+  const resolvedProfileLabel = profileLabel ?? t.basicProfile;
+
   return (
     <div className="grid gap-4 lg:hidden">
       <input
@@ -50,7 +55,7 @@ export function WikiHeroBasicFlipCard({
         type="checkbox"
       />
       <div
-        aria-label="Flip wiki edit card"
+        aria-label={t.flipEditCard}
         className="block"
         data-testid="wiki-edit-flip-trigger"
         role="group"
@@ -69,7 +74,7 @@ export function WikiHeroBasicFlipCard({
               />
             </div>
             <label
-              aria-label="Flip wiki edit card to basic details"
+              aria-label={t.flipEditCardToBasic}
               className={`absolute bottom-0 left-0 right-0 z-20 h-24 rounded-b-[1.75rem] ${
                 isFlipped ? "pointer-events-none" : "cursor-pointer"
               }`}
@@ -100,7 +105,7 @@ export function WikiHeroBasicFlipCard({
                     language={language}
                     onCancel={onCancel}
                     onEdit={onEditBasic}
-                    profileLabel={profileLabel}
+                    profileLabel={resolvedProfileLabel}
                     onSave={onSaveBasic}
                   />
                 </div>
@@ -109,14 +114,14 @@ export function WikiHeroBasicFlipCard({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                        Basic
+                        {t.basic}
                       </p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                        {profileLabel}
+                        {resolvedProfileLabel}
                       </p>
                     </div>
                     <button
-                      aria-label="Edit basic"
+                      aria-label={t.editBasic}
                       className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
                       disabled={disabled}
                       onClick={(event) => {
@@ -147,10 +152,10 @@ export function WikiHeroBasicFlipCard({
 
       <p className="text-center text-sm text-text-muted">
         <span className={isFlipped ? "hidden" : ""}>
-          Tap the card to flip to the basic details.
+          {t.editCoverHint}
         </span>
         <span className={isFlipped ? "inline" : "hidden"}>
-          Tap outside the form area to return to the cover image.
+          {t.editBasicHint}
         </span>
       </p>
     </div>

@@ -292,7 +292,7 @@ export function WikiEditContent({
                 }}
               >
                 <label className="grid gap-2 text-sm font-semibold text-text-strong">
-                  Title
+                  {t.editPage.titleLabel}
                   <input
                     autoFocus
                     className="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3 text-3xl font-semibold text-text-strong outline-none focus:border-text-muted lg:text-4xl"
@@ -306,7 +306,7 @@ export function WikiEditContent({
                     style={cardSurfaceStyle}
                     type="submit"
                   >
-                    Save
+                    {t.editPage.saveTitle}
                   </button>
                   <button
                     className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
@@ -314,7 +314,7 @@ export function WikiEditContent({
                     style={cardSurfaceStyle}
                     type="button"
                   >
-                    Cancel
+                    {t.editPage.cancelTitle}
                   </button>
                 </div>
               </form>
@@ -324,7 +324,7 @@ export function WikiEditContent({
                   {draft.basic.name}
                 </h1>
                 <button
-                  aria-label="Edit wiki title"
+                  aria-label={t.editPage.editTitle}
                   className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
                   disabled={isEditLocked}
                   onClick={editTitle}

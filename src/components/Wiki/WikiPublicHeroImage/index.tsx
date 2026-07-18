@@ -12,6 +12,7 @@ import {
   transparentFrameStyle,
 } from "../styles";
 import { EditIcon } from "../icons";
+import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiPublicHeroImageProps = {
   basic: WikiBasic;
@@ -28,8 +29,11 @@ export function WikiPublicHeroImage({
   heroImage,
   flipCardId,
   language = "ja",
-  profileLabel = "Basic profile",
+  profileLabel,
 }: WikiPublicHeroImageProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.heroCard;
+  const resolvedProfileLabel = profileLabel ?? t.basicProfile;
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
@@ -44,7 +48,7 @@ export function WikiPublicHeroImage({
             type="checkbox"
           />
           <div
-            aria-label="Flip wiki card"
+            aria-label={t.flipPublicCard}
             className="block"
             data-testid="wiki-flip-trigger"
             role="group"
@@ -72,7 +76,7 @@ export function WikiPublicHeroImage({
                   </div>
                 </div>
                 <label
-                  aria-label="Flip wiki card to basic details"
+                  aria-label={t.flipPublicCardToBasic}
                   className={`absolute inset-0 z-30 rounded-[2rem] ${
                     isFlipped ? "pointer-events-none" : "cursor-pointer"
                   }`}
@@ -90,15 +94,15 @@ export function WikiPublicHeroImage({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                        Basic
+                        {t.basic}
                       </p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                        {profileLabel}
+                        {resolvedProfileLabel}
                       </p>
                     </div>
                     {editHref ? (
                       <Link
-                        aria-label="Edit basic"
+                        aria-label={t.editBasic}
                         className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
                         href={editHref}
                         onClick={(event) => event.stopPropagation()}
@@ -127,10 +131,10 @@ export function WikiPublicHeroImage({
 
           <p className="text-center text-sm text-text-muted">
             <span className={isFlipped ? "hidden" : ""}>
-              Tap anywhere on the card to flip to the basic details.
+              {t.publicCoverHint}
             </span>
             <span className={isFlipped ? "inline" : "hidden"}>
-              Tap the card again to return to the cover image.
+              {t.publicBasicHint}
             </span>
           </p>
         </div>
@@ -163,12 +167,12 @@ export function WikiPublicHeroImage({
                 Basic
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                {profileLabel}
+                {resolvedProfileLabel}
               </p>
             </div>
             {editHref ? (
               <Link
-                aria-label="Edit basic"
+                aria-label={t.editBasic}
                 className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
                 href={editHref}
                 style={cardSurfaceStyle}
