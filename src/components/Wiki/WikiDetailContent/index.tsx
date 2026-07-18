@@ -7,6 +7,7 @@ import {
 import { useId } from "react";
 
 import { WikiPublicHeroImage } from "../WikiPublicHeroImage/index";
+import { WikiContentTabs } from "../WikiContentTabs/index";
 import { WikiSectionAccordion } from "../WikiSectionAccordion/index";
 import { getWikiResourceLabel } from "@kpool/wiki";
 import { useI18n } from "../../../i18n/I18nProvider";
@@ -46,18 +47,27 @@ export function WikiDetailContent({
         profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}
       />
 
-      <section className="space-y-5">
-        <div className="space-y-4">
-          {sections.map((section) => (
-            <WikiSectionAccordion
-              editHref={editHref}
-              key={section.sectionIdentifier}
-              language={language}
-              section={section}
-            />
-          ))}
-        </div>
-      </section>
+      <WikiContentTabs
+        ariaLabel={t.contentTabsLabel}
+        tabs={[
+          {
+            id: "wiki",
+            label: t.contentWikiTab,
+            panel: (
+              <div className="space-y-4">
+                {sections.map((section) => (
+                  <WikiSectionAccordion
+                    editHref={editHref}
+                    key={section.sectionIdentifier}
+                    language={language}
+                    section={section}
+                  />
+                ))}
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

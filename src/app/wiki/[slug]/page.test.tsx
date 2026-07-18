@@ -128,6 +128,9 @@ describe("WikiDetailPage", () => {
 
     expect(screen.getAllByRole("heading", { name: "Aurora Echo" })[0]).toBeInTheDocument();
     expect(screen.getAllByText("Aurora Echo")[0]).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Wiki content tabs" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toBeInTheDocument();
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Members")).toBeInTheDocument();
     expect(screen.getAllByText("タレント").length).toBeGreaterThan(0);

@@ -5,12 +5,6 @@ import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import {
-  getWikiResourceTypeFromSlug,
-  type WikiResourceType,
-  getWikiResourceLabel,
-  wikiResourceTypes,
-} from "@kpool/wiki";
-import {
   getWikiFontStyleOptionsForLanguage,
   type WikiEditorMode,
   type WikiPreviewMode,
@@ -89,11 +83,10 @@ type WikiEditSidebarProps = {
   onSubmit: () => void;
   onToggle: () => void;
   onUpdateSettings: (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
+    settings: Partial<Pick<WikiDetail, "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => void;
   previewMode: WikiPreviewMode;
   language: string;
-  resourceType: WikiDetail["resourceType"];
   slug: string;
   themeColor: string | null | undefined;
   fontStyle: WikiFontStyle | string | null | undefined;
@@ -118,7 +111,6 @@ export function WikiEditSidebar({
   onUpdateSettings,
   previewMode,
   language,
-  resourceType,
   slug,
   themeColor,
   fontStyle,
@@ -138,16 +130,12 @@ export function WikiEditSidebar({
     () => keywords && keywords.length > 0 ? keywords : [""],
   );
   const updateSettings = (
-    settings: Partial<Pick<WikiDetail, "resourceType" | "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
+    settings: Partial<Pick<WikiDetail, "slug" | "themeColor" | "fontStyle" | "title" | "metaDescription" | "keywords">>,
   ) => {
     if (!isEditControlDisabled) {
       onUpdateSettings(settings);
     }
   };
-  const resolvedResourceType =
-    (resourceType as WikiResourceType | undefined) ??
-    getWikiResourceTypeFromSlug(slug) ??
-    "group";
   const updateKeywords = (nextKeywords: string[]) => {
     setKeywordInputs(nextKeywords);
     updateSettings({ keywords: nextKeywords });
@@ -241,26 +229,6 @@ export function WikiEditSidebar({
                 ))}
               </div>
             </fieldset>
-
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">
-              {t.resourceType}
-              <select
-                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
-                disabled={isEditControlDisabled}
-                onChange={(event) =>
-                  updateSettings({
-                    resourceType: event.currentTarget.value as WikiResourceType,
-                  })
-                }
-                value={resolvedResourceType}
-              >
-                {wikiResourceTypes.map((nextResourceType) => (
-                  <option key={nextResourceType} value={nextResourceType}>
-                    {getWikiResourceLabel(nextResourceType)}
-                  </option>
-                ))}
-              </select>
-            </label>
 
             <fieldset className="grid gap-3">
               <legend className="text-sm font-semibold text-text-strong">{t.themeColor}</legend>

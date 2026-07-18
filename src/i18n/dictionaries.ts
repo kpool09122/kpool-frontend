@@ -291,6 +291,8 @@ const ja = {
     addSection: "+ Section",
     theme: "Theme",
     profileSuffix: "profile",
+    contentTabsLabel: "Wiki本文タブ",
+    contentWikiTab: "Wiki",
     editPage: {
       titleLabel: "Wikiタイトル",
       saveTitle: "保存",
@@ -865,6 +867,8 @@ const en: typeof ja = {
     addSection: "+ Section",
     theme: "Theme",
     profileSuffix: "profile",
+    contentTabsLabel: "Wiki content tabs",
+    contentWikiTab: "Wiki",
     editPage: {
       titleLabel: "Title",
       saveTitle: "Save",
@@ -1436,6 +1440,8 @@ const ko: typeof ja = {
     addSection: "+ 섹션",
     theme: "테마",
     profileSuffix: "프로필",
+    contentTabsLabel: "Wiki 본문 탭",
+    contentWikiTab: "Wiki",
     editPage: {
       titleLabel: "Wiki 제목",
       saveTitle: "저장",

@@ -5,6 +5,7 @@ export { WikiBlockDisplay } from "./WikiBlockDisplay/index";
 export { WikiBlockEditorItem } from "./WikiBlockEditorItem/index";
 export { WikiBlockForm } from "./WikiBlockForm/index";
 export { WikiCodeEditor } from "./WikiCodeEditor/index";
+export { WikiContentTabs, type WikiContentTab } from "./WikiContentTabs/index";
 export { WikiDetailContent } from "./WikiDetailContent/index";
 export { WikiEditSidebar } from "./WikiEditSidebar/index";
 export { WikiHeroBasicFlipCard } from "./WikiHeroBasicFlipCard/index";
