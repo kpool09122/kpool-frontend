@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   getWikiBasicFields,
   type WikiBasic,
+  type WikiOfficialColor,
   type WikiResourceType,
   wikiAgencyStatuses,
   wikiBloodTypes,
@@ -29,6 +30,11 @@ type WikiBasicFieldsListProps = {
 
 type EnumLabelMap = Record<string, string>;
 type BasicFieldLabelKey = keyof (typeof dictionaries)["ja"]["wiki"]["basicFieldLabels"];
+
+const colorCodePattern = /^#[0-9a-fA-F]{6}$/;
+
+const getColorSwatchStyle = (color: WikiOfficialColor): CSSProperties =>
+  colorCodePattern.test(color.colorCode) ? { backgroundColor: color.colorCode } : {};
 
 const basicFieldLabelKeys: Record<string, BasicFieldLabelKey> = {
   "Group Type": "groupType",
@@ -142,7 +148,24 @@ export function WikiBasicFieldsList({
             {formatFieldLabel(field.label)}
           </dt>
           <dd className={`${basicFieldTextWrapClassName} mt-1 text-sm leading-6 text-text-strong`}>
-            {field.links ? (
+            {field.colors ? (
+              <span className="flex flex-wrap gap-2">
+                {field.colors.map((color, index) => (
+                  <span
+                    className="inline-flex min-w-0 items-center gap-2 rounded-full border border-stroke-subtle bg-surface-base px-2.5 py-1"
+                    key={`${color.colorCode}-${color.label}-${index}`}
+                  >
+                    <span
+                      aria-label={`${color.label} color swatch`}
+                      className="h-4 w-4 shrink-0 rounded-full border border-stroke-subtle"
+                      role="img"
+                      style={getColorSwatchStyle(color)}
+                    />
+                    <span className={basicFieldTextWrapClassName}>{color.label}</span>
+                  </span>
+                ))}
+              </span>
+            ) : field.links ? (
               <span className={`${basicFieldTextWrapClassName} flex flex-wrap gap-x-2 gap-y-1`}>
                 {field.links.map((link, index) => (
                   <span className={basicFieldTextWrapClassName} key={`${link.href}-${index}`}>

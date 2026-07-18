@@ -389,7 +389,7 @@ export const createMockWikiDetail = (
             fandomName: "ONCE",
             emoji: "🍭",
             representativeSymbol: "Candy bong",
-            officialColors: ["Apricot", "Neon Magenta"],
+            officialColors: [{ colorCode: "#fbceb1", label: "Apricot" }, { colorCode: "#ff10f0", label: "Neon Magenta" }],
             agencyName: "JYP Entertainment",
           }
         : twiceMember
@@ -403,7 +403,7 @@ export const createMockWikiDetail = (
               fandomName: "ONCE",
               emoji: twiceMember.emoji,
               representativeSymbol: twiceMember.symbol,
-              officialColors: [...twiceMember.colors],
+              officialColors: twiceMember.colors.map((label) => ({ colorCode: "#000000", label })),
               agencyName: "JYP Entertainment",
               realName: twiceMember.name,
               position: "Member",
@@ -419,7 +419,7 @@ export const createMockWikiDetail = (
             fandomName: "Daybreak",
             emoji: "🌅",
             representativeSymbol: "Solar wave",
-            officialColors: ["Solar Gold", "Midnight Blue", "Pearl Mist"],
+            officialColors: [{ colorCode: "#f6c453", label: "Solar Gold" }, { colorCode: "#1f3b73", label: "Midnight Blue" }],
             agencyName: "North Harbor Entertainment",
           },
     sections: isTwiceGroupSlug

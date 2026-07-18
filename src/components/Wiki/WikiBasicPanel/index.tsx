@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   getWikiResourceLabel,
   type WikiBasic,
+  type WikiOfficialColor,
   type WikiMasterSearchItem,
   type WikiResourceType,
   wikiAgencyStatuses,
@@ -60,6 +61,36 @@ const getLinesUpdate = (
   currentValue: string[] | undefined,
 ): string[] | undefined =>
   formData.has(name) ? getLines(formData, name) : currentValue;
+
+const colorCodePattern = /^#[0-9a-fA-F]{6}$/;
+
+const toFormColorCode = (value: string | undefined): string =>
+  value && colorCodePattern.test(value) ? value : "#000000";
+
+const getOfficialColorsUpdate = (
+  formData: FormData,
+  currentValue: WikiOfficialColor[] | undefined,
+): WikiOfficialColor[] | undefined => {
+  if (!formData.has("officialColorCode") && !formData.has("officialColorLabel")) {
+    return currentValue;
+  }
+
+  const colorCodes = formData.getAll("officialColorCode");
+  const labels = formData.getAll("officialColorLabel");
+  const colors = colorCodes.flatMap((colorCodeValue, index): WikiOfficialColor[] => {
+    const colorCode = typeof colorCodeValue === "string" ? colorCodeValue.trim() : "";
+    const labelValue = labels[index];
+    const label = typeof labelValue === "string" ? labelValue.trim().slice(0, 16) : "";
+
+    if (!colorCodePattern.test(colorCode) || !label) {
+      return [];
+    }
+
+    return [{ colorCode, label }];
+  });
+
+  return colors.length > 0 ? colors.slice(0, 2) : undefined;
+};
 
 const getOptionalStringListUpdate = (
   formData: FormData,
@@ -151,6 +182,69 @@ function BasicLinesInput({
         name={name}
       />
     </label>
+  );
+}
+
+function OfficialColorsInput({
+  isAlwaysVisible = false,
+  label,
+  values,
+}: {
+  isAlwaysVisible?: boolean;
+  label: string;
+  values: WikiOfficialColor[] | undefined;
+}) {
+  if (!isAlwaysVisible && !values?.length) {
+    return null;
+  }
+
+  const colorSlots = [0, 1].map((index) => values?.[index]);
+
+  return (
+    <fieldset className="md:col-span-2 grid min-w-0 gap-3 rounded-2xl border border-stroke-subtle bg-surface-raised p-4">
+      <legend className="px-1 text-sm font-semibold text-text-strong">{label}</legend>
+      <p className="text-sm font-semibold text-text-strong">{label}</p>
+      <span className="text-xs text-text-muted">最大2色まで、カラーコードと16文字以内のラベルを設定できます。</span>
+      <div className="grid gap-3 md:grid-cols-2">
+        {colorSlots.map((color, index) => (
+          <div className="grid min-w-0 gap-2 rounded-xl border border-stroke-subtle p-3" key={index}>
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+              Color {index + 1}
+            </span>
+            <label className="grid gap-1 text-xs font-semibold text-text-strong">
+              {`${label} color ${index + 1}`}
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="h-9 w-9 rounded-full border border-stroke-subtle"
+                  style={{ backgroundColor: toFormColorCode(color?.colorCode) }}
+                />
+                <input
+                  aria-label={`${label} color ${index + 1}`}
+                  className={`${basicInputClassName} h-10 flex-1 p-1`}
+                  defaultValue={toFormColorCode(color?.colorCode)}
+                  name="officialColorCode"
+                  pattern="^#[0-9a-fA-F]{6}$"
+                  type="color"
+                />
+              </div>
+            </label>
+            <label className="grid gap-1 text-xs font-semibold text-text-strong">
+              {`${label} label ${index + 1}`}
+              <input
+                aria-label={`${label} label ${index + 1}`}
+                className={basicInputClassName}
+                defaultValue={color?.label ?? ""}
+                maxLength={16}
+                name="officialColorLabel"
+                placeholder="例: Solar Gold"
+                type="text"
+              />
+            </label>
+          </div>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -349,11 +443,7 @@ export function WikiBasicPanel({
             height: getOptionalNumberUpdate(formData, "height", basic.height),
             lyricist: getOptionalStringUpdate(formData, "lyricist", basic.lyricist),
             mbti: getOptionalStringUpdate(formData, "mbti", basic.mbti),
-            officialColors: getLinesUpdate(
-              formData,
-              "officialColors",
-              basic.officialColors,
-            ),
+            officialColors: getOfficialColorsUpdate(formData, basic.officialColors),
             officialWebsite: getOptionalStringUpdate(
               formData,
               "officialWebsite",
@@ -573,10 +663,9 @@ export function WikiBasicPanel({
             options={bloodTypeOptions}
             value={basic.bloodType}
           />
-          <BasicLinesInput
+          <OfficialColorsInput
             isAlwaysVisible={isGroup}
             label={fieldLabels.officialColors}
-            name="officialColors"
             values={basic.officialColors}
           />
         </div>

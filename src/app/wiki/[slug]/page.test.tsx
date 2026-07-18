@@ -30,7 +30,7 @@ const successState: WikiDetailState = {
       fandomName: "Daybreak",
       emoji: "🌅",
       representativeSymbol: "Solar wave",
-        officialColors: ["Solar Gold", "Midnight Blue"],
+        officialColors: [{ colorCode: "#f6c453", label: "Solar Gold" }, { colorCode: "#1f3b73", label: "Midnight Blue" }],
         agencyName: "North Harbor Entertainment",
         talents: [
           {

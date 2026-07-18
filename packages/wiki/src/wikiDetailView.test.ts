@@ -19,7 +19,7 @@ const basic: WikiBasic = {
   fandomName: "Daybreak",
   emoji: "🌅",
   representativeSymbol: "Solar wave",
-  officialColors: ["Solar Gold", "Midnight Blue"],
+  officialColors: [{ colorCode: "#f6c453", label: "Solar Gold" }, { colorCode: "#1f3b73", label: "Midnight Blue" }],
   agency: {
     wikiIdentifier: "agency-wiki-1",
     slug: "ag-north-harbor-entertainment",
@@ -110,7 +110,14 @@ describe("wikiDetailView", () => {
         ],
         value: "MOMO, SANA",
       },
-      { label: "Official Colors", value: "Solar Gold, Midnight Blue" },
+      {
+        label: "Official Colors",
+        value: "Solar Gold, Midnight Blue",
+        colors: [
+          { colorCode: "#f6c453", label: "Solar Gold" },
+          { colorCode: "#1f3b73", label: "Midnight Blue" },
+        ],
+      },
     ]);
   });
 
