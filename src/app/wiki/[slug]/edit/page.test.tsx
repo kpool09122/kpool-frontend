@@ -96,7 +96,7 @@ describe("WikiEditPage", () => {
     expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "gui" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "code" })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByLabelText("Resource type")).toHaveValue("group");
+    expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Preview mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
@@ -106,6 +106,9 @@ describe("WikiEditPage", () => {
       "true",
     );
     expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "light");
+    expect(screen.getByRole("tablist", { name: "Wiki content tabs" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toBeInTheDocument();
     expect(screen.getAllByTestId("wiki-edit-flip-input")[0]).not.toBeChecked();
     expect(screen.getAllByText("Selected image").length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Edit hero image" })).not.toBeInTheDocument();
@@ -132,7 +135,7 @@ describe("WikiEditPage", () => {
     expect(submitButton).toHaveTextContent("Under review");
     expect(screen.getByRole("button", { name: "Clear wiki changes" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "code" })).toBeDisabled();
-    expect(screen.getByLabelText("Resource type")).toBeDisabled();
+    expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Theme color")).toBeDisabled();
 
     fireEvent.click(saveButton);
@@ -1369,14 +1372,10 @@ describe("WikiEditPage", () => {
     );
   });
 
-  it("moves resource type editing into the sidebar without showing slug controls", () => {
+  it("does not show resource type or slug controls in the sidebar", () => {
     renderPage();
 
-    fireEvent.change(screen.getByLabelText("Resource type"), {
-      target: { value: "song" },
-    });
-
-    expect(screen.getByLabelText("Resource type")).toHaveValue("song");
+    expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
   });
 

@@ -21,7 +21,6 @@ const meta = {
     onUpdateSettings: noop,
     previewMode: "light",
     language: wikiStoryDetail.language,
-    resourceType: wikiStoryDetail.resourceType,
     slug: wikiStoryDetail.slug,
     themeColor: wikiStoryDetail.themeColor,
     fontStyle: wikiStoryDetail.fontStyle,
@@ -95,7 +94,6 @@ export const Default: Story = {
             }}
             previewMode={previewMode}
             language={args.language}
-            resourceType={args.resourceType}
             slug={slug}
             themeColor={themeColor}
             fontStyle={fontStyle}

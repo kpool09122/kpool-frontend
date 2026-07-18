@@ -36,7 +36,6 @@ describe("WikiEditSidebar", () => {
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
         language="ja"
-        resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
         fontStyle="ja_gothic"
@@ -59,9 +58,7 @@ describe("WikiEditSidebar", () => {
     expect(screen.getByRole("option", { name: "JP Pop" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "KR Gothic" })).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "EN Serif" })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Resource type"), {
-      target: { value: "song" },
-    });
+    expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
     fireEvent.change(fontStyleSelect, {
       target: { value: "ja_mincho" },
     });
@@ -92,7 +89,6 @@ describe("WikiEditSidebar", () => {
     expect(onEditorModeChange).toHaveBeenCalledWith("code");
     expect(onPreviewModeChange).toHaveBeenCalledWith("dark");
     expect(onToggle).toHaveBeenCalled();
-    expect(onUpdateSettings).toHaveBeenCalledWith({ resourceType: "song" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ fontStyle: "ja_mincho" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ title: "Updated SEO title" });
     expect(onUpdateSettings).toHaveBeenCalledWith({ metaDescription: "Updated meta description" });
@@ -126,7 +122,6 @@ describe("WikiEditSidebar", () => {
         onUpdateSettings={onUpdateSettings}
         previewMode="light"
         language="ja"
-        resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
         fontStyle="ja_gothic"
@@ -141,7 +136,6 @@ describe("WikiEditSidebar", () => {
     const clearButton = screen.getByRole("button", { name: "Clear wiki changes" });
     const codeButton = screen.getByRole("button", { name: "code" });
     const previewDarkButton = screen.getByRole("button", { name: "Dark" });
-    const resourceTypeSelect = screen.getByLabelText("Resource type");
     const themeColorInput = screen.getByLabelText("Theme color");
     const fontStyleSelect = screen.getByLabelText("Font style");
     const seoTitleInput = screen.getByLabelText("Metadata title");
@@ -155,7 +149,7 @@ describe("WikiEditSidebar", () => {
     expect(submitButton).toHaveTextContent("Under review");
     expect(clearButton).toBeDisabled();
     expect(codeButton).toBeDisabled();
-    expect(resourceTypeSelect).toBeDisabled();
+    expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
     expect(themeColorInput).toBeDisabled();
     expect(fontStyleSelect).toBeDisabled();
     expect(seoTitleInput).toBeDisabled();
@@ -168,9 +162,6 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(submitButton);
     fireEvent.click(clearButton);
     fireEvent.click(codeButton);
-    fireEvent.change(resourceTypeSelect, {
-      target: { value: "song" },
-    });
     fireEvent.change(fontStyleSelect, {
       target: { value: "ja_mincho" },
     });
@@ -203,7 +194,6 @@ describe("WikiEditSidebar", () => {
         onUpdateSettings={vi.fn()}
         previewMode="light"
         language="ja"
-        resourceType="group"
         slug={wikiStoryDetail.slug}
         themeColor={wikiStoryDetail.themeColor}
         fontStyle="ja_gothic"

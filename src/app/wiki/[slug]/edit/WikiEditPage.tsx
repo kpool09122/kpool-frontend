@@ -9,6 +9,7 @@ import {
   type WikiPreviewMode,
   WikiBasicPanel,
   WikiCodeEditor,
+  WikiContentTabs,
   WikiEditSidebar,
   WikiHeroBasicFlipCard,
   WikiHeroPanel,
@@ -387,40 +388,51 @@ export function WikiEditContent({
           </section>
 
           {editorMode === "gui" ? (
-            <section className="space-y-5">
-              {draft.sections.map((section) => (
-                <WikiSectionEditor
-                  editingId={editingId}
-                  key={section.sectionIdentifier}
-                  language={language}
-                  onAddBlock={addBlock}
-                  onAddSection={addSection}
-                  onCancel={cancelEditing}
-                  onDeleteContent={deleteContent}
-                  disabled={isEditLocked}
-                  onEdit={setEditingId}
-                  onSaveBlock={(blockIdentifier, changes) => {
-                    updateBlock(blockIdentifier, changes);
-                    closeEditor();
-                  }}
-                  onSaveSection={(sectionIdentifier, changes) => {
-                    updateSection(sectionIdentifier, changes);
-                    closeEditor();
-                  }}
-                  section={section}
-                  sourceWiki={sourceWiki}
-                />
-              ))}
-              <button
-                className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
-                disabled={isEditLocked}
-                onClick={() => addSection()}
-                style={cardSurfaceStyle}
-                type="button"
-              >
-                {t.addSection}
-              </button>
-            </section>
+            <WikiContentTabs
+              ariaLabel={t.contentTabsLabel}
+              tabs={[
+                {
+                  id: "wiki",
+                  label: t.contentWikiTab,
+                  panel: (
+                    <div className="space-y-5">
+                      {draft.sections.map((section) => (
+                        <WikiSectionEditor
+                          editingId={editingId}
+                          key={section.sectionIdentifier}
+                          language={language}
+                          onAddBlock={addBlock}
+                          onAddSection={addSection}
+                          onCancel={cancelEditing}
+                          onDeleteContent={deleteContent}
+                          disabled={isEditLocked}
+                          onEdit={setEditingId}
+                          onSaveBlock={(blockIdentifier, changes) => {
+                            updateBlock(blockIdentifier, changes);
+                            closeEditor();
+                          }}
+                          onSaveSection={(sectionIdentifier, changes) => {
+                            updateSection(sectionIdentifier, changes);
+                            closeEditor();
+                          }}
+                          section={section}
+                          sourceWiki={sourceWiki}
+                        />
+                      ))}
+                      <button
+                        className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
+                        disabled={isEditLocked}
+                        onClick={() => addSection()}
+                        style={cardSurfaceStyle}
+                        type="button"
+                      >
+                        {t.addSection}
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           ) : (
             <WikiCodeEditor
               code={code}
@@ -465,7 +477,6 @@ export function WikiEditContent({
           }}
           previewMode={previewMode}
           language={draft.language}
-          resourceType={draft.resourceType}
           slug={draft.slug}
           themeColor={draft.themeColor}
           fontStyle={draft.fontStyle}
