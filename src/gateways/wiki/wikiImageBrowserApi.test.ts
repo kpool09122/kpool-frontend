@@ -2,14 +2,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createWikiImageDeletionRequest,
+  createWikiImageDeletionRequestReview,
   createWikiImageUploadRequest,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
 } from "@kpool/wiki";
 import {
   approveWikiDraftImage,
+  approveWikiImageDeletionRequest,
+  fetchWikiImageDeletionRequests,
   fetchWikiImages,
   rejectWikiDraftImage,
+  rejectWikiImageDeletionRequest,
   requestWikiImageDeletion,
   uploadWikiImageRequest,
 } from "./wikiImageBrowserApi";
@@ -53,6 +57,75 @@ describe("wikiImageBrowserApi", () => {
         },
       },
     );
+  });
+
+
+  it("fetches image deletion requests through the browser route", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        images: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 12,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchWikiImageDeletionRequests({
+      fallbackErrorMessage: "List failed",
+      page: 1,
+      perPage: 12,
+    });
+
+    expect(result.total).toBe(0);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/image-deletion-requests?perPage=12&page=1",
+    );
+  });
+
+  it("reviews image deletion requests with credentials, body, and the review header", async () => {
+    const requestBody = createWikiImageDeletionRequestReview({ reviewerComment: "OK to delete" });
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        imageIdentifier,
+        reviewerComment: "OK to delete",
+        isHidden: true,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await approveWikiImageDeletionRequest({
+      fallbackErrorMessage: "Approve deletion failed",
+      imageIdentifier,
+      requestBody,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/wiki/image-deletion-requests/${imageIdentifier}/approve`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+  });
+
+  it("throws when image deletion request review responses do not match the schema", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
+
+    await expect(
+      rejectWikiImageDeletionRequest({
+        fallbackErrorMessage: "Reject deletion failed",
+        imageIdentifier,
+        requestBody: createWikiImageDeletionRequestReview({ reviewerComment: "Reject" }),
+      }),
+    ).rejects.toThrow();
   });
 
   it("fetches uploaded images through the browser image route", async () => {

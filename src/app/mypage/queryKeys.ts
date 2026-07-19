@@ -40,6 +40,25 @@ export const myPageQueryKeys = {
       wikiIdentifier,
     }), page] as const,
   },
+  imageDeletionRequests: {
+    all: () => [...myPageQueryKeys.all, "imageDeletionRequests"] as const,
+    list: ({
+      identityIdentifier,
+    }: {
+      identityIdentifier: string | null;
+    }) => [
+      ...myPageQueryKeys.imageDeletionRequests.all(),
+      "list",
+      identityIdentifier ?? "guest",
+    ] as const,
+    page: ({
+      identityIdentifier,
+      page,
+    }: {
+      identityIdentifier: string | null;
+      page: number;
+    }) => [...myPageQueryKeys.imageDeletionRequests.list({ identityIdentifier }), page] as const,
+  },
   draftWikis: {
     all: () => [...myPageQueryKeys.all, "draftWikis"] as const,
     list: ({

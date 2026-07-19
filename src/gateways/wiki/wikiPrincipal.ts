@@ -153,6 +153,8 @@ export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boole
   isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
 
+export const canReviewWikiImageDeletionRequests = canReviewWikiDraftImages;
+
 const draftWikiReviewResourceTypes = ["AGENCY", "GROUP", "SONG", "TALENT"] as const;
 export const draftWikiAutoCreateResourceTypes = ["agency", "group", "song", "talent"] as const;
 

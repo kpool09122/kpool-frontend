@@ -28,6 +28,11 @@ export const wikiDraftImageListResponseSchema = wikiPrivateApiTypes.schemas.List
 export const wikiImageUploadResponseSchema = wikiPrivateApiTypes.schemas.ImageDraftSummary;
 export const wikiImageDeletionRequestSchema = wikiPrivateApiTypes.schemas.RequestImageDeletionRequestBody;
 export const wikiImageDeletionRequestResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionRequestSummary;
+export const wikiImageDeletionRequestListResponseSchema = wikiPrivateApiTypes.schemas.ListImageDeletionRequestsResponseBody;
+export const wikiImageDeletionRequestReviewRequestSchema = wikiPrivateApiTypes.schemas.ReviewImageDeletionRequestBody.extend({
+  reviewerComment: z.string().trim().min(1),
+});
+export const wikiImageDeletionRequestReviewResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionReviewSummary;
 export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
 });
@@ -44,6 +49,10 @@ export type WikiImageUploadRequest = z.infer<typeof wikiImageUploadRequestSchema
 export type WikiImageUploadResponse = z.infer<typeof wikiImageUploadResponseSchema>;
 export type WikiImageDeletionRequest = z.infer<typeof wikiImageDeletionRequestSchema>;
 export type WikiImageDeletionRequestResponse = z.infer<typeof wikiImageDeletionRequestResponseSchema>;
+export type WikiImageDeletionRequestListItem = z.infer<typeof wikiPrivateApiTypes.schemas.ImageDeletionRequestListItem>;
+export type WikiImageDeletionRequestListResponse = z.infer<typeof wikiImageDeletionRequestListResponseSchema>;
+export type WikiImageDeletionRequestReviewRequest = z.infer<typeof wikiImageDeletionRequestReviewRequestSchema>;
+export type WikiImageDeletionRequestReviewResponse = z.infer<typeof wikiImageDeletionRequestReviewResponseSchema>;
 export type WikiImageReviewResponse = z.infer<typeof wikiImageReviewResponseSchema>;
 export type WikiDraftImageStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftImageStatus>;
 
@@ -225,6 +234,34 @@ export const createWikiDraftImageReviewUrl = ({
 }): string =>
   `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/${action}`;
 
+export const createWikiImageDeletionRequestsUrl = ({
+  baseUrl,
+  page,
+  perPage,
+}: {
+  baseUrl: string;
+  page: number;
+  perPage: number;
+}): string => {
+  const url = new URL(`${trimTrailingSlashes(baseUrl)}/image-deletion-requests`);
+
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  return url.toString();
+};
+
+export const createWikiImageDeletionRequestReviewUrl = ({
+  action,
+  baseUrl,
+  imageIdentifier,
+}: {
+  action: "approve" | "reject";
+  baseUrl: string;
+  imageIdentifier: string;
+}): string =>
+  `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/${action}-deletion`;
+
 export const createWikiImageDeletionRequestUrl = ({
   baseUrl,
   imageIdentifier,
@@ -233,6 +270,15 @@ export const createWikiImageDeletionRequestUrl = ({
   imageIdentifier: string;
 }): string =>
   `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/request-deletion`;
+
+export const createWikiImageDeletionRequestReview = ({
+  reviewerComment,
+}: {
+  reviewerComment: string;
+}): WikiImageDeletionRequestReviewRequest =>
+  parseWikiSchema(wikiImageDeletionRequestReviewRequestSchema, {
+    reviewerComment: reviewerComment.trim(),
+  });
 
 export const createWikiImageDeletionRequest = ({
   reason,

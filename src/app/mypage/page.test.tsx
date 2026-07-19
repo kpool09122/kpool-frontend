@@ -162,6 +162,22 @@ const draftImage = {
   uploadedAt: "2026-05-09T00:00:00Z",
 };
 
+const imageDeletionRequest = {
+  imageIdentifier: "77777777-7777-7777-7777-777777777777",
+  url: "https://images.example.test/delete.png",
+  resourceType: "group",
+  translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
+  displayOrder: 2,
+  sourceUrl: "https://source.example.test/delete.png",
+  sourceName: "Deletion archive",
+  altText: "Deletion image",
+  isHidden: true,
+  uploadedAt: "2026-05-10T00:00:00Z",
+  name: "Deletion Requester",
+  email: "requester@example.test",
+  reason: "Rights concern",
+};
+
 const draftWiki = {
   wikiIdentifier: "88888888-8888-8888-8888-888888888888",
   publishedWikiIdentifier: null,
@@ -204,8 +220,20 @@ const createDraftImageAdapter = (
     resourceType: "group",
     status: "approved",
   }),
+  approveImageDeletionRequest: vi.fn().mockResolvedValue({
+    imageIdentifier: imageDeletionRequest.imageIdentifier,
+    reviewerComment: "OK to delete",
+    isHidden: true,
+  }),
   listDraftImages: vi.fn().mockResolvedValue({
     images: [draftImage],
+    current_page: 1,
+    last_page: 1,
+    total: 1,
+    per_page: 12,
+  }),
+  listImageDeletionRequests: vi.fn().mockResolvedValue({
+    images: [imageDeletionRequest],
     current_page: 1,
     last_page: 1,
     total: 1,
@@ -214,6 +242,11 @@ const createDraftImageAdapter = (
   rejectDraftImage: vi.fn().mockResolvedValue({
     imageIdentifier: draftImage.imageIdentifier,
     resourceType: "group",
+    isHidden: false,
+  }),
+  rejectImageDeletionRequest: vi.fn().mockResolvedValue({
+    imageIdentifier: imageDeletionRequest.imageIdentifier,
+    reviewerComment: "Reject",
     isHidden: false,
   }),
   ...overrides,
@@ -422,6 +455,7 @@ describe("MyPageClient", () => {
     expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "削除申請画像" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
@@ -1022,6 +1056,72 @@ describe("MyPageClient", () => {
     expect(screen.queryByText("pending")).not.toBeInTheDocument();
   });
 
+
+  it("shows image deletion request tab after draft images and requires reviewer comments", async () => {
+    const draftImageAdapter = createDraftImageAdapter();
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toContain("未承認の画像");
+    expect(tabs.map((tab) => tab.textContent)).toContain("削除申請画像");
+    expect(tabs.findIndex((tab) => tab.textContent === "削除申請画像")).toBe(
+      tabs.findIndex((tab) => tab.textContent === "未承認の画像") + 1,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "削除申請画像" }));
+    await waitFor(() =>
+      expect(draftImageAdapter.listImageDeletionRequests).toHaveBeenCalledWith({
+        fallbackErrorMessage: "削除申請画像一覧を読み込めませんでした。",
+        page: 1,
+        perPage: 12,
+      }),
+    );
+    expect(await screen.findByText("Deletion Requester")).toBeInTheDocument();
+    expect(screen.getByText("requester@example.test")).toBeInTheDocument();
+    expect(screen.getByText("Rights concern")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "削除を承認" }));
+    const dialog = screen.getByRole("dialog", { name: "画像削除申請を承認" });
+    expect(within(dialog).getByRole("button", { name: "送信" })).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("reviewer comment"), {
+      target: { value: "OK to delete" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
+
+    await waitFor(() =>
+      expect(draftImageAdapter.approveImageDeletionRequest).toHaveBeenCalledWith({
+        fallbackErrorMessage: "画像削除申請を承認できませんでした。",
+        imageIdentifier: imageDeletionRequest.imageIdentifier,
+        requestBody: { reviewerComment: "OK to delete" },
+      }),
+    );
+    expect(await screen.findByText("削除申請画像はありません")).toBeInTheDocument();
+  });
+
+  it("hides image deletion request tab for principals without image review permission", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal: basicEditingPrincipal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "削除申請画像" })).not.toBeInTheDocument();
+  });
+
   it("loads editing draft wikis by default and submitted draft wikis on tab selection", async () => {
     const draftWikiAdapter = createDraftWikiAdapter();
 
@@ -1470,6 +1570,7 @@ describe("MyPageClient", () => {
       "承認済みWiki",
       "未翻訳のWiki",
       "未承認の画像",
+      "削除申請画像",
     ]);
     fireEvent.click(screen.getByRole("tab", { name: "未翻訳のWiki" }));
     await waitFor(() =>

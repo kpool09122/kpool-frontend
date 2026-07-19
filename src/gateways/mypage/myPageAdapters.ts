@@ -1,7 +1,10 @@
 import type {
   approveWikiDraftImage,
+  approveWikiImageDeletionRequest,
   fetchWikiDraftImages,
+  fetchWikiImageDeletionRequests,
   rejectWikiDraftImage,
+  rejectWikiImageDeletionRequest,
 } from "../wiki/wikiImageBrowserApi";
 import type {
   approveWikiDraft,
@@ -26,8 +29,11 @@ export type MyPagePrincipalAdapter = {
 
 export type MyPageDraftImageAdapter = {
   approveDraftImage: typeof approveWikiDraftImage;
+  approveImageDeletionRequest: typeof approveWikiImageDeletionRequest;
   listDraftImages: typeof fetchWikiDraftImages;
+  listImageDeletionRequests: typeof fetchWikiImageDeletionRequests;
   rejectDraftImage: typeof rejectWikiDraftImage;
+  rejectImageDeletionRequest: typeof rejectWikiImageDeletionRequest;
 };
 
 export type MyPageDraftWikiAdapter = {

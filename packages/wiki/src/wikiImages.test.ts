@@ -5,6 +5,9 @@ import {
   createWikiDraftImagesUrl,
   createWikiImageAssociationInput,
   createWikiImageDeletionRequest,
+  createWikiImageDeletionRequestReview,
+  createWikiImageDeletionRequestReviewUrl,
+  createWikiImageDeletionRequestsUrl,
   createWikiImageDeletionRequestUrl,
   createWikiImageUploadRequest,
   createWikiImagesUrl,
@@ -16,6 +19,9 @@ import {
   stripDataUrlPrefix,
   wikiImageMaxBase64Length,
   wikiImageMaxFileSizeBytes,
+  wikiImageDeletionRequestListResponseSchema,
+  wikiImageDeletionRequestReviewRequestSchema,
+  wikiImageDeletionRequestReviewResponseSchema,
   wikiImageUploadRequestSchema,
 } from "./wikiImageModel";
 
@@ -163,6 +169,65 @@ describe("wikiImages", () => {
     ).toBe(
       "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/request-deletion",
     );
+  });
+
+
+  it("builds image deletion request list and review urls", () => {
+    expect(
+      createWikiImageDeletionRequestsUrl({
+        baseUrl: "https://api.example.test/api/wiki/",
+        page: 2,
+        perPage: 12,
+      }),
+    ).toBe("https://api.example.test/api/wiki/image-deletion-requests?perPage=12&page=2");
+    expect(
+      createWikiImageDeletionRequestReviewUrl({
+        action: "approve",
+        baseUrl: "https://api.example.test/api/wiki/",
+        imageIdentifier: "44444444-4444-4444-4444-444444444444",
+      }),
+    ).toBe(
+      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/approve-deletion",
+    );
+  });
+
+  it("validates image deletion request list and review schemas", () => {
+    const listResult = wikiImageDeletionRequestListResponseSchema.safeParse({
+      images: [{
+        imageIdentifier: "44444444-4444-4444-4444-444444444444",
+        url: "https://upload.wikimedia.org/image.webp",
+        resourceType: "group",
+        translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
+        displayOrder: 1,
+        sourceUrl: "https://source.example.test/image.webp",
+        sourceName: "Source",
+        altText: "Alt",
+        isHidden: true,
+        uploadedAt: "2026-05-09T00:00:00Z",
+        name: "Requester",
+        email: "requester@example.test",
+        reason: "Rights concern",
+      }],
+      current_page: 1,
+      last_page: 1,
+      total: 1,
+      per_page: 12,
+    });
+
+    expect(listResult.success).toBe(true);
+    expect(listResult.success ? listResult.data.images[0].reason : null).toBe("Rights concern");
+    expect(createWikiImageDeletionRequestReview({ reviewerComment: "  OK to delete  " })).toEqual({
+      reviewerComment: "OK to delete",
+    });
+    expect(wikiImageDeletionRequestReviewRequestSchema.safeParse({ reviewerComment: "" }).success).toBe(false);
+    const reviewResult = wikiImageDeletionRequestReviewResponseSchema.safeParse({
+      imageIdentifier: "44444444-4444-4444-4444-444444444444",
+      reviewerComment: "OK",
+      isHidden: true,
+    });
+
+    expect(reviewResult.success).toBe(true);
+    expect(reviewResult.success ? reviewResult.data.isHidden : null).toBe(true);
   });
 
   it("trims image deletion request form fields", () => {
