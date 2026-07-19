@@ -69,6 +69,29 @@ describe("wikiApiModel SEO metadata", () => {
   });
 });
 
+describe("wikiApiModel hero images", () => {
+  it("uses the placeholder hero image for hidden draft hero images", () => {
+    const wiki = adaptDraftWikiApiResponse({
+      ...baseApiResponse,
+      heroImage: {
+        alt: "Hidden draft hero",
+        imageIdentifier: "hero-image-1",
+        isHidden: true,
+        src: "https://cdn.example.com/hidden-draft-hero.webp",
+      },
+      status: "editing",
+    });
+
+    expect(wiki.heroImage).toMatchObject({
+      imageIdentifier: "hero-image-1",
+      isHidden: true,
+    });
+    expect(wiki.heroImage.src).toContain("data:image/svg+xml");
+    expect(decodeURIComponent(wiki.heroImage.src)).not.toContain("Aurora Echo");
+    expect(decodeURIComponent(wiki.heroImage.src)).not.toContain("hero-image-1");
+  });
+});
+
 describe("wikiApiModel section identifiers", () => {
   it("generates unique fallback identifiers for nested sections without backend ids", () => {
     const wiki = adaptDraftWikiApiResponse({

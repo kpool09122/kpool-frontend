@@ -36,12 +36,14 @@ export const withDefaultWikiResponseMetadata = (value: unknown): unknown => {
       imageIdentifier: null,
       src: null,
       alt: null,
+      isHidden: false,
     };
   } else if (isRecord(nextRecord.heroImage)) {
     nextRecord.heroImage = {
       imageIdentifier: null,
       src: null,
       alt: null,
+      isHidden: false,
       ...nextRecord.heroImage,
     };
   }

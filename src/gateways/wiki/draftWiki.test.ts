@@ -106,7 +106,8 @@ describe("draftWiki", () => {
     expect(wiki.basic.agencyName).toBe("North Harbor Entertainment");
     expect(wiki.heroImage.imageIdentifier).toBe("hero-image-1");
     expect(wiki.heroImage.alt).toBe("Aurora Echo hero image");
-    expect(wiki.heroImage.src).toContain("hero-image-1");
+    expect(wiki.heroImage.src).toContain("data:image/svg+xml");
+    expect(decodeURIComponent(wiki.heroImage.src)).not.toContain("hero-image-1");
     expect(wiki.sections).toEqual([
       {
         type: "section",
