@@ -575,6 +575,14 @@ const TalentDraftWikiDetail = z
     sections: z.array(z.unknown()),
   })
   .passthrough();
+const WikiHeroImage = z
+  .object({
+    imageIdentifier: KPool_Common_Uuid.nullable(),
+    src: z.string().nullable(),
+    alt: z.string().nullable(),
+    isHidden: z.boolean().nullable(),
+  })
+  .passthrough();
 const AgencyWikiDetail = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -588,7 +596,7 @@ const AgencyWikiDetail = z
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
     keywords: z.array(SeoKeywordText).max(5).nullable(),
-    heroImage: DraftWikiHeroImage,
+    heroImage: WikiHeroImage,
     basic: AgencyDraftWikiBasic,
     sections: z.array(z.unknown()),
   })
@@ -606,7 +614,7 @@ const WikiDetail = z
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
     keywords: z.array(SeoKeywordText).max(5).nullable(),
-    heroImage: DraftWikiHeroImage,
+    heroImage: WikiHeroImage,
     basic: GroupDraftWikiBasic,
     sections: z.array(z.unknown()),
   })
@@ -624,7 +632,7 @@ const SongWikiDetail = z
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
     keywords: z.array(SeoKeywordText).max(5).nullable(),
-    heroImage: DraftWikiHeroImage,
+    heroImage: WikiHeroImage,
     basic: SongDraftWikiBasic,
     sections: z.array(z.unknown()),
   })
@@ -642,7 +650,7 @@ const TalentWikiDetail = z
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
     keywords: z.array(SeoKeywordText).max(5).nullable(),
-    heroImage: DraftWikiHeroImage,
+    heroImage: WikiHeroImage,
     basic: TalentDraftWikiBasic,
     sections: z.array(z.unknown()),
   })
@@ -790,6 +798,7 @@ export const schemas = {
   TalentDraftWikiGroupSummary,
   TalentDraftWikiBasic,
   TalentDraftWikiDetail,
+  WikiHeroImage,
   AgencyWikiDetail,
   WikiDetail,
   SongWikiDetail,
