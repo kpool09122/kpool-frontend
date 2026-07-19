@@ -130,13 +130,12 @@ const ImageDraftSummary = z
     status: z.string(),
   })
   .passthrough();
-const ReviewImageHideRequestBody = z
+const ReviewImageDeletionRequestBody = z
   .object({ reviewerComment: z.string() })
   .passthrough();
-const ImageHideReviewSummary = z
+const ImageDeletionReviewSummary = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
-    status: z.string(),
     reviewerComment: z.string(),
     isHidden: z.boolean(),
   })
@@ -148,20 +147,20 @@ const ImageSummary = z
     isHidden: z.boolean(),
   })
   .passthrough();
-const RequestImageHideRequestBody = z
+const RequestImageDeletionRequestBody = z
   .object({
     requesterName: z.string(),
     requesterEmail: z.string(),
     reason: z.string(),
   })
   .passthrough();
-const ImageHideRequestSummary = z
+const ImageDeletionRequestSummary = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
     requesterName: z.string(),
     requesterEmail: z.string(),
     reason: z.string(),
-    status: z.string(),
+    isHidden: z.boolean(),
   })
   .passthrough();
 const UploadedImageListItem = z
@@ -746,11 +745,11 @@ export const schemas = {
   ListDraftWikisResponseBody,
   UploadImageRequestBody,
   ImageDraftSummary,
-  ReviewImageHideRequestBody,
-  ImageHideReviewSummary,
+  ReviewImageDeletionRequestBody,
+  ImageDeletionReviewSummary,
   ImageSummary,
-  RequestImageHideRequestBody,
-  ImageHideRequestSummary,
+  RequestImageDeletionRequestBody,
+  ImageDeletionRequestSummary,
   UploadedImageListItem,
   ListUploadedImagesResponseBody,
   RequestCertificationRequestBody,
@@ -993,9 +992,9 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/image/:imageId/approve-hide-request",
-    alias: "ImageOperations_approveImageHideRequest",
-    description: `Approve an image hide request.`,
+    path: "/image/:imageId/approve-deletion",
+    alias: "ImageOperations_approveImageDeletionRequest",
+    description: `Approve an image deletion request.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1009,7 +1008,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ImageHideReviewSummary,
+    response: ImageDeletionReviewSummary,
     errors: [
       {
         status: 403,
@@ -1082,9 +1081,9 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/image/:imageId/reject-hide-request",
-    alias: "ImageOperations_rejectImageHideRequest",
-    description: `Reject an image hide request.`,
+    path: "/image/:imageId/reject-deletion",
+    alias: "ImageOperations_rejectImageDeletionRequest",
+    description: `Reject an image deletion request.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1098,7 +1097,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ImageHideReviewSummary,
+    response: ImageDeletionReviewSummary,
     errors: [
       {
         status: 403,
@@ -1129,15 +1128,15 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/image/:imageId/request-hide",
-    alias: "ImageOperations_requestImageHide",
+    path: "/image/:imageId/request-deletion",
+    alias: "ImageOperations_requestImageDeletion",
     description: `Request that an image be hidden.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: RequestImageHideRequestBody,
+        schema: RequestImageDeletionRequestBody,
       },
       {
         name: "imageId",
@@ -1145,7 +1144,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ImageHideRequestSummary,
+    response: ImageDeletionRequestSummary,
     errors: [
       {
         status: 404,
