@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../../i18n/I18nProvider";
 
@@ -42,6 +42,17 @@ const jsonResponse = (body: unknown, status = 200): Response =>
     status,
     headers: { "Content-Type": "application/json" },
   });
+
+const clickImageCard = async (altText: string) => {
+  const imageLabel = await screen.findByText(`Alt text: ${altText}`);
+  const imageButton = imageLabel.closest("button");
+
+  if (!imageButton) {
+    throw new Error(`Image card button was not found: ${altText}`);
+  }
+
+  fireEvent.click(imageButton);
+};
 
 describe("WikiPublicHeroImage", () => {
   afterEach(() => {
@@ -101,6 +112,23 @@ describe("WikiPublicHeroImage", () => {
     expect(screen.queryByRole("button", { name: "Request image hide" })).not.toBeInTheDocument();
   });
 
+  it("does not render or request a hidden hero image", () => {
+    renderWithI18n(
+      <WikiPublicHeroImage
+        basic={wikiStoryBasic}
+        flipCardId="public-flip-card"
+        heroImage={{
+          ...wikiStoryHeroImageWithIdentifier,
+          isHidden: true,
+        }}
+        translationSetIdentifier={translationSetIdentifier}
+      />,
+    );
+
+    expect(screen.queryByRole("img", { name: wikiStoryHeroImage.alt })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request image hide" })).not.toBeInTheDocument();
+  });
+
   it("opens the hide request dialog, requires a reason, and shows success after submit", async () => {
     const imageIdentifier = heroImageIdentifier;
     const fetchMock = vi
@@ -132,7 +160,9 @@ describe("WikiPublicHeroImage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Request image hide" })[0]);
 
     expect(await screen.findByRole("dialog", { name: "Request image hide" })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Selected: Hero image")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Submit hide request" })).not.toBeInTheDocument();
+    await clickImageCard("Hero image");
+    expect(screen.getByText("Selected: Hero image")).toBeInTheDocument();
 
     const submitButton = screen.getByRole("button", { name: "Submit hide request" });
     expect(submitButton).toBeDisabled();
@@ -145,7 +175,9 @@ describe("WikiPublicHeroImage", () => {
     fireEvent.click(submitButton);
 
     expect(
-      await screen.findByText("Your hide request was submitted. Please wait while it is reviewed."),
+      await screen.findByText(
+        "The image has been temporarily hidden. We will notify you if permanent removal is approved.",
+      ),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenLastCalledWith(
       `/api/wiki/images/${imageIdentifier}/request-hide`,
@@ -237,7 +269,8 @@ describe("WikiPublicHeroImage", () => {
     );
 
     fireEvent.click(screen.getAllByRole("button", { name: "Request image hide" })[0]);
-    await screen.findByText("Selected: Hero image");
+    await clickImageCard("Hero image");
+    expect(screen.getByText("Selected: Hero image")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "KPool User" } });
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "user@example.test" } });
     fireEvent.change(screen.getByLabelText("Reason for hiding the image"), {

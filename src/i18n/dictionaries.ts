@@ -525,7 +525,6 @@ const ja = {
     },
     imageHideRequest: {
       title: "画像の非表示を申請",
-      description: "対象画像を選び、申請者情報と理由を入力してください。",
       close: "閉じる",
       loading: "画像を読み込み中",
       listLoadFailed: "画像一覧を読み込めませんでした。",
@@ -536,8 +535,8 @@ const ja = {
       loadMore: "さらに読み込む",
       loadingMore: "さらに読み込み中",
       selectedImage: "選択中",
-      formTitle: "申請内容",
       selectedImageName: (name: string) => `選択中: ${name}`,
+      changeSelectedImage: "画像を選び直す",
       selectRequired: "画像を選択してください。",
       requesterNameLabel: "申請者名",
       requesterEmailLabel: "メールアドレス",
@@ -545,7 +544,8 @@ const ja = {
       requiredHint: "画像、申請者名、メールアドレス、理由は必須です。",
       submit: "非表示申請を送信",
       submitting: "送信中",
-      submitSucceeded: "非表示申請を送信しました。確認が完了するまでお待ちください。",
+      submitSucceeded:
+        "暫定的に非表示とさせていただきました。正式に削除が決まりましたら通知します。",
       submitFailed: "画像の非表示申請に失敗しました。既に申請中の場合は重複して申請できません。",
     },
     imageLibrary: {
@@ -1127,7 +1127,6 @@ const en: typeof ja = {
     },
     imageHideRequest: {
       title: "Request image hide",
-      description: "Select the image, then enter your requester details and reason.",
       close: "Close",
       loading: "Loading images",
       listLoadFailed: "Image list could not be loaded.",
@@ -1138,8 +1137,8 @@ const en: typeof ja = {
       loadMore: "Load more images",
       loadingMore: "Loading more",
       selectedImage: "Selected",
-      formTitle: "Request details",
       selectedImageName: (name: string) => `Selected: ${name}`,
+      changeSelectedImage: "Change image",
       selectRequired: "Select an image.",
       requesterNameLabel: "Requester name",
       requesterEmailLabel: "Email address",
@@ -1147,7 +1146,8 @@ const en: typeof ja = {
       requiredHint: "Image, requester name, email address, and reason are required.",
       submit: "Submit hide request",
       submitting: "Submitting",
-      submitSucceeded: "Your hide request was submitted. Please wait while it is reviewed.",
+      submitSucceeded:
+        "The image has been temporarily hidden. We will notify you if permanent removal is approved.",
       submitFailed: "Image hide request failed. If a request is already pending, duplicate requests cannot be submitted.",
     },
     imageLibrary: {
@@ -1726,7 +1726,6 @@ const ko: typeof ja = {
     },
     imageHideRequest: {
       title: "이미지 숨김 요청",
-      description: "대상 이미지를 선택하고 신청자 정보와 이유를 입력하세요.",
       close: "닫기",
       loading: "이미지 로딩 중",
       listLoadFailed: "이미지 목록을 불러올 수 없습니다.",
@@ -1737,8 +1736,8 @@ const ko: typeof ja = {
       loadMore: "더 불러오기",
       loadingMore: "더 불러오는 중",
       selectedImage: "선택됨",
-      formTitle: "요청 내용",
       selectedImageName: (name: string) => `선택됨: ${name}`,
+      changeSelectedImage: "이미지 다시 선택",
       selectRequired: "이미지를 선택하세요.",
       requesterNameLabel: "신청자 이름",
       requesterEmailLabel: "이메일 주소",
@@ -1746,7 +1745,8 @@ const ko: typeof ja = {
       requiredHint: "이미지, 신청자 이름, 이메일 주소, 이유는 필수입니다.",
       submit: "숨김 요청 보내기",
       submitting: "전송 중",
-      submitSucceeded: "숨김 요청을 보냈습니다. 검토가 완료될 때까지 기다려 주세요.",
+      submitSucceeded:
+        "이미지를 임시로 숨김 처리했습니다. 정식 삭제가 결정되면 알려드리겠습니다.",
       submitFailed: "이미지 숨김 요청에 실패했습니다. 이미 신청 중인 경우 중복 신청할 수 없습니다.",
     },
     imageLibrary: {

@@ -21,6 +21,7 @@ type WikiImageHideRequestDialogProps = {
 };
 
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
+type RequestStep = "selectImage" | "requestForm";
 
 const findInitialSelectedImage = (
   images: WikiUploadedImage[],
@@ -45,6 +46,7 @@ export function WikiImageHideRequestDialog({
   const [requesterName, setRequesterName] = useState("");
   const [requesterEmail, setRequesterEmail] = useState("");
   const [reason, setReason] = useState("");
+  const [requestStep, setRequestStep] = useState<RequestStep>("selectImage");
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -139,6 +141,11 @@ export function WikiImageHideRequestDialog({
       .finally(() => setIsLoadingMore(false));
   };
 
+  const handleSelectImage = (image: WikiUploadedImage) => {
+    setSelectedImage(image);
+    setRequestStep("requestForm");
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -184,7 +191,6 @@ export function WikiImageHideRequestDialog({
             <h2 className="text-2xl font-semibold" id="wiki-image-hide-request-title">
               {t.title}
             </h2>
-            <p className="mt-1 text-sm text-text-muted">{t.description}</p>
           </div>
           <button
             className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30"
@@ -197,7 +203,7 @@ export function WikiImageHideRequestDialog({
         </div>
 
         <form className="min-h-0 flex-1 overflow-y-auto p-5" onSubmit={handleSubmit}>
-          <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+          {requestStep === "selectImage" ? (
             <div>
               <p className="text-sm font-semibold text-text-muted">{t.selectImageTitle}</p>
               {loadError ? (
@@ -211,58 +217,58 @@ export function WikiImageHideRequestDialog({
                 </div>
               ) : images.length > 0 ? (
                 <>
-                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                  {images.map((image) => {
-                    const isSelected = selectedImage?.imageIdentifier === image.imageIdentifier;
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {images.map((image) => {
+                      const isSelected = selectedImage?.imageIdentifier === image.imageIdentifier;
 
-                    return (
+                      return (
+                        <button
+                          aria-pressed={isSelected}
+                          className={`overflow-hidden rounded-2xl border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
+                            isSelected
+                              ? "border-brand-primary bg-brand-highlight/30"
+                              : "border-stroke-subtle bg-surface-base hover:bg-brand-highlight/20"
+                          }`}
+                          key={image.imageIdentifier}
+                          onClick={() => handleSelectImage(image)}
+                          type="button"
+                        >
+                          <span className="relative block aspect-[4/3] bg-black/10">
+                            <Image
+                              alt={image.altText || image.sourceName || image.imageIdentifier}
+                              className="object-cover"
+                              fill
+                              sizes="(min-width: 1024px) 28vw, (min-width: 640px) 45vw, 90vw"
+                              src={image.url}
+                              unoptimized
+                            />
+                          </span>
+                          <span className="grid gap-1 p-4 text-sm">
+                            <span className="truncate font-semibold">
+                              {t.imageAltText(image.altText || t.noAltText)}
+                            </span>
+                            {isSelected ? (
+                              <span className="text-xs font-semibold text-brand-primary">
+                                {t.selectedImage}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {canLoadMore ? (
+                    <div className="mt-5 flex justify-center">
                       <button
-                        aria-pressed={isSelected}
-                        className={`overflow-hidden rounded-2xl border text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary ${
-                          isSelected
-                            ? "border-brand-primary bg-brand-highlight/30"
-                            : "border-stroke-subtle bg-surface-base hover:bg-brand-highlight/20"
-                        }`}
-                        key={image.imageIdentifier}
-                        onClick={() => setSelectedImage(image)}
+                        className="rounded-full border border-stroke-subtle px-5 py-3 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={isLoadingMore}
+                        onClick={handleLoadMore}
                         type="button"
                       >
-                        <span className="relative block aspect-[4/3] bg-black/10">
-                          <Image
-                            alt={image.altText || image.sourceName || image.imageIdentifier}
-                            className="object-cover"
-                            fill
-                            sizes="(min-width: 1024px) 32vw, (min-width: 640px) 45vw, 90vw"
-                            src={image.url}
-                            unoptimized
-                          />
-                        </span>
-                        <span className="grid gap-1 p-4 text-sm">
-                          <span className="truncate font-semibold">
-                            {t.imageAltText(image.altText || t.noAltText)}
-                          </span>
-                          {isSelected ? (
-                            <span className="text-xs font-semibold text-brand-primary">
-                              {t.selectedImage}
-                            </span>
-                          ) : null}
-                        </span>
+                        {isLoadingMore ? t.loadingMore : t.loadMore}
                       </button>
-                    );
-                  })}
-                </div>
-                {canLoadMore ? (
-                  <div className="mt-5 flex justify-center">
-                    <button
-                      className="rounded-full border border-stroke-subtle px-5 py-3 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={isLoadingMore}
-                      onClick={handleLoadMore}
-                      type="button"
-                    >
-                      {isLoadingMore ? t.loadingMore : t.loadMore}
-                    </button>
-                  </div>
-                ) : null}
+                    </div>
+                  ) : null}
                 </>
               ) : (
                 <div className="mt-3 grid min-h-48 place-items-center rounded-2xl border border-dashed border-stroke-subtle p-6 text-center text-sm text-text-muted">
@@ -270,13 +276,21 @@ export function WikiImageHideRequestDialog({
                 </div>
               )}
             </div>
-
-            <div className="rounded-2xl border border-stroke-subtle bg-surface-base p-4">
-              <p className="text-sm font-semibold text-text-muted">{t.formTitle}</p>
+          ) : (
+            <div className="mx-auto max-w-xl">
               {selectedImage ? (
-                <p className="mt-2 text-sm">
-                  {t.selectedImageName(selectedImage.altText || selectedImage.imageIdentifier)}
-                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm">
+                    {t.selectedImageName(selectedImage.altText || selectedImage.imageIdentifier)}
+                  </p>
+                  <button
+                    className="self-start rounded-full border border-stroke-subtle px-4 py-2 text-xs font-semibold transition hover:bg-brand-highlight/30"
+                    onClick={() => setRequestStep("selectImage")}
+                    type="button"
+                  >
+                    {t.changeSelectedImage}
+                  </button>
+                </div>
               ) : (
                 <p className="mt-2 text-sm text-text-muted">{t.selectRequired}</p>
               )}
@@ -327,7 +341,7 @@ export function WikiImageHideRequestDialog({
                 {submitStatus === "submitting" ? t.submitting : t.submit}
               </button>
             </div>
-          </div>
+          )}
         </form>
       </div>
     </section>

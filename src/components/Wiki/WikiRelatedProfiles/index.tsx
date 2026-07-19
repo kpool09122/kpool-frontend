@@ -41,7 +41,7 @@ export function WikiRelatedProfiles({
       ) : null}
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {profiles.map((profile) => {
-          const safeImageUrl = toSafeWikiImageUrl(profile.imageUrl);
+          const safeImageUrl = profile.isHidden ? null : toSafeWikiImageUrl(profile.imageUrl);
 
           return (
             <Link

@@ -144,6 +144,10 @@ export function WikiBlockDisplay({
     case "text":
       return renderTextBlock(block.content);
     case "image":
+      if (block.isHidden) {
+        return null;
+      }
+
       return (
         <figure>
           <div className="relative min-h-64 overflow-hidden rounded-2xl border border-stroke-subtle">
@@ -153,11 +157,17 @@ export function WikiBlockDisplay({
           {block.caption ? <figcaption className={captionClassName}>{block.caption}</figcaption> : null}
         </figure>
       );
-    case "image_gallery":
+    case "image_gallery": {
+      const visibleImages = block.images.filter((image) => !image.isHidden);
+
+      if (visibleImages.length === 0) {
+        return null;
+      }
+
       return (
         <figure>
           <div className="grid gap-3 sm:grid-cols-2">
-            {block.images.map((image) => (
+            {visibleImages.map((image) => (
               <div className="relative min-h-40 overflow-hidden rounded-2xl border border-stroke-subtle" key={image.imageIdentifier}>
                 <Image alt={image.alt ?? ""} className="object-cover" fill sizes="50vw" src={image.imageSrc} unoptimized />
                 {showEditableImageOverlay ? <ImageEditableOverlay /> : null}
@@ -167,6 +177,7 @@ export function WikiBlockDisplay({
           {block.caption ? <figcaption className={captionClassName}>{block.caption}</figcaption> : null}
         </figure>
       );
+    }
     case "embed":
       return <WikiEmbedFrame block={block} />;
     case "quote":

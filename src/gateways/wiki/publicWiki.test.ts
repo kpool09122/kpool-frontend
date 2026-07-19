@@ -153,6 +153,94 @@ describe("publicWiki", () => {
     ]);
   });
 
+  it("keeps hidden flags from public wiki images", () => {
+    const wiki = adaptPublicWikiResponse({
+      ...publicWikiResponse,
+      heroImage: {
+        ...publicWikiResponse.heroImage,
+        imageIdentifier: "hero-image-1",
+        isHidden: true,
+      },
+      sections: [
+        {
+          id: "images",
+          title: "Images",
+          contents: [
+            {
+              id: "main-image",
+              type: "image",
+              imageIdentifier: "image-1",
+              src: "https://cdn.example.com/image-1.webp",
+              alt: "Image 1",
+              isHidden: true,
+            },
+            {
+              id: "gallery",
+              type: "image_gallery",
+              images: [
+                {
+                  imageIdentifier: "image-2",
+                  src: "https://cdn.example.com/image-2.webp",
+                  alt: "Image 2",
+                  isHidden: true,
+                },
+              ],
+            },
+            {
+              id: "members-profiles",
+              type: "profile_card_list",
+              title: "Related profiles",
+              wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
+              profiles: [
+                {
+                  wikiIdentifier: "11111111-1111-1111-1111-111111111111",
+                  slug: "tl-momo",
+                  language: "ko",
+                  resourceType: "talent",
+                  name: "MOMO",
+                  normalizedName: "momo",
+                  imageIdentifier: "image-3",
+                  imageUrl: "https://cdn.example.com/image-3.webp",
+                  imageAltText: "MOMO public image",
+                  isHidden: true,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(wiki.heroImage).toMatchObject({
+      imageIdentifier: "hero-image-1",
+      isHidden: true,
+    });
+    expect(wiki.sections[0].contents).toEqual([
+      expect.objectContaining({
+        blockType: "image",
+        isHidden: true,
+      }),
+      expect.objectContaining({
+        blockType: "image_gallery",
+        images: [
+          expect.objectContaining({
+            imageIdentifier: "image-2",
+            isHidden: true,
+          }),
+        ],
+      }),
+      expect.objectContaining({
+        blockType: "profile_card_list",
+        profiles: [
+          expect.objectContaining({
+            imageIdentifier: "image-3",
+            isHidden: true,
+          }),
+        ],
+      }),
+    ]);
+  });
+
   it("keeps profile_card_list summaries from the public wiki response", () => {
     const wiki = adaptPublicWikiResponse({
       ...publicWikiResponse,

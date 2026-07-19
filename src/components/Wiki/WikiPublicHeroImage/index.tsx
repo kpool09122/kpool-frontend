@@ -39,7 +39,8 @@ export function WikiPublicHeroImage({
   const resolvedProfileLabel = profileLabel ?? t.basicProfile;
   const [isFlipped, setIsFlipped] = useState(false);
   const [isHideRequestOpen, setIsHideRequestOpen] = useState(false);
-  const canRequestHide = Boolean(heroImage.imageIdentifier && translationSetIdentifier);
+  const isHeroImageHidden = heroImage.isHidden === true;
+  const canRequestHide = Boolean(heroImage.imageIdentifier && translationSetIdentifier && !isHeroImageHidden);
 
   return (
     <section className="lg:rounded-[2rem]" style={transparentFrameStyle}>
@@ -70,14 +71,18 @@ export function WikiPublicHeroImage({
                   style={cardSurfaceStyle}
                 >
                   <div className="relative h-full w-full">
-                    <Image
-                      alt={heroImage.alt}
-                      className="object-cover"
-                      fill
-                      sizes="100vw"
-                      src={heroImage.src}
-                      unoptimized
-                    />
+                    {isHeroImageHidden ? (
+                      <div aria-hidden="true" className="h-full w-full" style={cardSurfaceMutedStyle} />
+                    ) : (
+                      <Image
+                        alt={heroImage.alt}
+                        className="object-cover"
+                        fill
+                        sizes="100vw"
+                        src={heroImage.src}
+                        unoptimized
+                      />
+                    )}
                   </div>
                 </div>
                 <label
@@ -158,21 +163,26 @@ export function WikiPublicHeroImage({
       </div>
 
       <div className="hidden gap-6 py-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-        <div
-          className="h-full overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
-          style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
-        >
-          <div className="relative h-full min-h-[30rem]">
-            <Image
-              alt={heroImage.alt}
-              className="object-cover"
-              fill
-              sizes="(min-width: 1024px) 55vw, 100vw"
-              src={heroImage.src}
-              unoptimized
-            />
+        <div className="flex h-full flex-col">
+          <div
+            className="min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
+            style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
+          >
+            <div className="relative h-full min-h-[30rem]">
+              {isHeroImageHidden ? (
+                <div aria-hidden="true" className="h-full w-full" style={cardSurfaceMutedStyle} />
+              ) : (
+                <Image
+                  alt={heroImage.alt}
+                  className="object-cover"
+                  fill
+                  sizes="(min-width: 1024px) 55vw, 100vw"
+                  src={heroImage.src}
+                  unoptimized
+                />
+              )}
+            </div>
           </div>
-        </div>
 
           {canRequestHide && translationSetIdentifier ? (
             <div className="mt-3 text-center">
@@ -185,6 +195,7 @@ export function WikiPublicHeroImage({
               </button>
             </div>
           ) : null}
+        </div>
 
         <div
           className="rounded-[1.75rem] border border-stroke-subtle bg-surface-base p-6"

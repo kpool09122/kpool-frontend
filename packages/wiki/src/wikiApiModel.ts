@@ -118,6 +118,8 @@ type WikiApiResponseBase = {
     imageIdentifier?: string | null;
     src?: string | null;
     alt?: string | null;
+    isHidden?: boolean | null;
+    is_hidden?: boolean | null;
   } | null;
   language: string;
   resourceType?: unknown;
@@ -257,6 +259,9 @@ const toString = (value: unknown, fallback = ""): string =>
 const toNullable = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
+const toHiddenFlag = (record: Record<string, unknown>): { isHidden?: true } =>
+  record.isHidden === true || record.is_hidden === true ? { isHidden: true } : {};
+
 const toNumber = (value: unknown, fallback: number): number =>
   typeof value === "number" ? value : fallback;
 
@@ -299,6 +304,7 @@ const toProfileCardSummaries = (value: unknown): WikiProfileCardSummary[] =>
           imageIdentifier: toNullable(record.imageIdentifier ?? record.image_identifier),
           imageUrl: toSafeWikiImageUrl(record.imageUrl ?? record.image_url),
           imageAltText: toNullable(record.imageAltText ?? record.image_alt_text),
+          ...toHiddenFlag(record),
         }];
       })
     : [];
@@ -399,6 +405,7 @@ const adaptWikiBlock = (
         imageSrc: toString(content.imageSrc ?? content.src, imagePlaceholderSrc(imageIdentifier)),
         caption: toNullable(content.caption),
         alt: toNullable(content.alt),
+        ...toHiddenFlag(content),
       };
     }
     case "image_gallery": {
@@ -414,6 +421,7 @@ const adaptWikiBlock = (
                 imagePlaceholderSrc(imageIdentifier),
               ),
               alt: toNullable(imageRecord.alt),
+              ...toHiddenFlag(imageRecord),
             };
           })
         : toStringList(content.imageIdentifiers ?? content.image_identifiers).map((imageIdentifier) => ({
@@ -558,6 +566,7 @@ const getHeroImage = (response: WikiApiResponseBase): WikiDraftDetail["heroImage
     return {
       imageIdentifier: response.heroImage.imageIdentifier ?? null,
       alt: response.heroImage.alt ?? `${name} hero image`,
+      ...toHiddenFlag(response.heroImage),
       src: response.heroImage.src,
     };
   }
