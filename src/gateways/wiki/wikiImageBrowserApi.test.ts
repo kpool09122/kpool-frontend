@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createWikiImageHideRequest,
   createWikiImageUploadRequest,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
@@ -9,6 +10,7 @@ import {
   approveWikiDraftImage,
   fetchWikiImages,
   rejectWikiDraftImage,
+  requestWikiImageHide,
   uploadWikiImageRequest,
 } from "./wikiImageBrowserApi";
 
@@ -116,6 +118,80 @@ describe("wikiImageBrowserApi", () => {
       },
       body: JSON.stringify(requestBody),
     });
+  });
+
+  it("submits image hide requests through the browser route", async () => {
+    const requestBody = createWikiImageHideRequest({
+      requesterName: "KPool User",
+      requesterEmail: "user@example.test",
+      reason: "Rights concern",
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        {
+          imageIdentifier,
+          requesterName: "KPool User",
+          requesterEmail: "user@example.test",
+          reason: "Rights concern",
+          status: "pending",
+        },
+        201,
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await requestWikiImageHide({
+      fallbackErrorMessage: "Hide request failed",
+      imageIdentifier,
+      requestBody,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/wiki/images/${imageIdentifier}/request-hide`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+  });
+
+  it("throws image hide route error messages for non-2xx responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ message: "Already requested" }, 409)),
+    );
+
+    await expect(
+      requestWikiImageHide({
+        fallbackErrorMessage: "Hide request failed",
+        imageIdentifier,
+        requestBody: createWikiImageHideRequest({
+          requesterName: "KPool User",
+          requesterEmail: "user@example.test",
+          reason: "Rights concern",
+        }),
+      }),
+    ).rejects.toThrow("Already requested");
+  });
+
+  it("throws when the image hide response does not match the schema", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
+
+    await expect(
+      requestWikiImageHide({
+        fallbackErrorMessage: "Hide request failed",
+        imageIdentifier,
+        requestBody: createWikiImageHideRequest({
+          requesterName: "KPool User",
+          requesterEmail: "user@example.test",
+          reason: "Rights concern",
+        }),
+      }),
+    ).rejects.toThrow();
   });
 
   it("sends reject requests to the reject route with the same safeguards", async () => {

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { WikiImageHideRequestDialog } from "../WikiImageHideRequestDialog";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
@@ -21,6 +22,7 @@ type WikiPublicHeroImageProps = {
   flipCardId: string;
   language?: string;
   profileLabel?: string;
+  translationSetIdentifier?: string;
 };
 
 export function WikiPublicHeroImage({
@@ -30,11 +32,14 @@ export function WikiPublicHeroImage({
   flipCardId,
   language = "ja",
   profileLabel,
+  translationSetIdentifier,
 }: WikiPublicHeroImageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.heroCard;
   const resolvedProfileLabel = profileLabel ?? t.basicProfile;
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isHideRequestOpen, setIsHideRequestOpen] = useState(false);
+  const canRequestHide = Boolean(heroImage.imageIdentifier && translationSetIdentifier);
 
   return (
     <section className="lg:rounded-[2rem]" style={transparentFrameStyle}>
@@ -137,6 +142,18 @@ export function WikiPublicHeroImage({
               {t.publicBasicHint}
             </span>
           </p>
+
+          {canRequestHide && translationSetIdentifier ? (
+            <div className="text-center">
+              <button
+                className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
+                onClick={() => setIsHideRequestOpen(true)}
+                type="button"
+              >
+                {t.requestImageHide}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -156,6 +173,18 @@ export function WikiPublicHeroImage({
             />
           </div>
         </div>
+
+          {canRequestHide && translationSetIdentifier ? (
+            <div className="mt-3 text-center">
+              <button
+                className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
+                onClick={() => setIsHideRequestOpen(true)}
+                type="button"
+              >
+                {t.requestImageHide}
+              </button>
+            </div>
+          ) : null}
 
         <div
           className="rounded-[1.75rem] border border-stroke-subtle bg-surface-base p-6"
@@ -190,6 +219,13 @@ export function WikiPublicHeroImage({
           />
         </div>
       </div>
+      {canRequestHide && translationSetIdentifier && isHideRequestOpen ? (
+        <WikiImageHideRequestDialog
+          heroImage={heroImage}
+          onClose={() => setIsHideRequestOpen(false)}
+          translationSetIdentifier={translationSetIdentifier}
+        />
+      ) : null}
     </section>
   );
 }

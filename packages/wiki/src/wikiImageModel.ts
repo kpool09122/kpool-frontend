@@ -26,6 +26,8 @@ export const wikiSafeSourceUrlSchema = z
 export const wikiImageListResponseSchema = wikiPrivateApiTypes.schemas.ListUploadedImagesResponseBody;
 export const wikiDraftImageListResponseSchema = wikiPrivateApiTypes.schemas.ListDraftImagesResponseBody;
 export const wikiImageUploadResponseSchema = wikiPrivateApiTypes.schemas.ImageDraftSummary;
+export const wikiImageHideRequestSchema = wikiPrivateApiTypes.schemas.RequestImageHideRequestBody;
+export const wikiImageHideRequestResponseSchema = wikiPrivateApiTypes.schemas.ImageHideRequestSummary;
 export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
 });
@@ -40,6 +42,8 @@ export type WikiImageListResponse = z.infer<typeof wikiImageListResponseSchema>;
 export type WikiDraftImageListResponse = z.infer<typeof wikiDraftImageListResponseSchema>;
 export type WikiImageUploadRequest = z.infer<typeof wikiImageUploadRequestSchema>;
 export type WikiImageUploadResponse = z.infer<typeof wikiImageUploadResponseSchema>;
+export type WikiImageHideRequest = z.infer<typeof wikiImageHideRequestSchema>;
+export type WikiImageHideRequestResponse = z.infer<typeof wikiImageHideRequestResponseSchema>;
 export type WikiImageReviewResponse = z.infer<typeof wikiImageReviewResponseSchema>;
 export type WikiDraftImageStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftImageStatus>;
 
@@ -220,6 +224,30 @@ export const createWikiDraftImageReviewUrl = ({
   imageIdentifier: string;
 }): string =>
   `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/${action}`;
+
+export const createWikiImageHideRequestUrl = ({
+  baseUrl,
+  imageIdentifier,
+}: {
+  baseUrl: string;
+  imageIdentifier: string;
+}): string =>
+  `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/request-hide`;
+
+export const createWikiImageHideRequest = ({
+  reason,
+  requesterEmail,
+  requesterName,
+}: {
+  reason: string;
+  requesterEmail: string;
+  requesterName: string;
+}): WikiImageHideRequest =>
+  parseWikiSchema(wikiImageHideRequestSchema, {
+    reason: reason.trim(),
+    requesterEmail: requesterEmail.trim(),
+    requesterName: requesterName.trim(),
+  });
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);

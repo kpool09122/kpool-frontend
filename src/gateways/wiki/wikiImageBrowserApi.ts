@@ -3,11 +3,14 @@ import {
   wikiDraftImageListResponseSchema,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
+  wikiImageHideRequestResponseSchema,
   wikiImageListResponseSchema,
   wikiImageReviewResponseSchema,
   wikiImageUploadResponseSchema,
   type WikiDraftImageListResponse,
   type WikiDraftImageStatus,
+  type WikiImageHideRequest,
+  type WikiImageHideRequestResponse,
   type WikiImageListResponse,
   type WikiImageReviewResponse,
   type WikiImageUploadRequest,
@@ -77,6 +80,39 @@ export const fetchWikiImages = async ({
   }
 
   return parseWithSchemaLog("wiki image list response", wikiImageListResponseSchema, body);
+};
+
+export const requestWikiImageHide = async ({
+  fallbackErrorMessage,
+  imageIdentifier,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+  requestBody: WikiImageHideRequest;
+}): Promise<WikiImageHideRequestResponse> => {
+  const response = await fetch(
+    `/api/wiki/images/${encodeURIComponent(imageIdentifier)}/request-hide`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    },
+  );
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
+
+  if (!response.ok) {
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseWithSchemaLog(
+    "wiki image hide request response",
+    wikiImageHideRequestResponseSchema,
+    body,
+  );
 };
 
 export const uploadWikiImageRequest = async ({
