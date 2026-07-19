@@ -20,6 +20,8 @@ type PublicWikiHeroImage = {
   imageIdentifier?: string | null;
   src?: string | null;
   alt?: string | null;
+  isHidden?: boolean | null;
+  is_hidden?: boolean | null;
 };
 
 export type PublicWikiApiResponse = {
@@ -45,6 +47,8 @@ const publicWikiHeroImageSchema = z
     imageIdentifier: z.string().nullable().optional(),
     src: z.string().nullable().optional(),
     alt: z.string().nullable().optional(),
+    isHidden: z.boolean().nullable().optional(),
+    is_hidden: z.boolean().nullable().optional(),
   })
   .passthrough();
 

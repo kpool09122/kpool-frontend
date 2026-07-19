@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  createWikiImageDeletionRequest,
   createWikiImageUploadRequest,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
@@ -9,6 +10,7 @@ import {
   approveWikiDraftImage,
   fetchWikiImages,
   rejectWikiDraftImage,
+  requestWikiImageDeletion,
   uploadWikiImageRequest,
 } from "./wikiImageBrowserApi";
 
@@ -116,6 +118,80 @@ describe("wikiImageBrowserApi", () => {
       },
       body: JSON.stringify(requestBody),
     });
+  });
+
+  it("submits image deletion requests through the browser route", async () => {
+    const requestBody = createWikiImageDeletionRequest({
+      requesterName: "KPool User",
+      requesterEmail: "user@example.test",
+      reason: "Rights concern",
+    });
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        {
+          imageIdentifier,
+          requesterName: "KPool User",
+          requesterEmail: "user@example.test",
+          reason: "Rights concern",
+          isHidden: true,
+        },
+        201,
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await requestWikiImageDeletion({
+      fallbackErrorMessage: "Deletion request failed",
+      imageIdentifier,
+      requestBody,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/wiki/images/${imageIdentifier}/request-deletion`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+  });
+
+  it("throws image deletion route error messages for non-2xx responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ message: "Already requested" }, 409)),
+    );
+
+    await expect(
+      requestWikiImageDeletion({
+        fallbackErrorMessage: "Deletion request failed",
+        imageIdentifier,
+        requestBody: createWikiImageDeletionRequest({
+          requesterName: "KPool User",
+          requesterEmail: "user@example.test",
+          reason: "Rights concern",
+        }),
+      }),
+    ).rejects.toThrow("Already requested");
+  });
+
+  it("throws when the image deletion response does not match the schema", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
+
+    await expect(
+      requestWikiImageDeletion({
+        fallbackErrorMessage: "Deletion request failed",
+        imageIdentifier,
+        requestBody: createWikiImageDeletionRequest({
+          requesterName: "KPool User",
+          requesterEmail: "user@example.test",
+          reason: "Rights concern",
+        }),
+      }),
+    ).rejects.toThrow();
   });
 
   it("sends reject requests to the reject route with the same safeguards", async () => {

@@ -26,6 +26,8 @@ export const wikiSafeSourceUrlSchema = z
 export const wikiImageListResponseSchema = wikiPrivateApiTypes.schemas.ListUploadedImagesResponseBody;
 export const wikiDraftImageListResponseSchema = wikiPrivateApiTypes.schemas.ListDraftImagesResponseBody;
 export const wikiImageUploadResponseSchema = wikiPrivateApiTypes.schemas.ImageDraftSummary;
+export const wikiImageDeletionRequestSchema = wikiPrivateApiTypes.schemas.RequestImageDeletionRequestBody;
+export const wikiImageDeletionRequestResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionRequestSummary;
 export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
 });
@@ -40,6 +42,8 @@ export type WikiImageListResponse = z.infer<typeof wikiImageListResponseSchema>;
 export type WikiDraftImageListResponse = z.infer<typeof wikiDraftImageListResponseSchema>;
 export type WikiImageUploadRequest = z.infer<typeof wikiImageUploadRequestSchema>;
 export type WikiImageUploadResponse = z.infer<typeof wikiImageUploadResponseSchema>;
+export type WikiImageDeletionRequest = z.infer<typeof wikiImageDeletionRequestSchema>;
+export type WikiImageDeletionRequestResponse = z.infer<typeof wikiImageDeletionRequestResponseSchema>;
 export type WikiImageReviewResponse = z.infer<typeof wikiImageReviewResponseSchema>;
 export type WikiDraftImageStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftImageStatus>;
 
@@ -220,6 +224,30 @@ export const createWikiDraftImageReviewUrl = ({
   imageIdentifier: string;
 }): string =>
   `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/${action}`;
+
+export const createWikiImageDeletionRequestUrl = ({
+  baseUrl,
+  imageIdentifier,
+}: {
+  baseUrl: string;
+  imageIdentifier: string;
+}): string =>
+  `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/request-deletion`;
+
+export const createWikiImageDeletionRequest = ({
+  reason,
+  requesterEmail,
+  requesterName,
+}: {
+  reason: string;
+  requesterEmail: string;
+  requesterName: string;
+}): WikiImageDeletionRequest =>
+  parseWikiSchema(wikiImageDeletionRequestSchema, {
+    reason: reason.trim(),
+    requesterEmail: requesterEmail.trim(),
+    requesterName: requesterName.trim(),
+  });
 
 const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);

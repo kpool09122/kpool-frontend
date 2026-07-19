@@ -45,6 +45,7 @@ export function WikiDetailContent({
         heroImage={data.heroImage}
         language={language}
         profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}
+        translationSetIdentifier={data.translationSetIdentifier}
       />
 
       <WikiContentTabs

@@ -4,6 +4,8 @@ import {
   createWikiDraftImageReviewUrl,
   createWikiDraftImagesUrl,
   createWikiImageAssociationInput,
+  createWikiImageDeletionRequest,
+  createWikiImageDeletionRequestUrl,
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
@@ -150,6 +152,31 @@ describe("wikiImages", () => {
     ).toBe(
       "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/approve",
     );
+  });
+
+  it("builds image deletion request urls for backend image actions", () => {
+    expect(
+      createWikiImageDeletionRequestUrl({
+        baseUrl: "https://api.example.test/api/wiki/",
+        imageIdentifier: "44444444-4444-4444-4444-444444444444",
+      }),
+    ).toBe(
+      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/request-deletion",
+    );
+  });
+
+  it("trims image deletion request form fields", () => {
+    expect(
+      createWikiImageDeletionRequest({
+        requesterName: "  KPool User  ",
+        requesterEmail: " user@example.test ",
+        reason: "  Rights concern  ",
+      }),
+    ).toMatchObject({
+      requesterName: "KPool User",
+      requesterEmail: "user@example.test",
+      reason: "Rights concern",
+    });
   });
 
   it("normalizes empty draft image wiki names arrays from backend responses", () => {

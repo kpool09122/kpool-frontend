@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { WikiImageDeletionRequestDialog } from "../WikiImageDeletionRequestDialog";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
@@ -21,6 +22,7 @@ type WikiPublicHeroImageProps = {
   flipCardId: string;
   language?: string;
   profileLabel?: string;
+  translationSetIdentifier?: string;
 };
 
 export function WikiPublicHeroImage({
@@ -30,11 +32,15 @@ export function WikiPublicHeroImage({
   flipCardId,
   language = "ja",
   profileLabel,
+  translationSetIdentifier,
 }: WikiPublicHeroImageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.heroCard;
   const resolvedProfileLabel = profileLabel ?? t.basicProfile;
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isDeletionRequestOpen, setIsDeletionRequestOpen] = useState(false);
+  const isHeroImageHidden = heroImage.isHidden === true;
+  const canRequestDeletion = Boolean(heroImage.imageIdentifier && translationSetIdentifier && !isHeroImageHidden);
 
   return (
     <section className="lg:rounded-[2rem]" style={transparentFrameStyle}>
@@ -137,24 +143,50 @@ export function WikiPublicHeroImage({
               {t.publicBasicHint}
             </span>
           </p>
+
+          {canRequestDeletion && translationSetIdentifier ? (
+            <div className="text-center">
+              <button
+                className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
+                onClick={() => setIsDeletionRequestOpen(true)}
+                type="button"
+              >
+                {t.requestImageDeletion}
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
       <div className="hidden gap-6 py-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-        <div
-          className="h-full overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
-          style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
-        >
-          <div className="relative h-full min-h-[30rem]">
-            <Image
-              alt={heroImage.alt}
-              className="object-cover"
-              fill
-              sizes="(min-width: 1024px) 55vw, 100vw"
-              src={heroImage.src}
-              unoptimized
-            />
+        <div className="flex h-full flex-col">
+          <div
+            className="min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
+            style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
+          >
+            <div className="relative h-full min-h-[30rem]">
+              <Image
+                alt={heroImage.alt}
+                className="object-cover"
+                fill
+                sizes="(min-width: 1024px) 55vw, 100vw"
+                src={heroImage.src}
+                unoptimized
+              />
+            </div>
           </div>
+
+          {canRequestDeletion && translationSetIdentifier ? (
+            <div className="mt-3 text-center">
+              <button
+                className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
+                onClick={() => setIsDeletionRequestOpen(true)}
+                type="button"
+              >
+                {t.requestImageDeletion}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div
@@ -190,6 +222,13 @@ export function WikiPublicHeroImage({
           />
         </div>
       </div>
+      {canRequestDeletion && translationSetIdentifier && isDeletionRequestOpen ? (
+        <WikiImageDeletionRequestDialog
+          heroImage={heroImage}
+          onClose={() => setIsDeletionRequestOpen(false)}
+          translationSetIdentifier={translationSetIdentifier}
+        />
+      ) : null}
     </section>
   );
 }

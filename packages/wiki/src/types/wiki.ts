@@ -150,6 +150,7 @@ const wikiProfileCardSummarySchema = z.object({
   imageIdentifier: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   imageAltText: z.string().nullable().optional(),
+  isHidden: z.boolean().optional(),
 });
 
 export type WikiProfileCardSummary = z.infer<typeof wikiProfileCardSummarySchema>;
@@ -179,6 +180,7 @@ export type WikiImageBlock = {
   imageSrc: string;
   caption: string | null;
   alt: string | null;
+  isHidden?: boolean;
 };
 
 export type WikiImageGalleryBlock = {
@@ -189,6 +191,7 @@ export type WikiImageGalleryBlock = {
     imageIdentifier: string;
     imageSrc: string;
     alt: string | null;
+    isHidden?: boolean;
   }>;
   caption: string | null;
 };
@@ -267,6 +270,7 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
     imageSrc: z.string(),
     caption: z.string().nullable(),
     alt: z.string().nullable(),
+    isHidden: z.boolean().optional(),
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("image_gallery"),
@@ -275,6 +279,7 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
         imageIdentifier: z.string(),
         imageSrc: z.string(),
         alt: z.string().nullable(),
+        isHidden: z.boolean().optional(),
       }),
     ),
     caption: z.string().nullable(),
@@ -410,6 +415,7 @@ const wikiDetailBaseSchema = z.object({
     imageIdentifier: z.string().nullable().optional(),
     src: z.string(),
     alt: z.string(),
+    isHidden: z.boolean().optional(),
   }),
   basic: wikiBasicSchema,
   sections: z.array(wikiSectionSchema),

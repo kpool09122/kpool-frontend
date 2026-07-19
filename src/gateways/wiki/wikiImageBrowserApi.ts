@@ -3,11 +3,14 @@ import {
   wikiDraftImageListResponseSchema,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
+  wikiImageDeletionRequestResponseSchema,
   wikiImageListResponseSchema,
   wikiImageReviewResponseSchema,
   wikiImageUploadResponseSchema,
   type WikiDraftImageListResponse,
   type WikiDraftImageStatus,
+  type WikiImageDeletionRequest,
+  type WikiImageDeletionRequestResponse,
   type WikiImageListResponse,
   type WikiImageReviewResponse,
   type WikiImageUploadRequest,
@@ -77,6 +80,39 @@ export const fetchWikiImages = async ({
   }
 
   return parseWithSchemaLog("wiki image list response", wikiImageListResponseSchema, body);
+};
+
+export const requestWikiImageDeletion = async ({
+  fallbackErrorMessage,
+  imageIdentifier,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+  requestBody: WikiImageDeletionRequest;
+}): Promise<WikiImageDeletionRequestResponse> => {
+  const response = await fetch(
+    `/api/wiki/images/${encodeURIComponent(imageIdentifier)}/request-deletion`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    },
+  );
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
+
+  if (!response.ok) {
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseWithSchemaLog(
+    "wiki image deletion request response",
+    wikiImageDeletionRequestResponseSchema,
+    body,
+  );
 };
 
 export const uploadWikiImageRequest = async ({
