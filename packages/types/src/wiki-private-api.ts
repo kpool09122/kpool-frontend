@@ -109,6 +109,32 @@ const ListDraftWikisResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const ImageDeletionRequestListItem = z
+  .object({
+    imageIdentifier: KPool_Common_Uuid,
+    url: z.string(),
+    resourceType: z.string(),
+    translationSetIdentifier: KPool_Common_Uuid,
+    displayOrder: z.number().int(),
+    sourceUrl: z.string(),
+    sourceName: z.string(),
+    altText: z.string(),
+    isHidden: z.boolean(),
+    uploadedAt: z.string().nullable(),
+    name: z.string(),
+    email: z.string(),
+    reason: z.string(),
+  })
+  .passthrough();
+const ListImageDeletionRequestsResponseBody = z
+  .object({
+    images: z.array(ImageDeletionRequestListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
 const UploadImageRequestBody = z
   .object({
     publishedImageIdentifier: KPool_Common_Uuid.optional(),
@@ -752,6 +778,8 @@ export const schemas = {
   DraftWikiRejectionReasonText,
   DraftWikiListItem,
   ListDraftWikisResponseBody,
+  ImageDeletionRequestListItem,
+  ListImageDeletionRequestsResponseBody,
   UploadImageRequestBody,
   ImageDraftSummary,
   ReviewImageDeletionRequestBody,
@@ -907,6 +935,43 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/image-deletion-requests",
+    alias: "ImageDeletionRequestListOperations_listImageDeletionRequests",
+    description: `List uploaded images with pending image deletion requests.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+    ],
+    response: ListImageDeletionRequestsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
