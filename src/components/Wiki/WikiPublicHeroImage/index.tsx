@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { WikiImageHideRequestDialog } from "../WikiImageHideRequestDialog";
+import { WikiImageDeletionRequestDialog } from "../WikiImageDeletionRequestDialog";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
@@ -38,9 +38,9 @@ export function WikiPublicHeroImage({
   const t = dictionary.wiki.heroCard;
   const resolvedProfileLabel = profileLabel ?? t.basicProfile;
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isHideRequestOpen, setIsHideRequestOpen] = useState(false);
+  const [isDeletionRequestOpen, setIsDeletionRequestOpen] = useState(false);
   const isHeroImageHidden = heroImage.isHidden === true;
-  const canRequestHide = Boolean(heroImage.imageIdentifier && translationSetIdentifier && !isHeroImageHidden);
+  const canRequestDeletion = Boolean(heroImage.imageIdentifier && translationSetIdentifier && !isHeroImageHidden);
 
   return (
     <section className="lg:rounded-[2rem]" style={transparentFrameStyle}>
@@ -148,14 +148,14 @@ export function WikiPublicHeroImage({
             </span>
           </p>
 
-          {canRequestHide && translationSetIdentifier ? (
+          {canRequestDeletion && translationSetIdentifier ? (
             <div className="text-center">
               <button
                 className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
-                onClick={() => setIsHideRequestOpen(true)}
+                onClick={() => setIsDeletionRequestOpen(true)}
                 type="button"
               >
-                {t.requestImageHide}
+                {t.requestImageDeletion}
               </button>
             </div>
           ) : null}
@@ -184,14 +184,14 @@ export function WikiPublicHeroImage({
             </div>
           </div>
 
-          {canRequestHide && translationSetIdentifier ? (
+          {canRequestDeletion && translationSetIdentifier ? (
             <div className="mt-3 text-center">
               <button
                 className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
-                onClick={() => setIsHideRequestOpen(true)}
+                onClick={() => setIsDeletionRequestOpen(true)}
                 type="button"
               >
-                {t.requestImageHide}
+                {t.requestImageDeletion}
               </button>
             </div>
           ) : null}
@@ -230,10 +230,10 @@ export function WikiPublicHeroImage({
           />
         </div>
       </div>
-      {canRequestHide && translationSetIdentifier && isHideRequestOpen ? (
-        <WikiImageHideRequestDialog
+      {canRequestDeletion && translationSetIdentifier && isDeletionRequestOpen ? (
+        <WikiImageDeletionRequestDialog
           heroImage={heroImage}
-          onClose={() => setIsHideRequestOpen(false)}
+          onClose={() => setIsDeletionRequestOpen(false)}
           translationSetIdentifier={translationSetIdentifier}
         />
       ) : null}

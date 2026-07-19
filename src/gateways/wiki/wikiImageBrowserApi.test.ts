@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  createWikiImageHideRequest,
+  createWikiImageDeletionRequest,
   createWikiImageUploadRequest,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
@@ -10,7 +10,7 @@ import {
   approveWikiDraftImage,
   fetchWikiImages,
   rejectWikiDraftImage,
-  requestWikiImageHide,
+  requestWikiImageDeletion,
   uploadWikiImageRequest,
 } from "./wikiImageBrowserApi";
 
@@ -120,8 +120,8 @@ describe("wikiImageBrowserApi", () => {
     });
   });
 
-  it("submits image hide requests through the browser route", async () => {
-    const requestBody = createWikiImageHideRequest({
+  it("submits image deletion requests through the browser route", async () => {
+    const requestBody = createWikiImageDeletionRequest({
       requesterName: "KPool User",
       requesterEmail: "user@example.test",
       reason: "Rights concern",
@@ -133,21 +133,21 @@ describe("wikiImageBrowserApi", () => {
           requesterName: "KPool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
-          status: "pending",
+          isHidden: true,
         },
         201,
       ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await requestWikiImageHide({
-      fallbackErrorMessage: "Hide request failed",
+    await requestWikiImageDeletion({
+      fallbackErrorMessage: "Deletion request failed",
       imageIdentifier,
       requestBody,
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `/api/wiki/images/${imageIdentifier}/request-hide`,
+      `/api/wiki/images/${imageIdentifier}/request-deletion`,
       {
         method: "POST",
         credentials: "include",
@@ -159,17 +159,17 @@ describe("wikiImageBrowserApi", () => {
     );
   });
 
-  it("throws image hide route error messages for non-2xx responses", async () => {
+  it("throws image deletion route error messages for non-2xx responses", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(jsonResponse({ message: "Already requested" }, 409)),
     );
 
     await expect(
-      requestWikiImageHide({
-        fallbackErrorMessage: "Hide request failed",
+      requestWikiImageDeletion({
+        fallbackErrorMessage: "Deletion request failed",
         imageIdentifier,
-        requestBody: createWikiImageHideRequest({
+        requestBody: createWikiImageDeletionRequest({
           requesterName: "KPool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
@@ -178,14 +178,14 @@ describe("wikiImageBrowserApi", () => {
     ).rejects.toThrow("Already requested");
   });
 
-  it("throws when the image hide response does not match the schema", async () => {
+  it("throws when the image deletion response does not match the schema", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
 
     await expect(
-      requestWikiImageHide({
-        fallbackErrorMessage: "Hide request failed",
+      requestWikiImageDeletion({
+        fallbackErrorMessage: "Deletion request failed",
         imageIdentifier,
-        requestBody: createWikiImageHideRequest({
+        requestBody: createWikiImageDeletionRequest({
           requesterName: "KPool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",

@@ -11,7 +11,7 @@ const requestBody = {
 };
 
 const createRequest = (headers: Record<string, string> = {}): NextRequest =>
-  new Request(`https://app.example.test/api/wiki/images/${imageId}/request-hide`, {
+  new Request(`https://app.example.test/api/wiki/images/${imageId}/request-deletion`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -30,13 +30,13 @@ const jsonResponse = (body: unknown, status = 201): Response =>
     headers: { "Content-Type": "application/json" },
   });
 
-describe("wiki image hide request route", () => {
+describe("wiki image deletion request route", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     delete process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
   });
 
-  it("forwards hide requests with body, cookie and accept-language headers", async () => {
+  it("forwards deletion requests with body, cookie and accept-language headers", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -44,7 +44,7 @@ describe("wiki image hide request route", () => {
         requesterName: "KPool User",
         requesterEmail: "user@example.test",
         reason: "Rights concern",
-        status: "pending",
+        isHidden: true,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
@@ -59,7 +59,7 @@ describe("wiki image hide request route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/image/${imageId}/request-hide`,
+      `https://api.example.test/api/wiki/image/${imageId}/request-deletion`,
       expect.objectContaining({
         method: "POST",
         headers: {
@@ -90,7 +90,7 @@ describe("wiki image hide request route", () => {
     expect(body.message).toBe("Wiki images are temporarily unavailable. Please try again later.");
     expect(body.message).not.toContain("/var/app");
     expect(consoleError).toHaveBeenCalledWith(
-      "Wiki image hide request backend request failed",
+      "Wiki image deletion request backend request failed",
       { status: 409 },
     );
   });

@@ -4,8 +4,8 @@ import {
   createWikiDraftImageReviewUrl,
   createWikiDraftImagesUrl,
   createWikiImageAssociationInput,
-  createWikiImageHideRequest,
-  createWikiImageHideRequestUrl,
+  createWikiImageDeletionRequest,
+  createWikiImageDeletionRequestUrl,
   createWikiImageUploadRequest,
   createWikiImagesUrl,
   isAcceptedWikiImageFile,
@@ -154,20 +154,20 @@ describe("wikiImages", () => {
     );
   });
 
-  it("builds image hide request urls for backend image actions", () => {
+  it("builds image deletion request urls for backend image actions", () => {
     expect(
-      createWikiImageHideRequestUrl({
+      createWikiImageDeletionRequestUrl({
         baseUrl: "https://api.example.test/api/wiki/",
         imageIdentifier: "44444444-4444-4444-4444-444444444444",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/request-hide",
+      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/request-deletion",
     );
   });
 
-  it("trims image hide request form fields", () => {
+  it("trims image deletion request form fields", () => {
     expect(
-      createWikiImageHideRequest({
+      createWikiImageDeletionRequest({
         requesterName: "  KPool User  ",
         requesterEmail: " user@example.test ",
         reason: "  Rights concern  ",

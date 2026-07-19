@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
-  createWikiImageHideRequestUrl,
-  wikiImageHideRequestResponseSchema,
-  wikiImageHideRequestSchema,
+  createWikiImageDeletionRequestUrl,
+  wikiImageDeletionRequestResponseSchema,
+  wikiImageDeletionRequestSchema,
 } from "@kpool/wiki";
 import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
@@ -14,7 +14,7 @@ import {
   wikiImageUnavailableMessage,
 } from "../../../wikiRouteSupport";
 
-type WikiImageHideRequestRouteContext = {
+type WikiImageDeletionRequestRouteContext = {
   params: Promise<{
     imageId: string;
   }>;
@@ -22,7 +22,7 @@ type WikiImageHideRequestRouteContext = {
 
 export async function POST(
   request: NextRequest,
-  context: WikiImageHideRequestRouteContext,
+  context: WikiImageDeletionRequestRouteContext,
 ) {
   const baseUrl = getWikiPrivateApiBaseUrl();
 
@@ -33,7 +33,7 @@ export async function POST(
   try {
     const { imageId } = await context.params;
     const apiResponse = await fetch(
-      createWikiImageHideRequestUrl({
+      createWikiImageDeletionRequestUrl({
         baseUrl,
         imageIdentifier: imageId,
       }),
@@ -44,7 +44,7 @@ export async function POST(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(
-          parseWithSchemaLog("wiki image hide request body", wikiImageHideRequestSchema, await request.json()),
+          parseWithSchemaLog("wiki image deletion request body", wikiImageDeletionRequestSchema, await request.json()),
         ),
         cache: "no-store",
       },
@@ -52,7 +52,7 @@ export async function POST(
     const body = await readJsonResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
-      console.error("Wiki image hide request backend request failed", {
+      console.error("Wiki image deletion request backend request failed", {
         status: apiResponse.status,
       });
 
@@ -63,11 +63,11 @@ export async function POST(
     }
 
     return NextResponse.json(
-      parseWithSchemaLog("wiki image hide request response", wikiImageHideRequestResponseSchema, body),
+      parseWithSchemaLog("wiki image deletion request response", wikiImageDeletionRequestResponseSchema, body),
       { status: apiResponse.status },
     );
   } catch (error) {
-    console.error("Wiki image hide request route failed", error);
+    console.error("Wiki image deletion request route failed", error);
 
     return NextResponse.json(
       { message: wikiImageUnavailableMessage },

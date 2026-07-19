@@ -87,7 +87,7 @@ describe("WikiPublicHeroImage", () => {
     expect(screen.getByText("Tap the card again to return to the cover image.")).toBeInTheDocument();
   });
 
-  it("shows the hide request link only when image and translation set identifiers are available", () => {
+  it("shows the deletion request link only when image and translation set identifiers are available", () => {
     renderWithI18n(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
@@ -97,7 +97,7 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    expect(screen.getAllByRole("button", { name: "Request image hide" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Request image deletion" })).toHaveLength(2);
 
     cleanup();
 
@@ -109,7 +109,7 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Request image hide" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request image deletion" })).not.toBeInTheDocument();
   });
 
   it("does not render or request a hidden hero image", () => {
@@ -126,10 +126,10 @@ describe("WikiPublicHeroImage", () => {
     );
 
     expect(screen.queryByRole("img", { name: wikiStoryHeroImage.alt })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Request image hide" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request image deletion" })).not.toBeInTheDocument();
   });
 
-  it("opens the hide request dialog, requires a reason, and shows success after submit", async () => {
+  it("opens the deletion request dialog, requires a reason, and shows success after submit", async () => {
     const imageIdentifier = heroImageIdentifier;
     const fetchMock = vi
       .fn()
@@ -141,7 +141,7 @@ describe("WikiPublicHeroImage", () => {
             requesterName: "KPool User",
             requesterEmail: "user@example.test",
             reason: "Rights concern",
-            status: "pending",
+            isHidden: true,
           },
           201,
         ),
@@ -157,19 +157,19 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Request image hide" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
 
-    expect(await screen.findByRole("dialog", { name: "Request image hide" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Submit hide request" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Request image deletion" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Submit deletion request" })).not.toBeInTheDocument();
     await clickImageCard("Hero image");
     expect(screen.getByText("Selected: Hero image")).toBeInTheDocument();
 
-    const submitButton = screen.getByRole("button", { name: "Submit hide request" });
+    const submitButton = screen.getByRole("button", { name: "Submit deletion request" });
     expect(submitButton).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "KPool User" } });
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "user@example.test" } });
-    fireEvent.change(screen.getByLabelText("Reason for hiding the image"), {
+    fireEvent.change(screen.getByLabelText("Reason for requesting deletion"), {
       target: { value: "Rights concern" },
     });
     fireEvent.click(submitButton);
@@ -180,7 +180,7 @@ describe("WikiPublicHeroImage", () => {
       ),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenLastCalledWith(
-      `/api/wiki/images/${imageIdentifier}/request-hide`,
+      `/api/wiki/images/${imageIdentifier}/request-deletion`,
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -232,7 +232,7 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Request image hide" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
     fireEvent.click(await screen.findByRole("button", { name: "Load more images" }));
 
     expect(await screen.findByText("Alt text: Second image")).toBeInTheDocument();
@@ -252,7 +252,7 @@ describe("WikiPublicHeroImage", () => {
           jsonResponse(
             {
               message:
-                "Image hide request failed. If a request is already pending, duplicate requests cannot be submitted.",
+                "Image deletion request failed. If a request is already pending, duplicate requests cannot be submitted.",
             },
             409,
           ),
@@ -268,15 +268,15 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Request image hide" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
     await clickImageCard("Hero image");
     expect(screen.getByText("Selected: Hero image")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "KPool User" } });
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "user@example.test" } });
-    fireEvent.change(screen.getByLabelText("Reason for hiding the image"), {
+    fireEvent.change(screen.getByLabelText("Reason for requesting deletion"), {
       target: { value: "Rights concern" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Submit hide request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Submit deletion request" }));
 
     expect(await screen.findByText(/duplicate requests cannot be submitted/)).toBeInTheDocument();
   });

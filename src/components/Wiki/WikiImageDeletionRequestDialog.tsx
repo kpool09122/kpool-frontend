@@ -4,17 +4,17 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import {
-  createWikiImageHideRequest,
+  createWikiImageDeletionRequest,
   defaultWikiImagePerPage,
   type WikiDetail,
   type WikiUploadedImage,
 } from "@kpool/wiki";
-import { fetchWikiImages, requestWikiImageHide } from "@/gateways/wiki/wikiImageBrowserApi";
+import { fetchWikiImages, requestWikiImageDeletion } from "@/gateways/wiki/wikiImageBrowserApi";
 import { useI18n } from "../../i18n/I18nProvider";
 import { getFocusableElements } from "./WikiImageLibrary/focus";
 import { cardSurfaceStyle } from "./styles";
 
-type WikiImageHideRequestDialogProps = {
+type WikiImageDeletionRequestDialogProps = {
   heroImage: WikiDetail["heroImage"];
   translationSetIdentifier: string;
   onClose: () => void;
@@ -29,13 +29,13 @@ const findInitialSelectedImage = (
 ): WikiUploadedImage | null =>
   images.find((image) => image.imageIdentifier === imageIdentifier) ?? null;
 
-export function WikiImageHideRequestDialog({
+export function WikiImageDeletionRequestDialog({
   heroImage,
   onClose,
   translationSetIdentifier,
-}: WikiImageHideRequestDialogProps) {
+}: WikiImageDeletionRequestDialogProps) {
   const { dictionary } = useI18n();
-  const t = dictionary.wiki.imageHideRequest;
+  const t = dictionary.wiki.imageDeletionRequest;
   const [images, setImages] = useState<WikiUploadedImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<WikiUploadedImage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,10 +156,10 @@ export function WikiImageHideRequestDialog({
     setSubmitStatus("submitting");
     setSubmitError(null);
 
-    requestWikiImageHide({
+    requestWikiImageDeletion({
       fallbackErrorMessage: t.submitFailed,
       imageIdentifier: selectedImage.imageIdentifier,
-      requestBody: createWikiImageHideRequest({
+      requestBody: createWikiImageDeletionRequest({
         reason,
         requesterEmail,
         requesterName,
@@ -174,10 +174,10 @@ export function WikiImageHideRequestDialog({
 
   return (
     <section
-      aria-labelledby="wiki-image-hide-request-title"
+      aria-labelledby="wiki-image-deletion-request-title"
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-stretch bg-black/55 p-4 sm:p-6"
-      data-testid="wiki-image-hide-request-dialog"
+      data-testid="wiki-image-deletion-request-dialog"
       onKeyDown={handleKeyDown}
       role="dialog"
     >
@@ -188,7 +188,7 @@ export function WikiImageHideRequestDialog({
       >
         <div className="flex items-start justify-between gap-4 border-b border-stroke-subtle p-5">
           <div>
-            <h2 className="text-2xl font-semibold" id="wiki-image-hide-request-title">
+            <h2 className="text-2xl font-semibold" id="wiki-image-deletion-request-title">
               {t.title}
             </h2>
           </div>
