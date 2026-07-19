@@ -46,6 +46,7 @@ const publicWikiResponse = {
   heroImage: {
     alt: "Aurora Echo public image",
     imageIdentifier: null,
+    isHidden: false,
     src: "https://cdn.example.com/aurora-echo.webp",
   },
   language: "ja",
@@ -121,6 +122,7 @@ describe("publicWiki", () => {
       },
       heroImage: {
         alt: "Aurora Echo public image",
+        isHidden: false,
         src: "https://cdn.example.com/aurora-echo.webp",
       },
       language: "ja",
@@ -239,6 +241,43 @@ describe("publicWiki", () => {
         ],
       }),
     ]);
+  });
+
+  it("keeps hidden public hero images hidden even when the image src is null", () => {
+    const wiki = adaptPublicWikiResponse({
+      ...publicWikiResponse,
+      heroImage: {
+        alt: null,
+        imageIdentifier: "hero-image-1",
+        isHidden: true,
+        src: null,
+      },
+    });
+
+    expect(wiki.heroImage).toMatchObject({
+      imageIdentifier: "hero-image-1",
+      isHidden: true,
+    });
+  });
+
+  it("uses the placeholder hero image when the public hero image is hidden", () => {
+    const wiki = adaptPublicWikiResponse({
+      ...publicWikiResponse,
+      heroImage: {
+        alt: "Hidden hero image",
+        imageIdentifier: "hero-image-1",
+        isHidden: true,
+        src: "https://cdn.example.com/hidden-hero.webp",
+      },
+    });
+
+    expect(wiki.heroImage).toMatchObject({
+      imageIdentifier: "hero-image-1",
+      isHidden: true,
+    });
+    expect(wiki.heroImage.src).toContain("data:image/svg+xml");
+    expect(decodeURIComponent(wiki.heroImage.src)).not.toContain("Aurora Echo");
+    expect(decodeURIComponent(wiki.heroImage.src)).not.toContain("hero-image-1");
   });
 
   it("keeps profile_card_list summaries from the public wiki response", () => {

@@ -180,15 +180,6 @@ export const createPlaceholderHeroImage = (
           </linearGradient>
         </defs>
         <rect width="1200" height="900" fill="url(#wiki-gradient)" />
-        <text x="64" y="120" fill="#ffffff" font-family="Arial, sans-serif" font-size="42">
-          ${resourceType.toUpperCase()}
-        </text>
-        <text x="64" y="184" fill="#ffffff" font-family="Arial, sans-serif" font-size="60">
-          ${name}
-        </text>
-        <text x="64" y="248" fill="#cfd8e6" font-family="Arial, sans-serif" font-size="28">
-          ${imageIdentifier ?? "wiki-hero-image"}
-        </text>
       </svg>
     `),
 });
@@ -259,8 +250,11 @@ const toString = (value: unknown, fallback = ""): string =>
 const toNullable = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
-const toHiddenFlag = (record: Record<string, unknown>): { isHidden?: true } =>
-  record.isHidden === true || record.is_hidden === true ? { isHidden: true } : {};
+const toHiddenFlag = (record: Record<string, unknown>): { isHidden?: boolean } => {
+  const value = record.isHidden ?? record.is_hidden;
+
+  return typeof value === "boolean" ? { isHidden: value } : {};
+};
 
 const toNumber = (value: unknown, fallback: number): number =>
   typeof value === "number" ? value : fallback;
@@ -562,20 +556,26 @@ const getHeroImage = (response: WikiApiResponseBase): WikiDraftDetail["heroImage
       : {};
   const name = String(basic.name ?? response.slug);
 
-  if (response.heroImage?.src) {
+  const heroImageRecord = toRecord(response.heroImage);
+  const hiddenFlag = toHiddenFlag(heroImageRecord);
+
+  if (response.heroImage?.src && hiddenFlag.isHidden !== true) {
     return {
       imageIdentifier: response.heroImage.imageIdentifier ?? null,
       alt: response.heroImage.alt ?? `${name} hero image`,
-      ...toHiddenFlag(response.heroImage),
+      ...hiddenFlag,
       src: response.heroImage.src,
     };
   }
 
-  return createPlaceholderHeroImage(
-    name,
-    inferResourceType(response),
-    response.heroImage?.imageIdentifier,
-  );
+  return {
+    ...createPlaceholderHeroImage(
+      name,
+      inferResourceType(response),
+      response.heroImage?.imageIdentifier,
+    ),
+    ...hiddenFlag,
+  };
 };
 
 export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>

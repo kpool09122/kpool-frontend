@@ -71,18 +71,14 @@ export function WikiPublicHeroImage({
                   style={cardSurfaceStyle}
                 >
                   <div className="relative h-full w-full">
-                    {isHeroImageHidden ? (
-                      <div aria-hidden="true" className="h-full w-full" style={cardSurfaceMutedStyle} />
-                    ) : (
-                      <Image
-                        alt={heroImage.alt}
-                        className="object-cover"
-                        fill
-                        sizes="100vw"
-                        src={heroImage.src}
-                        unoptimized
-                      />
-                    )}
+                    <Image
+                      alt={heroImage.alt}
+                      className="object-cover"
+                      fill
+                      sizes="100vw"
+                      src={heroImage.src}
+                      unoptimized
+                    />
                   </div>
                 </div>
                 <label
@@ -169,18 +165,14 @@ export function WikiPublicHeroImage({
             style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
           >
             <div className="relative h-full min-h-[30rem]">
-              {isHeroImageHidden ? (
-                <div aria-hidden="true" className="h-full w-full" style={cardSurfaceMutedStyle} />
-              ) : (
-                <Image
-                  alt={heroImage.alt}
-                  className="object-cover"
-                  fill
-                  sizes="(min-width: 1024px) 55vw, 100vw"
-                  src={heroImage.src}
-                  unoptimized
-                />
-              )}
+              <Image
+                alt={heroImage.alt}
+                className="object-cover"
+                fill
+                sizes="(min-width: 1024px) 55vw, 100vw"
+                src={heroImage.src}
+                unoptimized
+              />
             </div>
           </div>
 

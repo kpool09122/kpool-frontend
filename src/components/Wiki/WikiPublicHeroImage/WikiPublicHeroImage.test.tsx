@@ -112,7 +112,7 @@ describe("WikiPublicHeroImage", () => {
     expect(screen.queryByRole("button", { name: "Request image deletion" })).not.toBeInTheDocument();
   });
 
-  it("does not render or request a hidden hero image", () => {
+  it("renders the default hero image and does not allow another request when the hero image is hidden", () => {
     renderWithI18n(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
@@ -125,7 +125,14 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    expect(screen.queryByRole("img", { name: wikiStoryHeroImage.alt })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: wikiStoryHeroImage.alt })).toEqual([
+      expect.objectContaining({
+        src: expect.stringContaining("data:image/svg+xml"),
+      }),
+      expect.objectContaining({
+        src: expect.stringContaining("data:image/svg+xml"),
+      }),
+    ]);
     expect(screen.queryByRole("button", { name: "Request image deletion" })).not.toBeInTheDocument();
   });
 
