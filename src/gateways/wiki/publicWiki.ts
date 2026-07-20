@@ -79,6 +79,7 @@ const publicWikiListItemSchema = z
     imageIdentifier: z.string().nullable(),
     imageUrl: z.string().nullable(),
     imageAltText: z.string().nullable(),
+    isHidden: z.boolean().nullable().optional(),
     name: z.string(),
     normalizedName: z.string(),
     publishedAt: z.string().nullable().optional(),
@@ -262,7 +263,7 @@ export const adaptPublicWikiListResponse = (
   perPage: response.per_page,
   total: response.total,
   wikis: response.wikis.map((wiki) => {
-    if (wiki.heroImage?.src || !wiki.imageUrl) {
+    if (wiki.isHidden === true || wiki.heroImage?.src || !wiki.imageUrl) {
       return wiki;
     }
 
@@ -271,6 +272,7 @@ export const adaptPublicWikiListResponse = (
       heroImage: {
         alt: wiki.imageAltText,
         imageIdentifier: wiki.imageIdentifier,
+        isHidden: wiki.isHidden,
         src: wiki.imageUrl,
       },
     };

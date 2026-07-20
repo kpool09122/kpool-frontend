@@ -24,6 +24,7 @@ export const createMockEditingDraftWiki = (): WikiDraftWiki => ({
   imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
   imageUrl: "https://images.example.test/editing-wiki.webp",
   imageAltText: "編集中 Wiki profile",
+  isHidden: false,
   editedAt: "2026-05-10T00:00:00Z",
   approvedAt: null,
   translatedAt: null,

@@ -15,6 +15,7 @@ import {
   canAutoCreateWikiDraftWikiResourceType,
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
+  canReviewWikiImageDeletionRequests,
   canReviewWikiDraftWikis,
   createWikiPrincipal,
   draftWikiAutoCreateResourceTypes,
@@ -41,8 +42,11 @@ import {
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
 import {
   approveWikiDraftImage,
+  approveWikiImageDeletionRequest,
   fetchWikiDraftImages,
+  fetchWikiImageDeletionRequests,
   rejectWikiDraftImage,
+  rejectWikiImageDeletionRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
   buildWikiEditPath,
@@ -50,8 +54,10 @@ import {
   isAcceptedWikiImageFile,
   isSafeWikiSourceUrl,
   isWikiImageFileSizeAllowed,
+  toSafeWikiImageUrl,
   normalizeWikiSlugForResourceType,
   type WikiDraftImage,
+  type WikiImageDeletionRequestListItem,
   type WikiMasterSearchItem,
   type WikiResourceType,
   wikiImageAcceptAttribute,
@@ -62,6 +68,11 @@ import {
   type DraftImageListState,
   useMyPageDraftImageReview,
 } from "./useMyPageDraftImageReview";
+import {
+  initialImageDeletionRequestListState,
+  type ImageDeletionRequestListState,
+  useMyPageImageDeletionRequestReview,
+} from "./useMyPageImageDeletionRequestReview";
 import {
   initialDraftWikiListState,
   type DraftWikiListState,
@@ -79,12 +90,13 @@ import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
 type MyPageSettingsTab = "profileSettings" | "languageSettings";
 type MyPageSection = "wiki" | "settings";
-type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages";
+type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
 type CreateDraftWikiMode = "manual" | "auto";
 
 type MyPageClientProps = {
   initialIdentity: IdentitySummary | null;
   initialDraftImages?: DraftImageListState;
+  initialImageDeletionRequests?: ImageDeletionRequestListState;
   initialDraftWikis?: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
   initialPrincipalState?: WikiPrincipalState;
   draftImageAdapter?: MyPageDraftImageAdapter;
@@ -144,8 +156,11 @@ const defaultPrincipalAdapter: MyPagePrincipalAdapter = {
 
 const defaultDraftImageAdapter: MyPageDraftImageAdapter = {
   approveDraftImage: approveWikiDraftImage,
+  approveImageDeletionRequest: approveWikiImageDeletionRequest,
   listDraftImages: fetchWikiDraftImages,
+  listImageDeletionRequests: fetchWikiImageDeletionRequests,
   rejectDraftImage: rejectWikiDraftImage,
+  rejectImageDeletionRequest: rejectWikiImageDeletionRequest,
 };
 
 const defaultDraftWikiAdapter: MyPageDraftWikiAdapter = {
@@ -190,6 +205,7 @@ export function MyPageClient({
   draftImageAdapter = defaultDraftImageAdapter,
   draftWikiAdapter = defaultDraftWikiAdapter,
   initialDraftImages = initialDraftImageListState,
+  initialImageDeletionRequests = initialImageDeletionRequestListState,
   initialDraftWikis = initialDraftWikiLists,
   initialIdentity,
   initialPrincipalState = { status: "idle" },
@@ -236,6 +252,27 @@ export function MyPageClient({
     identityIdentifier: currentIdentity?.identityIdentifier ?? null,
     initialDraftImages,
     messages: draftImageMessages,
+  });
+  const imageDeletionRequestMessages = useMemo(() => ({
+    imageDeletionRequestApproveFailed: t.imageDeletionRequestApproveFailed,
+    imageDeletionRequestListLoadFailed: t.imageDeletionRequestListLoadFailed,
+    imageDeletionRequestRejectFailed: t.imageDeletionRequestRejectFailed,
+  }), [
+    t.imageDeletionRequestApproveFailed,
+    t.imageDeletionRequestListLoadFailed,
+    t.imageDeletionRequestRejectFailed,
+  ]);
+  const {
+    imageDeletionRequests,
+    loadImageDeletionRequestsPage,
+    reviewError: imageDeletionRequestReviewError,
+    reviewImageDeletionRequest,
+    reviewingImageIdentifier: reviewingImageDeletionRequestIdentifier,
+  } = useMyPageImageDeletionRequestReview({
+    adapter: draftImageAdapter,
+    identityIdentifier: currentIdentity?.identityIdentifier ?? null,
+    initialImageDeletionRequests,
+    messages: imageDeletionRequestMessages,
   });
   const draftWikiMessages = useMemo(() => ({
     draftWikiApproveFailed: t.draftWikiApproveFailed,
@@ -648,11 +685,14 @@ export function MyPageClient({
             <>
               <WikiPrincipalPanel
                 draftImages={draftImages}
+                imageDeletionRequests={imageDeletionRequests}
                 draftWikis={draftWikis}
                 locale={locale}
                 reviewError={reviewError}
+                imageDeletionRequestReviewError={imageDeletionRequestReviewError}
                 draftWikiReviewError={draftWikiReviewError}
                 reviewingImageIdentifier={reviewingImageIdentifier}
+                reviewingImageDeletionRequestIdentifier={reviewingImageDeletionRequestIdentifier}
                 deletingWikiIdentifier={deletingWikiIdentifier}
                 reviewingWikiIdentifier={reviewingWikiIdentifier}
                 isAuthenticated={currentIdentity !== null}
@@ -662,10 +702,14 @@ export function MyPageClient({
                 t={t}
                 onActivate={() => void activateWikiPrincipal()}
                 onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
+                onLoadImageDeletionRequestsPage={(page) => void loadImageDeletionRequestsPage(page)}
                 onLoadDraftWikisPage={(tab, page) => void loadDraftWikisPage(tab, page)}
                 onRetry={() => void loadCurrentPrincipal()}
                 onReviewDraftImage={(imageIdentifier, action) =>
                   void reviewDraftImage(imageIdentifier, action)
+                }
+                onReviewImageDeletionRequest={(imageIdentifier, action, rejectReason) =>
+                  void reviewImageDeletionRequest(imageIdentifier, action, rejectReason)
                 }
                 onDeleteDraftWiki={(wiki) => {
                   if (window.confirm(t.deleteDraftWikiConfirm)) {
@@ -726,11 +770,14 @@ export function MyPageClient({
 
 function WikiPrincipalPanel({
   draftImages,
+  imageDeletionRequests,
   draftWikis,
   locale,
   reviewError,
+  imageDeletionRequestReviewError,
   draftWikiReviewError,
   reviewingImageIdentifier,
+  reviewingImageDeletionRequestIdentifier,
   deletingWikiIdentifier,
   reviewingWikiIdentifier,
   isAuthenticated,
@@ -740,9 +787,11 @@ function WikiPrincipalPanel({
   t,
   onActivate,
   onLoadDraftImagesPage,
+  onLoadImageDeletionRequestsPage,
   onLoadDraftWikisPage,
   onRetry,
   onReviewDraftImage,
+  onReviewImageDeletionRequest,
   onDeleteDraftWiki,
   onReviewDraftWiki,
   onSelectWikiTab,
@@ -750,11 +799,14 @@ function WikiPrincipalPanel({
   onOpenCreateDraftWiki,
 }: {
   draftImages: DraftImageListState;
+  imageDeletionRequests: ImageDeletionRequestListState;
   draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
   locale: Locale;
   reviewError: string | null;
+  imageDeletionRequestReviewError: string | null;
   draftWikiReviewError: string | null;
   reviewingImageIdentifier: string | null;
+  reviewingImageDeletionRequestIdentifier: string | null;
   deletingWikiIdentifier: string | null;
   reviewingWikiIdentifier: string | null;
   isAuthenticated: boolean;
@@ -764,9 +816,11 @@ function WikiPrincipalPanel({
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onActivate: () => void;
   onLoadDraftImagesPage: (page: number) => void;
+  onLoadImageDeletionRequestsPage: (page: number) => void;
   onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
@@ -788,6 +842,7 @@ function WikiPrincipalPanel({
 
   if (state.status === "available") {
     const canReviewDraftImages = canReviewWikiDraftImages(state.principal);
+    const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(state.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
 
@@ -798,6 +853,7 @@ function WikiPrincipalPanel({
       ...(canPublishDraftWikis ? [createWikiTab("approvedWikis", t.approvedWikisTab)] : []),
       ...(canPublishDraftWikis ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
       ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
+      ...(canReviewImageDeletionRequests ? [createWikiTab("imageDeletionRequests", t.imageDeletionRequestsTab)] : []),
     ];
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)
       ? selectedWikiTab
@@ -829,6 +885,8 @@ function WikiPrincipalPanel({
                   onSelectWikiTab(tab.id);
                   if (tab.id === "draftImages") {
                     onLoadDraftImagesPage(1);
+                  } else if (tab.id === "imageDeletionRequests") {
+                    onLoadImageDeletionRequestsPage(1);
                   } else {
                     onLoadDraftWikisPage(tab.id, 1);
                   }
@@ -857,7 +915,23 @@ function WikiPrincipalPanel({
             onReviewDraftImage={onReviewDraftImage}
           />
         ) : null}
-        {activeWikiTab !== "draftImages" ? (
+        {activeWikiTab === "imageDeletionRequests" ? (
+          <ImageDeletionRequestListPanel
+            locale={locale}
+            reviewError={imageDeletionRequestReviewError}
+            reviewingImageIdentifier={reviewingImageDeletionRequestIdentifier}
+            state={imageDeletionRequests}
+            t={t}
+            onLoadMore={() => {
+              if (imageDeletionRequests.pageInfo) {
+                onLoadImageDeletionRequestsPage(imageDeletionRequests.pageInfo.current_page + 1);
+              }
+            }}
+            onReload={() => onLoadImageDeletionRequestsPage(1)}
+            onReviewImageDeletionRequest={onReviewImageDeletionRequest}
+          />
+        ) : null}
+        {activeWikiTab !== "draftImages" && activeWikiTab !== "imageDeletionRequests" ? (
           <DraftWikiListPanel
             locale={locale}
             reviewError={draftWikiReviewError}
@@ -1698,7 +1772,7 @@ function DraftWikiCard({
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
-  const hasImage = Boolean(wiki.imageUrl);
+  const hasImage = wiki.isHidden !== true && Boolean(wiki.imageUrl);
   const href = getDraftWikiHref(wiki, tab);
   const isDraftWiki = isDraftWikiListItem(wiki);
   const diffHref = getDraftWikiDiffHref(wiki);
@@ -1889,6 +1963,255 @@ function DraftWikiCard({
         t={t}
         onClose={() => setIsRejectionReasonOpen(false)}
       />
+    </article>
+  );
+}
+
+
+function ImageDeletionRequestListPanel({
+  locale,
+  reviewError,
+  reviewingImageIdentifier,
+  state,
+  t,
+  onLoadMore,
+  onReload,
+  onReviewImageDeletionRequest,
+}: {
+  locale: Locale;
+  reviewError: string | null;
+  reviewingImageIdentifier: string | null;
+  state: ImageDeletionRequestListState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onLoadMore: () => void;
+  onReload: () => void;
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
+}) {
+  const canLoadMore = state.pageInfo
+    ? state.pageInfo.current_page < state.pageInfo.last_page
+    : false;
+  const isBusy = state.isInitialLoading || state.isLoadingMore;
+
+  if (state.loadError) {
+    return (
+      <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <p role="alert" className="font-semibold">{state.loadError}</p>
+        <button
+          className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold transition hover:bg-red-100"
+          onClick={onReload}
+          type="button"
+        >
+          {t.reloadImageDeletionRequests}
+        </button>
+      </div>
+    );
+  }
+
+  if (state.isInitialLoading) {
+    return (
+      <div className="mt-5 grid min-h-40 place-items-center rounded-lg border border-dashed border-stroke-subtle text-sm font-semibold text-text-muted">
+        {t.imageDeletionRequestListLoading}
+      </div>
+    );
+  }
+
+  if (state.images.length === 0) {
+    return (
+      <div className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-6 text-center">
+        <p className="font-semibold">{t.imageDeletionRequestListEmptyTitle}</p>
+        <p className="mt-2 text-sm text-text-muted">{t.imageDeletionRequestListEmptyMessage}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-5 space-y-5">
+      {state.pageInfo ? (
+        <p className="text-sm font-semibold text-text-muted">
+          {t.imageDeletionRequestListTotal(state.pageInfo.total)}
+        </p>
+      ) : null}
+      {reviewError ? (
+        <p
+          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+          role="alert"
+        >
+          {reviewError}
+        </p>
+      ) : null}
+      <div className="grid gap-4 md:grid-cols-2">
+        {state.images.map((image) => (
+          <ImageDeletionRequestCard
+            image={image}
+            isReviewing={reviewingImageIdentifier === image.imageIdentifier}
+            key={image.imageIdentifier}
+            locale={locale}
+            t={t}
+            onReviewImageDeletionRequest={onReviewImageDeletionRequest}
+          />
+        ))}
+      </div>
+      <div className="flex justify-center">
+        {canLoadMore ? (
+          <button
+            className="rounded-lg border border-stroke-subtle px-5 py-2.5 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isBusy}
+            onClick={onLoadMore}
+            type="button"
+          >
+            {state.isLoadingMore ? t.imageDeletionRequestListLoadingMore : t.loadMoreImageDeletionRequests}
+          </button>
+        ) : (
+          <p className="text-sm font-semibold text-text-muted">{t.allImageDeletionRequestsLoaded}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ImageDeletionRequestCard({
+  image,
+  isReviewing,
+  locale,
+  t,
+  onReviewImageDeletionRequest,
+}: {
+  image: WikiImageDeletionRequestListItem;
+  isReviewing: boolean;
+  locale: Locale;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
+}) {
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const trimmedRejectReason = rejectReason.trim();
+  const safeImageUrl = toSafeWikiImageUrl(image.url);
+  const closeDialog = () => {
+    if (isReviewing) {
+      return;
+    }
+
+    setIsRejectDialogOpen(false);
+    setRejectReason("");
+  };
+  const submitDialog = () => {
+    if (!trimmedRejectReason) {
+      return;
+    }
+
+    onReviewImageDeletionRequest(image.imageIdentifier, "reject", trimmedRejectReason);
+    setIsRejectDialogOpen(false);
+    setRejectReason("");
+  };
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-stroke-subtle bg-surface-base">
+      <div className="relative aspect-[4/3] bg-black/10">
+        {safeImageUrl ? (
+          <Image
+            alt={image.altText || image.sourceName || image.imageIdentifier}
+            className="object-cover"
+            fill
+            sizes="(min-width: 768px) 40vw, 90vw"
+            src={safeImageUrl}
+            unoptimized
+          />
+        ) : (
+          <div className="grid h-full place-items-center px-4 text-center text-sm font-semibold text-text-muted">
+            {t.imageDeletionRequestImageUnavailable}
+          </div>
+        )}
+      </div>
+      <div className="grid gap-4 p-4 text-sm">
+        <dl className="grid gap-3">
+          <DraftImageSourceNameMeta
+            label={t.draftImageSourceNameLabel}
+            sourceName={image.sourceName}
+            sourceUrl={image.sourceUrl}
+          />
+          <DraftImageMeta label={t.draftImageAltTextLabel} value={image.altText || t.draftImageNoAltText} />
+          <DraftImageMeta
+            label={t.draftImageUploadedAtLabel}
+            value={formatDraftDate(image.uploadedAt, locale)}
+          />
+          <DraftImageMeta
+            label={t.imageDeletionRequestRequesterNameLabel}
+            value={image.name}
+          />
+          <DraftImageMeta
+            label={t.imageDeletionRequestRequesterEmailLabel}
+            value={image.email}
+          />
+          <DraftImageMeta
+            label={t.imageDeletionRequestReasonLabel}
+            value={image.reason}
+          />
+        </dl>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => onReviewImageDeletionRequest(image.imageIdentifier, "approve")}
+            type="button"
+          >
+            {isReviewing ? t.imageDeletionRequestReviewing : t.approveImageDeletionRequest}
+          </button>
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isReviewing}
+            onClick={() => setIsRejectDialogOpen(true)}
+            type="button"
+          >
+            {isReviewing ? t.imageDeletionRequestReviewing : t.rejectImageDeletionRequest}
+          </button>
+        </div>
+      </div>
+      {isRejectDialogOpen ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+          role="dialog"
+          aria-labelledby="image-deletion-review-dialog-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
+            <h2 className="text-xl font-semibold" id="image-deletion-review-dialog-title">
+              {t.rejectImageDeletionRequestDialogTitle}
+            </h2>
+            <label className="mt-4 grid gap-2 text-sm font-semibold">
+              {t.imageDeletionRequestRejectReasonLabel}
+              <textarea
+                className="min-h-28 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+                disabled={isReviewing}
+                onChange={(event) => setRejectReason(event.currentTarget.value)}
+                value={rejectReason}
+              />
+            </label>
+            {!trimmedRejectReason ? (
+              <p className="mt-2 text-sm font-semibold text-text-muted">
+                {t.imageDeletionRequestRejectReasonRequired}
+              </p>
+            ) : null}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isReviewing}
+                onClick={closeDialog}
+                type="button"
+              >
+                {t.cancelImageDeletionRequestReview}
+              </button>
+              <button
+                className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isReviewing || !trimmedRejectReason}
+                onClick={submitDialog}
+                type="button"
+              >
+                {isReviewing ? t.imageDeletionRequestReviewing : t.submitImageDeletionRequestReview}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -2148,7 +2471,7 @@ const getDraftWikiDiffHref = (wiki: MyPageWikiListItem): string =>
   `/wiki/diff/${encodeURIComponent(wiki.wikiIdentifier)}?resourceType=${encodeURIComponent(wiki.resourceType)}`;
 
 const buildDraftWikiCardStyle = (wiki: MyPageWikiListItem): CSSProperties | undefined => {
-  if (wiki.imageUrl) {
+  if (wiki.isHidden !== true && wiki.imageUrl) {
     return {
       backgroundColor: "#15243b",
       backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${wiki.imageUrl.replaceAll("\"", "%22")}")`,

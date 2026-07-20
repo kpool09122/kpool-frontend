@@ -27,6 +27,7 @@ const wikiListState: PublicWikiListState = {
         imageAltText: "Aurora Echo stage",
         imageIdentifier: "image-1",
         imageUrl: "https://cdn.example.com/aurora-echo.webp",
+        isHidden: false,
         keywords: null,
         language: "ja",
         metaDescription: null,
@@ -85,5 +86,33 @@ describe("language wiki list page", () => {
       "href",
       "/ja/wiki?keyword=aurora&resourceType=group&sort=name&order=desc&perPage=30&page=2",
     );
+  });
+
+  it("does not use hidden hero images as wiki card backgrounds", async () => {
+    vi.mocked(loadPublicWikiListState).mockResolvedValue({
+      ...wikiListState,
+      data: {
+        ...wikiListState.data,
+        wikis: [
+          {
+            ...wikiListState.data.wikis[0],
+            heroImage: null,
+            imageUrl: "https://cdn.example.com/legacy-aurora-echo.webp",
+            isHidden: true,
+          },
+        ],
+      },
+    });
+
+    render(
+      await WikiListPage({
+        params: Promise.resolve({ language: "ja" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    const card = screen.getByRole("link", { name: /Aurora Echo/i });
+    expect(card.getAttribute("style") ?? "").not.toContain("url(");
+    expect(card.getAttribute("style") ?? "").not.toContain("legacy-aurora-echo.webp");
   });
 });

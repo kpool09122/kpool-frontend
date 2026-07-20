@@ -3,6 +3,9 @@ import {
   wikiDraftImageListResponseSchema,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
+  wikiImageDeletionRequestApprovalResponseSchema,
+  wikiImageDeletionRequestListResponseSchema,
+  wikiImageDeletionRequestRejectionResponseSchema,
   wikiImageDeletionRequestResponseSchema,
   wikiImageListResponseSchema,
   wikiImageReviewResponseSchema,
@@ -10,6 +13,10 @@ import {
   type WikiDraftImageListResponse,
   type WikiDraftImageStatus,
   type WikiImageDeletionRequest,
+  type WikiImageDeletionRequestApprovalResponse,
+  type WikiImageDeletionRequestListResponse,
+  type WikiImageDeletionRequestRejectionRequest,
+  type WikiImageDeletionRequestRejectionResponse,
   type WikiImageDeletionRequestResponse,
   type WikiImageListResponse,
   type WikiImageReviewResponse,
@@ -53,6 +60,35 @@ export const fetchWikiDraftImages = async ({
   }
 
   return parseWithSchemaLog("wiki draft image list response", wikiDraftImageListResponseSchema, normalizeWikiDraftImageListResponse(body));
+};
+
+
+export const fetchWikiImageDeletionRequests = async ({
+  fallbackErrorMessage,
+  page,
+  perPage,
+}: {
+  fallbackErrorMessage: string;
+  page: number;
+  perPage: number;
+}): Promise<WikiImageDeletionRequestListResponse> => {
+  const url = new URL("/api/wiki/image-deletion-requests", window.location.origin);
+
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  const response = await fetch(`${url.pathname}${url.search}`);
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
+
+  if (!response.ok) {
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseWithSchemaLog(
+    "wiki image deletion request list response",
+    wikiImageDeletionRequestListResponseSchema,
+    body,
+  );
 };
 
 export const fetchWikiImages = async ({
@@ -111,6 +147,73 @@ export const requestWikiImageDeletion = async ({
   return parseWithSchemaLog(
     "wiki image deletion request response",
     wikiImageDeletionRequestResponseSchema,
+    body,
+  );
+};
+
+
+export const approveWikiImageDeletionRequest = async ({
+  fallbackErrorMessage,
+  imageIdentifier,
+}: {
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+}): Promise<WikiImageDeletionRequestApprovalResponse> => {
+  const response = await fetch(
+    `/api/wiki/image-deletion-requests/${encodeURIComponent(imageIdentifier)}/approve`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
+      },
+    },
+  );
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
+
+  if (!response.ok) {
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseWithSchemaLog(
+    "wiki image deletion request approval response",
+    wikiImageDeletionRequestApprovalResponseSchema,
+    body,
+  );
+};
+
+export const rejectWikiImageDeletionRequest = async ({
+  fallbackErrorMessage,
+  imageIdentifier,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  imageIdentifier: string;
+  requestBody: WikiImageDeletionRequestRejectionRequest;
+}): Promise<WikiImageDeletionRequestRejectionResponse> => {
+  const response = await fetch(
+    `/api/wiki/image-deletion-requests/${encodeURIComponent(imageIdentifier)}/reject`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
+      },
+      body: JSON.stringify(requestBody),
+    },
+  );
+  const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
+
+  if (!response.ok) {
+    throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseWithSchemaLog(
+    "wiki image deletion request rejection response",
+    wikiImageDeletionRequestRejectionResponseSchema,
     body,
   );
 };
