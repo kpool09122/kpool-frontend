@@ -223,7 +223,6 @@ const createDraftImageAdapter = (
   }),
   approveImageDeletionRequest: vi.fn().mockResolvedValue({
     imageIdentifier: imageDeletionRequest.imageIdentifier,
-    reviewerComment: "OK to delete",
     isHidden: true,
   }),
   listDraftImages: vi.fn().mockResolvedValue({
@@ -247,7 +246,7 @@ const createDraftImageAdapter = (
   }),
   rejectImageDeletionRequest: vi.fn().mockResolvedValue({
     imageIdentifier: imageDeletionRequest.imageIdentifier,
-    reviewerComment: "Reject",
+    rejectReason: "Reject",
     isHidden: false,
   }),
   ...overrides,
@@ -1058,7 +1057,7 @@ describe("MyPageClient", () => {
   });
 
 
-  it("shows image deletion request tab after draft images and requires reviewer comments", async () => {
+  it("shows image deletion request tab after draft images and requires rejection reasons", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
     renderWithQueryClient(
@@ -1091,18 +1090,11 @@ describe("MyPageClient", () => {
     expect(screen.getByText("Rights concern")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "削除を承認" }));
-    const dialog = screen.getByRole("dialog", { name: "画像削除申請を承認" });
-    expect(within(dialog).getByRole("button", { name: "送信" })).toBeDisabled();
-    fireEvent.change(within(dialog).getByLabelText("レビューコメント"), {
-      target: { value: "OK to delete" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
 
     await waitFor(() =>
       expect(draftImageAdapter.approveImageDeletionRequest).toHaveBeenCalledWith({
         fallbackErrorMessage: "画像削除申請を承認できませんでした。",
         imageIdentifier: imageDeletionRequest.imageIdentifier,
-        requestBody: { reviewerComment: "OK to delete" },
       }),
     );
     expect(await screen.findByText("削除申請画像はありません")).toBeInTheDocument();
@@ -1126,7 +1118,7 @@ describe("MyPageClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "削除を却下" }));
     const dialog = screen.getByRole("dialog", { name: "画像削除申請を却下" });
-    fireEvent.change(within(dialog).getByLabelText("レビューコメント"), {
+    fireEvent.change(within(dialog).getByLabelText("拒否理由"), {
       target: { value: "Keep this image" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
@@ -1135,7 +1127,7 @@ describe("MyPageClient", () => {
       expect(draftImageAdapter.rejectImageDeletionRequest).toHaveBeenCalledWith({
         fallbackErrorMessage: "画像削除申請を却下できませんでした。",
         imageIdentifier: imageDeletionRequest.imageIdentifier,
-        requestBody: { reviewerComment: "Keep this image" },
+        requestBody: { rejectReason: "Keep this image" },
       }),
     );
     expect(await screen.findByText("削除申請画像はありません")).toBeInTheDocument();
@@ -1159,11 +1151,6 @@ describe("MyPageClient", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
     expect(await screen.findByText("Deletion Requester")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "削除を承認" }));
-    const dialog = screen.getByRole("dialog", { name: "画像削除申請を承認" });
-    fireEvent.change(within(dialog).getByLabelText("レビューコメント"), {
-      target: { value: "OK to delete" },
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
 
     expect(await screen.findByText("承認に失敗しました")).toHaveAttribute("role", "alert");
     expect(screen.getByText("Deletion Requester")).toBeInTheDocument();

@@ -708,8 +708,8 @@ export function MyPageClient({
                 onReviewDraftImage={(imageIdentifier, action) =>
                   void reviewDraftImage(imageIdentifier, action)
                 }
-                onReviewImageDeletionRequest={(imageIdentifier, action, reviewerComment) =>
-                  void reviewImageDeletionRequest(imageIdentifier, action, reviewerComment)
+                onReviewImageDeletionRequest={(imageIdentifier, action, rejectReason) =>
+                  void reviewImageDeletionRequest(imageIdentifier, action, rejectReason)
                 }
                 onDeleteDraftWiki={(wiki) => {
                   if (window.confirm(t.deleteDraftWikiConfirm)) {
@@ -820,7 +820,7 @@ function WikiPrincipalPanel({
   onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
   onRetry: () => void;
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
-  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", reviewerComment: string) => void;
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
   onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onSelectWikiTab: (tab: MyPageWikiTab) => void;
@@ -1985,7 +1985,7 @@ function ImageDeletionRequestListPanel({
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onLoadMore: () => void;
   onReload: () => void;
-  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", reviewerComment: string) => void;
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
 }) {
   const canLoadMore = state.pageInfo
     ? state.pageInfo.current_page < state.pageInfo.last_page
@@ -2080,28 +2080,28 @@ function ImageDeletionRequestCard({
   isReviewing: boolean;
   locale: Locale;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
-  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", reviewerComment: string) => void;
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
 }) {
-  const [dialogAction, setDialogAction] = useState<"approve" | "reject" | null>(null);
-  const [reviewerComment, setReviewerComment] = useState("");
-  const trimmedComment = reviewerComment.trim();
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const trimmedRejectReason = rejectReason.trim();
   const safeImageUrl = toSafeWikiImageUrl(image.url);
   const closeDialog = () => {
     if (isReviewing) {
       return;
     }
 
-    setDialogAction(null);
-    setReviewerComment("");
+    setIsRejectDialogOpen(false);
+    setRejectReason("");
   };
   const submitDialog = () => {
-    if (!dialogAction || !trimmedComment) {
+    if (!trimmedRejectReason) {
       return;
     }
 
-    onReviewImageDeletionRequest(image.imageIdentifier, dialogAction, trimmedComment);
-    setDialogAction(null);
-    setReviewerComment("");
+    onReviewImageDeletionRequest(image.imageIdentifier, "reject", trimmedRejectReason);
+    setIsRejectDialogOpen(false);
+    setRejectReason("");
   };
 
   return (
@@ -2151,7 +2151,7 @@ function ImageDeletionRequestCard({
           <button
             className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isReviewing}
-            onClick={() => setDialogAction("approve")}
+            onClick={() => onReviewImageDeletionRequest(image.imageIdentifier, "approve")}
             type="button"
           >
             {isReviewing ? t.imageDeletionRequestReviewing : t.approveImageDeletionRequest}
@@ -2159,14 +2159,14 @@ function ImageDeletionRequestCard({
           <button
             className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isReviewing}
-            onClick={() => setDialogAction("reject")}
+            onClick={() => setIsRejectDialogOpen(true)}
             type="button"
           >
             {isReviewing ? t.imageDeletionRequestReviewing : t.rejectImageDeletionRequest}
           </button>
         </div>
       </div>
-      {dialogAction ? (
+      {isRejectDialogOpen ? (
         <div
           aria-modal="true"
           className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
@@ -2175,22 +2175,20 @@ function ImageDeletionRequestCard({
         >
           <div className="w-full max-w-lg rounded-2xl border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
             <h2 className="text-xl font-semibold" id="image-deletion-review-dialog-title">
-              {dialogAction === "approve"
-                ? t.approveImageDeletionRequestDialogTitle
-                : t.rejectImageDeletionRequestDialogTitle}
+              {t.rejectImageDeletionRequestDialogTitle}
             </h2>
             <label className="mt-4 grid gap-2 text-sm font-semibold">
-              {t.imageDeletionRequestReviewerCommentLabel}
+              {t.imageDeletionRequestRejectReasonLabel}
               <textarea
                 className="min-h-28 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
                 disabled={isReviewing}
-                onChange={(event) => setReviewerComment(event.currentTarget.value)}
-                value={reviewerComment}
+                onChange={(event) => setRejectReason(event.currentTarget.value)}
+                value={rejectReason}
               />
             </label>
-            {!trimmedComment ? (
+            {!trimmedRejectReason ? (
               <p className="mt-2 text-sm font-semibold text-text-muted">
-                {t.imageDeletionRequestReviewerCommentRequired}
+                {t.imageDeletionRequestRejectReasonRequired}
               </p>
             ) : null}
             <div className="mt-5 flex justify-end gap-2">
@@ -2204,7 +2202,7 @@ function ImageDeletionRequestCard({
               </button>
               <button
                 className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isReviewing || !trimmedComment}
+                disabled={isReviewing || !trimmedRejectReason}
                 onClick={submitDialog}
                 type="button"
               >

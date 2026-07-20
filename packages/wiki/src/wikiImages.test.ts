@@ -5,7 +5,7 @@ import {
   createWikiDraftImagesUrl,
   createWikiImageAssociationInput,
   createWikiImageDeletionRequest,
-  createWikiImageDeletionRequestReview,
+  createWikiImageDeletionRequestRejection,
   createWikiImageDeletionRequestReviewUrl,
   createWikiImageDeletionRequestsUrl,
   createWikiImageDeletionRequestUrl,
@@ -19,9 +19,10 @@ import {
   stripDataUrlPrefix,
   wikiImageMaxBase64Length,
   wikiImageMaxFileSizeBytes,
+  wikiImageDeletionRequestApprovalResponseSchema,
   wikiImageDeletionRequestListResponseSchema,
-  wikiImageDeletionRequestReviewRequestSchema,
-  wikiImageDeletionRequestReviewResponseSchema,
+  wikiImageDeletionRequestRejectionRequestSchema,
+  wikiImageDeletionRequestRejectionResponseSchema,
   wikiImageUploadRequestSchema,
 } from "./wikiImageModel";
 
@@ -216,18 +217,24 @@ describe("wikiImages", () => {
 
     expect(listResult.success).toBe(true);
     expect(listResult.success ? listResult.data.images[0].reason : null).toBe("Rights concern");
-    expect(createWikiImageDeletionRequestReview({ reviewerComment: "  OK to delete  " })).toEqual({
-      reviewerComment: "OK to delete",
+    expect(createWikiImageDeletionRequestRejection({ rejectReason: "  Keep this image  " })).toEqual({
+      rejectReason: "Keep this image",
     });
-    expect(wikiImageDeletionRequestReviewRequestSchema.safeParse({ reviewerComment: "" }).success).toBe(false);
-    const reviewResult = wikiImageDeletionRequestReviewResponseSchema.safeParse({
+    expect(wikiImageDeletionRequestRejectionRequestSchema.safeParse({ rejectReason: "" }).success).toBe(false);
+    const approvalResult = wikiImageDeletionRequestApprovalResponseSchema.safeParse({
       imageIdentifier: "44444444-4444-4444-4444-444444444444",
-      reviewerComment: "OK",
       isHidden: true,
     });
+    const rejectionResult = wikiImageDeletionRequestRejectionResponseSchema.safeParse({
+      imageIdentifier: "44444444-4444-4444-4444-444444444444",
+      rejectReason: "Keep this image",
+      isHidden: false,
+    });
 
-    expect(reviewResult.success).toBe(true);
-    expect(reviewResult.success ? reviewResult.data.isHidden : null).toBe(true);
+    expect(approvalResult.success).toBe(true);
+    expect(approvalResult.success ? approvalResult.data.isHidden : null).toBe(true);
+    expect(rejectionResult.success).toBe(true);
+    expect(rejectionResult.success ? rejectionResult.data.rejectReason : null).toBe("Keep this image");
   });
 
   it("trims image deletion request form fields", () => {

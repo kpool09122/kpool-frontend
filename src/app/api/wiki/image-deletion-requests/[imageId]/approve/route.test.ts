@@ -5,16 +5,11 @@ import { wikiDraftImageReviewCsrfHeaderName, wikiDraftImageReviewCsrfHeaderValue
 import { POST } from "./route";
 
 const imageId = "44444444-4444-4444-4444-444444444444";
-const requestBody = { reviewerComment: "OK to delete" };
 
-const createRequest = (headers: Record<string, string> = {}, body = requestBody): NextRequest =>
+const createRequest = (headers: Record<string, string> = {}): NextRequest =>
   new Request(`https://app.example.test/api/wiki/image-deletion-requests/${imageId}/approve`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: JSON.stringify(body),
+    headers,
   }) as NextRequest;
 
 const createContext = () => ({ params: Promise.resolve({ imageId }) });
@@ -33,11 +28,10 @@ describe("wiki image deletion request approve route", () => {
     expect(response.status).toBe(403);
   });
 
-  it("forwards reviewer comments with cookie and accept-language headers", async () => {
+  it("forwards approval requests with cookie and accept-language headers", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       imageIdentifier: imageId,
-      reviewerComment: "OK to delete",
       isHidden: true,
     }));
     vi.stubGlobal("fetch", fetchMock);
@@ -57,24 +51,9 @@ describe("wiki image deletion request approve route", () => {
           Accept: "application/json",
           "Accept-Language": "ja",
           Cookie: "session=abc",
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody),
       }),
     );
-  });
-
-  it("returns 502 and does not call the backend when reviewer comment is blank", async () => {
-    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-
-    const response = await POST(createRequest({
-      [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
-    }, { reviewerComment: "   " }), createContext());
-
-    expect(response.status).toBe(502);
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns 502 on response schema mismatch", async () => {

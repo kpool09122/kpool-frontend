@@ -8,7 +8,7 @@ import {
 import { useCallback, useState } from "react";
 
 import {
-  createWikiImageDeletionRequestReview,
+  createWikiImageDeletionRequestRejection,
   defaultWikiImagePerPage,
   type WikiImageDeletionRequestListItem,
   type WikiImageDeletionRequestListResponse,
@@ -121,24 +121,24 @@ export const useMyPageImageDeletionRequestReview = ({
   }, [listQueryKey, queryClient]);
 
   const reviewMutation = useMutation({
-    mutationFn: ({
-      action,
-      imageIdentifier,
-      reviewerComment,
-    }: {
-      action: "approve" | "reject";
-      imageIdentifier: string;
-      reviewerComment: string;
-    }) => {
+    mutationFn: (
+      input:
+        | { action: "approve"; imageIdentifier: string }
+        | { action: "reject"; imageIdentifier: string; rejectReason: string },
+    ) => {
+      const { action, imageIdentifier } = input;
       const fallbackErrorMessage =
         action === "approve"
           ? messages.imageDeletionRequestApproveFailed
           : messages.imageDeletionRequestRejectFailed;
-      const requestBody = createWikiImageDeletionRequestReview({ reviewerComment });
 
       return action === "approve"
-        ? adapter.approveImageDeletionRequest({ imageIdentifier, fallbackErrorMessage, requestBody })
-        : adapter.rejectImageDeletionRequest({ imageIdentifier, fallbackErrorMessage, requestBody });
+        ? adapter.approveImageDeletionRequest({ imageIdentifier, fallbackErrorMessage })
+        : adapter.rejectImageDeletionRequest({
+            imageIdentifier,
+            fallbackErrorMessage,
+            requestBody: createWikiImageDeletionRequestRejection({ rejectReason: input.rejectReason }),
+          });
     },
     onMutate: ({ imageIdentifier }) => {
       setReviewingImageIdentifier(imageIdentifier);
@@ -164,9 +164,14 @@ export const useMyPageImageDeletionRequestReview = ({
   const reviewImageDeletionRequest = (
     imageIdentifier: string,
     action: "approve" | "reject",
-    reviewerComment: string,
+    rejectReason?: string,
   ) => {
-    reviewMutation.mutate({ imageIdentifier, action, reviewerComment });
+    if (action === "approve") {
+      reviewMutation.mutate({ imageIdentifier, action });
+      return;
+    }
+
+    reviewMutation.mutate({ imageIdentifier, action, rejectReason: rejectReason ?? "" });
   };
 
   return {

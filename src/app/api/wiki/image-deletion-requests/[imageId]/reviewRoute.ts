@@ -4,8 +4,9 @@ import {
   createWikiImageDeletionRequestReviewUrl,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
-  wikiImageDeletionRequestReviewRequestSchema,
-  wikiImageDeletionRequestReviewResponseSchema,
+  wikiImageDeletionRequestApprovalResponseSchema,
+  wikiImageDeletionRequestRejectionRequestSchema,
+  wikiImageDeletionRequestRejectionResponseSchema,
 } from "@kpool/wiki";
 import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
@@ -41,11 +42,18 @@ export const createWikiImageDeletionRequestReviewRoute =
 
     try {
       const { imageId } = await context.params;
-      const requestBody = parseWithSchemaLog(
-        "wiki image deletion request review body",
-        wikiImageDeletionRequestReviewRequestSchema,
-        await request.json(),
-      );
+      const requestBody =
+        action === "reject"
+          ? parseWithSchemaLog(
+              "wiki image deletion request rejection body",
+              wikiImageDeletionRequestRejectionRequestSchema,
+              await request.json(),
+            )
+          : null;
+      const responseSchema =
+        action === "approve"
+          ? wikiImageDeletionRequestApprovalResponseSchema
+          : wikiImageDeletionRequestRejectionResponseSchema;
       const apiResponse = await fetch(
         createWikiImageDeletionRequestReviewUrl({
           action,
@@ -56,9 +64,9 @@ export const createWikiImageDeletionRequestReviewRoute =
           method: "POST",
           headers: {
             ...getForwardedWikiApiHeaders(request.headers),
-            "Content-Type": "application/json",
+            ...(requestBody ? { "Content-Type": "application/json" } : {}),
           },
-          body: JSON.stringify(requestBody),
+          ...(requestBody ? { body: JSON.stringify(requestBody) } : {}),
           cache: "no-store",
         },
       );
@@ -76,7 +84,7 @@ export const createWikiImageDeletionRequestReviewRoute =
       }
 
       return NextResponse.json(
-        parseWithSchemaLog(responseLabel, wikiImageDeletionRequestReviewResponseSchema, body),
+        parseWithSchemaLog(responseLabel, responseSchema, body),
       );
     } catch (error) {
       console.error(`Wiki image deletion request ${action} route failed`, error);

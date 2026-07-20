@@ -5,7 +5,7 @@ import { wikiDraftImageReviewCsrfHeaderName, wikiDraftImageReviewCsrfHeaderValue
 import { POST } from "./route";
 
 const imageId = "44444444-4444-4444-4444-444444444444";
-const requestBody = { reviewerComment: "Keep this image" };
+const requestBody = { rejectReason: "Keep this image" };
 
 const createRequest = (headers: Record<string, string> = {}, body = requestBody): NextRequest =>
   new Request(`https://app.example.test/api/wiki/image-deletion-requests/${imageId}/reject`, {
@@ -33,11 +33,11 @@ describe("wiki image deletion request reject route", () => {
     expect(response.status).toBe(403);
   });
 
-  it("forwards reviewer comments with cookie and accept-language headers", async () => {
+  it("forwards reject reasons with cookie and accept-language headers", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       imageIdentifier: imageId,
-      reviewerComment: "Keep this image",
+      rejectReason: "Keep this image",
       isHidden: false,
     }));
     vi.stubGlobal("fetch", fetchMock);
@@ -79,14 +79,14 @@ describe("wiki image deletion request reject route", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
   });
 
-  it("returns 502 and does not call the backend when reviewer comment is blank", async () => {
+  it("returns 502 and does not call the backend when reject reason is blank", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await POST(createRequest({
       [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
-    }, { reviewerComment: "   " }), createContext());
+    }, { rejectReason: "   " }), createContext());
 
     expect(response.status).toBe(502);
     expect(fetchMock).not.toHaveBeenCalled();

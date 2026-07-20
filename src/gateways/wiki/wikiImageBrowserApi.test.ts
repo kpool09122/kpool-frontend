@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createWikiImageDeletionRequest,
-  createWikiImageDeletionRequestReview,
+  createWikiImageDeletionRequestRejection,
   createWikiImageUploadRequest,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
@@ -84,12 +84,10 @@ describe("wikiImageBrowserApi", () => {
     );
   });
 
-  it("approves image deletion requests with credentials, body, and the review header", async () => {
-    const requestBody = createWikiImageDeletionRequestReview({ reviewerComment: "OK to delete" });
+  it("approves image deletion requests with credentials and the review header", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         imageIdentifier,
-        reviewerComment: "OK to delete",
         isHidden: true,
       }),
     );
@@ -98,7 +96,6 @@ describe("wikiImageBrowserApi", () => {
     await approveWikiImageDeletionRequest({
       fallbackErrorMessage: "Approve deletion failed",
       imageIdentifier,
-      requestBody,
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -108,10 +105,8 @@ describe("wikiImageBrowserApi", () => {
         credentials: "include",
         headers: {
           Accept: "application/json",
-          "Content-Type": "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
         },
-        body: JSON.stringify(requestBody),
       },
     );
   });
@@ -119,11 +114,11 @@ describe("wikiImageBrowserApi", () => {
 
 
   it("rejects image deletion requests with credentials, body, and the review header", async () => {
-    const requestBody = createWikiImageDeletionRequestReview({ reviewerComment: "Keep this image" });
+    const requestBody = createWikiImageDeletionRequestRejection({ rejectReason: "Keep this image" });
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         imageIdentifier,
-        reviewerComment: "Keep this image",
+        rejectReason: "Keep this image",
         isHidden: false,
       }),
     );
@@ -157,7 +152,7 @@ describe("wikiImageBrowserApi", () => {
       rejectWikiImageDeletionRequest({
         fallbackErrorMessage: "Reject deletion failed",
         imageIdentifier,
-        requestBody: createWikiImageDeletionRequestReview({ reviewerComment: "Reject" }),
+        requestBody: createWikiImageDeletionRequestRejection({ rejectReason: "Reject" }),
       }),
     ).rejects.toThrow();
   });

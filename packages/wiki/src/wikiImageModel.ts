@@ -29,10 +29,11 @@ export const wikiImageUploadResponseSchema = wikiPrivateApiTypes.schemas.ImageDr
 export const wikiImageDeletionRequestSchema = wikiPrivateApiTypes.schemas.RequestImageDeletionRequestBody;
 export const wikiImageDeletionRequestResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionRequestSummary;
 export const wikiImageDeletionRequestListResponseSchema = wikiPrivateApiTypes.schemas.ListImageDeletionRequestsResponseBody;
-export const wikiImageDeletionRequestReviewRequestSchema = wikiPrivateApiTypes.schemas.ReviewImageDeletionRequestBody.extend({
-  reviewerComment: z.string().trim().min(1),
+export const wikiImageDeletionRequestApprovalResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionApprovalSummary;
+export const wikiImageDeletionRequestRejectionRequestSchema = wikiPrivateApiTypes.schemas.RejectImageDeletionRequestBody.extend({
+  rejectReason: z.string().trim().min(1),
 });
-export const wikiImageDeletionRequestReviewResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionReviewSummary;
+export const wikiImageDeletionRequestRejectionResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionRejectionSummary;
 export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
 });
@@ -51,8 +52,9 @@ export type WikiImageDeletionRequest = z.infer<typeof wikiImageDeletionRequestSc
 export type WikiImageDeletionRequestResponse = z.infer<typeof wikiImageDeletionRequestResponseSchema>;
 export type WikiImageDeletionRequestListItem = z.infer<typeof wikiPrivateApiTypes.schemas.ImageDeletionRequestListItem>;
 export type WikiImageDeletionRequestListResponse = z.infer<typeof wikiImageDeletionRequestListResponseSchema>;
-export type WikiImageDeletionRequestReviewRequest = z.infer<typeof wikiImageDeletionRequestReviewRequestSchema>;
-export type WikiImageDeletionRequestReviewResponse = z.infer<typeof wikiImageDeletionRequestReviewResponseSchema>;
+export type WikiImageDeletionRequestApprovalResponse = z.infer<typeof wikiImageDeletionRequestApprovalResponseSchema>;
+export type WikiImageDeletionRequestRejectionRequest = z.infer<typeof wikiImageDeletionRequestRejectionRequestSchema>;
+export type WikiImageDeletionRequestRejectionResponse = z.infer<typeof wikiImageDeletionRequestRejectionResponseSchema>;
 export type WikiImageReviewResponse = z.infer<typeof wikiImageReviewResponseSchema>;
 export type WikiDraftImageStatus = z.infer<typeof wikiPrivateApiTypes.schemas.DraftImageStatus>;
 
@@ -271,13 +273,13 @@ export const createWikiImageDeletionRequestUrl = ({
 }): string =>
   `${trimTrailingSlashes(baseUrl)}/image/${encodeURIComponent(imageIdentifier)}/request-deletion`;
 
-export const createWikiImageDeletionRequestReview = ({
-  reviewerComment,
+export const createWikiImageDeletionRequestRejection = ({
+  rejectReason,
 }: {
-  reviewerComment: string;
-}): WikiImageDeletionRequestReviewRequest =>
-  parseWikiSchema(wikiImageDeletionRequestReviewRequestSchema, {
-    reviewerComment: reviewerComment.trim(),
+  rejectReason: string;
+}): WikiImageDeletionRequestRejectionRequest =>
+  parseWikiSchema(wikiImageDeletionRequestRejectionRequestSchema, {
+    rejectReason: rejectReason.trim(),
   });
 
 export const createWikiImageDeletionRequest = ({
