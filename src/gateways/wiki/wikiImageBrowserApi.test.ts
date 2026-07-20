@@ -84,7 +84,7 @@ describe("wikiImageBrowserApi", () => {
     );
   });
 
-  it("reviews image deletion requests with credentials, body, and the review header", async () => {
+  it("approves image deletion requests with credentials, body, and the review header", async () => {
     const requestBody = createWikiImageDeletionRequestReview({ reviewerComment: "OK to delete" });
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -103,6 +103,40 @@ describe("wikiImageBrowserApi", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/wiki/image-deletion-requests/${imageIdentifier}/approve`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+  });
+
+
+
+  it("rejects image deletion requests with credentials, body, and the review header", async () => {
+    const requestBody = createWikiImageDeletionRequestReview({ reviewerComment: "Keep this image" });
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        imageIdentifier,
+        reviewerComment: "Keep this image",
+        isHidden: false,
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await rejectWikiImageDeletionRequest({
+      fallbackErrorMessage: "Reject deletion failed",
+      imageIdentifier,
+      requestBody,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/wiki/image-deletion-requests/${imageIdentifier}/reject`,
       {
         method: "POST",
         credentials: "include",

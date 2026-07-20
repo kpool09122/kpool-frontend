@@ -64,7 +64,20 @@ describe("wiki image deletion request approve route", () => {
     );
   });
 
-  it("returns 502 on invalid body or response schema mismatch", async () => {
+  it("returns 502 and does not call the backend when reviewer comment is blank", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(createRequest({
+      [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
+    }, { reviewerComment: "   " }), createContext());
+
+    expect(response.status).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 502 on response schema mismatch", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ ok: true })));
 

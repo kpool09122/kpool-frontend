@@ -164,7 +164,7 @@ const draftImage = {
 
 const imageDeletionRequest = {
   imageIdentifier: "77777777-7777-7777-7777-777777777777",
-  url: "https://images.example.test/delete.png",
+  url: "https://upload.wikimedia.org/wikipedia/commons/example/delete.png",
   resourceType: "group",
   translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
   displayOrder: 2,
@@ -1092,7 +1092,7 @@ describe("MyPageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "削除を承認" }));
     const dialog = screen.getByRole("dialog", { name: "画像削除申請を承認" });
     expect(within(dialog).getByRole("button", { name: "送信" })).toBeDisabled();
-    fireEvent.change(within(dialog).getByLabelText("reviewer comment"), {
+    fireEvent.change(within(dialog).getByLabelText("レビューコメント"), {
       target: { value: "OK to delete" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
@@ -1105,6 +1105,94 @@ describe("MyPageClient", () => {
       }),
     );
     expect(await screen.findByText("削除申請画像はありません")).toBeInTheDocument();
+  });
+
+  it("rejects image deletion requests and removes reviewed items", async () => {
+    const draftImageAdapter = createDraftImageAdapter();
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
+    expect(await screen.findByText("Deletion Requester")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "削除を却下" }));
+    const dialog = screen.getByRole("dialog", { name: "画像削除申請を却下" });
+    fireEvent.change(within(dialog).getByLabelText("レビューコメント"), {
+      target: { value: "Keep this image" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
+
+    await waitFor(() =>
+      expect(draftImageAdapter.rejectImageDeletionRequest).toHaveBeenCalledWith({
+        fallbackErrorMessage: "画像削除申請を却下できませんでした。",
+        imageIdentifier: imageDeletionRequest.imageIdentifier,
+        requestBody: { reviewerComment: "Keep this image" },
+      }),
+    );
+    expect(await screen.findByText("削除申請画像はありません")).toBeInTheDocument();
+  });
+
+  it("shows review errors without removing image deletion requests", async () => {
+    const draftImageAdapter = createDraftImageAdapter({
+      approveImageDeletionRequest: vi.fn().mockRejectedValue(new Error("承認に失敗しました")),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
+    expect(await screen.findByText("Deletion Requester")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "削除を承認" }));
+    const dialog = screen.getByRole("dialog", { name: "画像削除申請を承認" });
+    fireEvent.change(within(dialog).getByLabelText("レビューコメント"), {
+      target: { value: "OK to delete" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "送信" }));
+
+    expect(await screen.findByText("承認に失敗しました")).toHaveAttribute("role", "alert");
+    expect(screen.getByText("Deletion Requester")).toBeInTheDocument();
+  });
+
+  it("does not preview image deletion request URLs that are outside the trusted image host policy", async () => {
+    const draftImageAdapter = createDraftImageAdapter({
+      listImageDeletionRequests: vi.fn().mockResolvedValue({
+        images: [{ ...imageDeletionRequest, url: "https://tracker.example.test/delete.png" }],
+        current_page: 1,
+        last_page: 1,
+        total: 1,
+        per_page: 12,
+      }),
+    });
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
+
+    expect(await screen.findByText("画像URLを確認できないためプレビューを表示できません。")).toBeInTheDocument();
+    expect(screen.queryByAltText("Deletion image")).not.toBeInTheDocument();
   });
 
   it("hides image deletion request tab for principals without image review permission", async () => {

@@ -54,6 +54,7 @@ import {
   isAcceptedWikiImageFile,
   isSafeWikiSourceUrl,
   isWikiImageFileSizeAllowed,
+  toSafeWikiImageUrl,
   normalizeWikiSlugForResourceType,
   type WikiDraftImage,
   type WikiImageDeletionRequestListItem,
@@ -2084,6 +2085,7 @@ function ImageDeletionRequestCard({
   const [dialogAction, setDialogAction] = useState<"approve" | "reject" | null>(null);
   const [reviewerComment, setReviewerComment] = useState("");
   const trimmedComment = reviewerComment.trim();
+  const safeImageUrl = toSafeWikiImageUrl(image.url);
   const closeDialog = () => {
     if (isReviewing) {
       return;
@@ -2105,14 +2107,20 @@ function ImageDeletionRequestCard({
   return (
     <article className="overflow-hidden rounded-lg border border-stroke-subtle bg-surface-base">
       <div className="relative aspect-[4/3] bg-black/10">
-        <Image
-          alt={image.altText || image.sourceName || image.imageIdentifier}
-          className="object-cover"
-          fill
-          sizes="(min-width: 768px) 40vw, 90vw"
-          src={image.url}
-          unoptimized
-        />
+        {safeImageUrl ? (
+          <Image
+            alt={image.altText || image.sourceName || image.imageIdentifier}
+            className="object-cover"
+            fill
+            sizes="(min-width: 768px) 40vw, 90vw"
+            src={safeImageUrl}
+            unoptimized
+          />
+        ) : (
+          <div className="grid h-full place-items-center px-4 text-center text-sm font-semibold text-text-muted">
+            {t.imageDeletionRequestImageUnavailable}
+          </div>
+        )}
       </div>
       <div className="grid gap-4 p-4 text-sm">
         <dl className="grid gap-3">
