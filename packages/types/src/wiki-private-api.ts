@@ -157,20 +157,23 @@ const ImageDraftSummary = z
     status: z.string(),
   })
   .passthrough();
-const ReviewImageDeletionRequestBody = z
-  .object({ reviewerComment: z.string() })
-  .passthrough();
-const ImageDeletionReviewSummary = z
-  .object({
-    imageIdentifier: KPool_Common_Uuid,
-    reviewerComment: z.string(),
-    isHidden: z.boolean(),
-  })
+const ImageDeletionApprovalSummary = z
+  .object({ imageIdentifier: KPool_Common_Uuid, isHidden: z.boolean() })
   .passthrough();
 const ImageSummary = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
     resourceType: z.string(),
+    isHidden: z.boolean(),
+  })
+  .passthrough();
+const RejectImageDeletionRequestBody = z
+  .object({ rejectReason: z.string() })
+  .passthrough();
+const ImageDeletionRejectionSummary = z
+  .object({
+    imageIdentifier: KPool_Common_Uuid,
+    rejectReason: z.string(),
     isHidden: z.boolean(),
   })
   .passthrough();
@@ -784,9 +787,10 @@ export const schemas = {
   ListImageDeletionRequestsResponseBody,
   UploadImageRequestBody,
   ImageDraftSummary,
-  ReviewImageDeletionRequestBody,
-  ImageDeletionReviewSummary,
+  ImageDeletionApprovalSummary,
   ImageSummary,
+  RejectImageDeletionRequestBody,
+  ImageDeletionRejectionSummary,
   RequestImageDeletionRequestBody,
   ImageDeletionRequestSummary,
   UploadedImageListItem,
@@ -1075,17 +1079,12 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "body",
-        type: "Body",
-        schema: z.object({ reviewerComment: z.string() }).passthrough(),
-      },
-      {
         name: "imageId",
         type: "Path",
         schema: z.string().uuid(),
       },
     ],
-    response: ImageDeletionReviewSummary,
+    response: ImageDeletionApprovalSummary,
     errors: [
       {
         status: 403,
@@ -1166,7 +1165,7 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: z.object({ reviewerComment: z.string() }).passthrough(),
+        schema: z.object({ rejectReason: z.string() }).passthrough(),
       },
       {
         name: "imageId",
@@ -1174,7 +1173,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ImageDeletionReviewSummary,
+    response: ImageDeletionRejectionSummary,
     errors: [
       {
         status: 403,
