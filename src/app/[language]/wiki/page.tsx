@@ -247,8 +247,8 @@ export default async function WikiListPage({ params, searchParams }: WikiListPag
               type="search"
             />
           </label>
-          <label className="grid text-sm font-semibold text-text-muted">
-            <span className="sr-only">{t.resource}</span>
+          <label className="grid gap-2 text-sm font-semibold text-text-muted">
+            {t.resource}
             <AutoSubmitSelect
               className="h-11 rounded-lg border border-stroke-subtle bg-surface-base px-3 text-sm text-text-strong outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight"
               defaultValue={query.resourceType ?? ""}

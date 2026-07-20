@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import LanguageHome from "./page";
@@ -49,7 +49,11 @@ const state: PublicWikiListState = {
 };
 
 describe("language home page", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   beforeEach(() => {
     vi.mocked(loadPublicWikiListState).mockResolvedValue(state);
@@ -100,7 +104,7 @@ describe("language home page", () => {
     expect(screen.queryByText("→")).not.toBeInTheDocument();
     expect(screen.queryByText("公開Wikiトップ")).not.toBeInTheDocument();
     expect(screen.queryByText("直近で更新された公開Wikiを表示します。")).not.toBeInTheDocument();
-    expect(screen.queryByText("リソース")).not.toBeInTheDocument();
+    expect(screen.queryByText("種別")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "適用" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Wiki一覧" })).not.toBeInTheDocument();
   });
@@ -134,24 +138,28 @@ describe("language home page", () => {
     expect(card.getAttribute("style") ?? "").not.toContain("legacy-aurora-echo.webp");
   });
 
-  it("auto-submits the section resource search when a resource is selected", async () => {
-    const requestSubmit = vi.fn();
-    const originalRequestSubmit = HTMLFormElement.prototype.requestSubmit;
-    HTMLFormElement.prototype.requestSubmit = requestSubmit;
+  it("refetches only the changed top section when a resource is selected", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(state),
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
-    try {
-      render(
-        await LanguageHome({
-          params: Promise.resolve({ language: "ja" }),
-          searchParams: Promise.resolve({}),
-        }),
-      );
+    render(
+      await LanguageHome({
+        params: Promise.resolve({ language: "ja" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
 
-      fireEvent.change(screen.getAllByLabelText("リソース")[0], { target: { value: "group" } });
+    fireEvent.change(screen.getAllByLabelText("種別")[0], { target: { value: "group" } });
 
-      expect(requestSubmit).toHaveBeenCalledTimes(1);
-    } finally {
-      HTMLFormElement.prototype.requestSubmit = originalRequestSubmit;
-    }
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/wiki/public-wikis?language=ja&resourceType=group&sort=updatedAt&order=desc&perPage=10&page=1",
+      {
+        headers: { Accept: "application/json" },
+      },
+    );
   });
 });
