@@ -485,7 +485,7 @@ describe("MyPageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "設定" }));
     expect(await screen.findByRole("heading", { name: "設定", level: 1 })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
-    fireEvent.change(screen.getByLabelText("Identity名"), {
+    fireEvent.change(screen.getByLabelText("ログイン中ユーザー名"), {
       target: { value: "updated member" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
