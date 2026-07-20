@@ -82,6 +82,7 @@ const publicWikiListResponse = {
       imageAltText: "Aurora Echo list image",
       imageIdentifier: "image-1",
       imageUrl: "https://cdn.example.com/aurora-echo-list.webp",
+      isHidden: false,
       publishedAt: "2026-05-01T00:00:00+00:00",
       resourceType: "group",
       slug: "gr-aurora-echo",
@@ -463,6 +464,7 @@ describe("publicWiki", () => {
           heroImage: {
             alt: "Aurora Echo list image",
             imageIdentifier: "image-1",
+            isHidden: false,
             src: "https://cdn.example.com/aurora-echo-list.webp",
           },
           name: "Aurora Echo",
@@ -477,6 +479,37 @@ describe("publicWiki", () => {
       perPage: 10,
       sort: "name",
     });
+  });
+
+  it("keeps hidden list images from being promoted to hero images", async () => {
+    const client = {
+      fetchWiki: vi.fn(),
+      fetchWikiList: vi.fn().mockResolvedValue({
+        ...publicWikiListResponse,
+        wikis: [
+          {
+            ...publicWikiListResponse.wikis[0],
+            imageUrl: "https://cdn.example.com/hidden-aurora-echo-list.webp",
+            isHidden: true,
+          },
+        ],
+      }),
+    };
+
+    const wikiList = await fetchPublicWikiList(client, "ja", {
+      page: 1,
+      perPage: 10,
+    });
+
+    expect(wikiList).toMatchObject({
+      wikis: [
+        {
+          imageUrl: "https://cdn.example.com/hidden-aurora-echo-list.webp",
+          isHidden: true,
+        },
+      ],
+    });
+    expect(wikiList.wikis[0].heroImage).toBeUndefined();
   });
 
   it("returns an error when the wiki api base url is not configured", async () => {

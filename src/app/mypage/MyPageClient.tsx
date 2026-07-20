@@ -1772,7 +1772,7 @@ function DraftWikiCard({
   onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
   onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
 }) {
-  const hasImage = Boolean(wiki.imageUrl);
+  const hasImage = wiki.isHidden !== true && Boolean(wiki.imageUrl);
   const href = getDraftWikiHref(wiki, tab);
   const isDraftWiki = isDraftWikiListItem(wiki);
   const diffHref = getDraftWikiDiffHref(wiki);
@@ -2473,7 +2473,7 @@ const getDraftWikiDiffHref = (wiki: MyPageWikiListItem): string =>
   `/wiki/diff/${encodeURIComponent(wiki.wikiIdentifier)}?resourceType=${encodeURIComponent(wiki.resourceType)}`;
 
 const buildDraftWikiCardStyle = (wiki: MyPageWikiListItem): CSSProperties | undefined => {
-  if (wiki.imageUrl) {
+  if (wiki.isHidden !== true && wiki.imageUrl) {
     return {
       backgroundColor: "#15243b",
       backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${wiki.imageUrl.replaceAll("\"", "%22")}")`,

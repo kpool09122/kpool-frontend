@@ -30,6 +30,7 @@ describe("wiki version inconsistent wikis route", () => {
               version: 3,
               themeColor: "#4c5cff",
               imageIdentifier: null,
+              isHidden: false,
               imageUrl: null,
               imageAltText: null,
               name: "未翻訳 Wiki",

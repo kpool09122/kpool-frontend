@@ -62,8 +62,13 @@ const formatDate = (value: string | null | undefined, locale: Locale): string =>
       }).format(new Date(value))
     : "";
 
-const getWikiCardImageSrc = (item: PublicWikiListItem): string | null =>
-  item.heroImage?.src ?? item.imageUrl ?? null;
+const getWikiCardImageSrc = (item: PublicWikiListItem): string | null => {
+  if (item.isHidden === true || item.heroImage?.isHidden === true) {
+    return null;
+  }
+
+  return item.heroImage?.src ?? item.imageUrl ?? null;
+};
 
 const buildSlideCardStyle = (item: PublicWikiListItem): CSSProperties | undefined => {
   const imageSrc = getWikiCardImageSrc(item);

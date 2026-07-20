@@ -27,6 +27,7 @@ const state: PublicWikiListState = {
         imageAltText: null,
         imageIdentifier: null,
         imageUrl: null,
+        isHidden: false,
         keywords: null,
         language: "ja",
         metaDescription: null,
@@ -102,6 +103,35 @@ describe("language home page", () => {
     expect(screen.queryByText("リソース")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "適用" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Wiki一覧" })).not.toBeInTheDocument();
+  });
+
+  it("does not use hidden hero images as top wiki card backgrounds", async () => {
+    vi.mocked(loadPublicWikiListState).mockResolvedValue({
+      ...state,
+      data: {
+        ...state.data,
+        wikis: [
+          {
+            ...state.data.wikis[0],
+            heroImage: null,
+            imageUrl: "https://cdn.example.com/legacy-aurora-echo.webp",
+            isHidden: true,
+            themeColor: "#4c5cff",
+          },
+        ],
+      },
+    });
+
+    render(
+      await LanguageHome({
+        params: Promise.resolve({ language: "ja" }),
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    const card = screen.getAllByRole("link", { name: /Aurora Echo/ })[0];
+    expect(card.getAttribute("style") ?? "").not.toContain("url(");
+    expect(card.getAttribute("style") ?? "").not.toContain("legacy-aurora-echo.webp");
   });
 
   it("auto-submits the section resource search when a resource is selected", async () => {
