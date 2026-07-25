@@ -46,7 +46,7 @@ const CreateIdentityRequestBody = z
     password: z.string(),
     confirmedPassword: z.string(),
     base64EncodedImage: z.string().nullish(),
-    invitationToken: z.string().nullish(),
+    oneTimeToken: z.string().nullish(),
   })
   .passthrough();
 const SendAuthCodeRequestBody = z.object({ email: z.string() }).passthrough();
@@ -348,7 +348,7 @@ const endpoints = makeApi([
         schema: z.string().optional(),
       },
       {
-        name: "invitationToken",
+        name: "oneTimeToken",
         type: "Query",
         schema: z.string().optional(),
       },
