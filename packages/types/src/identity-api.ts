@@ -71,6 +71,21 @@ const UpdateIdentityRequestBody = z
   })
   .partial()
   .passthrough();
+const AccountPolicyStatement = z
+  .object({
+    effect: z.string(),
+    actions: z.array(z.string()),
+    resourceTypes: z.array(z.string()),
+  })
+  .passthrough();
+const AccountEffectivePolicySummary = z
+  .object({
+    policyIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    isSystemPolicy: z.boolean(),
+    statements: z.array(AccountPolicyStatement),
+  })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -90,6 +105,8 @@ export const schemas = {
   KPool_Common_Timestamp,
   VerifyEmailResult,
   UpdateIdentityRequestBody,
+  AccountPolicyStatement,
+  AccountEffectivePolicySummary,
 };
 
 const endpoints = makeApi([
