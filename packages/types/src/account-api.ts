@@ -71,7 +71,7 @@ const CreateAccountRequestBody = z
     email: z.string(),
     accountType: z.string(),
     accountName: z.string(),
-    identityIdentifier: KPool_Common_Uuid.nullish(),
+    principalIdentifier: KPool_Common_Uuid.nullish(),
   })
   .passthrough();
 const CreateAccountResult = z
@@ -84,6 +84,9 @@ const CreateAccountResult = z
     accountCategory: z.string(),
   })
   .partial()
+  .passthrough();
+const UpdateAccountRequestBody = z
+  .object({ accountName: z.string() })
   .passthrough();
 const AccountSummary = z
   .object({
@@ -133,7 +136,7 @@ const TerminateAffiliationRequestBody = z
   .passthrough();
 const GrantDelegationPermissionRequestBody = z
   .object({
-    identityGroupIdentifier: KPool_Common_Uuid,
+    principalGroupIdentifier: KPool_Common_Uuid,
     targetAccountIdentifier: KPool_Common_Uuid,
     affiliationIdentifier: KPool_Common_Uuid,
   })
@@ -141,7 +144,7 @@ const GrantDelegationPermissionRequestBody = z
 const DelegationPermissionSummary = z
   .object({
     delegationPermissionIdentifier: KPool_Common_Uuid,
-    identityGroupIdentifier: KPool_Common_Uuid,
+    principalGroupIdentifier: KPool_Common_Uuid,
     targetAccountIdentifier: KPool_Common_Uuid,
     affiliationIdentifier: KPool_Common_Uuid,
     createdAt: KPool_Common_Timestamp,
@@ -173,31 +176,10 @@ const ApproveDelegationRequestBody = z
 const RevokeDelegationRequestBody = z
   .object({ revokerIdentifier: KPool_Common_Uuid })
   .passthrough();
-const CreateIdentityGroupRequestBody = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    name: z.string(),
-    role: z.string(),
-  })
-  .passthrough();
-const IdentityGroupSummary = z
-  .object({
-    identityGroupIdentifier: KPool_Common_Uuid,
-    accountIdentifier: KPool_Common_Uuid,
-    name: z.string(),
-    role: z.string(),
-    isDefault: z.boolean(),
-    members: z.array(KPool_Common_Uuid).optional(),
-  })
-  .passthrough();
-const CreatedIdentityGroupSummary = IdentityGroupSummary;
-const MutateIdentityGroupMemberRequestBody = z
-  .object({ identityIdentifier: KPool_Common_Uuid })
-  .passthrough();
 const CreateInvitationRequestBody = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
-    inviterIdentityIdentifier: KPool_Common_Uuid,
+    inviterPrincipalIdentifier: KPool_Common_Uuid,
     emails: z.array(z.string()),
   })
   .passthrough();
@@ -205,13 +187,34 @@ const InvitationSummary = z
   .object({
     invitationIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
-    invitedByIdentityIdentifier: KPool_Common_Uuid,
+    invitedByPrincipalIdentifier: KPool_Common_Uuid,
     email: z.string(),
     token: z.string(),
     status: z.string(),
     expiresAt: KPool_Common_Timestamp,
     createdAt: KPool_Common_Timestamp,
   })
+  .passthrough();
+const CreatePrincipalGroupRequestBody = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    role: z.string(),
+  })
+  .passthrough();
+const PrincipalGroupSummary = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    role: z.string(),
+    isDefault: z.boolean(),
+    members: z.array(KPool_Common_Uuid).optional(),
+  })
+  .passthrough();
+const CreatedPrincipalGroupSummary = PrincipalGroupSummary;
+const MutatePrincipalGroupMemberRequestBody = z
+  .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
 const CreatedAccountSummary = AccountSummary;
 
@@ -228,6 +231,7 @@ export const schemas = {
   RejectVerificationRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
+  UpdateAccountRequestBody,
   AccountSummary,
   AffiliationTermsSummary,
   RequestAffiliationRequestBody,
@@ -241,12 +245,12 @@ export const schemas = {
   DelegationSummary,
   ApproveDelegationRequestBody,
   RevokeDelegationRequestBody,
-  CreateIdentityGroupRequestBody,
-  IdentityGroupSummary,
-  CreatedIdentityGroupSummary,
-  MutateIdentityGroupMemberRequestBody,
   CreateInvitationRequestBody,
   InvitationSummary,
+  CreatePrincipalGroupRequestBody,
+  PrincipalGroupSummary,
+  CreatedPrincipalGroupSummary,
+  MutatePrincipalGroupMemberRequestBody,
   CreatedAccountSummary,
 };
 
@@ -385,6 +389,53 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/accounts/:accountId",
+    alias: "AccountOperations_updateAccount",
+    description: `Update account information.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ accountName: z.string() }).passthrough(),
+      },
+      {
+        name: "accountId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -826,18 +877,55 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/identity-groups",
-    alias: "IdentityGroupOperations_createIdentityGroup",
-    description: `Create an identity group.`,
+    path: "/invitations",
+    alias: "InvitationOperations_createInvitation",
+    description: `Create invitations for one or more email addresses.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: CreateIdentityGroupRequestBody,
+        schema: CreateInvitationRequestBody,
       },
     ],
-    response: CreatedIdentityGroupSummary,
+    response: z.array(InvitationSummary),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/principal-groups",
+    alias: "PrincipalGroupOperations_createPrincipalGroup",
+    description: `Create an principal group.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CreatePrincipalGroupRequestBody,
+      },
+    ],
+    response: CreatedPrincipalGroupSummary,
     errors: [
       {
         status: 401,
@@ -858,13 +946,13 @@ const endpoints = makeApi([
   },
   {
     method: "delete",
-    path: "/identity-groups/:identityGroupId",
-    alias: "IdentityGroupOperations_deleteIdentityGroup",
-    description: `Delete an identity group.`,
+    path: "/principal-groups/:principalGroupId",
+    alias: "PrincipalGroupOperations_deletePrincipalGroup",
+    description: `Delete an principal group.`,
     requestFormat: "json",
     parameters: [
       {
-        name: "identityGroupId",
+        name: "principalGroupId",
         type: "Path",
         schema: z.string().uuid(),
       },
@@ -895,23 +983,23 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/identity-groups/:identityGroupId/add-member",
-    alias: "IdentityGroupOperations_addIdentityToIdentityGroup",
-    description: `Add an identity to an identity group.`,
+    path: "/principal-groups/:principalGroupId/add-member",
+    alias: "PrincipalGroupOperations_addPrincipalToPrincipalGroup",
+    description: `Add an identity to an principal group.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: MutateIdentityGroupMemberRequestBody,
+        schema: MutatePrincipalGroupMemberRequestBody,
       },
       {
-        name: "identityGroupId",
+        name: "principalGroupId",
         type: "Path",
         schema: z.string().uuid(),
       },
     ],
-    response: IdentityGroupSummary,
+    response: PrincipalGroupSummary,
     errors: [
       {
         status: 401,
@@ -937,23 +1025,23 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/identity-groups/:identityGroupId/remove-member",
-    alias: "IdentityGroupOperations_removeIdentityFromIdentityGroup",
-    description: `Remove an identity from an identity group.`,
+    path: "/principal-groups/:principalGroupId/remove-member",
+    alias: "PrincipalGroupOperations_removePrincipalFromPrincipalGroup",
+    description: `Remove an identity from an principal group.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: MutateIdentityGroupMemberRequestBody,
+        schema: MutatePrincipalGroupMemberRequestBody,
       },
       {
-        name: "identityGroupId",
+        name: "principalGroupId",
         type: "Path",
         schema: z.string().uuid(),
       },
     ],
-    response: IdentityGroupSummary,
+    response: PrincipalGroupSummary,
     errors: [
       {
         status: 401,
@@ -963,43 +1051,6 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/invitations",
-    alias: "InvitationOperations_createInvitation",
-    description: `Create invitations for one or more email addresses.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: CreateInvitationRequestBody,
-      },
-    ],
-    response: z.array(InvitationSummary),
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 403,
-        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
