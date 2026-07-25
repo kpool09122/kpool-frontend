@@ -85,9 +85,6 @@ const CreateAccountResult = z
   })
   .partial()
   .passthrough();
-const UpdateAccountRequestBody = z
-  .object({ accountName: z.string() })
-  .passthrough();
 const AccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -95,7 +92,11 @@ const AccountSummary = z
     type: z.string(),
     name: z.string(),
     status: z.string(),
+    accountCategory: z.string(),
   })
+  .passthrough();
+const UpdateAccountRequestBody = z
+  .object({ accountName: z.string() })
   .passthrough();
 const AffiliationTermsSummary = z
   .object({
@@ -216,7 +217,6 @@ const CreatedPrincipalGroupSummary = PrincipalGroupSummary;
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
-const CreatedAccountSummary = AccountSummary;
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -231,8 +231,8 @@ export const schemas = {
   RejectVerificationRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
-  UpdateAccountRequestBody,
   AccountSummary,
+  UpdateAccountRequestBody,
   AffiliationTermsSummary,
   RequestAffiliationRequestBody,
   AffiliationSummary,
@@ -251,7 +251,6 @@ export const schemas = {
   PrincipalGroupSummary,
   CreatedPrincipalGroupSummary,
   MutatePrincipalGroupMemberRequestBody,
-  CreatedAccountSummary,
 };
 
 const endpoints = makeApi([
@@ -389,6 +388,48 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountId",
+    alias: "AccountOperations_getAccount",
+    description: `Get account information.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
