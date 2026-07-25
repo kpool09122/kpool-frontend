@@ -5,6 +5,8 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 export type CreateAccountRequest = z.infer<typeof accountApiTypes.schemas.CreateAccountRequestBody>;
 export type CreateAccountResult = z.infer<typeof accountApiTypes.schemas.CreateAccountResult>;
+export type AccountSummary = z.infer<typeof accountApiTypes.schemas.AccountSummary>;
+export type UpdateAccountRequest = z.infer<typeof accountApiTypes.schemas.UpdateAccountRequestBody>;
 
 type AccountApiEnv = Record<string, string | undefined>;
 
@@ -35,3 +37,9 @@ export const parseCreateAccountRequest = (body: unknown): CreateAccountRequest =
 
 export const parseCreateAccountResult = (body: unknown): CreateAccountResult =>
   parseWithSchemaLog("account create response", accountApiTypes.schemas.CreateAccountResult, Array.isArray(body) && body.length === 0 ? {} : body);
+
+export const parseAccountSummary = (body: unknown): AccountSummary =>
+  parseWithSchemaLog("account summary response", accountApiTypes.schemas.AccountSummary, body);
+
+export const parseUpdateAccountRequest = (body: unknown): UpdateAccountRequest =>
+  parseWithSchemaLog("account update request", accountApiTypes.schemas.UpdateAccountRequestBody, body);

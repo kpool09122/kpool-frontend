@@ -27,6 +27,21 @@ const LoginRequestBody = z
     return_to: z.string().nullish(),
   })
   .passthrough();
+const AccountPolicyStatement = z
+  .object({
+    effect: z.string(),
+    actions: z.array(z.string()),
+    resourceTypes: z.array(z.string()),
+  })
+  .passthrough();
+const AccountEffectivePolicySummary = z
+  .object({
+    policyIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    isSystemPolicy: z.boolean(),
+    statements: z.array(AccountPolicyStatement),
+  })
+  .passthrough();
 const IdentitySummary = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
@@ -34,6 +49,8 @@ const IdentitySummary = z
     email: z.string(),
     language: z.string(),
     profileImage: z.string().nullish(),
+    accountIdentifier: KPool_Common_Uuid.nullish(),
+    accountEffectivePolicies: z.array(AccountEffectivePolicySummary).optional(),
   })
   .passthrough();
 const LoginIdentitySummary = IdentitySummary;
@@ -70,21 +87,6 @@ const UpdateIdentityRequestBody = z
     base64EncodedImage: z.string().nullable(),
   })
   .partial()
-  .passthrough();
-const AccountPolicyStatement = z
-  .object({
-    effect: z.string(),
-    actions: z.array(z.string()),
-    resourceTypes: z.array(z.string()),
-  })
-  .passthrough();
-const AccountEffectivePolicySummary = z
-  .object({
-    policyIdentifier: KPool_Common_Uuid,
-    name: z.string(),
-    isSystemPolicy: z.boolean(),
-    statements: z.array(AccountPolicyStatement),
-  })
   .passthrough();
 
 export const schemas = {

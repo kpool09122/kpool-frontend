@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { mockAccountPolicyCookieName } from "@/gateways/identity/authIdentity";
 import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
 
 const useJapaneseLocale = async (page: Page) => {
@@ -20,6 +21,17 @@ const useWikiPrincipal = async (
     {
       name: mockWikiPrincipalCookieName,
       value: principal,
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
+};
+
+const useAccountUpdatePolicy = async (page: Page) => {
+  await page.context().addCookies([
+    {
+      name: mockAccountPolicyCookieName,
+      value: "update",
       domain: "127.0.0.1",
       path: "/",
     },
@@ -624,4 +636,112 @@ test("mypage hides draft image review for principals without image policies", as
   await expect(page.getByRole("tab", { name: "編集中のWiki" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "未承認のWiki" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
+});
+
+test("mypage lets account policy users edit account information", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "basic");
+  await useAccountUpdatePolicy(page);
+
+  await page.route("**/api/identity/auth/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        identityName: "member",
+        email: "member@example.com",
+        language: "ja",
+        profileImage: null,
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        accountEffectivePolicies: [
+          {
+            policyIdentifier: "99999999-9999-9999-9999-999999999999",
+            name: "ACCOUNT_ADMIN",
+            isSystemPolicy: true,
+            statements: [
+              {
+                effect: "allow",
+                actions: ["account:update"],
+                resourceTypes: ["ACCOUNT"],
+              },
+            ],
+          },
+        ],
+      }),
+    });
+  });
+  await page.route("**/api/wiki/principal/me", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        principalIdentifier: "33333333-3333-3333-3333-333333333333",
+        identityIdentifier: "11111111-1111-1111-1111-111111111111",
+        isDelegatedPrincipal: false,
+        isEnabled: true,
+        policies: [],
+      }),
+    });
+  });
+  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        wikis: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 12,
+      }),
+    });
+  });
+
+  let patchRequests = 0;
+  await page.route("**/api/account/accounts/22222222-2222-2222-2222-222222222222", async (route) => {
+    if (route.request().method() === "PATCH") {
+      patchRequests += 1;
+      expect(route.request().postDataJSON()).toEqual({ accountName: "Updated Account" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          accountIdentifier: "22222222-2222-2222-2222-222222222222",
+          email: "member@example.com",
+          type: "individual",
+          name: "Updated Account",
+          status: "active",
+          accountCategory: "standard",
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }),
+    });
+  });
+
+  await page.goto("/mypage");
+  await page.getByRole("button", { name: "アカウント設定" }).click();
+  await expect(page.getByRole("tab", { name: "プロフィール" })).toBeVisible();
+  await expect(page.getByLabel("アカウント名")).toHaveValue("Member Account");
+  await expect(page.getByText("member@example.com")).toHaveCount(0);
+
+  await page.getByLabel("アカウント名").fill("Updated Account");
+  await page.getByRole("button", { name: "保存" }).click();
+
+  await expect(page.getByRole("status")).toContainText("アカウント設定を保存しました。");
+  await expect(page.getByLabel("アカウント名")).toHaveValue("Updated Account");
+  expect(patchRequests).toBe(1);
 });

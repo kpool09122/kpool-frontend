@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
+import { fetchAccount, updateAccount } from "@/gateways/account/accountBrowserApi";
+import type { AccountSummary } from "@/gateways/account/accountApi";
+import { canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { ImageCropper, readFileAsDataUrl } from "../../components/ImageCropper";
 import { WikiMasterSearchSelect } from "../../components/Wiki/WikiMasterSearchSelect";
@@ -19,6 +22,7 @@ import {
   canReviewWikiDraftWikis,
   createWikiPrincipal,
   draftWikiAutoCreateResourceTypes,
+  getAccountIdentifierFromIdentity,
   getCurrentWikiPrincipal,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
@@ -89,7 +93,7 @@ import type {
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
 type MyPageSettingsTab = "profileSettings" | "languageSettings";
-type MyPageSection = "wiki" | "settings";
+type MyPageSection = "wiki" | "accountSettings" | "settings";
 type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
 type CreateDraftWikiMode = "manual" | "auto";
 
@@ -104,6 +108,24 @@ type MyPageClientProps = {
   principalAdapter?: MyPagePrincipalAdapter;
   returnTo?: string | null;
 };
+
+type MyPageAccountSettingsState = {
+  account: AccountSummary | null;
+  accountName: string;
+  error: string | null;
+  isLoading: boolean;
+  isSaving: boolean;
+  success: string | null;
+};
+
+const createAccountSettingsState = (): MyPageAccountSettingsState => ({
+  account: null,
+  accountName: "",
+  error: null,
+  isLoading: false,
+  isSaving: false,
+  success: null,
+});
 
 type CreateDraftWikiDialogState = {
   error: string | null;
@@ -217,8 +239,12 @@ export function MyPageClient({
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const setIdentity = useAuthStore((state) => state.setIdentity);
   const currentIdentity = authIdentity ?? initialIdentity;
+  const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
+  const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
+  const canEditAccountSettings = canUpdateAccount(currentIdentity);
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
+  const [accountSettingsState, setAccountSettingsState] = useState<MyPageAccountSettingsState>(createAccountSettingsState);
   const [settingsState, setSettingsState] = useState<MyPageIdentitySettingsState>(() =>
     createIdentitySettingsState(currentIdentity, locale),
   );
@@ -563,6 +589,105 @@ export function MyPageClient({
     });
   };
 
+  const loadAccountSettings = useCallback(() => {
+    if (!accountIdentifier || !canShowAccountSettings) {
+      return;
+    }
+
+    setAccountSettingsState((state) => ({
+      ...state,
+      error: null,
+      isLoading: true,
+      success: null,
+    }));
+
+    void fetchAccount({
+      accountIdentifier,
+      fallbackErrorMessage: t.accountSettingsLoadFailed,
+    }).then((account) => {
+      setAccountSettingsState({
+        account,
+        accountName: account.name,
+        error: null,
+        isLoading: false,
+        isSaving: false,
+        success: null,
+      });
+    }).catch((error: unknown) => {
+      setAccountSettingsState((state) => ({
+        ...state,
+        error: error instanceof Error ? error.message : t.accountSettingsLoadFailed,
+        isLoading: false,
+        success: null,
+      }));
+    });
+  }, [accountIdentifier, canShowAccountSettings, t.accountSettingsLoadFailed]);
+
+  const selectSection = (section: MyPageSection) => {
+    setSelectedSection(section);
+
+    if (section === "accountSettings" && !accountSettingsState.account && !accountSettingsState.isLoading) {
+      loadAccountSettings();
+    }
+  };
+
+  const updateAccountNameField = (value: string) => {
+    setAccountSettingsState((state) => ({
+      ...state,
+      accountName: value,
+      error: null,
+      success: null,
+    }));
+  };
+
+  const saveAccountSettings = () => {
+    const accountName = accountSettingsState.accountName.trim();
+
+    if (!accountIdentifier) {
+      setAccountSettingsState((state) => ({ ...state, error: t.accountSettingsUnavailable, success: null }));
+      return;
+    }
+
+    if (!accountName) {
+      setAccountSettingsState((state) => ({ ...state, error: t.accountNameRequired, success: null }));
+      return;
+    }
+
+    if (!canEditAccountSettings) {
+      setAccountSettingsState((state) => ({ ...state, error: t.accountSettingsReadOnly, success: null }));
+      return;
+    }
+
+    setAccountSettingsState((state) => ({
+      ...state,
+      error: null,
+      isSaving: true,
+      success: null,
+    }));
+
+    void updateAccount({
+      accountIdentifier,
+      fallbackErrorMessage: t.accountSettingsSaveFailed,
+      requestBody: { accountName },
+    }).then((account) => {
+      setAccountSettingsState({
+        account,
+        accountName: account.name,
+        error: null,
+        isLoading: false,
+        isSaving: false,
+        success: t.accountSettingsSaved,
+      });
+    }).catch((error: unknown) => {
+      setAccountSettingsState((state) => ({
+        ...state,
+        error: error instanceof Error ? error.message : t.accountSettingsSaveFailed,
+        isSaving: false,
+        success: null,
+      }));
+    });
+  };
+
   const submitCreateDialog = (input: {
     agencyIdentifier: string | null;
     groupIdentifiers: string[];
@@ -649,10 +774,24 @@ export function MyPageClient({
                     : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
                 }`}
                 aria-current={selectedSection === "wiki" ? "page" : undefined}
-                onClick={() => setSelectedSection("wiki")}
+                onClick={() => selectSection("wiki")}
               >
                 {t.wikiMenu}
               </button>
+              {canShowAccountSettings ? (
+                <button
+                  type="button"
+                  className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+                    selectedSection === "accountSettings"
+                      ? selectedSectionClass
+                      : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
+                  }`}
+                  aria-current={selectedSection === "accountSettings" ? "page" : undefined}
+                  onClick={() => selectSection("accountSettings")}
+                >
+                  {t.accountSettingsMenu}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
@@ -661,7 +800,7 @@ export function MyPageClient({
                     : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
                 }`}
                 aria-current={selectedSection === "settings" ? "page" : undefined}
-                onClick={() => setSelectedSection("settings")}
+                onClick={() => selectSection("settings")}
               >
                 {t.settingsMenu}
               </button>
@@ -674,11 +813,13 @@ export function MyPageClient({
         <section className="min-w-0 space-y-6">
           <header className="space-y-3">
             <h1 className="text-3xl font-bold">
-              {selectedSection === "wiki" ? t.wikiHeaderTitle : t.settingsHeaderTitle}
+              {selectedSection === "wiki" ? t.wikiHeaderTitle : selectedSection === "accountSettings" ? t.accountSettingsHeaderTitle : t.settingsHeaderTitle}
             </h1>
-            <p className="max-w-3xl text-sm leading-7 text-text-muted">
-              {selectedSection === "wiki" ? t.wikiHeaderDescription : t.settingsHeaderDescription}
-            </p>
+            {selectedSection !== "accountSettings" ? (
+              <p className="max-w-3xl text-sm leading-7 text-text-muted">
+                {selectedSection === "wiki" ? t.wikiHeaderDescription : t.settingsHeaderDescription}
+              </p>
+            ) : null}
           </header>
 
           {selectedSection === "wiki" ? (
@@ -746,6 +887,15 @@ export function MyPageClient({
                 onSubmit={submitRejectDialog}
               />
             </>
+          ) : selectedSection === "accountSettings" ? (
+            <AccountSettingsSection
+              canEdit={canEditAccountSettings}
+              state={accountSettingsState}
+              t={t}
+              onReload={loadAccountSettings}
+              onSave={saveAccountSettings}
+              onUpdateAccountName={updateAccountNameField}
+            />
           ) : (
             <SettingsSection
               currentIdentity={currentIdentity}
@@ -995,6 +1145,96 @@ function WikiPrincipalPanel({
         {t.activateWiki}
       </button>
     </div>
+  );
+}
+
+function AccountSettingsSection({
+  canEdit,
+  state,
+  t,
+  onReload,
+  onSave,
+  onUpdateAccountName,
+}: {
+  canEdit: boolean;
+  state: MyPageAccountSettingsState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onReload: () => void;
+  onSave: () => void;
+  onUpdateAccountName: (value: string) => void;
+}) {
+  const isBusy = state.isLoading || state.isSaving;
+
+  return (
+    <section className="space-y-5">
+      <div className="overflow-x-auto border-b border-stroke-subtle">
+        <div aria-label={t.accountSettingsTabsLabel} className="-mb-px flex gap-1" role="tablist">
+          <button
+            aria-selected="true"
+            className="whitespace-nowrap border-b-2 border-brand-primary px-4 py-3 text-sm font-semibold text-text-strong transition"
+            role="tab"
+            type="button"
+          >
+            {t.accountInformationTab}
+          </button>
+        </div>
+      </div>
+      <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <h2 className="text-xl font-semibold">{t.accountInformationTitle}</h2>
+          <button
+            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isBusy || !canEdit || !state.account}
+            onClick={onSave}
+            type="button"
+          >
+            {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
+          </button>
+        </div>
+        {state.isLoading ? (
+          <p className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
+            {t.accountSettingsLoading}
+          </p>
+        ) : null}
+        {state.account ? (
+          <div className="mt-5 grid gap-5">
+            <label className="grid gap-2 text-sm font-semibold">
+              {t.accountNameLabel}
+              <input
+                className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+                disabled={isBusy || !canEdit}
+                onChange={(event) => onUpdateAccountName(event.currentTarget.value)}
+                value={state.accountName}
+              />
+            </label>
+            {!canEdit ? (
+              <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
+                {t.accountSettingsReadOnly}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        {state.error ? (
+          <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+            <p>{state.error}</p>
+            {!state.account ? (
+              <button
+                className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
+                onClick={onReload}
+                type="button"
+              >
+                {t.accountSettingsRetry}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {state.success ? (
+          <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+            {state.success}
+          </p>
+        ) : null}
+      </section>
+    </section>
   );
 }
 

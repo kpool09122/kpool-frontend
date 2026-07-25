@@ -38,6 +38,43 @@ const identity = {
   email: "member@example.com",
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
+  accountEffectivePolicies: [
+    {
+      policyIdentifier: "99999999-9999-9999-9999-999999999999",
+      name: "ACCOUNT_ADMIN",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["account:update"],
+          resourceTypes: ["ACCOUNT"],
+        },
+      ],
+    },
+  ],
+};
+
+const identityWithoutAccountPolicies = {
+  ...identity,
+  accountEffectivePolicies: [],
+};
+
+const identityWithAccountReadOnlyPolicy = {
+  ...identity,
+  accountEffectivePolicies: [
+    {
+      policyIdentifier: "99999999-9999-9999-9999-999999999998",
+      name: "ACCOUNT_VIEWER",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["account:read"],
+          resourceTypes: ["ACCOUNT"],
+        },
+      ],
+    },
+  ],
 };
 
 const principal = {
@@ -413,7 +450,8 @@ describe("MyPageClient", () => {
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("button", { name: "概要" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "設定" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "アカウント設定" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "ユーザー設定" })).not.toHaveAttribute("aria-current");
   });
 
   it("collapses and expands the sidebar with a persistent toggle", () => {
@@ -461,6 +499,103 @@ describe("MyPageClient", () => {
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
   });
 
+  it("hides account settings when /auth/me has no account policy", () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identityWithoutAccountPolicies}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "アカウント設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ユーザー設定" })).toBeInTheDocument();
+  });
+
+  it("loads account information and saves the account name", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PATCH") {
+        return Promise.resolve(new Response(JSON.stringify({
+          accountIdentifier: "22222222-2222-2222-2222-222222222222",
+          email: "member@example.com",
+          type: "individual",
+          name: "Updated Account",
+          status: "active",
+          accountCategory: "standard",
+        }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    expect(await screen.findByRole("heading", { name: "アカウント設定", level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
+    expect(await screen.findByLabelText("アカウント名")).toHaveValue("Member Account");
+    expect(screen.queryByText("member@example.com")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("アカウント名"), { target: { value: "Updated Account" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/account/accounts/22222222-2222-2222-2222-222222222222",
+      expect.objectContaining({
+        method: "PATCH",
+        credentials: "include",
+        body: JSON.stringify({ accountName: "Updated Account" }),
+      }),
+    ));
+    expect(await screen.findByRole("status")).toHaveTextContent("アカウント設定を保存しました。");
+    expect(screen.getByLabelText("アカウント名")).toHaveValue("Updated Account");
+  });
+
+  it("shows account settings as read only without account:update", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "individual",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "standard",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identityWithAccountReadOnlyPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+
+    expect(await screen.findByLabelText("アカウント名")).toBeDisabled();
+    expect(screen.getByText("アカウント更新権限がないため、アカウント名は変更できません。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+  });
+
   it("shows profile settings and saves identityName without socialConnections", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
@@ -482,8 +617,8 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "設定" }));
-    expect(await screen.findByRole("heading", { name: "設定", level: 1 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
+    expect(await screen.findByRole("heading", { name: "ユーザー設定", level: 1 })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     fireEvent.change(screen.getByLabelText("ログイン中ユーザー名"), {
       target: { value: "updated member" },
@@ -545,7 +680,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     fireEvent.change(screen.getByLabelText("画像を選択"), {
       target: { files: [new File(["image"], "profile.png", { type: "image/png" })] },
@@ -600,7 +735,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     expect(screen.getByRole("img", { name: "プロフィール画像プレビュー" })).toHaveAttribute(
       "src",
@@ -653,7 +788,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "設定" }));
+    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "言語" }));
     fireEvent.change(screen.getByLabelText("言語"), { target: { value: "en" } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
