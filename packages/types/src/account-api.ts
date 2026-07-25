@@ -177,7 +177,7 @@ const ApproveDelegationRequestBody = z
 const RevokeDelegationRequestBody = z
   .object({ revokerIdentifier: KPool_Common_Uuid })
   .passthrough();
-const CreateInvitationRequestBody = z
+const InviteMemberRequestBody = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
     inviterPrincipalIdentifier: KPool_Common_Uuid,
@@ -245,7 +245,7 @@ export const schemas = {
   DelegationSummary,
   ApproveDelegationRequestBody,
   RevokeDelegationRequestBody,
-  CreateInvitationRequestBody,
+  InviteMemberRequestBody,
   InvitationSummary,
   CreatePrincipalGroupRequestBody,
   PrincipalGroupSummary,
@@ -919,14 +919,14 @@ const endpoints = makeApi([
   {
     method: "post",
     path: "/invitations",
-    alias: "InvitationOperations_createInvitation",
-    description: `Create invitations for one or more email addresses.`,
+    alias: "InvitationOperations_inviteMember",
+    description: `Invite members for one or more email addresses.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: CreateInvitationRequestBody,
+        schema: InviteMemberRequestBody,
       },
     ],
     response: z.array(InvitationSummary),
