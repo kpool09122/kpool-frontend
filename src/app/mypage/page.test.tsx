@@ -38,6 +38,7 @@ const identity = {
   email: "member@example.com",
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
+  accountType: "corporation",
   accountEffectivePolicies: [
     {
       policyIdentifier: "99999999-9999-9999-9999-999999999999",
@@ -75,6 +76,30 @@ const identityWithAccountReadOnlyPolicy = {
       ],
     },
   ],
+};
+
+const identityWithAccountInvitePolicy = {
+  ...identity,
+  accountEffectivePolicies: [
+    ...identity.accountEffectivePolicies,
+    {
+      policyIdentifier: "99999999-9999-9999-9999-999999999997",
+      name: "ACCOUNT_INVITER",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["account:member:invite"],
+          resourceTypes: ["ACCOUNT"],
+        },
+      ],
+    },
+  ],
+};
+
+const individualIdentityWithAccountPolicy = {
+  ...identity,
+  accountType: "individual",
 };
 
 const principal = {
@@ -512,6 +537,119 @@ describe("MyPageClient", () => {
 
     expect(screen.queryByRole("button", { name: "アカウント設定" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ユーザー設定" })).toBeInTheDocument();
+  });
+
+  it("hides account settings for non-corporation account types even with account policy", () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={individualIdentityWithAccountPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "アカウント設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ユーザー設定" })).toBeInTheDocument();
+  });
+
+  it("shows invitation tab only for account:member:invite policy and sends a batched invitation", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/invitations") {
+        return Promise.resolve(new Response(JSON.stringify([
+          {
+            invitationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            accountIdentifier: "22222222-2222-2222-2222-222222222222",
+            invitedByPrincipalIdentifier: "11111111-1111-1111-1111-111111111111",
+            email: "new-member@example.com",
+            token: "token",
+            status: "pending",
+            expiresAt: "2026-07-27T00:00:00Z",
+            createdAt: "2026-07-26T00:00:00Z",
+          },
+        ]), { status: 200, headers: { "Content-Type": "application/json" } }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identityWithAccountInvitePolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("tab", { name: "ユーザー招待" }));
+    expect(screen.queryByRole("button", { name: "ユーザー招待", hidden: true })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), { target: { value: "bad-email" } });
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("有効なメールアドレスを入力してください。");
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), { target: { value: "new-member@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+    expect(screen.getByText("new-member@example.com")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("メールアドレス"), { target: { value: "new-member@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("同じメールアドレスは追加できません。");
+
+    fireEvent.click(screen.getByRole("button", { name: "招待を送信" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/account/invitations",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({
+          accountIdentifier: "22222222-2222-2222-2222-222222222222",
+          inviterIdentityIdentifier: "11111111-1111-1111-1111-111111111111",
+          emails: ["new-member@example.com"],
+        }),
+      }),
+    ));
+    expect(await screen.findByRole("status")).toHaveTextContent("招待を送信しました。");
+    expect(screen.queryByText("new-member@example.com")).not.toBeInTheDocument();
+  });
+
+  it("does not show invitation tab without account:member:invite policy", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "corporation",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "standard",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
   });
 
   it("loads account information and saves the account name", async () => {
