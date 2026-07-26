@@ -215,6 +215,14 @@ const AccountMemberSummary = z
 const ListMembersResponseBody = z
   .object({ members: z.array(AccountMemberSummary) })
   .passthrough();
+const PrincipalGroupMemberSummary = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid,
+    identityIdentifier: KPool_Common_Uuid,
+    identityName: z.string(),
+    email: z.string(),
+  })
+  .passthrough();
 const PrincipalGroupSummary = z
   .object({
     principalGroupIdentifier: KPool_Common_Uuid,
@@ -222,7 +230,7 @@ const PrincipalGroupSummary = z
     name: z.string(),
     roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
-    members: z.array(KPool_Common_Uuid).optional(),
+    members: z.array(PrincipalGroupMemberSummary).optional(),
   })
   .passthrough();
 const ListPrincipalGroupsResponseBody = z
@@ -277,6 +285,7 @@ export const schemas = {
   MemberPrincipalGroupSummary,
   AccountMemberSummary,
   ListMembersResponseBody,
+  PrincipalGroupMemberSummary,
   PrincipalGroupSummary,
   ListPrincipalGroupsResponseBody,
   CreatePrincipalGroupRequestBody,
