@@ -265,7 +265,6 @@ export function MyPageClient({
   const router = useRouter();
   const authIdentity = useAuthStore((state) => state.identity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
-  const setIdentity = useAuthStore((state) => state.setIdentity);
   const currentIdentity = authIdentity ?? initialIdentity;
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const canShowAccountSettings = Boolean(accountIdentifier) && isCorporationAccount(currentIdentity) && hasAccountPolicy(currentIdentity);
@@ -602,12 +601,12 @@ export function MyPageClient({
             ? { base64EncodedImage: null }
             : {}),
       },
-    }).then((updatedIdentity) => {
+    }).then(async (updatedIdentity) => {
       const effectiveIdentity = shouldDeleteProfileImage
         ? { ...updatedIdentity, profileImage: null }
         : updatedIdentity;
 
-      setIdentity(effectiveIdentity);
+      await refreshIdentity({ preserveOnNull: true });
       setSettingsState(createIdentitySettingsState(effectiveIdentity, settingsState.language));
       setSettingsState((state) => ({ ...state, success: t.identitySettingsSaved }));
     }).catch((error: unknown) => {

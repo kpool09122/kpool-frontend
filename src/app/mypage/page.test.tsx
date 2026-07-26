@@ -445,7 +445,7 @@ describe("MyPageClient", () => {
       identity: null,
       status: "loading",
     });
-    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(null);
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(identity);
   });
 
   afterEach(() => {
@@ -735,6 +735,11 @@ describe("MyPageClient", () => {
   });
 
   it("shows profile settings and saves identityName without socialConnections", async () => {
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue({
+      ...identity,
+      identityName: "updated member",
+      profileImage: null,
+    });
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
         identityIdentifier: identity.identityIdentifier,
@@ -777,6 +782,8 @@ describe("MyPageClient", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("設定を保存しました。");
     expect(useAuthStore.getState().identity).toMatchObject({
       identityName: "updated member",
+      accountEffectivePolicies: identity.accountEffectivePolicies,
+      accountType: "corporation",
       profileImage: null,
     });
   });
@@ -901,7 +908,8 @@ describe("MyPageClient", () => {
     expect(screen.queryByRole("img", { name: "プロフィール画像プレビュー" })).not.toBeInTheDocument();
     expect(useAuthStore.getState().identity).toMatchObject({
       identityName: "member",
-      profileImage: null,
+      accountEffectivePolicies: identity.accountEffectivePolicies,
+      accountType: "corporation",
     });
   });
 
@@ -941,6 +949,12 @@ describe("MyPageClient", () => {
         }),
       }),
     ));
+    await waitFor(() => expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("button", { name: "アカウント設定" })).toBeInTheDocument();
+    expect(useAuthStore.getState().identity).toMatchObject({
+      accountEffectivePolicies: identity.accountEffectivePolicies,
+      accountType: "corporation",
+    });
   });
 
   it("creates a draft wiki from the dialog using the selected language defaulted from the header", async () => {
@@ -2556,6 +2570,7 @@ describe("MyPageClient", () => {
       email: "member@example.com",
       language: "ja",
     };
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(identityWithoutAccount);
 
     renderWithQueryClient(
       <MyPageClient
