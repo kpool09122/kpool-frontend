@@ -197,18 +197,14 @@ const InvitationSummary = z
   })
   .passthrough();
 const CreatePrincipalGroupRequestBody = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    name: z.string(),
-    role: z.string(),
-  })
+  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
   .passthrough();
 const PrincipalGroupSummary = z
   .object({
     principalGroupIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
     name: z.string(),
-    role: z.string(),
+    roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
     members: z.array(KPool_Common_Uuid).optional(),
   })
