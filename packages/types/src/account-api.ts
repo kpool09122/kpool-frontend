@@ -196,8 +196,24 @@ const InvitationSummary = z
     createdAt: KPool_Common_Timestamp,
   })
   .passthrough();
-const CreatePrincipalGroupRequestBody = z
-  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
+const MemberPrincipalGroupSummary = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    isDefault: z.boolean(),
+  })
+  .passthrough();
+const AccountMemberSummary = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid,
+    identityIdentifier: KPool_Common_Uuid,
+    identityName: z.string(),
+    email: z.string(),
+    principalGroups: z.array(MemberPrincipalGroupSummary),
+  })
+  .passthrough();
+const ListMembersResponseBody = z
+  .object({ members: z.array(AccountMemberSummary) })
   .passthrough();
 const PrincipalGroupSummary = z
   .object({
@@ -208,6 +224,12 @@ const PrincipalGroupSummary = z
     isDefault: z.boolean(),
     members: z.array(KPool_Common_Uuid).optional(),
   })
+  .passthrough();
+const ListPrincipalGroupsResponseBody = z
+  .object({ principalGroups: z.array(PrincipalGroupSummary) })
+  .passthrough();
+const CreatePrincipalGroupRequestBody = z
+  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
   .passthrough();
 const CreatedPrincipalGroupSummary = PrincipalGroupSummary;
 const MutatePrincipalGroupMemberRequestBody = z
@@ -243,8 +265,12 @@ export const schemas = {
   RevokeDelegationRequestBody,
   InviteMemberRequestBody,
   InvitationSummary,
-  CreatePrincipalGroupRequestBody,
+  MemberPrincipalGroupSummary,
+  AccountMemberSummary,
+  ListMembersResponseBody,
   PrincipalGroupSummary,
+  ListPrincipalGroupsResponseBody,
+  CreatePrincipalGroupRequestBody,
   CreatedPrincipalGroupSummary,
   MutatePrincipalGroupMemberRequestBody,
 };
@@ -940,6 +966,56 @@ const endpoints = makeApi([
       {
         status: 422,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/members",
+    alias: "MemberOperations_listMembers",
+    description: `List account members.`,
+    requestFormat: "json",
+    response: ListMembersResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/principal-groups",
+    alias: "PrincipalGroupOperations_listPrincipalGroups",
+    description: `List principal groups.`,
+    requestFormat: "json",
+    response: ListPrincipalGroupsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
