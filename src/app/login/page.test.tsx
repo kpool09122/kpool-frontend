@@ -5,6 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "./LoginPage";
 import { I18nProvider } from "../../i18n/I18nProvider";
 import { useAuthStore } from "@/gateways/auth/authStore";
+import { fetchCurrentAuthenticatedIdentity } from "@/gateways/identity/authIdentityBrowserApi";
+
+const identityMocks = vi.hoisted(() => ({
+  fetchCurrentAuthenticatedIdentity: vi.fn(),
+}));
+
+vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
+  fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
+}));
 
 const loginIdentity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
@@ -14,12 +23,34 @@ const loginIdentity = {
   profileImage: "https://images.example.test/member.jpg",
 };
 
+const authenticatedIdentity = {
+  ...loginIdentity,
+  identityName: "member from auth me",
+  accountIdentifier: "22222222-2222-2222-2222-222222222222",
+  accountType: "corporation",
+  accountEffectivePolicies: [
+    {
+      policyIdentifier: "99999999-9999-9999-9999-999999999999",
+      name: "ACCOUNT_ADMIN",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["account:update"],
+          resourceTypes: ["ACCOUNT"],
+        },
+      ],
+    },
+  ],
+};
+
 describe("LoginPage", () => {
   beforeEach(() => {
     useAuthStore.setState({
       identity: null,
       status: "loading",
     });
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(authenticatedIdentity);
   });
 
   afterEach(() => {
@@ -90,7 +121,7 @@ describe("LoginPage", () => {
     );
   });
 
-  it("logs in with email and password and opens mypage", async () => {
+  it("logs in with email and password, trusts auth/me, and opens mypage", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({ identity: loginIdentity, ok: true });
     const navigate = vi.fn();
 
@@ -116,9 +147,12 @@ describe("LoginPage", () => {
         return_to: "/mypage",
       }),
     );
+    await waitFor(() =>
+      expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1),
+    );
     expect(navigate).toHaveBeenCalledWith("/mypage");
     expect(useAuthStore.getState()).toMatchObject({
-      identity: loginIdentity,
+      identity: authenticatedIdentity,
       status: "authenticated",
     });
   });
