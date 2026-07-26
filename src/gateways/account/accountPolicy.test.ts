@@ -1,0 +1,50 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  canInviteAccountMembers,
+  getAccountTypeFromIdentity,
+  isCorporationAccount,
+} from "./accountPolicy";
+
+const baseIdentity = {
+  identityIdentifier: "11111111-1111-1111-1111-111111111111",
+  identityName: "member",
+  email: "member@example.com",
+  language: "ja",
+};
+
+describe("accountPolicy", () => {
+  it("reads account type from direct and nested identity payloads", () => {
+    expect(getAccountTypeFromIdentity({ ...baseIdentity, accountType: "corporation" })).toBe("corporation");
+    expect(getAccountTypeFromIdentity({ ...baseIdentity, account: { type: "corporation" } })).toBe("corporation");
+    expect(getAccountTypeFromIdentity({ ...baseIdentity, accounts: [{ accountType: "individual" }] })).toBe("individual");
+    expect(isCorporationAccount({ ...baseIdentity, accountType: "corporation" })).toBe(true);
+    expect(isCorporationAccount({ ...baseIdentity, accountType: "individual" })).toBe(false);
+  });
+
+  it("allows account member invitations only when allow exists without deny", () => {
+    const allowPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            { effect: "allow", actions: ["account:member:invite"], resourceTypes: ["ACCOUNT"] },
+          ],
+        },
+      ],
+    };
+
+    expect(canInviteAccountMembers(allowPolicy)).toBe(true);
+    expect(canInviteAccountMembers({
+      ...allowPolicy,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            { effect: "allow", actions: ["account:member:invite"], resourceTypes: ["ACCOUNT"] },
+            { effect: "deny", actions: ["account:member:invite"], resourceTypes: ["ACCOUNT"] },
+          ],
+        },
+      ],
+    })).toBe(false);
+  });
+});

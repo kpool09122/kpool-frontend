@@ -63,7 +63,6 @@ export function LoginPage({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
-  const setIdentity = useAuthStore((state) => state.setIdentity);
   const destination = useMemo(
     () => normalizeReturnTo(returnTo ?? getCurrentReturnTo()),
     [returnTo],
@@ -79,11 +78,7 @@ export function LoginPage({
     if (result.ok) {
       const nextDestination = result.returnTo ?? destination;
 
-      if (result.identity) {
-        setIdentity(result.identity);
-      } else {
-        await refreshIdentity();
-      }
+      await refreshIdentity();
 
       if (navigate) {
         navigate(nextDestination);

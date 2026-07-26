@@ -35,6 +35,48 @@ const toPolicyStatement = (value: unknown): AccountPolicyStatement | null =>
       }
     : null;
 
+const getStringProperty = (value: unknown, keys: string[]): string | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const candidate = value[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
+export const getAccountTypeFromIdentity = (identity: IdentitySummary | null): string | null => {
+  if (!identity) {
+    return null;
+  }
+
+  const directType = getStringProperty(identity, ["accountType", "type"]);
+  if (directType) {
+    return directType;
+  }
+
+  const record = identity as Record<string, unknown>;
+  const nestedType = getStringProperty(record.account, ["accountType", "type"]);
+  if (nestedType) {
+    return nestedType;
+  }
+
+  const accounts = record.accounts;
+  if (Array.isArray(accounts)) {
+    return accounts.map((account) => getStringProperty(account, ["accountType", "type"])).find(Boolean) ?? null;
+  }
+
+  return null;
+};
+
+export const isCorporationAccount = (identity: IdentitySummary | null): boolean =>
+  normalizePolicyValue(getAccountTypeFromIdentity(identity) ?? "") === "corporation";
+
 const getAccountPolicies = (identity: IdentitySummary | null): AccountEffectivePolicy[] => {
   if (!identity) {
     return [];
@@ -87,3 +129,7 @@ export const hasAccountPolicy = (identity: IdentitySummary | null): boolean =>
 export const canUpdateAccount = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:update") &&
   !hasMatchingStatement(identity, "deny", "account:update");
+
+export const canInviteAccountMembers = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:member:invite") &&
+  !hasMatchingStatement(identity, "deny", "account:member:invite");

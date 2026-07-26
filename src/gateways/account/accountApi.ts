@@ -8,6 +8,17 @@ export type CreateAccountResult = z.infer<typeof accountApiTypes.schemas.CreateA
 export type AccountSummary = z.infer<typeof accountApiTypes.schemas.AccountSummary>;
 export type UpdateAccountRequest = z.infer<typeof accountApiTypes.schemas.UpdateAccountRequestBody>;
 
+const InviteAccountMembersRequestSchema = z
+  .object({
+    accountIdentifier: z.string().uuid(),
+    inviterPrincipalIdentifier: z.string().uuid(),
+    emails: z.array(z.string().email()).min(1).max(50),
+  })
+  .passthrough();
+
+export type InviteAccountMembersRequest = z.infer<typeof InviteAccountMembersRequestSchema>;
+export type InvitationSummary = z.infer<typeof accountApiTypes.schemas.InvitationSummary>;
+
 type AccountApiEnv = Record<string, string | undefined>;
 
 const trimTrailingSlashes = (value: string): string => {
@@ -43,3 +54,9 @@ export const parseAccountSummary = (body: unknown): AccountSummary =>
 
 export const parseUpdateAccountRequest = (body: unknown): UpdateAccountRequest =>
   parseWithSchemaLog("account update request", accountApiTypes.schemas.UpdateAccountRequestBody, body);
+
+export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
+  parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);
+
+export const parseInvitationSummaries = (body: unknown): InvitationSummary[] =>
+  parseWithSchemaLog("account invitation response", z.array(accountApiTypes.schemas.InvitationSummary), body);

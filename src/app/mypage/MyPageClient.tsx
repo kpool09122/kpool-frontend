@@ -6,9 +6,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
-import { fetchAccount, updateAccount } from "@/gateways/account/accountBrowserApi";
+import { fetchAccount, inviteAccountMembers, updateAccount } from "@/gateways/account/accountBrowserApi";
 import type { AccountSummary } from "@/gateways/account/accountApi";
-import { canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import { canInviteAccountMembers, canUpdateAccount, hasAccountPolicy, isCorporationAccount } from "@/gateways/account/accountPolicy";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { ImageCropper, readFileAsDataUrl } from "../../components/ImageCropper";
 import { WikiMasterSearchSelect } from "../../components/Wiki/WikiMasterSearchSelect";
@@ -93,6 +93,7 @@ import type {
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
 
 type MyPageSettingsTab = "profileSettings" | "languageSettings";
+type MyPageAccountSettingsTab = "accountProfile" | "accountInvitations";
 type MyPageSection = "wiki" | "accountSettings" | "settings";
 type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
 type CreateDraftWikiMode = "manual" | "auto";
@@ -118,6 +119,14 @@ type MyPageAccountSettingsState = {
   success: string | null;
 };
 
+type MyPageAccountInvitationState = {
+  emailInput: string;
+  emails: string[];
+  error: string | null;
+  isSending: boolean;
+  success: string | null;
+};
+
 const createAccountSettingsState = (): MyPageAccountSettingsState => ({
   account: null,
   accountName: "",
@@ -125,6 +134,25 @@ const createAccountSettingsState = (): MyPageAccountSettingsState => ({
   isLoading: false,
   isSaving: false,
   success: null,
+});
+
+const createAccountInvitationState = (): MyPageAccountInvitationState => ({
+  emailInput: "",
+  emails: [],
+  error: null,
+  isSending: false,
+  success: null,
+});
+
+const maxAccountInvitationEmails = 50;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const createAccountSettingsTab = (
+  id: MyPageAccountSettingsTab,
+  label: string,
+): { id: MyPageAccountSettingsTab; label: string } => ({
+  id,
+  label,
 });
 
 type CreateDraftWikiDialogState = {
@@ -237,20 +265,22 @@ export function MyPageClient({
   const router = useRouter();
   const authIdentity = useAuthStore((state) => state.identity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
-  const setIdentity = useAuthStore((state) => state.setIdentity);
   const currentIdentity = authIdentity ?? initialIdentity;
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
-  const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
+  const canShowAccountSettings = Boolean(accountIdentifier) && isCorporationAccount(currentIdentity) && hasAccountPolicy(currentIdentity);
   const canEditAccountSettings = canUpdateAccount(currentIdentity);
+  const canInviteAccountSettingsMembers = canInviteAccountMembers(currentIdentity);
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
   const [accountSettingsState, setAccountSettingsState] = useState<MyPageAccountSettingsState>(createAccountSettingsState);
+  const [accountInvitationState, setAccountInvitationState] = useState<MyPageAccountInvitationState>(createAccountInvitationState);
   const [settingsState, setSettingsState] = useState<MyPageIdentitySettingsState>(() =>
     createIdentitySettingsState(currentIdentity, locale),
   );
   const [selectedSection, setSelectedSection] = useState<MyPageSection>("wiki");
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>("editingWikis");
   const [selectedSettingsTab, setSelectedSettingsTab] = useState<MyPageSettingsTab>("profileSettings");
+  const [selectedAccountSettingsTab, setSelectedAccountSettingsTab] = useState<MyPageAccountSettingsTab>("accountProfile");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [createDialog, setCreateDialog] = useState<CreateDraftWikiDialogState>({
     error: null,
@@ -571,12 +601,12 @@ export function MyPageClient({
             ? { base64EncodedImage: null }
             : {}),
       },
-    }).then((updatedIdentity) => {
+    }).then(async (updatedIdentity) => {
       const effectiveIdentity = shouldDeleteProfileImage
         ? { ...updatedIdentity, profileImage: null }
         : updatedIdentity;
 
-      setIdentity(effectiveIdentity);
+      await refreshIdentity({ preserveOnNull: true });
       setSettingsState(createIdentitySettingsState(effectiveIdentity, settingsState.language));
       setSettingsState((state) => ({ ...state, success: t.identitySettingsSaved }));
     }).catch((error: unknown) => {
@@ -683,6 +713,105 @@ export function MyPageClient({
         ...state,
         error: error instanceof Error ? error.message : t.accountSettingsSaveFailed,
         isSaving: false,
+        success: null,
+      }));
+    });
+  };
+
+
+  const updateInvitationEmailInput = (value: string) => {
+    setAccountInvitationState((state) => ({
+      ...state,
+      emailInput: value,
+      error: null,
+      success: null,
+    }));
+  };
+
+  const addInvitationEmail = () => {
+    const email = accountInvitationState.emailInput.trim().toLowerCase();
+
+    if (!email) {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountInvitationEmailRequired, success: null }));
+      return;
+    }
+
+    if (!emailPattern.test(email)) {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountInvitationEmailInvalid, success: null }));
+      return;
+    }
+
+    if (accountInvitationState.emails.includes(email)) {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountInvitationEmailDuplicate, success: null }));
+      return;
+    }
+
+    if (accountInvitationState.emails.length >= maxAccountInvitationEmails) {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountInvitationEmailLimit, success: null }));
+      return;
+    }
+
+    setAccountInvitationState((state) => ({
+      ...state,
+      emailInput: "",
+      emails: [...state.emails, email],
+      error: null,
+      success: null,
+    }));
+  };
+
+  const removeInvitationEmail = (email: string) => {
+    setAccountInvitationState((state) => ({
+      ...state,
+      emails: state.emails.filter((candidate) => candidate !== email),
+      error: null,
+      success: null,
+    }));
+  };
+
+  const sendAccountInvitations = () => {
+    if (!accountIdentifier || principalState.status !== "available") {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountSettingsUnavailable, success: null }));
+      return;
+    }
+
+    if (!canInviteAccountSettingsMembers) {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountInvitationReadOnly, success: null }));
+      return;
+    }
+
+    if (accountInvitationState.emails.length === 0) {
+      setAccountInvitationState((state) => ({ ...state, error: t.accountInvitationEmailListRequired, success: null }));
+      return;
+    }
+
+    setAccountInvitationState((state) => ({
+      ...state,
+      error: null,
+      isSending: true,
+      success: null,
+    }));
+
+    void inviteAccountMembers({
+      fallbackErrorMessage: t.accountInvitationSendFailed,
+      requestBody: {
+        accountIdentifier,
+        inviterPrincipalIdentifier: principalState.principal.principalIdentifier,
+        emails: accountInvitationState.emails,
+      },
+    }).then(() => {
+      setAccountInvitationState({
+        emailInput: "",
+        emails: [],
+        error: null,
+        isSending: false,
+        success: t.accountInvitationSent,
+      });
+    }).catch((error: unknown) => {
+      setAccountInvitationState((state) => ({
+        ...state,
+        error: error instanceof Error ? error.message : t.accountInvitationSendFailed,
+        isSending: false,
         success: null,
       }));
     });
@@ -890,11 +1019,19 @@ export function MyPageClient({
           ) : selectedSection === "accountSettings" ? (
             <AccountSettingsSection
               canEdit={canEditAccountSettings}
+              canInvite={canInviteAccountSettingsMembers}
+              invitationState={accountInvitationState}
+              selectedTab={selectedAccountSettingsTab}
               state={accountSettingsState}
               t={t}
+              onAddInvitationEmail={addInvitationEmail}
               onReload={loadAccountSettings}
+              onRemoveInvitationEmail={removeInvitationEmail}
               onSave={saveAccountSettings}
+              onSelectTab={setSelectedAccountSettingsTab}
+              onSendInvitations={sendAccountInvitations}
               onUpdateAccountName={updateAccountNameField}
+              onUpdateInvitationEmailInput={updateInvitationEmailInput}
             />
           ) : (
             <SettingsSection
@@ -1150,90 +1287,227 @@ function WikiPrincipalPanel({
 
 function AccountSettingsSection({
   canEdit,
+  canInvite,
+  invitationState,
+  selectedTab,
   state,
   t,
+  onAddInvitationEmail,
   onReload,
+  onRemoveInvitationEmail,
   onSave,
+  onSelectTab,
+  onSendInvitations,
   onUpdateAccountName,
+  onUpdateInvitationEmailInput,
 }: {
   canEdit: boolean;
+  canInvite: boolean;
+  invitationState: MyPageAccountInvitationState;
+  selectedTab: MyPageAccountSettingsTab;
   state: MyPageAccountSettingsState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onAddInvitationEmail: () => void;
   onReload: () => void;
+  onRemoveInvitationEmail: (email: string) => void;
   onSave: () => void;
+  onSelectTab: (tab: MyPageAccountSettingsTab) => void;
+  onSendInvitations: () => void;
   onUpdateAccountName: (value: string) => void;
+  onUpdateInvitationEmailInput: (value: string) => void;
 }) {
   const isBusy = state.isLoading || state.isSaving;
+  const tabs = [
+    createAccountSettingsTab("accountProfile", t.accountInformationTab),
+    ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
+  ];
+  const activeTab = tabs.some((tab) => tab.id === selectedTab) ? selectedTab : "accountProfile";
 
   return (
     <section className="space-y-5">
       <div className="overflow-x-auto border-b border-stroke-subtle">
         <div aria-label={t.accountSettingsTabsLabel} className="-mb-px flex gap-1" role="tablist">
-          <button
-            aria-selected="true"
-            className="whitespace-nowrap border-b-2 border-brand-primary px-4 py-3 text-sm font-semibold text-text-strong transition"
-            role="tab"
-            type="button"
-          >
-            {t.accountInformationTab}
-          </button>
+          {tabs.map((tab) => (
+            <button
+              aria-selected={activeTab === tab.id}
+              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? "border-brand-primary text-text-strong"
+                  : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
+              }`}
+              key={tab.id}
+              onClick={() => onSelectTab(tab.id)}
+              role="tab"
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
-      <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold">{t.accountInformationTitle}</h2>
+      {activeTab === "accountInvitations" ? (
+        <AccountInvitationPanel
+          state={invitationState}
+          t={t}
+          onAddEmail={onAddInvitationEmail}
+          onRemoveEmail={onRemoveInvitationEmail}
+          onSend={onSendInvitations}
+          onUpdateEmailInput={onUpdateInvitationEmailInput}
+        />
+      ) : (
+        <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h2 className="text-xl font-semibold">{t.accountInformationTitle}</h2>
+            <button
+              className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isBusy || !canEdit || !state.account}
+              onClick={onSave}
+              type="button"
+            >
+              {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
+            </button>
+          </div>
+          {state.isLoading ? (
+            <p className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
+              {t.accountSettingsLoading}
+            </p>
+          ) : null}
+          {state.account ? (
+            <div className="mt-5 grid gap-5">
+              <label className="grid gap-2 text-sm font-semibold">
+                {t.accountNameLabel}
+                <input
+                  className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+                  disabled={isBusy || !canEdit}
+                  onChange={(event) => onUpdateAccountName(event.currentTarget.value)}
+                  value={state.accountName}
+                />
+              </label>
+              {!canEdit ? (
+                <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
+                  {t.accountSettingsReadOnly}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          {state.error ? (
+            <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+              <p>{state.error}</p>
+              {!state.account ? (
+                <button
+                  className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
+                  onClick={onReload}
+                  type="button"
+                >
+                  {t.accountSettingsRetry}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {state.success ? (
+            <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+              {state.success}
+            </p>
+          ) : null}
+        </section>
+      )}
+    </section>
+  );
+}
+
+function AccountInvitationPanel({
+  state,
+  t,
+  onAddEmail,
+  onRemoveEmail,
+  onSend,
+  onUpdateEmailInput,
+}: {
+  state: MyPageAccountInvitationState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onAddEmail: () => void;
+  onRemoveEmail: (email: string) => void;
+  onSend: () => void;
+  onUpdateEmailInput: (value: string) => void;
+}) {
+  return (
+    <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">{t.accountInvitationsTitle}</h2>
+          <p className="mt-2 text-sm leading-6 text-text-muted">{t.accountInvitationsDescription}</p>
+        </div>
+        <button
+          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={state.isSending || state.emails.length === 0}
+          onClick={onSend}
+          type="button"
+        >
+          {state.isSending ? t.accountInvitationSending : t.accountInvitationSend}
+        </button>
+      </div>
+      <div className="mt-5 grid gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="grid flex-1 gap-2 text-sm font-semibold">
+            {t.accountInvitationEmailLabel}
+            <input
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              disabled={state.isSending || state.emails.length >= maxAccountInvitationEmails}
+              onChange={(event) => onUpdateEmailInput(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onAddEmail();
+                }
+              }}
+              placeholder={t.accountInvitationEmailPlaceholder}
+              value={state.emailInput}
+            />
+          </label>
           <button
-            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isBusy || !canEdit || !state.account}
-            onClick={onSave}
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={state.isSending || state.emails.length >= maxAccountInvitationEmails}
+            onClick={onAddEmail}
             type="button"
           >
-            {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
+            {t.accountInvitationAddEmail}
           </button>
         </div>
-        {state.isLoading ? (
-          <p className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
-            {t.accountSettingsLoading}
+        <p className="text-xs font-semibold text-text-muted">
+          {t.accountInvitationEmailCount(state.emails.length, maxAccountInvitationEmails)}
+        </p>
+        {state.emails.length > 0 ? (
+          <ul className="grid gap-2" aria-label={t.accountInvitationEmailListLabel}>
+            {state.emails.map((email) => (
+              <li key={email} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm">
+                <span>{email}</span>
+                <button
+                  className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={state.isSending}
+                  onClick={() => onRemoveEmail(email)}
+                  type="button"
+                >
+                  {t.accountInvitationRemoveEmail}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
+            {t.accountInvitationEmailListEmpty}
+          </p>
+        )}
+        {state.error ? (
+          <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+            {state.error}
           </p>
         ) : null}
-        {state.account ? (
-          <div className="mt-5 grid gap-5">
-            <label className="grid gap-2 text-sm font-semibold">
-              {t.accountNameLabel}
-              <input
-                className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
-                disabled={isBusy || !canEdit}
-                onChange={(event) => onUpdateAccountName(event.currentTarget.value)}
-                value={state.accountName}
-              />
-            </label>
-            {!canEdit ? (
-              <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
-                {t.accountSettingsReadOnly}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-        {state.error ? (
-          <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
-            <p>{state.error}</p>
-            {!state.account ? (
-              <button
-                className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
-                onClick={onReload}
-                type="button"
-              >
-                {t.accountSettingsRetry}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
         {state.success ? (
-          <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+          <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
             {state.success}
           </p>
         ) : null}
-      </section>
+      </div>
     </section>
   );
 }

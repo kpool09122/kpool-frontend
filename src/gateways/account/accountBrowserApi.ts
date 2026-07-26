@@ -1,4 +1,4 @@
-import { parseAccountSummary, type AccountSummary, type UpdateAccountRequest } from "./accountApi";
+import { parseAccountSummary, parseInvitationSummaries, type AccountSummary, type InvitationSummary, type InviteAccountMembersRequest, type UpdateAccountRequest } from "./accountApi";
 
 type AccountRequestOptions = {
   accountIdentifier: string;
@@ -8,6 +8,12 @@ type AccountRequestOptions = {
 
 type UpdateAccountOptions = AccountRequestOptions & {
   requestBody: UpdateAccountRequest;
+};
+
+type InviteAccountMembersOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestBody: InviteAccountMembersRequest;
 };
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
@@ -68,4 +74,29 @@ export const updateAccount = async ({
   }
 
   return parseAccountSummary(body);
+};
+
+
+export const inviteAccountMembers = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: InviteAccountMembersOptions): Promise<InvitationSummary[]> => {
+  const response = await fetchAdapter("/api/account/invitations", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseInvitationSummaries(body);
 };
