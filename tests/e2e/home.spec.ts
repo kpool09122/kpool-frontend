@@ -123,7 +123,7 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
   page,
 }) => {
   await useJapaneseLocale(page);
-  await page.route("**/api/identity/auth/social/google/redirect", async (route) => {
+  await page.route("**/api/identity/auth/social/google/redirect?*", async (route) => {
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ redirectUrl: "/mypage?sso=google" }),
@@ -146,12 +146,13 @@ test("login page submits email credentials through the Identity API proxy", asyn
     expect(requestBody).toEqual({
       email: "member@example.com",
       password: "secret-password",
+      return_to: "/mypage",
     });
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "member",
+        identityName: "member",
         email: "member@example.com",
         language: "ja",
       }),
@@ -211,12 +212,12 @@ test("login page links to signup and completes the signup flow through API proxi
     const requestBody = route.request().postDataJSON();
 
     expect(requestBody).toEqual({
-      username: "New Member Account",
+      identityName: "New Member Account",
       email: "new-member@example.com",
       password: "secret-password",
       confirmedPassword: "secret-password",
       base64EncodedImage: null,
-      invitationToken: null,
+      oneTimeToken: null,
       requestLanguage: "ja",
     });
     await route.fulfill({
@@ -224,7 +225,7 @@ test("login page links to signup and completes the signup flow through API proxi
       contentType: "application/json",
       body: JSON.stringify({
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        username: "New Member Account",
+        identityName: "New Member Account",
         email: "new-member@example.com",
         language: "ja",
       }),

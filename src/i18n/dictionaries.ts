@@ -70,6 +70,26 @@ const ja = {
     signupLead: "アカウントをお持ちでない方は",
     signupLink: "アカウント登録へ",
   },
+  invitationAccept: {
+    title: "招待を受諾",
+    description:
+      "招待メールのリンクから、招待されたメールアドレスで既存アカウントへ参加します。",
+    socialSectionLabel: "ソーシャルログインで招待を受諾",
+    socialPending: "招待受諾を開始しています",
+    socialSuffix: "で招待を受諾",
+    emailTitle: "メールアドレスで招待を受諾",
+    emailDescription:
+      "招待されたメールアドレスは変更できません。プロフィール名とパスワードを設定してください。",
+    email: "招待メールアドレス",
+    identityName: "プロフィール名",
+    password: "パスワード",
+    confirmedPassword: "確認用パスワード",
+    complete: "招待を受諾",
+    submitting: "招待を受諾しています",
+    missingParamsMessage:
+      "招待リンクに必要な token または email が見つかりません。招待メールのリンクを確認してください。",
+    loginLink: "ログインへ戻る",
+  },
   signup: {
     title: "アカウント登録",
     description:
@@ -731,6 +751,26 @@ const en: typeof ja = {
     submitting: "Logging in",
     signupLead: "Do not have an account?",
     signupLink: "Create an account",
+  },
+  invitationAccept: {
+    title: "Accept invitation",
+    description:
+      "Join the existing account from your invitation email with the invited email address.",
+    socialSectionLabel: "Accept invitation with social login",
+    socialPending: "Starting invitation acceptance",
+    socialSuffix: " accept invitation",
+    emailTitle: "Accept invitation with email",
+    emailDescription:
+      "The invited email address cannot be changed. Set your profile name and password.",
+    email: "Invited email address",
+    identityName: "Profile name",
+    password: "Password",
+    confirmedPassword: "Confirm password",
+    complete: "Accept invitation",
+    submitting: "Accepting invitation",
+    missingParamsMessage:
+      "The invitation link is missing token or email. Check the link in your invitation email.",
+    loginLink: "Back to login",
   },
   signup: {
     title: "Create account",
@@ -1394,6 +1434,26 @@ const ko: typeof ja = {
     submitting: "로그인 중",
     signupLead: "아직 계정이 없나요?",
     signupLink: "계정 만들기",
+  },
+  invitationAccept: {
+    title: "초대 수락",
+    description:
+      "초대 메일 링크에서 초대받은 이메일 주소로 기존 계정에 참여합니다.",
+    socialSectionLabel: "소셜 로그인으로 초대 수락",
+    socialPending: "초대 수락을 시작하는 중",
+    socialSuffix: "로 초대 수락",
+    emailTitle: "이메일로 초대 수락",
+    emailDescription:
+      "초대받은 이메일 주소는 변경할 수 없습니다. 프로필 이름과 비밀번호를 설정하세요.",
+    email: "초대 이메일 주소",
+    identityName: "프로필 이름",
+    password: "비밀번호",
+    confirmedPassword: "비밀번호 확인",
+    complete: "초대 수락",
+    submitting: "초대를 수락하는 중",
+    missingParamsMessage:
+      "초대 링크에 필요한 token 또는 email이 없습니다. 초대 메일의 링크를 확인하세요.",
+    loginLink: "로그인으로 돌아가기",
   },
   signup: {
     title: "계정 만들기",

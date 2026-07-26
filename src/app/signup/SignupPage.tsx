@@ -32,7 +32,7 @@ const getInitialValues = (language: Locale): SignupAccountFormValues => ({
   password: "",
   confirmedPassword: "",
   base64EncodedImage: "",
-  invitationToken: "",
+  oneTimeToken: "",
 });
 
 const stepStateClassName: Record<SignupStepState, string> = {

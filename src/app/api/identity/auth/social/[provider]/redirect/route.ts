@@ -30,11 +30,17 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
 
   try {
     const { provider } = await context.params;
-    const returnTo = new URL(request.url).searchParams.get("return_to");
+    const requestParams = new URL(request.url).searchParams;
+    const returnTo = requestParams.get("return_to");
+    const oneTimeToken = requestParams.get("oneTimeToken");
     const searchParams = new URLSearchParams();
 
     if (returnTo) {
       searchParams.set("return_to", returnTo);
+    }
+
+    if (oneTimeToken) {
+      searchParams.set("oneTimeToken", oneTimeToken);
     }
 
     const query = searchParams.toString();

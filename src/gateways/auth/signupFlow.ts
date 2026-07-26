@@ -32,7 +32,7 @@ export type SignupAccountFormValues = {
   password: string;
   confirmedPassword: string;
   base64EncodedImage: string;
-  invitationToken: string;
+  oneTimeToken: string;
 };
 
 export type SignupAdapter = {
@@ -126,8 +126,32 @@ export const buildCreateIdentityRequest = (
   password: values.password,
   confirmedPassword: values.confirmedPassword,
   base64EncodedImage: values.base64EncodedImage || null,
-  invitationToken: values.invitationToken || null,
+  oneTimeToken: values.oneTimeToken || null,
   requestLanguage: values.language,
+});
+
+export const buildInvitationCreateIdentityRequest = ({
+  email,
+  identityName,
+  password,
+  confirmedPassword,
+  oneTimeToken,
+  language,
+}: {
+  email: string;
+  identityName: string;
+  password: string;
+  confirmedPassword: string;
+  oneTimeToken: string;
+  language: string;
+}): CreateIdentityRequest & { requestLanguage: string } => ({
+  identityName,
+  email,
+  password,
+  confirmedPassword,
+  base64EncodedImage: null,
+  oneTimeToken,
+  requestLanguage: language,
 });
 
 export const getSignupErrorMessage = async (response: Response): Promise<string> => {
