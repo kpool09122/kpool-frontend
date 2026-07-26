@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildCreateAccountRequest,
   buildCreateIdentityRequest,
+  buildInvitationCreateIdentityRequest,
   getSignupStepItems,
   type SignupAccountFormValues,
 } from "./signupFlow";
@@ -16,7 +17,7 @@ const values: SignupAccountFormValues = {
   password: "secret-password",
   confirmedPassword: "secret-password",
   base64EncodedImage: "",
-  invitationToken: "",
+  oneTimeToken: "",
 };
 
 describe("signup flow helpers", () => {
@@ -33,7 +34,28 @@ describe("signup flow helpers", () => {
       password: "secret-password",
       confirmedPassword: "secret-password",
       base64EncodedImage: null,
-      invitationToken: null,
+      oneTimeToken: null,
+      requestLanguage: "ja",
+    });
+  });
+
+
+
+  it("builds invitation identity requests with oneTimeToken and no account data", () => {
+    expect(buildInvitationCreateIdentityRequest({
+      email: "invited@example.com",
+      identityName: "Invited Member",
+      password: "secret-password",
+      confirmedPassword: "secret-password",
+      oneTimeToken: "invite-token-123",
+      language: "ja",
+    })).toEqual({
+      identityName: "Invited Member",
+      email: "invited@example.com",
+      password: "secret-password",
+      confirmedPassword: "secret-password",
+      base64EncodedImage: null,
+      oneTimeToken: "invite-token-123",
       requestLanguage: "ja",
     });
   });

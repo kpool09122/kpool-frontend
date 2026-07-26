@@ -9,7 +9,7 @@ const registerRequestBody = {
   password: "secret-password",
   confirmedPassword: "secret-password",
   base64EncodedImage: "data:image/jpeg;base64,PROFILE_IMAGE",
-  invitationToken: null,
+  oneTimeToken: null,
   requestLanguage: "ja",
 };
 

@@ -32,13 +32,13 @@ describe("/api/identity/auth/social/[provider]/redirect route", () => {
     await GET(
       createRequest(
         { cookie: "laravel_session=abc" },
-        "?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
+        "?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit&oneTimeToken=invite-token-123",
       ),
       createContext("google oauth"),
     );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/social/google%20oauth/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
+      "https://identity.example.test/api/identity/auth/social/google%20oauth/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit&oneTimeToken=invite-token-123",
       {
         headers: {
           Accept: "application/json",

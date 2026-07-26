@@ -95,7 +95,7 @@ describe("SignupPage", () => {
           password: "secret-password",
           confirmedPassword: "secret-password",
           base64EncodedImage: null,
-          invitationToken: null,
+          oneTimeToken: null,
           requestLanguage: "ja",
         },
         { language: "ja" },

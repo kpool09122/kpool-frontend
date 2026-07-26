@@ -109,4 +109,26 @@ describe("login auth flow helpers", () => {
       },
     );
   });
+
+  it("sends oneTimeToken with invitation social redirect requests", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        redirectUrl: "https://accounts.example.test/oauth",
+      })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      requestSocialRedirect("google", "/mypage", "invite-token-123"),
+    ).resolves.toEqual({
+      ok: true,
+      redirectUrl: "https://accounts.example.test/oauth",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/identity/auth/social/google/redirect?return_to=%2Fmypage&oneTimeToken=invite-token-123",
+      {
+        credentials: "include",
+      },
+    );
+  });
 });

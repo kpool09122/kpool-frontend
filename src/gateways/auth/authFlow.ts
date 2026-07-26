@@ -35,6 +35,7 @@ export type LoginAdapter = (credentials: IdentityLoginRequest) => Promise<LoginR
 export type SocialRedirectAdapter = (
   provider: IdentityProvider["id"],
   returnTo?: string,
+  oneTimeToken?: string,
 ) => Promise<SocialRedirectResult>;
 
 export const identityProviders: IdentityProvider[] = [
@@ -127,11 +128,15 @@ export const loginWithEmail: LoginAdapter = async (credentials) => {
   };
 };
 
-export const requestSocialRedirect: SocialRedirectAdapter = async (provider, returnTo) => {
+export const requestSocialRedirect: SocialRedirectAdapter = async (provider, returnTo, oneTimeToken) => {
   const params = new URLSearchParams();
   const normalizedReturnTo = normalizeReturnTo(returnTo);
 
   params.set("return_to", normalizedReturnTo);
+
+  if (oneTimeToken) {
+    params.set("oneTimeToken", oneTimeToken);
+  }
 
   const response = await fetch(
     `/api/identity/auth/social/${encodeURIComponent(provider)}/redirect?${params.toString()}`,
