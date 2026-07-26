@@ -232,6 +232,15 @@ const CreatePrincipalGroupRequestBody = z
   .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
   .passthrough();
 const CreatedPrincipalGroupSummary = PrincipalGroupSummary;
+const UpdatePrincipalGroupMembersItem = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid,
+    principalIdentifiers: z.array(KPool_Common_Uuid),
+  })
+  .passthrough();
+const UpdatePrincipalGroupMembersRequestBody = z
+  .object({ principalGroups: z.array(UpdatePrincipalGroupMembersItem) })
+  .passthrough();
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
@@ -272,6 +281,8 @@ export const schemas = {
   ListPrincipalGroupsResponseBody,
   CreatePrincipalGroupRequestBody,
   CreatedPrincipalGroupSummary,
+  UpdatePrincipalGroupMembersItem,
+  UpdatePrincipalGroupMembersRequestBody,
   MutatePrincipalGroupMemberRequestBody,
 };
 
@@ -1159,6 +1170,48 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/principal-groups/members",
+    alias: "PrincipalGroupOperations_updatePrincipalGroupMembers",
+    description: `Update members for multiple principal groups.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdatePrincipalGroupMembersRequestBody,
+      },
+    ],
+    response: ListPrincipalGroupsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
