@@ -11,7 +11,7 @@ export type UpdateAccountRequest = z.infer<typeof accountApiTypes.schemas.Update
 const InviteAccountMembersRequestSchema = z
   .object({
     accountIdentifier: z.string().uuid(),
-    inviterIdentityIdentifier: z.string().uuid(),
+    inviterPrincipalIdentifier: z.string().uuid(),
     emails: z.array(z.string().email()).min(1).max(50),
   })
   .passthrough();

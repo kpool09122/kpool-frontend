@@ -771,7 +771,7 @@ export function MyPageClient({
   };
 
   const sendAccountInvitations = () => {
-    if (!accountIdentifier || !currentIdentity?.identityIdentifier) {
+    if (!accountIdentifier || principalState.status !== "available") {
       setAccountInvitationState((state) => ({ ...state, error: t.accountSettingsUnavailable, success: null }));
       return;
     }
@@ -797,7 +797,7 @@ export function MyPageClient({
       fallbackErrorMessage: t.accountInvitationSendFailed,
       requestBody: {
         accountIdentifier,
-        inviterIdentityIdentifier: currentIdentity.identityIdentifier,
+        inviterPrincipalIdentifier: principalState.principal.principalIdentifier,
         emails: accountInvitationState.emails,
       },
     }).then(() => {

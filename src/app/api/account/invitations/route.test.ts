@@ -5,7 +5,7 @@ import { POST } from "./route";
 
 const invitationBody = {
   accountIdentifier: "22222222-2222-2222-2222-222222222222",
-  inviterIdentityIdentifier: "11111111-1111-1111-1111-111111111111",
+  inviterPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
   emails: ["new-member@example.com"],
 };
 
@@ -13,7 +13,7 @@ const invitationResponse = [
   {
     invitationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     accountIdentifier: "22222222-2222-2222-2222-222222222222",
-    invitedByPrincipalIdentifier: "11111111-1111-1111-1111-111111111111",
+    invitedByPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
     email: "new-member@example.com",
     token: "token",
     status: "pending",
@@ -78,7 +78,7 @@ describe("/api/account/invitations route", () => {
 
     const response = await POST(createRequest({
       ...invitationBody,
-      inviterIdentityIdentifier: "not-a-uuid",
+      inviterPrincipalIdentifier: "not-a-uuid",
     }));
     const body = await response.json();
 
