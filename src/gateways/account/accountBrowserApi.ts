@@ -1,4 +1,16 @@
-import { parseAccountSummary, parseInvitationSummaries, type AccountSummary, type InvitationSummary, type InviteAccountMembersRequest, type UpdateAccountRequest } from "./accountApi";
+import {
+  parseAccountMembersResponse,
+  parseAccountSummary,
+  parseInvitationSummaries,
+  parsePrincipalGroupsResponse,
+  type AccountSummary,
+  type InvitationSummary,
+  type InviteAccountMembersRequest,
+  type ListMembersResponse,
+  type ListPrincipalGroupsResponse,
+  type UpdateAccountRequest,
+  type UpdatePrincipalGroupMembersRequest,
+} from "./accountApi";
 
 type AccountRequestOptions = {
   accountIdentifier: string;
@@ -14,6 +26,12 @@ type InviteAccountMembersOptions = {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
   requestBody: InviteAccountMembersRequest;
+};
+
+type UpdatePrincipalGroupMembersOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestBody: UpdatePrincipalGroupMembersRequest;
 };
 
 const readResponseBody = async (response: Response): Promise<unknown> => {
@@ -76,7 +94,6 @@ export const updateAccount = async ({
   return parseAccountSummary(body);
 };
 
-
 export const inviteAccountMembers = async ({
   fallbackErrorMessage,
   fetchAdapter = fetch,
@@ -99,4 +116,70 @@ export const inviteAccountMembers = async ({
   }
 
   return parseInvitationSummaries(body);
+};
+
+export const fetchAccountMembers = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+}): Promise<ListMembersResponse> => {
+  const response = await fetchAdapter("/api/account/members", {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parseAccountMembersResponse(body);
+};
+
+export const fetchPrincipalGroups = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+}): Promise<ListPrincipalGroupsResponse> => {
+  const response = await fetchAdapter("/api/account/principal-groups", {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parsePrincipalGroupsResponse(body);
+};
+
+export const updatePrincipalGroupMembers = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: UpdatePrincipalGroupMembersOptions): Promise<ListPrincipalGroupsResponse> => {
+  const response = await fetchAdapter("/api/account/principal-groups/members", {
+    method: "PATCH",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  }
+
+  return parsePrincipalGroupsResponse(body);
 };

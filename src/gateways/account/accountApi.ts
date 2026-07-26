@@ -18,6 +18,11 @@ const InviteAccountMembersRequestSchema = z
 
 export type InviteAccountMembersRequest = z.infer<typeof InviteAccountMembersRequestSchema>;
 export type InvitationSummary = z.infer<typeof accountApiTypes.schemas.InvitationSummary>;
+export type AccountMemberSummary = z.infer<typeof accountApiTypes.schemas.AccountMemberSummary>;
+export type ListMembersResponse = z.infer<typeof accountApiTypes.schemas.ListMembersResponseBody>;
+export type PrincipalGroupSummary = z.infer<typeof accountApiTypes.schemas.PrincipalGroupSummary>;
+export type ListPrincipalGroupsResponse = z.infer<typeof accountApiTypes.schemas.ListPrincipalGroupsResponseBody>;
+export type UpdatePrincipalGroupMembersRequest = z.infer<typeof accountApiTypes.schemas.UpdatePrincipalGroupMembersRequestBody>;
 
 type AccountApiEnv = Record<string, string | undefined>;
 
@@ -60,3 +65,12 @@ export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMe
 
 export const parseInvitationSummaries = (body: unknown): InvitationSummary[] =>
   parseWithSchemaLog("account invitation response", z.array(accountApiTypes.schemas.InvitationSummary), body);
+
+export const parseAccountMembersResponse = (body: unknown): ListMembersResponse =>
+  parseWithSchemaLog("account members response", accountApiTypes.schemas.ListMembersResponseBody, body);
+
+export const parsePrincipalGroupsResponse = (body: unknown): ListPrincipalGroupsResponse =>
+  parseWithSchemaLog("account principal groups response", accountApiTypes.schemas.ListPrincipalGroupsResponseBody, body);
+
+export const parseUpdatePrincipalGroupMembersRequest = (body: unknown): UpdatePrincipalGroupMembersRequest =>
+  parseWithSchemaLog("account principal group members update request", accountApiTypes.schemas.UpdatePrincipalGroupMembersRequestBody, body);

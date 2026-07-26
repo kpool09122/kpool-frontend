@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canInviteAccountMembers,
+  canManagePrincipalGroups,
   getAccountTypeFromIdentity,
   isCorporationAccount,
 } from "./accountPolicy";
@@ -42,6 +43,42 @@ describe("accountPolicy", () => {
           statements: [
             { effect: "allow", actions: ["account:member:invite"], resourceTypes: ["ACCOUNT"] },
             { effect: "deny", actions: ["account:member:invite"], resourceTypes: ["ACCOUNT"] },
+          ],
+        },
+      ],
+    })).toBe(false);
+  });
+
+  it("allows principal group management only when allow exists without deny", () => {
+    const allowPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            { effect: "allow", actions: ["account:principal-group:manage"], resourceTypes: ["ACCOUNT"] },
+          ],
+        },
+      ],
+    };
+
+    expect(canManagePrincipalGroups(allowPolicy)).toBe(true);
+    expect(canManagePrincipalGroups({
+      ...allowPolicy,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            { effect: "allow", actions: ["account:principal-group:manage"], resourceTypes: ["ACCOUNT"] },
+            { effect: "deny", actions: ["account:principal-group:manage"], resourceTypes: ["ACCOUNT"] },
+          ],
+        },
+      ],
+    })).toBe(false);
+    expect(canManagePrincipalGroups({
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            { effect: "allow", actions: ["account:update"], resourceTypes: ["ACCOUNT"] },
           ],
         },
       ],

@@ -97,6 +97,25 @@ const identityWithAccountInvitePolicy = {
   ],
 };
 
+const identityWithPrincipalGroupManagePolicy = {
+  ...identity,
+  accountEffectivePolicies: [
+    ...identity.accountEffectivePolicies,
+    {
+      policyIdentifier: "99999999-9999-9999-9999-999999999996",
+      name: "PRINCIPAL_GROUP_MANAGER",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["account:principal-group:manage"],
+          resourceTypes: ["ACCOUNT"],
+        },
+      ],
+    },
+  ],
+};
+
 const individualIdentityWithAccountPolicy = {
   ...identity,
   accountType: "individual",
@@ -650,6 +669,97 @@ describe("MyPageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
+  });
+
+  it("shows the principal group management tab and saves moved memberships", async () => {
+    const member = {
+      principalIdentifier: "33333333-3333-3333-3333-333333333333",
+      identityIdentifier: "11111111-1111-1111-1111-111111111111",
+      identityName: "member",
+      email: "member@example.com",
+      principalGroups: [
+        {
+          principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          name: "Members",
+          isDefault: true,
+        },
+      ],
+    };
+    const groups = [
+      {
+        principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        name: "Members",
+        roleIdentifiers: [],
+        isDefault: true,
+        members: [member],
+      },
+      {
+        principalGroupIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        name: "Managers",
+        roleIdentifiers: [],
+        isDefault: false,
+        members: [],
+      },
+    ];
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/members") {
+        return Promise.resolve(new Response(JSON.stringify({ members: [member] }), { status: 200 }));
+      }
+      if (url === "/api/account/principal-groups") {
+        return Promise.resolve(new Response(JSON.stringify({ principalGroups: groups }), { status: 200 }));
+      }
+      if (url === "/api/account/principal-groups/members") {
+        return Promise.resolve(new Response(JSON.stringify({ principalGroups: [
+          { ...groups[0], members: [] },
+          { ...groups[1], members: [member] },
+        ] }), { status: 200 }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identityWithPrincipalGroupManagePolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    fireEvent.click(await screen.findByRole("tab", { name: "ユーザー権限管理" }));
+    expect(await screen.findByRole("heading", { name: "ユーザー権限管理" })).toBeInTheDocument();
+    fireEvent.change(await screen.findByLabelText("移動先グループ"), {
+      target: { value: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+    });
+    expect(screen.getByText("未保存の所属変更があります。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "変更を保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/account/principal-groups/members",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          principalGroups: [
+            { principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", principalIdentifiers: [] },
+            { principalGroupIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", principalIdentifiers: [member.principalIdentifier] },
+          ],
+        }),
+      }),
+    ));
+    expect(await screen.findByText("ユーザー権限を保存しました。")).toBeInTheDocument();
   });
 
   it("loads account information and saves the account name", async () => {
