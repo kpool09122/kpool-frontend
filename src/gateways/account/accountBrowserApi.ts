@@ -34,6 +34,13 @@ type UpdatePrincipalGroupMembersOptions = {
   requestBody: UpdatePrincipalGroupMembersRequest;
 };
 
+export type AccountBrowserApiError = Error & { accountRouteStatus: number };
+
+export const isAccountBrowserApiError = (error: unknown): error is AccountBrowserApiError =>
+  error instanceof Error &&
+  "accountRouteStatus" in error &&
+  typeof (error as { accountRouteStatus: unknown }).accountRouteStatus === "number";
+
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
@@ -50,6 +57,15 @@ const getRouteErrorMessage = (body: unknown, fallbackErrorMessage: string): stri
     ? (body as { message: string }).message
     : fallbackErrorMessage;
 
+const createRouteError = (
+  response: Response,
+  body: unknown,
+  fallbackErrorMessage: string,
+): AccountBrowserApiError =>
+  Object.assign(new Error(getRouteErrorMessage(body, fallbackErrorMessage)), {
+    accountRouteStatus: response.status,
+  });
+
 export const fetchAccount = async ({
   accountIdentifier,
   fallbackErrorMessage,
@@ -63,7 +79,7 @@ export const fetchAccount = async ({
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw createRouteError(response, body, fallbackErrorMessage);
   }
 
   return parseAccountSummary(body);
@@ -88,7 +104,7 @@ export const updateAccount = async ({
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw createRouteError(response, body, fallbackErrorMessage);
   }
 
   return parseAccountSummary(body);
@@ -112,7 +128,7 @@ export const inviteAccountMembers = async ({
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw createRouteError(response, body, fallbackErrorMessage);
   }
 
   return parseInvitationSummaries(body);
@@ -133,7 +149,7 @@ export const fetchAccountMembers = async ({
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw createRouteError(response, body, fallbackErrorMessage);
   }
 
   return parseAccountMembersResponse(body);
@@ -154,7 +170,7 @@ export const fetchPrincipalGroups = async ({
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw createRouteError(response, body, fallbackErrorMessage);
   }
 
   return parsePrincipalGroupsResponse(body);
@@ -178,7 +194,7 @@ export const updatePrincipalGroupMembers = async ({
   const body = await readResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+    throw createRouteError(response, body, fallbackErrorMessage);
   }
 
   return parsePrincipalGroupsResponse(body);

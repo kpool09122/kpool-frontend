@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchAccountMembers,
   fetchPrincipalGroups,
+  isAccountBrowserApiError,
   updatePrincipalGroupMembers,
 } from "./accountBrowserApi";
 
@@ -51,6 +52,22 @@ describe("account browser API", () => {
     );
 
     await expect(fetchPrincipalGroups({ fallbackErrorMessage: "failed", fetchAdapter })).rejects.toThrow("forbidden");
+    await expect(fetchPrincipalGroups({ fallbackErrorMessage: "failed", fetchAdapter })).rejects.toMatchObject({
+      accountRouteStatus: 403,
+    });
+  });
+
+  it("exposes the HTTP status for account route errors", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "permission changed" }), { status: 403 }),
+    );
+
+    await expect(fetchAccountMembers({ fallbackErrorMessage: "failed", fetchAdapter })).rejects.toSatisfy(
+      (error: unknown) =>
+        isAccountBrowserApiError(error) &&
+        error.message === "permission changed" &&
+        error.accountRouteStatus === 403,
+    );
   });
 
   it("updates principal group members with the final membership payload", async () => {

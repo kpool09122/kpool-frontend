@@ -671,7 +671,7 @@ describe("MyPageClient", () => {
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
   });
 
-  it("shows the principal group management tab and saves moved memberships", async () => {
+  it("shows the principal group management tab with drag-only membership editing", async () => {
     const member = {
       principalIdentifier: "33333333-3333-3333-3333-333333333333",
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
@@ -680,20 +680,12 @@ describe("MyPageClient", () => {
       principalGroups: [
         {
           principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-          name: "Members",
+          name: "Default",
           isDefault: true,
         },
       ],
     };
     const groups = [
-      {
-        principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        accountIdentifier: "22222222-2222-2222-2222-222222222222",
-        name: "Members",
-        roleIdentifiers: [],
-        isDefault: true,
-        members: [member],
-      },
       {
         principalGroupIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
@@ -701,6 +693,14 @@ describe("MyPageClient", () => {
         roleIdentifiers: [],
         isDefault: false,
         members: [],
+      },
+      {
+        principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        name: "Default",
+        roleIdentifiers: [],
+        isDefault: true,
+        members: [member],
       },
     ];
     const fetchMock = vi.fn().mockImplementation((url: string) => {
@@ -710,13 +710,6 @@ describe("MyPageClient", () => {
       if (url === "/api/account/principal-groups") {
         return Promise.resolve(new Response(JSON.stringify({ principalGroups: groups }), { status: 200 }));
       }
-      if (url === "/api/account/principal-groups/members") {
-        return Promise.resolve(new Response(JSON.stringify({ principalGroups: [
-          { ...groups[0], members: [] },
-          { ...groups[1], members: [member] },
-        ] }), { status: 200 }));
-      }
-
       return Promise.resolve(new Response(JSON.stringify({
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
         email: "member@example.com",
@@ -741,25 +734,12 @@ describe("MyPageClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "ユーザー権限管理" }));
     expect(await screen.findByRole("heading", { name: "ユーザー権限管理" })).toBeInTheDocument();
-    fireEvent.change(await screen.findByLabelText("移動先グループ"), {
-      target: { value: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
-    });
-    expect(screen.getByText("未保存の所属変更があります。")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "変更を保存" }));
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
-      "/api/account/principal-groups/members",
-      expect.objectContaining({
-        method: "PATCH",
-        body: JSON.stringify({
-          principalGroups: [
-            { principalGroupIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", principalIdentifiers: [] },
-            { principalGroupIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", principalIdentifiers: [member.principalIdentifier] },
-          ],
-        }),
-      }),
-    ));
-    expect(await screen.findByText("ユーザー権限を保存しました。")).toBeInTheDocument();
+    expect(screen.getByText("ユーザーの所属権限グループを変更できます。")).toBeInTheDocument();
+    expect(screen.queryByText("デフォルトグループ")).not.toBeInTheDocument();
+    expect(screen.queryByText("カスタムグループ")).not.toBeInTheDocument();
+    expect(screen.getByText("Default").compareDocumentPosition(screen.getByText("Managers"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(screen.getByRole("button", { name: /member/ })).toBeInTheDocument();
+    expect(screen.queryByLabelText("移動先グループ")).not.toBeInTheDocument();
   });
 
   it("loads account information and saves the account name", async () => {

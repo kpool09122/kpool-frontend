@@ -54,7 +54,20 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(parsePrincipalGroupsResponse(body), { status: apiResponse.status });
+    const principalGroupsResponse = await fetch(`${baseUrl}/principal-groups`, {
+      headers: getForwardHeaders(request, false),
+      cache: "no-store",
+    });
+    const principalGroupsBody = await readResponseBody(principalGroupsResponse);
+
+    if (!principalGroupsResponse.ok) {
+      return NextResponse.json(
+        { message: getAccountRouteErrorMessage(principalGroupsResponse.status, principalGroupsBody) },
+        { status: principalGroupsResponse.status },
+      );
+    }
+
+    return NextResponse.json(parsePrincipalGroupsResponse(principalGroupsBody), { status: principalGroupsResponse.status });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

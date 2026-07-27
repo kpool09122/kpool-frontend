@@ -1028,6 +1028,9 @@ export function MyPageClient({
               state={accountSettingsState}
               t={t}
               onAddInvitationEmail={addInvitationEmail}
+              onAuthorizationRejected={() => {
+                void refreshIdentity();
+              }}
               onReload={loadAccountSettings}
               onRemoveInvitationEmail={removeInvitationEmail}
               onSave={saveAccountSettings}
@@ -1297,6 +1300,7 @@ function AccountSettingsSection({
   state,
   t,
   onAddInvitationEmail,
+  onAuthorizationRejected,
   onReload,
   onRemoveInvitationEmail,
   onSave,
@@ -1313,6 +1317,7 @@ function AccountSettingsSection({
   state: MyPageAccountSettingsState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onAddInvitationEmail: () => void;
+  onAuthorizationRejected: () => void;
   onReload: () => void;
   onRemoveInvitationEmail: (email: string) => void;
   onSave: () => void;
@@ -1363,6 +1368,7 @@ function AccountSettingsSection({
       ) : activeTab === "principalGroupManagement" ? (
         <PrincipalGroupManagementPanel
           canManage={canManagePrincipalGroups}
+          onAuthorizationRejected={onAuthorizationRejected}
           t={t}
         />
       ) : (

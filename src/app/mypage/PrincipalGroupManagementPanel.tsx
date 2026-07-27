@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   fetchAccountMembers,
   fetchPrincipalGroups,
+  isAccountBrowserApiError,
   updatePrincipalGroupMembers,
 } from "@/gateways/account/accountBrowserApi";
 import type { AccountMemberSummary, PrincipalGroupSummary } from "@/gateways/account/accountApi";
@@ -45,6 +46,9 @@ const initialState: PrincipalGroupManagementState = {
 const memberDragPrefix = "member:";
 
 type MyPageDictionary = ReturnType<typeof useI18n>["dictionary"]["mypage"];
+
+const sortPrincipalGroups = (groups: PrincipalGroupSummary[]): PrincipalGroupSummary[] =>
+  [...groups].sort((left, right) => Number(right.isDefault) - Number(left.isDefault));
 
 const getMemberDisplayName = (member: AccountMemberSummary): string =>
   member.identityName.trim() || member.email || member.principalIdentifier;
@@ -104,9 +108,11 @@ const areMembershipsEqual = (
 
 export function PrincipalGroupManagementPanel({
   canManage,
+  onAuthorizationRejected,
   t,
 }: {
   canManage: boolean;
+  onAuthorizationRejected: () => void;
   t: MyPageDictionary;
 }) {
   const [state, setState] = useState<PrincipalGroupManagementState>(initialState);
@@ -133,14 +139,15 @@ export function PrincipalGroupManagementPanel({
       fetchAccountMembers({ fallbackErrorMessage: t.principalGroupMembersLoadFailed }),
       fetchPrincipalGroups({ fallbackErrorMessage: t.principalGroupListLoadFailed }),
     ]).then(([membersResponse, groupsResponse]) => {
+      const groups = sortPrincipalGroups(groupsResponse.principalGroups);
       const membershipByGroup = getGroupMembershipFromResponse(
-        groupsResponse.principalGroups,
+        groups,
         membersResponse.members,
       );
       setSavedMembershipByGroup(membershipByGroup);
       setState({
         error: null,
-        groups: groupsResponse.principalGroups,
+        groups,
         isLoading: false,
         isSaving: false,
         members: membersResponse.members,
@@ -225,18 +232,25 @@ export function PrincipalGroupManagementPanel({
     void updatePrincipalGroupMembers({
       fallbackErrorMessage: t.principalGroupSaveFailed,
       requestBody: createUpdatePayload(state.membershipByGroup),
-    }).then((response) => {
-      const membershipByGroup = getGroupMembershipFromResponse(response.principalGroups, state.members);
+    }).then(async (groupsResponse) => {
+      const membersResponse = await fetchAccountMembers({ fallbackErrorMessage: t.principalGroupMembersLoadFailed });
+      const groups = sortPrincipalGroups(groupsResponse.principalGroups);
+      const membershipByGroup = getGroupMembershipFromResponse(groups, membersResponse.members);
       setSavedMembershipByGroup(membershipByGroup);
       setState((current) => ({
         ...current,
         error: null,
-        groups: response.principalGroups,
+        groups,
         isSaving: false,
+        members: membersResponse.members,
         membershipByGroup,
         success: t.principalGroupSaved,
       }));
     }).catch((error: unknown) => {
+      if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) {
+        onAuthorizationRejected();
+      }
+
       setState((current) => ({
         ...current,
         error: error instanceof Error ? error.message : t.principalGroupSaveFailed,
@@ -281,44 +295,44 @@ export function PrincipalGroupManagementPanel({
           {t.principalGroupReadOnly}
         </p>
       ) : null}
-      {hasUnsavedChanges ? (
-        <p className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800" role="status">
-          {t.principalGroupUnsavedChanges}
-        </p>
-      ) : null}
       <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd} sensors={sensors}>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {state.groups.map((group) => (
             <PrincipalGroupColumn
               disabled={isBusy || !canManage}
               group={group}
-              groups={state.groups}
               key={group.principalGroupIdentifier}
               memberByIdentifier={memberByIdentifier}
               membershipByGroup={state.membershipByGroup}
               t={t}
-              onMoveMember={moveMember}
             />
           ))}
         </div>
       </DndContext>
-      {state.error ? (
-        <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
-          <p>{state.error}</p>
-          <button
-            className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
-            onClick={load}
-            type="button"
-          >
-            {t.principalGroupRetry}
-          </button>
-        </div>
-      ) : null}
-      {state.success ? (
-        <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
-          {state.success}
-        </p>
-      ) : null}
+      <div className="mt-5 grid gap-3">
+        {hasUnsavedChanges ? (
+          <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800" role="status">
+            {t.principalGroupUnsavedChanges}
+          </p>
+        ) : null}
+        {state.error ? (
+          <div className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+            <p>{state.error}</p>
+            <button
+              className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
+              onClick={load}
+              type="button"
+            >
+              {t.principalGroupRetry}
+            </button>
+          </div>
+        ) : null}
+        {state.success ? (
+          <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+            {state.success}
+          </p>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -326,19 +340,15 @@ export function PrincipalGroupManagementPanel({
 function PrincipalGroupColumn({
   disabled,
   group,
-  groups,
   memberByIdentifier,
   membershipByGroup,
   t,
-  onMoveMember,
 }: {
   disabled: boolean;
   group: PrincipalGroupSummary;
-  groups: PrincipalGroupSummary[];
   memberByIdentifier: Map<string, AccountMemberSummary>;
   membershipByGroup: Record<string, string[]>;
   t: MyPageDictionary;
-  onMoveMember: (principalIdentifier: string, nextGroupIdentifier: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: group.principalGroupIdentifier, disabled });
   const principalIdentifiers = membershipByGroup[group.principalGroupIdentifier] ?? [];
@@ -353,9 +363,6 @@ function PrincipalGroupColumn({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="font-semibold">{group.name}</h3>
-          <p className="mt-1 text-xs font-semibold text-text-muted">
-            {group.isDefault ? t.principalGroupDefaultBadge : t.principalGroupCustomBadge}
-          </p>
         </div>
         <span className="rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted">
           {t.principalGroupMemberCount(principalIdentifiers.length)}
@@ -372,17 +379,8 @@ function PrincipalGroupColumn({
           return member ? (
             <PrincipalMemberCard
               disabled={disabled}
-              groupIdentifier={group.principalGroupIdentifier}
-              groups={groups.map((candidate) => ({
-                name: candidate.principalGroupIdentifier === group.principalGroupIdentifier
-                  ? `${candidate.name}（${t.principalGroupCurrentGroup}）`
-                  : candidate.name,
-                principalGroupIdentifier: candidate.principalGroupIdentifier,
-              }))}
               key={principalIdentifier}
               member={member}
-              t={t}
-              onMoveMember={onMoveMember}
             />
           ) : null;
         })}
@@ -393,18 +391,10 @@ function PrincipalGroupColumn({
 
 function PrincipalMemberCard({
   disabled,
-  groupIdentifier,
-  groups,
   member,
-  t,
-  onMoveMember,
 }: {
   disabled: boolean;
-  groupIdentifier: string;
-  groups: Array<{ name: string; principalGroupIdentifier: string }>;
   member: AccountMemberSummary;
-  t: MyPageDictionary;
-  onMoveMember: (principalIdentifier: string, nextGroupIdentifier: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `${memberDragPrefix}${member.principalIdentifier}`,
@@ -430,21 +420,6 @@ function PrincipalMemberCard({
         <span className="block font-semibold">{getMemberDisplayName(member)}</span>
         <span className="mt-1 block break-all text-xs text-text-muted">{member.email}</span>
       </button>
-      <label className="mt-3 grid gap-1 text-xs font-semibold text-text-muted">
-        {t.principalGroupMoveToLabel}
-        <select
-          className="rounded-lg border border-stroke-subtle bg-surface-base px-2 py-1.5 text-text-strong"
-          disabled={disabled}
-          onChange={(event) => onMoveMember(member.principalIdentifier, event.currentTarget.value)}
-          value={groupIdentifier}
-        >
-          {groups.map((candidate) => (
-            <option key={candidate.principalGroupIdentifier} value={candidate.principalGroupIdentifier}>
-              {candidate.name}
-            </option>
-          ))}
-        </select>
-      </label>
     </article>
   );
 }
