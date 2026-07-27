@@ -8,7 +8,7 @@ import { type CSSProperties, useCallback, useMemo, useState } from "react";
 
 import { fetchAccount, inviteAccountMembers, updateAccount } from "@/gateways/account/accountBrowserApi";
 import type { AccountSummary } from "@/gateways/account/accountApi";
-import { canInviteAccountMembers, canUpdateAccount, hasAccountPolicy, isCorporationAccount } from "@/gateways/account/accountPolicy";
+import { canInviteAccountMembers, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy, isCorporationAccount } from "@/gateways/account/accountPolicy";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { ImageCropper, readFileAsDataUrl } from "../../components/ImageCropper";
 import { WikiMasterSearchSelect } from "../../components/Wiki/WikiMasterSearchSelect";
@@ -91,9 +91,10 @@ import type {
   MyPagePrincipalAdapter,
 } from "@/gateways/mypage/myPageAdapters";
 import { useMyPageWikiPrincipal } from "./useMyPageWikiPrincipal";
+import { PrincipalGroupManagementPanel } from "./PrincipalGroupManagementPanel";
 
 type MyPageSettingsTab = "profileSettings" | "languageSettings";
-type MyPageAccountSettingsTab = "accountProfile" | "accountInvitations";
+type MyPageAccountSettingsTab = "accountProfile" | "accountInvitations" | "principalGroupManagement";
 type MyPageSection = "wiki" | "accountSettings" | "settings";
 type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
 type CreateDraftWikiMode = "manual" | "auto";
@@ -270,6 +271,7 @@ export function MyPageClient({
   const canShowAccountSettings = Boolean(accountIdentifier) && isCorporationAccount(currentIdentity) && hasAccountPolicy(currentIdentity);
   const canEditAccountSettings = canUpdateAccount(currentIdentity);
   const canInviteAccountSettingsMembers = canInviteAccountMembers(currentIdentity);
+  const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
   const { dictionary, locale } = useI18n();
   const t = dictionary.mypage;
   const [accountSettingsState, setAccountSettingsState] = useState<MyPageAccountSettingsState>(createAccountSettingsState);
@@ -1020,11 +1022,15 @@ export function MyPageClient({
             <AccountSettingsSection
               canEdit={canEditAccountSettings}
               canInvite={canInviteAccountSettingsMembers}
+              canManagePrincipalGroups={canManageAccountPrincipalGroups}
               invitationState={accountInvitationState}
               selectedTab={selectedAccountSettingsTab}
               state={accountSettingsState}
               t={t}
               onAddInvitationEmail={addInvitationEmail}
+              onAuthorizationRejected={() => {
+                void refreshIdentity();
+              }}
               onReload={loadAccountSettings}
               onRemoveInvitationEmail={removeInvitationEmail}
               onSave={saveAccountSettings}
@@ -1288,11 +1294,13 @@ function WikiPrincipalPanel({
 function AccountSettingsSection({
   canEdit,
   canInvite,
+  canManagePrincipalGroups,
   invitationState,
   selectedTab,
   state,
   t,
   onAddInvitationEmail,
+  onAuthorizationRejected,
   onReload,
   onRemoveInvitationEmail,
   onSave,
@@ -1303,11 +1311,13 @@ function AccountSettingsSection({
 }: {
   canEdit: boolean;
   canInvite: boolean;
+  canManagePrincipalGroups: boolean;
   invitationState: MyPageAccountInvitationState;
   selectedTab: MyPageAccountSettingsTab;
   state: MyPageAccountSettingsState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
   onAddInvitationEmail: () => void;
+  onAuthorizationRejected: () => void;
   onReload: () => void;
   onRemoveInvitationEmail: (email: string) => void;
   onSave: () => void;
@@ -1320,6 +1330,7 @@ function AccountSettingsSection({
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
+    ...(canManagePrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
   ];
   const activeTab = tabs.some((tab) => tab.id === selectedTab) ? selectedTab : "accountProfile";
 
@@ -1353,6 +1364,12 @@ function AccountSettingsSection({
           onRemoveEmail={onRemoveInvitationEmail}
           onSend={onSendInvitations}
           onUpdateEmailInput={onUpdateInvitationEmailInput}
+        />
+      ) : activeTab === "principalGroupManagement" ? (
+        <PrincipalGroupManagementPanel
+          canManage={canManagePrincipalGroups}
+          onAuthorizationRejected={onAuthorizationRejected}
+          t={t}
         />
       ) : (
         <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
