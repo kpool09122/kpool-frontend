@@ -27,6 +27,7 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): IdentitySummary 
     language: "ja",
     profileImage: null,
     accountIdentifier: "22222222-2222-2222-2222-222222222222",
+    accountType: hasAccountUpdatePolicy ? "corporation" : "individual",
     accountEffectivePolicies: hasAccountUpdatePolicy
       ? [
           {

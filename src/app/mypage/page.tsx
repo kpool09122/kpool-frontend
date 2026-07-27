@@ -1,28 +1,8 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
-import {
-  createInitialDraftWikis,
-  loadInitialDraftWikisForRequest,
-} from "@/gateways/wiki/draftWiki";
-import {
-  getInitialWikiPrincipalForRequest,
-  type WikiPrincipalState,
-} from "@/gateways/wiki/wikiPrincipal";
-import { MyPageClient } from "./MyPageClient";
+import { MypageRoutePage } from "./MypageRoutePage";
 
 export const dynamic = "force-dynamic";
-
-const getPrincipalStateKey = (
-  principalState: Extract<WikiPrincipalState, { status: "available" | "missing" | "error" | "idle" }>,
-): string => {
-  if (principalState.status === "available") {
-    return `available:${principalState.principal.principalIdentifier}`;
-  }
-
-  return principalState.status;
-};
 
 type MyPageProps = {
   searchParams?: Promise<{
@@ -41,31 +21,15 @@ export default async function MyPage({ searchParams }: MyPageProps = {}) {
   const returnTo = normalizeOptionalReturnTo(
     getSingleSearchParam(resolvedSearchParams.returnTo),
   );
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
-  const authenticatedIdentity = await fetchAuthenticatedIdentity({
-    cookieHeader,
-  });
 
-  if (!authenticatedIdentity) {
-    redirect("/login?returnTo=/mypage");
+  if (!returnTo) {
+    redirect("/mypage/wiki/editing");
   }
 
-  const principalState = await getInitialWikiPrincipalForRequest({
-    cookieHeader,
-    hasAuthenticatedIdentity: Boolean(authenticatedIdentity),
+  return MypageRoutePage({
+    loginReturnTo: "/mypage",
+    returnTo,
+    section: "wiki",
+    wikiTab: "editingWikis",
   });
-  const initialDraftWikis = principalState.status === "available"
-    ? await loadInitialDraftWikisForRequest(cookieHeader)
-    : createInitialDraftWikis();
-
-  return (
-    <MyPageClient
-      key={getPrincipalStateKey(principalState)}
-      initialDraftWikis={initialDraftWikis}
-      initialIdentity={authenticatedIdentity}
-      initialPrincipalState={principalState}
-      returnTo={returnTo}
-    />
-  );
 }

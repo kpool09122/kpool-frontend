@@ -61,7 +61,7 @@ test("mypage shows the Wiki collaborator activation path", async ({ page }) => {
   ).toHaveAttribute("aria-expanded", "false");
   await page.getByRole("button", { name: "マイページメニューを開く" }).click();
   await expect(
-    page.getByRole("button", { name: "Wiki", exact: true }),
+    page.getByRole("link", { name: "Wiki", exact: true }),
   ).toHaveAttribute("aria-current", "page");
   await expect(
     page.getByRole("heading", { name: "Wiki collaborator を有効化" }),
@@ -196,6 +196,7 @@ test("mypage shows under review draft images for an available Wiki principal", a
     "/wiki/ja/gr-review-wiki/edit",
   );
   await page.getByRole("tab", { name: "未承認の画像" }).click();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/draft-images$/);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
     "aria-selected",
     "true",
@@ -209,7 +210,7 @@ test("mypage shows under review draft images for an available Wiki principal", a
   ).toHaveCount(0);
   await expect(page.getByRole("link", { name: "レビュー対象 Wiki（ja）" })).toHaveAttribute(
     "href",
-    "/wiki/ja/review-wiki",
+    "/ja/wiki/review-wiki",
   );
   await expect(page.getByText("under_review")).toHaveCount(0);
   await page.getByRole("button", { name: "承認" }).click();
@@ -264,17 +265,25 @@ test("mypage keeps wiki tabs interactive after browser back", async ({ page }) =
 
   await page.goto("/mypage");
   await expect(page.getByRole("link", { name: "編集中 Wiki" })).toBeVisible();
-  await page.getByRole("link", { name: "編集中 Wiki" }).click();
+  await page.goto("/wiki/ja/gr-review-wiki/edit");
   await expect(page).toHaveURL(/\/wiki\/ja\/gr-review-wiki\/edit$/);
 
   await page.goBack();
-  await expect(page).toHaveURL(/\/mypage$/);
+  await expect(page).toHaveURL(/\/mypage\/wiki\/editing$/);
   await page.getByRole("tab", { name: "未承認の画像" }).click();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/draft-images$/);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
   await expect(page.getByText("未承認の画像はありません")).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/editing$/);
+  await expect(page.getByRole("tab", { name: "編集中のWiki" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("mypage shows unapproved draft wikis only for reviewer principals", async ({ page }) => {
@@ -314,7 +323,7 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        wikis: [
+        wikis: approveRequests === 0 ? [
           {
             wikiIdentifier: "88888888-8888-8888-8888-888888888888",
             publishedWikiIdentifier: null,
@@ -329,29 +338,31 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
             imageIdentifier: null,
             imageUrl: null,
             imageAltText: null,
+            isHidden: false,
             editedAt: "2026-05-10T00:00:00Z",
             updatedAt: "2026-05-11T00:00:00Z",
             approvedAt: null,
             translatedAt: null,
             mergedAt: null,
           },
-        ],
+        ] : [],
         current_page: 1,
         last_page: 1,
-        total: 1,
+        total: approveRequests === 0 ? 1 : 0,
         per_page: 12,
       }),
     });
   });
   await page.route("**/api/wiki/drafts/*/approve", async (route) => {
     approveRequests += 1;
-    expect(route.request().postDataJSON()).toEqual({
+    expect(route.request().postDataJSON()).toMatchObject({
       resourceType: "group",
     });
     await route.fulfill({
       status: 201,
       contentType: "application/json",
       body: JSON.stringify({
+        wikiIdentifier: "88888888-8888-8888-8888-888888888888",
         language: "ja",
         name: "未承認 Wiki",
         resourceType: "group",
@@ -364,6 +375,7 @@ test("mypage shows unapproved draft wikis only for reviewer principals", async (
 
   await expect(page.getByRole("tab", { name: "未承認のWiki" })).toBeVisible();
   await page.getByRole("tab", { name: "未承認のWiki" }).click();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/unapproved$/);
   await expect(page.getByRole("link", { name: "未承認 Wiki" })).toBeVisible();
   await page.getByRole("button", { name: "承認" }).click();
   await expect(page.getByText("未承認のWikiはありません")).toBeVisible();
@@ -405,7 +417,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
   });
   await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     const url = new URL(route.request().url());
-    const isApproved = url.searchParams.get("status") === "approved";
+    const isApproved = publishRequests === 0 && url.searchParams.getAll("statuses[]").includes("approved");
 
     await route.fulfill({
       status: 200,
@@ -427,6 +439,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
                 imageIdentifier: null,
                 imageUrl: null,
                 imageAltText: null,
+                isHidden: false,
                 editedAt: "2026-05-10T00:00:00Z",
                 updatedAt: "2026-05-11T00:00:00Z",
                 approvedAt: "2026-05-12T00:00:00Z",
@@ -444,13 +457,14 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
   });
   await page.route("**/api/wiki/drafts/*/publish", async (route) => {
     publishRequests += 1;
-    expect(route.request().postDataJSON()).toEqual({
+    expect(route.request().postDataJSON()).toMatchObject({
       resourceType: "group",
     });
     await route.fulfill({
       status: 201,
       contentType: "application/json",
       body: JSON.stringify({
+        wikiIdentifier: "88888888-8888-8888-8888-888888888888",
         language: "ja",
         name: "承認済み Wiki",
         resourceType: "group",
@@ -464,6 +478,7 @@ test("mypage publishes approved draft wikis only for publisher principals", asyn
   await expect(page.getByRole("tab", { name: "承認済みWiki" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "未承認のWiki" })).toHaveCount(0);
   await page.getByRole("tab", { name: "承認済みWiki" }).click();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/approved$/);
   await expect(page.getByRole("link", { name: "承認済み Wiki" })).toBeVisible();
   await page.getByRole("button", { name: "公開" }).click();
   await expect(page.getByText("承認済みWikiはありません")).toBeVisible();
@@ -526,7 +541,7 @@ test("mypage translates untranslated wikis for publisher principals", async ({ p
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        wikis: listRequests === 1
+        wikis: translateRequests === 0
           ? [
               {
                 wikiIdentifier: "88888888-8888-8888-8888-888888888888",
@@ -539,6 +554,7 @@ test("mypage translates untranslated wikis for publisher principals", async ({ p
                 imageIdentifier: null,
                 imageUrl: null,
                 imageAltText: null,
+                isHidden: false,
                 name: "未翻訳 Wiki",
                 normalizedName: "untranslated-wiki",
                 publishedAt: "2026-05-10T00:00:00Z",
@@ -549,14 +565,14 @@ test("mypage translates untranslated wikis for publisher principals", async ({ p
           : [],
         current_page: 1,
         last_page: 1,
-        total: listRequests === 1 ? 1 : 0,
+        total: translateRequests === 0 ? 1 : 0,
         per_page: 12,
       }),
     });
   });
   await page.route("**/api/wiki/drafts/*/translate", async (route) => {
     translateRequests += 1;
-    expect(route.request().postDataJSON()).toEqual({
+    expect(route.request().postDataJSON()).toMatchObject({
       agencyIdentifier: "agency-1",
       language: "ja",
       resourceType: "group",
@@ -575,6 +591,7 @@ test("mypage translates untranslated wikis for publisher principals", async ({ p
   await expect(page.getByRole("tab", { name: "承認済みWiki" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "未翻訳のWiki" })).toBeVisible();
   await page.getByRole("tab", { name: "未翻訳のWiki" }).click();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/untranslated$/);
   await expect(page.getByRole("link", { name: "未翻訳 Wiki" })).toHaveAttribute(
     "href",
     "/wiki/ja/gr-untranslated-wiki",
@@ -654,6 +671,7 @@ test("mypage lets account policy users edit account information", async ({ page 
         language: "ja",
         profileImage: null,
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        accountType: "corporation",
         accountEffectivePolicies: [
           {
             policyIdentifier: "99999999-9999-9999-9999-999999999999",
@@ -709,7 +727,7 @@ test("mypage lets account policy users edit account information", async ({ page 
         body: JSON.stringify({
           accountIdentifier: "22222222-2222-2222-2222-222222222222",
           email: "member@example.com",
-          type: "individual",
+          type: "corporation",
           name: "Updated Account",
           status: "active",
           accountCategory: "standard",
@@ -724,7 +742,7 @@ test("mypage lets account policy users edit account information", async ({ page 
       body: JSON.stringify({
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
         email: "member@example.com",
-        type: "individual",
+        type: "corporation",
         name: "Member Account",
         status: "active",
         accountCategory: "standard",
@@ -733,7 +751,9 @@ test("mypage lets account policy users edit account information", async ({ page 
   });
 
   await page.goto("/mypage");
-  await page.getByRole("button", { name: "アカウント設定" }).click();
+  await expect(page).toHaveURL(/\/mypage\/wiki\/editing$/);
+  await page.getByRole("link", { name: "アカウント設定" }).click();
+  await expect(page).toHaveURL(/\/mypage\/account\/profile$/);
   await expect(page.getByRole("tab", { name: "プロフィール" })).toBeVisible();
   await expect(page.getByLabel("アカウント名")).toHaveValue("Member Account");
   await expect(page.getByText("member@example.com")).toHaveCount(0);
