@@ -547,6 +547,66 @@ describe("MyPageClient", () => {
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
   });
 
+  it("renders the draft image page when opened from the direct Wiki route", async () => {
+    const draftImageAdapter = createDraftImageAdapter();
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialWikiTab="draftImages"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("tab", { name: "未承認の画像", selected: true })).toBeInTheDocument();
+    expect(await screen.findByText("Review image")).toBeInTheDocument();
+    expect(draftImageAdapter.listDraftImages).toHaveBeenCalledWith({
+      fallbackErrorMessage: "未承認の画像一覧を読み込めませんでした。",
+      page: 1,
+      perPage: 12,
+      status: "under_review",
+    });
+  });
+
+  it("renders the invitation page when opened from the direct account route", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountInvitations"
+        initialIdentity={identityWithAccountInvitePolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "アカウント設定", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "ユーザー招待", selected: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "招待を送信" })).toBeInTheDocument();
+  });
+
+  it("renders the language page when opened from the direct user settings route", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="settings"
+        initialSettingsTab="languageSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "ユーザー設定", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "言語", selected: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
+  });
+
   it("hides account settings when /auth/me has no account policy", () => {
     renderWithQueryClient(
       <MyPageClient

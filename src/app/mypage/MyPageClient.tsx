@@ -4,7 +4,7 @@ import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { ChevronRightIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchAccount, inviteAccountMembers, updateAccount } from "@/gateways/account/accountBrowserApi";
@@ -268,69 +268,6 @@ const myPageSettingsTabRoutes: Record<MyPageSettingsTab, string> = {
   profileSettings: "/mypage/user/profile",
 };
 
-const getSectionFromPathname = (pathname: string | null, fallback: MyPageSection): MyPageSection => {
-  if (pathname?.startsWith("/mypage/account")) {
-    return "accountSettings";
-  }
-
-  if (pathname?.startsWith("/mypage/user")) {
-    return "settings";
-  }
-
-  if (pathname?.startsWith("/mypage/wiki")) {
-    return "wiki";
-  }
-
-  return fallback;
-};
-
-const getWikiTabFromPathname = (pathname: string | null, fallback: MyPageWikiTab): MyPageWikiTab => {
-  if (pathname?.startsWith("/mypage/wiki/draft-images")) {
-    return "draftImages";
-  }
-
-  if (pathname?.startsWith("/mypage/wiki/image-deletion-requests")) {
-    return "imageDeletionRequests";
-  }
-
-  if (pathname?.startsWith("/mypage/wiki/submitted")) {
-    return "submittedWikis";
-  }
-
-  if (pathname?.startsWith("/mypage/wiki/unapproved")) {
-    return "unapprovedWikis";
-  }
-
-  if (pathname?.startsWith("/mypage/wiki/approved")) {
-    return "approvedWikis";
-  }
-
-  if (pathname?.startsWith("/mypage/wiki/untranslated")) {
-    return "untranslatedWikis";
-  }
-
-  return fallback;
-};
-
-const getAccountTabFromPathname = (
-  pathname: string | null,
-  fallback: MyPageAccountSettingsTab,
-): MyPageAccountSettingsTab => {
-  if (pathname?.startsWith("/mypage/account/invitations")) {
-    return "accountInvitations";
-  }
-
-  if (pathname?.startsWith("/mypage/account/principal-groups")) {
-    return "principalGroupManagement";
-  }
-
-  return fallback;
-};
-
-const getSettingsTabFromPathname = (pathname: string | null, fallback: MyPageSettingsTab): MyPageSettingsTab =>
-  pathname?.startsWith("/mypage/user/language") ? "languageSettings" : fallback;
-
-
 const isActionPending = (state: WikiPrincipalState): boolean =>
   state.status === "loading";
 
@@ -362,7 +299,6 @@ export function MyPageClient({
   initialSettingsTab = "profileSettings",
   initialAccountSettingsTab = "accountProfile",
 }: MyPageClientProps) {
-  const pathname = usePathname();
   const router = useRouter();
   const authIdentity = useAuthStore((state) => state.identity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
@@ -379,17 +315,15 @@ export function MyPageClient({
   const [settingsState, setSettingsState] = useState<MyPageIdentitySettingsState>(() =>
     createIdentitySettingsState(currentIdentity, locale),
   );
-  const [clientPathname, setClientPathname] = useState<string | null>(null);
-  const effectivePathname = clientPathname ?? pathname;
-  const [fallbackSection, setFallbackSection] = useState<MyPageSection>(initialSection);
-  const [fallbackWikiTab, setFallbackWikiTab] = useState<MyPageWikiTab>(initialWikiTab);
-  const [fallbackSettingsTab, setFallbackSettingsTab] = useState<MyPageSettingsTab>(initialSettingsTab);
-  const [fallbackAccountSettingsTab, setFallbackAccountSettingsTab] = useState<MyPageAccountSettingsTab>(initialAccountSettingsTab);
-  const loadedWikiPathnameRef = useRef<string | null>(null);
-  const selectedSection = getSectionFromPathname(effectivePathname, fallbackSection);
-  const selectedWikiTab = getWikiTabFromPathname(effectivePathname, fallbackWikiTab);
-  const selectedSettingsTab = getSettingsTabFromPathname(effectivePathname, fallbackSettingsTab);
-  const selectedAccountSettingsTab = getAccountTabFromPathname(effectivePathname, fallbackAccountSettingsTab);
+  const loadedWikiTabRef = useRef<MyPageWikiTab | null>(
+    initialWikiTab === "draftImages" || initialWikiTab === "imageDeletionRequests" ? null : initialWikiTab,
+  );
+  const [selectedSection, setSelectedSection] = useState<MyPageSection>(initialSection);
+  const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>(initialWikiTab);
+  const [selectedSettingsTab, setSelectedSettingsTab] = useState<MyPageSettingsTab>(initialSettingsTab);
+  const [selectedAccountSettingsTab, setSelectedAccountSettingsTab] = useState<MyPageAccountSettingsTab>(
+    initialAccountSettingsTab,
+  );
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
   const [createDialog, setCreateDialog] = useState<CreateDraftWikiDialogState>({
@@ -817,31 +751,21 @@ export function MyPageClient({
   }, [principalState, router, selectedSection, selectedWikiTab]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      setClientPathname(window.location.pathname);
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
-
-  useEffect(() => {
     // The sidebar toggle is disabled until hydration so pre-hydration clicks are not lost.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSidebarHydrated(true);
   }, []);
 
   useEffect(() => {
-    if (selectedSection !== "wiki" || principalState.status !== "available" || effectivePathname === "/mypage") {
+    if (selectedSection !== "wiki" || principalState.status !== "available") {
       return;
     }
 
-    if (loadedWikiPathnameRef.current === effectivePathname) {
+    if (loadedWikiTabRef.current === selectedWikiTab) {
       return;
     }
 
-    loadedWikiPathnameRef.current = effectivePathname;
+    loadedWikiTabRef.current = selectedWikiTab;
 
     if (selectedWikiTab === "draftImages") {
       // URL-addressable tabs need to fetch their list on direct navigation.
@@ -861,7 +785,6 @@ export function MyPageClient({
     loadDraftImagesPage,
     loadDraftWikisPage,
     loadImageDeletionRequestsPage,
-    effectivePathname,
     principalState.status,
     selectedSection,
     selectedWikiTab,
@@ -1110,7 +1033,7 @@ export function MyPageClient({
                 }`}
                 aria-current={selectedSection === "wiki" ? "page" : undefined}
                 href={myPageSectionRoutes.wiki}
-                onClick={() => setFallbackSection("wiki")}
+                onClick={() => setSelectedSection("wiki")}
               >
                 {t.wikiMenu}
               </Link>
@@ -1123,7 +1046,7 @@ export function MyPageClient({
                   }`}
                   aria-current={selectedSection === "accountSettings" ? "page" : undefined}
                   href={myPageSectionRoutes.accountSettings}
-                  onClick={() => setFallbackSection("accountSettings")}
+                  onClick={() => setSelectedSection("accountSettings")}
                 >
                   {t.accountSettingsMenu}
                 </Link>
@@ -1136,7 +1059,7 @@ export function MyPageClient({
                 }`}
                 aria-current={selectedSection === "settings" ? "page" : undefined}
                 href={myPageSectionRoutes.settings}
-                onClick={() => setFallbackSection("settings")}
+                onClick={() => setSelectedSection("settings")}
               >
                 {t.settingsMenu}
               </Link>
@@ -1188,7 +1111,7 @@ export function MyPageClient({
                 onReviewImageDeletionRequest={(imageIdentifier, action, rejectReason) =>
                   void reviewImageDeletionRequest(imageIdentifier, action, rejectReason)
                 }
-                onSelectWikiTab={setFallbackWikiTab}
+                onSelectWikiTab={setSelectedWikiTab}
                 onDeleteDraftWiki={(wiki) => {
                   if (window.confirm(t.deleteDraftWikiConfirm)) {
                     void deleteDraftWikiFromMyPage(wiki);
@@ -1239,7 +1162,7 @@ export function MyPageClient({
               onReload={loadAccountSettings}
               onRemoveInvitationEmail={removeInvitationEmail}
               onSave={saveAccountSettings}
-              onSelectTab={setFallbackAccountSettingsTab}
+              onSelectTab={setSelectedAccountSettingsTab}
               onSendInvitations={sendAccountInvitations}
               onUpdateAccountName={updateAccountNameField}
               onUpdateInvitationEmailInput={updateInvitationEmailInput}
@@ -1250,13 +1173,13 @@ export function MyPageClient({
               selectedSettingsTab={selectedSettingsTab}
               settingsState={settingsState}
               t={t}
-            onProfileImageChange={updateProfileImage}
-            onProfileImageCropCancel={cancelProfileImageCrop}
-            onProfileImageCropConfirm={confirmProfileImageCrop}
-            onProfileImageCropError={reportProfileImageCropError}
-            onProfileImageDelete={deleteProfileImage}
-            onSaveIdentitySettings={saveIdentitySettings}
-            onSelectSettingsTab={setFallbackSettingsTab}
+              onProfileImageChange={updateProfileImage}
+              onProfileImageCropCancel={cancelProfileImageCrop}
+              onProfileImageCropConfirm={confirmProfileImageCrop}
+              onProfileImageCropError={reportProfileImageCropError}
+              onProfileImageDelete={deleteProfileImage}
+              onSaveIdentitySettings={saveIdentitySettings}
+              onSelectSettingsTab={setSelectedSettingsTab}
               onUpdateSettingsField={updateSettingsField}
             />
           )}
