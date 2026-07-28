@@ -5,7 +5,7 @@ import { ChevronRightIcon, ExclamationTriangleIcon } from "@radix-ui/react-icons
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchAccount, inviteAccountMembers, updateAccount } from "@/gateways/account/accountBrowserApi";
 import type { AccountSummary } from "@/gateways/account/accountApi";
@@ -316,7 +316,7 @@ export function MyPageClient({
     createIdentitySettingsState(currentIdentity, locale),
   );
   const loadedWikiTabRef = useRef<MyPageWikiTab | null>(
-    initialWikiTab === "draftImages" || initialWikiTab === "imageDeletionRequests" ? null : initialWikiTab,
+    initialWikiTab === "editingWikis" ? initialWikiTab : null,
   );
   const [selectedSection, setSelectedSection] = useState<MyPageSection>(initialSection);
   const [selectedWikiTab, setSelectedWikiTab] = useState<MyPageWikiTab>(initialWikiTab);
@@ -999,6 +999,152 @@ export function MyPageClient({
   };
 
   return (
+    <MyPageLayoutClient
+      canShowAccountSettings={canShowAccountSettings}
+      isSidebarHydrated={isSidebarHydrated}
+      isSidebarOpen={isSidebarOpen}
+      selectedSection={selectedSection}
+      t={t}
+      onSelectSection={setSelectedSection}
+      onToggleSidebar={() => setIsSidebarOpen((current) => !current)}
+    >
+      {selectedSection === "wiki" ? (
+        <>
+          <MyPageWikiLayoutClient
+            draftImages={draftImages}
+            imageDeletionRequests={imageDeletionRequests}
+            draftWikis={draftWikis}
+            locale={locale}
+            reviewError={reviewError}
+            imageDeletionRequestReviewError={imageDeletionRequestReviewError}
+            draftWikiReviewError={draftWikiReviewError}
+            reviewingImageIdentifier={reviewingImageIdentifier}
+            reviewingImageDeletionRequestIdentifier={reviewingImageDeletionRequestIdentifier}
+            deletingWikiIdentifier={deletingWikiIdentifier}
+            reviewingWikiIdentifier={reviewingWikiIdentifier}
+            isAuthenticated={currentIdentity !== null}
+            isPending={isActionPending(principalState)}
+            selectedWikiTab={selectedWikiTab}
+            state={principalState}
+            t={t}
+            onActivate={() => void activateWikiPrincipal()}
+            onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
+            onLoadImageDeletionRequestsPage={(page) => void loadImageDeletionRequestsPage(page)}
+            onLoadDraftWikisPage={(tab, page) => void loadDraftWikisPage(tab, page)}
+            onRetry={() => void loadCurrentPrincipal()}
+            onReviewDraftImage={(imageIdentifier, action) =>
+              void reviewDraftImage(imageIdentifier, action)
+            }
+            onReviewImageDeletionRequest={(imageIdentifier, action, rejectReason) =>
+              void reviewImageDeletionRequest(imageIdentifier, action, rejectReason)
+            }
+            onSelectWikiTab={setSelectedWikiTab}
+            onDeleteDraftWiki={(wiki) => {
+              if (window.confirm(t.deleteDraftWikiConfirm)) {
+                void deleteDraftWikiFromMyPage(wiki);
+              }
+            }}
+            onReviewDraftWiki={(wiki, action) => {
+              if (action === "reject") {
+                openRejectDialog(wiki);
+                return;
+              }
+
+              void reviewDraftWiki(wiki, action);
+            }}
+            onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
+            onOpenCreateDraftWiki={openCreateDialog}
+          />
+          <CreateDraftWikiDialog
+            autoCreatableResourceTypes={autoCreatableResourceTypes}
+            error={createDialog.error}
+            isCreating={createDialog.isCreating}
+            isOpen={createDialog.isOpen}
+            locale={locale}
+            t={t}
+            onClose={closeCreateDialog}
+            onSubmit={submitCreateDialog}
+          />
+          <RejectDraftWikiDialog
+            isOpen={rejectDialog.isOpen}
+            isSubmitting={Boolean(reviewingWikiIdentifier)}
+            t={t}
+            onClose={closeRejectDialog}
+            onSubmit={submitRejectDialog}
+          />
+        </>
+      ) : selectedSection === "accountSettings" ? (
+        <MyPageAccountLayoutClient
+          canEdit={canEditAccountSettings}
+          canInvite={canInviteAccountSettingsMembers}
+          canManagePrincipalGroups={canManageAccountPrincipalGroups}
+          invitationState={accountInvitationState}
+          selectedTab={selectedAccountSettingsTab}
+          state={accountSettingsState}
+          t={t}
+          onAddInvitationEmail={addInvitationEmail}
+          onAuthorizationRejected={() => {
+            void refreshIdentity();
+          }}
+          onReload={loadAccountSettings}
+          onRemoveInvitationEmail={removeInvitationEmail}
+          onSave={saveAccountSettings}
+          onSelectTab={setSelectedAccountSettingsTab}
+          onSendInvitations={sendAccountInvitations}
+          onUpdateAccountName={updateAccountNameField}
+          onUpdateInvitationEmailInput={updateInvitationEmailInput}
+        />
+      ) : (
+        <MyPageUserLayoutClient
+          currentIdentity={currentIdentity}
+          selectedSettingsTab={selectedSettingsTab}
+          settingsState={settingsState}
+          t={t}
+          onProfileImageChange={updateProfileImage}
+          onProfileImageCropCancel={cancelProfileImageCrop}
+          onProfileImageCropConfirm={confirmProfileImageCrop}
+          onProfileImageCropError={reportProfileImageCropError}
+          onProfileImageDelete={deleteProfileImage}
+          onSaveIdentitySettings={saveIdentitySettings}
+          onSelectSettingsTab={setSelectedSettingsTab}
+          onUpdateSettingsField={updateSettingsField}
+        />
+      )}
+    </MyPageLayoutClient>
+  );
+}
+
+function MyPageLayoutClient({
+  canShowAccountSettings,
+  children,
+  isSidebarHydrated,
+  isSidebarOpen,
+  selectedSection,
+  t,
+  onSelectSection,
+  onToggleSidebar,
+}: {
+  canShowAccountSettings: boolean;
+  children: ReactNode;
+  isSidebarHydrated: boolean;
+  isSidebarOpen: boolean;
+  selectedSection: MyPageSection;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onSelectSection: (section: MyPageSection) => void;
+  onToggleSidebar: () => void;
+}) {
+  const headerTitle = selectedSection === "wiki"
+    ? t.wikiHeaderTitle
+    : selectedSection === "accountSettings"
+      ? t.accountSettingsHeaderTitle
+      : t.settingsHeaderTitle;
+  const headerDescription = selectedSection === "wiki"
+    ? t.wikiHeaderDescription
+    : selectedSection === "settings"
+      ? t.settingsHeaderDescription
+      : null;
+
+  return (
     <main
       className={`min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
         isSidebarOpen ? "lg:pl-80" : "lg:pl-20"
@@ -1016,7 +1162,7 @@ export function MyPageClient({
           aria-label={isSidebarOpen ? t.collapseSidebar : t.expandSidebar}
           aria-expanded={isSidebarOpen}
           className="absolute -right-11 top-6 z-10 grid h-20 w-11 place-items-center rounded-r-2xl border-y border-r border-stroke-subtle bg-surface-raised text-text-strong shadow-soft transition hover:bg-brand-highlight/20"
-          onClick={() => setIsSidebarOpen((current) => !current)}
+          onClick={onToggleSidebar}
         >
           <span className={`transition-transform ${isSidebarOpen ? "rotate-180" : ""}`}>
             <ChevronRightIcon />
@@ -1025,44 +1171,26 @@ export function MyPageClient({
         <div className="relative h-full overflow-y-auto border border-l-0 border-stroke-subtle bg-surface-raised p-4 shadow-soft">
           <div className={isSidebarOpen ? "block" : "pointer-events-none invisible"}>
             <nav className="grid gap-2">
-              <Link
-                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
-                  selectedSection === "wiki"
-                    ? selectedSectionClass
-                    : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
-                }`}
-                aria-current={selectedSection === "wiki" ? "page" : undefined}
+              <MyPageSectionLink
                 href={myPageSectionRoutes.wiki}
-                onClick={() => setSelectedSection("wiki")}
-              >
-                {t.wikiMenu}
-              </Link>
+                isSelected={selectedSection === "wiki"}
+                label={t.wikiMenu}
+                onClick={() => onSelectSection("wiki")}
+              />
               {canShowAccountSettings ? (
-                <Link
-                  className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
-                    selectedSection === "accountSettings"
-                      ? selectedSectionClass
-                      : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
-                  }`}
-                  aria-current={selectedSection === "accountSettings" ? "page" : undefined}
+                <MyPageSectionLink
                   href={myPageSectionRoutes.accountSettings}
-                  onClick={() => setSelectedSection("accountSettings")}
-                >
-                  {t.accountSettingsMenu}
-                </Link>
+                  isSelected={selectedSection === "accountSettings"}
+                  label={t.accountSettingsMenu}
+                  onClick={() => onSelectSection("accountSettings")}
+                />
               ) : null}
-              <Link
-                className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
-                  selectedSection === "settings"
-                    ? selectedSectionClass
-                    : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
-                }`}
-                aria-current={selectedSection === "settings" ? "page" : undefined}
+              <MyPageSectionLink
                 href={myPageSectionRoutes.settings}
-                onClick={() => setSelectedSection("settings")}
-              >
-                {t.settingsMenu}
-              </Link>
+                isSelected={selectedSection === "settings"}
+                label={t.settingsMenu}
+                onClick={() => onSelectSection("settings")}
+              />
             </nav>
           </div>
         </div>
@@ -1071,125 +1199,48 @@ export function MyPageClient({
       <div className="mx-auto max-w-5xl">
         <section className="min-w-0 space-y-6">
           <header className="space-y-3">
-            <h1 className="text-3xl font-bold">
-              {selectedSection === "wiki" ? t.wikiHeaderTitle : selectedSection === "accountSettings" ? t.accountSettingsHeaderTitle : t.settingsHeaderTitle}
-            </h1>
-            {selectedSection !== "accountSettings" ? (
+            <h1 className="text-3xl font-bold">{headerTitle}</h1>
+            {headerDescription ? (
               <p className="max-w-3xl text-sm leading-7 text-text-muted">
-                {selectedSection === "wiki" ? t.wikiHeaderDescription : t.settingsHeaderDescription}
+                {headerDescription}
               </p>
             ) : null}
           </header>
-
-          {selectedSection === "wiki" ? (
-            <>
-              <WikiPrincipalPanel
-                draftImages={draftImages}
-                imageDeletionRequests={imageDeletionRequests}
-                draftWikis={draftWikis}
-                locale={locale}
-                reviewError={reviewError}
-                imageDeletionRequestReviewError={imageDeletionRequestReviewError}
-                draftWikiReviewError={draftWikiReviewError}
-                reviewingImageIdentifier={reviewingImageIdentifier}
-                reviewingImageDeletionRequestIdentifier={reviewingImageDeletionRequestIdentifier}
-                deletingWikiIdentifier={deletingWikiIdentifier}
-                reviewingWikiIdentifier={reviewingWikiIdentifier}
-                isAuthenticated={currentIdentity !== null}
-                isPending={isActionPending(principalState)}
-                selectedWikiTab={selectedWikiTab}
-                state={principalState}
-                t={t}
-                onActivate={() => void activateWikiPrincipal()}
-                onLoadDraftImagesPage={(page) => void loadDraftImagesPage(page)}
-                onLoadImageDeletionRequestsPage={(page) => void loadImageDeletionRequestsPage(page)}
-                onLoadDraftWikisPage={(tab, page) => void loadDraftWikisPage(tab, page)}
-                onRetry={() => void loadCurrentPrincipal()}
-                onReviewDraftImage={(imageIdentifier, action) =>
-                  void reviewDraftImage(imageIdentifier, action)
-                }
-                onReviewImageDeletionRequest={(imageIdentifier, action, rejectReason) =>
-                  void reviewImageDeletionRequest(imageIdentifier, action, rejectReason)
-                }
-                onSelectWikiTab={setSelectedWikiTab}
-                onDeleteDraftWiki={(wiki) => {
-                  if (window.confirm(t.deleteDraftWikiConfirm)) {
-                    void deleteDraftWikiFromMyPage(wiki);
-                  }
-                }}
-                onReviewDraftWiki={(wiki, action) => {
-                  if (action === "reject") {
-                    openRejectDialog(wiki);
-                    return;
-                  }
-
-                  void reviewDraftWiki(wiki, action);
-                }}
-                onWithdrawDraftWiki={(wiki) => void withdrawDraftWikiFromMyPage(wiki)}
-                onOpenCreateDraftWiki={openCreateDialog}
-              />
-              <CreateDraftWikiDialog
-                error={createDialog.error}
-                isCreating={createDialog.isCreating}
-                isOpen={createDialog.isOpen}
-                locale={locale}
-                t={t}
-                autoCreatableResourceTypes={autoCreatableResourceTypes}
-                onClose={closeCreateDialog}
-                onSubmit={submitCreateDialog}
-              />
-              <RejectDraftWikiDialog
-                isOpen={rejectDialog.isOpen}
-                isSubmitting={Boolean(reviewingWikiIdentifier)}
-                t={t}
-                onClose={closeRejectDialog}
-                onSubmit={submitRejectDialog}
-              />
-            </>
-          ) : selectedSection === "accountSettings" ? (
-            <AccountSettingsSection
-              canEdit={canEditAccountSettings}
-              canInvite={canInviteAccountSettingsMembers}
-              canManagePrincipalGroups={canManageAccountPrincipalGroups}
-              invitationState={accountInvitationState}
-              selectedTab={selectedAccountSettingsTab}
-              state={accountSettingsState}
-              t={t}
-              onAddInvitationEmail={addInvitationEmail}
-              onAuthorizationRejected={() => {
-                void refreshIdentity();
-              }}
-              onReload={loadAccountSettings}
-              onRemoveInvitationEmail={removeInvitationEmail}
-              onSave={saveAccountSettings}
-              onSelectTab={setSelectedAccountSettingsTab}
-              onSendInvitations={sendAccountInvitations}
-              onUpdateAccountName={updateAccountNameField}
-              onUpdateInvitationEmailInput={updateInvitationEmailInput}
-            />
-          ) : (
-            <SettingsSection
-              currentIdentity={currentIdentity}
-              selectedSettingsTab={selectedSettingsTab}
-              settingsState={settingsState}
-              t={t}
-              onProfileImageChange={updateProfileImage}
-              onProfileImageCropCancel={cancelProfileImageCrop}
-              onProfileImageCropConfirm={confirmProfileImageCrop}
-              onProfileImageCropError={reportProfileImageCropError}
-              onProfileImageDelete={deleteProfileImage}
-              onSaveIdentitySettings={saveIdentitySettings}
-              onSelectSettingsTab={setSelectedSettingsTab}
-              onUpdateSettingsField={updateSettingsField}
-            />
-          )}
+          {children}
         </section>
       </div>
     </main>
   );
 }
 
-function WikiPrincipalPanel({
+function MyPageSectionLink({
+  href,
+  isSelected,
+  label,
+  onClick,
+}: {
+  href: string;
+  isSelected: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
+        isSelected
+          ? selectedSectionClass
+          : "text-text-muted hover:bg-brand-highlight/30 hover:text-text-strong"
+      }`}
+      aria-current={isSelected ? "page" : undefined}
+      href={href}
+      onClick={onClick}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function MyPageWikiLayoutClient({
   draftImages,
   imageDeletionRequests,
   draftWikis,
@@ -1320,60 +1371,29 @@ function WikiPrincipalPanel({
             ))}
           </div>
         </div>
-        {activeWikiTab === "draftImages" ? (
-          <DraftImageListPanel
-            locale={locale}
-            reviewError={reviewError}
-            reviewingImageIdentifier={reviewingImageIdentifier}
-            state={draftImages}
-            t={t}
-            onLoadMore={() => {
-              if (draftImages.pageInfo) {
-                onLoadDraftImagesPage(draftImages.pageInfo.current_page + 1);
-              }
-            }}
-            onReload={() => onLoadDraftImagesPage(1)}
-            onReviewDraftImage={onReviewDraftImage}
-          />
-        ) : null}
-        {activeWikiTab === "imageDeletionRequests" ? (
-          <ImageDeletionRequestListPanel
-            locale={locale}
-            reviewError={imageDeletionRequestReviewError}
-            reviewingImageIdentifier={reviewingImageDeletionRequestIdentifier}
-            state={imageDeletionRequests}
-            t={t}
-            onLoadMore={() => {
-              if (imageDeletionRequests.pageInfo) {
-                onLoadImageDeletionRequestsPage(imageDeletionRequests.pageInfo.current_page + 1);
-              }
-            }}
-            onReload={() => onLoadImageDeletionRequestsPage(1)}
-            onReviewImageDeletionRequest={onReviewImageDeletionRequest}
-          />
-        ) : null}
-        {activeWikiTab !== "draftImages" && activeWikiTab !== "imageDeletionRequests" ? (
-          <DraftWikiListPanel
-            locale={locale}
-            reviewError={draftWikiReviewError}
-            deletingWikiIdentifier={deletingWikiIdentifier}
-            reviewingWikiIdentifier={reviewingWikiIdentifier}
-            state={draftWikis[activeWikiTab]}
-            t={t}
-            tab={activeWikiTab}
-            onLoadMore={() => {
-              const pageInfo = draftWikis[activeWikiTab].pageInfo;
-
-              if (pageInfo) {
-                onLoadDraftWikisPage(activeWikiTab, pageInfo.current_page + 1);
-              }
-            }}
-            onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
-            onDeleteDraftWiki={onDeleteDraftWiki}
-            onReviewDraftWiki={onReviewDraftWiki}
-            onWithdrawDraftWiki={onWithdrawDraftWiki}
-          />
-        ) : null}
+        <MyPageWikiTabContent
+          activeWikiTab={activeWikiTab}
+          deletingWikiIdentifier={deletingWikiIdentifier}
+          draftImages={draftImages}
+          draftWikiReviewError={draftWikiReviewError}
+          draftWikis={draftWikis}
+          imageDeletionRequestReviewError={imageDeletionRequestReviewError}
+          imageDeletionRequests={imageDeletionRequests}
+          locale={locale}
+          reviewError={reviewError}
+          reviewingImageDeletionRequestIdentifier={reviewingImageDeletionRequestIdentifier}
+          reviewingImageIdentifier={reviewingImageIdentifier}
+          reviewingWikiIdentifier={reviewingWikiIdentifier}
+          t={t}
+          onDeleteDraftWiki={onDeleteDraftWiki}
+          onLoadDraftImagesPage={onLoadDraftImagesPage}
+          onLoadDraftWikisPage={onLoadDraftWikisPage}
+          onLoadImageDeletionRequestsPage={onLoadImageDeletionRequestsPage}
+          onReviewDraftImage={onReviewDraftImage}
+          onReviewDraftWiki={onReviewDraftWiki}
+          onReviewImageDeletionRequest={onReviewImageDeletionRequest}
+          onWithdrawDraftWiki={onWithdrawDraftWiki}
+        />
       </section>
     );
   }
@@ -1419,7 +1439,114 @@ function WikiPrincipalPanel({
   );
 }
 
-function AccountSettingsSection({
+function MyPageWikiTabContent({
+  activeWikiTab,
+  deletingWikiIdentifier,
+  draftImages,
+  draftWikiReviewError,
+  draftWikis,
+  imageDeletionRequestReviewError,
+  imageDeletionRequests,
+  locale,
+  reviewError,
+  reviewingImageDeletionRequestIdentifier,
+  reviewingImageIdentifier,
+  reviewingWikiIdentifier,
+  t,
+  onDeleteDraftWiki,
+  onLoadDraftImagesPage,
+  onLoadDraftWikisPage,
+  onLoadImageDeletionRequestsPage,
+  onReviewDraftImage,
+  onReviewDraftWiki,
+  onReviewImageDeletionRequest,
+  onWithdrawDraftWiki,
+}: {
+  activeWikiTab: MyPageWikiTab;
+  deletingWikiIdentifier: string | null;
+  draftImages: DraftImageListState;
+  draftWikiReviewError: string | null;
+  draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
+  imageDeletionRequestReviewError: string | null;
+  imageDeletionRequests: ImageDeletionRequestListState;
+  locale: Locale;
+  reviewError: string | null;
+  reviewingImageDeletionRequestIdentifier: string | null;
+  reviewingImageIdentifier: string | null;
+  reviewingWikiIdentifier: string | null;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
+  onLoadDraftImagesPage: (page: number) => void;
+  onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
+  onLoadImageDeletionRequestsPage: (page: number) => void;
+  onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
+  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction, reason?: string) => void;
+  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
+  onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
+}) {
+  if (activeWikiTab === "draftImages") {
+    return (
+      <DraftImageListPanel
+        locale={locale}
+        reviewError={reviewError}
+        reviewingImageIdentifier={reviewingImageIdentifier}
+        state={draftImages}
+        t={t}
+        onLoadMore={() => {
+          if (draftImages.pageInfo) {
+            onLoadDraftImagesPage(draftImages.pageInfo.current_page + 1);
+          }
+        }}
+        onReload={() => onLoadDraftImagesPage(1)}
+        onReviewDraftImage={onReviewDraftImage}
+      />
+    );
+  }
+
+  if (activeWikiTab === "imageDeletionRequests") {
+    return (
+      <ImageDeletionRequestListPanel
+        locale={locale}
+        reviewError={imageDeletionRequestReviewError}
+        reviewingImageIdentifier={reviewingImageDeletionRequestIdentifier}
+        state={imageDeletionRequests}
+        t={t}
+        onLoadMore={() => {
+          if (imageDeletionRequests.pageInfo) {
+            onLoadImageDeletionRequestsPage(imageDeletionRequests.pageInfo.current_page + 1);
+          }
+        }}
+        onReload={() => onLoadImageDeletionRequestsPage(1)}
+        onReviewImageDeletionRequest={onReviewImageDeletionRequest}
+      />
+    );
+  }
+
+  return (
+    <DraftWikiListPanel
+      deletingWikiIdentifier={deletingWikiIdentifier}
+      locale={locale}
+      reviewError={draftWikiReviewError}
+      reviewingWikiIdentifier={reviewingWikiIdentifier}
+      state={draftWikis[activeWikiTab]}
+      t={t}
+      tab={activeWikiTab}
+      onLoadMore={() => {
+        const pageInfo = draftWikis[activeWikiTab].pageInfo;
+
+        if (pageInfo) {
+          onLoadDraftWikisPage(activeWikiTab, pageInfo.current_page + 1);
+        }
+      }}
+      onReload={() => onLoadDraftWikisPage(activeWikiTab, 1)}
+      onDeleteDraftWiki={onDeleteDraftWiki}
+      onReviewDraftWiki={onReviewDraftWiki}
+      onWithdrawDraftWiki={onWithdrawDraftWiki}
+    />
+  );
+}
+
+function MyPageAccountLayoutClient({
   canEdit,
   canInvite,
   canManagePrincipalGroups,
@@ -1454,8 +1581,7 @@ function AccountSettingsSection({
   onUpdateAccountName: (value: string) => void;
   onUpdateInvitationEmailInput: (value: string) => void;
 }) {
-  const isBusy = state.isLoading || state.isSaving;
-  const tabs = [
+    const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManagePrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
@@ -1484,78 +1610,137 @@ function AccountSettingsSection({
           ))}
         </div>
       </div>
-      {activeTab === "accountInvitations" ? (
-        <AccountInvitationPanel
-          state={invitationState}
-          t={t}
-          onAddEmail={onAddInvitationEmail}
-          onRemoveEmail={onRemoveInvitationEmail}
-          onSend={onSendInvitations}
-          onUpdateEmailInput={onUpdateInvitationEmailInput}
-        />
-      ) : activeTab === "principalGroupManagement" ? (
-        <PrincipalGroupManagementPanel
-          canManage={canManagePrincipalGroups}
-          onAuthorizationRejected={onAuthorizationRejected}
-          t={t}
-        />
-      ) : (
-        <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h2 className="text-xl font-semibold">{t.accountInformationTitle}</h2>
+      <MyPageAccountTabContent
+        activeTab={activeTab}
+        canEdit={canEdit}
+        canManagePrincipalGroups={canManagePrincipalGroups}
+        invitationState={invitationState}
+        state={state}
+        t={t}
+        onAddInvitationEmail={onAddInvitationEmail}
+        onAuthorizationRejected={onAuthorizationRejected}
+        onReload={onReload}
+        onRemoveInvitationEmail={onRemoveInvitationEmail}
+        onSave={onSave}
+        onSendInvitations={onSendInvitations}
+        onUpdateAccountName={onUpdateAccountName}
+        onUpdateInvitationEmailInput={onUpdateInvitationEmailInput}
+      />
+    </section>
+  );
+}
+
+function MyPageAccountTabContent({
+  activeTab,
+  canEdit,
+  canManagePrincipalGroups,
+  invitationState,
+  state,
+  t,
+  onAddInvitationEmail,
+  onAuthorizationRejected,
+  onReload,
+  onRemoveInvitationEmail,
+  onSave,
+  onSendInvitations,
+  onUpdateAccountName,
+  onUpdateInvitationEmailInput,
+}: {
+  activeTab: MyPageAccountSettingsTab;
+  canEdit: boolean;
+  canManagePrincipalGroups: boolean;
+  invitationState: MyPageAccountInvitationState;
+  state: MyPageAccountSettingsState;
+  t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
+  onAddInvitationEmail: () => void;
+  onAuthorizationRejected: () => void;
+  onReload: () => void;
+  onRemoveInvitationEmail: (email: string) => void;
+  onSave: () => void;
+  onSendInvitations: () => void;
+  onUpdateAccountName: (value: string) => void;
+  onUpdateInvitationEmailInput: (value: string) => void;
+}) {
+  const isBusy = state.isLoading || state.isSaving;
+
+  if (activeTab === "accountInvitations") {
+    return (
+      <AccountInvitationPanel
+        state={invitationState}
+        t={t}
+        onAddEmail={onAddInvitationEmail}
+        onRemoveEmail={onRemoveInvitationEmail}
+        onSend={onSendInvitations}
+        onUpdateEmailInput={onUpdateInvitationEmailInput}
+      />
+    );
+  }
+
+  if (activeTab === "principalGroupManagement") {
+    return (
+      <PrincipalGroupManagementPanel
+        canManage={canManagePrincipalGroups}
+        onAuthorizationRejected={onAuthorizationRejected}
+        t={t}
+      />
+    );
+  }
+
+  return (
+    <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <h2 className="text-xl font-semibold">{t.accountInformationTitle}</h2>
+        <button
+          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isBusy || !canEdit || !state.account}
+          onClick={onSave}
+          type="button"
+        >
+          {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
+        </button>
+      </div>
+      {state.isLoading ? (
+        <p className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
+          {t.accountSettingsLoading}
+        </p>
+      ) : null}
+      {state.account ? (
+        <div className="mt-5 grid gap-5">
+          <label className="grid gap-2 text-sm font-semibold">
+            {t.accountNameLabel}
+            <input
+              className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
+              disabled={isBusy || !canEdit}
+              onChange={(event) => onUpdateAccountName(event.currentTarget.value)}
+              value={state.accountName}
+            />
+          </label>
+          {!canEdit ? (
+            <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
+              {t.accountSettingsReadOnly}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {state.error ? (
+        <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+          <p>{state.error}</p>
+          {!state.account ? (
             <button
-              className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isBusy || !canEdit || !state.account}
-              onClick={onSave}
+              className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
+              onClick={onReload}
               type="button"
             >
-              {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
+              {t.accountSettingsRetry}
             </button>
-          </div>
-          {state.isLoading ? (
-            <p className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
-              {t.accountSettingsLoading}
-            </p>
           ) : null}
-          {state.account ? (
-            <div className="mt-5 grid gap-5">
-              <label className="grid gap-2 text-sm font-semibold">
-                {t.accountNameLabel}
-                <input
-                  className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
-                  disabled={isBusy || !canEdit}
-                  onChange={(event) => onUpdateAccountName(event.currentTarget.value)}
-                  value={state.accountName}
-                />
-              </label>
-              {!canEdit ? (
-                <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
-                  {t.accountSettingsReadOnly}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-          {state.error ? (
-            <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
-              <p>{state.error}</p>
-              {!state.account ? (
-                <button
-                  className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
-                  onClick={onReload}
-                  type="button"
-                >
-                  {t.accountSettingsRetry}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-          {state.success ? (
-            <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
-              {state.success}
-            </p>
-          ) : null}
-        </section>
-      )}
+        </div>
+      ) : null}
+      {state.success ? (
+        <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+          {state.success}
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -1657,7 +1842,7 @@ function AccountInvitationPanel({
   );
 }
 
-function SettingsSection({
+function MyPageUserLayoutClient({
   currentIdentity,
   selectedSettingsTab,
   settingsState,
@@ -1711,7 +1896,7 @@ function SettingsSection({
           ))}
         </div>
       </div>
-      <IdentitySettingsPanel
+      <MyPageUserTabContent
         activeTab={selectedSettingsTab}
         currentIdentity={currentIdentity}
         settingsState={settingsState}
@@ -1728,7 +1913,7 @@ function SettingsSection({
   );
 }
 
-function IdentitySettingsPanel({
+function MyPageUserTabContent({
   activeTab,
   currentIdentity,
   settingsState,
