@@ -2,16 +2,27 @@
 
 import { useAccountSection } from "../AccountSectionContext";
 import { maxAccountInvitationEmails } from "../accountInvitationRules";
+import { useAccountInvitations } from "./useAccountInvitations";
 
 export function AccountInvitationsClient() {
   const {
-    invitationState,
+    accountIdentifier,
+    canInvite,
+    principalState,
     t,
-    onAddInvitationEmail,
-    onRemoveInvitationEmail,
-    onSendInvitations,
-    onUpdateInvitationEmailInput,
   } = useAccountSection();
+  const {
+    state,
+    addEmail,
+    removeEmail,
+    sendInvitations,
+    updateEmailInput,
+  } = useAccountInvitations({
+    accountIdentifier,
+    canInvite,
+    principalState,
+    t,
+  });
 
   return (
     <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
@@ -22,11 +33,11 @@ export function AccountInvitationsClient() {
         </div>
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={invitationState.isSending || invitationState.emails.length === 0}
-          onClick={onSendInvitations}
+          disabled={state.isSending || state.emails.length === 0}
+          onClick={sendInvitations}
           type="button"
         >
-          {invitationState.isSending ? t.accountInvitationSending : t.accountInvitationSend}
+          {state.isSending ? t.accountInvitationSending : t.accountInvitationSend}
         </button>
       </div>
       <div className="mt-5 grid gap-4">
@@ -35,39 +46,39 @@ export function AccountInvitationsClient() {
             {t.accountInvitationEmailLabel}
             <input
               className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
-              disabled={invitationState.isSending || invitationState.emails.length >= maxAccountInvitationEmails}
-              onChange={(event) => onUpdateInvitationEmailInput(event.currentTarget.value)}
+              disabled={state.isSending || state.emails.length >= maxAccountInvitationEmails}
+              onChange={(event) => updateEmailInput(event.currentTarget.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
-                  onAddInvitationEmail();
+                  addEmail();
                 }
               }}
               placeholder={t.accountInvitationEmailPlaceholder}
-              value={invitationState.emailInput}
+              value={state.emailInput}
             />
           </label>
           <button
             className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={invitationState.isSending || invitationState.emails.length >= maxAccountInvitationEmails}
-            onClick={onAddInvitationEmail}
+            disabled={state.isSending || state.emails.length >= maxAccountInvitationEmails}
+            onClick={addEmail}
             type="button"
           >
             {t.accountInvitationAddEmail}
           </button>
         </div>
         <p className="text-xs font-semibold text-text-muted">
-          {t.accountInvitationEmailCount(invitationState.emails.length, maxAccountInvitationEmails)}
+          {t.accountInvitationEmailCount(state.emails.length, maxAccountInvitationEmails)}
         </p>
-        {invitationState.emails.length > 0 ? (
+        {state.emails.length > 0 ? (
           <ul className="grid gap-2" aria-label={t.accountInvitationEmailListLabel}>
-            {invitationState.emails.map((email) => (
+            {state.emails.map((email) => (
               <li key={email} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm">
                 <span>{email}</span>
                 <button
                   className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={invitationState.isSending}
-                  onClick={() => onRemoveInvitationEmail(email)}
+                  disabled={state.isSending}
+                  onClick={() => removeEmail(email)}
                   type="button"
                 >
                   {t.accountInvitationRemoveEmail}
@@ -80,14 +91,14 @@ export function AccountInvitationsClient() {
             {t.accountInvitationEmailListEmpty}
           </p>
         )}
-        {invitationState.error ? (
+        {state.error ? (
           <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
-            {invitationState.error}
+            {state.error}
           </p>
         ) : null}
-        {invitationState.success ? (
+        {state.success ? (
           <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
-            {invitationState.success}
+            {state.success}
           </p>
         ) : null}
       </div>

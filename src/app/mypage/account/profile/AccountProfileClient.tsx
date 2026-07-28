@@ -1,16 +1,24 @@
 "use client";
 
 import { useAccountSection } from "../AccountSectionContext";
+import { useAccountProfile } from "./useAccountProfile";
 
 export function AccountProfileClient() {
   const {
+    accountIdentifier,
     canEdit,
-    state,
     t,
-    onReload,
-    onSave,
-    onUpdateAccountName,
   } = useAccountSection();
+  const {
+    state,
+    loadAccount,
+    saveAccount,
+    updateAccountName,
+  } = useAccountProfile({
+    accountIdentifier,
+    canEdit,
+    t,
+  });
   const isBusy = state.isLoading || state.isSaving;
 
   return (
@@ -20,7 +28,7 @@ export function AccountProfileClient() {
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isBusy || !canEdit || !state.account}
-          onClick={onSave}
+          onClick={saveAccount}
           type="button"
         >
           {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
@@ -38,7 +46,7 @@ export function AccountProfileClient() {
             <input
               className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
               disabled={isBusy || !canEdit}
-              onChange={(event) => onUpdateAccountName(event.currentTarget.value)}
+              onChange={(event) => updateAccountName(event.currentTarget.value)}
               value={state.accountName}
             />
           </label>
@@ -55,7 +63,7 @@ export function AccountProfileClient() {
           {!state.account ? (
             <button
               className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
-              onClick={onReload}
+              onClick={loadAccount}
               type="button"
             >
               {t.accountSettingsRetry}

@@ -1,9 +1,9 @@
 "use client";
 
 import { useMypage } from "../../MypageProvider";
-import { useMyPageImageDeletionRequestReview } from "../../useMyPageImageDeletionRequestReview";
 import { ImageDeletionRequestListPanel } from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
+import { useImageDeletionRequests } from "./useImageDeletionRequests";
 
 export function ImageDeletionRequestsClient() {
   const { currentIdentity, initialImageDeletionRequests, locale, t } = useMypage();
@@ -14,7 +14,7 @@ export function ImageDeletionRequestsClient() {
     reviewError,
     reviewImageDeletionRequest,
     reviewingImageIdentifier: reviewingImageDeletionRequestIdentifier,
-  } = useMyPageImageDeletionRequestReview({
+  } = useImageDeletionRequests({
     adapter: draftImageAdapter,
     identityIdentifier: currentIdentity?.identityIdentifier ?? null,
     initialImageDeletionRequests,

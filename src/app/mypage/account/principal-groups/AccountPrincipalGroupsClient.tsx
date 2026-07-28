@@ -1,7 +1,8 @@
 "use client";
 
-import { PrincipalGroupManagementPanel } from "../../PrincipalGroupManagementPanel";
 import { useAccountSection } from "../AccountSectionContext";
+import { PrincipalGroupManagementPanel } from "./PrincipalGroupManagementPanel";
+import { useAccountPrincipalGroups } from "./useAccountPrincipalGroups";
 
 export function AccountPrincipalGroupsClient() {
   const {
@@ -9,11 +10,16 @@ export function AccountPrincipalGroupsClient() {
     t,
     onAuthorizationRejected,
   } = useAccountSection();
+  const principalGroups = useAccountPrincipalGroups({
+    canManage: canManagePrincipalGroups,
+    onAuthorizationRejected,
+    t,
+  });
 
   return (
     <PrincipalGroupManagementPanel
       canManage={canManagePrincipalGroups}
-      onAuthorizationRejected={onAuthorizationRejected}
+      principalGroups={principalGroups}
       t={t}
     />
   );

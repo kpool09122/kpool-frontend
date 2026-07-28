@@ -5,9 +5,9 @@ import { useState } from "react";
 import type { WikiDraftWorkflowAction } from "@/gateways/wiki/draftWiki";
 import { useMypage } from "../../MypageProvider";
 import type { MyPageWikiListItem } from "../../useMyPageDraftWikis";
-import { useUntranslatedWikis } from "../../useMyPageDraftWikis";
 import { DraftWikiListPanel, RejectDraftWikiDialog } from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
+import { useUntranslatedWikis } from "./useUntranslatedWikis";
 
 type RejectDraftWikiDialogState = {
   isOpen: boolean;

@@ -106,7 +106,7 @@ const fetchDraftWikiPage = ({
   messages: MyPageDraftWikiMessages;
   page: number;
   tab: MyPageDraftWikiActionTab;
-}): Promise<WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse> => {
+}) => {
   if (!isDraftWikiListTab(tab)) {
     return adapter.listUntranslatedWikis({
       fallbackErrorMessage: messages.draftWikiListLoadFailed,
@@ -429,26 +429,6 @@ const getDraftWikiQueryState = ({
 
   return initialDraftWiki;
 };
-
-type DraftWikiPageHookParams = Omit<
-  Parameters<typeof useMyPageDraftWikiList>[0],
-  "tab"
->;
-
-export const useEditingDraftWikis = (params: DraftWikiPageHookParams) =>
-  useMyPageDraftWikiList({ ...params, tab: "editingWikis" });
-
-export const useSubmittedDraftWikis = (params: DraftWikiPageHookParams) =>
-  useMyPageDraftWikiList({ ...params, tab: "submittedWikis" });
-
-export const useUnapprovedDraftWikis = (params: DraftWikiPageHookParams) =>
-  useMyPageDraftWikiList({ ...params, tab: "unapprovedWikis" });
-
-export const useApprovedDraftWikis = (params: DraftWikiPageHookParams) =>
-  useMyPageDraftWikiList({ ...params, tab: "approvedWikis" });
-
-export const useUntranslatedWikis = (params: DraftWikiPageHookParams) =>
-  useMyPageDraftWikiList({ ...params, tab: "untranslatedWikis" });
 
 const toDraftWikiListState = (
   wikiPage: WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse,

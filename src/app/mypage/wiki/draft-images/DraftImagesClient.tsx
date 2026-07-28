@@ -1,9 +1,9 @@
 "use client";
 
 import { useMypage } from "../../MypageProvider";
-import { useMyPageDraftImageReview } from "../../useMyPageDraftImageReview";
 import { DraftImageListPanel } from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
+import { useDraftImages } from "./useDraftImages";
 
 export function DraftImagesClient() {
   const { currentIdentity, initialDraftImages, locale, t } = useMypage();
@@ -14,7 +14,7 @@ export function DraftImagesClient() {
     reviewError,
     reviewDraftImage,
     reviewingImageIdentifier,
-  } = useMyPageDraftImageReview({
+  } = useDraftImages({
     adapter: draftImageAdapter,
     identityIdentifier: currentIdentity?.identityIdentifier ?? null,
     initialDraftImages,

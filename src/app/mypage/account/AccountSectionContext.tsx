@@ -2,26 +2,17 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { useI18n } from "../../../i18n/I18nProvider";
-import type {
-  MyPageAccountInvitationState,
-  MyPageAccountSettingsState,
-} from "../myPageTypes";
 
 export type AccountSectionContextValue = {
+  accountIdentifier: string | null;
   canEdit: boolean;
+  canInvite: boolean;
   canManagePrincipalGroups: boolean;
-  invitationState: MyPageAccountInvitationState;
-  state: MyPageAccountSettingsState;
+  principalState: WikiPrincipalState;
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
-  onAddInvitationEmail: () => void;
   onAuthorizationRejected: () => void;
-  onReload: () => void;
-  onRemoveInvitationEmail: (email: string) => void;
-  onSave: () => void;
-  onSendInvitations: () => void;
-  onUpdateAccountName: (value: string) => void;
-  onUpdateInvitationEmailInput: (value: string) => void;
 };
 
 const AccountSectionContext = createContext<AccountSectionContextValue | null>(null);
