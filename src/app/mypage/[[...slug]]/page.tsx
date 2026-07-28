@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
 
-import { MypageRoutePage } from "./MypageRoutePage";
+import { MypageAppClient } from "./MypageAppClient";
+import { loadMypageRouteContext } from "../mypageRouteContext";
 
 export const dynamic = "force-dynamic";
 
 type MyPageProps = {
+  params?: Promise<{
+    slug?: string[];
+  }>;
   searchParams?: Promise<{
     returnTo?: string | string[];
   }>;
@@ -16,20 +20,21 @@ const getSingleSearchParam = (value: string | string[] | undefined): string | un
 const normalizeOptionalReturnTo = (value: string | undefined): string | null =>
   value && value.startsWith("/") && !value.startsWith("//") ? value : null;
 
-export default async function MyPage({ searchParams }: MyPageProps = {}) {
+const buildLoginReturnTo = (slug: string[] | undefined): string =>
+  slug && slug.length > 0 ? `/mypage/${slug.join("/")}` : "/mypage";
+
+export default async function MyPage({ params, searchParams }: MyPageProps = {}) {
+  const resolvedParams = params ? await params : {};
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const returnTo = normalizeOptionalReturnTo(
     getSingleSearchParam(resolvedSearchParams.returnTo),
   );
 
-  if (!returnTo) {
+  if (!returnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
     redirect("/mypage/wiki/editing");
   }
 
-  return MypageRoutePage({
-    loginReturnTo: "/mypage",
-    returnTo,
-    section: "wiki",
-    wikiTab: "editingWikis",
-  });
+  const context = await loadMypageRouteContext(buildLoginReturnTo(resolvedParams.slug));
+
+  return <MypageAppClient context={context} returnTo={returnTo} />;
 }

@@ -33,13 +33,13 @@ vi.mock("@/gateways/wiki/wikiPrincipal", () => ({
   getInitialWikiPrincipalForRequest: mocks.getInitialWikiPrincipalForRequest,
 }));
 
-vi.mock("./MyPageClient", () => ({
-  MyPageClient: ({ returnTo }: { returnTo: string | null }) => (
+vi.mock("./[[...slug]]/MypageAppClient", () => ({
+  MypageAppClient: ({ returnTo }: { returnTo: string | null }) => (
     <div data-testid="mypage-client">{returnTo ?? "no-return"}</div>
   ),
 }));
 
-import MyPage from "./page";
+import MyPage from "./[[...slug]]/page";
 
 describe("MyPage server route", () => {
   beforeEach(() => {
