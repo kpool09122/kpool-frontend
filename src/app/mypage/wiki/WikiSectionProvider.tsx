@@ -2,36 +2,16 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import type { WikiDraftWorkflowAction } from "@/gateways/wiki/draftWiki";
-import type { DraftImageListState } from "../useMyPageDraftImageReview";
-import type { ImageDeletionRequestListState } from "../useMyPageImageDeletionRequestReview";
 import type {
-  DraftWikiListState,
-  MyPageDraftWikiActionTab,
-  MyPageWikiListItem,
-} from "../useMyPageDraftWikis";
+  MyPageDraftImageAdapter,
+  MyPageDraftWikiAdapter,
+} from "@/gateways/mypage/myPageAdapters";
 import type { MyPageWikiTab } from "../myPageTypes";
 
 export type WikiSectionContextValue = {
   activeWikiTab: MyPageWikiTab;
-  deletingWikiIdentifier: string | null;
-  draftImages: DraftImageListState;
-  draftWikiReviewError: string | null;
-  draftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
-  imageDeletionRequestReviewError: string | null;
-  imageDeletionRequests: ImageDeletionRequestListState;
-  reviewError: string | null;
-  reviewingImageDeletionRequestIdentifier: string | null;
-  reviewingImageIdentifier: string | null;
-  reviewingWikiIdentifier: string | null;
-  onDeleteDraftWiki: (wiki: MyPageWikiListItem) => void;
-  onLoadDraftImagesPage: (page: number) => void;
-  onLoadDraftWikisPage: (tab: MyPageDraftWikiActionTab, page: number) => void;
-  onLoadImageDeletionRequestsPage: (page: number) => void;
-  onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
-  onReviewDraftWiki: (wiki: MyPageWikiListItem, action: WikiDraftWorkflowAction) => void;
-  onReviewImageDeletionRequest: (imageIdentifier: string, action: "approve" | "reject", rejectReason?: string) => void;
-  onWithdrawDraftWiki: (wiki: MyPageWikiListItem) => void;
+  draftImageAdapter: MyPageDraftImageAdapter;
+  draftWikiAdapter: MyPageDraftWikiAdapter;
 };
 
 const WikiSectionContext = createContext<WikiSectionContextValue | null>(null);

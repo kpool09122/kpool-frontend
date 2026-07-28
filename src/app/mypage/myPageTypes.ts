@@ -2,7 +2,9 @@ import type { AccountSummary } from "@/gateways/account/accountApi";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { Locale } from "../../i18n/locales";
+import type { DraftImageListState } from "./useMyPageDraftImageReview";
 import type { DraftWikiListState, MyPageDraftWikiActionTab } from "./useMyPageDraftWikis";
+import type { ImageDeletionRequestListState } from "./useMyPageImageDeletionRequestReview";
 
 export type MyPageSettingsTab = "profileSettings" | "languageSettings";
 export type MyPageAccountSettingsTab = "accountProfile" | "accountInvitations" | "principalGroupManagement";
@@ -10,8 +12,10 @@ export type MyPageSection = "wiki" | "accountSettings" | "settings";
 export type MyPageWikiTab = MyPageDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
 
 export type MyPageRouteContext = {
+  initialDraftImages: DraftImageListState;
   initialDraftWikis: Record<MyPageDraftWikiActionTab, DraftWikiListState>;
   initialIdentity: IdentitySummary;
+  initialImageDeletionRequests: ImageDeletionRequestListState;
   initialPrincipalState: WikiPrincipalState;
 };
 

@@ -41,6 +41,9 @@ const draftImageListQuery = {
   status: "under_review" as const,
 };
 
+const shouldLoadInitialDraftImagePage = (state: DraftImageListState): boolean =>
+  !state.pageInfo && state.images.length === 0 && !state.isInitialLoading;
+
 export const useMyPageDraftImageReview = ({
   adapter,
   identityIdentifier,
@@ -57,9 +60,10 @@ export const useMyPageDraftImageReview = ({
     ...draftImageListQuery,
     identityIdentifier,
   });
-  const { data: cachedDraftImages = initialDraftImages } = useQuery({
-    enabled: false,
-    initialData: initialDraftImages,
+  const hasInitialDraftImagePage = !shouldLoadInitialDraftImagePage(initialDraftImages);
+  const draftImagesQuery = useQuery({
+    enabled: !hasInitialDraftImagePage,
+    initialData: hasInitialDraftImagePage ? initialDraftImages : undefined,
     queryFn: async () => toDraftImageListState(await adapter.listDraftImages({
       fallbackErrorMessage: messages.draftImageListLoadFailed,
       page: 1,
@@ -67,6 +71,7 @@ export const useMyPageDraftImageReview = ({
       status: draftImageListQuery.status,
     })),
     queryKey: listQueryKey,
+    retry: false,
   });
   const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -173,12 +178,54 @@ export const useMyPageDraftImageReview = ({
   };
 
   return {
-    draftImages: cachedDraftImages,
+    draftImages: getDraftImageQueryState({
+      error: draftImagesQuery.error,
+      fallbackErrorMessage: messages.draftImageListLoadFailed,
+      initialDraftImages,
+      isFetching: draftImagesQuery.isFetching,
+      state: draftImagesQuery.data,
+    }),
     loadDraftImagesPage,
     reviewDraftImage,
     reviewError,
     reviewingImageIdentifier,
   };
+};
+
+const getDraftImageQueryState = ({
+  error,
+  fallbackErrorMessage,
+  initialDraftImages,
+  isFetching,
+  state,
+}: {
+  error: unknown;
+  fallbackErrorMessage: string;
+  initialDraftImages: DraftImageListState;
+  isFetching: boolean;
+  state: DraftImageListState | undefined;
+}): DraftImageListState => {
+  if (state) {
+    return state;
+  }
+
+  if (isFetching) {
+    return {
+      ...initialDraftImages,
+      isInitialLoading: true,
+      loadError: null,
+    };
+  }
+
+  if (error) {
+    return {
+      ...initialDraftImages,
+      isInitialLoading: false,
+      loadError: error instanceof Error ? error.message : fallbackErrorMessage,
+    };
+  }
+
+  return initialDraftImages;
 };
 
 const toDraftImageListState = (imagePage: WikiDraftImageListResponse): DraftImageListState => ({

@@ -34,7 +34,10 @@ export default async function MyPage({ params, searchParams }: MyPageProps = {})
     redirect("/mypage/wiki/editing");
   }
 
-  const context = await loadMypageRouteContext(buildLoginReturnTo(resolvedParams.slug));
+  const context = await loadMypageRouteContext(
+    buildLoginReturnTo(resolvedParams.slug),
+    resolvedParams.slug,
+  );
 
   return <MypageAppClient context={context} returnTo={returnTo} />;
 }

@@ -6,7 +6,9 @@ const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
   fetchAuthenticatedIdentity: vi.fn(),
   getInitialWikiPrincipalForRequest: vi.fn(),
-  loadInitialDraftWikisForRequest: vi.fn(),
+  loadInitialDraftWikiListForRequest: vi.fn(),
+  loadInitialWikiDraftImagesForRequest: vi.fn(),
+  loadInitialWikiImageDeletionRequestsForRequest: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
   }),
@@ -26,7 +28,12 @@ vi.mock("@/gateways/identity/authIdentity", () => ({
 
 vi.mock("@/gateways/wiki/draftWiki", () => ({
   createInitialDraftWikis: () => ({}),
-  loadInitialDraftWikisForRequest: mocks.loadInitialDraftWikisForRequest,
+  loadInitialDraftWikiListForRequest: mocks.loadInitialDraftWikiListForRequest,
+}));
+
+vi.mock("@/gateways/wiki/wikiImageBrowserApi", () => ({
+  loadInitialWikiDraftImagesForRequest: mocks.loadInitialWikiDraftImagesForRequest,
+  loadInitialWikiImageDeletionRequestsForRequest: mocks.loadInitialWikiImageDeletionRequestsForRequest,
 }));
 
 vi.mock("@/gateways/wiki/wikiPrincipal", () => ({
@@ -54,6 +61,15 @@ describe("MyPage server route", () => {
       language: "ja",
     });
     mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
+    mocks.loadInitialDraftWikiListForRequest.mockResolvedValue({
+      isInitialLoading: false,
+      isLoadingMore: false,
+      loadError: null,
+      pageInfo: null,
+      wikis: [],
+    });
+    mocks.loadInitialWikiDraftImagesForRequest.mockResolvedValue(null);
+    mocks.loadInitialWikiImageDeletionRequestsForRequest.mockResolvedValue(null);
   });
 
   it("redirects /mypage without returnTo to the default Wiki editing route", async () => {
@@ -83,5 +99,36 @@ describe("MyPage server route", () => {
     expect(screen.getByTestId("mypage-client")).toHaveTextContent(
       "/wiki/ja/gr-aurora-echo/edit",
     );
+  });
+
+  it("does not load Wiki principal or draft lists for account pages", async () => {
+    render(
+      await MyPage({
+        params: Promise.resolve({ slug: ["account", "profile"] }),
+      }),
+    );
+
+    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
+  });
+
+  it("loads only the requested Wiki draft list for Wiki pages", async () => {
+    mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({
+      status: "available",
+      principal: {},
+    });
+
+    render(
+      await MyPage({
+        params: Promise.resolve({ slug: ["wiki", "submitted"] }),
+      }),
+    );
+
+    expect(mocks.loadInitialDraftWikiListForRequest).toHaveBeenCalledWith(
+      "session=abc",
+      "submittedWikis",
+    );
+    expect(mocks.loadInitialWikiDraftImagesForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadInitialWikiImageDeletionRequestsForRequest).not.toHaveBeenCalled();
   });
 });

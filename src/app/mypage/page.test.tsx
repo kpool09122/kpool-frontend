@@ -459,6 +459,22 @@ const emptyDraftWikiLists: Record<MyPageDraftWikiActionTab, typeof emptyDraftWik
   untranslatedWikis: emptyDraftWikiListState,
 };
 
+const emptyDraftImages = {
+  images: [],
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: null,
+};
+
+const emptyImageDeletionRequests = {
+  images: [],
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: null,
+};
+
 function MyPageClient({
   draftImageAdapter,
   draftWikiAdapter,
@@ -496,8 +512,10 @@ function MyPageClient({
     }),
   );
   const context: MyPageRouteContext = {
+    initialDraftImages: emptyDraftImages,
     initialDraftWikis,
     initialIdentity,
+    initialImageDeletionRequests: emptyImageDeletionRequests,
     initialPrincipalState,
   };
   window.history.replaceState(null, "", activePathname);
@@ -1892,7 +1910,7 @@ describe("mypage page clients", () => {
     );
     expect(draftWikiAdapter.listMyDraftWikis).not.toHaveBeenCalled();
     expect(draftWikiAdapter.listManagedDraftWikis).not.toHaveBeenCalled();
-    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
@@ -1911,7 +1929,7 @@ describe("mypage page clients", () => {
         statuses: ["under_review"],
       }),
     );
-    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );

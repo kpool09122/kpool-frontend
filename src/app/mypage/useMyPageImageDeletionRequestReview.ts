@@ -38,6 +38,11 @@ export const initialImageDeletionRequestListState: ImageDeletionRequestListState
   pageInfo: null,
 };
 
+const shouldLoadInitialImageDeletionRequestPage = (
+  state: ImageDeletionRequestListState,
+): boolean =>
+  !state.pageInfo && state.images.length === 0 && !state.isInitialLoading;
+
 export const useMyPageImageDeletionRequestReview = ({
   adapter,
   identityIdentifier,
@@ -53,15 +58,17 @@ export const useMyPageImageDeletionRequestReview = ({
   const listQueryKey = myPageQueryKeys.imageDeletionRequests.list({
     identityIdentifier,
   });
-  const { data: cachedImageDeletionRequests = initialImageDeletionRequests } = useQuery({
-    enabled: false,
-    initialData: initialImageDeletionRequests,
+  const hasInitialImageDeletionRequestPage = !shouldLoadInitialImageDeletionRequestPage(initialImageDeletionRequests);
+  const imageDeletionRequestsQuery = useQuery({
+    enabled: !hasInitialImageDeletionRequestPage,
+    initialData: hasInitialImageDeletionRequestPage ? initialImageDeletionRequests : undefined,
     queryFn: async () => toImageDeletionRequestListState(await adapter.listImageDeletionRequests({
       fallbackErrorMessage: messages.imageDeletionRequestListLoadFailed,
       page: 1,
       perPage: defaultWikiImagePerPage,
     })),
     queryKey: listQueryKey,
+    retry: false,
   });
   const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -175,12 +182,54 @@ export const useMyPageImageDeletionRequestReview = ({
   };
 
   return {
-    imageDeletionRequests: cachedImageDeletionRequests,
+    imageDeletionRequests: getImageDeletionRequestQueryState({
+      error: imageDeletionRequestsQuery.error,
+      fallbackErrorMessage: messages.imageDeletionRequestListLoadFailed,
+      initialImageDeletionRequests,
+      isFetching: imageDeletionRequestsQuery.isFetching,
+      state: imageDeletionRequestsQuery.data,
+    }),
     loadImageDeletionRequestsPage,
     reviewError,
     reviewImageDeletionRequest,
     reviewingImageIdentifier,
   };
+};
+
+const getImageDeletionRequestQueryState = ({
+  error,
+  fallbackErrorMessage,
+  initialImageDeletionRequests,
+  isFetching,
+  state,
+}: {
+  error: unknown;
+  fallbackErrorMessage: string;
+  initialImageDeletionRequests: ImageDeletionRequestListState;
+  isFetching: boolean;
+  state: ImageDeletionRequestListState | undefined;
+}): ImageDeletionRequestListState => {
+  if (state) {
+    return state;
+  }
+
+  if (isFetching) {
+    return {
+      ...initialImageDeletionRequests,
+      isInitialLoading: true,
+      loadError: null,
+    };
+  }
+
+  if (error) {
+    return {
+      ...initialImageDeletionRequests,
+      isInitialLoading: false,
+      loadError: error instanceof Error ? error.message : fallbackErrorMessage,
+    };
+  }
+
+  return initialImageDeletionRequests;
 };
 
 const toImageDeletionRequestListState = (
