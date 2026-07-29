@@ -20,6 +20,8 @@ const identityMocks = vi.hoisted(() => ({
 }));
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
+  usePathname: vi.fn(() => "/mypage"),
 }));
 
 vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
@@ -27,8 +29,10 @@ vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  usePathname: navigationMocks.usePathname,
   useRouter: () => ({
     push: navigationMocks.push,
+    replace: navigationMocks.replace,
   }),
 }));
 
@@ -493,9 +497,9 @@ describe("MyPageClient", () => {
       screen.getByRole("button", { name: "マイページメニューを閉じる" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("button", { name: "概要" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByRole("button", { name: "アカウント設定" })).not.toHaveAttribute("aria-current");
-    expect(screen.getByRole("button", { name: "ユーザー設定" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "アカウント設定" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "ユーザー設定" })).not.toHaveAttribute("aria-current");
   });
 
   it("collapses and expands the sidebar with a persistent toggle", () => {
@@ -554,8 +558,8 @@ describe("MyPageClient", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "アカウント設定" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ユーザー設定" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "アカウント設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
   });
 
   it("hides account settings for non-corporation account types even with account policy", () => {
@@ -569,8 +573,8 @@ describe("MyPageClient", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "アカウント設定" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ユーザー設定" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "アカウント設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
   });
 
   it("shows invitation tab only for account:member:invite policy and sends a batched invitation", async () => {
@@ -611,7 +615,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("tab", { name: "ユーザー招待" }));
     expect(screen.queryByRole("button", { name: "ユーザー招待", hidden: true })).not.toBeInTheDocument();
@@ -666,7 +670,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
   });
@@ -731,12 +735,13 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "ユーザー権限管理" }));
     expect(await screen.findByRole("heading", { name: "ユーザー権限管理" })).toBeInTheDocument();
     expect(screen.getByText("ユーザーの所属権限グループを変更できます。")).toBeInTheDocument();
     expect(screen.queryByText("デフォルトグループ")).not.toBeInTheDocument();
     expect(screen.queryByText("カスタムグループ")).not.toBeInTheDocument();
+    expect(await screen.findByText("Default")).toBeInTheDocument();
     expect(screen.getByText("Default").compareDocumentPosition(screen.getByText("Managers"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(screen.getByRole("button", { name: /member/ })).toBeInTheDocument();
     expect(screen.queryByLabelText("移動先グループ")).not.toBeInTheDocument();
@@ -776,7 +781,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     expect(await screen.findByRole("heading", { name: "アカウント設定", level: 1 })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     expect(await screen.findByLabelText("アカウント名")).toHaveValue("Member Account");
@@ -817,7 +822,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "アカウント設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
 
     expect(await screen.findByLabelText("アカウント名")).toBeDisabled();
     expect(screen.getByText("アカウント更新権限がないため、アカウント名は変更できません。")).toBeInTheDocument();
@@ -850,7 +855,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     expect(await screen.findByRole("heading", { name: "ユーザー設定", level: 1 })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     fireEvent.change(screen.getByLabelText("ログイン中ユーザー名"), {
@@ -915,7 +920,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     fireEvent.change(screen.getByLabelText("画像を選択"), {
       target: { files: [new File(["image"], "profile.png", { type: "image/png" })] },
@@ -970,7 +975,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     expect(screen.getByRole("img", { name: "プロフィール画像プレビュー" })).toHaveAttribute(
       "src",
@@ -1024,7 +1029,7 @@ describe("MyPageClient", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "ユーザー設定" }));
+    fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "言語" }));
     fireEvent.change(screen.getByLabelText("言語"), { target: { value: "en" } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
@@ -1040,7 +1045,7 @@ describe("MyPageClient", () => {
       }),
     ));
     await waitFor(() => expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole("button", { name: "アカウント設定" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "アカウント設定" })).toBeInTheDocument();
     expect(useAuthStore.getState().identity).toMatchObject({
       accountEffectivePolicies: identity.accountEffectivePolicies,
       accountType: "corporation",

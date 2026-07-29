@@ -56,10 +56,18 @@ describe("MyPage server route", () => {
     mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
   });
 
-  it("redirects unauthenticated requests to login with the mypage return destination", async () => {
+  it("redirects /mypage without returnTo to the default Wiki editing route", async () => {
+    await expect(MyPage()).rejects.toThrow("redirect:/mypage/wiki/editing");
+    expect(mocks.fetchAuthenticatedIdentity).not.toHaveBeenCalled();
+    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+  });
+
+  it("redirects unauthenticated returnTo activation requests to login with the mypage return destination", async () => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
 
-    await expect(MyPage()).rejects.toThrow("redirect:/login?returnTo=/mypage");
+    await expect(MyPage({ searchParams: Promise.resolve({ returnTo: "/wiki/ja/gr-aurora-echo/edit" }) })).rejects.toThrow(
+      "redirect:/login?returnTo=%2Fmypage",
+    );
     expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
   });
 
