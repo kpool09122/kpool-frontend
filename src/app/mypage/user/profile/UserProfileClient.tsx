@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 
+import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import { ImageCropper } from "../../../../components/ImageCropper";
 import { wikiImageAcceptAttribute } from "@kpool/wiki";
 import { useUserSection } from "../UserSectionContext";
@@ -22,12 +23,8 @@ export function UserProfileClient() {
   const profileImageSrc = settingsState.imagePreview;
 
   return (
-    <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">{t.profileSettingsTitle}</h2>
-          <p className="mt-2 text-sm leading-6 text-text-muted">{t.profileSettingsDescription}</p>
-        </div>
+    <UserSettingsPanel
+      action={
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={settingsState.isSaving || !currentIdentity}
@@ -36,7 +33,10 @@ export function UserProfileClient() {
         >
           {settingsState.isSaving ? t.identitySettingsSaving : t.identitySettingsSave}
         </button>
-      </div>
+      }
+      description={t.profileSettingsDescription}
+      title={t.profileSettingsTitle}
+    >
       <div className="mt-5 grid gap-5">
         <label className="grid gap-2 text-sm font-semibold">
           {t.profileIdentityNameLabel}
@@ -104,22 +104,27 @@ export function UserProfileClient() {
             />
           ) : null}
         </div>
+        {settingsState.imageReadError ? (
+          <UserStatusMessage variant="error">
+            {settingsState.imageReadError}
+          </UserStatusMessage>
+        ) : null}
         {settingsState.error ? (
-          <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+          <UserStatusMessage variant="error">
             {settingsState.error}
-          </p>
+          </UserStatusMessage>
         ) : null}
         {settingsState.syncError ? (
-          <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800" role="alert">
+          <UserStatusMessage variant="warning">
             {settingsState.syncError}
-          </p>
+          </UserStatusMessage>
         ) : null}
         {settingsState.success ? (
-          <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+          <UserStatusMessage variant="success">
             {settingsState.success}
-          </p>
+          </UserStatusMessage>
         ) : null}
       </div>
-    </section>
+    </UserSettingsPanel>
   );
 }
