@@ -1,127 +1,120 @@
 "use client";
 
-import { useState } from "react";
-
-import type { WikiDraftWorkflowAction } from "@/gateways/wiki/draftWiki";
 import { useMypage } from "../../MypageProvider";
-import type { MyPageWikiListItem } from "../../useMyPageDraftWikis";
-import { DraftWikiListPanel, RejectDraftWikiDialog } from "../WikiContentClient";
+import {
+  WikiListCard,
+  WikiListCardActionButton,
+  WikiListPanel,
+} from "../../../../components/Wiki";
+import {
+  buildDraftWikiListCardStyle,
+  DraftWikiRejectionReasonButton,
+  getDraftWikiListCardHref,
+  getDraftWikiListCardMeta,
+  getDraftWikiRejectionReason,
+  getDraftWikiResourceLabel,
+} from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useApprovedDraftWikis } from "./useApprovedDraftWikis";
-
-type RejectDraftWikiDialogState = {
-  isOpen: boolean;
-  reason: string;
-  wiki: MyPageWikiListItem | null;
-};
 
 export function ApprovedWikisClient() {
   const tab = "approvedWikis";
   const { currentIdentity, initialDraftWikis, locale, t } = useMypage();
   const { draftWikiAdapter } = useWikiSection();
-  const [rejectDialog, setRejectDialog] = useState<RejectDraftWikiDialogState>({
-    isOpen: false,
-    reason: "",
-    wiki: null,
-  });
   const {
-    deleteDraftWiki,
-    deletingWikiIdentifier,
     draftWiki,
     loadDraftWikisPage,
-    reviewDraftWiki,
+    publishDraftWiki,
     reviewError,
-    reviewingWikiIdentifier,
-    withdrawDraftWiki,
+    reviewingWikiIdentifier
   } = useApprovedDraftWikis({
     adapter: draftWikiAdapter,
     identityIdentifier: currentIdentity?.identityIdentifier ?? null,
     initialDraftWiki: initialDraftWikis.approvedWikis,
     messages: {
-      draftWikiApproveFailed: t.draftWikiApproveFailed,
-      draftWikiDeleteFailed: t.draftWikiDeleteFailed,
       draftWikiListLoadFailed: t.draftWikiListLoadFailed,
       draftWikiPublishFailed: t.draftWikiPublishFailed,
-      draftWikiRejectFailed: t.draftWikiRejectFailed,
-      draftWikiTranslateFailed: t.draftWikiTranslateFailed,
-      draftWikiWithdrawFailed: t.draftWikiWithdrawFailed,
     },
   });
-
-  const closeRejectDialog = () => {
-    if (reviewingWikiIdentifier) {
-      return;
-    }
-
-    setRejectDialog({
-      isOpen: false,
-      reason: "",
-      wiki: null,
-    });
-  };
-
-  const submitRejectDialog = (reason: string) => {
-    const wiki = rejectDialog.wiki;
-
-    if (!wiki) {
-      return;
-    }
-
-    reviewDraftWiki(wiki, "reject", reason);
-    setRejectDialog({
-      isOpen: false,
-      reason: "",
-      wiki: null,
-    });
-  };
-
-  const handleReviewDraftWiki = (
-    wiki: MyPageWikiListItem,
-    action: WikiDraftWorkflowAction,
-  ) => {
-    if (action === "reject") {
-      setRejectDialog({
-        isOpen: true,
-        reason: "",
-        wiki,
-      });
-      return;
-    }
-
-    reviewDraftWiki(wiki, action);
-  };
+  const canLoadMore = draftWiki.pageInfo
+    ? draftWiki.pageInfo.current_page < draftWiki.pageInfo.last_page
+    : false;
 
   return (
-    <>
-      <DraftWikiListPanel
-        deletingWikiIdentifier={deletingWikiIdentifier}
-        locale={locale}
-        reviewError={reviewError}
-        reviewingWikiIdentifier={reviewingWikiIdentifier}
-        state={draftWiki}
-        t={t}
-        tab={tab}
-        onLoadMore={() => {
-          if (draftWiki.pageInfo) {
-            loadDraftWikisPage(draftWiki.pageInfo.current_page + 1);
-          }
-        }}
-        onReload={() => loadDraftWikisPage(1)}
-        onDeleteDraftWiki={(wiki) => {
-          if (window.confirm(t.deleteDraftWikiConfirm)) {
-            deleteDraftWiki(wiki);
-          }
-        }}
-        onReviewDraftWiki={handleReviewDraftWiki}
-        onWithdrawDraftWiki={withdrawDraftWiki}
-      />
-      <RejectDraftWikiDialog
-        isOpen={rejectDialog.isOpen}
-        isSubmitting={Boolean(reviewingWikiIdentifier)}
-        t={t}
-        onClose={closeRejectDialog}
-        onSubmit={submitRejectDialog}
-      />
-    </>
+    <WikiListPanel
+      allLoadedLabel={t.allDraftWikisLoaded}
+      canLoadMore={canLoadMore}
+      emptyMessage={t.approvedWikiListEmptyMessage}
+      emptyTitle={t.approvedWikiListEmptyTitle}
+      isEmpty={draftWiki.wikis.length === 0}
+      isInitialLoading={draftWiki.isInitialLoading}
+      isLoadingMore={draftWiki.isLoadingMore}
+      loadError={draftWiki.loadError}
+      loadingLabel={t.approvedWikiListLoading}
+      loadingMoreLabel={t.draftWikiListLoadingMore}
+      loadMoreLabel={t.loadMoreDraftWikis}
+      reloadLabel={t.reloadDraftWikis}
+      reviewError={reviewError}
+      totalLabel={draftWiki.pageInfo ? t.approvedWikiListTotal(draftWiki.pageInfo.total) : null}
+      onLoadMore={() => {
+        if (draftWiki.pageInfo) {
+          loadDraftWikisPage(draftWiki.pageInfo.current_page + 1);
+        }
+      }}
+      onReload={() => loadDraftWikisPage(1)}
+    >
+      {draftWiki.wikis.map((wiki) => {
+        const isOnImage = wiki.isHidden !== true && Boolean(wiki.imageUrl);
+        const style = buildDraftWikiListCardStyle(wiki);
+
+        return (
+          <WikiListCard
+            actions={
+              <ApprovedWikiActions
+                isPublishing={reviewingWikiIdentifier === wiki.wikiIdentifier}
+                onPublish={() => publishDraftWiki(wiki)}
+              />
+            }
+            badgeLabel={getDraftWikiResourceLabel(t, wiki.resourceType)}
+            hasTheme={!isOnImage && Boolean(style)}
+            headerActions={
+              <DraftWikiRejectionReasonButton
+                reason={getDraftWikiRejectionReason(wiki)}
+                t={t}
+              />
+            }
+            href={getDraftWikiListCardHref(wiki, tab)}
+            isOnImage={isOnImage}
+            key={wiki.wikiIdentifier}
+            meta={getDraftWikiListCardMeta({ locale, t, wiki })}
+            style={style}
+            subtitle={wiki.language}
+            title={wiki.name}
+          />
+        );
+      })}
+    </WikiListPanel>
+  );
+}
+
+function ApprovedWikiActions({
+  isPublishing,
+  onPublish,
+}: {
+  isPublishing: boolean;
+  onPublish: () => void;
+}) {
+  const { t } = useMypage();
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      <WikiListCardActionButton
+        disabled={isPublishing}
+        onClick={onPublish}
+        variant="primary"
+      >
+        {isPublishing ? t.draftWikiPublishing : t.publishDraftWiki}
+      </WikiListCardActionButton>
+    </div>
   );
 }

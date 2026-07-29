@@ -11,6 +11,14 @@ export { WikiEditSidebar } from "./WikiEditSidebar/index";
 export { WikiHeroBasicFlipCard } from "./WikiHeroBasicFlipCard/index";
 export { WikiHeroPanel } from "./WikiHeroPanel/index";
 export { WikiImageLibrary, type WikiImageUsageRequestInput } from "./WikiImageLibrary/index";
+export {
+  WikiListCard,
+  WikiListCardActionButton,
+  WikiListCardActionLink,
+  WikiListCardDisabledAction,
+  type WikiListCardMeta,
+} from "./WikiListCard/index";
+export { WikiListPanel } from "./WikiListPanel/index";
 export { WikiMasterSearchSelect } from "./WikiMasterSearchSelect/index";
 export { WikiPublicHeroImage } from "./WikiPublicHeroImage/index";
 export { WikiSectionAccordion } from "./WikiSectionAccordion/index";
