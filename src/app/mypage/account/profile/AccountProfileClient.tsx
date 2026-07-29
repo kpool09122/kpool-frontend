@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { useAccountSection } from "../AccountSectionContext";
 import { useAccountProfile } from "./useAccountProfile";
 
@@ -22,9 +23,8 @@ export function AccountProfileClient() {
   const isBusy = state.isLoading || state.isSaving;
 
   return (
-    <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <h2 className="text-xl font-semibold">{t.accountInformationTitle}</h2>
+    <AccountSettingsPanel
+      action={
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isBusy || !canEdit || !state.account}
@@ -33,11 +33,13 @@ export function AccountProfileClient() {
         >
           {state.isSaving ? t.accountSettingsSaving : t.accountSettingsSave}
         </button>
-      </div>
+      }
+      title={t.accountInformationTitle}
+    >
       {state.isLoading ? (
-        <p className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
+        <AccountStatusMessage className="mt-5" variant="loading">
           {t.accountSettingsLoading}
-        </p>
+        </AccountStatusMessage>
       ) : null}
       {state.account ? (
         <div className="mt-5 grid gap-5">
@@ -51,16 +53,15 @@ export function AccountProfileClient() {
             />
           </label>
           {!canEdit ? (
-            <p className="rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800">
+            <AccountStatusMessage variant="warning">
               {t.accountSettingsReadOnly}
-            </p>
+            </AccountStatusMessage>
           ) : null}
         </div>
       ) : null}
       {state.error ? (
-        <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
-          <p>{state.error}</p>
-          {!state.account ? (
+        <AccountStatusMessage
+          action={!state.account ? (
             <button
               className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
               onClick={loadAccount}
@@ -69,13 +70,17 @@ export function AccountProfileClient() {
               {t.accountSettingsRetry}
             </button>
           ) : null}
-        </div>
+          className="mt-5"
+          variant="error"
+        >
+          {state.error}
+        </AccountStatusMessage>
       ) : null}
       {state.success ? (
-        <p className="mt-5 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+        <AccountStatusMessage className="mt-5" variant="success">
           {state.success}
-        </p>
+        </AccountStatusMessage>
       ) : null}
-    </section>
+    </AccountSettingsPanel>
   );
 }

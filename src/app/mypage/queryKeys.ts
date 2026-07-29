@@ -6,6 +6,18 @@ type WikiDraftWikiListScope = "managed" | "my";
 
 export const myPageQueryKeys = {
   all: ["mypage"] as const,
+  account: {
+    all: () => [...myPageQueryKeys.all, "account"] as const,
+    profile: (accountIdentifier: string | null) => [
+      ...myPageQueryKeys.account.all(),
+      "profile",
+      accountIdentifier ?? "unavailable",
+    ] as const,
+    principalGroups: () => [
+      ...myPageQueryKeys.account.all(),
+      "principalGroups",
+    ] as const,
+  },
   draftImages: {
     all: () => [...myPageQueryKeys.all, "draftImages"] as const,
     list: ({

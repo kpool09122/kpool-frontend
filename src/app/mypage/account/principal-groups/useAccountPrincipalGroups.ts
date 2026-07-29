@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
 import {
   fetchAccountMembers,
@@ -7,7 +8,8 @@ import {
   updatePrincipalGroupMembers,
 } from "@/gateways/account/accountBrowserApi";
 import type { AccountMemberSummary, PrincipalGroupSummary } from "@/gateways/account/accountApi";
-import type { useI18n } from "../../../i18n/I18nProvider";
+import { myPageQueryKeys } from "../../queryKeys";
+import type { useI18n } from "../../../../i18n/I18nProvider";
 
 export type PrincipalGroupManagementState = {
   error: string | null;
@@ -19,14 +21,15 @@ export type PrincipalGroupManagementState = {
   success: string | null;
 };
 
-const initialState: PrincipalGroupManagementState = {
-  error: null,
-  groups: [],
-  isLoading: false,
-  isSaving: false,
-  members: [],
-  membershipByGroup: {},
-  success: null,
+type PrincipalGroupQueryState = {
+  groups: PrincipalGroupSummary[];
+  members: AccountMemberSummary[];
+  membershipByGroup: Record<string, string[]>;
+};
+
+type MembershipDraft = {
+  isDirty: boolean;
+  membershipByGroup: Record<string, string[]>;
 };
 
 type MyPageDictionary = ReturnType<typeof useI18n>["dictionary"]["mypage"];
@@ -37,8 +40,17 @@ type UseAccountPrincipalGroupsParams = {
   t: MyPageDictionary;
 };
 
+const emptyPrincipalGroupQueryState: PrincipalGroupQueryState = {
+  groups: [],
+  members: [],
+  membershipByGroup: {},
+};
+
 const sortPrincipalGroups = (groups: PrincipalGroupSummary[]): PrincipalGroupSummary[] =>
   [...groups].sort((left, right) => Number(right.isDefault) - Number(left.isDefault));
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
 
 const getGroupMembershipFromResponse = (
   groups: PrincipalGroupSummary[],
@@ -98,131 +110,137 @@ export const useAccountPrincipalGroups = ({
   onAuthorizationRejected,
   t,
 }: UseAccountPrincipalGroupsParams) => {
-  const [state, setState] = useState<PrincipalGroupManagementState>(initialState);
-  const [savedMembershipByGroup, setSavedMembershipByGroup] = useState<Record<string, string[]>>({});
-  const memberByIdentifier = useMemo(
-    () => new Map(state.members.map((member) => [member.principalIdentifier, member])),
-    [state.members],
-  );
-  const hasUnsavedChanges = !areMembershipsEqual(state.membershipByGroup, savedMembershipByGroup);
-  const isBusy = state.isLoading || state.isSaving;
+  const queryClient = useQueryClient();
+  const queryKey = myPageQueryKeys.account.principalGroups();
+  const [membershipDraft, setMembershipDraft] = useState<MembershipDraft>({
+    isDirty: false,
+    membershipByGroup: {},
+  });
+  const [formError, setFormError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    setState((current) => ({
-      ...current,
-      error: null,
-      isLoading: true,
-      success: null,
-    }));
-
-    void Promise.all([
-      fetchAccountMembers({ fallbackErrorMessage: t.principalGroupMembersLoadFailed }),
-      fetchPrincipalGroups({ fallbackErrorMessage: t.principalGroupListLoadFailed }),
-    ]).then(([membersResponse, groupsResponse]) => {
+  const principalGroupsQuery = useQuery<PrincipalGroupQueryState, Error>({
+    queryFn: async () => {
+      const [membersResponse, groupsResponse] = await Promise.all([
+        fetchAccountMembers({ fallbackErrorMessage: t.principalGroupMembersLoadFailed }),
+        fetchPrincipalGroups({ fallbackErrorMessage: t.principalGroupListLoadFailed }),
+      ]);
       const groups = sortPrincipalGroups(groupsResponse.principalGroups);
-      const membershipByGroup = getGroupMembershipFromResponse(
+
+      return {
         groups,
-        membersResponse.members,
-      );
-      setSavedMembershipByGroup(membershipByGroup);
-      setState({
-        error: null,
-        groups,
-        isLoading: false,
-        isSaving: false,
         members: membersResponse.members,
-        membershipByGroup,
-        success: null,
+        membershipByGroup: getGroupMembershipFromResponse(groups, membersResponse.members),
+      };
+    },
+    queryKey,
+    retry: false,
+  });
+  const queryState = principalGroupsQuery.data ?? emptyPrincipalGroupQueryState;
+  const membershipByGroup = membershipDraft.isDirty
+    ? membershipDraft.membershipByGroup
+    : queryState.membershipByGroup;
+  const memberByIdentifier = useMemo(
+    () => new Map(queryState.members.map((member) => [member.principalIdentifier, member])),
+    [queryState.members],
+  );
+  const hasUnsavedChanges = !areMembershipsEqual(membershipByGroup, queryState.membershipByGroup);
+
+  const saveMutation = useMutation<PrincipalGroupQueryState, Error, Record<string, string[]>>({
+    mutationFn: async (nextMembershipByGroup) => {
+      const groupsResponse = await updatePrincipalGroupMembers({
+        fallbackErrorMessage: t.principalGroupSaveFailed,
+        requestBody: createUpdatePayload(nextMembershipByGroup),
       });
-    }).catch((error: unknown) => {
-      setState((current) => ({
-        ...current,
-        error: error instanceof Error ? error.message : t.principalGroupLoadFailed,
-        isLoading: false,
-        success: null,
-      }));
-    });
-  }, [t.principalGroupListLoadFailed, t.principalGroupLoadFailed, t.principalGroupMembersLoadFailed]);
+      const membersResponse = await fetchAccountMembers({
+        fallbackErrorMessage: t.principalGroupMembersLoadFailed,
+      });
+      const groups = sortPrincipalGroups(groupsResponse.principalGroups);
 
-  useEffect(() => {
-    const timer = window.setTimeout(load, 0);
+      return {
+        groups,
+        members: membersResponse.members,
+        membershipByGroup: getGroupMembershipFromResponse(groups, membersResponse.members),
+      };
+    },
+    onMutate: () => {
+      setFormError(null);
+      setSuccess(null);
+    },
+    onSuccess: (nextQueryState) => {
+      queryClient.setQueryData(queryKey, nextQueryState);
+      setMembershipDraft({
+        isDirty: false,
+        membershipByGroup: nextQueryState.membershipByGroup,
+      });
+      setSuccess(t.principalGroupSaved);
+    },
+    onError: (error) => {
+      if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) {
+        onAuthorizationRejected();
+      }
 
-    return () => window.clearTimeout(timer);
-  }, [load]);
+      setFormError(getErrorMessage(error, t.principalGroupSaveFailed));
+    },
+  });
 
   const moveMember = (principalIdentifier: string, nextGroupIdentifier: string) => {
-    setState((current) => {
-      if (!current.membershipByGroup[nextGroupIdentifier]) {
+    setMembershipDraft((current) => {
+      const currentMembershipByGroup = current.isDirty
+        ? current.membershipByGroup
+        : queryState.membershipByGroup;
+
+      if (!currentMembershipByGroup[nextGroupIdentifier]) {
         return current;
       }
 
       return {
-        ...current,
-        error: null,
+        isDirty: true,
         membershipByGroup: Object.fromEntries(
-          Object.entries(current.membershipByGroup).map(([groupIdentifier, principalIdentifiers]) => [
+          Object.entries(currentMembershipByGroup).map(([groupIdentifier, principalIdentifiers]) => [
             groupIdentifier,
             groupIdentifier === nextGroupIdentifier
               ? Array.from(new Set([...principalIdentifiers, principalIdentifier]))
               : principalIdentifiers.filter((candidate) => candidate !== principalIdentifier),
           ]),
         ),
-        success: null,
       };
     });
+    setFormError(null);
+    setSuccess(null);
+  };
+
+  const load = () => {
+    setFormError(null);
+    setSuccess(null);
+    void principalGroupsQuery.refetch();
   };
 
   const save = () => {
     if (!canManage) {
-      setState((current) => ({
-        ...current,
-        error: t.principalGroupReadOnly,
-        success: null,
-      }));
+      setFormError(t.principalGroupReadOnly);
+      setSuccess(null);
       return;
     }
 
-    setState((current) => ({
-      ...current,
-      error: null,
-      isSaving: true,
-      success: null,
-    }));
+    saveMutation.mutate(membershipByGroup);
+  };
 
-    void updatePrincipalGroupMembers({
-      fallbackErrorMessage: t.principalGroupSaveFailed,
-      requestBody: createUpdatePayload(state.membershipByGroup),
-    }).then(async (groupsResponse) => {
-      const membersResponse = await fetchAccountMembers({ fallbackErrorMessage: t.principalGroupMembersLoadFailed });
-      const groups = sortPrincipalGroups(groupsResponse.principalGroups);
-      const membershipByGroup = getGroupMembershipFromResponse(groups, membersResponse.members);
-      setSavedMembershipByGroup(membershipByGroup);
-      setState((current) => ({
-        ...current,
-        error: null,
-        groups,
-        isSaving: false,
-        members: membersResponse.members,
-        membershipByGroup,
-        success: t.principalGroupSaved,
-      }));
-    }).catch((error: unknown) => {
-      if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) {
-        onAuthorizationRejected();
-      }
-
-      setState((current) => ({
-        ...current,
-        error: error instanceof Error ? error.message : t.principalGroupSaveFailed,
-        isSaving: false,
-        success: null,
-      }));
-    });
+  const state: PrincipalGroupManagementState = {
+    error: formError ?? (principalGroupsQuery.error
+      ? getErrorMessage(principalGroupsQuery.error, t.principalGroupLoadFailed)
+      : null),
+    groups: queryState.groups,
+    isLoading: principalGroupsQuery.isFetching && !principalGroupsQuery.data,
+    isSaving: saveMutation.isPending,
+    members: queryState.members,
+    membershipByGroup,
+    success,
   };
 
   return {
     hasUnsavedChanges,
-    isBusy,
+    isBusy: state.isLoading || state.isSaving,
     memberByIdentifier,
     state,
     load,

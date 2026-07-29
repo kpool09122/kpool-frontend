@@ -1,8 +1,10 @@
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { inviteAccountMembers } from "@/gateways/account/accountBrowserApi";
+import type { InvitationSummary } from "@/gateways/account/accountApi";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
-import type { useI18n } from "../../../i18n/I18nProvider";
+import type { useI18n } from "../../../../i18n/I18nProvider";
 import type { MyPageAccountInvitationState } from "../../myPageTypes";
 import { accountInvitationEmailPattern, maxAccountInvitationEmails } from "../accountInvitationRules";
 
@@ -13,116 +15,126 @@ type UseAccountInvitationsParams = {
   t: ReturnType<typeof useI18n>["dictionary"]["mypage"];
 };
 
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
+
 export const useAccountInvitations = ({
   accountIdentifier,
   canInvite,
   principalState,
   t,
 }: UseAccountInvitationsParams) => {
-  const [state, setState] = useState<MyPageAccountInvitationState>(() => ({
-    emailInput: "",
-    emails: [],
-    error: null,
-    isSending: false,
-    success: null,
-  }));
+  const [emailInput, setEmailInput] = useState("");
+  const [emails, setEmails] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const inviteMutation = useMutation<InvitationSummary[], Error, string[]>({
+    mutationFn: (nextEmails) => {
+      if (!accountIdentifier || principalState.status !== "available") {
+        return Promise.reject(new Error(t.accountSettingsUnavailable));
+      }
+
+      if (!canInvite) {
+        return Promise.reject(new Error(t.accountInvitationReadOnly));
+      }
+
+      return inviteAccountMembers({
+        fallbackErrorMessage: t.accountInvitationSendFailed,
+        requestBody: {
+          accountIdentifier,
+          inviterPrincipalIdentifier: principalState.principal.principalIdentifier,
+          emails: nextEmails,
+        },
+      });
+    },
+    onMutate: () => {
+      setError(null);
+      setSuccess(null);
+    },
+    onSuccess: () => {
+      setEmailInput("");
+      setEmails([]);
+      setSuccess(t.accountInvitationSent);
+    },
+    onError: (mutationError) => {
+      setError(getErrorMessage(mutationError, t.accountInvitationSendFailed));
+    },
+  });
 
   const updateEmailInput = (value: string) => {
-    setState((current) => ({
-      ...current,
-      emailInput: value,
-      error: null,
-      success: null,
-    }));
+    setEmailInput(value);
+    setError(null);
+    setSuccess(null);
   };
 
   const addEmail = () => {
-    const email = state.emailInput.trim().toLowerCase();
+    const email = emailInput.trim().toLowerCase();
 
     if (!email) {
-      setState((current) => ({ ...current, error: t.accountInvitationEmailRequired, success: null }));
+      setError(t.accountInvitationEmailRequired);
+      setSuccess(null);
       return;
     }
 
     if (!accountInvitationEmailPattern.test(email)) {
-      setState((current) => ({ ...current, error: t.accountInvitationEmailInvalid, success: null }));
+      setError(t.accountInvitationEmailInvalid);
+      setSuccess(null);
       return;
     }
 
-    if (state.emails.includes(email)) {
-      setState((current) => ({ ...current, error: t.accountInvitationEmailDuplicate, success: null }));
+    if (emails.includes(email)) {
+      setError(t.accountInvitationEmailDuplicate);
+      setSuccess(null);
       return;
     }
 
-    if (state.emails.length >= maxAccountInvitationEmails) {
-      setState((current) => ({ ...current, error: t.accountInvitationEmailLimit, success: null }));
+    if (emails.length >= maxAccountInvitationEmails) {
+      setError(t.accountInvitationEmailLimit);
+      setSuccess(null);
       return;
     }
 
-    setState((current) => ({
-      ...current,
-      emailInput: "",
-      emails: [...current.emails, email],
-      error: null,
-      success: null,
-    }));
+    setEmailInput("");
+    setEmails((current) => [...current, email]);
+    setError(null);
+    setSuccess(null);
   };
 
   const removeEmail = (email: string) => {
-    setState((current) => ({
-      ...current,
-      emails: current.emails.filter((candidate) => candidate !== email),
-      error: null,
-      success: null,
-    }));
+    setEmails((current) => current.filter((candidate) => candidate !== email));
+    setError(null);
+    setSuccess(null);
   };
 
   const sendInvitations = () => {
     if (!accountIdentifier || principalState.status !== "available") {
-      setState((current) => ({ ...current, error: t.accountSettingsUnavailable, success: null }));
+      setError(t.accountSettingsUnavailable);
+      setSuccess(null);
       return;
     }
 
     if (!canInvite) {
-      setState((current) => ({ ...current, error: t.accountInvitationReadOnly, success: null }));
+      setError(t.accountInvitationReadOnly);
+      setSuccess(null);
       return;
     }
 
-    if (state.emails.length === 0) {
-      setState((current) => ({ ...current, error: t.accountInvitationEmailListRequired, success: null }));
+    if (emails.length === 0) {
+      setError(t.accountInvitationEmailListRequired);
+      setSuccess(null);
       return;
     }
 
-    setState((current) => ({
-      ...current,
-      error: null,
-      isSending: true,
-      success: null,
-    }));
+    inviteMutation.mutate(emails);
+  };
 
-    void inviteAccountMembers({
-      fallbackErrorMessage: t.accountInvitationSendFailed,
-      requestBody: {
-        accountIdentifier,
-        inviterPrincipalIdentifier: principalState.principal.principalIdentifier,
-        emails: state.emails,
-      },
-    }).then(() => {
-      setState({
-        emailInput: "",
-        emails: [],
-        error: null,
-        isSending: false,
-        success: t.accountInvitationSent,
-      });
-    }).catch((error: unknown) => {
-      setState((current) => ({
-        ...current,
-        error: error instanceof Error ? error.message : t.accountInvitationSendFailed,
-        isSending: false,
-        success: null,
-      }));
-    });
+  const state: MyPageAccountInvitationState = {
+    emailInput,
+    emails,
+    error,
+    isSending: inviteMutation.isPending,
+    success,
   };
 
   return {

@@ -1,5 +1,6 @@
 "use client";
 
+import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { useAccountSection } from "../AccountSectionContext";
 import { maxAccountInvitationEmails } from "../accountInvitationRules";
 import { useAccountInvitations } from "./useAccountInvitations";
@@ -25,12 +26,8 @@ export function AccountInvitationsClient() {
   });
 
   return (
-    <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">{t.accountInvitationsTitle}</h2>
-          <p className="mt-2 text-sm leading-6 text-text-muted">{t.accountInvitationsDescription}</p>
-        </div>
+    <AccountSettingsPanel
+      action={
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={state.isSending || state.emails.length === 0}
@@ -39,7 +36,10 @@ export function AccountInvitationsClient() {
         >
           {state.isSending ? t.accountInvitationSending : t.accountInvitationSend}
         </button>
-      </div>
+      }
+      description={t.accountInvitationsDescription}
+      title={t.accountInvitationsTitle}
+    >
       <div className="mt-5 grid gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="grid flex-1 gap-2 text-sm font-semibold">
@@ -87,21 +87,21 @@ export function AccountInvitationsClient() {
             ))}
           </ul>
         ) : (
-          <p className="rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted">
+          <AccountStatusMessage variant="empty">
             {t.accountInvitationEmailListEmpty}
-          </p>
+          </AccountStatusMessage>
         )}
         {state.error ? (
-          <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800" role="alert">
+          <AccountStatusMessage variant="error">
             {state.error}
-          </p>
+          </AccountStatusMessage>
         ) : null}
         {state.success ? (
-          <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" role="status">
+          <AccountStatusMessage variant="success">
             {state.success}
-          </p>
+          </AccountStatusMessage>
         ) : null}
       </div>
-    </section>
+    </AccountSettingsPanel>
   );
 }
