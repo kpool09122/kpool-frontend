@@ -6,7 +6,23 @@ import {
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MyPageClient } from "./MyPageClient";
+import { MyPageShellClient } from "./MyPageShellClient";
+import { MypageProvider } from "./MypageProvider";
+import { AccountPageClient } from "./account/AccountPageClient";
+import { AccountInvitationsClient } from "./account/invitations/AccountInvitationsClient";
+import { AccountPrincipalGroupsClient } from "./account/principal-groups/AccountPrincipalGroupsClient";
+import { AccountProfileClient } from "./account/profile/AccountProfileClient";
+import { UserPageClient } from "./user/UserPageClient";
+import { UserLanguageClient } from "./user/language/UserLanguageClient";
+import { UserProfileClient } from "./user/profile/UserProfileClient";
+import { WikiSectionClient } from "./wiki/WikiSectionClient";
+import { ApprovedWikisClient } from "./wiki/approved/ApprovedWikisClient";
+import { DraftImagesClient } from "./wiki/draft-images/DraftImagesClient";
+import { EditingWikisClient } from "./wiki/editing/EditingWikisClient";
+import { ImageDeletionRequestsClient } from "./wiki/image-deletion-requests/ImageDeletionRequestsClient";
+import { SubmittedWikisClient } from "./wiki/submitted/SubmittedWikisClient";
+import { UnapprovedWikisClient } from "./wiki/unapproved/UnapprovedWikisClient";
+import { UntranslatedWikisClient } from "./wiki/untranslated/UntranslatedWikisClient";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { fetchCurrentAuthenticatedIdentity } from "@/gateways/identity/authIdentityBrowserApi";
 import type {
@@ -14,6 +30,14 @@ import type {
   MyPageDraftWikiAdapter,
   MyPagePrincipalAdapter,
 } from "@/gateways/mypage/myPageAdapters";
+import type {
+  MyPageAccountSettingsTab,
+  MyPageRouteContext,
+  MyPageSection,
+  MyPageSettingsTab,
+  MyPageWikiTab,
+} from "./myPageTypes";
+import type { MyPageDraftWikiActionTab } from "./useMyPageDraftWikis";
 
 const identityMocks = vi.hoisted(() => ({
   fetchCurrentAuthenticatedIdentity: vi.fn(),
@@ -21,7 +45,7 @@ const identityMocks = vi.hoisted(() => ({
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
-  usePathname: vi.fn(() => "/mypage"),
+  usePathname: vi.fn(() => window.location.pathname),
 }));
 
 vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
@@ -427,6 +451,226 @@ const draftWikiListState = {
   wikis: [draftWiki],
 };
 
+const emptyDraftWikiLists: Record<MyPageDraftWikiActionTab, typeof emptyDraftWikiListState> = {
+  approvedWikis: emptyDraftWikiListState,
+  editingWikis: emptyDraftWikiListState,
+  submittedWikis: emptyDraftWikiListState,
+  unapprovedWikis: emptyDraftWikiListState,
+  untranslatedWikis: emptyDraftWikiListState,
+};
+
+const emptyDraftImages = {
+  images: [],
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: null,
+};
+
+const emptyImageDeletionRequests = {
+  images: [],
+  isInitialLoading: false,
+  isLoadingMore: false,
+  loadError: null,
+  pageInfo: null,
+};
+
+function MyPageClient({
+  draftImageAdapter,
+  draftWikiAdapter,
+  initialAccountSettingsTab = "accountProfile",
+  initialDraftWikis = emptyDraftWikiLists,
+  initialIdentity,
+  initialPrincipalState = { status: "idle" },
+  initialSection = "wiki",
+  initialSettingsTab = "profileSettings",
+  initialWikiTab = "editingWikis",
+  principalAdapter,
+  returnTo = null,
+}: {
+  draftImageAdapter?: MyPageDraftImageAdapter;
+  draftWikiAdapter?: MyPageDraftWikiAdapter;
+  initialAccountSettingsTab?: MyPageAccountSettingsTab;
+  initialDraftWikis?: MyPageRouteContext["initialDraftWikis"];
+  initialIdentity: MyPageRouteContext["initialIdentity"];
+  initialPrincipalState?: MyPageRouteContext["initialPrincipalState"];
+  initialSection?: MyPageSection;
+  initialSettingsTab?: MyPageSettingsTab;
+  initialWikiTab?: MyPageWikiTab;
+  principalAdapter?: MyPagePrincipalAdapter;
+  returnTo?: string | null;
+}) {
+  const [activeSection, setActiveSection] = React.useState(initialSection);
+  const [activeAccountSettingsTab, setActiveAccountSettingsTab] = React.useState(initialAccountSettingsTab);
+  const [activeSettingsTab, setActiveSettingsTab] = React.useState(initialSettingsTab);
+  const [activePathname, setActivePathname] = React.useState(() =>
+    getInitialMypagePathname({
+      initialAccountSettingsTab,
+      initialSection,
+      initialSettingsTab,
+      initialWikiTab,
+    }),
+  );
+  const context: MyPageRouteContext = {
+    initialDraftImages: emptyDraftImages,
+    initialDraftWikis,
+    initialIdentity,
+    initialImageDeletionRequests: emptyImageDeletionRequests,
+    initialPrincipalState,
+  };
+  window.history.replaceState(null, "", activePathname);
+  const handleRouteClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
+    const target = event.target;
+    const link = target instanceof Element ? target.closest("a") : null;
+    const href = link?.getAttribute("href");
+
+    if (!href?.startsWith("/mypage")) {
+      return;
+    }
+
+    event.preventDefault();
+    window.history.pushState(null, "", href);
+    setActivePathname(href);
+
+    if (href.startsWith("/mypage/account")) {
+      setActiveSection("accountSettings");
+      if (href.endsWith("/invitations")) {
+        setActiveAccountSettingsTab("accountInvitations");
+      } else if (href.endsWith("/principal-groups")) {
+        setActiveAccountSettingsTab("principalGroupManagement");
+      } else {
+        setActiveAccountSettingsTab("accountProfile");
+      }
+      return;
+    }
+
+    if (href.startsWith("/mypage/user")) {
+      setActiveSection("settings");
+      setActiveSettingsTab(href.endsWith("/language") ? "languageSettings" : "profileSettings");
+      return;
+    }
+
+    setActiveSection("wiki");
+  };
+
+  const activeContent = activeSection === "accountSettings" ? (
+    <AccountPageClient activeTab={activeAccountSettingsTab}>
+      {activeAccountSettingsTab === "accountInvitations" ? (
+        <AccountInvitationsClient />
+      ) : activeAccountSettingsTab === "principalGroupManagement" ? (
+        <AccountPrincipalGroupsClient />
+      ) : (
+        <AccountProfileClient />
+      )}
+    </AccountPageClient>
+  ) : activeSection === "settings" ? (
+    <UserPageClient activeSettingsTab={activeSettingsTab}>
+      {activeSettingsTab === "languageSettings" ? <UserLanguageClient /> : <UserProfileClient />}
+    </UserPageClient>
+  ) : (
+    <WikiSectionClient
+      draftImageAdapter={draftImageAdapter}
+      draftWikiAdapter={draftWikiAdapter}
+      principalAdapter={principalAdapter}
+      returnTo={returnTo}
+    >
+      {renderWikiTestPage(activePathname)}
+    </WikiSectionClient>
+  );
+
+  return (
+    <div onClickCapture={handleRouteClick}>
+      <MypageProvider initialContext={context}>
+        <MyPageShellClient>{activeContent}</MyPageShellClient>
+      </MypageProvider>
+    </div>
+  );
+}
+
+const renderWikiTestPage = (pathname: string) => {
+  if (pathname.endsWith("/submitted")) {
+    return <SubmittedWikisClient />;
+  }
+
+  if (pathname.endsWith("/approved")) {
+    return <ApprovedWikisClient />;
+  }
+
+  if (pathname.endsWith("/unapproved")) {
+    return <UnapprovedWikisClient />;
+  }
+
+  if (pathname.endsWith("/untranslated")) {
+    return <UntranslatedWikisClient />;
+  }
+
+  if (pathname.endsWith("/draft-images")) {
+    return <DraftImagesClient />;
+  }
+
+  if (pathname.endsWith("/image-deletion-requests")) {
+    return <ImageDeletionRequestsClient />;
+  }
+
+  return <EditingWikisClient />;
+};
+
+const getInitialMypagePathname = ({
+  initialAccountSettingsTab,
+  initialSection,
+  initialSettingsTab,
+  initialWikiTab,
+}: {
+  initialAccountSettingsTab: MyPageAccountSettingsTab;
+  initialSection: MyPageSection;
+  initialSettingsTab: MyPageSettingsTab;
+  initialWikiTab: MyPageWikiTab;
+}) => {
+  if (initialSection === "accountSettings") {
+    if (initialAccountSettingsTab === "accountInvitations") {
+      return "/mypage/account/invitations";
+    }
+
+    if (initialAccountSettingsTab === "principalGroupManagement") {
+      return "/mypage/account/principal-groups";
+    }
+
+    return "/mypage/account/profile";
+  }
+
+  if (initialSection === "settings") {
+    return initialSettingsTab === "languageSettings"
+      ? "/mypage/user/language"
+      : "/mypage/user/profile";
+  }
+
+  if (initialWikiTab === "submittedWikis") {
+    return "/mypage/wiki/submitted";
+  }
+
+  if (initialWikiTab === "approvedWikis") {
+    return "/mypage/wiki/approved";
+  }
+
+  if (initialWikiTab === "unapprovedWikis") {
+    return "/mypage/wiki/unapproved";
+  }
+
+  if (initialWikiTab === "untranslatedWikis") {
+    return "/mypage/wiki/untranslated";
+  }
+
+  if (initialWikiTab === "draftImages") {
+    return "/mypage/wiki/draft-images";
+  }
+
+  if (initialWikiTab === "imageDeletionRequests") {
+    return "/mypage/wiki/image-deletion-requests";
+  }
+
+  return "/mypage/wiki/editing";
+};
+
 const renderWithQueryClient = (ui: React.ReactElement) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -458,7 +702,7 @@ const loadCropperImage = () => {
   fireEvent.load(image);
 };
 
-describe("MyPageClient", () => {
+describe("mypage page clients", () => {
   beforeEach(() => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       drawImage: vi.fn(),
@@ -545,6 +789,66 @@ describe("MyPageClient", () => {
     expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("renders the draft image page when opened from the direct Wiki route", async () => {
+    const draftImageAdapter = createDraftImageAdapter();
+
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={draftImageAdapter}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialWikiTab="draftImages"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("tab", { name: "未承認の画像", selected: true })).toBeInTheDocument();
+    expect(await screen.findByText("Review image")).toBeInTheDocument();
+    expect(draftImageAdapter.listDraftImages).toHaveBeenCalledWith({
+      fallbackErrorMessage: "未承認の画像一覧を読み込めませんでした。",
+      page: 1,
+      perPage: 12,
+      status: "under_review",
+    });
+  });
+
+  it("renders the invitation page when opened from the direct account route", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountInvitations"
+        initialIdentity={identityWithAccountInvitePolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "アカウント設定", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "ユーザー招待", selected: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "招待を送信" })).toBeInTheDocument();
+  });
+
+  it("renders the language page when opened from the direct user settings route", async () => {
+    renderWithQueryClient(
+      <MyPageClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="settings"
+        initialSettingsTab="languageSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "ユーザー設定", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "言語", selected: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
   });
 
   it("hides account settings when /auth/me has no account policy", () => {
@@ -1606,7 +1910,7 @@ describe("MyPageClient", () => {
     );
     expect(draftWikiAdapter.listMyDraftWikis).not.toHaveBeenCalled();
     expect(draftWikiAdapter.listManagedDraftWikis).not.toHaveBeenCalled();
-    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );
@@ -1625,7 +1929,7 @@ describe("MyPageClient", () => {
         statuses: ["under_review"],
       }),
     );
-    expect(screen.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
       "/wiki/ja/gr-review-wiki/edit",
     );

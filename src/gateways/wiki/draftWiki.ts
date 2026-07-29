@@ -87,7 +87,7 @@ export type WikiVersionInconsistentWiki = z.infer<typeof wikiPrivateApiTypes.sch
 export type WikiVersionInconsistentWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListWikisResponseBody>;
 export type WikiDraftReviewAction = "approve" | "reject";
 export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish" | "translate";
-type InitialDraftWikiListState = {
+export type InitialDraftWikiListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   loadError: null;
@@ -101,6 +101,7 @@ export type InitialDraftWikis = {
   unapprovedWikis: InitialDraftWikiListState;
   untranslatedWikis: InitialDraftWikiListState;
 };
+export type InitialDraftWikiListTab = keyof InitialDraftWikis;
 type DraftWikiApiClient = {
   baseUrl: string;
   fetchDraftWiki: (
@@ -160,6 +161,33 @@ export const createInitialDraftWikis = (): InitialDraftWikis => ({
   unapprovedWikis: createEmptyDraftWikiListState(),
   untranslatedWikis: createEmptyDraftWikiListState(),
 });
+
+const initialDraftWikiListConfigByTab = {
+  approvedWikis: {
+    scope: "managed",
+    statuses: ["approved"],
+  },
+  editingWikis: {
+    scope: "my",
+    statuses: ["pending", "rejected"],
+  },
+  submittedWikis: {
+    scope: "my",
+    statuses: ["under_review"],
+  },
+  unapprovedWikis: {
+    scope: "managed",
+    statuses: ["under_review"],
+  },
+} as const satisfies Record<
+  Exclude<InitialDraftWikiListTab, "untranslatedWikis">,
+  { scope: "managed" | "my"; statuses: readonly WikiDraftWikiStatus[] }
+>;
+
+const isInitialDraftWikiListTab = (
+  tab: InitialDraftWikiListTab,
+): tab is Exclude<InitialDraftWikiListTab, "untranslatedWikis"> =>
+  tab !== "untranslatedWikis";
 
 export type DraftWikiState =
   | { status: "success"; data: WikiDraftDetail }
@@ -1117,58 +1145,81 @@ export const loadInitialDraftWikisForRequest = async (
     return createMockInitialDraftWikis();
   }
 
+  const editingWikis = await loadInitialDraftWikiListForRequest(cookieHeader, "editingWikis");
+
+  return {
+    ...createInitialDraftWikis(),
+    editingWikis,
+  };
+};
+
+export const loadInitialDraftWikiListForRequest = async (
+  cookieHeader: string,
+  tab: InitialDraftWikiListTab,
+): Promise<InitialDraftWikiListState> => {
+  if (isMockWikiGatewayEnabled()) {
+    return createMockInitialDraftWikis()[tab];
+  }
+
   const configuredBaseUrl = getDefaultApiBaseUrl();
   const baseUrl = configuredBaseUrl ? withWikiApiPrefix(configuredBaseUrl) : "";
 
   if (!baseUrl) {
-    return createInitialDraftWikis();
+    return createEmptyDraftWikiListState();
   }
 
   try {
-    const response = await fetch(
-      createMyWikiDraftWikisUrl({
+    const url = isInitialDraftWikiListTab(tab)
+      ? (initialDraftWikiListConfigByTab[tab].scope === "my"
+        ? createMyWikiDraftWikisUrl
+        : createManagedWikiDraftWikisUrl)({
         baseUrl,
         page: 1,
         perPage: defaultWikiDraftPerPage,
-        statuses: ["pending", "rejected"],
-      }),
-      {
-        cache: "no-store",
-        headers: {
-          Accept: "application/json",
-          Cookie: cookieHeader,
-        },
+        statuses: initialDraftWikiListConfigByTab[tab].statuses,
+      })
+      : createVersionInconsistentWikisUrl({
+        baseUrl,
+        order: "desc",
+        page: 1,
+        perPage: defaultWikiDraftPerPage,
+        sort: "updatedAt",
+      });
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        Cookie: cookieHeader,
       },
-    );
+    });
 
     if (!response.ok) {
-      return createInitialDraftWikis();
+      return createEmptyDraftWikiListState();
     }
 
-    const bodyResult = wikiDraftWikiListResponseSchema.safeParse(await response.json());
+    const bodyResult = (isInitialDraftWikiListTab(tab)
+      ? wikiDraftWikiListResponseSchema
+      : wikiVersionInconsistentWikiListResponseSchema).safeParse(await response.json());
 
     if (!bodyResult.success) {
-      return createInitialDraftWikis();
+      return createEmptyDraftWikiListState();
     }
 
     const body = bodyResult.data;
 
     return {
-      ...createInitialDraftWikis(),
-      editingWikis: {
-        isInitialLoading: false,
-        isLoadingMore: false,
-        loadError: null,
-        pageInfo: {
-          current_page: body.current_page,
-          last_page: body.last_page,
-          total: body.total,
-        },
-        wikis: body.wikis,
+      isInitialLoading: false,
+      isLoadingMore: false,
+      loadError: null,
+      pageInfo: {
+        current_page: body.current_page,
+        last_page: body.last_page,
+        total: body.total,
       },
+      wikis: body.wikis,
     };
   } catch {
-    return createInitialDraftWikis();
+    return createEmptyDraftWikiListState();
   }
 };
 

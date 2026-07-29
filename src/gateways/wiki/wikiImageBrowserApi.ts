@@ -1,5 +1,7 @@
 import {
   normalizeWikiDraftImageListResponse,
+  defaultWikiImagePerPage,
+  withWikiApiPrefix,
   wikiDraftImageListResponseSchema,
   wikiDraftImageReviewCsrfHeaderName,
   wikiDraftImageReviewCsrfHeaderValue,
@@ -28,6 +30,51 @@ import {
   getWikiRouteErrorMessage,
   readWikiRouteJsonResponse,
 } from "./wikiBrowserRouteSupport";
+
+const getDefaultApiBaseUrl = (): string => process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL ?? "";
+
+const getWikiPrivateApiBaseUrl = (): string => {
+  const configuredBaseUrl = getDefaultApiBaseUrl();
+
+  return configuredBaseUrl ? withWikiApiPrefix(configuredBaseUrl) : "";
+};
+
+const createWikiDraftImagesUrl = ({
+  baseUrl,
+  page,
+  perPage,
+  status,
+}: {
+  baseUrl: string;
+  page: number;
+  perPage: number;
+  status: WikiDraftImageStatus;
+}): string => {
+  const url = new URL(`${baseUrl.replace(/\/+$/, "")}/draft-images`);
+
+  url.searchParams.set("status", status);
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  return url.toString();
+};
+
+const createWikiImageDeletionRequestsUrl = ({
+  baseUrl,
+  page,
+  perPage,
+}: {
+  baseUrl: string;
+  page: number;
+  perPage: number;
+}): string => {
+  const url = new URL(`${baseUrl.replace(/\/+$/, "")}/image-deletion-requests`);
+
+  url.searchParams.set("perPage", String(perPage));
+  url.searchParams.set("page", String(page));
+
+  return url.toString();
+};
 
 export const fetchWikiDraftImages = async ({
   page,
@@ -89,6 +136,82 @@ export const fetchWikiImageDeletionRequests = async ({
     wikiImageDeletionRequestListResponseSchema,
     body,
   );
+};
+
+export const loadInitialWikiDraftImagesForRequest = async (
+  cookieHeader: string,
+): Promise<WikiDraftImageListResponse | null> => {
+  const baseUrl = getWikiPrivateApiBaseUrl();
+
+  if (!baseUrl) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      createWikiDraftImagesUrl({
+        baseUrl,
+        page: 1,
+        perPage: defaultWikiImagePerPage,
+        status: "under_review",
+      }),
+      {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          Cookie: cookieHeader,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const body = normalizeWikiDraftImageListResponse(await response.json());
+    const bodyResult = wikiDraftImageListResponseSchema.safeParse(body);
+
+    return bodyResult.success ? bodyResult.data : null;
+  } catch {
+    return null;
+  }
+};
+
+export const loadInitialWikiImageDeletionRequestsForRequest = async (
+  cookieHeader: string,
+): Promise<WikiImageDeletionRequestListResponse | null> => {
+  const baseUrl = getWikiPrivateApiBaseUrl();
+
+  if (!baseUrl) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      createWikiImageDeletionRequestsUrl({
+        baseUrl,
+        page: 1,
+        perPage: defaultWikiImagePerPage,
+      }),
+      {
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+          Cookie: cookieHeader,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const bodyResult = wikiImageDeletionRequestListResponseSchema.safeParse(await response.json());
+
+    return bodyResult.success ? bodyResult.data : null;
+  } catch {
+    return null;
+  }
 };
 
 export const fetchWikiImages = async ({

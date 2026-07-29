@@ -1,12 +1,23 @@
 import type { WikiDraftImageStatus } from "@kpool/wiki";
 
-import type { MyPageDraftWikiActionTab } from "./useMyPageDraftWikis";
 import type { WikiDraftWikiStatus } from "@/gateways/wiki/draftWiki";
 
 type WikiDraftWikiListScope = "managed" | "my";
 
 export const myPageQueryKeys = {
   all: ["mypage"] as const,
+  account: {
+    all: () => [...myPageQueryKeys.all, "account"] as const,
+    profile: (accountIdentifier: string | null) => [
+      ...myPageQueryKeys.account.all(),
+      "profile",
+      accountIdentifier ?? "unavailable",
+    ] as const,
+    principalGroups: () => [
+      ...myPageQueryKeys.account.all(),
+      "principalGroups",
+    ] as const,
+  },
   draftImages: {
     all: () => [...myPageQueryKeys.all, "draftImages"] as const,
     list: ({
@@ -65,17 +76,14 @@ export const myPageQueryKeys = {
       identityIdentifier,
       scope,
       statuses,
-      tab,
     }: {
       identityIdentifier: string | null;
       scope?: WikiDraftWikiListScope;
       statuses?: WikiDraftWikiStatus[];
-      tab: MyPageDraftWikiActionTab;
     }) => [
       ...myPageQueryKeys.draftWikis.all(),
       "list",
       identityIdentifier ?? "guest",
-      tab,
       statuses ?? null,
       scope ?? null,
     ] as const,
@@ -84,18 +92,15 @@ export const myPageQueryKeys = {
       page,
       scope,
       statuses,
-      tab,
     }: {
       identityIdentifier: string | null;
       page: number;
       scope?: WikiDraftWikiListScope;
       statuses?: WikiDraftWikiStatus[];
-      tab: MyPageDraftWikiActionTab;
     }) => [...myPageQueryKeys.draftWikis.list({
       identityIdentifier,
       scope,
       statuses,
-      tab,
     }), page] as const,
   },
   principal: {
