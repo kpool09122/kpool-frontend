@@ -130,9 +130,9 @@ export function SignupPage({
       setPhase("complete");
 
       if (navigate) {
-        navigate("/mypage");
+        navigate("/admin");
       } else {
-        router.replace("/mypage");
+        router.replace("/admin");
         router.refresh();
       }
       refresh?.();

@@ -37,9 +37,9 @@ describe("login auth flow helpers", () => {
     expect(normalizeReturnTo("/wiki/ja/gr-aurora-echo")).toBe(
       "/wiki/ja/gr-aurora-echo",
     );
-    expect(normalizeReturnTo("https://example.com/phishing")).toBe("/mypage");
-    expect(normalizeReturnTo("//example.com/phishing")).toBe("/mypage");
-    expect(normalizeReturnTo(null)).toBe("/mypage");
+    expect(normalizeReturnTo("https://example.com/phishing")).toBe("/admin");
+    expect(normalizeReturnTo("//example.com/phishing")).toBe("/admin");
+    expect(normalizeReturnTo(null)).toBe("/admin");
   });
 
   it("extracts a user-facing message from failed auth responses", async () => {
@@ -119,13 +119,13 @@ describe("login auth flow helpers", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      requestSocialRedirect("google", "/mypage", "invite-token-123"),
+      requestSocialRedirect("google", "/admin", "invite-token-123"),
     ).resolves.toEqual({
       ok: true,
       redirectUrl: "https://accounts.example.test/oauth",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/identity/auth/social/google/redirect?return_to=%2Fmypage&oneTimeToken=invite-token-123",
+      "/api/identity/auth/social/google/redirect?return_to=%2Fadmin&oneTimeToken=invite-token-123",
       {
         credentials: "include",
       },

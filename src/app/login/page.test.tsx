@@ -91,7 +91,7 @@ describe("LoginPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Googleでログイン" }));
 
     await waitFor(() =>
-      expect(socialRedirectAdapter).toHaveBeenCalledWith("google", "/mypage"),
+      expect(socialRedirectAdapter).toHaveBeenCalledWith("google", "/admin"),
     );
     expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/oauth");
   });
@@ -121,7 +121,7 @@ describe("LoginPage", () => {
     );
   });
 
-  it("logs in with email and password, trusts auth/me, and opens mypage", async () => {
+  it("logs in with email and password, trusts auth/me, and opens admin", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({ identity: loginIdentity, ok: true });
     const navigate = vi.fn();
 
@@ -144,13 +144,13 @@ describe("LoginPage", () => {
       expect(loginAdapter).toHaveBeenCalledWith({
         email: "member@example.com",
         password: "secret-password",
-        return_to: "/mypage",
+        return_to: "/admin",
       }),
     );
     await waitFor(() =>
       expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1),
     );
-    expect(navigate).toHaveBeenCalledWith("/mypage");
+    expect(navigate).toHaveBeenCalledWith("/admin");
     expect(useAuthStore.getState()).toMatchObject({
       identity: authenticatedIdentity,
       status: "authenticated",
@@ -169,7 +169,7 @@ describe("LoginPage", () => {
       <LoginPage
         loginAdapter={loginAdapter}
         navigate={navigate}
-        returnTo="/mypage"
+        returnTo="/admin"
       />,
     );
 
@@ -185,7 +185,7 @@ describe("LoginPage", () => {
       expect(loginAdapter).toHaveBeenCalledWith({
         email: "member@example.com",
         password: "secret-password",
-        return_to: "/mypage",
+        return_to: "/admin",
       }),
     );
     expect(navigate).toHaveBeenCalledWith("/wiki/ja/gr-aurora-echo/edit");

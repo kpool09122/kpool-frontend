@@ -126,14 +126,14 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
   await page.route("**/api/identity/auth/social/google/redirect?*", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({ redirectUrl: "/mypage?sso=google" }),
+      body: JSON.stringify({ redirectUrl: "/admin?sso=google" }),
     });
   });
   await page.goto("/login");
 
   await page.getByRole("button", { name: /Google.*でログイン/ }).click();
 
-  await expect(page).toHaveURL(/\/mypage\?sso=google$/);
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
 });
 
 test("login page submits email credentials through the Identity API proxy", async ({
@@ -146,7 +146,7 @@ test("login page submits email credentials through the Identity API proxy", asyn
     expect(requestBody).toEqual({
       email: "member@example.com",
       password: "secret-password",
-      return_to: "/mypage",
+      return_to: "/admin",
     });
     await route.fulfill({
       contentType: "application/json",
@@ -164,7 +164,7 @@ test("login page submits email credentials through the Identity API proxy", asyn
   await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
   await page.getByRole("button", { name: "メールアドレスでログイン" }).click();
 
-  await expect(page).toHaveURL(/\/mypage$/);
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
 });
 
 test("login page links to signup and completes the signup flow through API proxies", async ({
@@ -266,5 +266,5 @@ test("login page links to signup and completes the signup flow through API proxi
   await page.getByLabel("確認用パスワード").fill("secret-password");
   await page.getByRole("button", { name: "登録を完了" }).click();
 
-  await expect(page).toHaveURL(/\/mypage$/);
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
 });

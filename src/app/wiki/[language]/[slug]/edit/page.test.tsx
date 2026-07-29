@@ -124,11 +124,11 @@ describe("Wiki edit route", () => {
     );
   });
 
-  it("redirects edits to mypage with the edit return path when the principal is missing", async () => {
+  it("redirects edits to admin with the edit return path when the principal is missing", async () => {
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
 
     await expect(Page(routeProps())).rejects.toThrow(
-      "redirect:/mypage?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
+      "redirect:/admin?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
     );
   });
 

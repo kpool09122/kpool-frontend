@@ -25,7 +25,7 @@ describe("/api/identity/auth/social/[provider]/redirect route", () => {
   it("forwards the encoded provider path and cookies to upstream", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ redirectUrl: "https://app.example.test/mypage?sso=google" })),
+      new Response(JSON.stringify({ redirectUrl: "https://app.example.test/admin?sso=google" })),
     );
     vi.stubGlobal("fetch", fetchMock);
 
