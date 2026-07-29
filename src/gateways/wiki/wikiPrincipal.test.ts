@@ -206,7 +206,7 @@ describe("wiki principal helpers", () => {
     });
   });
 
-  it("keeps unauthenticated mypage SSR principal lookup idle outside mock mode", async () => {
+  it("keeps unauthenticated admin SSR principal lookup idle outside mock mode", async () => {
     const principalState = await getInitialWikiPrincipalForRequest({
       cookieHeader: "",
       hasAuthenticatedIdentity: false,

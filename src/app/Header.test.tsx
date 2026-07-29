@@ -25,14 +25,14 @@ describe("Header", () => {
     expect(desktopLoginLink).toHaveClass("hidden", "sm:inline-flex");
   });
 
-  it("renders the desktop profile menu with mypage and logout when authenticated", () => {
+  it("renders the desktop profile menu with admin and logout when authenticated", () => {
     render(<Header initialIsAuthenticated />);
 
-    expect(screen.getByRole("button", { name: "マイページ" })).toHaveClass("rounded-full");
-    const desktopMyPageLink = screen.getByRole("link", {
-      name: "マイページ",
+    expect(screen.getByRole("button", { name: "管理画面" })).toHaveClass("rounded-full");
+    const desktopAdminLink = screen.getByRole("link", {
+      name: "管理画面",
     });
-    expect(desktopMyPageLink).toHaveAttribute("href", "/mypage");
+    expect(desktopAdminLink).toHaveAttribute("href", "/admin");
     expect(
       screen.queryByRole("link", {
         name: "ログイン",
@@ -100,7 +100,7 @@ describe("Header", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the mypage link in the mobile menu when authenticated", () => {
+  it("shows the admin link in the mobile menu when authenticated", () => {
     render(<Header initialIsAuthenticated />);
 
     fireEvent.click(
@@ -114,9 +114,9 @@ describe("Header", () => {
     });
     expect(
       within(mobileNavigation).getByRole("link", {
-        name: "マイページ",
+        name: "管理画面",
       }),
-    ).toHaveAttribute("href", "/mypage");
+    ).toHaveAttribute("href", "/admin");
     expect(
       within(mobileNavigation).getByRole("button", {
         name: "ログアウト",

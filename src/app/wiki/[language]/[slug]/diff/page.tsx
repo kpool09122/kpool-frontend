@@ -13,5 +13,5 @@ export const revalidate = 0;
 
 export default async function Page({ params }: WikiDiffRouteProps) {
   await params;
-  redirect("/mypage");
+  redirect("/admin");
 }

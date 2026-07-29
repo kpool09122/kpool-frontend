@@ -92,7 +92,7 @@ describe("InvitationAcceptPage", () => {
       ),
     );
     await waitFor(() => expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1));
-    expect(navigate).toHaveBeenCalledWith("/mypage");
+    expect(navigate).toHaveBeenCalledWith("/admin");
   });
 
   it("passes oneTimeToken to social redirect acceptance", async () => {
@@ -116,7 +116,7 @@ describe("InvitationAcceptPage", () => {
     await waitFor(() =>
       expect(socialRedirectAdapter).toHaveBeenCalledWith(
         "google",
-        "/mypage",
+        "/admin",
         "invite-token-123",
       ),
     );

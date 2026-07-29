@@ -66,7 +66,7 @@ export default async function Page({ params, searchParams }: WikiEditRouteProps)
   });
 
   if (principalState.status === "missing") {
-    redirect(`/mypage?returnTo=${encodeURIComponent(editReturnPath)}`);
+    redirect(`/admin?returnTo=${encodeURIComponent(editReturnPath)}`);
   }
 
   if (principalState.status === "error") {

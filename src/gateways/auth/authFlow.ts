@@ -68,7 +68,7 @@ export const identityProviders: IdentityProvider[] = [
 
 export const normalizeReturnTo = (value: string | null | undefined): string => {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/mypage";
+    return "/admin";
   }
 
   return value;

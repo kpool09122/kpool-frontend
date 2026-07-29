@@ -126,7 +126,7 @@ export function Header({
   };
   const mobileRowClassName = "flex w-full items-center justify-between px-1 py-3 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/20 focus:bg-brand-highlight/20 focus:outline-none active:bg-brand-highlight/30";
   const profileImage = currentIdentity?.profileImage ?? null;
-  const profileLabel = currentIdentity?.identityName || t.mypage;
+  const profileLabel = currentIdentity?.identityName || t.admin;
   const languageSwitcher = (
     <label className="relative inline-flex items-center text-sm font-semibold text-text-muted">
       <span className="sr-only">{t.language}</span>
@@ -192,9 +192,9 @@ export function Header({
                 <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
                   <Link
                     className="rounded-lg px-4 py-2 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
-                    href="/mypage"
+                    href="/admin"
                   >
-                    {t.mypage}
+                    {t.admin}
                   </Link>
                   <button
                     type="button"
@@ -278,8 +278,8 @@ export function Header({
               </button>
               {isAuthenticated ? (
                 <>
-                  <Link className={mobileRowClassName} href="/mypage" onClick={closeMobileMenu}>
-                    {t.mypage}
+                  <Link className={mobileRowClassName} href="/admin" onClick={closeMobileMenu}>
+                    {t.admin}
                   </Link>
                   <button
                     type="button"

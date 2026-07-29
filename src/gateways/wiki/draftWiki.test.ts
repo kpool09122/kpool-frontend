@@ -813,7 +813,7 @@ describe("draftWiki", () => {
     );
   });
 
-  it("loads initial mypage draft wikis from the shared mock gateway contract", async () => {
+  it("loads initial admin draft wikis from the shared mock gateway contract", async () => {
     vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
     const fetchMock = vi.spyOn(globalThis, "fetch");
 

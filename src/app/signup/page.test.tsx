@@ -42,7 +42,7 @@ describe("SignupPage", () => {
     cleanup();
   });
 
-  it("creates an account, verifies email, creates identity, and opens mypage", async () => {
+  it("creates an account, verifies email, creates identity, and opens admin", async () => {
     const adapter = createAdapter();
     const navigate = vi.fn();
 
@@ -101,7 +101,7 @@ describe("SignupPage", () => {
         { language: "ja" },
       ),
     );
-    expect(navigate).toHaveBeenCalledWith("/mypage");
+    expect(navigate).toHaveBeenCalledWith("/admin");
   });
 
   it("keeps typed account values and shows an error when account creation fails", async () => {

@@ -73,9 +73,9 @@ export function InvitationAcceptPage({
     await refreshIdentity();
 
     if (navigate) {
-      navigate("/mypage");
+      navigate("/admin");
     } else {
-      router.replace("/mypage");
+      router.replace("/admin");
       router.refresh();
     }
     refresh?.();
@@ -117,7 +117,7 @@ export function InvitationAcceptPage({
     setErrorMessage(null);
     setPendingAction({ type: "social", provider });
 
-    const result = await socialRedirectAdapter(provider, "/mypage", normalizedToken);
+    const result = await socialRedirectAdapter(provider, "/admin", normalizedToken);
 
     if (result.ok) {
       if (navigate) {
