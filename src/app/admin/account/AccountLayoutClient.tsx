@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
-import { canInviteAccountMembers, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy, isCorporationAccount } from "@/gateways/account/accountPolicy";
+import { canInviteAccountMembers, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import { getAccountIdentifierFromIdentity, type WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { useI18n } from "../../../i18n/I18nProvider";
@@ -42,7 +42,7 @@ export function AccountLayoutClient({
 }: AccountLayoutClientProps) {
   const router = useRouter();
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
-  const canShowAccountSettings = Boolean(accountIdentifier) && isCorporationAccount(currentIdentity) && hasAccountPolicy(currentIdentity);
+  const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
   const canEdit = canUpdateAccount(currentIdentity);
   const canInvite = canInviteAccountMembers(currentIdentity);
   const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
@@ -65,6 +65,7 @@ export function AccountLayoutClient({
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
+    createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
   ];
