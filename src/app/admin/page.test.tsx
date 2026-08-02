@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminShellClient } from "./AdminShellClient";
 import { AdminProvider } from "./AdminProvider";
 import { AccountPageClient } from "./account/AccountPageClient";
+import { AccountDocumentsClient } from "./account/documents/AccountDocumentsClient";
 import { AccountInvitationsClient } from "./account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "./account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "./account/profile/AccountProfileClient";
@@ -534,7 +535,9 @@ function AdminClient({
 
     if (href.startsWith("/admin/account")) {
       setActiveSection("accountSettings");
-      if (href.endsWith("/invitations")) {
+      if (href.endsWith("/documents")) {
+        setActiveAccountSettingsTab("accountDocuments");
+      } else if (href.endsWith("/invitations")) {
         setActiveAccountSettingsTab("accountInvitations");
       } else if (href.endsWith("/principal-groups")) {
         setActiveAccountSettingsTab("principalGroupManagement");
@@ -555,7 +558,9 @@ function AdminClient({
 
   const activeContent = activeSection === "accountSettings" ? (
     <AccountPageClient activeTab={activeAccountSettingsTab}>
-      {activeAccountSettingsTab === "accountInvitations" ? (
+      {activeAccountSettingsTab === "accountDocuments" ? (
+        <AccountDocumentsClient />
+      ) : activeAccountSettingsTab === "accountInvitations" ? (
         <AccountInvitationsClient />
       ) : activeAccountSettingsTab === "principalGroupManagement" ? (
         <AccountPrincipalGroupsClient />
@@ -627,6 +632,10 @@ const getInitialAdminPathname = ({
   initialWikiTab: AdminWikiTab;
 }) => {
   if (initialSection === "accountSettings") {
+    if (initialAccountSettingsTab === "accountDocuments") {
+      return "/admin/account/documents";
+    }
+
     if (initialAccountSettingsTab === "accountInvitations") {
       return "/admin/account/invitations";
     }
@@ -866,7 +875,7 @@ describe("admin page clients", () => {
     expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
   });
 
-  it("hides account settings for non-corporation account types even with account policy", () => {
+  it("shows account document settings for individual account types with account policy", () => {
     renderWithQueryClient(
       <AdminClient
         draftImageAdapter={createDraftImageAdapter()}
@@ -877,8 +886,53 @@ describe("admin page clients", () => {
       />,
     );
 
-    expect(screen.queryByRole("link", { name: "アカウント設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "アカウント設定" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
+  });
+
+  it("shows missing required account documents as a status warning", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "書類アップロード", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "法人確認書類", level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "代表者本人確認書類", level: 3 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "法人向け書類" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "アップロード" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("必須書類を選択してください。"),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("shows invitation tab only for account:member:invite policy and sends a batched invitation", async () => {

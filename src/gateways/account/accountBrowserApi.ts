@@ -2,12 +2,16 @@ import {
   parseAccountMembersResponse,
   parseAccountSummary,
   parseInvitationSummaries,
+  parseListAccountDocumentsResponse,
   parsePrincipalGroupsResponse,
+  parseUploadAccountDocumentsResponse,
   type AccountSummary,
   type InvitationSummary,
   type InviteAccountMembersRequest,
+  type ListAccountDocumentsResponse,
   type ListMembersResponse,
   type ListPrincipalGroupsResponse,
+  type UploadAccountDocumentsRequest,
   type UpdateAccountRequest,
   type UpdatePrincipalGroupMembersRequest,
 } from "./accountApi";
@@ -20,6 +24,10 @@ type AccountRequestOptions = {
 
 type UpdateAccountOptions = AccountRequestOptions & {
   requestBody: UpdateAccountRequest;
+};
+
+type UploadAccountDocumentsOptions = AccountRequestOptions & {
+  requestBody: UploadAccountDocumentsRequest;
 };
 
 type InviteAccountMembersOptions = {
@@ -198,4 +206,47 @@ export const updatePrincipalGroupMembers = async ({
   }
 
   return parsePrincipalGroupsResponse(body);
+};
+
+export const fetchAccountDocuments = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: AccountRequestOptions): Promise<ListAccountDocumentsResponse> => {
+  const response = await fetchAdapter("/api/account/my/documents", {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseListAccountDocumentsResponse(body);
+};
+
+export const uploadAccountDocuments = async ({
+  accountIdentifier,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: UploadAccountDocumentsOptions): Promise<ListAccountDocumentsResponse> => {
+  const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}/documents`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseUploadAccountDocumentsResponse(body);
 };
