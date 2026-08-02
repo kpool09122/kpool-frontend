@@ -13,6 +13,11 @@ export const adminQueryKeys = {
       "profile",
       accountIdentifier ?? "unavailable",
     ] as const,
+    documents: (accountIdentifier: string | null) => [
+      ...adminQueryKeys.account.all(),
+      "documents",
+      accountIdentifier ?? "unavailable",
+    ] as const,
     principalGroups: () => [
       ...adminQueryKeys.account.all(),
       "principalGroups",

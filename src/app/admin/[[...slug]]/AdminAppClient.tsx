@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { AccountDocumentsClient } from "../account/documents/AccountDocumentsClient";
 import { AccountInvitationsClient } from "../account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
@@ -42,7 +43,8 @@ export function AdminAppClient({
   );
 }
 
-type AdminClientPage = "accountInvitations"
+type AdminClientPage = "accountDocuments"
+  | "accountInvitations"
   | "accountPrincipalGroups"
   | "accountProfile"
   | "userLanguage"
@@ -57,6 +59,10 @@ type AdminClientPage = "accountInvitations"
 
 const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   if (pathname?.startsWith("/admin/account")) {
+    if (pathname.endsWith("/documents")) {
+      return "accountDocuments";
+    }
+
     if (pathname.endsWith("/invitations")) {
       return "accountInvitations";
     }
@@ -106,6 +112,14 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "accountDocuments") {
+    return (
+      <AccountPageClient activeTab="accountDocuments">
+        <AccountDocumentsClient />
+      </AccountPageClient>
+    );
+  }
+
   if (page === "accountInvitations") {
     return (
       <AccountPageClient activeTab="accountInvitations">

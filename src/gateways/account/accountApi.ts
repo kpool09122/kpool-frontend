@@ -7,6 +7,11 @@ export type CreateAccountRequest = z.infer<typeof accountApiTypes.schemas.Create
 export type CreateAccountResult = z.infer<typeof accountApiTypes.schemas.CreateAccountResult>;
 export type AccountSummary = z.infer<typeof accountApiTypes.schemas.AccountSummary>;
 export type UpdateAccountRequest = z.infer<typeof accountApiTypes.schemas.UpdateAccountRequestBody>;
+export type AccountDocumentUploadItem = z.infer<typeof accountApiTypes.schemas.AccountDocumentUploadItem>;
+export type UploadAccountDocumentsRequest = z.infer<typeof accountApiTypes.schemas.UploadAccountDocumentsRequestBody>;
+export type AccountDocumentSummary = z.infer<typeof accountApiTypes.schemas.AccountDocumentSummary>;
+export type UploadAccountDocumentsResponse = z.infer<typeof accountApiTypes.schemas.UploadAccountDocumentsResponseBody>;
+export type ListAccountDocumentsResponse = z.infer<typeof accountApiTypes.schemas.ListAccountDocumentsResponseBody>;
 
 const InviteAccountMembersRequestSchema = z
   .object({
@@ -59,6 +64,15 @@ export const parseAccountSummary = (body: unknown): AccountSummary =>
 
 export const parseUpdateAccountRequest = (body: unknown): UpdateAccountRequest =>
   parseWithSchemaLog("account update request", accountApiTypes.schemas.UpdateAccountRequestBody, body);
+
+export const parseUploadAccountDocumentsRequest = (body: unknown): UploadAccountDocumentsRequest =>
+  parseWithSchemaLog("account documents upload request", accountApiTypes.schemas.UploadAccountDocumentsRequestBody, body);
+
+export const parseUploadAccountDocumentsResponse = (body: unknown): UploadAccountDocumentsResponse =>
+  parseWithSchemaLog("account documents upload response", accountApiTypes.schemas.UploadAccountDocumentsResponseBody, body);
+
+export const parseListAccountDocumentsResponse = (body: unknown): ListAccountDocumentsResponse =>
+  parseWithSchemaLog("account documents list response", accountApiTypes.schemas.ListAccountDocumentsResponseBody, body);
 
 export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
   parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);
