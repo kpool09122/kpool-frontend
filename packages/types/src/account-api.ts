@@ -231,6 +231,9 @@ const AccountMemberSummary = z
 const ListMembersResponseBody = z
   .object({ members: z.array(AccountMemberSummary) })
   .passthrough();
+const ListAccountDocumentsResponseBody = z
+  .object({ documents: z.array(AccountDocumentSummary) })
+  .passthrough();
 const PrincipalGroupMemberSummary = z
   .object({
     principalIdentifier: KPool_Common_Uuid,
@@ -305,6 +308,7 @@ export const schemas = {
   MemberPrincipalGroupSummary,
   AccountMemberSummary,
   ListMembersResponseBody,
+  ListAccountDocumentsResponseBody,
   PrincipalGroupMemberSummary,
   PrincipalGroupSummary,
   ListPrincipalGroupsResponseBody,
@@ -1078,6 +1082,36 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/documents",
+    alias: "MyAccountOperations_listMyAccountDocuments",
+    description: `List saved documents for the authenticated account.`,
+    requestFormat: "json",
+    response: ListAccountDocumentsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
