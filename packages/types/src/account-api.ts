@@ -98,6 +98,22 @@ const AccountSummary = z
 const UpdateAccountRequestBody = z
   .object({ accountName: z.string() })
   .passthrough();
+const AccountDocumentUploadItem = z
+  .object({ documentType: z.string(), fileContents: z.string() })
+  .passthrough();
+const UploadAccountDocumentsRequestBody = z
+  .object({ documents: z.array(AccountDocumentUploadItem) })
+  .passthrough();
+const AccountDocumentSummary = z
+  .object({
+    documentType: z.string(),
+    documentPath: z.string(),
+    uploadedAt: KPool_Common_Timestamp,
+  })
+  .passthrough();
+const UploadAccountDocumentsResponseBody = z
+  .object({ documents: z.array(AccountDocumentSummary) })
+  .passthrough();
 const AffiliationTermsSummary = z
   .object({
     revenueSharePercentage: z.number().int(),
@@ -215,6 +231,9 @@ const AccountMemberSummary = z
 const ListMembersResponseBody = z
   .object({ members: z.array(AccountMemberSummary) })
   .passthrough();
+const ListAccountDocumentsResponseBody = z
+  .object({ documents: z.array(AccountDocumentSummary) })
+  .passthrough();
 const PrincipalGroupMemberSummary = z
   .object({
     principalIdentifier: KPool_Common_Uuid,
@@ -268,6 +287,10 @@ export const schemas = {
   CreateAccountResult,
   AccountSummary,
   UpdateAccountRequestBody,
+  AccountDocumentUploadItem,
+  UploadAccountDocumentsRequestBody,
+  AccountDocumentSummary,
+  UploadAccountDocumentsResponseBody,
   AffiliationTermsSummary,
   RequestAffiliationRequestBody,
   AffiliationSummary,
@@ -285,6 +308,7 @@ export const schemas = {
   MemberPrincipalGroupSummary,
   AccountMemberSummary,
   ListMembersResponseBody,
+  ListAccountDocumentsResponseBody,
   PrincipalGroupMemberSummary,
   PrincipalGroupSummary,
   ListPrincipalGroupsResponseBody,
@@ -551,6 +575,53 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/accounts/:accountId/documents",
+    alias: "AccountOperations_uploadDocuments",
+    description: `Upload required documents for an account.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UploadAccountDocumentsRequestBody,
+      },
+      {
+        name: "accountId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: UploadAccountDocumentsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1011,6 +1082,36 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/documents",
+    alias: "MyAccountOperations_listMyAccountDocuments",
+    description: `List saved documents for the authenticated account.`,
+    requestFormat: "json",
+    response: ListAccountDocumentsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
