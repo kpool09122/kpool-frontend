@@ -1,7 +1,14 @@
 "use client";
 
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
-import { accountDocumentAccept, type AccountDocumentOption } from "./accountDocumentRules";
+import {
+  accountDocumentAccept,
+  corporationDocumentCountries,
+  individualDocumentCountries,
+  type AccountDocumentOption,
+  type CorporationDocumentCountry,
+  type IndividualDocumentCountry,
+} from "./accountDocumentRules";
 import { useAccountSection } from "../AccountSectionContext";
 import { useAccountDocuments } from "./useAccountDocuments";
 
@@ -50,8 +57,8 @@ const getDocumentOptionGroups = (
 };
 
 export function AccountDocumentsClient() {
-  const { accountIdentifier, canEdit, t } = useAccountSection();
-  const state = useAccountDocuments({ accountIdentifier, canEdit, t });
+  const { accountIdentifier, t } = useAccountSection();
+  const state = useAccountDocuments({ accountIdentifier, t });
 
   if (state.isLoading) {
     return <p className="text-sm text-text-muted">{t.accountDocuments.loading}</p>;
@@ -65,7 +72,7 @@ export function AccountDocumentsClient() {
       action={accountType === "corporation" || accountType === "individual" ? (
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={!canEdit || state.isUploading}
+          disabled={state.isUploading}
           onClick={state.submit}
           type="button"
         >
@@ -96,9 +103,49 @@ export function AccountDocumentsClient() {
         </AccountStatusMessage>
       ) : (
         <div className="mt-5 grid gap-4">
-          <p className="text-sm text-text-muted">
-            {accountType === "corporation" ? t.accountDocuments.corporationRequiredHint : t.accountDocuments.individualRequiredHint}
-          </p>
+          {accountType === "individual" ? (
+            <p className="text-sm text-text-muted">
+              {t.accountDocuments.individualRequiredHint}
+            </p>
+          ) : null}
+          {accountType === "corporation" ? (
+            <label className="grid gap-2 text-sm md:max-w-xs">
+              <span className="font-medium text-text-strong">{t.accountDocuments.corporationDocumentCountryLabel}</span>
+              <select
+                className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong"
+                disabled={state.isUploading}
+                onChange={(event) => {
+                  state.updateCorporationDocumentCountry(event.currentTarget.value as CorporationDocumentCountry);
+                }}
+                value={state.corporationDocumentCountry}
+              >
+                {corporationDocumentCountries.map((country) => (
+                  <option key={country} value={country}>
+                    {t.accountDocuments.documentCountryLabels[country]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {accountType === "individual" ? (
+            <label className="grid gap-2 text-sm md:max-w-xs">
+              <span className="font-medium text-text-strong">{t.accountDocuments.individualDocumentCountryLabel}</span>
+              <select
+                className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong"
+                disabled={state.isUploading}
+                onChange={(event) => {
+                  state.updateIndividualDocumentCountry(event.currentTarget.value as IndividualDocumentCountry);
+                }}
+                value={state.individualDocumentCountry}
+              >
+                {individualDocumentCountries.map((country) => (
+                  <option key={country} value={country}>
+                    {t.accountDocuments.documentCountryLabels[country]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="grid gap-5">
             {documentOptionGroups.map((group) => (
               <section className="grid gap-3" key={group.title}>
@@ -114,7 +161,7 @@ export function AccountDocumentsClient() {
                         <input
                           accept={accountDocumentAccept}
                           className="block w-full text-sm"
-                          disabled={!canEdit || state.isUploading}
+                          disabled={state.isUploading}
                           onChange={(event) => {
                             state.updateSelectedFile(option.documentType, event.currentTarget.files?.[0] ?? null);
                           }}

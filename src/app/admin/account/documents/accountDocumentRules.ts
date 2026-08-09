@@ -15,6 +15,26 @@ export type AccountDocumentOption = {
   group: "identity" | "registration" | "selfie";
 };
 
+export type CorporationDocumentCountry = "japan" | "korea" | "other";
+export type IndividualDocumentCountry = "japan" | "korea" | "other";
+
+export const corporationDocumentCountries: CorporationDocumentCountry[] = ["japan", "korea", "other"];
+export const defaultCorporationDocumentCountry: CorporationDocumentCountry = "japan";
+export const individualDocumentCountries: IndividualDocumentCountry[] = ["japan", "korea", "other"];
+export const defaultIndividualDocumentCountry: IndividualDocumentCountry = "japan";
+
+const corporationRegistrationDocumentByCountry: Record<CorporationDocumentCountry, AccountDocumentType> = {
+  japan: "corporate_registry",
+  korea: "business_registration",
+  other: "incorporation_document",
+};
+
+const individualIdentityDocumentsByCountry: Record<IndividualDocumentCountry, AccountDocumentType[]> = {
+  japan: ["passport", "driver_license"],
+  korea: ["resident_registration", "passport", "driver_license"],
+  other: ["passport"],
+};
+
 export const corporateDocumentOptions: AccountDocumentOption[] = [
   { documentType: "business_registration", group: "registration" },
   { documentType: "corporate_registry", group: "registration" },
@@ -34,17 +54,27 @@ export const acceptedAccountDocumentMimeTypes = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
 ] as const;
 
-export const acceptedAccountDocumentExtensions = [".pdf", ".jpg", ".jpeg", ".png", ".webp"] as const;
+export const acceptedAccountDocumentExtensions = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"] as const;
 export const accountDocumentAccept = acceptedAccountDocumentExtensions.join(",");
 export const maxAccountDocumentFileSizeBytes = 10 * 1024 * 1024;
 
-export const getDocumentOptionsForAccountType = (accountType: string | null | undefined) =>
+export const getDocumentOptionsForAccountType = (
+  accountType: string | null | undefined,
+  corporationDocumentCountry: CorporationDocumentCountry = defaultCorporationDocumentCountry,
+  individualDocumentCountry: IndividualDocumentCountry = defaultIndividualDocumentCountry,
+) =>
   accountType === "corporation"
-    ? corporateDocumentOptions
+    ? corporateDocumentOptions.filter((option) =>
+      option.group === "identity" ||
+      option.documentType === corporationRegistrationDocumentByCountry[corporationDocumentCountry])
     : accountType === "individual"
-      ? individualDocumentOptions
+      ? individualDocumentOptions.filter((option) =>
+        option.group === "selfie" ||
+        individualIdentityDocumentsByCountry[individualDocumentCountry].includes(option.documentType))
       : [];
 
 export const isAcceptedAccountDocumentFile = (file: File): boolean => {

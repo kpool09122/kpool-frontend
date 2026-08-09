@@ -15,7 +15,6 @@ export function AccountPageClient({
 }) {
   const {
     currentIdentity,
-    initialPrincipalState,
     refreshIdentity,
     t,
   } = useAdmin();
@@ -24,7 +23,6 @@ export function AccountPageClient({
     <AccountLayoutClient
       activeTab={activeTab}
       currentIdentity={currentIdentity}
-      principalState={initialPrincipalState}
       t={t}
       onAuthorizationRejected={() => {
         void refreshIdentity();

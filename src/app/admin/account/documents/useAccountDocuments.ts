@@ -5,16 +5,19 @@ import { fetchAccount, fetchAccountDocuments, uploadAccountDocuments } from "@/g
 import { adminQueryKeys } from "../../queryKeys";
 import type { useI18n } from "../../../../i18n/I18nProvider";
 import {
+  defaultCorporationDocumentCountry,
+  defaultIndividualDocumentCountry,
   getDocumentOptionsForAccountType,
   hasRequiredAccountDocuments,
   isAcceptedAccountDocumentFile,
   isAccountDocumentFileSizeAllowed,
   type AccountDocumentType,
+  type CorporationDocumentCountry,
+  type IndividualDocumentCountry,
 } from "./accountDocumentRules";
 
 type UseAccountDocumentsParams = {
   accountIdentifier: string | null;
-  canEdit: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
 };
 
@@ -46,12 +49,16 @@ const createUploadRequest = async (
   }))),
 });
 
-export const useAccountDocuments = ({ accountIdentifier, canEdit, t }: UseAccountDocumentsParams) => {
+export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocumentsParams) => {
   const queryClient = useQueryClient();
   const [selectedDocuments, setSelectedDocuments] = useState<SelectedDocument[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [formWarning, setFormWarning] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [corporationDocumentCountry, setCorporationDocumentCountry] =
+    useState<CorporationDocumentCountry>(defaultCorporationDocumentCountry);
+  const [individualDocumentCountry, setIndividualDocumentCountry] =
+    useState<IndividualDocumentCountry>(defaultIndividualDocumentCountry);
   const accountQueryKey = adminQueryKeys.account.profile(accountIdentifier);
   const documentsQueryKey = adminQueryKeys.account.documents(accountIdentifier);
 
@@ -75,7 +82,11 @@ export const useAccountDocuments = ({ accountIdentifier, canEdit, t }: UseAccoun
   });
 
   const accountType = accountQuery.data?.type;
-  const documentOptions = getDocumentOptionsForAccountType(accountType);
+  const documentOptions = getDocumentOptionsForAccountType(
+    accountType,
+    corporationDocumentCountry,
+    individualDocumentCountry,
+  );
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!accountIdentifier) {
@@ -131,14 +142,34 @@ export const useAccountDocuments = ({ accountIdentifier, canEdit, t }: UseAccoun
     ]);
   };
 
-  const submit = () => {
-    if (!canEdit) {
-      setFormError(t.accountDocuments.readOnly);
-      setFormWarning(null);
-      setSuccess(null);
-      return;
-    }
+  const updateCorporationDocumentCountry = (country: CorporationDocumentCountry) => {
+    setCorporationDocumentCountry(country);
+    setSuccess(null);
+    setFormError(null);
+    setFormWarning(null);
 
+    const allowedDocumentTypes = new Set(
+      getDocumentOptionsForAccountType("corporation", country).map((option) => option.documentType),
+    );
+    setSelectedDocuments((current) =>
+      current.filter((document) => allowedDocumentTypes.has(document.documentType)));
+  };
+
+  const updateIndividualDocumentCountry = (country: IndividualDocumentCountry) => {
+    setIndividualDocumentCountry(country);
+    setSuccess(null);
+    setFormError(null);
+    setFormWarning(null);
+
+    const allowedDocumentTypes = new Set(
+      getDocumentOptionsForAccountType("individual", corporationDocumentCountry, country)
+        .map((option) => option.documentType),
+    );
+    setSelectedDocuments((current) =>
+      current.filter((document) => allowedDocumentTypes.has(document.documentType)));
+  };
+
+  const submit = () => {
     const requestDocuments = selectedDocuments.map(({ documentType }) => ({
       documentType,
       fileContents: "selected",
@@ -156,8 +187,10 @@ export const useAccountDocuments = ({ accountIdentifier, canEdit, t }: UseAccoun
 
   return {
     account: accountQuery.data ?? null,
+    corporationDocumentCountry,
     documents: documentsQuery.data?.documents ?? [],
     documentOptions,
+    individualDocumentCountry,
     error: formError ?? (accountQuery.error
       ? getErrorMessage(accountQuery.error, t.accountSettingsLoadFailed)
       : documentsQuery.error
@@ -168,6 +201,8 @@ export const useAccountDocuments = ({ accountIdentifier, canEdit, t }: UseAccoun
     selectedDocuments,
     success,
     submit,
+    updateCorporationDocumentCountry,
+    updateIndividualDocumentCountry,
     updateSelectedFile,
     warning: formWarning,
   };

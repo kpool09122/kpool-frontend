@@ -2,15 +2,14 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { useI18n } from "../../../i18n/I18nProvider";
 
 export type AccountSectionContextValue = {
   accountIdentifier: string | null;
+  accountPrincipalIdentifier: string | null;
   canEdit: boolean;
   canInvite: boolean;
   canManagePrincipalGroups: boolean;
-  principalState: WikiPrincipalState;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
   onAuthorizationRejected: () => void;
 };

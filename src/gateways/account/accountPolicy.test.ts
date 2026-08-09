@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canInviteAccountMembers,
   canManagePrincipalGroups,
+  canUpdateAccount,
   getAccountTypeFromIdentity,
   isCorporationAccount,
 } from "./accountPolicy";
@@ -49,6 +50,35 @@ describe("accountPolicy", () => {
     })).toBe(false);
   });
 
+  it("applies account policy conditions to account member invitations", () => {
+    const conditionalPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:member:invite"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountType",
+                    operator: "eq",
+                    value: "corporation",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+  });
+
   it("allows principal group management only when allow exists without deny", () => {
     const allowPolicy = {
       ...baseIdentity,
@@ -83,5 +113,42 @@ describe("accountPolicy", () => {
         },
       ],
     })).toBe(false);
+  });
+
+  it("applies account policy conditions to every account action check", () => {
+    const conditionalPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            {
+              effect: "allow",
+              actions: [
+                "account:update",
+                "account:member:invite",
+                "account:principal-group:manage",
+              ],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountType",
+                    operator: "eq",
+                    value: "corporation",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canUpdateAccount({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canManagePrincipalGroups({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canUpdateAccount({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canManagePrincipalGroups({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
   });
 });

@@ -3,15 +3,14 @@ import { useState } from "react";
 
 import { inviteAccountMembers } from "@/gateways/account/accountBrowserApi";
 import type { InvitationSummary } from "@/gateways/account/accountApi";
-import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { useI18n } from "../../../../i18n/I18nProvider";
 import type { AdminAccountInvitationState } from "../../adminTypes";
 import { accountInvitationEmailPattern, maxAccountInvitationEmails } from "../accountInvitationRules";
 
 type UseAccountInvitationsParams = {
   accountIdentifier: string | null;
+  accountPrincipalIdentifier: string | null;
   canInvite: boolean;
-  principalState: WikiPrincipalState;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
 };
 
@@ -20,8 +19,8 @@ const getErrorMessage = (error: unknown, fallback: string): string =>
 
 export const useAccountInvitations = ({
   accountIdentifier,
+  accountPrincipalIdentifier,
   canInvite,
-  principalState,
   t,
 }: UseAccountInvitationsParams) => {
   const [emailInput, setEmailInput] = useState("");
@@ -31,7 +30,7 @@ export const useAccountInvitations = ({
 
   const inviteMutation = useMutation<InvitationSummary[], Error, string[]>({
     mutationFn: (nextEmails) => {
-      if (!accountIdentifier || principalState.status !== "available") {
+      if (!accountIdentifier || !accountPrincipalIdentifier) {
         return Promise.reject(new Error(t.accountSettingsUnavailable));
       }
 
@@ -43,7 +42,7 @@ export const useAccountInvitations = ({
         fallbackErrorMessage: t.accountInvitationSendFailed,
         requestBody: {
           accountIdentifier,
-          inviterPrincipalIdentifier: principalState.principal.principalIdentifier,
+          inviterPrincipalIdentifier: accountPrincipalIdentifier,
           emails: nextEmails,
         },
       });
@@ -108,7 +107,7 @@ export const useAccountInvitations = ({
   };
 
   const sendInvitations = () => {
-    if (!accountIdentifier || principalState.status !== "available") {
+    if (!accountIdentifier || !accountPrincipalIdentifier) {
       setError(t.accountSettingsUnavailable);
       setSuccess(null);
       return;

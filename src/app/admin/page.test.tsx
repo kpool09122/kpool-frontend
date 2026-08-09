@@ -67,6 +67,7 @@ const identity = {
   email: "member@example.com",
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
+  accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
   accountType: "corporation",
   accountEffectivePolicies: [
     {
@@ -926,6 +927,18 @@ describe("admin page clients", () => {
     expect(screen.getByRole("heading", { name: "法人確認書類", level: 3 })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "代表者本人確認書類", level: 3 })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "法人向け書類" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("法人所在国")).toHaveValue("japan");
+    expect(screen.getByText("法人登記簿")).toBeInTheDocument();
+    expect(screen.queryByText("営業許可証")).not.toBeInTheDocument();
+    expect(screen.queryByText("定款")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("法人所在国"), { target: { value: "korea" } });
+    expect(screen.getByText("営業許可証")).toBeInTheDocument();
+    expect(screen.queryByText("法人登記簿")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("法人所在国"), { target: { value: "other" } });
+    expect(screen.getByText("定款")).toBeInTheDocument();
+    expect(screen.queryByText("営業許可証")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "アップロード" }));
 
@@ -933,6 +946,55 @@ describe("admin page clients", () => {
       expect(screen.getByRole("status")).toHaveTextContent("必須書類を選択してください。"),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("filters individual account documents by residence country", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={individualIdentityWithAccountPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "書類アップロード", level: 2 })).toBeInTheDocument();
+    expect(screen.getByLabelText("居住国")).toHaveValue("japan");
+    expect(screen.queryByText("住民登録書類")).not.toBeInTheDocument();
+    expect(screen.getByText("パスポート")).toBeInTheDocument();
+    expect(screen.getByText("運転免許証")).toBeInTheDocument();
+    expect(screen.getAllByText("本人の顔写真").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("居住国"), { target: { value: "korea" } });
+    expect(screen.getByText("住民登録書類")).toBeInTheDocument();
+    expect(screen.getByText("運転免許証")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("居住国"), { target: { value: "other" } });
+    expect(screen.getByText("パスポート")).toBeInTheDocument();
+    expect(screen.queryByText("住民登録書類")).not.toBeInTheDocument();
+    expect(screen.queryByText("運転免許証")).not.toBeInTheDocument();
   });
 
   it("shows invitation tab only for account:member:invite policy and sends a batched invitation", async () => {
@@ -968,7 +1030,7 @@ describe("admin page clients", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identityWithAccountInvitePolicy}
-        initialPrincipalState={{ status: "available", principal }}
+        initialPrincipalState={{ status: "idle" }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -1031,6 +1093,75 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
+  });
+
+  it("hides corporation-only account tabs for individual accounts", async () => {
+    const individualIdentityWithCorporationOnlyPolicies = {
+      ...identity,
+      accountType: "individual",
+      accountEffectivePolicies: [
+        {
+          policyIdentifier: "99999999-9999-9999-9999-999999999997",
+          name: "CORPORATION_ONLY_ACCOUNT_ADMIN",
+          isSystemPolicy: true,
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:member:invite", "account:principal-group:manage"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountType",
+                    operator: "eq",
+                    value: "corporation",
+                  },
+                ],
+              },
+            },
+            {
+              effect: "allow",
+              actions: ["account:update"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountType",
+                    operator: "eq",
+                    value: "corporation",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "individual",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "standard",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={individualIdentityWithCorporationOnlyPolicies}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
+    expect(await screen.findByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "プロフィール" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
   });
 
   it("shows the principal group management tab with drag-only membership editing", async () => {
@@ -1159,7 +1290,7 @@ describe("admin page clients", () => {
     expect(screen.getByLabelText("アカウント名")).toHaveValue("Updated Account");
   });
 
-  it("shows account settings as read only without account:update", async () => {
+  it("hides account profile without account:update", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       accountIdentifier: "22222222-2222-2222-2222-222222222222",
       email: "member@example.com",
@@ -1182,9 +1313,47 @@ describe("admin page clients", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
 
-    expect(await screen.findByLabelText("アカウント名")).toBeDisabled();
-    expect(screen.getByText("アカウント更新権限がないため、アカウント名は変更できません。")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+    expect(await screen.findByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "プロフィール" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("アカウント名")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
+  });
+
+  it("allows document upload without account:update", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identityWithAccountReadOnlyPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "アップロード" })).toBeEnabled();
+    expect(screen.getByLabelText("居住国")).toBeEnabled();
+    expect(screen.getByLabelText("パスポート")).toBeEnabled();
   });
 
   it("shows profile settings and saves identityName without socialConnections", async () => {

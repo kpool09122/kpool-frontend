@@ -9,8 +9,8 @@ import { useCallback } from "react";
 
 import type { AuthIdentityRefresh } from "@/gateways/auth/authStore";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
+import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import {
-  getAccountIdentifierFromIdentity,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
 import type { AdminPrincipalAdapter } from "@/gateways/admin/adminAdapters";
