@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 import {
@@ -76,16 +75,6 @@ export function ContactPage({
     <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
         <div className="space-y-4 lg:sticky lg:top-28">
-          <Link
-            className="inline-flex items-center gap-2 rounded-full border border-stroke-subtle bg-surface-raised px-4 py-2 text-sm font-semibold text-text-strong transition hover:border-brand-primary hover:text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-highlight"
-            href={`/${locale}`}
-          >
-            <span aria-hidden="true">←</span>
-            {t.backToTop}
-          </Link>
-          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
-            {t.eyebrow}
-          </p>
           <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
           <p className="text-sm leading-7 text-text-muted">{t.description}</p>
         </div>

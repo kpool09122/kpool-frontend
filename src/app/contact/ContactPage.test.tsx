@@ -26,11 +26,8 @@ describe("ContactPage", () => {
   it("renders the contact fields and backend-compatible limits", () => {
     renderPage();
 
-    expect(screen.getByRole("link", { name: "トップページへ戻る" })).toHaveAttribute(
-      "href",
-      "/ja",
-    );
-    expect(screen.getByRole("heading", { name: "K-Poolへのお問い合わせ" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "トップページへ戻る" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "お問い合わせ" })).toBeInTheDocument();
     expect(screen.getByLabelText("お問い合わせ種別")).toHaveValue("1");
     expect(screen.getByLabelText("お名前")).toHaveAttribute("maxlength", "32");
     expect(screen.getByLabelText("メールアドレス")).toHaveAttribute("type", "email");

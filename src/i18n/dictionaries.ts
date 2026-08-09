@@ -21,9 +21,7 @@ const ja = {
     copyright: "© K-Pool",
   },
   contact: {
-    backToTop: "トップページへ戻る",
-    eyebrow: "お問い合わせ",
-    title: "K-Poolへのお問い合わせ",
+    title: "お問い合わせ",
     description:
       "サービスへのご意見、不具合のご報告、掲載内容の修正依頼などをお送りください。",
     requiredHint: "すべての項目が必須です。",
@@ -750,9 +748,7 @@ const en: typeof ja = {
     copyright: "© K-Pool",
   },
   contact: {
-    backToTop: "Back to home",
-    eyebrow: "Contact",
-    title: "Contact K-Pool",
+    title: "Contact",
     description:
       "Send us your feedback, bug reports, or requests to correct published content.",
     requiredHint: "All fields are required.",
@@ -1480,9 +1476,7 @@ const ko: typeof ja = {
     copyright: "© K-Pool",
   },
   contact: {
-    backToTop: "홈으로 돌아가기",
-    eyebrow: "문의하기",
-    title: "K-Pool에 문의하기",
+    title: "문의하기",
     description:
       "서비스에 대한 의견, 오류 신고, 게시 내용 수정 요청 등을 보내 주세요.",
     requiredHint: "모든 항목은 필수입니다.",
