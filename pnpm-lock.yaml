@@ -74,7 +74,7 @@ importers:
         version: 1.59.1
       '@storybook/addon-a11y':
         specifier: ^10.3.5
-        version: 10.3.5(storybook@10.5.7(@types/react@19.2.14)(react@19.2.5))
+        version: 10.5.7(storybook@10.5.7(@types/react@19.2.14)(react@19.2.5))
       '@storybook/addon-docs':
         specifier: ^10.3.5
         version: 10.5.7(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(esbuild@0.28.1)(storybook@10.5.7(@types/react@19.2.14)(react@19.2.5))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.6.1))
@@ -1256,10 +1256,10 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
-  '@storybook/addon-a11y@10.3.5':
-    resolution: {integrity: sha512-5k6lpgfIeLxvNhE8v3wEzdiu73ONKjF4gmH1AHvfqYd8kIVzQJai0KCDxgvqNncXHQhIWkaf1fg6+9hKaYJyaw==}
+  '@storybook/addon-a11y@10.5.7':
+    resolution: {integrity: sha512-I30rsNz6aA3xg3811MEry40uJDHP3l5SOkfqtmNkp7y4NdqTDdKhmbhhDAZQX1WWEk6GeMBGr3AJ3TCz7r7JmQ==}
     peerDependencies:
-      storybook: ^10.3.5
+      storybook: ^10.5.7
 
   '@storybook/addon-docs@10.5.7':
     resolution: {integrity: sha512-KNARJfjICaizinsR3INMEiipZm1ObYo+xw+E26gteu50Bcy2dIZUtk5uHY5XdtardU3AXX6yRXoBZ2HCY3lbHA==}
@@ -2046,6 +2046,10 @@ packages:
 
   axe-core@4.11.3:
     resolution: {integrity: sha512-zBQouZixDTbo3jMGqHKyePxYxr1e5W8UdTmBQ7sNtaA9M2bE32daxxPLS/jojhKOHxQ7LWwPjfiwf/fhaJWzlg==}
+    engines: {node: '>=4'}
+
+  axe-core@4.13.0:
+    resolution: {integrity: sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==}
     engines: {node: '>=4'}
 
   axios@1.15.2:
@@ -4925,10 +4929,10 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@storybook/addon-a11y@10.3.5(storybook@10.5.7(@types/react@19.2.14)(react@19.2.5))':
+  '@storybook/addon-a11y@10.5.7(storybook@10.5.7(@types/react@19.2.14)(react@19.2.5))':
     dependencies:
       '@storybook/global': 5.0.0
-      axe-core: 4.11.3
+      axe-core: 4.13.0
       storybook: 10.5.7(@types/react@19.2.14)(react@19.2.5)
 
   '@storybook/addon-docs@10.5.7(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(esbuild@0.28.1)(storybook@10.5.7(@types/react@19.2.14)(react@19.2.5))(vite@8.0.8(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.6.1))':
@@ -5772,6 +5776,8 @@ snapshots:
       possible-typed-array-names: 1.1.0
 
   axe-core@4.11.3: {}
+
+  axe-core@4.13.0: {}
 
   axios@1.15.2(debug@4.4.3(supports-color@7.2.0)):
     dependencies:
