@@ -19,7 +19,7 @@ importers:
         version: 3.2.2(react@19.2.5)
       '@fontsource/gowun-dodum':
         specifier: ^5.2.8
-        version: 5.2.8
+        version: 5.3.0
       '@fontsource/nanum-pen-script':
         specifier: ^5.2.7
         version: 5.3.0
@@ -536,8 +536,8 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
-  '@fontsource/gowun-dodum@5.2.8':
-    resolution: {integrity: sha512-DZBZxz80w/IE8PMDtz0atDsTsXKsn6TfWcZDW0KTCdZoXWZr66/R9IWaB5Ym7OFWyDUJKzoBhHQTmgahRUKN/Q==}
+  '@fontsource/gowun-dodum@5.3.0':
+    resolution: {integrity: sha512-1ToMkUzML1E0TIpvV81t1geh+1npARWbdTPwCDZZwqQxD1p/HnngbjOwiXe8Y+gkhlRThyl/HiNgY9fCMpm9OQ==}
 
   '@fontsource/nanum-pen-script@5.3.0':
     resolution: {integrity: sha512-at9MFL8ga0A3Xce1+CO6/56F/SHIlf++D4vVKw3yCNRPKh6JU0UgZ3r9un0qHPVxx0Miq2bGZ35RRRlu/4BIDg==}
@@ -4325,7 +4325,7 @@ snapshots:
   '@floating-ui/utils@0.2.11':
     optional: true
 
-  '@fontsource/gowun-dodum@5.2.8': {}
+  '@fontsource/gowun-dodum@5.3.0': {}
 
   '@fontsource/nanum-pen-script@5.3.0': {}
 
