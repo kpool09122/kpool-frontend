@@ -4,15 +4,15 @@ import type { NextRequest } from "next/server";
 import { POST } from "./route";
 
 const invitationBody = {
-  accountIdentifier: "22222222-2222-2222-2222-222222222222",
-  inviterPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  accountIdentifier: "22222222-2222-4222-8222-222222222222",
+  inviterPrincipalIdentifier: "33333333-3333-4333-8333-333333333333",
   emails: ["new-member@example.com"],
 };
 
 const invitationResponse = [
   {
     invitationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    accountIdentifier: "22222222-2222-2222-2222-222222222222",
+    accountIdentifier: "22222222-2222-4222-8222-222222222222",
     invitedByPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
     email: "new-member@example.com",
     token: "token",

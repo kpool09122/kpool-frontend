@@ -7,7 +7,7 @@ const serializeIssue = (issue: z.ZodIssue): unknown => {
 
   return {
     ...issue,
-    unionErrors: issue.unionErrors.map((unionError) => unionError.issues),
+    errors: issue.errors,
   };
 };
 
@@ -25,11 +25,11 @@ export const logZodSchemaError = (context: string, error: z.ZodError): void => {
   );
 };
 
-export const parseWithSchemaLog = <T>(
+export const parseWithSchemaLog = <TSchema extends z.ZodType>(
   context: string,
-  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
+  schema: TSchema,
   body: unknown,
-): T => {
+): z.infer<TSchema> => {
   const result = schema.safeParse(body);
 
   if (result.success) {

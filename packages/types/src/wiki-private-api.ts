@@ -4,7 +4,7 @@ import { z } from "zod";
 const KPool_Common_Uuid = z.string();
 const translationSetIdentifier = KPool_Common_Uuid.nullish();
 const DraftImageWikiDisplayInformation = z
-  .object({ names: z.record(z.string()), slug: z.string() })
+  .object({ names: z.record(z.string(), z.string()), slug: z.string() })
   .passthrough();
 const DraftImageStatus = z.enum([
   "approved",
