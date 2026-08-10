@@ -22,7 +22,7 @@ importers:
         version: 5.2.8
       '@fontsource/nanum-pen-script':
         specifier: ^5.2.7
-        version: 5.2.7
+        version: 5.3.0
       '@fontsource/pretendard':
         specifier: ^5.2.5
         version: 5.2.5
@@ -539,8 +539,8 @@ packages:
   '@fontsource/gowun-dodum@5.2.8':
     resolution: {integrity: sha512-DZBZxz80w/IE8PMDtz0atDsTsXKsn6TfWcZDW0KTCdZoXWZr66/R9IWaB5Ym7OFWyDUJKzoBhHQTmgahRUKN/Q==}
 
-  '@fontsource/nanum-pen-script@5.2.7':
-    resolution: {integrity: sha512-gi/nJVtdjSP510Ekdo7NRZqkMtMPI1GmR1273e9tW3KczYenytKKG/F6veo9fWpPou0InqG9OUiAGG0LOYApQw==}
+  '@fontsource/nanum-pen-script@5.3.0':
+    resolution: {integrity: sha512-at9MFL8ga0A3Xce1+CO6/56F/SHIlf++D4vVKw3yCNRPKh6JU0UgZ3r9un0qHPVxx0Miq2bGZ35RRRlu/4BIDg==}
 
   '@fontsource/pretendard@5.2.5':
     resolution: {integrity: sha512-UAj3l+Exfx6Sq5hySbhTQhNzkZnhzBxQdHySmjo2lifXyXpMAHv7GD7hAQTLgZfBd1WixJJkmynfJbOp+TAckg==}
@@ -4331,7 +4331,7 @@ snapshots:
 
   '@fontsource/gowun-dodum@5.2.8': {}
 
-  '@fontsource/nanum-pen-script@5.2.7': {}
+  '@fontsource/nanum-pen-script@5.3.0': {}
 
   '@fontsource/pretendard@5.2.5': {}
 
@@ -4478,8 +4478,8 @@ snapshots:
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
-      '@emnapi/core': 1.9.2
-      '@emnapi/runtime': 1.9.2
+      '@emnapi/core': 1.11.2
+      '@emnapi/runtime': 1.11.2
       '@tybys/wasm-util': 0.10.3
     optional: true
 
@@ -5291,7 +5291,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.58.2
       debug: 4.4.3(supports-color@7.2.0)
       minimatch: 10.2.5
-      semver: 7.7.4
+      semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -6427,7 +6427,7 @@ snapshots:
 
   is-bun-module@2.0.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   is-callable@1.2.7: {}
 
