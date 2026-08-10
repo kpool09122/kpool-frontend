@@ -1,0 +1,75 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "Asia/Tokyo",
+  "prHourlyLimit": 0,
+  "baseBranchPatterns": [
+    "main"
+  ],
+  "enabledManagers": [
+    "npm"
+  ],
+  "includePaths": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "packages/types/package.json",
+    "packages/wiki/package.json"
+  ],
+  "labels": [
+    "renovate",
+    "dependencies"
+  ],
+  "assignees": [
+    "take-i-osk"
+  ],
+  "reviewers": [
+    "take-i-osk"
+  ],
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 9am on monday"
+    ]
+  },
+  "major": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "description": "frontend devDependencies をまとめる",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "groupName": "frontend devDependencies"
+    },
+    {
+      "description": "workspace package dependencies をまとめる",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "packages/types/package.json",
+        "packages/wiki/package.json",
+        "pnpm-lock.yaml"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "groupName": "workspace package dependencies"
+    }
+  ],
+  "ignoreDeps": [
+    "node",
+    "pnpm"
+  ]
+}
