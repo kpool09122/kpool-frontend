@@ -19,7 +19,7 @@ import {
 const sortParamSchema = z.enum(["updatedAt", "name"]);
 const orderParamSchema = z.enum(["asc", "desc"]);
 
-const parseEnumParam = <T extends z.ZodEnum<[string, ...string[]]>>(
+const parseEnumParam = <T extends z.ZodEnum>(
   schema: T,
   value: string | null,
 ): z.infer<T> | undefined => {

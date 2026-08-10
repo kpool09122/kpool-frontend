@@ -132,9 +132,7 @@ type DraftWikiApiClient = {
 };
 
 export const defaultWikiDraftPerPage = 12;
-const createSeoDefaultedSchema = <Output>(
-  schema: z.ZodType<Output>,
-): z.ZodType<Output, z.ZodTypeDef, unknown> =>
+const createSeoDefaultedSchema = <Output>(schema: z.ZodType<Output>) =>
   z.preprocess(withDefaultWikiResponseMetadata, schema);
 
 export const wikiDraftWikiListResponseSchema = createSeoDefaultedSchema(
