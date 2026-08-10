@@ -19,7 +19,7 @@ importers:
         version: 3.2.2(react@19.2.5)
       '@fontsource/gowun-dodum':
         specifier: ^5.2.8
-        version: 5.2.8
+        version: 5.3.0
       '@fontsource/nanum-pen-script':
         specifier: ^5.2.7
         version: 5.2.7
@@ -536,8 +536,8 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
-  '@fontsource/gowun-dodum@5.2.8':
-    resolution: {integrity: sha512-DZBZxz80w/IE8PMDtz0atDsTsXKsn6TfWcZDW0KTCdZoXWZr66/R9IWaB5Ym7OFWyDUJKzoBhHQTmgahRUKN/Q==}
+  '@fontsource/gowun-dodum@5.3.0':
+    resolution: {integrity: sha512-1ToMkUzML1E0TIpvV81t1geh+1npARWbdTPwCDZZwqQxD1p/HnngbjOwiXe8Y+gkhlRThyl/HiNgY9fCMpm9OQ==}
 
   '@fontsource/nanum-pen-script@5.2.7':
     resolution: {integrity: sha512-gi/nJVtdjSP510Ekdo7NRZqkMtMPI1GmR1273e9tW3KczYenytKKG/F6veo9fWpPou0InqG9OUiAGG0LOYApQw==}
@@ -4329,7 +4329,7 @@ snapshots:
   '@floating-ui/utils@0.2.11':
     optional: true
 
-  '@fontsource/gowun-dodum@5.2.8': {}
+  '@fontsource/gowun-dodum@5.3.0': {}
 
   '@fontsource/nanum-pen-script@5.2.7': {}
 
@@ -4478,8 +4478,8 @@ snapshots:
 
   '@napi-rs/wasm-runtime@0.2.12':
     dependencies:
-      '@emnapi/core': 1.9.2
-      '@emnapi/runtime': 1.9.2
+      '@emnapi/core': 1.11.2
+      '@emnapi/runtime': 1.11.2
       '@tybys/wasm-util': 0.10.3
     optional: true
 
@@ -5291,7 +5291,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.58.2
       debug: 4.4.3(supports-color@7.2.0)
       minimatch: 10.2.5
-      semver: 7.7.4
+      semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -6427,7 +6427,7 @@ snapshots:
 
   is-bun-module@2.0.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   is-callable@1.2.7: {}
 
