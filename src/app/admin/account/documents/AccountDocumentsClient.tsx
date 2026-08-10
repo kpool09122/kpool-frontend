@@ -1,5 +1,6 @@
 "use client";
 
+import { Cross2Icon } from "@radix-ui/react-icons";
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import {
   accountDocumentAccept,
@@ -16,6 +17,20 @@ const getDocumentTypeLabel = (
   labels: Record<string, string>,
   documentType: string,
 ) => labels[documentType] ?? documentType;
+
+const getDocumentFileName = (documentPath: string): string => {
+  const fileName = documentPath.split(/[\\/]/).pop();
+  return fileName || documentPath;
+};
+
+const isPdfDocument = (documentPath: string): boolean =>
+  /\.pdf(?:[?#].*)?$/i.test(documentPath);
+
+const getDocumentViewUrl = (documentType: string): string =>
+  `/api/account/my/documents/${encodeURIComponent(documentType)}`;
+
+const getDocumentDownloadUrl = (documentType: string): string =>
+  `${getDocumentViewUrl(documentType)}?download=1`;
 
 const getDocumentOptionGroups = (
   accountType: string | null | undefined,
@@ -82,21 +97,6 @@ export function AccountDocumentsClient() {
       description={t.accountDocuments.description}
       title={t.accountDocuments.title}
     >
-      {state.documents.length > 0 ? (
-        <section className="mt-5 rounded-lg border border-stroke-subtle bg-surface-base p-4">
-          <h3 className="font-semibold text-text-strong">{t.accountDocuments.uploadedTitle}</h3>
-          <ul className="mt-3 divide-y divide-stroke-subtle">
-            {state.documents.map((document) => (
-              <li className="py-3 text-sm" key={`${document.documentType}-${document.documentPath}`}>
-                <p className="font-medium text-text-strong">{getDocumentTypeLabel(t.accountDocuments.documentTypeLabels, document.documentType)}</p>
-                <p className="text-text-muted">{document.uploadedAt}</p>
-                <p className="break-all text-text-muted">{document.documentPath}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       {accountType !== "corporation" && accountType !== "individual" ? (
         <AccountStatusMessage className="mt-5" variant="empty">
           {t.accountDocuments.unsupportedAccountType}
@@ -153,10 +153,75 @@ export function AccountDocumentsClient() {
                 <div className="grid gap-4 md:grid-cols-2">
                   {group.options.map((option) => {
                     const selected = state.selectedDocuments.find((document) => document.documentType === option.documentType);
+                    const uploaded = state.documents.find((document) => document.documentType === option.documentType);
+                    const isUploadedDismissed = state.dismissedUploadedDocumentTypes.includes(option.documentType);
+                    const documentLabel = getDocumentTypeLabel(t.accountDocuments.documentTypeLabels, option.documentType);
+                    const shouldShowUploaded = uploaded && !selected && !isUploadedDismissed;
+
+                    if (shouldShowUploaded) {
+                      return (
+                        <section
+                          className="space-y-2 rounded-lg border border-stroke-subtle p-3 text-sm"
+                          key={option.documentType}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-text-strong">{documentLabel}</p>
+                              {isPdfDocument(uploaded.documentPath) ? (
+                                <a
+                                  aria-label={`${documentLabel}をダウンロード`}
+                                  className="mt-3 flex min-w-0 items-center gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-3 transition hover:bg-surface-raised"
+                                  download={getDocumentFileName(uploaded.documentPath)}
+                                  href={getDocumentDownloadUrl(uploaded.documentType)}
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element -- Static public icon is decorative and does not need Next image optimization. */}
+                                  <img
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="h-8 w-8 shrink-0"
+                                    src="/pdf_icon.webp"
+                                  />
+                                  <p className="min-w-0 break-all font-medium text-text-strong">
+                                    {getDocumentFileName(uploaded.documentPath)}
+                                  </p>
+                                </a>
+                              ) : (
+                                <div className="mt-3 w-full overflow-hidden rounded-lg border border-stroke-subtle bg-surface-base">
+                                  <a
+                                    aria-label={`${documentLabel}をダウンロード`}
+                                    download={getDocumentFileName(uploaded.documentPath)}
+                                    href={getDocumentDownloadUrl(uploaded.documentType)}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- Verification documents should render at their own aspect ratio without Next image resizing. */}
+                                    <img
+                                      alt={documentLabel}
+                                      className="h-auto w-full"
+                                      src={getDocumentViewUrl(uploaded.documentType)}
+                                    />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              aria-label={t.accountDocuments.removeUploadedDocument(documentLabel)}
+                              className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-stroke-subtle text-text-muted transition hover:bg-surface-base hover:text-text-strong"
+                              disabled={state.isUploading}
+                              onClick={() => {
+                                state.dismissUploadedDocument(option.documentType);
+                              }}
+                              type="button"
+                            >
+                              <Cross2Icon aria-hidden="true" />
+                            </button>
+                          </div>
+                        </section>
+                      );
+                    }
+
                     return (
                       <label className="space-y-2 rounded-lg border border-stroke-subtle p-3 text-sm" key={option.documentType}>
                         <span className="block font-medium text-text-strong">
-                          {t.accountDocuments.documentTypeLabels[option.documentType]}
+                          {documentLabel}
                         </span>
                         <input
                           accept={accountDocumentAccept}

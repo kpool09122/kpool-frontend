@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { fetchAccount, fetchAccountDocuments, uploadAccountDocuments } from "@/gateways/account/accountBrowserApi";
+import {
+  fetchAccount,
+  fetchAccountDocumentFileContents,
+  fetchAccountDocuments,
+  uploadAccountDocuments,
+} from "@/gateways/account/accountBrowserApi";
+import type { ListAccountDocumentsResponse } from "@/gateways/account/accountApi";
 import { adminQueryKeys } from "../../queryKeys";
 import type { useI18n } from "../../../../i18n/I18nProvider";
 import {
@@ -42,16 +48,28 @@ const readFileAsBase64 = (file: File) =>
 
 const createUploadRequest = async (
   selectedDocuments: SelectedDocument[],
+  retainedDocuments: ListAccountDocumentsResponse["documents"],
+  fallbackErrorMessage: string,
 ) => ({
-  documents: await Promise.all(selectedDocuments.map(async ({ documentType, file }) => ({
-    documentType,
-    fileContents: await readFileAsBase64(file),
-  }))),
+  documents: [
+    ...await Promise.all(retainedDocuments.map(async ({ documentType }) => ({
+      documentType,
+      fileContents: await fetchAccountDocumentFileContents({
+        documentType,
+        fallbackErrorMessage,
+      }),
+    }))),
+    ...await Promise.all(selectedDocuments.map(async ({ documentType, file }) => ({
+      documentType,
+      fileContents: await readFileAsBase64(file),
+    }))),
+  ],
 });
 
 export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocumentsParams) => {
   const queryClient = useQueryClient();
   const [selectedDocuments, setSelectedDocuments] = useState<SelectedDocument[]>([]);
+  const [dismissedUploadedDocumentTypes, setDismissedUploadedDocumentTypes] = useState<AccountDocumentType[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [formWarning, setFormWarning] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -87,13 +105,21 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
     corporationDocumentCountry,
     individualDocumentCountry,
   );
+  const selectedDocumentTypes = new Set(selectedDocuments.map((document) => document.documentType));
+  const retainedDocuments = (documentsQuery.data?.documents ?? []).filter((document) =>
+    !dismissedUploadedDocumentTypes.includes(document.documentType as AccountDocumentType) &&
+    !selectedDocumentTypes.has(document.documentType as AccountDocumentType));
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!accountIdentifier) {
         return Promise.reject(new Error(t.accountSettingsUnavailable));
       }
 
-      const requestBody = await createUploadRequest(selectedDocuments);
+      const requestBody = await createUploadRequest(
+        selectedDocuments,
+        retainedDocuments,
+        t.accountDocuments.uploadFailed,
+      );
       return uploadAccountDocuments({
         accountIdentifier,
         fallbackErrorMessage: t.accountDocuments.uploadFailed,
@@ -109,6 +135,7 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
       queryClient.setQueryData(documentsQueryKey, response);
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
       setSelectedDocuments([]);
+      setDismissedUploadedDocumentTypes([]);
       setSuccess(t.accountDocuments.uploadSucceeded);
     },
     onError: (error) => {
@@ -142,6 +169,15 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
     ]);
   };
 
+  const dismissUploadedDocument = (documentType: AccountDocumentType) => {
+    setSuccess(null);
+    setFormError(null);
+    setFormWarning(null);
+    setDismissedUploadedDocumentTypes((current) =>
+      current.includes(documentType) ? current : [...current, documentType]);
+    setSelectedDocuments((current) => current.filter((document) => document.documentType !== documentType));
+  };
+
   const updateCorporationDocumentCountry = (country: CorporationDocumentCountry) => {
     setCorporationDocumentCountry(country);
     setSuccess(null);
@@ -153,6 +189,8 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
     );
     setSelectedDocuments((current) =>
       current.filter((document) => allowedDocumentTypes.has(document.documentType)));
+    setDismissedUploadedDocumentTypes((current) =>
+      current.filter((documentType) => allowedDocumentTypes.has(documentType)));
   };
 
   const updateIndividualDocumentCountry = (country: IndividualDocumentCountry) => {
@@ -167,15 +205,23 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
     );
     setSelectedDocuments((current) =>
       current.filter((document) => allowedDocumentTypes.has(document.documentType)));
+    setDismissedUploadedDocumentTypes((current) =>
+      current.filter((documentType) => allowedDocumentTypes.has(documentType)));
   };
 
   const submit = () => {
-    const requestDocuments = selectedDocuments.map(({ documentType }) => ({
-      documentType,
-      fileContents: "selected",
-    }));
+    const requestDocuments = [
+      ...retainedDocuments.map(({ documentType }) => ({
+        documentType,
+        fileContents: "retained",
+      })),
+      ...selectedDocuments.map(({ documentType }) => ({
+        documentType,
+        fileContents: "selected",
+      })),
+    ];
 
-    if (!hasRequiredAccountDocuments(accountType, requestDocuments)) {
+    if (selectedDocuments.length === 0 || !hasRequiredAccountDocuments(accountType, requestDocuments)) {
       setFormWarning(t.accountDocuments.requiredMissing);
       setFormError(null);
       setSuccess(null);
@@ -188,6 +234,8 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
   return {
     account: accountQuery.data ?? null,
     corporationDocumentCountry,
+    dismissedUploadedDocumentTypes,
+    dismissUploadedDocument,
     documents: documentsQuery.data?.documents ?? [],
     documentOptions,
     individualDocumentCountry,

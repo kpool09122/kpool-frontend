@@ -30,6 +30,12 @@ type UploadAccountDocumentsOptions = AccountRequestOptions & {
   requestBody: UploadAccountDocumentsRequest;
 };
 
+type FetchAccountDocumentFileOptions = {
+  documentType: string;
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+};
+
 type InviteAccountMembersOptions = {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
@@ -73,6 +79,18 @@ const createRouteError = (
   Object.assign(new Error(getRouteErrorMessage(body, fallbackErrorMessage)), {
     accountRouteStatus: response.status,
   });
+
+const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(arrayBuffer);
+  const chunkSize = 0x8000;
+  const chunks: string[] = [];
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    chunks.push(String.fromCharCode(...bytes.subarray(index, index + chunkSize)));
+  }
+
+  return btoa(chunks.join(""));
+};
 
 export const fetchAccount = async ({
   accountIdentifier,
@@ -224,6 +242,23 @@ export const fetchAccountDocuments = async ({
   }
 
   return parseListAccountDocumentsResponse(body);
+};
+
+export const fetchAccountDocumentFileContents = async ({
+  documentType,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: FetchAccountDocumentFileOptions): Promise<string> => {
+  const response = await fetchAdapter(`/api/account/my/documents/${encodeURIComponent(documentType)}`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw createRouteError(response, await readResponseBody(response), fallbackErrorMessage);
+  }
+
+  return arrayBufferToBase64(await response.arrayBuffer());
 };
 
 export const uploadAccountDocuments = async ({
