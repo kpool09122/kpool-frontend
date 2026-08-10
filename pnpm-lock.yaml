@@ -25,7 +25,7 @@ importers:
         version: 5.3.0
       '@fontsource/pretendard':
         specifier: ^5.2.5
-        version: 5.2.5
+        version: 5.3.0
       '@kpool/types':
         specifier: workspace:*
         version: link:packages/types
@@ -601,8 +601,8 @@ packages:
   '@fontsource/nanum-pen-script@5.3.0':
     resolution: {integrity: sha512-at9MFL8ga0A3Xce1+CO6/56F/SHIlf++D4vVKw3yCNRPKh6JU0UgZ3r9un0qHPVxx0Miq2bGZ35RRRlu/4BIDg==}
 
-  '@fontsource/pretendard@5.2.5':
-    resolution: {integrity: sha512-UAj3l+Exfx6Sq5hySbhTQhNzkZnhzBxQdHySmjo2lifXyXpMAHv7GD7hAQTLgZfBd1WixJJkmynfJbOp+TAckg==}
+  '@fontsource/pretendard@5.3.0':
+    resolution: {integrity: sha512-IDvI+QlHSFW9AkBX8cKXFi9nRJXdj7IQSGSqgemwFqII6EptpWQmWKcs3OfTZBT2yftzqt6VF6abQpUeAmHxMA==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -4510,7 +4510,7 @@ snapshots:
 
   '@fontsource/nanum-pen-script@5.3.0': {}
 
-  '@fontsource/pretendard@5.2.5': {}
+  '@fontsource/pretendard@5.3.0': {}
 
   '@humanfs/core@0.19.1': {}
 
