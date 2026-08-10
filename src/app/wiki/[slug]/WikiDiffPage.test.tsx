@@ -16,7 +16,7 @@ describe("WikiDiffPage", () => {
         name: "公開中 Wiki",
       },
       themeColor: "#4c5cff",
-      fontStyle: "ja_mincho",
+      fontStyle: "ja_mincho" as const,
     };
     const draftWiki = {
       ...baseDraftWiki,
@@ -25,7 +25,7 @@ describe("WikiDiffPage", () => {
         name: "下書き Wiki",
       },
       themeColor: "#d94f70",
-      fontStyle: "en_serif",
+      fontStyle: "en_serif" as const,
     };
 
     render(

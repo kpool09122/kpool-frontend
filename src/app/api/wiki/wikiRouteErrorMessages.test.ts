@@ -20,7 +20,7 @@ const jsonResponse = (status: number): Response =>
     headers: { "Content-Type": "application/json" },
   });
 
-const createRequest = (url: string, init: RequestInit = {}): NextRequest =>
+const createRequest = (url: string, init: ConstructorParameters<typeof NextRequest>[1] = {}): NextRequest =>
   new NextRequest(url, init);
 
 const createUploadBody = () => ({

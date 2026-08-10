@@ -297,7 +297,12 @@ const draftWiki = {
   language: "ja",
   resourceType: "group",
   themeColor: "#4c5cff",
+  fontStyle: null,
+  title: null,
+  metaDescription: null,
+  keywords: null,
   status: "pending" as const,
+  rejectionReason: null,
   name: "編集中 Wiki",
   normalizedName: "editing-wiki",
   imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
@@ -396,6 +401,10 @@ const createDraftWikiAdapter = (
 	      resourceType: "group",
 	      version: 3,
 	      themeColor: "#4c5cff",
+	      fontStyle: null,
+	      title: null,
+	      metaDescription: null,
+	      keywords: null,
 	      imageIdentifier: null,
 	      imageUrl: null,
 	      imageAltText: null,
@@ -2613,7 +2622,10 @@ describe("admin page clients", () => {
       expect(draftWikiAdapter.approveDraftWiki).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki を承認できませんでした。",
         requestBody: {
+          keywords: null,
+          metaDescription: null,
           resourceType: "group",
+          title: null,
         },
         wikiId: draftWiki.wikiIdentifier,
       }),
@@ -2798,7 +2810,10 @@ describe("admin page clients", () => {
       expect(draftWikiAdapter.publishDraftWiki).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki を公開できませんでした。",
         requestBody: {
+          keywords: null,
+          metaDescription: null,
           resourceType: "group",
+          title: null,
         },
         wikiId: draftWiki.wikiIdentifier,
       }),
@@ -2852,8 +2867,11 @@ describe("admin page clients", () => {
       expect(draftWikiAdapter.rejectDraftWiki).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki を却下できませんでした。",
         requestBody: {
+          keywords: null,
+          metaDescription: null,
           resourceType: "group",
           rejectionReason: "内容が不足しています。",
+          title: null,
         },
         wikiId: draftWiki.wikiIdentifier,
       }),

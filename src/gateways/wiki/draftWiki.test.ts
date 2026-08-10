@@ -46,6 +46,9 @@ import {
   withdrawWikiDraft,
 } from "./draftWiki";
 
+const adaptDraftWikiFixtureResponse = (response: unknown) =>
+  adaptDraftWikiResponse(response as Parameters<typeof adaptDraftWikiResponse>[0]);
+
 describe("draftWiki", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -62,7 +65,7 @@ describe("draftWiki", () => {
   });
 
   it("normalizes a group draft response into the editor detail shape", () => {
-    const wiki = adaptDraftWikiResponse({
+    const wiki = adaptDraftWikiFixtureResponse({
       basic: {
         agencyName: "North Harbor Entertainment",
         debutDate: "2022-03-14",
@@ -128,7 +131,7 @@ describe("draftWiki", () => {
   });
 
   it("uses backend hero image src and alt for the initial top image", () => {
-    const wiki = adaptDraftWikiResponse({
+    const wiki = adaptDraftWikiFixtureResponse({
       basic: {
         name: "Aurora Echo",
         normalizedName: "aurora-echo",
@@ -156,7 +159,7 @@ describe("draftWiki", () => {
   });
 
   it("normalizes structured backend section contents into nested editor sections and blocks", () => {
-    const wiki = adaptDraftWikiResponse({
+    const wiki = adaptDraftWikiFixtureResponse({
       basic: {
         name: "Aurora Echo",
         normalizedName: "aurora-echo",
@@ -253,7 +256,7 @@ describe("draftWiki", () => {
   });
 
   it("normalizes a talent draft response into the shared detail shape", () => {
-    const wiki = adaptDraftWikiResponse({
+    const wiki = adaptDraftWikiFixtureResponse({
       basic: {
         birthday: "1995-09-22",
         bloodType: "A",
@@ -317,7 +320,7 @@ describe("draftWiki", () => {
   });
 
   it("normalizes song relation summaries into editable identifier arrays", () => {
-    const wiki = adaptDraftWikiResponse({
+    const wiki = adaptDraftWikiFixtureResponse({
       basic: {
         albumName: "Page Two",
         arranger: "Black Eyed Pilseung",
@@ -1302,7 +1305,6 @@ describe("draftWiki", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
-          wikiIdentifier: "published-wiki-1",
           language: "ja",
           name: "Aurora Echo",
           resourceType: "group",
@@ -1670,7 +1672,6 @@ describe("draftWiki", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
-          wikiIdentifier: "published-wiki-1",
           language: "ja",
           name: "Aurora Echo",
           resourceType: "group",
