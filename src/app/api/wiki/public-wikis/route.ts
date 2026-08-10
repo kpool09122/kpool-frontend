@@ -9,7 +9,7 @@ import { toResourceType } from "../../../[language]/wikiListQuery";
 const sortParamSchema = z.enum(["name", "updatedAt", "createdAt", "version"]);
 const orderParamSchema = z.enum(["asc", "desc"]);
 
-const parseEnumParam = <T extends z.ZodEnum<[string, ...string[]]>>(
+const parseEnumParam = <T extends z.ZodEnum>(
   schema: T,
   value: string | null,
 ): z.infer<T> | undefined => {
