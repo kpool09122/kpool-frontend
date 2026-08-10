@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminShellClient } from "./AdminShellClient";
 import { AdminProvider } from "./AdminProvider";
 import { AccountPageClient } from "./account/AccountPageClient";
+import { AccountDocumentsClient } from "./account/documents/AccountDocumentsClient";
 import { AccountInvitationsClient } from "./account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "./account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "./account/profile/AccountProfileClient";
@@ -66,6 +67,7 @@ const identity = {
   email: "member@example.com",
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
+  accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
   accountType: "corporation",
   accountEffectivePolicies: [
     {
@@ -534,7 +536,9 @@ function AdminClient({
 
     if (href.startsWith("/admin/account")) {
       setActiveSection("accountSettings");
-      if (href.endsWith("/invitations")) {
+      if (href.endsWith("/documents")) {
+        setActiveAccountSettingsTab("accountDocuments");
+      } else if (href.endsWith("/invitations")) {
         setActiveAccountSettingsTab("accountInvitations");
       } else if (href.endsWith("/principal-groups")) {
         setActiveAccountSettingsTab("principalGroupManagement");
@@ -555,7 +559,9 @@ function AdminClient({
 
   const activeContent = activeSection === "accountSettings" ? (
     <AccountPageClient activeTab={activeAccountSettingsTab}>
-      {activeAccountSettingsTab === "accountInvitations" ? (
+      {activeAccountSettingsTab === "accountDocuments" ? (
+        <AccountDocumentsClient />
+      ) : activeAccountSettingsTab === "accountInvitations" ? (
         <AccountInvitationsClient />
       ) : activeAccountSettingsTab === "principalGroupManagement" ? (
         <AccountPrincipalGroupsClient />
@@ -627,6 +633,10 @@ const getInitialAdminPathname = ({
   initialWikiTab: AdminWikiTab;
 }) => {
   if (initialSection === "accountSettings") {
+    if (initialAccountSettingsTab === "accountDocuments") {
+      return "/admin/account/documents";
+    }
+
     if (initialAccountSettingsTab === "accountInvitations") {
       return "/admin/account/invitations";
     }
@@ -866,7 +876,7 @@ describe("admin page clients", () => {
     expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
   });
 
-  it("hides account settings for non-corporation account types even with account policy", () => {
+  it("shows account document settings for individual account types with account policy", () => {
     renderWithQueryClient(
       <AdminClient
         draftImageAdapter={createDraftImageAdapter()}
@@ -877,8 +887,286 @@ describe("admin page clients", () => {
       />,
     );
 
-    expect(screen.queryByRole("link", { name: "アカウント設定" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "アカウント設定" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
+  });
+
+  it("shows missing required account documents as a status warning", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "書類アップロード", level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "法人確認書類", level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "代表者本人確認書類", level: 3 })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "法人向け書類" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("法人所在国")).toHaveValue("japan");
+    expect(screen.getByText("法人登記簿")).toBeInTheDocument();
+    expect(screen.queryByText("営業許可証")).not.toBeInTheDocument();
+    expect(screen.queryByText("定款")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("法人所在国"), { target: { value: "korea" } });
+    expect(screen.getByText("営業許可証")).toBeInTheDocument();
+    expect(screen.queryByText("法人登記簿")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("法人所在国"), { target: { value: "other" } });
+    expect(screen.getByText("定款")).toBeInTheDocument();
+    expect(screen.queryByText("営業許可証")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "アップロード" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("必須書類を選択してください。"),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("filters individual account documents by residence country", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={individualIdentityWithAccountPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "書類アップロード", level: 2 })).toBeInTheDocument();
+    expect(screen.getByLabelText("居住国")).toHaveValue("japan");
+    expect(screen.queryByText("住民登録書類")).not.toBeInTheDocument();
+    expect(screen.getByText("パスポート")).toBeInTheDocument();
+    expect(screen.getByText("運転免許証")).toBeInTheDocument();
+    expect(screen.getAllByText("本人の顔写真").length).toBeGreaterThan(0);
+
+    fireEvent.change(screen.getByLabelText("居住国"), { target: { value: "korea" } });
+    expect(screen.getByText("住民登録書類")).toBeInTheDocument();
+    expect(screen.getByText("運転免許証")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("居住国"), { target: { value: "other" } });
+    expect(screen.getByText("パスポート")).toBeInTheDocument();
+    expect(screen.queryByText("住民登録書類")).not.toBeInTheDocument();
+    expect(screen.queryByText("運転免許証")).not.toBeInTheDocument();
+  });
+
+  it("shows uploaded documents in their upload slots and reveals input after removal", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({
+          documents: [
+            {
+              documentType: "corporate_registry",
+              documentPath: "accounts/documents/corporate_registry.pdf",
+              uploadedAt: "2026-08-10T10:00:00Z",
+            },
+            {
+              documentType: "representative_id",
+              documentPath: "accounts/documents/representative_id.jpg",
+              uploadedAt: "2026-08-10T10:01:00Z",
+            },
+          ],
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByText("corporate_registry.pdf")).toBeInTheDocument();
+    expect(screen.getByAltText("代表者本人確認書類")).toHaveAttribute(
+      "src",
+      "/api/account/my/documents/representative_id",
+    );
+    expect(screen.queryByText("アップロード済み書類")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("法人登記簿")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "法人登記簿を削除" }));
+
+    expect(screen.getByLabelText("法人登記簿")).toBeInTheDocument();
+    expect(screen.queryByText("corporate_registry.pdf")).not.toBeInTheDocument();
+    expect(screen.getByAltText("代表者本人確認書類")).toBeInTheDocument();
+  });
+
+  it("resends retained uploaded documents when adding another document", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({
+          documents: [
+            {
+              documentType: "passport",
+              documentPath: "accounts/documents/passport.jpg",
+              uploadedAt: "2026-08-10T10:00:00Z",
+            },
+            {
+              documentType: "selfie",
+              documentPath: "accounts/documents/selfie.jpg",
+              uploadedAt: "2026-08-10T10:01:00Z",
+            },
+          ],
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      if (url === "/api/account/my/documents/passport") {
+        return Promise.resolve(new Response("passport-existing", {
+          status: 200,
+          headers: { "Content-Type": "image/jpeg" },
+        }));
+      }
+
+      if (url === "/api/account/my/documents/selfie") {
+        return Promise.resolve(new Response("selfie-existing", {
+          status: 200,
+          headers: { "Content-Type": "image/jpeg" },
+        }));
+      }
+
+      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222/documents" && init?.method === "POST") {
+        return Promise.resolve(new Response(JSON.stringify({
+          documents: [
+            {
+              documentType: "passport",
+              documentPath: "accounts/documents/passport.jpg",
+              uploadedAt: "2026-08-10T10:00:00Z",
+            },
+            {
+              documentType: "selfie",
+              documentPath: "accounts/documents/selfie.jpg",
+              uploadedAt: "2026-08-10T10:01:00Z",
+            },
+            {
+              documentType: "driver_license",
+              documentPath: "accounts/documents/driver_license.jpg",
+              uploadedAt: "2026-08-10T10:02:00Z",
+            },
+          ],
+        }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByAltText("パスポート")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("運転免許証"), {
+      target: {
+        files: [new File(["driver-new"], "driver_license.jpg", { type: "image/jpeg" })],
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "アップロード" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/account/accounts/22222222-2222-2222-2222-222222222222/documents",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    const uploadCall = fetchMock.mock.calls.find(([url, init]) =>
+      url === "/api/account/accounts/22222222-2222-2222-2222-222222222222/documents" &&
+      init?.method === "POST");
+    const requestBody = JSON.parse(String(uploadCall?.[1]?.body));
+
+    expect(requestBody.documents.map((document: { documentType: string }) => document.documentType)).toEqual([
+      "passport",
+      "selfie",
+      "driver_license",
+    ]);
+    expect(requestBody.documents[0].fileContents).toBe("cGFzc3BvcnQtZXhpc3Rpbmc=");
+    expect(requestBody.documents[1].fileContents).toBe("c2VsZmllLWV4aXN0aW5n");
   });
 
   it("shows invitation tab only for account:member:invite policy and sends a batched invitation", async () => {
@@ -914,7 +1202,7 @@ describe("admin page clients", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identityWithAccountInvitePolicy}
-        initialPrincipalState={{ status: "available", principal }}
+        initialPrincipalState={{ status: "idle" }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -977,6 +1265,75 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
+  });
+
+  it("hides corporation-only account tabs for individual accounts", async () => {
+    const individualIdentityWithCorporationOnlyPolicies = {
+      ...identity,
+      accountType: "individual",
+      accountEffectivePolicies: [
+        {
+          policyIdentifier: "99999999-9999-9999-9999-999999999997",
+          name: "CORPORATION_ONLY_ACCOUNT_ADMIN",
+          isSystemPolicy: true,
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:member:invite", "account:principal-group:manage"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountType",
+                    operator: "eq",
+                    value: "corporation",
+                  },
+                ],
+              },
+            },
+            {
+              effect: "allow",
+              actions: ["account:update"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountType",
+                    operator: "eq",
+                    value: "corporation",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "individual",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "standard",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={individualIdentityWithCorporationOnlyPolicies}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
+    expect(await screen.findByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "プロフィール" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
   });
 
   it("shows the principal group management tab with drag-only membership editing", async () => {
@@ -1105,7 +1462,7 @@ describe("admin page clients", () => {
     expect(screen.getByLabelText("アカウント名")).toHaveValue("Updated Account");
   });
 
-  it("shows account settings as read only without account:update", async () => {
+  it("hides account profile without account:update", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       accountIdentifier: "22222222-2222-2222-2222-222222222222",
       email: "member@example.com",
@@ -1128,9 +1485,47 @@ describe("admin page clients", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
 
-    expect(await screen.findByLabelText("アカウント名")).toBeDisabled();
-    expect(screen.getByText("アカウント更新権限がないため、アカウント名は変更できません。")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+    expect(await screen.findByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "プロフィール" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("アカウント名")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
+  });
+
+  it("allows document upload without account:update", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identityWithAccountReadOnlyPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "アップロード" })).toBeEnabled();
+    expect(screen.getByLabelText("居住国")).toBeEnabled();
+    expect(screen.getByLabelText("パスポート")).toBeEnabled();
   });
 
   it("shows profile settings and saves identityName without socialConnections", async () => {

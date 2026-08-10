@@ -2,12 +2,23 @@ import type { IdentitySummary } from "@/gateways/identity/identityApi";
 
 type AccountPolicyStatement = {
   actions?: unknown;
+  condition?: unknown;
   effect?: unknown;
   resourceTypes?: unknown;
 };
 
 type AccountEffectivePolicy = {
   statements?: unknown;
+};
+
+type AccountPolicyConditionClause = {
+  field?: unknown;
+  operator?: unknown;
+  value?: unknown;
+};
+
+type AccountPolicyCondition = {
+  clauses?: unknown;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -30,8 +41,21 @@ const toPolicyStatement = (value: unknown): AccountPolicyStatement | null =>
   isRecord(value)
     ? {
         actions: value.actions,
+        condition: value.condition,
         effect: value.effect,
         resourceTypes: value.resourceTypes,
+      }
+    : null;
+
+const toCondition = (value: unknown): AccountPolicyCondition | null =>
+  isRecord(value) ? { clauses: value.clauses } : null;
+
+const toConditionClause = (value: unknown): AccountPolicyConditionClause | null =>
+  isRecord(value)
+    ? {
+        field: value.field,
+        operator: value.operator,
+        value: value.value,
       }
     : null;
 
@@ -101,10 +125,66 @@ const getAccountPolicies = (identity: IdentitySummary | null): AccountEffectiveP
 const statementMatches = (
   statement: AccountPolicyStatement,
   action: string,
+  identity: IdentitySummary | null,
 ): boolean =>
   valueMatches(getStringArray(statement.actions), action) &&
   (getStringArray(statement.resourceTypes).length === 0 ||
-    valueMatches(getStringArray(statement.resourceTypes), "ACCOUNT"));
+    valueMatches(getStringArray(statement.resourceTypes), "ACCOUNT")) &&
+  conditionMatches(statement.condition, identity);
+
+const conditionMatches = (conditionValue: unknown, identity: IdentitySummary | null): boolean => {
+  if (conditionValue === null || conditionValue === undefined) {
+    return true;
+  }
+
+  const condition = toCondition(conditionValue);
+  if (!condition) {
+    return false;
+  }
+
+  const clauses = Array.isArray(condition.clauses) ? condition.clauses : [];
+
+  return clauses
+    .map(toConditionClause)
+    .every((clause) => clause !== null && conditionClauseMatches(clause, identity));
+};
+
+const conditionClauseMatches = (
+  clause: AccountPolicyConditionClause,
+  identity: IdentitySummary | null,
+): boolean => {
+  const actualValue = getConditionActualValue(clause.field, identity);
+
+  if (actualValue === null) {
+    return false;
+  }
+
+  const operator = typeof clause.operator === "string" ? normalizePolicyValue(clause.operator) : "";
+
+  switch (operator) {
+    case "eq":
+      return actualValue === clause.value;
+    case "ne":
+      return actualValue !== clause.value;
+    case "in":
+      return (Array.isArray(clause.value) ? clause.value : [clause.value]).includes(actualValue);
+    case "not_in":
+      return !(Array.isArray(clause.value) ? clause.value : [clause.value]).includes(actualValue);
+    default:
+      return false;
+  }
+};
+
+const getConditionActualValue = (
+  field: unknown,
+  identity: IdentitySummary | null,
+): string | null => {
+  if (field !== "resource:accountType") {
+    return null;
+  }
+
+  return getAccountTypeFromIdentity(identity);
+};
 
 const hasMatchingStatement = (
   identity: IdentitySummary | null,
@@ -119,7 +199,7 @@ const hasMatchingStatement = (
         statement &&
         typeof statement.effect === "string" &&
         normalizePolicyValue(statement.effect) === effect &&
-        statementMatches(statement, action),
+        statementMatches(statement, action, identity),
       ),
   );
 

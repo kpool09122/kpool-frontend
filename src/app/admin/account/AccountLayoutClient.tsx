@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
-import { canInviteAccountMembers, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy, isCorporationAccount } from "@/gateways/account/accountPolicy";
+import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
+import { canInviteAccountMembers, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
-import { getAccountIdentifierFromIdentity, type WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import { AccountSectionProvider } from "./AccountSectionContext";
 import {
@@ -27,7 +27,6 @@ type AccountLayoutClientProps = {
   activeTab: AdminAccountSettingsTab;
   children: ReactNode;
   currentIdentity: IdentitySummary | null;
-  principalState: WikiPrincipalState;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
   onAuthorizationRejected: () => void;
 };
@@ -36,16 +35,18 @@ export function AccountLayoutClient({
   activeTab,
   children,
   currentIdentity,
-  principalState,
   t,
   onAuthorizationRejected,
 }: AccountLayoutClientProps) {
   const router = useRouter();
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
-  const canShowAccountSettings = Boolean(accountIdentifier) && isCorporationAccount(currentIdentity) && hasAccountPolicy(currentIdentity);
+  const accountPrincipalIdentifier = getAccountPrincipalIdentifierFromIdentity(currentIdentity);
+  const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
   const canEdit = canUpdateAccount(currentIdentity);
   const canInvite = canInviteAccountMembers(currentIdentity);
   const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
+  const fallbackTab: AdminAccountSettingsTab = canEdit ? "accountProfile" : "accountDocuments";
+  const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
   useEffect(() => {
     if (!canShowAccountSettings) {
@@ -53,22 +54,29 @@ export function AccountLayoutClient({
       return;
     }
 
+    if (activeTab === "accountProfile" && !canEdit) {
+      router.replace(fallbackRoute);
+      return;
+    }
+
     if (activeTab === "accountInvitations" && !canInvite) {
-      router.replace(adminAccountTabRoutes.accountProfile);
+      router.replace(fallbackRoute);
       return;
     }
 
     if (activeTab === "principalGroupManagement" && !canManageAccountPrincipalGroups) {
-      router.replace(adminAccountTabRoutes.accountProfile);
+      router.replace(fallbackRoute);
     }
-  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canShowAccountSettings, router]);
+  }, [activeTab, canEdit, canInvite, canManageAccountPrincipalGroups, canShowAccountSettings, fallbackRoute, router]);
 
   const tabs = [
-    createAccountSettingsTab("accountProfile", t.accountInformationTab),
+    ...(canEdit ? [createAccountSettingsTab("accountProfile", t.accountInformationTab)] : []),
+    createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
   ];
-  const selectedTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "accountProfile";
+  const activeTabAllowed = tabs.some((tab) => tab.id === activeTab);
+  const selectedTab = activeTabAllowed ? activeTab : fallbackTab;
 
   return (
     <section className="space-y-5">
@@ -94,15 +102,15 @@ export function AccountLayoutClient({
       <AccountSectionProvider
         value={{
           accountIdentifier,
+          accountPrincipalIdentifier,
           canEdit,
           canInvite,
           canManagePrincipalGroups: canManageAccountPrincipalGroups,
-          principalState,
           t,
           onAuthorizationRejected,
         }}
       >
-        {children}
+        {activeTabAllowed ? children : null}
       </AccountSectionProvider>
     </section>
   );

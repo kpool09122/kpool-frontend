@@ -2,12 +2,16 @@ import {
   parseAccountMembersResponse,
   parseAccountSummary,
   parseInvitationSummaries,
+  parseListAccountDocumentsResponse,
   parsePrincipalGroupsResponse,
+  parseUploadAccountDocumentsResponse,
   type AccountSummary,
   type InvitationSummary,
   type InviteAccountMembersRequest,
+  type ListAccountDocumentsResponse,
   type ListMembersResponse,
   type ListPrincipalGroupsResponse,
+  type UploadAccountDocumentsRequest,
   type UpdateAccountRequest,
   type UpdatePrincipalGroupMembersRequest,
 } from "./accountApi";
@@ -20,6 +24,16 @@ type AccountRequestOptions = {
 
 type UpdateAccountOptions = AccountRequestOptions & {
   requestBody: UpdateAccountRequest;
+};
+
+type UploadAccountDocumentsOptions = AccountRequestOptions & {
+  requestBody: UploadAccountDocumentsRequest;
+};
+
+type FetchAccountDocumentFileOptions = {
+  documentType: string;
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
 };
 
 type InviteAccountMembersOptions = {
@@ -65,6 +79,18 @@ const createRouteError = (
   Object.assign(new Error(getRouteErrorMessage(body, fallbackErrorMessage)), {
     accountRouteStatus: response.status,
   });
+
+const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(arrayBuffer);
+  const chunkSize = 0x8000;
+  const chunks: string[] = [];
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    chunks.push(String.fromCharCode(...bytes.subarray(index, index + chunkSize)));
+  }
+
+  return btoa(chunks.join(""));
+};
 
 export const fetchAccount = async ({
   accountIdentifier,
@@ -198,4 +224,64 @@ export const updatePrincipalGroupMembers = async ({
   }
 
   return parsePrincipalGroupsResponse(body);
+};
+
+export const fetchAccountDocuments = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: AccountRequestOptions): Promise<ListAccountDocumentsResponse> => {
+  const response = await fetchAdapter("/api/account/my/documents", {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseListAccountDocumentsResponse(body);
+};
+
+export const fetchAccountDocumentFileContents = async ({
+  documentType,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: FetchAccountDocumentFileOptions): Promise<string> => {
+  const response = await fetchAdapter(`/api/account/my/documents/${encodeURIComponent(documentType)}`, {
+    cache: "no-store",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw createRouteError(response, await readResponseBody(response), fallbackErrorMessage);
+  }
+
+  return arrayBufferToBase64(await response.arrayBuffer());
+};
+
+export const uploadAccountDocuments = async ({
+  accountIdentifier,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: UploadAccountDocumentsOptions): Promise<ListAccountDocumentsResponse> => {
+  const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}/documents`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseUploadAccountDocumentsResponse(body);
 };

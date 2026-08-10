@@ -8,8 +8,8 @@ import { useAccountInvitations } from "./useAccountInvitations";
 export function AccountInvitationsClient() {
   const {
     accountIdentifier,
+    accountPrincipalIdentifier,
     canInvite,
-    principalState,
     t,
   } = useAccountSection();
   const {
@@ -20,8 +20,8 @@ export function AccountInvitationsClient() {
     updateEmailInput,
   } = useAccountInvitations({
     accountIdentifier,
+    accountPrincipalIdentifier,
     canInvite,
-    principalState,
     t,
   });
 

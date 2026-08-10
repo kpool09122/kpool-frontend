@@ -7,7 +7,7 @@ import type { DraftWikiListState, AdminDraftWikiActionTab } from "./useAdminDraf
 import type { ImageDeletionRequestListState } from "./useAdminImageDeletionRequestReview";
 
 export type AdminSettingsTab = "profileSettings" | "languageSettings";
-export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "principalGroupManagement";
+export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "principalGroupManagement";
 export type AdminSection = "wiki" | "accountSettings" | "settings";
 export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
 
@@ -67,6 +67,7 @@ export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
 };
 
 export const adminAccountTabRoutes: Record<AdminAccountSettingsTab, string> = {
+  accountDocuments: "/admin/account/documents",
   accountInvitations: "/admin/account/invitations",
   accountProfile: "/admin/account/profile",
   principalGroupManagement: "/admin/account/principal-groups",

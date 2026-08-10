@@ -4,7 +4,10 @@ import {
   getAccountApiBaseUrl,
   parseAccountMembersResponse,
   parseCreateAccountResult,
+  parseListAccountDocumentsResponse,
   parsePrincipalGroupsResponse,
+  parseUploadAccountDocumentsRequest,
+  parseUploadAccountDocumentsResponse,
   parseUpdatePrincipalGroupMembersRequest,
   withAccountApiPrefix,
 } from "./accountApi";
@@ -64,6 +67,26 @@ describe("account API helpers", () => {
     expect(parsePrincipalGroupsResponse({ principalGroups: [principalGroup] })).toEqual({
       principalGroups: [principalGroup],
     });
+  });
+
+  it("parses account document upload and list payloads", () => {
+    const document = {
+      documentType: "passport",
+      documentPath: "accounts/documents/passport.pdf",
+      uploadedAt: "2026-08-02T00:00:00Z",
+    };
+
+    expect(parseUploadAccountDocumentsRequest({
+      documents: [{ documentType: "passport", fileContents: "YWJj" }],
+    })).toEqual({ documents: [{ documentType: "passport", fileContents: "YWJj" }] });
+    expect(parseUploadAccountDocumentsResponse({ documents: [document] })).toEqual({ documents: [document] });
+    expect(parseListAccountDocumentsResponse({ documents: [document] })).toEqual({ documents: [document] });
+  });
+
+  it("rejects invalid account document upload payloads", () => {
+    expect(() => parseUploadAccountDocumentsRequest({
+      documents: [{ documentType: "passport" }],
+    })).toThrow();
   });
 
   it("rejects invalid principal group member update payloads", () => {

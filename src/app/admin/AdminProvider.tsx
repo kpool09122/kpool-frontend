@@ -2,9 +2,9 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import { hasAccountPolicy, isCorporationAccount } from "@/gateways/account/accountPolicy";
+import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
+import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { useAuthStore, type AuthIdentityRefresh } from "@/gateways/auth/authStore";
-import { getAccountIdentifierFromIdentity } from "@/gateways/wiki/wikiPrincipal";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
 import type { AdminRouteContext } from "./adminTypes";
@@ -22,7 +22,7 @@ const AdminContext = createContext<AdminContextValue | null>(null);
 const canShowAccountSettingsForIdentity = (currentIdentity: AdminRouteContext["initialIdentity"]) => {
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
 
-  return Boolean(accountIdentifier) && isCorporationAccount(currentIdentity) && hasAccountPolicy(currentIdentity);
+  return Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
 };
 
 export function AdminProvider({
