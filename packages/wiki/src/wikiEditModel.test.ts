@@ -16,9 +16,10 @@ import {
   updateWikiSection,
 } from "./wikiEditModel";
 import { createMockWikiDetail } from "./mockWikiDetail";
-import type { WikiBlock, WikiSection } from "./types/wiki";
+import type { WikiBlock, WikiSection, WikiTextBlock } from "./types/wiki";
 
 const createSection = (overrides?: Partial<WikiSection>): WikiSection => ({
+  type: "section",
   sectionIdentifier: "sec-root",
   title: "Root",
   displayOrder: 10,
@@ -140,7 +141,7 @@ describe("wikiEditModel", () => {
     });
     const deleted = deleteWikiContent(updatedSection, textBlock.blockIdentifier);
 
-    expect((updatedBlock[0]?.contents[0] as WikiBlock).content).toBe("Updated text");
+    expect((updatedBlock[0]?.contents[0] as WikiTextBlock).content).toBe("Updated text");
     expect(updatedSection[0]?.title).toBe("Updated Root");
     expect(deleted[0]?.contents).toEqual([]);
   });

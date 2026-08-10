@@ -4,111 +4,93 @@ import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { WikiDetailPage } from "./WikiDetailPage";
-import type { WikiDetailState } from "@kpool/wiki";
+import { createMockWikiDetail, type WikiDetail, type WikiDetailState } from "@kpool/wiki";
 
-const successState: WikiDetailState = {
-  status: "success",
-  data: {
-    wikiIdentifier: "aurora-echo",
-    slug: "gr-aurora-echo",
-    language: "ja",
-    resourceType: "group",
-    version: 3,
-    themeColor: null,
-    heroImage: {
-      src: "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%233560a3'/%3E%3C/svg%3E",
-      alt: "Aurora Echo hero image",
-    },
-      basic: {
-        name: "Aurora Echo",
-        normalizedName: "aurora-echo",
-        resourceType: "group",
-      groupType: "Girl Group",
-      status: "Active",
-      generation: "5th",
-      debutDate: "2022-03-14",
-      fandomName: "Daybreak",
-      emoji: "🌅",
-      representativeSymbol: "Solar wave",
-        officialColors: [{ colorCode: "#f6c453", label: "Solar Gold" }, { colorCode: "#1f3b73", label: "Midnight Blue" }],
-        agencyName: "North Harbor Entertainment",
-        talents: [
-          {
-            wikiIdentifier: "talent-wiki-1",
-            slug: "tl-momo",
-            language: "ko",
-            name: "MOMO",
-            normalizedName: "momo",
-          },
-          {
-            wikiIdentifier: "talent-wiki-2",
-            slug: "tl-sana",
-            language: "ko",
-            name: "SANA",
-            normalizedName: "sana",
-          },
-        ],
-      },
-    sections: [
+const successWikiDetail: WikiDetail = {
+  ...createMockWikiDetail("gr-aurora-echo"),
+  basic: {
+    ...createMockWikiDetail("gr-aurora-echo").basic,
+    talents: [
       {
-        type: "section",
-        sectionIdentifier: "members",
-        title: "Members",
-        displayOrder: 20,
-        depth: 1,
-        contents: [
-          {
-            blockIdentifier: "members-text",
-            blockType: "text",
-            displayOrder: 10,
-            content: "Members body",
-          },
-          {
-            blockIdentifier: "members-profiles",
-            blockType: "profile_card_list",
-            displayOrder: 20,
-            profiles: [
-              {
-                wikiIdentifier: "related-wiki-1",
-                slug: "gr-aurora-echo",
-                language: "ja",
-                resourceType: "group",
-                name: "Aurora Echo",
-                normalizedName: "aurora-echo",
-                imageUrl: null,
-                imageAltText: null,
-              },
-            ],
-            wikiIdentifiers: ["33333333-3333-3333-3333-333333333333"],
-            title: "Related profiles",
-          },
-        ],
+        wikiIdentifier: "talent-wiki-1",
+        slug: "tl-momo",
+        language: "ko",
+        name: "MOMO",
+        normalizedName: "momo",
       },
       {
-        type: "section",
-        sectionIdentifier: "overview",
-        title: "Overview",
-        displayOrder: 10,
-        depth: 1,
-        contents: [
-          {
-            blockIdentifier: "overview-text",
-            blockType: "text",
-            displayOrder: 10,
-            content: "Overview body",
-          },
-          {
-            blockIdentifier: "overview-embed",
-            blockType: "embed",
-            displayOrder: 20,
-            provider: "youtube",
-            embedId: "abc123",
-            caption: "Overview video",
-          },
-        ],
+        wikiIdentifier: "talent-wiki-2",
+        slug: "tl-sana",
+        language: "ko",
+        name: "SANA",
+        normalizedName: "sana",
       },
     ],
   },
+  sections: [
+    {
+      type: "section",
+      sectionIdentifier: "members",
+      title: "Members",
+      displayOrder: 20,
+      depth: 1,
+      contents: [
+        {
+          blockIdentifier: "members-text",
+          blockType: "text",
+          displayOrder: 10,
+          content: "Members body",
+        },
+        {
+          blockIdentifier: "members-profiles",
+          blockType: "profile_card_list",
+          displayOrder: 20,
+          profiles: [
+            {
+              wikiIdentifier: "related-wiki-1",
+              slug: "gr-aurora-echo",
+              language: "ja",
+              resourceType: "group",
+              name: "Aurora Echo",
+              normalizedName: "aurora-echo",
+              imageUrl: null,
+              imageAltText: null,
+            },
+          ],
+          wikiIdentifiers: ["33333333-3333-3333-3333-333333333333"],
+          title: "Related profiles",
+        },
+      ],
+    },
+    {
+      type: "section",
+      sectionIdentifier: "overview",
+      title: "Overview",
+      displayOrder: 10,
+      depth: 1,
+      contents: [
+        {
+          blockIdentifier: "overview-text",
+          blockType: "text",
+          displayOrder: 10,
+          content: "Overview body",
+        },
+        {
+          blockIdentifier: "overview-embed",
+          blockType: "embed",
+          displayOrder: 20,
+          provider: "youtube",
+          embedId: "abc123",
+          caption: "Overview video",
+        },
+      ],
+    },
+  ],
+};
+
+const successState: WikiDetailState = {
+  status: "success",
+  data: successWikiDetail,
 };
 
 const renderWithI18n = (ui: React.ReactElement) =>
