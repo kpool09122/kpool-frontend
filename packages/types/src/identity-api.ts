@@ -71,11 +71,23 @@ const UpdateIdentityRequestBody = z
   })
   .partial()
   .passthrough();
+const AccountPolicyConditionClause = z
+  .object({
+    field: z.string(),
+    operator: z.string(),
+    value: z.union([z.string(), z.boolean()]),
+  })
+  .passthrough();
+const AccountPolicyCondition = z
+  .object({ clauses: z.array(AccountPolicyConditionClause) })
+  .partial()
+  .passthrough();
 const AccountPolicyStatement = z
   .object({
     effect: z.string(),
     actions: z.array(z.string()),
     resourceTypes: z.array(z.string()),
+    condition: AccountPolicyCondition.nullish(),
   })
   .passthrough();
 const AccountEffectivePolicySummary = z
@@ -105,6 +117,8 @@ export const schemas = {
   KPool_Common_Timestamp,
   VerifyEmailResult,
   UpdateIdentityRequestBody,
+  AccountPolicyConditionClause,
+  AccountPolicyCondition,
   AccountPolicyStatement,
   AccountEffectivePolicySummary,
 };
