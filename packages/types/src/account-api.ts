@@ -19,9 +19,11 @@ const AccountCategoryChangeRequestSummary = z
     rejectionReason: VerificationRejectionReasonSummary.nullish(),
   })
   .passthrough();
+const AccountCategoryChangeRequestListItemSummary =
+  AccountCategoryChangeRequestSummary;
 const ListAccountCategoryChangeRequestsResponseBody = z
   .object({
-    requests: z.array(AccountCategoryChangeRequestSummary),
+    requests: z.array(AccountCategoryChangeRequestListItemSummary),
     current_page: z.number().int(),
     last_page: z.number().int(),
     total: z.number().int(),
@@ -89,56 +91,6 @@ const RejectAccountCategoryChangeRequestBody = z
       "fraudulent_document",
       "other",
     ]),
-    rejectionReasonDetail: z.string().nullish(),
-  })
-  .passthrough();
-const VerificationDocumentUploadRequestBody = z
-  .object({
-    documentType: z.string(),
-    fileName: z.string(),
-    fileContents: z.string(),
-    fileSizeBytes: z.number().int(),
-  })
-  .passthrough();
-const RequestVerificationRequestBody = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    verificationType: z.string(),
-    applicantName: z.string(),
-    documents: z.array(VerificationDocumentUploadRequestBody),
-  })
-  .passthrough();
-const VerificationDocumentSummary = z
-  .object({
-    documentIdentifier: KPool_Common_Uuid,
-    documentType: z.string(),
-    documentPath: z.string(),
-    originalFileName: z.string(),
-    fileSizeBytes: z.number().int(),
-    uploadedAt: KPool_Common_Timestamp,
-  })
-  .passthrough();
-const AccountVerificationSummary = z
-  .object({
-    verificationIdentifier: KPool_Common_Uuid,
-    accountIdentifier: KPool_Common_Uuid,
-    verificationType: z.string(),
-    status: z.string(),
-    applicantName: z.string(),
-    requestedAt: KPool_Common_Timestamp,
-    reviewedBy: KPool_Common_Uuid.nullish(),
-    reviewedAt: KPool_Common_Timestamp.nullish(),
-    rejectionReason: VerificationRejectionReasonSummary.nullish(),
-    documents: z.array(VerificationDocumentSummary),
-  })
-  .passthrough();
-const ApproveVerificationRequestBody = z
-  .object({ reviewerAccountIdentifier: KPool_Common_Uuid })
-  .passthrough();
-const RejectVerificationRequestBody = z
-  .object({
-    reviewerAccountIdentifier: KPool_Common_Uuid,
-    rejectionReasonCode: z.string(),
     rejectionReasonDetail: z.string().nullish(),
   })
   .passthrough();
@@ -347,6 +299,7 @@ export const schemas = {
   KPool_Common_Timestamp,
   VerificationRejectionReasonSummary,
   AccountCategoryChangeRequestSummary,
+  AccountCategoryChangeRequestListItemSummary,
   ListAccountCategoryChangeRequestsResponseBody,
   KPool_Common_ProblemDetails,
   ContactAddressSummary,
@@ -355,12 +308,6 @@ export const schemas = {
   AccountDocumentSummary,
   AccountCategoryChangeRequestDetailResponseBody,
   RejectAccountCategoryChangeRequestBody,
-  VerificationDocumentUploadRequestBody,
-  RequestVerificationRequestBody,
-  VerificationDocumentSummary,
-  AccountVerificationSummary,
-  ApproveVerificationRequestBody,
-  RejectVerificationRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
   RequestAccountCategoryChangeRequestBody,
@@ -565,122 +512,6 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/account-verifications",
-    alias: "AccountVerificationOperations_requestVerification",
-    description: `Request account verification.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: RequestVerificationRequestBody,
-      },
-    ],
-    response: AccountVerificationSummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/account-verifications/:verificationId/approve",
-    alias: "AccountVerificationOperations_approveVerification",
-    description: `Approve account verification.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: ApproveVerificationRequestBody,
-      },
-      {
-        name: "verificationId",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-    ],
-    response: AccountVerificationSummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/account-verifications/:verificationId/reject",
-    alias: "AccountVerificationOperations_rejectVerification",
-    description: `Reject account verification.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: RejectVerificationRequestBody,
-      },
-      {
-        name: "verificationId",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-    ],
-    response: AccountVerificationSummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
