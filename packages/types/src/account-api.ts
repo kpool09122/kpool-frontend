@@ -38,6 +38,17 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
+const ContactAddressSummary = z
+  .object({
+    countryCode: z.string().nullable(),
+    administrativeAreaCode: z.string().nullable(),
+    postalCode: z.string().nullable(),
+    locality: z.string().nullable(),
+    addressLine1: z.string().nullable(),
+    addressLine2: z.string().nullable(),
+  })
+  .partial()
+  .passthrough();
 const AccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -46,6 +57,8 @@ const AccountSummary = z
     name: z.string(),
     status: z.string(),
     accountCategory: z.string(),
+    phone: z.string().nullish(),
+    address: ContactAddressSummary.nullish(),
   })
   .passthrough();
 const AccountCategoryChangeRequestIdentitySummary = z
@@ -135,6 +148,8 @@ const CreateAccountRequestBody = z
     accountType: z.string(),
     accountName: z.string(),
     principalIdentifier: KPool_Common_Uuid.nullish(),
+    phone: z.string().nullish(),
+    address: ContactAddressSummary.nullish(),
   })
   .passthrough();
 const CreateAccountResult = z
@@ -145,6 +160,8 @@ const CreateAccountResult = z
     name: z.string(),
     status: z.string(),
     accountCategory: z.string(),
+    phone: z.string().nullable(),
+    address: ContactAddressSummary.nullable(),
   })
   .partial()
   .passthrough();
@@ -152,7 +169,11 @@ const RequestAccountCategoryChangeRequestBody = z
   .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
   .passthrough();
 const UpdateAccountRequestBody = z
-  .object({ accountName: z.string() })
+  .object({
+    accountName: z.string(),
+    phone: z.string().nullish(),
+    address: ContactAddressSummary.nullish(),
+  })
   .passthrough();
 const AccountDocumentUploadItem = z
   .object({ documentType: z.string(), fileContents: z.string() })
@@ -328,6 +349,7 @@ export const schemas = {
   AccountCategoryChangeRequestSummary,
   ListAccountCategoryChangeRequestsResponseBody,
   KPool_Common_ProblemDetails,
+  ContactAddressSummary,
   AccountSummary,
   AccountCategoryChangeRequestIdentitySummary,
   AccountDocumentSummary,
@@ -762,7 +784,7 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: z.object({ accountName: z.string() }).passthrough(),
+        schema: UpdateAccountRequestBody,
       },
       {
         name: "accountId",
