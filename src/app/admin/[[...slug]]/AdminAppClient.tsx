@@ -2,6 +2,9 @@
 
 import { usePathname } from "next/navigation";
 
+import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
+import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
+import { AccountCategoryChangeRequestsClient } from "../account/category-change-requests/AccountCategoryChangeRequestsClient";
 import { AccountDocumentsClient } from "../account/documents/AccountDocumentsClient";
 import { AccountInvitationsClient } from "../account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
@@ -43,7 +46,10 @@ export function AdminAppClient({
   );
 }
 
-type AdminClientPage = "accountDocuments"
+type AdminClientPage = "accountCategoryChange"
+  | "accountCategoryChangeRequestDetail"
+  | "accountCategoryChangeRequests"
+  | "accountDocuments"
   | "accountInvitations"
   | "accountPrincipalGroups"
   | "accountProfile"
@@ -61,6 +67,18 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   if (pathname?.startsWith("/admin/account")) {
     if (pathname.endsWith("/documents")) {
       return "accountDocuments";
+    }
+
+    if (pathname.endsWith("/category-change")) {
+      return "accountCategoryChange";
+    }
+
+    if (pathname?.includes("/category-change-requests/")) {
+      return "accountCategoryChangeRequestDetail";
+    }
+
+    if (pathname.endsWith("/category-change-requests")) {
+      return "accountCategoryChangeRequests";
     }
 
     if (pathname.endsWith("/invitations")) {
@@ -112,6 +130,30 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "accountCategoryChange") {
+    return (
+      <AccountPageClient activeTab="accountCategoryChange">
+        <AccountCategoryChangeClient />
+      </AccountPageClient>
+    );
+  }
+
+  if (page === "accountCategoryChangeRequests") {
+    return (
+      <AccountPageClient activeTab="unapprovedAccountCategoryChangeRequests">
+        <AccountCategoryChangeRequestsClient />
+      </AccountPageClient>
+    );
+  }
+
+  if (page === "accountCategoryChangeRequestDetail") {
+    return (
+      <AccountPageClient activeTab="unapprovedAccountCategoryChangeRequests">
+        <AccountCategoryChangeRequestDetailClient />
+      </AccountPageClient>
+    );
+  }
+
   if (page === "accountDocuments") {
     return (
       <AccountPageClient activeTab="accountDocuments">

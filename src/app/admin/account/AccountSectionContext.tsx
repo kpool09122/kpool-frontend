@@ -10,6 +10,7 @@ export type AccountSectionContextValue = {
   canEdit: boolean;
   canInvite: boolean;
   canManagePrincipalGroups: boolean;
+  canManageCategoryChangeRequests: boolean;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
   onAuthorizationRejected: () => void;
 };

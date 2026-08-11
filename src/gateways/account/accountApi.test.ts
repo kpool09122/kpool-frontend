@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import {
   getAccountApiBaseUrl,
+  parseAccountCategoryChangeRequestDetailResponse,
+  parseAccountCategoryChangeRequestSummary,
   parseAccountMembersResponse,
   parseAccountSummary,
   parseCreateAccountResult,
+  parseListAccountCategoryChangeRequestsResponse,
   parseListAccountDocumentsResponse,
   parsePrincipalGroupsResponse,
+  parseRejectAccountCategoryChangeRequest,
+  parseRequestAccountCategoryChangeRequest,
   parseUploadAccountDocumentsRequest,
   parseUploadAccountDocumentsResponse,
   parseUpdateAccountRequest,
@@ -117,6 +122,46 @@ describe("account API helpers", () => {
     })).toEqual({ documents: [{ documentType: "passport", fileContents: "YWJj" }] });
     expect(parseUploadAccountDocumentsResponse({ documents: [document] })).toEqual({ documents: [document] });
     expect(parseListAccountDocumentsResponse({ documents: [document] })).toEqual({ documents: [document] });
+  });
+
+
+  it("parses account category change request schemas", () => {
+    const request = {
+      requestIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      accountIdentifier: "44444444-4444-4444-8444-444444444444",
+      currentAccountCategory: "general",
+      requestedAccountCategory: "agency",
+      status: "pending",
+      requestedAt: "2026-08-11T00:00:00Z",
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: null,
+      account: {
+        accountIdentifier: "44444444-4444-4444-8444-444444444444",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "general",
+        phone: null,
+        address: null,
+      },
+    };
+    const account = {
+      accountIdentifier: request.accountIdentifier,
+      email: "member@example.com",
+      type: "corporation",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "general",
+    };
+
+    expect(parseRequestAccountCategoryChangeRequest({ requestedAccountCategory: "agency" })).toEqual({ requestedAccountCategory: "agency" });
+    expect(parseAccountCategoryChangeRequestSummary(request)).toMatchObject({ requestIdentifier: request.requestIdentifier });
+    expect(parseListAccountCategoryChangeRequestsResponse({ requests: [request], current_page: 1, last_page: 1, total: 1, per_page: 20 })).toMatchObject({ requests: [request] });
+    expect(parseAccountCategoryChangeRequestDetailResponse({ request, account, identities: [{ name: "member", email: "member@example.com" }], documents: [{ documentType: "passport", documentPath: "passport.pdf", uploadedAt: "2026-08-11T00:00:00Z" }] })).toMatchObject({ request, account });
+    expect(parseRejectAccountCategoryChangeRequest({ rejectionReasonCode: "other", rejectionReasonDetail: "missing" })).toEqual({ rejectionReasonCode: "other", rejectionReasonDetail: "missing" });
+    expect(() => parseRejectAccountCategoryChangeRequest({ rejectionReasonCode: "bad" })).toThrow();
   });
 
   it("rejects invalid account document upload payloads", () => {

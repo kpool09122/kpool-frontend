@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { canInviteAccountMembers, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import { canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import { AccountSectionProvider } from "./AccountSectionContext";
@@ -45,6 +45,7 @@ export function AccountLayoutClient({
   const canEdit = canUpdateAccount(currentIdentity);
   const canInvite = canInviteAccountMembers(currentIdentity);
   const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
+  const canManageCategoryChangeRequests = canManageAccountCategoryChangeRequests(currentIdentity);
   const fallbackTab: AdminAccountSettingsTab = "accountProfile";
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
@@ -61,14 +62,21 @@ export function AccountLayoutClient({
 
     if (activeTab === "principalGroupManagement" && !canManageAccountPrincipalGroups) {
       router.replace(fallbackRoute);
+      return;
     }
-  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canShowAccountSettings, fallbackRoute, router]);
+
+    if (activeTab === "unapprovedAccountCategoryChangeRequests" && !canManageCategoryChangeRequests) {
+      router.replace(fallbackRoute);
+    }
+  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, fallbackRoute, router]);
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
+    ...(accountIdentifier ? [createAccountSettingsTab("accountCategoryChange", t.accountCategoryChange.tab)] : []),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
+    ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),
   ];
   const activeTabAllowed = tabs.some((tab) => tab.id === activeTab);
   const selectedTab = activeTabAllowed ? activeTab : fallbackTab;
@@ -101,6 +109,7 @@ export function AccountLayoutClient({
           canEdit,
           canInvite,
           canManagePrincipalGroups: canManageAccountPrincipalGroups,
+          canManageCategoryChangeRequests,
           t,
           onAuthorizationRejected,
         }}

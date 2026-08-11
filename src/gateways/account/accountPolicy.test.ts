@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   canInviteAccountMembers,
+  canManageAccountCategoryChangeRequests,
   canManagePrincipalGroups,
   canUpdateAccount,
   getAccountTypeFromIdentity,
@@ -115,6 +116,27 @@ describe("accountPolicy", () => {
     })).toBe(false);
   });
 
+  it("allows category change request review only with manage policy and no deny", () => {
+    const allowPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        { statements: [{ effect: "allow", actions: ["account:category-change-request:manage"], resourceTypes: ["ACCOUNT"] }] },
+      ],
+    };
+
+    expect(canManageAccountCategoryChangeRequests(allowPolicy)).toBe(true);
+    expect(canManageAccountCategoryChangeRequests({
+      ...allowPolicy,
+      accountEffectivePolicies: [
+        { statements: [
+          { effect: "allow", actions: ["account:category-change-request:manage"], resourceTypes: ["ACCOUNT"] },
+          { effect: "deny", actions: ["account:category-change-request:manage"], resourceTypes: ["ACCOUNT"] },
+        ] },
+      ],
+    })).toBe(false);
+    expect(canManageAccountCategoryChangeRequests({ ...baseIdentity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["wiki:*"], resourceTypes: ["WIKI"] }] }] })).toBe(false);
+  });
+
   it("applies account policy conditions to every account action check", () => {
     const conditionalPolicy = {
       ...baseIdentity,
@@ -127,6 +149,7 @@ describe("accountPolicy", () => {
                 "account:update",
                 "account:member:invite",
                 "account:principal-group:manage",
+                "account:category-change-request:manage",
               ],
               resourceTypes: ["ACCOUNT"],
               condition: {
@@ -147,8 +170,10 @@ describe("accountPolicy", () => {
     expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
     expect(canUpdateAccount({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
     expect(canManagePrincipalGroups({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canManageAccountCategoryChangeRequests({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
     expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
     expect(canUpdateAccount({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
     expect(canManagePrincipalGroups({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canManageAccountCategoryChangeRequests({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
   });
 });
