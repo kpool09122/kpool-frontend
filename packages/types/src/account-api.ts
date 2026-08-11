@@ -85,6 +85,22 @@ const CreateAccountResult = z
   })
   .partial()
   .passthrough();
+const RequestAccountCategoryChangeRequestBody = z
+  .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
+  .passthrough();
+const AccountCategoryChangeRequestSummary = z
+  .object({
+    requestIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    currentAccountCategory: z.string(),
+    requestedAccountCategory: z.string(),
+    status: z.string(),
+    requestedAt: KPool_Common_Timestamp,
+    reviewedBy: KPool_Common_Uuid.nullish(),
+    reviewedAt: KPool_Common_Timestamp.nullish(),
+    rejectionReason: VerificationRejectionReasonSummary.nullish(),
+  })
+  .passthrough();
 const AccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -285,6 +301,8 @@ export const schemas = {
   RejectVerificationRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
+  RequestAccountCategoryChangeRequestBody,
+  AccountCategoryChangeRequestSummary,
   AccountSummary,
   UpdateAccountRequestBody,
   AccountDocumentUploadItem,
@@ -613,6 +631,54 @@ const endpoints = makeApi([
       },
     ],
     response: UploadAccountDocumentsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/accounts/:accountIdentifier/category-change-requests",
+    alias:
+      "AccountCategoryChangeRequestOperations_requestAccountCategoryChange",
+    description: `Request account category change.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RequestAccountCategoryChangeRequestBody,
+      },
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountCategoryChangeRequestSummary,
     errors: [
       {
         status: 401,
