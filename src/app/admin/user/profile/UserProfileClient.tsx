@@ -47,6 +47,14 @@ export function UserProfileClient() {
             value={settingsState.identityName}
           />
         </label>
+        <label className="grid gap-2 text-sm font-semibold">
+          {t.emailAddressLabel}
+          <input
+            className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled
+            value={currentIdentity?.email ?? ""}
+          />
+        </label>
         <div className="grid gap-3 text-sm font-semibold">
           <span>{t.profileImageLabel}</span>
           <div className="flex flex-wrap items-center gap-4">

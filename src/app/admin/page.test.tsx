@@ -1339,8 +1339,8 @@ describe("admin page clients", () => {
     );
 
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
-    expect(await screen.findByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "プロフィール" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
   });
@@ -1417,7 +1417,15 @@ describe("admin page clients", () => {
     expect(screen.queryByLabelText("移動先グループ")).not.toBeInTheDocument();
   });
 
-  it("loads account information and saves the account name", async () => {
+  it("loads account information and saves the full profile", async () => {
+    const updatedAddress = {
+      countryCode: "JP",
+      administrativeAreaCode: "27",
+      postalCode: "530-0001",
+      locality: "大阪市北区",
+      addressLine1: "梅田1-1-1",
+      addressLine2: "2F",
+    };
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PATCH") {
         return Promise.resolve(new Response(JSON.stringify({
@@ -1427,6 +1435,8 @@ describe("admin page clients", () => {
           name: "Updated Account",
           status: "active",
           accountCategory: "standard",
+          phone: "06-1234-5678",
+          address: updatedAddress,
         }), { status: 200, headers: { "Content-Type": "application/json" } }));
       }
 
@@ -1437,6 +1447,15 @@ describe("admin page clients", () => {
         name: "Member Account",
         status: "active",
         accountCategory: "standard",
+        phone: "03-1234-5678",
+        address: {
+          countryCode: "JP",
+          administrativeAreaCode: "13",
+          postalCode: "100-0001",
+          locality: "千代田区",
+          addressLine1: "丸の内1-1-1",
+          addressLine2: "1F",
+        },
       }), { status: 200, headers: { "Content-Type": "application/json" } }));
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1455,8 +1474,35 @@ describe("admin page clients", () => {
     expect(await screen.findByRole("heading", { name: "アカウント設定", level: 1 })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
     expect(await screen.findByLabelText("アカウント名")).toHaveValue("Member Account");
-    expect(screen.queryByText("member@example.com")).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("アカウント名"), { target: { value: "Updated Account" } });
+    expect(screen.getByLabelText("電話番号")).toHaveValue("03-1234-5678");
+    expect(screen.getByLabelText("国")).toHaveValue("JP");
+    expect(screen.getByLabelText("都道府県")).toHaveValue("13");
+    expect(screen.getByRole("option", { name: "東京都" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "大阪府" })).toBeInTheDocument();
+    expect(screen.getByLabelText("郵便番号")).toHaveValue("100-0001");
+    expect(screen.getByLabelText("市区町村")).toHaveValue("千代田区");
+    expect(screen.getByLabelText("住所1")).toHaveValue("丸の内1-1-1");
+    expect(screen.getByLabelText("住所2")).toHaveValue("1F");
+    const addressFieldLabels = ["住所1", "住所2", "市区町村", "都道府県", "郵便番号", "国"];
+    const addressFields = addressFieldLabels.map((label) => screen.getByLabelText(label));
+    expect(addressFields).toEqual([...addressFields].sort((left, right) =>
+      left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    expect(screen.getByLabelText("メールアドレス")).toHaveValue("member@example.com");
+    expect(screen.getByLabelText("メールアドレス")).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("アカウント名"), { target: { value: " Updated Account " } });
+    fireEvent.change(screen.getByLabelText("電話番号"), { target: { value: " 06-1234-5678 " } });
+    fireEvent.change(screen.getByLabelText("国"), { target: { value: "US" } });
+    expect(screen.getByLabelText("都道府県")).toHaveValue("");
+    expect(screen.getByRole("option", { name: "フロリダ" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "東京都" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("国"), { target: { value: "FR" } });
+    expect(screen.queryByLabelText("都道府県")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("国"), { target: { value: updatedAddress.countryCode } });
+    fireEvent.change(screen.getByLabelText("都道府県"), { target: { value: updatedAddress.administrativeAreaCode } });
+    fireEvent.change(screen.getByLabelText("郵便番号"), { target: { value: updatedAddress.postalCode } });
+    fireEvent.change(screen.getByLabelText("市区町村"), { target: { value: updatedAddress.locality } });
+    fireEvent.change(screen.getByLabelText("住所1"), { target: { value: updatedAddress.addressLine1 } });
+    fireEvent.change(screen.getByLabelText("住所2"), { target: { value: updatedAddress.addressLine2 } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
@@ -1464,14 +1510,95 @@ describe("admin page clients", () => {
       expect.objectContaining({
         method: "PATCH",
         credentials: "include",
-        body: JSON.stringify({ accountName: "Updated Account" }),
       }),
     ));
+    const updateCall = fetchMock.mock.calls.find(([url, init]) =>
+      url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" &&
+      init?.method === "PATCH");
+    expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
+      accountName: "Updated Account",
+      phone: "06-1234-5678",
+      address: updatedAddress,
+    });
     expect(await screen.findByRole("status")).toHaveTextContent("アカウント設定を保存しました。");
     expect(screen.getByLabelText("アカウント名")).toHaveValue("Updated Account");
+    expect(screen.getByLabelText("電話番号")).toHaveValue("06-1234-5678");
   });
 
-  it("hides account profile without account:update", async () => {
+  it("sends null for empty phone and address fields", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PATCH") {
+        return Promise.resolve(new Response(JSON.stringify({
+          accountIdentifier: "22222222-2222-2222-2222-222222222222",
+          email: "member@example.com",
+          type: "individual",
+          name: "Member Account",
+          status: "active",
+          accountCategory: "standard",
+          phone: null,
+          address: null,
+        }), { status: 200, headers: { "Content-Type": "application/json" } }));
+      }
+
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "individual",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "standard",
+        phone: "03-1234-5678",
+        address: {
+          countryCode: "JP",
+          administrativeAreaCode: "13",
+          postalCode: "100-0001",
+          locality: "千代田区",
+          addressLine1: "丸の内1-1-1",
+          addressLine2: "1F",
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
+    expect(await screen.findByLabelText("電話番号")).toHaveValue("03-1234-5678");
+    fireEvent.change(screen.getByLabelText("電話番号"), { target: { value: "   " } });
+    fireEvent.change(screen.getByLabelText("国"), { target: { value: "" } });
+    expect(screen.queryByLabelText("都道府県")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("郵便番号"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("市区町村"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("住所1"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("住所2"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/account/accounts/22222222-2222-2222-2222-222222222222",
+      expect.objectContaining({
+        method: "PATCH",
+        credentials: "include",
+      }),
+    ));
+    const updateCall = fetchMock.mock.calls.find(([url, init]) =>
+      url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" &&
+      init?.method === "PATCH");
+    expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
+      accountName: "Member Account",
+      phone: null,
+      address: null,
+    });
+  });
+
+  it("shows account profile as read-only without account:update", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       accountIdentifier: "22222222-2222-2222-2222-222222222222",
       email: "member@example.com",
@@ -1479,6 +1606,15 @@ describe("admin page clients", () => {
       name: "Member Account",
       status: "active",
       accountCategory: "standard",
+      phone: "03-1234-5678",
+      address: {
+        countryCode: "JP",
+        administrativeAreaCode: "13",
+        postalCode: "100-0001",
+        locality: "千代田区",
+        addressLine1: "丸の内1-1-1",
+        addressLine2: "1F",
+      },
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -1494,10 +1630,15 @@ describe("admin page clients", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
 
-    expect(await screen.findByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "プロフィール" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("アカウント名")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "書類アップロード" })).toBeInTheDocument();
+    expect(await screen.findByLabelText("アカウント名")).toBeDisabled();
+    expect(screen.getByLabelText("メールアドレス")).toHaveValue("member@example.com");
+    expect(screen.getByLabelText("メールアドレス")).toBeDisabled();
+    expect(screen.getByLabelText("電話番号")).toBeDisabled();
+    expect(screen.getByLabelText("住所1")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("アカウント更新権限がないため、プロフィールは変更できません。");
   });
 
   it("allows document upload without account:update", async () => {
@@ -1566,6 +1707,8 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     expect(await screen.findByRole("heading", { name: "ユーザー設定", level: 1 })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
+    expect(screen.getByLabelText("メールアドレス")).toHaveValue(identity.email);
+    expect(screen.getByLabelText("メールアドレス")).toBeDisabled();
     fireEvent.change(screen.getByLabelText("ログイン中ユーザー名"), {
       target: { value: "updated member" },
     });
