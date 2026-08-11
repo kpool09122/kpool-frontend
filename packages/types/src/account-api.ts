@@ -2,6 +2,33 @@ import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
 const KPool_Common_Uuid = z.string();
+const KPool_Common_Timestamp = z.string();
+const VerificationRejectionReasonSummary = z
+  .object({ code: z.string(), detail: z.string().nullish() })
+  .passthrough();
+const AccountCategoryChangeRequestSummary = z
+  .object({
+    requestIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    currentAccountCategory: z.string(),
+    requestedAccountCategory: z.string(),
+    status: z.string(),
+    requestedAt: KPool_Common_Timestamp,
+    reviewedBy: KPool_Common_Uuid.nullish(),
+    reviewedAt: KPool_Common_Timestamp.nullish(),
+    rejectionReason: VerificationRejectionReasonSummary.nullish(),
+  })
+  .passthrough();
+const KPool_Common_ProblemDetails = z
+  .object({
+    type: z.string(),
+    status: z.number().int(),
+    title: z.string(),
+    detail: z.string(),
+    instance: z.string(),
+  })
+  .partial()
+  .passthrough();
 const VerificationDocumentUploadRequestBody = z
   .object({
     documentType: z.string(),
@@ -17,10 +44,6 @@ const RequestVerificationRequestBody = z
     applicantName: z.string(),
     documents: z.array(VerificationDocumentUploadRequestBody),
   })
-  .passthrough();
-const KPool_Common_Timestamp = z.string();
-const VerificationRejectionReasonSummary = z
-  .object({ code: z.string(), detail: z.string().nullish() })
   .passthrough();
 const VerificationDocumentSummary = z
   .object({
@@ -45,16 +68,6 @@ const AccountVerificationSummary = z
     rejectionReason: VerificationRejectionReasonSummary.nullish(),
     documents: z.array(VerificationDocumentSummary),
   })
-  .passthrough();
-const KPool_Common_ProblemDetails = z
-  .object({
-    type: z.string(),
-    status: z.number().int(),
-    title: z.string(),
-    detail: z.string(),
-    instance: z.string(),
-  })
-  .partial()
   .passthrough();
 const ApproveVerificationRequestBody = z
   .object({ reviewerAccountIdentifier: KPool_Common_Uuid })
@@ -87,19 +100,6 @@ const CreateAccountResult = z
   .passthrough();
 const RequestAccountCategoryChangeRequestBody = z
   .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
-  .passthrough();
-const AccountCategoryChangeRequestSummary = z
-  .object({
-    requestIdentifier: KPool_Common_Uuid,
-    accountIdentifier: KPool_Common_Uuid,
-    currentAccountCategory: z.string(),
-    requestedAccountCategory: z.string(),
-    status: z.string(),
-    requestedAt: KPool_Common_Timestamp,
-    reviewedBy: KPool_Common_Uuid.nullish(),
-    reviewedAt: KPool_Common_Timestamp.nullish(),
-    rejectionReason: VerificationRejectionReasonSummary.nullish(),
-  })
   .passthrough();
 const AccountSummary = z
   .object({
@@ -290,19 +290,19 @@ const MutatePrincipalGroupMemberRequestBody = z
 
 export const schemas = {
   KPool_Common_Uuid,
-  VerificationDocumentUploadRequestBody,
-  RequestVerificationRequestBody,
   KPool_Common_Timestamp,
   VerificationRejectionReasonSummary,
+  AccountCategoryChangeRequestSummary,
+  KPool_Common_ProblemDetails,
+  VerificationDocumentUploadRequestBody,
+  RequestVerificationRequestBody,
   VerificationDocumentSummary,
   AccountVerificationSummary,
-  KPool_Common_ProblemDetails,
   ApproveVerificationRequestBody,
   RejectVerificationRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
   RequestAccountCategoryChangeRequestBody,
-  AccountCategoryChangeRequestSummary,
   AccountSummary,
   UpdateAccountRequestBody,
   AccountDocumentUploadItem,
@@ -338,6 +338,49 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "post",
+    path: "/account-category-change-requests/:requestId/approve",
+    alias:
+      "AccountCategoryChangeRequestOperations_approveAccountCategoryChangeRequest",
+    description: `Approve an account category change request.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountCategoryChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
   {
     method: "post",
     path: "/account-verifications",
