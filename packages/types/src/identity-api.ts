@@ -98,6 +98,29 @@ const AccountEffectivePolicySummary = z
     statements: z.array(AccountPolicyStatement),
   })
   .passthrough();
+const AuthenticatedAccountAddressSummary = z
+  .object({
+    countryCode: z.string().nullable(),
+    administrativeAreaCode: z.string().nullable(),
+    postalCode: z.string().nullable(),
+    locality: z.string().nullable(),
+    addressLine1: z.string().nullable(),
+    addressLine2: z.string().nullable(),
+  })
+  .partial()
+  .passthrough();
+const AuthenticatedAccountSummary = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    email: z.string(),
+    type: z.string(),
+    name: z.string(),
+    status: z.string(),
+    accountCategory: z.string(),
+    phone: z.string().nullish(),
+    address: AuthenticatedAccountAddressSummary.nullish(),
+  })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -121,6 +144,8 @@ export const schemas = {
   AccountPolicyCondition,
   AccountPolicyStatement,
   AccountEffectivePolicySummary,
+  AuthenticatedAccountAddressSummary,
+  AuthenticatedAccountSummary,
 };
 
 const endpoints = makeApi([
