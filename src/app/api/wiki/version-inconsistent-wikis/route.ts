@@ -19,10 +19,10 @@ import {
 const sortParamSchema = z.enum(["updatedAt", "name"]);
 const orderParamSchema = z.enum(["asc", "desc"]);
 
-const parseEnumParam = <T extends z.ZodEnum>(
-  schema: T,
+const parseEnumParam = <TValues extends [string, ...string[]]>(
+  schema: z.ZodEnum<TValues>,
   value: string | null,
-): z.infer<T> | undefined => {
+): TValues[number] | undefined => {
   if (value === null) {
     return undefined;
   }

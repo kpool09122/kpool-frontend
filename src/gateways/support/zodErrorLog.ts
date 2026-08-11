@@ -7,7 +7,7 @@ const serializeIssue = (issue: z.ZodIssue): unknown => {
 
   return {
     ...issue,
-    errors: issue.errors,
+    errors: issue.unionErrors.map((error) => error.issues),
   };
 };
 

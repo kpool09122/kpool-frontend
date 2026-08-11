@@ -22,9 +22,18 @@ export type AdminRouteContext = {
 export type AdminAccountSettingsState = {
   account: AccountSummary | null;
   accountName: string;
+  address: {
+    administrativeAreaCode: string;
+    addressLine1: string;
+    addressLine2: string;
+    countryCode: string;
+    locality: string;
+    postalCode: string;
+  };
   error: string | null;
   isLoading: boolean;
   isSaving: boolean;
+  phone: string;
   success: string | null;
 };
 

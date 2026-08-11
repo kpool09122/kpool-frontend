@@ -60,7 +60,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     );
   });
 
-  it("forwards PATCH accountName only to upstream", async () => {
+  it("forwards PATCH account profile fields to upstream", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       accountIdentifier: accountId,
@@ -72,7 +72,20 @@ describe("/api/account/accounts/[accountId] route", () => {
     })));
     vi.stubGlobal("fetch", fetchMock);
 
-    await PATCH(createRequest("PATCH", { accountName: "Updated Account" }, {
+    const requestBody = {
+      accountName: "Updated Account",
+      phone: "03-1234-5678",
+      address: {
+        countryCode: "JP",
+        administrativeAreaCode: "13",
+        postalCode: "100-0001",
+        locality: "千代田区",
+        addressLine1: "丸の内1-1-1",
+        addressLine2: null,
+      },
+    };
+
+    await PATCH(createRequest("PATCH", requestBody, {
       "accept-language": "ja",
       cookie: "laravel_session=abc",
     }), context);
@@ -87,7 +100,7 @@ describe("/api/account/accounts/[accountId] route", () => {
           "Content-Type": "application/json",
           Cookie: "laravel_session=abc",
         },
-        body: JSON.stringify({ accountName: "Updated Account" }),
+        body: JSON.stringify(requestBody),
         cache: "no-store",
       },
     );

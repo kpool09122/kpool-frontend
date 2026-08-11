@@ -5,6 +5,7 @@ import {
   fetchAccountMembers,
   fetchPrincipalGroups,
   isAccountBrowserApiError,
+  updateAccount,
   updatePrincipalGroupMembers,
   uploadAccountDocuments,
 } from "./accountBrowserApi";
@@ -113,6 +114,51 @@ describe("account browser API", () => {
     })).resolves.toEqual(documentsResponse);
     expect(fetchAdapter).toHaveBeenCalledWith("/api/account/accounts/22222222-2222-2222-2222-222222222222/documents", {
       method: "POST",
+      cache: "no-store",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+  });
+
+  it("updates an account with phone and address in the request body", async () => {
+    const requestBody = {
+      accountName: "Updated Account",
+      phone: "03-1234-5678",
+      address: {
+        countryCode: "JP",
+        administrativeAreaCode: "13",
+        postalCode: "100-0001",
+        locality: "千代田区",
+        addressLine1: "丸の内1-1-1",
+        addressLine2: null,
+      },
+    };
+    const responseBody = {
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "corporation",
+      name: requestBody.accountName,
+      status: "active",
+      accountCategory: "standard",
+      phone: requestBody.phone,
+      address: requestBody.address,
+    };
+    const fetchAdapter = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(responseBody), { status: 200 }),
+    );
+
+    await expect(updateAccount({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      fallbackErrorMessage: "failed",
+      fetchAdapter,
+      requestBody,
+    })).resolves.toMatchObject({ phone: requestBody.phone, address: requestBody.address });
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/account/accounts/22222222-2222-2222-2222-222222222222", {
+      method: "PATCH",
       cache: "no-store",
       credentials: "include",
       headers: {

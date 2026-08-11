@@ -45,17 +45,12 @@ export function AccountLayoutClient({
   const canEdit = canUpdateAccount(currentIdentity);
   const canInvite = canInviteAccountMembers(currentIdentity);
   const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
-  const fallbackTab: AdminAccountSettingsTab = canEdit ? "accountProfile" : "accountDocuments";
+  const fallbackTab: AdminAccountSettingsTab = "accountProfile";
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
   useEffect(() => {
     if (!canShowAccountSettings) {
       router.replace(adminSectionRoutes.wiki);
-      return;
-    }
-
-    if (activeTab === "accountProfile" && !canEdit) {
-      router.replace(fallbackRoute);
       return;
     }
 
@@ -67,10 +62,10 @@ export function AccountLayoutClient({
     if (activeTab === "principalGroupManagement" && !canManageAccountPrincipalGroups) {
       router.replace(fallbackRoute);
     }
-  }, [activeTab, canEdit, canInvite, canManageAccountPrincipalGroups, canShowAccountSettings, fallbackRoute, router]);
+  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canShowAccountSettings, fallbackRoute, router]);
 
   const tabs = [
-    ...(canEdit ? [createAccountSettingsTab("accountProfile", t.accountInformationTab)] : []),
+    createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),

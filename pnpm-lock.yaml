@@ -50,6 +50,9 @@ importers:
       '@zodios/core':
         specifier: 10.9.6
         version: 10.9.6(axios@1.15.2(debug@4.4.3(supports-color@7.2.0)))(zod@3.25.76)
+      cldr-subdivisions-full:
+        specifier: 48.2.0
+        version: 48.2.0(cldr-core@48.2.0)
       next:
         specifier: 16.3.0
         version: 16.3.0(@babel/core@7.29.0(supports-color@7.2.0))(@playwright/test@1.62.1)(@types/node@25.9.5)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -2125,6 +2128,14 @@ packages:
   check-error@2.1.3:
     resolution: {integrity: sha512-PAJdDJusoxnwm1VwW07VWwUN1sl7smmC3OKggvndJFadxxDRyFJBX/ggnu/KE4kQAB7a3Dp8f/YXC1FlUprWmA==}
     engines: {node: '>= 16'}
+
+  cldr-core@48.2.0:
+    resolution: {integrity: sha512-zfmLothncSwfv2jlevoSrgI2VGgH8SDGHXst6jUEotHA8nq9Igeg9jzdJDFtBso9pgJuG89DK16TzrmZDdo2Bg==}
+
+  cldr-subdivisions-full@48.2.0:
+    resolution: {integrity: sha512-UPGETKyPhuWAGZDNwN38KZA+mDrp7TDIyLoNqAdoZ9LUQxqChFx9AAsA4mZfeWdO5ev1hcRO4NIoBGzRwk6wHA==}
+    peerDependencies:
+      cldr-core: 48.2.0
 
   client-only@0.0.1:
     resolution: {integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==}
@@ -5806,6 +5817,12 @@ snapshots:
       supports-color: 7.2.0
 
   check-error@2.1.3: {}
+
+  cldr-core@48.2.0: {}
+
+  cldr-subdivisions-full@48.2.0(cldr-core@48.2.0):
+    dependencies:
+      cldr-core: 48.2.0
 
   client-only@0.0.1: {}
 
