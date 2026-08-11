@@ -49,7 +49,7 @@ importers:
         version: 3.29.2
       '@zodios/core':
         specifier: 10.9.6
-        version: 10.9.6(axios@1.15.2(debug@4.4.3(supports-color@7.2.0)))(zod@4.4.3)
+        version: 10.9.6(axios@1.15.2(debug@4.4.3(supports-color@7.2.0)))(zod@3.25.76)
       next:
         specifier: 16.3.0
         version: 16.3.0(@babel/core@7.29.0(supports-color@7.2.0))(@playwright/test@1.62.1)(@types/node@25.6.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -63,8 +63,8 @@ importers:
         specifier: ^11.1.2
         version: 11.1.2(react@19.2.8)
       zod:
-        specifier: 4.4.3
-        version: 4.4.3
+        specifier: 3.25.76
+        version: 3.25.76
       zustand:
         specifier: ^5.0.13
         version: 5.0.14(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))
@@ -3972,6 +3972,9 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -5594,10 +5597,10 @@ snapshots:
 
   '@webcontainer/env@1.1.1': {}
 
-  '@zodios/core@10.9.6(axios@1.15.2(debug@4.4.3(supports-color@7.2.0)))(zod@4.4.3)':
+  '@zodios/core@10.9.6(axios@1.15.2(debug@4.4.3(supports-color@7.2.0)))(zod@3.25.76)':
     dependencies:
       axios: 1.15.2(debug@4.4.3(supports-color@7.2.0))
-      zod: 4.4.3
+      zod: 3.25.76
 
   acorn-jsx@5.3.2(acorn@8.18.0):
     dependencies:
@@ -7944,6 +7947,8 @@ snapshots:
   zod-validation-error@4.0.2(zod@4.4.3):
     dependencies:
       zod: 4.4.3
+
+  zod@3.25.76: {}
 
   zod@4.4.3: {}
 
