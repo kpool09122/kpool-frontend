@@ -19,6 +19,15 @@ const AccountCategoryChangeRequestSummary = z
     rejectionReason: VerificationRejectionReasonSummary.nullish(),
   })
   .passthrough();
+const ListAccountCategoryChangeRequestsResponseBody = z
+  .object({
+    requests: z.array(AccountCategoryChangeRequestSummary),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
 const KPool_Common_ProblemDetails = z
   .object({
     type: z.string(),
@@ -306,6 +315,7 @@ export const schemas = {
   KPool_Common_Timestamp,
   VerificationRejectionReasonSummary,
   AccountCategoryChangeRequestSummary,
+  ListAccountCategoryChangeRequestsResponseBody,
   KPool_Common_ProblemDetails,
   RejectAccountCategoryChangeRequestBody,
   VerificationDocumentUploadRequestBody,
@@ -352,6 +362,59 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/account-category-change-requests",
+    alias:
+      "AccountCategoryChangeRequestOperations_listAccountCategoryChangeRequests",
+    description: `List account category change requests for operations review.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "status",
+        type: "Query",
+        schema: z.enum(["pending", "approved", "rejected"]).nullish(),
+      },
+      {
+        name: "requestedAccountCategory",
+        type: "Query",
+        schema: z.enum(["agency", "talent", "general"]).nullish(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+    ],
+    response: ListAccountCategoryChangeRequestsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
   {
     method: "post",
     path: "/account-category-change-requests/:requestId/approve",
