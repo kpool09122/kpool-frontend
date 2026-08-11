@@ -29,6 +29,19 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
+const RejectAccountCategoryChangeRequestBody = z
+  .object({
+    rejectionReasonCode: z.enum([
+      "document_unclear",
+      "document_expired",
+      "document_mismatch",
+      "document_incomplete",
+      "fraudulent_document",
+      "other",
+    ]),
+    rejectionReasonDetail: z.string().nullish(),
+  })
+  .passthrough();
 const VerificationDocumentUploadRequestBody = z
   .object({
     documentType: z.string(),
@@ -294,6 +307,7 @@ export const schemas = {
   VerificationRejectionReasonSummary,
   AccountCategoryChangeRequestSummary,
   KPool_Common_ProblemDetails,
+  RejectAccountCategoryChangeRequestBody,
   VerificationDocumentUploadRequestBody,
   RequestVerificationRequestBody,
   VerificationDocumentSummary,
@@ -346,6 +360,54 @@ const endpoints = makeApi([
     description: `Approve an account category change request.`,
     requestFormat: "json",
     parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountCategoryChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/account-category-change-requests/:requestId/reject",
+    alias:
+      "AccountCategoryChangeRequestOperations_rejectAccountCategoryChangeRequest",
+    description: `Reject an account category change request.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RejectAccountCategoryChangeRequestBody,
+      },
       {
         name: "requestId",
         type: "Path",
