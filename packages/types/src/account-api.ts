@@ -38,6 +38,34 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
+const AccountSummary = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    email: z.string(),
+    type: z.string(),
+    name: z.string(),
+    status: z.string(),
+    accountCategory: z.string(),
+  })
+  .passthrough();
+const AccountCategoryChangeRequestIdentitySummary = z
+  .object({ name: z.string(), email: z.string() })
+  .passthrough();
+const AccountDocumentSummary = z
+  .object({
+    documentType: z.string(),
+    documentPath: z.string(),
+    uploadedAt: KPool_Common_Timestamp,
+  })
+  .passthrough();
+const AccountCategoryChangeRequestDetailResponseBody = z
+  .object({
+    request: AccountCategoryChangeRequestSummary,
+    account: AccountSummary,
+    identities: z.array(AccountCategoryChangeRequestIdentitySummary),
+    documents: z.array(AccountDocumentSummary),
+  })
+  .passthrough();
 const RejectAccountCategoryChangeRequestBody = z
   .object({
     rejectionReasonCode: z.enum([
@@ -123,16 +151,6 @@ const CreateAccountResult = z
 const RequestAccountCategoryChangeRequestBody = z
   .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
   .passthrough();
-const AccountSummary = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    email: z.string(),
-    type: z.string(),
-    name: z.string(),
-    status: z.string(),
-    accountCategory: z.string(),
-  })
-  .passthrough();
 const UpdateAccountRequestBody = z
   .object({ accountName: z.string() })
   .passthrough();
@@ -141,13 +159,6 @@ const AccountDocumentUploadItem = z
   .passthrough();
 const UploadAccountDocumentsRequestBody = z
   .object({ documents: z.array(AccountDocumentUploadItem) })
-  .passthrough();
-const AccountDocumentSummary = z
-  .object({
-    documentType: z.string(),
-    documentPath: z.string(),
-    uploadedAt: KPool_Common_Timestamp,
-  })
   .passthrough();
 const UploadAccountDocumentsResponseBody = z
   .object({ documents: z.array(AccountDocumentSummary) })
@@ -317,6 +328,10 @@ export const schemas = {
   AccountCategoryChangeRequestSummary,
   ListAccountCategoryChangeRequestsResponseBody,
   KPool_Common_ProblemDetails,
+  AccountSummary,
+  AccountCategoryChangeRequestIdentitySummary,
+  AccountDocumentSummary,
+  AccountCategoryChangeRequestDetailResponseBody,
   RejectAccountCategoryChangeRequestBody,
   VerificationDocumentUploadRequestBody,
   RequestVerificationRequestBody,
@@ -327,11 +342,9 @@ export const schemas = {
   CreateAccountRequestBody,
   CreateAccountResult,
   RequestAccountCategoryChangeRequestBody,
-  AccountSummary,
   UpdateAccountRequestBody,
   AccountDocumentUploadItem,
   UploadAccountDocumentsRequestBody,
-  AccountDocumentSummary,
   UploadAccountDocumentsResponseBody,
   AffiliationTermsSummary,
   RequestAffiliationRequestBody,
@@ -401,6 +414,49 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/account-category-change-requests/:requestId",
+    alias:
+      "AccountCategoryChangeRequestOperations_getAccountCategoryChangeRequest",
+    description: `Get an account category change request detail for operations review.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountCategoryChangeRequestDetailResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
