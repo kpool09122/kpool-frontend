@@ -906,6 +906,53 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "get",
+    path: "/accounts/:accountId/documents/:documentType",
+    alias: "AccountOperations_viewAccountDocument",
+    description: `View a saved document file for the specified account as an operator.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "documentType",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/accounts/:accountIdentifier/category-change-requests",
     alias:
