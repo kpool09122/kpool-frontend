@@ -6,40 +6,6 @@ const KPool_Common_Timestamp = z.string();
 const VerificationRejectionReasonSummary = z
   .object({ code: z.string(), detail: z.string().nullish() })
   .passthrough();
-const AccountCategoryChangeRequestSummary = z
-  .object({
-    requestIdentifier: KPool_Common_Uuid,
-    accountIdentifier: KPool_Common_Uuid,
-    currentAccountCategory: z.string(),
-    requestedAccountCategory: z.string(),
-    status: z.string(),
-    requestedAt: KPool_Common_Timestamp,
-    reviewedBy: KPool_Common_Uuid.nullish(),
-    reviewedAt: KPool_Common_Timestamp.nullish(),
-    rejectionReason: VerificationRejectionReasonSummary.nullish(),
-  })
-  .passthrough();
-const AccountCategoryChangeRequestListItemSummary =
-  AccountCategoryChangeRequestSummary;
-const ListAccountCategoryChangeRequestsResponseBody = z
-  .object({
-    requests: z.array(AccountCategoryChangeRequestListItemSummary),
-    current_page: z.number().int(),
-    last_page: z.number().int(),
-    total: z.number().int(),
-    per_page: z.number().int(),
-  })
-  .passthrough();
-const KPool_Common_ProblemDetails = z
-  .object({
-    type: z.string(),
-    status: z.number().int(),
-    title: z.string(),
-    detail: z.string(),
-    instance: z.string(),
-  })
-  .partial()
-  .passthrough();
 const ContactAddressSummary = z
   .object({
     countryCode: z.string().nullable(),
@@ -61,6 +27,52 @@ const AccountSummary = z
     accountCategory: z.string(),
     phone: z.string().nullish(),
     address: ContactAddressSummary.nullish(),
+  })
+  .passthrough();
+const AccountCategoryChangeRequestListItemSummary = z
+  .object({
+    requestIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    currentAccountCategory: z.string(),
+    requestedAccountCategory: z.string(),
+    status: z.string(),
+    requestedAt: KPool_Common_Timestamp,
+    reviewedBy: KPool_Common_Uuid.nullish(),
+    reviewedAt: KPool_Common_Timestamp.nullish(),
+    rejectionReason: VerificationRejectionReasonSummary.nullish(),
+    account: AccountSummary,
+  })
+  .passthrough();
+const ListAccountCategoryChangeRequestsResponseBody = z
+  .object({
+    requests: z.array(AccountCategoryChangeRequestListItemSummary),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
+const KPool_Common_ProblemDetails = z
+  .object({
+    type: z.string(),
+    status: z.number().int(),
+    title: z.string(),
+    detail: z.string(),
+    instance: z.string(),
+  })
+  .partial()
+  .passthrough();
+const AccountCategoryChangeRequestSummary = z
+  .object({
+    requestIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    currentAccountCategory: z.string(),
+    requestedAccountCategory: z.string(),
+    status: z.string(),
+    requestedAt: KPool_Common_Timestamp,
+    reviewedBy: KPool_Common_Uuid.nullish(),
+    reviewedAt: KPool_Common_Timestamp.nullish(),
+    rejectionReason: VerificationRejectionReasonSummary.nullish(),
   })
   .passthrough();
 const AccountCategoryChangeRequestIdentitySummary = z
@@ -298,12 +310,12 @@ export const schemas = {
   KPool_Common_Uuid,
   KPool_Common_Timestamp,
   VerificationRejectionReasonSummary,
-  AccountCategoryChangeRequestSummary,
+  ContactAddressSummary,
+  AccountSummary,
   AccountCategoryChangeRequestListItemSummary,
   ListAccountCategoryChangeRequestsResponseBody,
   KPool_Common_ProblemDetails,
-  ContactAddressSummary,
-  AccountSummary,
+  AccountCategoryChangeRequestSummary,
   AccountCategoryChangeRequestIdentitySummary,
   AccountDocumentSummary,
   AccountCategoryChangeRequestDetailResponseBody,
