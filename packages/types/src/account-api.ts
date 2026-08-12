@@ -156,12 +156,7 @@ const AffiliationTermsSummary = z
   .partial()
   .passthrough();
 const RequestAffiliationRequestBody = z
-  .object({
-    agencyAccountIdentifier: KPool_Common_Uuid,
-    talentAccountIdentifier: KPool_Common_Uuid,
-    requestedBy: KPool_Common_Uuid,
-    terms: AffiliationTermsSummary.nullish(),
-  })
+  .object({ targetEmail: z.string(), terms: AffiliationTermsSummary.nullish() })
   .passthrough();
 const AffiliationSummary = z
   .object({
