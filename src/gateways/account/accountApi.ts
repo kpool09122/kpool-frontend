@@ -12,6 +12,11 @@ export type UploadAccountDocumentsRequest = z.infer<typeof accountApiTypes.schem
 export type AccountDocumentSummary = z.infer<typeof accountApiTypes.schemas.AccountDocumentSummary>;
 export type UploadAccountDocumentsResponse = z.infer<typeof accountApiTypes.schemas.UploadAccountDocumentsResponseBody>;
 export type ListAccountDocumentsResponse = z.infer<typeof accountApiTypes.schemas.ListAccountDocumentsResponseBody>;
+export type RequestAccountCategoryChangeRequest = z.infer<typeof accountApiTypes.schemas.RequestAccountCategoryChangeRequestBody>;
+export type AccountCategoryChangeRequestSummary = z.infer<typeof accountApiTypes.schemas.AccountCategoryChangeRequestSummary>;
+export type ListAccountCategoryChangeRequestsResponse = z.infer<typeof accountApiTypes.schemas.ListAccountCategoryChangeRequestsResponseBody>;
+export type AccountCategoryChangeRequestDetailResponse = z.infer<typeof accountApiTypes.schemas.AccountCategoryChangeRequestDetailResponseBody>;
+export type RejectAccountCategoryChangeRequest = z.infer<typeof accountApiTypes.schemas.RejectAccountCategoryChangeRequestBody>;
 
 const InviteAccountMembersRequestSchema = z
   .object({
@@ -73,6 +78,21 @@ export const parseUploadAccountDocumentsResponse = (body: unknown): UploadAccoun
 
 export const parseListAccountDocumentsResponse = (body: unknown): ListAccountDocumentsResponse =>
   parseWithSchemaLog("account documents list response", accountApiTypes.schemas.ListAccountDocumentsResponseBody, body);
+
+export const parseRequestAccountCategoryChangeRequest = (body: unknown): RequestAccountCategoryChangeRequest =>
+  parseWithSchemaLog("account category change request", accountApiTypes.schemas.RequestAccountCategoryChangeRequestBody, body);
+
+export const parseAccountCategoryChangeRequestSummary = (body: unknown): AccountCategoryChangeRequestSummary =>
+  parseWithSchemaLog("account category change request response", accountApiTypes.schemas.AccountCategoryChangeRequestSummary, body);
+
+export const parseListAccountCategoryChangeRequestsResponse = (body: unknown): ListAccountCategoryChangeRequestsResponse =>
+  parseWithSchemaLog("account category change requests list response", accountApiTypes.schemas.ListAccountCategoryChangeRequestsResponseBody, body);
+
+export const parseAccountCategoryChangeRequestDetailResponse = (body: unknown): AccountCategoryChangeRequestDetailResponse =>
+  parseWithSchemaLog("account category change request detail response", accountApiTypes.schemas.AccountCategoryChangeRequestDetailResponseBody, body);
+
+export const parseRejectAccountCategoryChangeRequest = (body: unknown): RejectAccountCategoryChangeRequest =>
+  parseWithSchemaLog("account category change request reject request", accountApiTypes.schemas.RejectAccountCategoryChangeRequestBody, body);
 
 export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
   parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);

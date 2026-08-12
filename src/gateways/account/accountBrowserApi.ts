@@ -3,14 +3,21 @@ import {
   parseAccountSummary,
   parseInvitationSummaries,
   parseListAccountDocumentsResponse,
+  parseAccountCategoryChangeRequestDetailResponse,
+  parseAccountCategoryChangeRequestSummary,
+  parseListAccountCategoryChangeRequestsResponse,
   parsePrincipalGroupsResponse,
   parseUploadAccountDocumentsResponse,
+  type AccountCategoryChangeRequestDetailResponse,
   type AccountSummary,
   type InvitationSummary,
   type InviteAccountMembersRequest,
+  type ListAccountCategoryChangeRequestsResponse,
   type ListAccountDocumentsResponse,
   type ListMembersResponse,
   type ListPrincipalGroupsResponse,
+  type RejectAccountCategoryChangeRequest,
+  type RequestAccountCategoryChangeRequest,
   type UploadAccountDocumentsRequest,
   type UpdateAccountRequest,
   type UpdatePrincipalGroupMembersRequest,
@@ -31,9 +38,34 @@ type UploadAccountDocumentsOptions = AccountRequestOptions & {
 };
 
 type FetchAccountDocumentFileOptions = {
+  accountIdentifier?: string;
   documentType: string;
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
+};
+
+
+type RequestAccountCategoryChangeOptions = AccountRequestOptions & {
+  requestBody: RequestAccountCategoryChangeRequest;
+};
+
+type ListAccountCategoryChangeRequestsOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  page?: number;
+  perPage?: number;
+  requestedAccountCategory?: string;
+  status?: string;
+};
+
+type AccountCategoryChangeRequestDetailOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestId: string;
+};
+
+type RejectAccountCategoryChangeRequestOptions = AccountCategoryChangeRequestDetailOptions & {
+  requestBody: RejectAccountCategoryChangeRequest;
 };
 
 type InviteAccountMembersOptions = {
@@ -245,11 +277,15 @@ export const fetchAccountDocuments = async ({
 };
 
 export const fetchAccountDocumentFileContents = async ({
+  accountIdentifier,
   documentType,
   fallbackErrorMessage,
   fetchAdapter = fetch,
 }: FetchAccountDocumentFileOptions): Promise<string> => {
-  const response = await fetchAdapter(`/api/account/my/documents/${encodeURIComponent(documentType)}`, {
+  const documentPath = accountIdentifier
+    ? `/api/account/accounts/${accountIdentifier}/documents/${encodeURIComponent(documentType)}`
+    : `/api/account/my/documents/${encodeURIComponent(documentType)}`;
+  const response = await fetchAdapter(documentPath, {
     cache: "no-store",
     credentials: "include",
   });
@@ -284,4 +320,117 @@ export const uploadAccountDocuments = async ({
   }
 
   return parseUploadAccountDocumentsResponse(body);
+};
+
+
+export const requestAccountCategoryChange = async ({
+  accountIdentifier,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: RequestAccountCategoryChangeOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
+  const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}/category-change-requests`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAccountCategoryChangeRequestSummary(body);
+};
+
+export const fetchAccountCategoryChangeRequests = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  page = 1,
+  perPage = 20,
+  requestedAccountCategory,
+  status = "pending",
+}: ListAccountCategoryChangeRequestsOptions): Promise<ListAccountCategoryChangeRequestsResponse> => {
+  const params = new URLSearchParams({ page: String(page), perPage: String(perPage), status });
+  if (requestedAccountCategory) {
+    params.set("requestedAccountCategory", requestedAccountCategory);
+  }
+  const response = await fetchAdapter(`/api/account/account-category-change-requests?${params.toString()}`, {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseListAccountCategoryChangeRequestsResponse(body);
+};
+
+export const fetchAccountCategoryChangeRequestDetail = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestId,
+}: AccountCategoryChangeRequestDetailOptions): Promise<AccountCategoryChangeRequestDetailResponse> => {
+  const response = await fetchAdapter(`/api/account/account-category-change-requests/${encodeURIComponent(requestId)}`, {
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAccountCategoryChangeRequestDetailResponse(body);
+};
+
+export const approveAccountCategoryChangeRequest = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestId,
+}: AccountCategoryChangeRequestDetailOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
+  const response = await fetchAdapter(`/api/account/account-category-change-requests/${encodeURIComponent(requestId)}/approve`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAccountCategoryChangeRequestSummary(body);
+};
+
+export const rejectAccountCategoryChangeRequest = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+  requestId,
+}: RejectAccountCategoryChangeRequestOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
+  const response = await fetchAdapter(`/api/account/account-category-change-requests/${encodeURIComponent(requestId)}/reject`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAccountCategoryChangeRequestSummary(body);
 };

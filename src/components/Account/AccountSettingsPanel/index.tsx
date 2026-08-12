@@ -19,7 +19,7 @@ export function AccountSettingsPanel({
         <div>
           <h2 className="text-xl font-semibold">{title}</h2>
           {description ? (
-            <p className="mt-2 text-sm leading-6 text-text-muted">{description}</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-text-muted">{description}</p>
           ) : null}
         </div>
         {action}

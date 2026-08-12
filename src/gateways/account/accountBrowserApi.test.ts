@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  approveAccountCategoryChangeRequest,
+  fetchAccountCategoryChangeRequestDetail,
+  fetchAccountCategoryChangeRequests,
   fetchAccountDocuments,
   fetchAccountMembers,
   fetchPrincipalGroups,
   isAccountBrowserApiError,
+  rejectAccountCategoryChangeRequest,
+  requestAccountCategoryChange,
   updateAccount,
   updatePrincipalGroupMembers,
   uploadAccountDocuments,
@@ -198,4 +203,40 @@ describe("account browser API", () => {
       body: JSON.stringify(requestBody),
     });
   });
+
+  it("calls account category change request browser routes", async () => {
+    const requestSummary = {
+      requestIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      currentAccountCategory: "general",
+      requestedAccountCategory: "agency",
+      status: "pending",
+      requestedAt: "2026-08-11T00:00:00Z",
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: null,
+    };
+    const requestListItem = {
+      ...requestSummary,
+      account: { accountIdentifier: requestSummary.accountIdentifier, email: "member@example.com", type: "corporation", name: "Member", status: "active", accountCategory: "general" },
+    };
+    const detail = {
+      request: requestSummary,
+      account: { accountIdentifier: requestSummary.accountIdentifier, email: "member@example.com", type: "corporation", name: "Member", status: "active", accountCategory: "general" },
+      identities: [{ name: "member", email: "member@example.com" }],
+      documents: [{ documentType: "passport", documentPath: "passport.pdf", uploadedAt: "2026-08-11T00:00:00Z" }],
+    };
+    const fetchAdapter = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/approve") || url.includes("/reject") || url.includes("/category-change-requests") && !url.includes("account-category")) return Promise.resolve(new Response(JSON.stringify(requestSummary), { status: 200 }));
+      if (url.includes("account-category-change-requests/aaaaaaaa")) return Promise.resolve(new Response(JSON.stringify(detail), { status: 200 }));
+      return Promise.resolve(new Response(JSON.stringify({ requests: [requestListItem], current_page: 1, last_page: 1, total: 1, per_page: 20 }), { status: 200 }));
+    });
+
+    await expect(requestAccountCategoryChange({ accountIdentifier: requestSummary.accountIdentifier, fallbackErrorMessage: "failed", fetchAdapter, requestBody: { requestedAccountCategory: "agency" } })).resolves.toEqual(requestSummary);
+    await expect(fetchAccountCategoryChangeRequests({ fallbackErrorMessage: "failed", fetchAdapter, page: 1 })).resolves.toMatchObject({ requests: [requestListItem] });
+    await expect(fetchAccountCategoryChangeRequestDetail({ fallbackErrorMessage: "failed", fetchAdapter, requestId: requestSummary.requestIdentifier })).resolves.toEqual(detail);
+    await expect(approveAccountCategoryChangeRequest({ fallbackErrorMessage: "failed", fetchAdapter, requestId: requestSummary.requestIdentifier })).resolves.toEqual(requestSummary);
+    await expect(rejectAccountCategoryChangeRequest({ fallbackErrorMessage: "failed", fetchAdapter, requestBody: { rejectionReasonCode: "other", rejectionReasonDetail: "missing" }, requestId: requestSummary.requestIdentifier })).resolves.toEqual(requestSummary);
+  });
+
 });

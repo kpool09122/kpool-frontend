@@ -217,3 +217,8 @@ export const canInviteAccountMembers = (identity: IdentitySummary | null): boole
 export const canManagePrincipalGroups = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:principal-group:manage") &&
   !hasMatchingStatement(identity, "deny", "account:principal-group:manage");
+
+
+export const canManageAccountCategoryChangeRequests = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:category-change-request:manage") &&
+  !hasMatchingStatement(identity, "deny", "account:category-change-request:manage");
