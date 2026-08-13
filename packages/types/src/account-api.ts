@@ -156,12 +156,7 @@ const AffiliationTermsSummary = z
   .partial()
   .passthrough();
 const RequestAffiliationRequestBody = z
-  .object({
-    agencyAccountIdentifier: KPool_Common_Uuid,
-    talentAccountIdentifier: KPool_Common_Uuid,
-    requestedBy: KPool_Common_Uuid,
-    terms: AffiliationTermsSummary.nullish(),
-  })
+  .object({ targetEmail: z.string(), terms: AffiliationTermsSummary.nullish() })
   .passthrough();
 const AffiliationSummary = z
   .object({
@@ -175,12 +170,6 @@ const AffiliationSummary = z
     activatedAt: KPool_Common_Timestamp.nullish(),
     terminatedAt: KPool_Common_Timestamp.nullish(),
   })
-  .passthrough();
-const ApproveAffiliationRequestBody = z
-  .object({ approverAccountIdentifier: KPool_Common_Uuid })
-  .passthrough();
-const RejectAffiliationRequestBody = z
-  .object({ rejectorAccountIdentifier: KPool_Common_Uuid })
   .passthrough();
 const TerminateAffiliationRequestBody = z
   .object({ terminatorAccountIdentifier: KPool_Common_Uuid })
@@ -330,8 +319,6 @@ export const schemas = {
   AffiliationTermsSummary,
   RequestAffiliationRequestBody,
   AffiliationSummary,
-  ApproveAffiliationRequestBody,
-  RejectAffiliationRequestBody,
   TerminateAffiliationRequestBody,
   GrantDelegationPermissionRequestBody,
   DelegationPermissionSummary,
@@ -893,11 +880,6 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "body",
-        type: "Body",
-        schema: ApproveAffiliationRequestBody,
-      },
-      {
         name: "affiliationId",
         type: "Path",
         schema: z.string().uuid(),
@@ -939,11 +921,6 @@ const endpoints = makeApi([
     description: `Reject an affiliation.`,
     requestFormat: "json",
     parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: RejectAffiliationRequestBody,
-      },
       {
         name: "affiliationId",
         type: "Path",
