@@ -98,6 +98,30 @@ export const getAccountTypeFromIdentity = (identity: IdentitySummary | null): st
   return null;
 };
 
+export const getAccountCategoryFromIdentity = (identity: IdentitySummary | null): string | null => {
+  if (!identity) {
+    return null;
+  }
+
+  const directCategory = getStringProperty(identity, ["accountCategory", "category"]);
+  if (directCategory) {
+    return directCategory;
+  }
+
+  const record = identity as Record<string, unknown>;
+  const nestedCategory = getStringProperty(record.account, ["accountCategory", "category"]);
+  if (nestedCategory) {
+    return nestedCategory;
+  }
+
+  const accounts = record.accounts;
+  if (Array.isArray(accounts)) {
+    return accounts.map((account) => getStringProperty(account, ["accountCategory", "category"])).find(Boolean) ?? null;
+  }
+
+  return null;
+};
+
 export const isCorporationAccount = (identity: IdentitySummary | null): boolean =>
   normalizePolicyValue(getAccountTypeFromIdentity(identity) ?? "") === "corporation";
 
@@ -179,11 +203,14 @@ const getConditionActualValue = (
   field: unknown,
   identity: IdentitySummary | null,
 ): string | null => {
-  if (field !== "resource:accountType") {
-    return null;
+  switch (field) {
+    case "resource:accountType":
+      return getAccountTypeFromIdentity(identity);
+    case "resource:accountCategory":
+      return getAccountCategoryFromIdentity(identity);
+    default:
+      return null;
   }
-
-  return getAccountTypeFromIdentity(identity);
 };
 
 const hasMatchingStatement = (
@@ -222,3 +249,25 @@ export const canManagePrincipalGroups = (identity: IdentitySummary | null): bool
 export const canManageAccountCategoryChangeRequests = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:category-change-request:manage") &&
   !hasMatchingStatement(identity, "deny", "account:category-change-request:manage");
+
+export const canRequestAffiliation = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:affiliation-request:create") &&
+  !hasMatchingStatement(identity, "deny", "account:affiliation-request:create");
+
+export const canReceiveAffiliationRequests = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:affiliation-request:receive") &&
+  !hasMatchingStatement(identity, "deny", "account:affiliation-request:receive");
+
+export const canApproveAffiliations = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:affiliation:approve") &&
+  !hasMatchingStatement(identity, "deny", "account:affiliation:approve");
+
+export const canRejectAffiliations = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:affiliation:reject") &&
+  !hasMatchingStatement(identity, "deny", "account:affiliation:reject");
+
+export const canAccessAffiliations = (identity: IdentitySummary | null): boolean =>
+  canRequestAffiliation(identity) ||
+  canReceiveAffiliationRequests(identity) ||
+  canApproveAffiliations(identity) ||
+  canRejectAffiliations(identity);
