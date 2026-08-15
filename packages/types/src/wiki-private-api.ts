@@ -284,6 +284,18 @@ const MutatePrincipalGroupMemberRequestBody = z
 const AttachRoleToPrincipalGroupRequestBody = z
   .object({ roleIdentifier: KPool_Common_Uuid })
   .passthrough();
+const UpdatePrincipalGroupMembersItem = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid,
+    principalIdentifiers: z.array(KPool_Common_Uuid),
+  })
+  .passthrough();
+const UpdatePrincipalGroupMembersRequestBody = z
+  .object({ principalGroups: z.array(UpdatePrincipalGroupMembersItem) })
+  .passthrough();
+const ListPrincipalGroupsResponseBody = z
+  .object({ principalGroups: z.array(PrincipalGroupSummary) })
+  .passthrough();
 const CreatePrincipalRequestBody = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
@@ -806,6 +818,9 @@ export const schemas = {
   PrincipalGroupSummary,
   MutatePrincipalGroupMemberRequestBody,
   AttachRoleToPrincipalGroupRequestBody,
+  UpdatePrincipalGroupMembersItem,
+  UpdatePrincipalGroupMembersRequestBody,
+  ListPrincipalGroupsResponseBody,
   CreatePrincipalRequestBody,
   CreatedPrincipalSummary,
   EffectivePolicySummary,
@@ -1782,6 +1797,48 @@ const endpoints = makeApi([
     ],
     response: PrincipalGroupSummary,
     errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/principal-groups/members",
+    alias: "PrincipalOperations_updatePrincipalGroupMembers",
+    description: `Update members for multiple Wiki principal groups.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdatePrincipalGroupMembersRequestBody,
+      },
+    ],
+    response: ListPrincipalGroupsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
