@@ -4,6 +4,7 @@
     "config:recommended"
   ],
   "timezone": "Asia/Tokyo",
+  "minimumReleaseAge": "3 days",
   "prHourlyLimit": 0,
   "baseBranchPatterns": [
     "main"
