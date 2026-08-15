@@ -284,6 +284,27 @@ const MutatePrincipalGroupMemberRequestBody = z
 const AttachRoleToPrincipalGroupRequestBody = z
   .object({ roleIdentifier: KPool_Common_Uuid })
   .passthrough();
+const PrincipalGroupMemberSummary = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid,
+    identityIdentifier: KPool_Common_Uuid,
+    identityName: z.string(),
+    email: z.string(),
+  })
+  .passthrough();
+const PrincipalGroupManagementSummary = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    roleIdentifiers: z.array(KPool_Common_Uuid),
+    isDefault: z.boolean(),
+    members: z.array(PrincipalGroupMemberSummary),
+  })
+  .passthrough();
+const ListPrincipalGroupsResponseBody = z
+  .object({ principalGroups: z.array(PrincipalGroupManagementSummary) })
+  .passthrough();
 const UpdatePrincipalGroupMembersItem = z
   .object({
     principalGroupIdentifier: KPool_Common_Uuid,
@@ -292,9 +313,6 @@ const UpdatePrincipalGroupMembersItem = z
   .passthrough();
 const UpdatePrincipalGroupMembersRequestBody = z
   .object({ principalGroups: z.array(UpdatePrincipalGroupMembersItem) })
-  .passthrough();
-const ListPrincipalGroupsResponseBody = z
-  .object({ principalGroups: z.array(PrincipalGroupSummary) })
   .passthrough();
 const CreatePrincipalRequestBody = z
   .object({
@@ -818,9 +836,11 @@ export const schemas = {
   PrincipalGroupSummary,
   MutatePrincipalGroupMemberRequestBody,
   AttachRoleToPrincipalGroupRequestBody,
+  PrincipalGroupMemberSummary,
+  PrincipalGroupManagementSummary,
+  ListPrincipalGroupsResponseBody,
   UpdatePrincipalGroupMembersItem,
   UpdatePrincipalGroupMembersRequestBody,
-  ListPrincipalGroupsResponseBody,
   CreatePrincipalRequestBody,
   CreatedPrincipalSummary,
   EffectivePolicySummary,
@@ -1797,6 +1817,38 @@ const endpoints = makeApi([
     ],
     response: PrincipalGroupSummary,
     errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/principal-groups",
+    alias: "PrincipalOperations_listPrincipalGroups",
+    description: `List Wiki principal groups for management.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Query",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: ListPrincipalGroupsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
