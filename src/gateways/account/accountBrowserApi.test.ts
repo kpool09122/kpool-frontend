@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   approveAccountCategoryChangeRequest,
   approveAffiliation,
+  fetchAffiliations,
   fetchAccountCategoryChangeRequestDetail,
   fetchAccountCategoryChangeRequests,
   fetchAccountDocuments,
@@ -248,6 +249,16 @@ describe("account browser API", () => {
       affiliationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       agencyAccountIdentifier: "22222222-2222-4222-8222-222222222222",
       talentAccountIdentifier: "33333333-3333-4333-8333-333333333333",
+      agencyAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Agency Account",
+        email: "agency@example.com",
+      },
+      talentAccount: {
+        accountIdentifier: "33333333-3333-4333-8333-333333333333",
+        name: "Talent Account",
+        email: "talent@example.com",
+      },
       requestedBy: "44444444-4444-4444-8444-444444444444",
       status: "pending",
       terms: null,
@@ -257,12 +268,15 @@ describe("account browser API", () => {
     };
     const fetchAdapter = vi.fn().mockImplementation((url: string) => {
       if (url.includes("/reject")) return Promise.resolve(new Response(null, { status: 204 }));
+      if (url.includes("status=pending")) return Promise.resolve(new Response(JSON.stringify({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 }), { status: 200 }));
       return Promise.resolve(new Response(JSON.stringify(affiliation), { status: url.endsWith("/affiliations") ? 201 : 200 }));
     });
 
+    await expect(fetchAffiliations({ fallbackErrorMessage: "failed", fetchAdapter, status: "pending", viewerRole: "approver" })).resolves.toMatchObject({ affiliations: [affiliation] });
     await expect(requestAffiliation({ fallbackErrorMessage: "failed", fetchAdapter, requestBody: { targetEmail: "talent@example.com" } })).resolves.toEqual(affiliation);
     await expect(approveAffiliation({ affiliationId: affiliation.affiliationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toEqual(affiliation);
     await expect(rejectAffiliation({ affiliationId: affiliation.affiliationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toBeUndefined();
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/account/affiliations?status=pending&viewerRole=approver", expect.objectContaining({ method: "GET", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith("/api/account/affiliations", expect.objectContaining({ method: "POST", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations/${affiliation.affiliationIdentifier}/approve`, expect.objectContaining({ method: "POST", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations/${affiliation.affiliationIdentifier}/reject`, expect.objectContaining({ method: "POST", credentials: "include" }));

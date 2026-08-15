@@ -202,12 +202,14 @@ const conditionClauseMatches = (
 const getConditionActualValue = (
   field: unknown,
   identity: IdentitySummary | null,
-): string | null => {
+): boolean | string | null => {
   switch (field) {
     case "resource:accountType":
       return getAccountTypeFromIdentity(identity);
     case "resource:accountCategory":
       return getAccountCategoryFromIdentity(identity);
+    case "affiliationRequest:pairAllowed":
+      return ["agency", "talent"].includes(normalizePolicyValue(getAccountCategoryFromIdentity(identity) ?? ""));
     default:
       return null;
   }

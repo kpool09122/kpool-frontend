@@ -7,6 +7,7 @@ import {
   parseAccountCategoryChangeRequestDetailResponse,
   parseAccountCategoryChangeRequestSummary,
   parseListAccountCategoryChangeRequestsResponse,
+  parseListAffiliationsResponse,
   parsePrincipalGroupsResponse,
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
@@ -16,6 +17,7 @@ import {
   type InviteAccountMembersRequest,
   type ListAccountCategoryChangeRequestsResponse,
   type ListAccountDocumentsResponse,
+  type ListAffiliationsResponse,
   type ListMembersResponse,
   type ListPrincipalGroupsResponse,
   type RejectAccountCategoryChangeRequest,
@@ -87,6 +89,15 @@ type RequestAffiliationOptions = {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
   requestBody: RequestAffiliationRequest;
+};
+
+type FetchAffiliationsOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  page?: number;
+  perPage?: number;
+  status?: string;
+  viewerRole?: "approver" | "requester";
 };
 
 type AffiliationActionOptions = {
@@ -473,6 +484,35 @@ export const requestAffiliation = async ({
   }
 
   return parseAffiliationSummary(body);
+};
+
+export const fetchAffiliations = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  page,
+  perPage,
+  status,
+  viewerRole,
+}: FetchAffiliationsOptions): Promise<ListAffiliationsResponse> => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (viewerRole) params.set("viewerRole", viewerRole);
+  if (page !== undefined) params.set("page", String(page));
+  if (perPage !== undefined) params.set("perPage", String(perPage));
+  const queryString = params.toString();
+  const response = await fetchAdapter(`/api/account/affiliations${queryString ? `?${queryString}` : ""}`, {
+    method: "GET",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseListAffiliationsResponse(body);
 };
 
 export const approveAffiliation = async ({

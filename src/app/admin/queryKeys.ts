@@ -22,6 +22,18 @@ export const adminQueryKeys = {
       ...adminQueryKeys.account.all(),
       "principalGroups",
     ] as const,
+    affiliations: ({
+      status,
+      viewerRole,
+    }: {
+      status: string;
+      viewerRole?: "approver" | "requester";
+    }) => [
+      ...adminQueryKeys.account.all(),
+      "affiliations",
+      status,
+      viewerRole ?? null,
+    ] as const,
   },
   draftImages: {
     all: () => [...adminQueryKeys.all, "draftImages"] as const,

@@ -262,4 +262,36 @@ describe("accountPolicy", () => {
     expect(canRequestAffiliation({ ...conditionalPolicy, account: { accountCategory: "talent" } })).toBe(true);
     expect(canRequestAffiliation({ ...conditionalPolicy, account: { accountCategory: "general" } })).toBe(false);
   });
+
+  it("allows affiliation review actions for agency or talent account categories when the pair condition is allowed", () => {
+    const conditionalPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:affiliation-request:receive", "account:affiliation:approve", "account:affiliation:reject"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "affiliationRequest:pairAllowed",
+                    operator: "eq",
+                    value: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(canReceiveAffiliationRequests({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canApproveAffiliations({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canRejectAffiliations({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canApproveAffiliations({ ...conditionalPolicy, account: { accountCategory: "talent" } })).toBe(true);
+    expect(canRejectAffiliations({ ...conditionalPolicy, account: { accountCategory: "general" } })).toBe(false);
+  });
 });
