@@ -9,7 +9,7 @@ import type { ImageDeletionRequestListState } from "./useAdminImageDeletionReque
 export type AdminSettingsTab = "profileSettings" | "languageSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountCategoryChange" | "accountAffiliations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "wiki" | "accountSettings" | "settings";
-export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests";
+export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests" | "principalGroupManagement";
 
 export type AdminRouteContext = {
   initialDraftImages: DraftImageListState;
@@ -70,6 +70,7 @@ export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
   draftImages: "/admin/wiki/draft-images",
   editingWikis: "/admin/wiki/editing",
   imageDeletionRequests: "/admin/wiki/image-deletion-requests",
+  principalGroupManagement: "/admin/wiki/principal-groups",
   submittedWikis: "/admin/wiki/submitted",
   unapprovedWikis: "/admin/wiki/unapproved",
   untranslatedWikis: "/admin/wiki/untranslated",

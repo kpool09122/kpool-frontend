@@ -25,6 +25,7 @@ import { SubmittedWikisClient } from "../wiki/submitted/SubmittedWikisClient";
 import { UnapprovedWikisClient } from "../wiki/unapproved/UnapprovedWikisClient";
 import { UntranslatedWikisClient } from "../wiki/untranslated/UntranslatedWikisClient";
 import { WikiSectionClient } from "../wiki/WikiSectionClient";
+import { WikiPrincipalGroupsClient } from "../wiki/principal-groups/WikiPrincipalGroupsClient";
 
 type AdminAppClientProps = {
   context: AdminRouteContext;
@@ -61,6 +62,7 @@ type AdminClientPage = "accountAffiliations"
   | "wikiDraftImages"
   | "wikiEditing"
   | "wikiImageDeletionRequests"
+  | "wikiPrincipalGroups"
   | "wikiSubmitted"
   | "wikiUnapproved"
   | "wikiUntranslated";
@@ -124,6 +126,10 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
 
   if (pathname?.endsWith("/image-deletion-requests")) {
     return "wikiImageDeletionRequests";
+  }
+
+  if (pathname?.endsWith("/principal-groups")) {
+    return "wikiPrincipalGroups";
   }
 
   return "wikiEditing";
@@ -230,6 +236,8 @@ function AdminResolvedPage({
         <DraftImagesClient />
       ) : page === "wikiImageDeletionRequests" ? (
         <ImageDeletionRequestsClient />
+      ) : page === "wikiPrincipalGroups" ? (
+        <WikiPrincipalGroupsClient />
       ) : (
         <EditingWikisClient />
       )}

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   canAutoCreateWikiDraftWikis,
+  canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -453,6 +454,39 @@ describe("wiki principal helpers", () => {
         ],
       }),
     ).toBe(true);
+  });
+
+  it("allows wiki principal group management only without a matching deny", () => {
+    expect(
+      canManageWikiPrincipalGroups({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["principal-group-manage"],
+            name: "PRINCIPAL_GROUP_MANAGEMENT",
+            resourceTypes: ["principal-group"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      canManageWikiPrincipalGroups({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["PRINCIPAL_GROUP_MANAGE"],
+            name: "PRINCIPAL_GROUP_MANAGEMENT",
+            resourceTypes: ["PRINCIPAL_GROUP"],
+          }),
+          policy({
+            actions: ["PRINCIPAL_GROUP_MANAGE"],
+            effect: "deny",
+            name: "DENY_PRINCIPAL_GROUP_MANAGEMENT",
+            resourceTypes: ["PRINCIPAL_GROUP"],
+          }),
+        ],
+      }),
+    ).toBe(false);
   });
 
   it("allows draft wiki publishing when publish is allowed for a wiki resource type", () => {

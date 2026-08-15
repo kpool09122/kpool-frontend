@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import {
+  canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -62,6 +63,7 @@ export function WikiLayoutClient({
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(state.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
+    const canManagePrincipalGroups = canManageWikiPrincipalGroups(state.principal);
 
     const tabs: Array<{ id: AdminWikiTab; label: string }> = [
       createWikiTab("editingWikis", t.editingWikisTab),
@@ -71,6 +73,7 @@ export function WikiLayoutClient({
       ...(canPublishDraftWikis ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
       ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
       ...(canReviewImageDeletionRequests ? [createWikiTab("imageDeletionRequests", t.imageDeletionRequestsTab)] : []),
+      ...(canManagePrincipalGroups ? [createWikiTab("principalGroupManagement", t.wikiPrincipalGroupManagementTab)] : []),
     ];
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)
       ? selectedWikiTab
