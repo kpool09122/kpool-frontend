@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
 import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
 import { AccountCategoryChangeRequestsClient } from "../account/category-change-requests/AccountCategoryChangeRequestsClient";
@@ -46,7 +47,8 @@ export function AdminAppClient({
   );
 }
 
-type AdminClientPage = "accountCategoryChange"
+type AdminClientPage = "accountAffiliations"
+  | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
   | "accountCategoryChangeRequests"
   | "accountDocuments"
@@ -71,6 +73,10 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
 
     if (pathname.endsWith("/category-change")) {
       return "accountCategoryChange";
+    }
+
+    if (pathname.endsWith("/affiliations")) {
+      return "accountAffiliations";
     }
 
     if (pathname?.includes("/category-change-requests/")) {
@@ -130,6 +136,14 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "accountAffiliations") {
+    return (
+      <AccountPageClient activeTab="accountAffiliations">
+        <AccountAffiliationsClient />
+      </AccountPageClient>
+    );
+  }
+
   if (page === "accountCategoryChange") {
     return (
       <AccountPageClient activeTab="accountCategoryChange">

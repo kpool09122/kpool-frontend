@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canAccessAffiliations,
+  canApproveAffiliations,
   canInviteAccountMembers,
   canManageAccountCategoryChangeRequests,
   canManagePrincipalGroups,
+  canReceiveAffiliationRequests,
+  canRejectAffiliations,
+  canRequestAffiliation,
   canUpdateAccount,
+  getAccountCategoryFromIdentity,
   getAccountTypeFromIdentity,
   isCorporationAccount,
 } from "./accountPolicy";
@@ -23,6 +29,12 @@ describe("accountPolicy", () => {
     expect(getAccountTypeFromIdentity({ ...baseIdentity, accounts: [{ accountType: "individual" }] })).toBe("individual");
     expect(isCorporationAccount({ ...baseIdentity, accountType: "corporation" })).toBe(true);
     expect(isCorporationAccount({ ...baseIdentity, accountType: "individual" })).toBe(false);
+  });
+
+  it("reads account category from direct and nested identity payloads", () => {
+    expect(getAccountCategoryFromIdentity({ ...baseIdentity, accountCategory: "agency" })).toBe("agency");
+    expect(getAccountCategoryFromIdentity({ ...baseIdentity, account: { accountCategory: "agency" } })).toBe("agency");
+    expect(getAccountCategoryFromIdentity({ ...baseIdentity, accounts: [{ category: "talent" }] })).toBe("talent");
   });
 
   it("allows account member invitations only when allow exists without deny", () => {
@@ -137,6 +149,37 @@ describe("accountPolicy", () => {
     expect(canManageAccountCategoryChangeRequests({ ...baseIdentity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["wiki:*"], resourceTypes: ["WIKI"] }] }] })).toBe(false);
   });
 
+
+  it("allows affiliation actions only with their account policies and no deny", () => {
+    const allowPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            { effect: "allow", actions: ["account:affiliation-request:create"], resourceTypes: ["ACCOUNT"] },
+            { effect: "allow", actions: ["account:affiliation-request:receive"], resourceTypes: ["ACCOUNT"] },
+            { effect: "allow", actions: ["account:affiliation:approve"], resourceTypes: ["ACCOUNT"] },
+            { effect: "allow", actions: ["account:affiliation:reject"], resourceTypes: ["ACCOUNT"] },
+          ],
+        },
+      ],
+    };
+
+    expect(canRequestAffiliation(allowPolicy)).toBe(true);
+    expect(canReceiveAffiliationRequests(allowPolicy)).toBe(true);
+    expect(canApproveAffiliations(allowPolicy)).toBe(true);
+    expect(canRejectAffiliations(allowPolicy)).toBe(true);
+    expect(canAccessAffiliations(allowPolicy)).toBe(true);
+    expect(canApproveAffiliations({
+      ...allowPolicy,
+      accountEffectivePolicies: [{ statements: [
+        { effect: "allow", actions: ["account:affiliation:approve"], resourceTypes: ["ACCOUNT"] },
+        { effect: "deny", actions: ["account:affiliation:approve"], resourceTypes: ["ACCOUNT"] },
+      ] }],
+    })).toBe(false);
+    expect(canAccessAffiliations({ ...baseIdentity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["wiki:*"], resourceTypes: ["WIKI"] }] }] })).toBe(false);
+  });
+
   it("applies account policy conditions to every account action check", () => {
     const conditionalPolicy = {
       ...baseIdentity,
@@ -150,6 +193,10 @@ describe("accountPolicy", () => {
                 "account:member:invite",
                 "account:principal-group:manage",
                 "account:category-change-request:manage",
+                "account:affiliation-request:create",
+                "account:affiliation-request:receive",
+                "account:affiliation:approve",
+                "account:affiliation:reject",
               ],
               resourceTypes: ["ACCOUNT"],
               condition: {
@@ -171,9 +218,80 @@ describe("accountPolicy", () => {
     expect(canUpdateAccount({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
     expect(canManagePrincipalGroups({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
     expect(canManageAccountCategoryChangeRequests({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canRequestAffiliation({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canReceiveAffiliationRequests({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canApproveAffiliations({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
+    expect(canRejectAffiliations({ ...conditionalPolicy, accountType: "corporation" })).toBe(true);
     expect(canInviteAccountMembers({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
     expect(canUpdateAccount({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
     expect(canManagePrincipalGroups({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
     expect(canManageAccountCategoryChangeRequests({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canRequestAffiliation({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canReceiveAffiliationRequests({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canApproveAffiliations({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+    expect(canRejectAffiliations({ ...conditionalPolicy, accountType: "individual" })).toBe(false);
+  });
+
+  it("allows affiliation request creation for agency or talent account categories", () => {
+    const conditionalPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:affiliation-request:create"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountCategory",
+                    operator: "in",
+                    value: ["talent", "agency"],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(canRequestAffiliation({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canAccessAffiliations({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canRequestAffiliation({ ...conditionalPolicy, account: { accountCategory: "talent" } })).toBe(true);
+    expect(canRequestAffiliation({ ...conditionalPolicy, account: { accountCategory: "general" } })).toBe(false);
+  });
+
+  it("allows affiliation review actions for agency or talent account categories when the pair condition is allowed", () => {
+    const conditionalPolicy = {
+      ...baseIdentity,
+      accountEffectivePolicies: [
+        {
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:affiliation-request:receive", "account:affiliation:approve", "account:affiliation:reject"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "affiliationRequest:pairAllowed",
+                    operator: "eq",
+                    value: true,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(canReceiveAffiliationRequests({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canApproveAffiliations({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canRejectAffiliations({ ...conditionalPolicy, account: { accountCategory: "agency" } })).toBe(true);
+    expect(canApproveAffiliations({ ...conditionalPolicy, account: { accountCategory: "talent" } })).toBe(true);
+    expect(canRejectAffiliations({ ...conditionalPolicy, account: { accountCategory: "general" } })).toBe(false);
   });
 });

@@ -1276,6 +1276,60 @@ describe("admin page clients", () => {
     expect(screen.queryByRole("tab", { name: "ユーザー招待" })).not.toBeInTheDocument();
   });
 
+  it("shows affiliation tab when nested account category satisfies the affiliation request policy", async () => {
+    const agencyIdentityWithAffiliationPolicy = {
+      ...identity,
+      account: {
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+        email: "member@example.com",
+        type: "corporation",
+        name: "Member Account",
+        status: "active",
+        accountCategory: "agency",
+      },
+      accountEffectivePolicies: [
+        ...identity.accountEffectivePolicies,
+        {
+          policyIdentifier: "99999999-9999-9999-9999-999999999995",
+          name: "AFFILIATION_REQUEST_CREATE",
+          isSystemPolicy: true,
+          statements: [
+            {
+              effect: "allow",
+              actions: ["account:affiliation-request:create"],
+              resourceTypes: ["ACCOUNT"],
+              condition: {
+                clauses: [
+                  {
+                    field: "resource:accountCategory",
+                    operator: "in",
+                    value: ["talent", "agency"],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(agencyIdentityWithAffiliationPolicy.account), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={agencyIdentityWithAffiliationPolicy}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
+    expect(await screen.findByRole("tab", { name: "プロフィール" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "アフィリエーション管理" })).toBeInTheDocument();
+  });
+
   it("hides corporation-only account tabs for individual accounts", async () => {
     const individualIdentityWithCorporationOnlyPolicies = {
       ...identity,

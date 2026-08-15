@@ -1,23 +1,28 @@
 import {
   parseAccountMembersResponse,
   parseAccountSummary,
+  parseAffiliationSummary,
   parseInvitationSummaries,
   parseListAccountDocumentsResponse,
   parseAccountCategoryChangeRequestDetailResponse,
   parseAccountCategoryChangeRequestSummary,
   parseListAccountCategoryChangeRequestsResponse,
+  parseListAffiliationsResponse,
   parsePrincipalGroupsResponse,
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
   type AccountSummary,
+  type AffiliationSummary,
   type InvitationSummary,
   type InviteAccountMembersRequest,
   type ListAccountCategoryChangeRequestsResponse,
   type ListAccountDocumentsResponse,
+  type ListAffiliationsResponse,
   type ListMembersResponse,
   type ListPrincipalGroupsResponse,
   type RejectAccountCategoryChangeRequest,
   type RequestAccountCategoryChangeRequest,
+  type RequestAffiliationRequest,
   type UploadAccountDocumentsRequest,
   type UpdateAccountRequest,
   type UpdatePrincipalGroupMembersRequest,
@@ -78,6 +83,27 @@ type UpdatePrincipalGroupMembersOptions = {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
   requestBody: UpdatePrincipalGroupMembersRequest;
+};
+
+type RequestAffiliationOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestBody: RequestAffiliationRequest;
+};
+
+type FetchAffiliationsOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  page?: number;
+  perPage?: number;
+  status?: string;
+  viewerRole?: "approver" | "requester";
+};
+
+type AffiliationActionOptions = {
+  affiliationId: string;
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
 };
 
 export type AccountBrowserApiError = Error & { accountRouteStatus: number };
@@ -433,4 +459,96 @@ export const rejectAccountCategoryChangeRequest = async ({
   }
 
   return parseAccountCategoryChangeRequestSummary(body);
+};
+
+
+export const requestAffiliation = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: RequestAffiliationOptions): Promise<AffiliationSummary> => {
+  const response = await fetchAdapter("/api/account/affiliations", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAffiliationSummary(body);
+};
+
+export const fetchAffiliations = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  page,
+  perPage,
+  status,
+  viewerRole,
+}: FetchAffiliationsOptions): Promise<ListAffiliationsResponse> => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (viewerRole) params.set("viewerRole", viewerRole);
+  if (page !== undefined) params.set("page", String(page));
+  if (perPage !== undefined) params.set("perPage", String(perPage));
+  const queryString = params.toString();
+  const response = await fetchAdapter(`/api/account/affiliations${queryString ? `?${queryString}` : ""}`, {
+    method: "GET",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseListAffiliationsResponse(body);
+};
+
+export const approveAffiliation = async ({
+  affiliationId,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: AffiliationActionOptions): Promise<AffiliationSummary> => {
+  const response = await fetchAdapter(`/api/account/affiliations/${encodeURIComponent(affiliationId)}/approve`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAffiliationSummary(body);
+};
+
+export const rejectAffiliation = async ({
+  affiliationId,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: AffiliationActionOptions): Promise<void> => {
+  const response = await fetchAdapter(`/api/account/affiliations/${encodeURIComponent(affiliationId)}/reject`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
 };

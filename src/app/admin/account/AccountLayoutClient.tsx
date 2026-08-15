@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManagePrincipalGroups, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import { canAccessAffiliations, canApproveAffiliations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManagePrincipalGroups, canReceiveAffiliationRequests, canRejectAffiliations, canRequestAffiliation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import { AccountSectionProvider } from "./AccountSectionContext";
@@ -46,6 +46,11 @@ export function AccountLayoutClient({
   const canInvite = canInviteAccountMembers(currentIdentity);
   const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
   const canManageCategoryChangeRequests = canManageAccountCategoryChangeRequests(currentIdentity);
+  const canShowAffiliations = canAccessAffiliations(currentIdentity);
+  const canCreateAffiliationRequest = canRequestAffiliation(currentIdentity);
+  const canReceiveAffiliationReviewRequests = canReceiveAffiliationRequests(currentIdentity);
+  const canApproveAffiliationRequests = canApproveAffiliations(currentIdentity);
+  const canRejectAffiliationRequests = canRejectAffiliations(currentIdentity);
   const fallbackTab: AdminAccountSettingsTab = "accountProfile";
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
@@ -67,13 +72,19 @@ export function AccountLayoutClient({
 
     if (activeTab === "unapprovedAccountCategoryChangeRequests" && !canManageCategoryChangeRequests) {
       router.replace(fallbackRoute);
+      return;
     }
-  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, fallbackRoute, router]);
+
+    if (activeTab === "accountAffiliations" && !canShowAffiliations) {
+      router.replace(fallbackRoute);
+    }
+  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, fallbackRoute, router]);
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
     ...(accountIdentifier ? [createAccountSettingsTab("accountCategoryChange", t.accountCategoryChange.tab)] : []),
+    ...(canShowAffiliations ? [createAccountSettingsTab("accountAffiliations", t.accountAffiliations.tab)] : []),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
     ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),
@@ -110,6 +121,10 @@ export function AccountLayoutClient({
           canInvite,
           canManagePrincipalGroups: canManageAccountPrincipalGroups,
           canManageCategoryChangeRequests,
+          canRequestAffiliation: canCreateAffiliationRequest,
+          canReceiveAffiliationRequests: canReceiveAffiliationReviewRequests,
+          canApproveAffiliations: canApproveAffiliationRequests,
+          canRejectAffiliations: canRejectAffiliationRequests,
           t,
           onAuthorizationRejected,
         }}

@@ -9,6 +9,7 @@ import {
   parseCreateAccountResult,
   parseListAccountCategoryChangeRequestsResponse,
   parseListAccountDocumentsResponse,
+  parseListAffiliationsResponse,
   parsePrincipalGroupsResponse,
   parseRejectAccountCategoryChangeRequest,
   parseRequestAccountCategoryChangeRequest,
@@ -168,6 +169,32 @@ describe("account API helpers", () => {
     expect(() => parseUploadAccountDocumentsRequest({
       documents: [{ documentType: "passport" }],
     })).toThrow();
+  });
+
+  it("parses affiliation list responses", () => {
+    const affiliation = {
+      affiliationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      agencyAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      talentAccountIdentifier: "33333333-3333-4333-8333-333333333333",
+      agencyAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Agency Account",
+        email: "agency@example.com",
+      },
+      talentAccount: {
+        accountIdentifier: "33333333-3333-4333-8333-333333333333",
+        name: "Talent Account",
+        email: "talent@example.com",
+      },
+      requestedBy: "44444444-4444-4444-8444-444444444444",
+      status: "pending",
+      terms: null,
+      requestedAt: "2026-08-11T00:00:00Z",
+      activatedAt: null,
+      terminatedAt: null,
+    };
+
+    expect(parseListAffiliationsResponse({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 })).toEqual({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 });
   });
 
   it("rejects invalid principal group member update payloads", () => {
