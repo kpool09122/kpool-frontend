@@ -30,7 +30,7 @@
   ],
   "dependencyDashboard": true,
   "lockFileMaintenance": {
-    "enabled": true,
+    "enabled": false,
     "schedule": [
       "before 9am on monday"
     ]
