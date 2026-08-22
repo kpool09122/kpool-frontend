@@ -216,6 +216,40 @@ const ListUploadedImagesResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const WikiListItem = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.string(),
+    version: z.number().int(),
+    themeColor: z.string().nullable(),
+    fontStyle: WikiFontStyle.nullable(),
+    title: SeoTitleText.nullable(),
+    metaDescription: MetaDescriptionText.nullable(),
+    keywords: z.array(SeoKeywordText).max(5).nullable(),
+    imageIdentifier: KPool_Common_Uuid.nullable(),
+    imageUrl: z.string().nullable(),
+    imageAltText: z.string().nullable(),
+    isHidden: z.boolean().nullable(),
+    name: z.string(),
+    normalizedName: z.string(),
+    publishedAt: z.string().nullable(),
+    updatedAt: z.string().nullable(),
+  })
+  .passthrough();
+const ListMyOwnedWikisResponseBody = z
+  .object({
+    accountCategory: z.enum(["agency", "talent", "general"]),
+    primaryOwnedWikis: z.array(WikiListItem),
+    otherOwnedWikis: z.array(WikiListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
 const RequestCertificationRequestBody = z
   .object({ resourceType: z.string(), wikiId: KPool_Common_Uuid })
   .passthrough();
@@ -749,29 +783,6 @@ const TranslateWikiResponseBody = z
   .object({ draftWikis: z.array(DraftWikiSummary) })
   .passthrough();
 const WithdrawWikiRequestBody = WikiAssociationTargets;
-const WikiListItem = z
-  .object({
-    wikiIdentifier: KPool_Common_Uuid,
-    translationSetIdentifier: KPool_Common_Uuid,
-    slug: z.string(),
-    language: z.string(),
-    resourceType: z.string(),
-    version: z.number().int(),
-    themeColor: z.string().nullable(),
-    fontStyle: WikiFontStyle.nullable(),
-    title: SeoTitleText.nullable(),
-    metaDescription: MetaDescriptionText.nullable(),
-    keywords: z.array(SeoKeywordText).max(5).nullable(),
-    imageIdentifier: KPool_Common_Uuid.nullable(),
-    imageUrl: z.string().nullable(),
-    imageAltText: z.string().nullable(),
-    isHidden: z.boolean().nullable(),
-    name: z.string(),
-    normalizedName: z.string(),
-    publishedAt: z.string().nullable(),
-    updatedAt: z.string().nullable(),
-  })
-  .passthrough();
 const ListWikisResponseBody = z
   .object({
     wikis: z.array(WikiListItem),
@@ -821,6 +832,8 @@ export const schemas = {
   ImageDeletionRequestSummary,
   UploadedImageListItem,
   ListUploadedImagesResponseBody,
+  WikiListItem,
+  ListMyOwnedWikisResponseBody,
   RequestCertificationRequestBody,
   OfficialCertificationSummary,
   PolicyConditionClause,
@@ -880,7 +893,6 @@ export const schemas = {
   RollbackWikiResponseBody,
   TranslateWikiResponseBody,
   WithdrawWikiRequestBody,
-  WikiListItem,
   ListWikisResponseBody,
   WikiMasterSearchItem,
   SearchMasterWikisResponseBody,
@@ -1410,6 +1422,43 @@ const endpoints = makeApi([
       },
     ],
     response: ListDraftWikisResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/owned-wikis",
+    alias: "MyOwnedWikiListOperations_listMyOwnedWikis",
+    description: `List published wikis owned by the current account, grouped by account-category relevance.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+    ],
+    response: ListMyOwnedWikisResponseBody,
     errors: [
       {
         status: 401,
