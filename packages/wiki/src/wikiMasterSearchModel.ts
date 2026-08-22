@@ -18,8 +18,18 @@ export const wikiMasterSearchResponseSchema = wikiPrivateApiTypes.schemas.Search
   }),
 );
 
+export const translationSetMasterSearchWikiItemSchema =
+  wikiPrivateApiTypes.schemas.TranslationSetMasterSearchWikiItem;
+export const translationSetMasterSearchItemSchema =
+  wikiPrivateApiTypes.schemas.TranslationSetMasterSearchItem;
+export const translationSetMasterSearchResponseSchema =
+  wikiPrivateApiTypes.schemas.SearchTranslationSetMasterWikisResponseBody;
+
 export type WikiMasterSearchItem = z.infer<typeof wikiMasterSearchItemSchema>;
 export type WikiMasterSearchResponse = z.infer<typeof wikiMasterSearchResponseSchema>;
+export type TranslationSetMasterSearchWikiItem = z.infer<typeof translationSetMasterSearchWikiItemSchema>;
+export type TranslationSetMasterSearchItem = z.infer<typeof translationSetMasterSearchItemSchema>;
+export type TranslationSetMasterSearchResponse = z.infer<typeof translationSetMasterSearchResponseSchema>;
 
 export const createWikiMasterSearchUrl = ({
   baseUrl,
@@ -47,3 +57,32 @@ export const createWikiMasterSearchUrl = ({
 
   return url.toString();
 };
+
+export const createTranslationSetMasterSearchUrl = ({
+  baseUrl,
+  keyword,
+  limit,
+  resourceType,
+}: {
+  baseUrl: string;
+  keyword: string;
+  limit?: number;
+  resourceType: WikiResourceType;
+}): string => {
+  const url = new URL(`${trimTrailingSlashes(baseUrl)}/wiki-translation-sets/masters`);
+
+  url.searchParams.set("resourceType", resourceType);
+  url.searchParams.set("keyword", keyword);
+
+  if (limit) {
+    url.searchParams.set("limit", String(limit));
+  }
+
+  return url.toString();
+};
+
+export const selectTranslationSetMasterDisplayWiki = (
+  item: TranslationSetMasterSearchItem,
+  locale: string,
+): TranslationSetMasterSearchWikiItem | null =>
+  item.wikis.find((wiki) => wiki.language === locale) ?? item.wikis[0] ?? null;
