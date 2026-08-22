@@ -9,7 +9,7 @@ import {
   getWikiPrincipalResponseErrorMessage,
   wikiPrincipalUnavailableMessage,
   wikiPrincipalCreateRequestSchema,
-  wikiPrincipalSummarySchema,
+  wikiPrincipalCreatedSummarySchema,
 } from "@/gateways/wiki/wikiPrincipal";
 import {
   getForwardedWikiApiHeaders,
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       parseWithSchemaLog(
         "wiki principal create response",
-        wikiPrincipalSummarySchema,
+        wikiPrincipalCreatedSummarySchema,
         responseBody,
       ),
       { status: 201 },

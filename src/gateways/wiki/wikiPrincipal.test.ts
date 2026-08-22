@@ -26,6 +26,13 @@ const principal = {
   policies: [],
 };
 
+const createdPrincipal = {
+  principalIdentifier: principal.principalIdentifier,
+  identityIdentifier: principal.identityIdentifier,
+  isDelegatedPrincipal: principal.isDelegatedPrincipal,
+  isEnabled: principal.isEnabled,
+};
+
 const policy = ({
   actions,
   effect = "allow",
@@ -220,7 +227,7 @@ describe("wiki principal helpers", () => {
     const fetchAdapter = vi.fn().mockResolvedValue({
       ok: true,
       status: 201,
-      json: vi.fn().mockResolvedValue(principal),
+      json: vi.fn().mockResolvedValue(createdPrincipal),
     });
 
     await expect(
@@ -231,7 +238,7 @@ describe("wiki principal helpers", () => {
       }),
     ).resolves.toEqual({
       status: "available",
-      principal,
+      ...createdPrincipal,
     });
     expect(fetchAdapter).toHaveBeenCalledWith("/api/wiki/principal/create", {
       method: "POST",
