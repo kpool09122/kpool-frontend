@@ -251,7 +251,10 @@ const ListMyOwnedWikisResponseBody = z
   })
   .passthrough();
 const RequestCertificationRequestBody = z
-  .object({ resourceType: z.string(), wikiId: KPool_Common_Uuid })
+  .object({
+    resourceType: z.string(),
+    translationSetIdentifier: KPool_Common_Uuid,
+  })
   .passthrough();
 const OfficialCertificationSummary = z
   .object({
@@ -409,6 +412,24 @@ const SaveVideoLinksRequestBody = z
     wikiIdentifier: KPool_Common_Uuid,
     videoLinks: z.array(VideoLinkInput),
   })
+  .passthrough();
+const TranslationSetMasterSearchWikiItem = z
+  .object({
+    wikiIdentifier: KPool_Common_Uuid,
+    language: z.string(),
+    name: z.string(),
+    slug: z.string(),
+  })
+  .passthrough();
+const TranslationSetMasterSearchItem = z
+  .object({
+    translationSetIdentifier: KPool_Common_Uuid,
+    resourceType: z.string(),
+    wikis: z.array(TranslationSetMasterSearchWikiItem),
+  })
+  .passthrough();
+const SearchTranslationSetMasterWikisResponseBody = z
+  .object({ translationSetMasters: z.array(TranslationSetMasterSearchItem) })
   .passthrough();
 const DraftWikiHeroImage = z
   .object({
@@ -859,6 +880,9 @@ export const schemas = {
   AttachPolicyToRoleRequestBody,
   VideoLinkInput,
   SaveVideoLinksRequestBody,
+  TranslationSetMasterSearchWikiItem,
+  TranslationSetMasterSearchItem,
+  SearchTranslationSetMasterWikisResponseBody,
   DraftWikiHeroImage,
   AgencyDraftWikiBasic,
   AgencyDraftWikiDetail,
@@ -2183,6 +2207,48 @@ const endpoints = makeApi([
     ],
     response: z.void(),
     errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki-translation-sets/masters",
+    alias: "WikiTranslationSetOperations_searchTranslationSetMasterWikis",
+    description: `Search wiki masters grouped by translation set for official certification requests.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "resourceType",
+        type: "Query",
+        schema: z.enum(["agency", "group", "talent", "song"]),
+      },
+      {
+        name: "keyword",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "limit",
+        type: "Query",
+        schema: z.number().int().optional(),
+      },
+    ],
+    response: SearchTranslationSetMasterWikisResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
