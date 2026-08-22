@@ -99,11 +99,12 @@ export const useAdminWikiPrincipal = ({
       queryClient.setQueryData<WikiPrincipalState>(principalQueryKey, { status: "loading" });
     },
     onSuccess: async (nextState) => {
-      queryClient.setQueryData<WikiPrincipalState>(principalQueryKey, nextState);
-
-      if (nextState.status === "available") {
-        await onPrincipalReady();
+      if (nextState.status !== "available") {
+        queryClient.setQueryData<WikiPrincipalState>(principalQueryKey, nextState);
+        return;
       }
+
+      await loadCurrentPrincipal();
     },
   });
 

@@ -15,9 +15,11 @@ import {
 } from "@kpool/wiki";
 
 export const wikiPrincipalSummarySchema = wikiPrivateApiTypes.schemas.PrincipalSummary;
+export const wikiPrincipalCreatedSummarySchema = wikiPrivateApiTypes.schemas.CreatedPrincipalSummary;
 export const wikiPrincipalCreateRequestSchema = wikiPrivateApiTypes.schemas.CreatePrincipalRequestBody;
 
 export type WikiPrincipalSummary = z.infer<typeof wikiPrincipalSummarySchema>;
+export type WikiPrincipalCreatedSummary = z.infer<typeof wikiPrincipalCreatedSummarySchema>;
 export type WikiPrincipalCreateRequest = z.infer<typeof wikiPrincipalCreateRequestSchema>;
 
 export type WikiPrincipalState =
@@ -279,7 +281,7 @@ export const createWikiPrincipal = async ({
   identityIdentifier,
 }: WikiPrincipalCreateRequest & {
   fetchAdapter?: FetchAdapter;
-}): Promise<Extract<WikiPrincipalState, { status: "available" | "error" }>> => {
+}): Promise<{ status: "available" } | Extract<WikiPrincipalState, { status: "error" }>> => {
   try {
     const body = parseWithSchemaLog("wiki principal create request", wikiPrincipalCreateRequestSchema, {
       accountIdentifier,
@@ -308,7 +310,7 @@ export const createWikiPrincipal = async ({
 
     return {
       status: "available",
-      principal: parseWithSchemaLog("wiki principal create response", wikiPrincipalSummarySchema, responseBody),
+      ...parseWithSchemaLog("wiki principal create response", wikiPrincipalCreatedSummarySchema, responseBody),
     };
   } catch (error) {
     return {

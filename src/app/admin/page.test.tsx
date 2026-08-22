@@ -324,7 +324,10 @@ const createAdapter = (
   }),
   createPrincipal: vi.fn().mockResolvedValue({
     status: "available",
-    principal,
+    principalIdentifier: principal.principalIdentifier,
+    identityIdentifier: principal.identityIdentifier,
+    isDelegatedPrincipal: principal.isDelegatedPrincipal,
+    isEnabled: principal.isEnabled,
   }),
   ...overrides,
 });
@@ -3495,8 +3498,8 @@ describe("admin page clients", () => {
 
   it("creates a principal and updates the page immediately", async () => {
     const adapter = createAdapter({
-      getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
-      createPrincipal: vi.fn().mockResolvedValue({ status: "available", principal }),
+      getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "available", principal }),
+      createPrincipal: vi.fn().mockResolvedValue({ status: "available" }),
     });
 
     renderWithQueryClient(
@@ -3516,13 +3519,14 @@ describe("admin page clients", () => {
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
       }),
     );
+    expect(adapter.getCurrentPrincipal).toHaveBeenCalled();
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
   });
 
   it("returns to the original edit page after creating a principal when returnTo is provided", async () => {
     const adapter = createAdapter({
-      getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
-      createPrincipal: vi.fn().mockResolvedValue({ status: "available", principal }),
+      getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "available", principal }),
+      createPrincipal: vi.fn().mockResolvedValue({ status: "available" }),
     });
 
     renderWithQueryClient(
