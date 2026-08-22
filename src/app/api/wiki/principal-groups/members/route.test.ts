@@ -12,7 +12,20 @@ const updateRequest = {
   ],
 };
 
-const responseBody = {
+const updateResponseBody = {
+  principalGroups: [
+    {
+      principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
+      accountIdentifier: "22222222-2222-4222-8222-222222222222",
+      name: "Wiki Editors",
+      isDefault: false,
+      memberCount: 1,
+      createdAt: "2026-08-22T00:00:00+00:00",
+    },
+  ],
+};
+
+const principalGroupsResponseBody = {
   principalGroups: [
     {
       principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -40,19 +53,31 @@ describe("/api/wiki/principal-groups/members route", () => {
 
   it("forwards batch member updates to the Wiki private API", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://wiki.example.test");
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(responseBody), { status: 200 }));
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(updateResponseBody), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(principalGroupsResponseBody), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await PATCH(createRequest(updateRequest, { "accept-language": "ko", cookie: "session=abc" }));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://wiki.example.test/api/wiki/principal-groups/members", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://wiki.example.test/api/wiki/principal-groups/members", {
       method: "PATCH",
       headers: { Accept: "application/json", "Accept-Language": "ko", Cookie: "session=abc", "Content-Type": "application/json" },
       body: JSON.stringify(updateRequest),
       cache: "no-store",
     });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://wiki.example.test/api/wiki/principal-groups?accountIdentifier=22222222-2222-4222-8222-222222222222",
+      {
+        method: "GET",
+        headers: { Accept: "application/json", "Accept-Language": "ko", Cookie: "session=abc" },
+        cache: "no-store",
+      },
+    );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(responseBody);
+    await expect(response.json()).resolves.toEqual(principalGroupsResponseBody);
   });
 
   it("rejects invalid request bodies without calling upstream", async () => {

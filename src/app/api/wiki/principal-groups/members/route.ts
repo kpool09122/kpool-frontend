@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import {
+  createWikiPrincipalGroupsUrl,
   createWikiPrincipalGroupMembersUrl,
   parseWikiPrincipalGroupMembersUpdateRequest,
   parseWikiPrincipalGroupsResponse,
@@ -30,6 +31,14 @@ const getWikiPrincipalGroupRouteErrorMessage = (status: number, body: unknown): 
   return `Wiki principal groups request failed with status ${status}.`;
 };
 
+const principalGroupMembersUpdateResponseSchema = z.object({
+  principalGroups: z.array(
+    z.object({
+      accountIdentifier: z.string().uuid(),
+    }),
+  ).min(1),
+});
+
 export async function PATCH(request: NextRequest) {
   const baseUrl = getWikiPrivateApiBaseUrl();
 
@@ -56,10 +65,11 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
+    const forwardedHeaders = getForwardedWikiApiHeaders(request.headers);
     const apiResponse = await fetch(createWikiPrincipalGroupMembersUrl(baseUrl), {
       method: "PATCH",
       headers: {
-        ...getForwardedWikiApiHeaders(request.headers),
+        ...forwardedHeaders,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(updateRequest),
@@ -74,7 +84,36 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(parseWikiPrincipalGroupsResponse(body), { status: apiResponse.status });
+    const updateResponse = principalGroupMembersUpdateResponseSchema.safeParse(body);
+
+    if (!updateResponse.success) {
+      return NextResponse.json(
+        { message: "Wiki principal group response did not match the expected schema." },
+        { status: 502 },
+      );
+    }
+
+    const principalGroupsResponse = await fetch(
+      createWikiPrincipalGroupsUrl({
+        accountIdentifier: updateResponse.data.principalGroups[0].accountIdentifier,
+        baseUrl,
+      }),
+      {
+        method: "GET",
+        headers: forwardedHeaders,
+        cache: "no-store",
+      },
+    );
+    const principalGroupsBody = await readJsonResponseBody(principalGroupsResponse);
+
+    if (!principalGroupsResponse.ok) {
+      return NextResponse.json(
+        { message: getWikiPrincipalGroupRouteErrorMessage(principalGroupsResponse.status, principalGroupsBody) },
+        { status: principalGroupsResponse.status },
+      );
+    }
+
+    return NextResponse.json(parseWikiPrincipalGroupsResponse(principalGroupsBody), { status: principalGroupsResponse.status });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
