@@ -33,6 +33,7 @@ import {
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
   canAutoCreateWikiDraftWikiResourceType,
+  canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -184,13 +185,15 @@ export function WikiSectionClient({
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(principalState.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(principalState.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(principalState.principal);
+    const canManagePrincipalGroups = canManageWikiPrincipalGroups(principalState.principal);
     const isAllowed =
       activeWikiTab === "editingWikis" ||
       activeWikiTab === "submittedWikis" ||
       (activeWikiTab === "unapprovedWikis" && canReviewDraftWikis) ||
       ((activeWikiTab === "approvedWikis" || activeWikiTab === "untranslatedWikis") && canPublishDraftWikis) ||
       (activeWikiTab === "draftImages" && canReviewDraftImages) ||
-      (activeWikiTab === "imageDeletionRequests" && canReviewImageDeletionRequests);
+      (activeWikiTab === "imageDeletionRequests" && canReviewImageDeletionRequests) ||
+      (activeWikiTab === "principalGroupManagement" && canManagePrincipalGroups);
 
     if (!isAllowed) {
       router.replace(adminWikiTabRoutes.editingWikis);
@@ -267,6 +270,7 @@ export function WikiSectionClient({
               activeWikiTab: resolvedWikiTab,
               draftImageAdapter,
               draftWikiAdapter,
+              principalState,
             }}
           >
             {children}
@@ -310,6 +314,10 @@ const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
 
   if (pathname?.endsWith("/image-deletion-requests")) {
     return "imageDeletionRequests";
+  }
+
+  if (pathname?.endsWith("/principal-groups")) {
+    return "principalGroupManagement";
   }
 
   return "editingWikis";

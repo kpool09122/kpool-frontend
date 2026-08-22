@@ -28,8 +28,8 @@ export type WikiPrincipalState =
   | { status: "error"; message: string };
 
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
-type WikiPolicyAction = "APPROVE" | "AUTOMATIC_CREATE" | "PUBLISH" | "REJECT";
-type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "SONG" | "TALENT";
+type WikiPolicyAction = "APPROVE" | "AUTOMATIC_CREATE" | "PRINCIPAL_GROUP_MANAGE" | "PUBLISH" | "REJECT";
+type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "PRINCIPAL_GROUP" | "SONG" | "TALENT";
 
 type FetchAdapter = typeof fetch;
 
@@ -46,7 +46,8 @@ export const getWikiPrincipalApiBaseUrl = (): string =>
 
 export { getAccountIdentifierFromIdentity };
 
-const normalizePolicyValue = (value: string): string => value.trim().toUpperCase();
+const normalizePolicyValue = (value: string): string =>
+  value.trim().toUpperCase().replaceAll(/[-:]/g, "_");
 
 const valueMatches = (values: string[], target: string): boolean => {
   const normalizedTarget = normalizePolicyValue(target);
@@ -91,6 +92,9 @@ export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boole
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
 
 export const canReviewWikiImageDeletionRequests = canReviewWikiDraftImages;
+
+export const canManageWikiPrincipalGroups = (principal: WikiPrincipalSummary): boolean =>
+  isAllowedWithoutDeny(principal, "PRINCIPAL_GROUP_MANAGE", "PRINCIPAL_GROUP");
 
 const draftWikiReviewResourceTypes = ["AGENCY", "GROUP", "SONG", "TALENT"] as const;
 export const draftWikiAutoCreateResourceTypes = ["agency", "group", "song", "talent"] as const;

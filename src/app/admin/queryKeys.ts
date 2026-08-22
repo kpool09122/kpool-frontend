@@ -120,6 +120,13 @@ export const adminQueryKeys = {
       statuses,
     }), page] as const,
   },
+  principalGroupManagement: {
+    current: (accountIdentifier: string | null) => [
+      ...adminQueryKeys.all,
+      "wikiPrincipalGroups",
+      accountIdentifier ?? "unavailable",
+    ] as const,
+  },
   principal: {
     current: (identityIdentifier: string | null) => [
       ...adminQueryKeys.all,

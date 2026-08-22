@@ -116,11 +116,15 @@ const resolveAdminWikiTab = (slug: string[] | undefined): AdminWikiTab => {
     return "imageDeletionRequests";
   }
 
+  if (wikiPage === "principal-groups") {
+    return "principalGroupManagement";
+  }
+
   return "editingWikis";
 };
 
 const isDraftWikiInitialDataTab = (tab: AdminWikiTab): tab is InitialDraftWikiListTab =>
-  tab !== "draftImages" && tab !== "imageDeletionRequests";
+  tab !== "draftImages" && tab !== "imageDeletionRequests" && tab !== "principalGroupManagement";
 
 const createInitialDraftImageListState = (): DraftImageListState => ({
   images: [],
