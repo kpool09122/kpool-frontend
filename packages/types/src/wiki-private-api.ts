@@ -217,11 +217,7 @@ const ListUploadedImagesResponseBody = z
   })
   .passthrough();
 const RequestCertificationRequestBody = z
-  .object({
-    resourceType: z.string(),
-    wikiId: KPool_Common_Uuid,
-    ownerAccountId: KPool_Common_Uuid,
-  })
+  .object({ resourceType: z.string(), wikiId: KPool_Common_Uuid })
   .passthrough();
 const OfficialCertificationSummary = z
   .object({
@@ -1453,6 +1449,16 @@ const endpoints = makeApi([
     response: OfficialCertificationSummary,
     errors: [
       {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 404,
         description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
@@ -1490,6 +1496,16 @@ const endpoints = makeApi([
     response: OfficialCertificationSummary,
     errors: [
       {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 404,
         description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
@@ -1526,6 +1542,16 @@ const endpoints = makeApi([
     ],
     response: OfficialCertificationSummary,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
