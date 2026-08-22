@@ -11,7 +11,7 @@ import { POST as requestPOST } from "./request/route";
 
 const certificationIdentifier = "11111111-1111-4111-8111-111111111111";
 const wikiId = "22222222-2222-4222-8222-222222222222";
-const ownerAccountId = "33333333-3333-4333-8333-333333333333";
+const translationSetIdentifier = "44444444-4444-4444-8444-444444444444";
 
 const createRequest = (url: string, body: unknown, headers: Record<string, string> = {}): NextRequest =>
   new Request(url, {
@@ -47,7 +47,7 @@ describe("official certification routes", () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(certificationSummary("requested")));
     vi.stubGlobal("fetch", fetchMock);
-    const body = { ownerAccountId, resourceType: "agency", wikiId };
+    const body = { resourceType: "agency", translationSetIdentifier, ownerAccountId: "33333333-3333-4333-8333-333333333333", wikiId };
 
     const response = await requestPOST(
       createRequest("https://app.example.test/api/wiki/official-certification/request", body, {
@@ -70,7 +70,10 @@ describe("official certification routes", () => {
         },
       }),
     );
-    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual(body);
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
+      resourceType: "agency",
+      translationSetIdentifier,
+    });
   });
 
   it("forwards approve and reject actions to the backend certification endpoints", async () => {
@@ -108,7 +111,7 @@ describe("official certification routes", () => {
       new Request("https://app.example.test/api/wiki/official-certification/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ownerAccountId, resourceType: "agency", wikiId }),
+        body: JSON.stringify({ resourceType: "agency", translationSetIdentifier }),
       }) as NextRequest,
     );
 
