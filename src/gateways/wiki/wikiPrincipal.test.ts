@@ -4,6 +4,7 @@ import {
   canAutoCreateWikiDraftWikis,
   canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
+  canReviewOfficialCertifications,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
   createWikiPrincipal,
@@ -461,6 +462,54 @@ describe("wiki principal helpers", () => {
         ],
       }),
     ).toBe(true);
+  });
+
+  it("allows official certification review only when approve and reject are allowed for agency or talent", () => {
+    expect(
+      canReviewOfficialCertifications({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "TALENT_CERTIFICATION_MANAGEMENT",
+            resourceTypes: ["TALENT"],
+          }),
+        ],
+      }),
+    ).toBe(true);
+    expect(
+      canReviewOfficialCertifications({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "GROUP_MANAGEMENT",
+            resourceTypes: ["GROUP"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it("does not allow official certification review when a matching deny exists", () => {
+    expect(
+      canReviewOfficialCertifications({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "AGENCY_CERTIFICATION_MANAGEMENT",
+            resourceTypes: ["AGENCY"],
+          }),
+          policy({
+            actions: ["REJECT"],
+            effect: "deny",
+            name: "DENY_AGENCY_CERTIFICATION_REJECT",
+            resourceTypes: ["AGENCY"],
+          }),
+        ],
+      }),
+    ).toBe(false);
   });
 
   it("allows wiki principal group management only without a matching deny", () => {

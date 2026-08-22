@@ -5,6 +5,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type {
   AdminDraftImageAdapter,
   AdminDraftWikiAdapter,
+  AdminOfficialCertificationAdapter,
 } from "@/gateways/admin/adminAdapters";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { AdminWikiTab } from "../adminTypes";
@@ -13,6 +14,7 @@ export type WikiSectionContextValue = {
   activeWikiTab: AdminWikiTab;
   draftImageAdapter: AdminDraftImageAdapter;
   draftWikiAdapter: AdminDraftWikiAdapter;
+  officialCertificationAdapter: AdminOfficialCertificationAdapter;
   principalState: WikiPrincipalState;
 };
 

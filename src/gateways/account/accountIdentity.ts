@@ -39,6 +39,39 @@ export const getAccountIdentifierFromIdentity = (
   return null;
 };
 
+export const getAccountCategoryFromIdentity = (
+  identity: IdentitySummary | null,
+): string | null => {
+  if (!identity) {
+    return null;
+  }
+
+  const identityRecord = identity as Record<string, unknown>;
+  const accountRecord = identityRecord.account;
+  const accounts = identityRecord.accounts;
+  const directAccountCategory = getAccountCategoryFromRecord(identityRecord);
+
+  if (directAccountCategory) {
+    return directAccountCategory;
+  }
+
+  if (isRecord(accountRecord)) {
+    const nestedAccountCategory = getAccountCategoryFromRecord(accountRecord);
+
+    if (nestedAccountCategory) {
+      return nestedAccountCategory;
+    }
+  }
+
+  if (Array.isArray(accounts)) {
+    const account = accounts.find(isRecord);
+
+    return account ? getAccountCategoryFromRecord(account) : null;
+  }
+
+  return null;
+};
+
 export const getAccountPrincipalIdentifierFromIdentity = (
   identity: IdentitySummary | null,
 ): string | null => {
@@ -96,6 +129,15 @@ const getAccountIdentifierFromRecord = (
     "account_id",
     "account_identifier",
     ...(includeGenericId ? ["id"] : []),
+  ]);
+
+const getAccountCategoryFromRecord = (
+  record: Record<string, unknown>,
+): string | null =>
+  getStringValue(record, [
+    "accountCategory",
+    "account_category",
+    "category",
   ]);
 
 const getAccountPrincipalIdentifierFromRecord = (
