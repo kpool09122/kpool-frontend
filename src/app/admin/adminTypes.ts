@@ -9,7 +9,7 @@ import type { ImageDeletionRequestListState } from "./useAdminImageDeletionReque
 export type AdminSettingsTab = "profileSettings" | "languageSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountCategoryChange" | "accountAffiliations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "wiki" | "accountSettings" | "settings";
-export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests" | "principalGroupManagement";
+export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
 
 export type AdminRouteContext = {
   initialDraftImages: DraftImageListState;
@@ -66,14 +66,16 @@ export const adminSectionRoutes: Record<AdminSection, string> = {
 };
 
 export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
-  approvedWikis: "/admin/wiki/approved",
-  draftImages: "/admin/wiki/draft-images",
   editingWikis: "/admin/wiki/editing",
-  imageDeletionRequests: "/admin/wiki/image-deletion-requests",
-  principalGroupManagement: "/admin/wiki/principal-groups",
   submittedWikis: "/admin/wiki/submitted",
   unapprovedWikis: "/admin/wiki/unapproved",
+  approvedWikis: "/admin/wiki/approved",
   untranslatedWikis: "/admin/wiki/untranslated",
+  draftImages: "/admin/wiki/draft-images",
+  imageDeletionRequests: "/admin/wiki/image-deletion-requests",
+  officialCertificationRequest: "/admin/wiki/official-certification/request",
+  officialCertificationReview: "/admin/wiki/official-certification/review",
+  principalGroupManagement: "/admin/wiki/principal-groups",
 };
 
 export const adminAccountTabRoutes: Record<AdminAccountSettingsTab, string> = {

@@ -3,9 +3,11 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { getAccountCategoryFromIdentity } from "@/gateways/account/accountIdentity";
 import type {
   AdminDraftImageAdapter,
   AdminDraftWikiAdapter,
+  AdminOfficialCertificationAdapter,
   AdminPrincipalAdapter,
 } from "@/gateways/admin/adminAdapters";
 import {
@@ -32,15 +34,21 @@ import {
   rejectWikiImageDeletionRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
+  requestOfficialCertificationFromBrowser,
+  reviewOfficialCertificationFromBrowser,
+} from "@/gateways/wiki/officialCertification";
+import {
   canAutoCreateWikiDraftWikiResourceType,
   canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
+  canReviewOfficialCertifications,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
   canReviewWikiImageDeletionRequests,
   createWikiPrincipal,
   draftWikiAutoCreateResourceTypes,
   getCurrentWikiPrincipal,
+  getOfficialCertificationRequestResourceTypesForAccountCategory,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
 import { buildWikiEditPath, normalizeWikiSlugForResourceType, type WikiResourceType } from "@kpool/wiki";
@@ -88,6 +96,11 @@ export const defaultAdminDraftWikiAdapter: AdminDraftWikiAdapter = {
   withdrawDraftWiki: withdrawWikiDraft,
 };
 
+export const defaultOfficialCertificationAdapter: AdminOfficialCertificationAdapter = {
+  requestOfficialCertification: requestOfficialCertificationFromBrowser,
+  reviewOfficialCertification: reviewOfficialCertificationFromBrowser,
+};
+
 const isActionPending = (state: WikiPrincipalState): boolean =>
   state.status === "loading";
 
@@ -95,6 +108,7 @@ type WikiSectionClientProps = {
   children: ReactNode;
   draftImageAdapter?: AdminDraftImageAdapter;
   draftWikiAdapter?: AdminDraftWikiAdapter;
+  officialCertificationAdapter?: AdminOfficialCertificationAdapter;
   principalAdapter?: AdminPrincipalAdapter;
   returnTo?: string | null;
 };
@@ -103,6 +117,7 @@ export function WikiSectionClient({
   children,
   draftImageAdapter = defaultAdminDraftImageAdapter,
   draftWikiAdapter = defaultAdminDraftWikiAdapter,
+  officialCertificationAdapter = defaultOfficialCertificationAdapter,
   principalAdapter = defaultPrincipalAdapter,
   returnTo = null,
 }: WikiSectionClientProps) {
@@ -184,12 +199,14 @@ export function WikiSectionClient({
     const canReviewDraftImages = canReviewWikiDraftImages(principalState.principal);
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(principalState.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(principalState.principal);
+    const canReviewOfficialCertificationRequests = canReviewOfficialCertifications(principalState.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(principalState.principal);
     const canManagePrincipalGroups = canManageWikiPrincipalGroups(principalState.principal);
     const isAllowed =
       activeWikiTab === "editingWikis" ||
-      activeWikiTab === "submittedWikis" ||
+      (activeWikiTab === "submittedWikis" || activeWikiTab === "officialCertificationRequest") ||
       (activeWikiTab === "unapprovedWikis" && canReviewDraftWikis) ||
+      (activeWikiTab === "officialCertificationReview" && canReviewOfficialCertificationRequests) ||
       ((activeWikiTab === "approvedWikis" || activeWikiTab === "untranslatedWikis") && canPublishDraftWikis) ||
       (activeWikiTab === "draftImages" && canReviewDraftImages) ||
       (activeWikiTab === "imageDeletionRequests" && canReviewImageDeletionRequests) ||
@@ -263,6 +280,9 @@ export function WikiSectionClient({
         onActivate={() => void activateWikiPrincipal()}
         onRetry={() => void loadCurrentPrincipal()}
         onOpenCreateDraftWiki={openCreateDialog}
+        officialCertificationRequestResourceTypes={getOfficialCertificationRequestResourceTypesForAccountCategory(
+          getAccountCategoryFromIdentity(currentIdentity),
+        )}
       >
         {(resolvedWikiTab) => (
           <WikiSectionProvider
@@ -270,6 +290,7 @@ export function WikiSectionClient({
               activeWikiTab: resolvedWikiTab,
               draftImageAdapter,
               draftWikiAdapter,
+              officialCertificationAdapter,
               principalState,
             }}
           >
@@ -314,6 +335,14 @@ const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
 
   if (pathname?.endsWith("/image-deletion-requests")) {
     return "imageDeletionRequests";
+  }
+
+  if (pathname?.endsWith("/official-certification/request")) {
+    return "officialCertificationRequest";
+  }
+
+  if (pathname?.endsWith("/official-certification/review")) {
+    return "officialCertificationReview";
   }
 
   if (pathname?.endsWith("/principal-groups")) {

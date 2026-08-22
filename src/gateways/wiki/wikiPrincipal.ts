@@ -32,6 +32,7 @@ export type WikiPrincipalState =
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
 type WikiPolicyAction = "APPROVE" | "AUTOMATIC_CREATE" | "PRINCIPAL_GROUP_MANAGE" | "PUBLISH" | "REJECT";
 type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "PRINCIPAL_GROUP" | "SONG" | "TALENT";
+type OfficialCertificationResourceType = "agency" | "talent";
 
 type FetchAdapter = typeof fetch;
 
@@ -106,6 +107,39 @@ export const canReviewWikiDraftWikis = (principal: WikiPrincipalSummary): boolea
     (resourceType) =>
       isAllowedWithoutDeny(principal, "APPROVE", resourceType) &&
       isAllowedWithoutDeny(principal, "REJECT", resourceType),
+  );
+
+const officialCertificationResourceTypes = ["agency", "talent"] as const;
+
+export const getOfficialCertificationRequestResourceTypesForAccountCategory = (
+  accountCategory: string | null,
+): OfficialCertificationResourceType[] => {
+  const normalizedCategory = accountCategory ? normalizePolicyValue(accountCategory) : "";
+
+  if (normalizedCategory === "AGENCY") {
+    return ["agency"];
+  }
+
+  if (normalizedCategory === "TALENT") {
+    return ["talent"];
+  }
+
+  return [];
+};
+
+export const canReviewOfficialCertifications = (principal: WikiPrincipalSummary): boolean =>
+  officialCertificationResourceTypes.some(
+    (resourceType) =>
+      isAllowedWithoutDeny(
+        principal,
+        "APPROVE",
+        normalizePolicyValue(resourceType) as WikiPolicyResourceType,
+      ) &&
+      isAllowedWithoutDeny(
+        principal,
+        "REJECT",
+        normalizePolicyValue(resourceType) as WikiPolicyResourceType,
+      ),
   );
 
 export const canPublishWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>

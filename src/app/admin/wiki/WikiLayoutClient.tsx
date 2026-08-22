@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
+  canReviewOfficialCertifications,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
   canReviewWikiImageDeletionRequests,
@@ -32,6 +33,7 @@ type WikiLayoutClientProps = {
   onActivate: () => void;
   onRetry: () => void;
   onOpenCreateDraftWiki: () => void;
+  officialCertificationRequestResourceTypes: Array<"agency" | "talent">;
 };
 
 export function WikiLayoutClient({
@@ -44,6 +46,7 @@ export function WikiLayoutClient({
   onActivate,
   onRetry,
   onOpenCreateDraftWiki,
+  officialCertificationRequestResourceTypes,
 }: WikiLayoutClientProps) {
   const canActivate = isAuthenticated && !isPending;
 
@@ -64,6 +67,7 @@ export function WikiLayoutClient({
     const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
     const canManagePrincipalGroups = canManageWikiPrincipalGroups(state.principal);
+    const canRequestOfficialCertification = officialCertificationRequestResourceTypes.length > 0;
 
     const tabs: Array<{ id: AdminWikiTab; label: string }> = [
       createWikiTab("editingWikis", t.editingWikisTab),
@@ -73,6 +77,8 @@ export function WikiLayoutClient({
       ...(canPublishDraftWikis ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
       ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
       ...(canReviewImageDeletionRequests ? [createWikiTab("imageDeletionRequests", t.imageDeletionRequestsTab)] : []),
+      ...(canRequestOfficialCertification ? [createWikiTab("officialCertificationRequest", t.officialCertificationRequestTab)] : []),
+      ...(canReviewOfficialCertifications(state.principal) ? [createWikiTab("officialCertificationReview", t.officialCertificationReviewTab)] : []),
       ...(canManagePrincipalGroups ? [createWikiTab("principalGroupManagement", t.wikiPrincipalGroupManagementTab)] : []),
     ];
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)

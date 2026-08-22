@@ -18,6 +18,10 @@ import type {
   withdrawWikiDraft,
 } from "../wiki/draftWiki";
 import type {
+  requestOfficialCertificationFromBrowser,
+  reviewOfficialCertificationFromBrowser,
+} from "../wiki/officialCertification";
+import type {
   createWikiPrincipal,
   getCurrentWikiPrincipal,
 } from "../wiki/wikiPrincipal";
@@ -34,6 +38,11 @@ export type AdminDraftImageAdapter = {
   listImageDeletionRequests: typeof fetchWikiImageDeletionRequests;
   rejectDraftImage: typeof rejectWikiDraftImage;
   rejectImageDeletionRequest: typeof rejectWikiImageDeletionRequest;
+};
+
+export type AdminOfficialCertificationAdapter = {
+  requestOfficialCertification: typeof requestOfficialCertificationFromBrowser;
+  reviewOfficialCertification: typeof reviewOfficialCertificationFromBrowser;
 };
 
 export type AdminDraftWikiAdapter = {
