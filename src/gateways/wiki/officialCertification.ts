@@ -7,23 +7,40 @@ import { wikiDraftReviewCsrfHeaderName, wikiDraftReviewCsrfHeaderValue } from ".
 
 const officialCertificationRequestSchema = wikiPrivateApiTypes.schemas.RequestCertificationRequestBody;
 const officialCertificationSummarySchema = wikiPrivateApiTypes.schemas.OfficialCertificationSummary;
+const officialCertificationListResponseSchema = z.object({
+  officialCertifications: z.array(wikiPrivateApiTypes.schemas.OfficialCertificationListItem),
+  current_page: z.number().int(),
+  last_page: z.number().int(),
+  total: z.number().int(),
+  per_page: z.number().int(),
+}).passthrough();
 const officialCertificationActionRequestSchema = z.object({
   certificationIdentifier: z.string().uuid(),
 });
 
 export type OfficialCertificationRequest = z.infer<typeof officialCertificationRequestSchema>;
 export type OfficialCertificationSummary = z.infer<typeof officialCertificationSummarySchema>;
+export type OfficialCertificationListItem = z.infer<typeof wikiPrivateApiTypes.schemas.OfficialCertificationListItem>;
+export type OfficialCertificationListResponse = z.infer<typeof officialCertificationListResponseSchema>;
 export type OfficialCertificationActionRequest = z.infer<typeof officialCertificationActionRequestSchema>;
 export type OfficialCertificationAction = "approve" | "reject";
+export type OfficialCertificationListStatus = "pending";
 
 type FetchAdapter = typeof fetch;
 type OfficialCertificationApiClient = {
   baseUrl: string;
   fetchAdapter: FetchAdapter;
   headers: HeadersInit;
+  listCertifications: (params: {
+    page?: number;
+    perPage?: number;
+    status: OfficialCertificationListStatus;
+  }) => Promise<OfficialCertificationListResponse>;
   requestCertification: (body: OfficialCertificationRequest) => Promise<OfficialCertificationSummary>;
   reviewCertification: (certificationIdentifier: string, action: OfficialCertificationAction) => Promise<OfficialCertificationSummary>;
 };
+
+export const defaultOfficialCertificationPerPage = 20;
 
 const getDefaultApiBaseUrl = (): string => process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL ?? "";
 
@@ -57,10 +74,35 @@ const parseOfficialCertificationRequest = (body: unknown): OfficialCertification
 const parseOfficialCertificationSummary = (body: unknown): OfficialCertificationSummary =>
   parseWithSchemaLog("official certification response", officialCertificationSummarySchema, body);
 
+const parseOfficialCertificationListResponse = (body: unknown): OfficialCertificationListResponse =>
+  parseWithSchemaLog("official certification list response", officialCertificationListResponseSchema, body);
+
 const parseOfficialCertificationActionRequest = (body: unknown): OfficialCertificationActionRequest =>
   parseWithSchemaLog("official certification action request", officialCertificationActionRequestSchema, body);
 
 const getOfficialCertificationRequestEndpointPath = (): string => "/official-certification/request";
+
+const getOfficialCertificationListEndpointPath = ({
+  page,
+  perPage,
+  status,
+}: {
+  page?: number;
+  perPage?: number;
+  status: OfficialCertificationListStatus;
+}): string => {
+  const params = new URLSearchParams({ status });
+
+  if (page) {
+    params.set("page", String(page));
+  }
+
+  if (perPage) {
+    params.set("perPage", String(perPage));
+  }
+
+  return `/official-certifications?${params.toString()}`;
+};
 
 const getOfficialCertificationReviewEndpointPath = (
   certificationIdentifier: string,
@@ -92,6 +134,18 @@ export const createOfficialCertificationActionRequestBody = (
 ): OfficialCertificationActionRequest =>
   parseOfficialCertificationActionRequest({ certificationIdentifier });
 
+export const createOfficialCertificationListUrl = ({
+  baseUrl,
+  page,
+  perPage,
+  status,
+}: {
+  baseUrl: string;
+  page?: number;
+  perPage?: number;
+  status: OfficialCertificationListStatus;
+}): string => `${trimTrailingSlashes(withWikiApiPrefix(baseUrl))}${getOfficialCertificationListEndpointPath({ page, perPage, status })}`;
+
 export const createOfficialCertificationApiClient = (
   baseUrl = getDefaultApiBaseUrl(),
   headers: HeadersInit = {},
@@ -111,6 +165,21 @@ export const createOfficialCertificationApiClient = (
     baseUrl: resolvedBaseUrl,
     fetchAdapter,
     headers: requestHeaders,
+    async listCertifications({ page, perPage, status }) {
+      const response = await fetchAdapter(
+        `${trimTrailingSlashes(resolvedBaseUrl)}${getOfficialCertificationListEndpointPath({ page, perPage, status })}`,
+        {
+          method: "GET",
+          headers: requestHeaders,
+        },
+      );
+
+      if (!response.ok) {
+        await throwApiError(response);
+      }
+
+      return parseOfficialCertificationListResponse(await readResponseBody(response));
+    },
     async requestCertification(body) {
       const response = await fetchAdapter(
         `${trimTrailingSlashes(resolvedBaseUrl)}${getOfficialCertificationRequestEndpointPath()}`,
@@ -148,6 +217,15 @@ export const createOfficialCertificationApiClient = (
   };
 };
 
+export const listOfficialCertifications = async (
+  client: OfficialCertificationApiClient,
+  params: {
+    page?: number;
+    perPage?: number;
+    status: OfficialCertificationListStatus;
+  },
+): Promise<OfficialCertificationListResponse> => client.listCertifications(params);
+
 export const requestOfficialCertification = async (
   client: OfficialCertificationApiClient,
   body: unknown,
@@ -162,6 +240,43 @@ export const reviewOfficialCertification = async (
   const request = parseOfficialCertificationActionRequest(body);
 
   return client.reviewCertification(request.certificationIdentifier, action);
+};
+
+export const fetchOfficialCertificationReviews = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  page = 1,
+  perPage = defaultOfficialCertificationPerPage,
+  status = "pending",
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: FetchAdapter;
+  page?: number;
+  perPage?: number;
+  status?: OfficialCertificationListStatus;
+}): Promise<OfficialCertificationListResponse> => {
+  try {
+    const params = new URLSearchParams({
+      page: String(page),
+      perPage: String(perPage),
+      status,
+    });
+    const response = await fetchAdapter(`/api/wiki/official-certification?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      await throwApiError(response);
+    }
+
+    return parseOfficialCertificationListResponse(await readResponseBody(response));
+  } catch (error) {
+    throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
+  }
 };
 
 export const requestOfficialCertificationFromBrowser = async ({

@@ -68,6 +68,33 @@ export const adminQueryKeys = {
       wikiIdentifier,
     }), page] as const,
   },
+  officialCertifications: {
+    all: () => [...adminQueryKeys.all, "officialCertifications"] as const,
+    list: ({
+      identityIdentifier,
+      status,
+    }: {
+      identityIdentifier: string | null;
+      status: "pending";
+    }) => [
+      ...adminQueryKeys.officialCertifications.all(),
+      "list",
+      identityIdentifier ?? "guest",
+      status,
+    ] as const,
+    page: ({
+      identityIdentifier,
+      page,
+      status,
+    }: {
+      identityIdentifier: string | null;
+      page: number;
+      status: "pending";
+    }) => [...adminQueryKeys.officialCertifications.list({
+      identityIdentifier,
+      status,
+    }), page] as const,
+  },
   imageDeletionRequests: {
     all: () => [...adminQueryKeys.all, "imageDeletionRequests"] as const,
     list: ({

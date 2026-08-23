@@ -8,6 +8,7 @@ import {
 import { officialCertificationUnavailableMessage } from "@/gateways/wiki/officialCertification";
 import { POST as approvePOST } from "./approve/route";
 import { POST as rejectPOST } from "./reject/route";
+import { GET as listGET } from "./route";
 import { POST as requestPOST } from "./request/route";
 
 const certificationIdentifier = "11111111-1111-4111-8111-111111111111";
@@ -25,6 +26,19 @@ const createRequest = (url: string, body: unknown, headers: Record<string, strin
     },
     body: JSON.stringify(body),
   }) as NextRequest;
+
+const createGetRequest = (url: string, headers: Record<string, string> = {}): NextRequest => {
+  const request = new Request(url, {
+    method: "GET",
+    headers,
+  }) as NextRequest;
+
+  Object.defineProperty(request, "nextUrl", {
+    value: new URL(url),
+  });
+
+  return request;
+};
 
 const jsonResponse = (body: unknown, status = 201): Response =>
   new Response(JSON.stringify(body), {
@@ -56,7 +70,8 @@ const stubOfficialCertificationRequestFetch = ({
   accountCategory?: string;
   backendResponse?: Response;
 } = {}) => {
-  const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
+  const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
+    void init;
     const urlString = typeof url === "string" ? url : url.toString();
 
     if (urlString.includes("/api/identity/auth/me")) {
@@ -71,6 +86,86 @@ const stubOfficialCertificationRequestFetch = ({
 };
 
 describe("official certification routes", () => {
+
+  it("lists pending official certifications through the backend with forwarded headers", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      officialCertifications: [
+        {
+          approvedAt: null,
+          certificationIdentifier,
+          ownerAccount: {
+            accountIdentifier: "33333333-3333-4333-8333-333333333333",
+            category: "agency",
+            email: "owner@example.test",
+            name: "Owner Agency",
+            status: "active",
+            type: "organization",
+          },
+          rejectedAt: null,
+          requestedAt: "2026-08-23T01:02:03+00:00",
+          resourceType: "agency",
+          status: "pending",
+          translationSetIdentifier,
+          wikis: [],
+        },
+      ],
+      current_page: 1,
+      last_page: 1,
+      total: 1,
+      per_page: 20,
+    }, 200));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await listGET(createGetRequest(
+      "https://app.example.test/api/wiki/official-certification?status=approved&perPage=20",
+      {
+        "accept-language": "ja",
+        cookie: "session=abc",
+      },
+    ));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.officialCertifications).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/api/wiki/official-certifications?status=pending&page=1&perPage=20",
+      expect.objectContaining({
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja",
+          Cookie: "session=abc",
+        },
+      }),
+    );
+  });
+
+  it("does not expose backend messages from list errors", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ message: internalBackendMessage }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    const response = await listGET(createGetRequest("https://app.example.test/api/wiki/official-certification"));
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.message).toBe(officialCertificationUnavailableMessage);
+    expect(body.message).not.toContain("/var/app");
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to list official certifications.",
+      { status: 503 },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(internalBackendMessage);
+  });
   afterEach(() => {
     vi.restoreAllMocks();
     delete process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;

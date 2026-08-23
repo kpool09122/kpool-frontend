@@ -18,6 +18,7 @@ import type {
   withdrawWikiDraft,
 } from "../wiki/draftWiki";
 import type {
+  fetchOfficialCertificationReviews,
   requestOfficialCertificationFromBrowser,
   reviewOfficialCertificationFromBrowser,
 } from "../wiki/officialCertification";
@@ -41,6 +42,7 @@ export type AdminDraftImageAdapter = {
 };
 
 export type AdminOfficialCertificationAdapter = {
+  listOfficialCertifications: typeof fetchOfficialCertificationReviews;
   requestOfficialCertification: typeof requestOfficialCertificationFromBrowser;
   reviewOfficialCertification: typeof reviewOfficialCertificationFromBrowser;
 };
