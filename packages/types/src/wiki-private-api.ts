@@ -273,6 +273,15 @@ const ListMyOwnedWikisResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const SyncOwnedWikiCertificationsRequestBody = z
+  .object({ translationSetIdentifiers: z.array(KPool_Common_Uuid) })
+  .passthrough();
+const SyncedOfficialCertificationResource = z
+  .object({
+    resourceType: z.string(),
+    translationSetIdentifier: KPool_Common_Uuid,
+  })
+  .passthrough();
 const RequestCertificationRequestBody = z
   .object({
     resourceType: z.string(),
@@ -883,6 +892,8 @@ export const schemas = {
   WikiListItem,
   OfficialCertificationListItem,
   ListMyOwnedWikisResponseBody,
+  SyncOwnedWikiCertificationsRequestBody,
+  SyncedOfficialCertificationResource,
   RequestCertificationRequestBody,
   OfficialCertificationSummary,
   PolicyConditionClause,
@@ -1665,6 +1676,49 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "put",
+    path: "/official-certification/owned-wikis",
+    alias: "OfficialCertificationOperations_syncOwnedWikiCertifications",
+    description: `Synchronize official certifications for agency-owned group and song wikis.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: SyncOwnedWikiCertificationsRequestBody,
+      },
+    ],
+    response: z
+      .object({
+        approved: z.array(SyncedOfficialCertificationResource),
+        rejected: z.array(SyncedOfficialCertificationResource),
+        unchanged: z.array(SyncedOfficialCertificationResource),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
