@@ -1,6 +1,9 @@
 "use client";
 
-import type { OfficialCertificationListItem } from "@/gateways/wiki/officialCertification";
+import Link from "next/link";
+
+import { buildWikiPath } from "@kpool/wiki";
+import type { OfficialCertificationAction, OfficialCertificationListItem } from "@/gateways/wiki/officialCertification";
 import type { useI18n } from "../../../../../i18n/I18nProvider";
 import type { Locale } from "../../../../../i18n/locales";
 import { useAdmin } from "../../../AdminProvider";
@@ -14,6 +17,14 @@ const statusErrorClassName =
   "rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800";
 const statusSuccessClassName =
   "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800";
+
+const getOfficialCertificationReviewSuccessMessage = (
+  t: AdminDictionary,
+  action: OfficialCertificationAction,
+): string =>
+  action === "approve"
+    ? t.officialCertificationApproveSucceeded
+    : t.officialCertificationRejectSucceeded;
 
 export function OfficialCertificationReviewClient() {
   const { currentIdentity, locale, t } = useAdmin();
@@ -73,7 +84,7 @@ function OfficialCertificationReviewListPanel({
 }: {
   locale: Locale;
   reviewError: string | null;
-  reviewSuccess: string | null;
+  reviewSuccess: OfficialCertificationAction | null;
   reviewingCertificationIdentifier: string | null;
   state: OfficialCertificationReviewListState;
   t: AdminDictionary;
@@ -114,7 +125,7 @@ function OfficialCertificationReviewListPanel({
       {reviewError ? <p role="alert" className={statusErrorClassName}>{reviewError}</p> : null}
       {reviewSuccess ? (
         <p role="status" className={statusSuccessClassName}>
-          {t.officialCertificationReviewSucceeded(reviewSuccess)}
+          {getOfficialCertificationReviewSuccessMessage(t, reviewSuccess)}
         </p>
       ) : null}
     </>
@@ -183,39 +194,44 @@ function OfficialCertificationReviewCard({
   t: AdminDictionary;
   onReviewOfficialCertification: (certificationIdentifier: string, action: "approve" | "reject") => void;
 }) {
-  const displayedWiki = certification.wikis[0] ?? null;
-  const wikiName = displayedWiki?.name ?? null;
+  const ownerAccount = certification.ownerAccount;
 
   return (
     <article className="rounded-lg border border-stroke-subtle bg-surface-base p-4 text-sm">
       <div className="space-y-2">
-        <h3 className="break-words text-lg font-semibold text-text-strong">
-          {wikiName ?? certification.certificationIdentifier}
-        </h3>
-        {wikiName ? (
-          <p className="break-all text-xs font-semibold text-text-muted">
-            {certification.certificationIdentifier}
-          </p>
-        ) : null}
+        <OfficialCertificationWikiLinks
+          locale={locale}
+          t={t}
+          wikis={certification.wikis}
+        />
       </div>
       <dl className="mt-4 grid gap-3">
         <OfficialCertificationMeta label={t.officialCertificationResourceTypeLabel} value={certification.resourceType} />
-        <OfficialCertificationMeta label={t.officialCertificationTranslationSetLabel} value={certification.translationSetIdentifier} />
-        <OfficialCertificationMeta label={t.officialCertificationStatusLabel} value={certification.status} />
         <OfficialCertificationMeta
           label={t.officialCertificationRequestedAtLabel}
           value={formatDraftDate(certification.requestedAt, locale)}
         />
-        <OfficialCertificationMeta
-          label={t.officialCertificationOwnerAccountLabel}
-          value={certification.ownerAccount?.name || certification.ownerAccount?.email || t.officialCertificationUnknownOwner}
-        />
-        {displayedWiki ? (
+        {ownerAccount ? (
+          <>
+            <OfficialCertificationMeta
+              label={t.officialCertificationOwnerAccountNameLabel}
+              value={ownerAccount.name}
+            />
+            <OfficialCertificationMeta
+              label={t.officialCertificationOwnerAccountCategoryLabel}
+              value={getAccountCategoryLabel(t.accountCategoryLabels, ownerAccount.category)}
+            />
+            <OfficialCertificationMeta
+              label={t.officialCertificationOwnerAccountEmailLabel}
+              value={ownerAccount.email}
+            />
+          </>
+        ) : (
           <OfficialCertificationMeta
-            label={t.officialCertificationWikiLabel}
-            value={`${displayedWiki.name} (${displayedWiki.language})`}
+            label={t.officialCertificationOwnerAccountLabel}
+            value={t.officialCertificationUnknownOwner}
           />
-        ) : null}
+        )}
       </dl>
       <div className="mt-5 flex flex-wrap gap-2">
         <button
@@ -237,6 +253,61 @@ function OfficialCertificationReviewCard({
       </div>
     </article>
   );
+}
+
+function OfficialCertificationWikiLinks({
+  locale,
+  t,
+  wikis,
+}: {
+  locale: Locale;
+  t: AdminDictionary;
+  wikis: OfficialCertificationListItem["wikis"];
+}) {
+  if (wikis.length === 0) {
+    return (
+      <h3 className="break-words text-lg font-semibold text-text-strong">
+        {t.officialCertificationWikiLabel}
+      </h3>
+    );
+  }
+
+  const displayWiki = wikis.find((wiki) => wiki.language === locale) ?? wikis[0];
+  const displayName = displayWiki.name || displayWiki.slug;
+
+  return (
+    <h3 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-text-strong">
+      <span className="break-words">{displayName}</span>
+      <span className="flex flex-wrap gap-1 text-base text-text-muted">
+        <span aria-hidden="true">(</span>
+        {wikis.map((wiki, index) => {
+          const language = wiki.language || locale;
+
+          return (
+            <span className="flex gap-1" key={wiki.wikiIdentifier}>
+              {index > 0 ? <span aria-hidden="true">,</span> : null}
+              <Link
+                className="text-brand-primary transition hover:brightness-110"
+                href={buildWikiPath(language, wiki.slug)}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {language}
+              </Link>
+            </span>
+          );
+        })}
+        <span aria-hidden="true">)</span>
+      </span>
+    </h3>
+  );
+}
+
+function getAccountCategoryLabel(
+  labels: AdminDictionary["accountCategoryLabels"],
+  category: string,
+): string {
+  return labels[category as keyof typeof labels] ?? category;
 }
 
 function OfficialCertificationMeta({

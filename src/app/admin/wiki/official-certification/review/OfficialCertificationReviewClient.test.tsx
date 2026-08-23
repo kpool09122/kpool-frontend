@@ -14,6 +14,11 @@ const wikiIdentifier = "33333333-3333-4333-8333-333333333333";
 const ownerAccountIdentifier = "44444444-4444-4444-8444-444444444444";
 
 const adminDictionary = {
+  accountCategoryLabels: {
+    agency: "事務所",
+    general: "一般",
+    talent: "タレント",
+  },
   allOfficialCertificationsLoaded: "すべての公式認証申請を読み込みました。",
   loadMoreOfficialCertifications: "さらに読み込む",
   officialCertificationApprove: "承認",
@@ -24,11 +29,16 @@ const adminDictionary = {
   officialCertificationListLoading: "公式認証申請を読み込んでいます。",
   officialCertificationListLoadingMore: "さらに読み込み中",
   officialCertificationListTotal: (total: number) => `未承認申請 ${total} 件`,
+  officialCertificationOwnerAccountCategoryLabel: "申請アカウントカテゴリ",
+  officialCertificationOwnerAccountEmailLabel: "申請アカウントメールアドレス",
   officialCertificationOwnerAccountLabel: "申請アカウント",
+  officialCertificationOwnerAccountNameLabel: "申請アカウント名",
   officialCertificationReject: "拒否",
   officialCertificationRejectFailed: "公式認証を拒否できませんでした。",
+  officialCertificationRejectSucceeded: "公式認証を拒否しました。",
   officialCertificationRequestedAtLabel: "申請日時",
   officialCertificationResourceTypeLabel: "リソース種別",
+  officialCertificationApproveSucceeded: "公式認証を承認しました。",
   officialCertificationReviewDescription: "未承認の公式認証申請を一覧から確認し、申請ごとに承認または拒否します。",
   officialCertificationReviewFailed: "公式認証を更新できませんでした。",
   officialCertificationReviewSucceeded: (status: string) => `公式認証を更新しました。状態: ${status}`,
@@ -98,6 +108,27 @@ const createCertification = () => ({
       version: 1,
       wikiIdentifier,
     },
+    {
+      fontStyle: null,
+      imageAltText: null,
+      imageIdentifier: null,
+      imageUrl: null,
+      isHidden: false,
+      keywords: null,
+      language: "en",
+      metaDescription: null,
+      name: "Review Target Wiki",
+      normalizedName: "review target wiki",
+      publishedAt: null,
+      resourceType: "agency",
+      slug: "review-target-en",
+      themeColor: null,
+      title: null,
+      translationSetIdentifier,
+      updatedAt: null,
+      version: 1,
+      wikiIdentifier: "66666666-6666-4666-8666-666666666666",
+    },
   ],
 });
 
@@ -133,7 +164,20 @@ describe("OfficialCertificationReviewClient", () => {
     renderClient();
 
     expect(await screen.findByText("レビュー対象 Wiki")).toBeInTheDocument();
+    const jaWikiLink = screen.getByRole("link", { name: "ja" });
+    expect(jaWikiLink).toHaveAttribute("href", "/ja/wiki/review-target");
+    expect(jaWikiLink).toHaveAttribute("target", "_blank");
+    expect(jaWikiLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByRole("link", { name: "en" })).toHaveAttribute(
+      "href",
+      "/en/wiki/review-target-en",
+    );
+    expect(screen.queryByText(certificationIdentifier)).not.toBeInTheDocument();
+    expect(screen.queryByText(translationSetIdentifier)).not.toBeInTheDocument();
+    expect(screen.queryByText("pending")).not.toBeInTheDocument();
     expect(screen.getByText("Owner Agency")).toBeInTheDocument();
+    expect(screen.getByText("事務所")).toBeInTheDocument();
+    expect(screen.getByText("owner@example.test")).toBeInTheDocument();
     expect(screen.getByText("未承認申請 1 件")).toBeInTheDocument();
     expect(screen.queryByLabelText("Certification ID")).not.toBeInTheDocument();
     expect(listOfficialCertifications).toHaveBeenCalledWith({
@@ -174,7 +218,8 @@ describe("OfficialCertificationReviewClient", () => {
     await waitFor(() => {
       expect(screen.queryByText("レビュー対象 Wiki")).not.toBeInTheDocument();
     });
-    expect(screen.getByText("公式認証を更新しました。状態: approved")).toBeInTheDocument();
+    expect(screen.getByText("公式認証を承認しました。")).toBeInTheDocument();
+    expect(screen.queryByText("公式認証を更新しました。状態: approved")).not.toBeInTheDocument();
   });
 
   it("rejects a listed certification through the existing review adapter", async () => {
@@ -204,6 +249,7 @@ describe("OfficialCertificationReviewClient", () => {
         requestBody: { certificationIdentifier },
       });
     });
+    expect(await screen.findByText("公式認証を拒否しました。")).toBeInTheDocument();
   });
 
   it("shows a reload action when listing requests fails", async () => {
@@ -222,5 +268,6 @@ describe("OfficialCertificationReviewClient", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("公式認証申請一覧を読み込めませんでした。");
     fireEvent.click(screen.getByRole("button", { name: "再読み込み" }));
     expect(await screen.findByText("レビュー対象 Wiki")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ja" })).toHaveAttribute("href", "/ja/wiki/review-target");
   });
 });

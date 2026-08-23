@@ -115,7 +115,7 @@ export const useOfficialCertificationReviews = ({
   });
   const [reviewingCertificationIdentifier, setReviewingCertificationIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
-  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [reviewSuccess, setReviewSuccess] = useState<OfficialCertificationAction | null>(null);
 
   const loadOfficialCertificationsPage = useCallback((page: number) => {
     queryClient.setQueryData<OfficialCertificationReviewListState>(listQueryKey, (state = initialOfficialCertificationListState) => ({
@@ -188,9 +188,9 @@ export const useOfficialCertificationReviews = ({
       setReviewError(null);
       setReviewSuccess(null);
     },
-    onSuccess: (summary, { certificationIdentifier }) => {
+    onSuccess: (_summary, { action, certificationIdentifier }) => {
       removeReviewedCertification(certificationIdentifier);
-      setReviewSuccess(summary.status);
+      setReviewSuccess(action);
     },
     onError: (error, { action }) => {
       setReviewError(
