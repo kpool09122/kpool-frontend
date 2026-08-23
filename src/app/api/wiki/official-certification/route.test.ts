@@ -36,7 +36,7 @@ const certificationSummary = (status: string) => ({
   certificationIdentifier,
   resourceType: "agency",
   status,
-  wikiIdentifier: wikiId,
+  translationSetIdentifier,
 });
 
 const authenticatedIdentity = (accountCategory: string) => ({
