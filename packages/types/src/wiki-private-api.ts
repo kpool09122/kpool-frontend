@@ -260,7 +260,7 @@ const OfficialCertificationSummary = z
   .object({
     certificationIdentifier: KPool_Common_Uuid,
     resourceType: z.string(),
-    wikiIdentifier: KPool_Common_Uuid,
+    translationSetIdentifier: KPool_Common_Uuid,
     status: z.string(),
   })
   .passthrough();
