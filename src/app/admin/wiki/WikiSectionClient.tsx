@@ -34,6 +34,7 @@ import {
   rejectWikiImageDeletionRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
+  fetchOfficialCertificationReviews,
   requestOfficialCertificationFromBrowser,
   reviewOfficialCertificationFromBrowser,
 } from "@/gateways/wiki/officialCertification";
@@ -97,6 +98,7 @@ export const defaultAdminDraftWikiAdapter: AdminDraftWikiAdapter = {
 };
 
 export const defaultOfficialCertificationAdapter: AdminOfficialCertificationAdapter = {
+  listOfficialCertifications: fetchOfficialCertificationReviews,
   requestOfficialCertification: requestOfficialCertificationFromBrowser,
   reviewOfficialCertification: reviewOfficialCertificationFromBrowser,
 };
