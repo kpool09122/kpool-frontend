@@ -242,7 +242,7 @@ const ja = {
     untranslatedWikiVersionLabel: "Version",
     untranslatedWikiUpdatedAtLabel: "更新日時",
     officialCertificationRequestTab: "公式認証申請",
-    officialCertificationReviewTab: "公式認証 承認・拒否",
+    officialCertificationReviewTab: "未承認の公式認証",
     officialCertificationRequestTitle: "公式認証申請",
     officialCertificationRequestDescription: "公式認証を申請する Wiki を検索して選択してください。",
     officialCertificationGeneralAccountMessage: "general アカウントでは公式認証を申請できません。事務所またはタレントアカウントで申請してください。",

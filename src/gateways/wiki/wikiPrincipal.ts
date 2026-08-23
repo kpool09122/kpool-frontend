@@ -30,7 +30,14 @@ export type WikiPrincipalState =
   | { status: "error"; message: string };
 
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
-type WikiPolicyAction = "APPROVE" | "AUTOMATIC_CREATE" | "PRINCIPAL_GROUP_MANAGE" | "PUBLISH" | "REJECT";
+type WikiPolicyAction =
+  | "APPROVE"
+  | "AUTOMATIC_CREATE"
+  | "OFFICIAL_CERTIFICATION_APPROVE"
+  | "OFFICIAL_CERTIFICATION_REJECT"
+  | "PRINCIPAL_GROUP_MANAGE"
+  | "PUBLISH"
+  | "REJECT";
 type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "PRINCIPAL_GROUP" | "SONG" | "TALENT";
 type OfficialCertificationResourceType = "agency" | "talent";
 
@@ -140,12 +147,12 @@ export const canReviewOfficialCertifications = (principal: WikiPrincipalSummary)
     (resourceType) =>
       isAllowedWithoutDeny(
         principal,
-        "APPROVE",
+        "OFFICIAL_CERTIFICATION_APPROVE",
         normalizePolicyValue(resourceType) as WikiPolicyResourceType,
       ) &&
       isAllowedWithoutDeny(
         principal,
-        "REJECT",
+        "OFFICIAL_CERTIFICATION_REJECT",
         normalizePolicyValue(resourceType) as WikiPolicyResourceType,
       ),
   );

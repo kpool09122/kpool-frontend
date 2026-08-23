@@ -102,4 +102,45 @@ describe("OfficialCertificationRequestClient", () => {
     expect(JSON.stringify(requestOfficialCertification.mock.calls)).not.toContain("wikiId");
     expect(JSON.stringify(requestOfficialCertification.mock.calls)).not.toContain("ownerAccountId");
   });
+
+  it("shows request failures as a red bordered alert", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          translationSetMasters: [
+            {
+              translationSetIdentifier: "11111111-1111-4111-8111-111111111111",
+              resourceType: "agency",
+              wikis: [
+                {
+                  wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+                  language: "en",
+                  name: "English Name",
+                  slug: "en-name",
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    );
+    requestOfficialCertification.mockRejectedValue(
+      new Error("Official certification is temporarily unavailable. Please try again later."),
+    );
+
+    render(<OfficialCertificationRequestClient />);
+
+    fireEvent.change(screen.getByLabelText("Wiki keyword"), {
+      target: { value: "twice" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "検索" }));
+    fireEvent.click(await screen.findByRole("button", { name: /English Name/ }));
+    fireEvent.click(screen.getByRole("button", { name: "公式認証を申請" }));
+
+    const alert = await screen.findByRole("alert");
+
+    expect(alert).toHaveTextContent("Official certification is temporarily unavailable. Please try again later.");
+    expect(alert).toHaveClass("border-red-300", "bg-red-50", "text-red-800");
+  });
 });

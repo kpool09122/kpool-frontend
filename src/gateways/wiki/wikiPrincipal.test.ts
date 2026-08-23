@@ -464,13 +464,13 @@ describe("wiki principal helpers", () => {
     ).toBe(true);
   });
 
-  it("allows official certification review only when approve and reject are allowed for agency or talent", () => {
+  it("allows official certification review only when official certification approve and reject are allowed for agency or talent", () => {
     expect(
       canReviewOfficialCertifications({
         ...principal,
         policies: [
           policy({
-            actions: ["APPROVE", "REJECT"],
+            actions: ["official_certification_approve", "official_certification_reject"],
             name: "TALENT_CERTIFICATION_MANAGEMENT",
             resourceTypes: ["TALENT"],
           }),
@@ -483,8 +483,32 @@ describe("wiki principal helpers", () => {
         policies: [
           policy({
             actions: ["APPROVE", "REJECT"],
-            name: "GROUP_MANAGEMENT",
-            resourceTypes: ["GROUP"],
+            name: "AGENCY_MANAGEMENT",
+            resourceTypes: ["AGENCY"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      canReviewOfficialCertifications({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["APPROVE", "REJECT"],
+            name: "TALENT_MANAGEMENT",
+            resourceTypes: ["TALENT"],
+          }),
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      canReviewOfficialCertifications({
+        ...principal,
+        policies: [
+          policy({
+            actions: ["PRINCIPAL_GROUP_MANAGE"],
+            name: "WIKI_ADMINISTRATOR",
+            resourceTypes: ["PRINCIPAL_GROUP"],
           }),
         ],
       }),
@@ -497,12 +521,12 @@ describe("wiki principal helpers", () => {
         ...principal,
         policies: [
           policy({
-            actions: ["APPROVE", "REJECT"],
+            actions: ["OFFICIAL_CERTIFICATION_APPROVE", "OFFICIAL_CERTIFICATION_REJECT"],
             name: "AGENCY_CERTIFICATION_MANAGEMENT",
             resourceTypes: ["AGENCY"],
           }),
           policy({
-            actions: ["REJECT"],
+            actions: ["OFFICIAL_CERTIFICATION_REJECT"],
             effect: "deny",
             name: "DENY_AGENCY_CERTIFICATION_REJECT",
             resourceTypes: ["AGENCY"],
