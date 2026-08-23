@@ -14,6 +14,11 @@ type ReviewState = {
   success: string | null;
 };
 
+const statusErrorClassName =
+  "rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800";
+const statusSuccessClassName =
+  "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800";
+
 export function OfficialCertificationReviewClient() {
   const { t } = useAdmin();
   const { officialCertificationAdapter } = useWikiSection();
@@ -63,7 +68,6 @@ export function OfficialCertificationReviewClient() {
     <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-text-strong">{t.officialCertificationReviewTitle}</h2>
-        <p className="text-sm leading-7 text-text-muted">{t.officialCertificationReviewDescription}</p>
         <p className="text-sm leading-7 text-text-muted">{t.officialCertificationReviewListUnavailable}</p>
       </div>
       <form
@@ -112,8 +116,8 @@ export function OfficialCertificationReviewClient() {
             </label>
           </div>
         </fieldset>
-        {state.error ? <p role="alert" className="text-sm font-semibold text-danger">{state.error}</p> : null}
-        {state.success ? <p role="status" className="text-sm font-semibold text-success">{state.success}</p> : null}
+        {state.error ? <p role="alert" className={statusErrorClassName}>{state.error}</p> : null}
+        {state.success ? <p role="status" className={statusSuccessClassName}>{state.success}</p> : null}
         <button
           className="w-fit rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canSubmit || state.isSubmitting}

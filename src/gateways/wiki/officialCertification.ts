@@ -44,8 +44,15 @@ const throwApiError = async (response: Response): Promise<never> => {
   };
 };
 
-const parseOfficialCertificationRequest = (body: unknown): OfficialCertificationRequest =>
-  parseWithSchemaLog("official certification request", officialCertificationRequestSchema, body);
+const parseOfficialCertificationRequest = (body: unknown): OfficialCertificationRequest => {
+  const { resourceType, translationSetIdentifier } = parseWithSchemaLog(
+    "official certification request",
+    officialCertificationRequestSchema,
+    body,
+  );
+
+  return { resourceType, translationSetIdentifier };
+};
 
 const parseOfficialCertificationSummary = (body: unknown): OfficialCertificationSummary =>
   parseWithSchemaLog("official certification response", officialCertificationSummarySchema, body);
@@ -72,14 +79,12 @@ const getOfficialCertificationErrorMessage = (error: unknown, fallbackErrorMessa
   });
 
 export const createOfficialCertificationRequestBody = ({
-  ownerAccountId,
   resourceType,
-  wikiId,
+  translationSetIdentifier,
 }: OfficialCertificationRequest): OfficialCertificationRequest =>
   parseOfficialCertificationRequest({
-    ownerAccountId,
     resourceType,
-    wikiId,
+    translationSetIdentifier,
   });
 
 export const createOfficialCertificationActionRequestBody = (
