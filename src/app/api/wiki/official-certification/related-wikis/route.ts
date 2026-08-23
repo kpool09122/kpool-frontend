@@ -2,29 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import {
   createOfficialCertificationApiClient,
+  listRelatedWikis,
   officialCertificationUnavailableMessage,
-  syncOwnedWikiCertifications,
 } from "@/gateways/wiki/officialCertification";
-import {
-  wikiDraftReviewCsrfHeaderName,
-  wikiDraftReviewCsrfHeaderValue,
-} from "@/gateways/wiki/draftWiki";
 import {
   getForwardedWikiApiHeaders,
   getWikiRouteErrorStatus,
+  jsonErrorResponse,
 } from "../../wikiRouteSupport";
 
-const hasReviewRequestHeader = (request: NextRequest): boolean =>
-  request.headers.get(wikiDraftReviewCsrfHeaderName) === wikiDraftReviewCsrfHeaderValue;
-
-export async function PUT(request: NextRequest) {
-  if (!hasReviewRequestHeader(request)) {
-    return NextResponse.json(
-      { message: "Owned wiki certification sync is not allowed." },
-      { status: 403 },
-    );
-  }
-
+export async function GET(request: NextRequest) {
   const client = createOfficialCertificationApiClient(
     undefined,
     getForwardedWikiApiHeaders(request.headers),
@@ -37,12 +24,22 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  const resourceType = request.nextUrl.searchParams.get("resourceType");
+  const translationSetIdentifier = request.nextUrl.searchParams.get("translationSetIdentifier");
+
+  if (!resourceType || !translationSetIdentifier) {
+    return jsonErrorResponse("resourceType and translationSetIdentifier are required.", 400);
+  }
+
   try {
-    const result = await syncOwnedWikiCertifications(client, await request.json());
+    const result = await listRelatedWikis(client, {
+      resourceType,
+      translationSetIdentifier,
+    });
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Failed to sync owned wiki certifications.", {
+    console.error("Failed to list related wikis.", {
       status: getWikiRouteErrorStatus(error),
     });
 

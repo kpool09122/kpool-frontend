@@ -105,6 +105,21 @@ export const adminQueryKeys = {
       "ownedWikis",
       identityIdentifier ?? "guest",
     ] as const,
+    relatedWikis: ({
+      identityIdentifier,
+      resourceType,
+      translationSetIdentifier,
+    }: {
+      identityIdentifier: string | null;
+      resourceType: string | null;
+      translationSetIdentifier: string | null;
+    }) => [
+      ...adminQueryKeys.officialCertifications.all(),
+      "relatedWikis",
+      identityIdentifier ?? "guest",
+      resourceType ?? "unknown",
+      translationSetIdentifier ?? "unknown",
+    ] as const,
   },
   imageDeletionRequests: {
     all: () => [...adminQueryKeys.all, "imageDeletionRequests"] as const,

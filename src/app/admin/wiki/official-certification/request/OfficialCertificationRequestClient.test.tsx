@@ -7,6 +7,7 @@ import { OfficialCertificationRequestClient } from "./OfficialCertificationReque
 
 const listMyOfficialCertifications = vi.fn();
 const listMyOwnedWikis = vi.fn();
+const listRelatedWikis = vi.fn();
 const requestOfficialCertification = vi.fn();
 const syncOwnedWikiCertifications = vi.fn();
 
@@ -18,7 +19,7 @@ const adminDictionary = {
   officialCertificationWikiSearchPlaceholder: "公式認証を申請する Wiki 名で検索",
   officialCertificationSubmit: "公式認証を申請",
   officialCertificationSubmitting: "申請中",
-  officialCertificationRequestSucceeded: (_status: string) => "公式認証を申請しました。",
+  officialCertificationRequestSucceeded: () => "公式認証を申請しました。",
   officialCertificationRequestFailed: "公式認証を申請できませんでした。",
   officialCertificationRequestUnavailable: "公式認証申請に必要なアカウント情報または Wiki を確認してください。",
   officialCertificationManagementLoading: "公式認証状態を読み込んでいます。",
@@ -33,8 +34,14 @@ const adminDictionary = {
   officialCertificationAdditionalEmpty: "追加できる候補はありません。",
   officialCertificationOwnedWikisSync: "保存",
   officialCertificationOwnedWikisSyncing: "保存中",
-  officialCertificationOwnedWikisSyncSucceeded: (count: number) => `保存しました。対象: ${count} 件`,
+  officialCertificationOwnedWikisSyncSucceeded: "保存しました。",
   officialCertificationOwnedWikisSyncFailed: "保存できませんでした。",
+  draftWikiResourceLabels: {
+    agency: "Agency",
+    group: "Group",
+    song: "Song",
+    talent: "Talent",
+  },
   officialCertificationSearch: "検索",
   officialCertificationSearching: "検索中",
   officialCertificationSearchLoading: "Wiki候補を検索しています",
@@ -62,6 +69,7 @@ vi.mock("../../WikiSectionProvider", () => ({
     officialCertificationAdapter: {
       listMyOfficialCertifications,
       listMyOwnedWikis,
+      listRelatedWikis,
       requestOfficialCertification,
       syncOwnedWikiCertifications,
     },
@@ -108,6 +116,7 @@ describe("OfficialCertificationRequestClient", () => {
     vi.restoreAllMocks();
     listMyOfficialCertifications.mockReset();
     listMyOwnedWikis.mockReset();
+    listRelatedWikis.mockReset();
     requestOfficialCertification.mockReset();
     syncOwnedWikiCertifications.mockReset();
   });
@@ -115,6 +124,7 @@ describe("OfficialCertificationRequestClient", () => {
   it("searches agency translation sets, displays the UI locale wiki, and submits translationSetIdentifier", async () => {
     listMyOfficialCertifications.mockResolvedValue(emptyCertificationList());
     listMyOwnedWikis.mockResolvedValue(emptyOwnedWikis());
+    listRelatedWikis.mockResolvedValue({ wikis: [] });
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -199,6 +209,7 @@ describe("OfficialCertificationRequestClient", () => {
       }] : [],
     }));
     listMyOwnedWikis.mockResolvedValue(emptyOwnedWikis());
+    listRelatedWikis.mockResolvedValue({ wikis: [] });
 
     renderClient();
 
@@ -293,16 +304,92 @@ describe("OfficialCertificationRequestClient", () => {
         updatedAt: null,
       }],
     });
+    listRelatedWikis.mockResolvedValue({
+      wikis: [
+        {
+          wikiIdentifier: "44444444-4444-4444-8444-444444444444",
+          translationSetIdentifier: "55555555-5555-4555-8555-555555555555",
+          resourceType: "group",
+          language: "ja",
+          name: "追加Group",
+          slug: "extra-group",
+          normalizedName: "追加group",
+          metaDescription: null,
+          keywords: null,
+          imageIdentifier: null,
+          imageUrl: null,
+          imageAltText: null,
+          isHidden: false,
+          publishedAt: null,
+          updatedAt: null,
+        },
+        {
+          wikiIdentifier: "44444444-4444-4444-8444-444444444445",
+          translationSetIdentifier: "55555555-5555-4555-8555-555555555555",
+          resourceType: "group",
+          language: "en",
+          name: "Extra Group",
+          slug: "extra-group",
+          normalizedName: "extra group",
+          metaDescription: null,
+          keywords: null,
+          imageIdentifier: null,
+          imageUrl: null,
+          imageAltText: null,
+          isHidden: false,
+          publishedAt: null,
+          updatedAt: null,
+        },
+        {
+          wikiIdentifier: "66666666-6666-4666-8666-666666666666",
+          translationSetIdentifier: "77777777-7777-4777-8777-777777777777",
+          resourceType: "song",
+          language: "en",
+          name: "Unowned Song",
+          slug: "song-unowned",
+          normalizedName: "unowned song",
+          metaDescription: null,
+          keywords: null,
+          imageIdentifier: null,
+          imageUrl: null,
+          imageAltText: null,
+          isHidden: false,
+          publishedAt: null,
+          updatedAt: null,
+        },
+      ],
+    });
     syncOwnedWikiCertifications.mockResolvedValue({ approved: [], rejected: [], unchanged: [] });
 
     renderClient();
 
     expect(await screen.findByText("JYP Entertainment")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "ja" })).toHaveAttribute("href", "/ja/wiki/ag-jyp");
-    expect(screen.getByRole("link", { name: "en" })).toHaveAttribute("href", "/en/wiki/ag-jyp");
-    expect(screen.getByRole("link", { name: "ko" })).toHaveAttribute("href", "/ko/wiki/ag-jyp");
+    expect(screen.getAllByRole("link", { name: "ja" }).some((link) => link.getAttribute("href") === "/ja/wiki/ag-jyp")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "en" }).some((link) => link.getAttribute("href") === "/en/wiki/ag-jyp")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "ko" }).some((link) => link.getAttribute("href") === "/ko/wiki/ag-jyp")).toBe(true);
+    await waitFor(() => {
+      expect(listRelatedWikis).toHaveBeenCalledWith({
+        fallbackErrorMessage: "所有Wikiを読み込めませんでした。",
+        resourceType: "agency",
+        translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+      });
+    });
+    expect(screen.getAllByRole("link", { name: "en" }).some((link) => link.getAttribute("href") === "/en/wiki/extra-group")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "ja" }).some((link) => link.getAttribute("href") === "/ja/wiki/extra-group")).toBe(true);
+    expect(screen.getByRole("heading", { name: "Group" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Song" })).toBeInTheDocument();
+    expect(screen.queryByText("group / extra-group")).not.toBeInTheDocument();
+    expect(screen.queryByText("song / song-unowned")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Extra Group/)).toBeChecked();
+    expect(screen.getByLabelText(/Unowned Song/)).not.toBeDisabled();
+    expect(screen.getByLabelText(/Unowned Song/)).not.toBeChecked();
+    fireEvent.click(screen.getByText("Extra Group"));
+    expect(screen.getByLabelText(/Extra Group/)).not.toBeChecked();
+    fireEvent.click(screen.getByText("Extra Group"));
+    expect(screen.getByLabelText(/Extra Group/)).toBeChecked();
+    fireEvent.click(screen.getByText("Unowned Song"));
+    expect(screen.getByLabelText(/Unowned Song/)).toBeChecked();
 
-    fireEvent.click(await screen.findByLabelText(/追加Group/));
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
@@ -310,8 +397,8 @@ describe("OfficialCertificationRequestClient", () => {
         fallbackErrorMessage: "保存できませんでした。",
         requestBody: {
           translationSetIdentifiers: [
-            "22222222-2222-4222-8222-222222222222",
             "55555555-5555-4555-8555-555555555555",
+            "77777777-7777-4777-8777-777777777777",
           ],
         },
       });
@@ -321,6 +408,7 @@ describe("OfficialCertificationRequestClient", () => {
   it("shows request failures as a red bordered alert", async () => {
     listMyOfficialCertifications.mockResolvedValue(emptyCertificationList());
     listMyOwnedWikis.mockResolvedValue(emptyOwnedWikis());
+    listRelatedWikis.mockResolvedValue({ wikis: [] });
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(

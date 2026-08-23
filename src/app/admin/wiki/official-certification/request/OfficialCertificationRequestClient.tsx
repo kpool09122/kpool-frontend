@@ -13,6 +13,7 @@ import {
   createOfficialCertificationRequestBody,
   createSyncOwnedWikiCertificationsRequestBody,
   type OfficialCertificationListItem,
+  type RelatedWikisResourceType,
 } from "@/gateways/wiki/officialCertification";
 import {
   fetchTranslationSetMasterSearch,
@@ -44,12 +45,64 @@ const statusSuccessClassName =
 const cardClassName = "rounded-xl border border-stroke-subtle bg-surface-base p-4";
 
 type WikiLike = OfficialCertificationListItem["wikis"][number];
+type AdditionalCandidateRow = {
+  displayWiki: WikiLike;
+  translationSetIdentifier: string;
+  wikis: WikiLike[];
+};
 
 const getWikiName = (wiki: WikiLike | undefined): string => wiki?.name ?? "Wiki";
-const getWikiMeta = (wiki: WikiLike | undefined): string => [wiki?.resourceType, wiki?.slug].filter(Boolean).join(" / ");
 const getPrimaryCertification = (certifications: OfficialCertificationListItem[]): OfficialCertificationListItem | null =>
   certifications.find((certification) => certification.status === "approved") ?? certifications[0] ?? null;
 const isAdditionalCandidate = (wiki: WikiLike): boolean => wiki.resourceType === "group" || wiki.resourceType === "song";
+const getRelatedWikisResourceType = (resourceType: string | undefined): RelatedWikisResourceType | null =>
+  resourceType === "agency" || resourceType === "talent" ? resourceType : null;
+const languageDisplayOrder = ["en", "ja", "ko"];
+const sortWikisByLanguage = (wikis: WikiLike[]): WikiLike[] =>
+  [...wikis].sort((left, right) => {
+    const leftIndex = languageDisplayOrder.indexOf(left.language);
+    const rightIndex = languageDisplayOrder.indexOf(right.language);
+    if (leftIndex !== -1 || rightIndex !== -1) {
+      return (leftIndex === -1 ? languageDisplayOrder.length : leftIndex)
+        - (rightIndex === -1 ? languageDisplayOrder.length : rightIndex);
+    }
+    return left.language.localeCompare(right.language);
+  });
+
+function OfficialCertificationWikiLanguageLinks({
+  className,
+  wikis,
+}: {
+  className: string;
+  wikis: WikiLike[];
+}) {
+  const linkableWikis = sortWikisByLanguage(wikis.filter((wiki) => wiki.slug && wiki.language));
+
+  if (linkableWikis.length === 0) {
+    return null;
+  }
+
+  return (
+    <span className={className}>
+      <span aria-hidden="true">(</span>
+      {linkableWikis.map((wiki, index) => (
+        <span className="flex gap-1" key={wiki.wikiIdentifier}>
+          {index > 0 ? <span aria-hidden="true">/</span> : null}
+          <Link
+            className="text-brand-primary transition hover:brightness-110"
+            href={buildWikiPath(wiki.language, wiki.slug)}
+            onClick={(event) => event.stopPropagation()}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {wiki.language}
+          </Link>
+        </span>
+      ))}
+      <span aria-hidden="true">)</span>
+    </span>
+  );
+}
 
 function OfficialCertificationWikiTitle({
   locale,
@@ -60,32 +113,14 @@ function OfficialCertificationWikiTitle({
 }) {
   const displayWiki = wikis.find((wiki) => wiki.language === locale) ?? wikis[0];
   const displayName = getWikiName(displayWiki);
-  const linkableWikis = wikis.filter((wiki) => wiki.slug && wiki.language);
-
-  if (linkableWikis.length === 0) {
-    return <h3 className="mt-2 text-lg font-semibold text-text-strong">{displayName}</h3>;
-  }
 
   return (
     <h3 className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-text-strong">
       <span className="break-words">{displayName}</span>
-      <span className="flex flex-wrap gap-1 text-base font-semibold text-text-muted">
-        <span aria-hidden="true">(</span>
-        {linkableWikis.map((wiki, index) => (
-          <span className="flex gap-1" key={wiki.wikiIdentifier}>
-            {index > 0 ? <span aria-hidden="true">/</span> : null}
-            <Link
-              className="text-brand-primary transition hover:brightness-110"
-              href={buildWikiPath(wiki.language, wiki.slug)}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {wiki.language}
-            </Link>
-          </span>
-        ))}
-        <span aria-hidden="true">)</span>
-      </span>
+      <OfficialCertificationWikiLanguageLinks
+        className="flex flex-wrap gap-1 text-base font-semibold text-text-muted"
+        wikis={wikis}
+      />
     </h3>
   );
 }
@@ -101,7 +136,7 @@ export function OfficialCertificationRequestClient() {
   const [keyword, setKeyword] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [searchState, setSearchState] = useState<SearchState>({ status: "idle" });
-  const [selectedAdditionalIds, setSelectedAdditionalIds] = useState<Set<string>>(new Set());
+  const [additionalSelectionOverrides, setAdditionalSelectionOverrides] = useState<Map<string, boolean>>(new Map());
   const [state, setState] = useState<RequestState>({
     error: null,
     selectedTranslationSet: null,
@@ -157,26 +192,67 @@ export function OfficialCertificationRequestClient() {
     [pendingQuery.data?.officialCertifications],
   );
   const primaryCertification = getPrimaryCertification(approvedCertifications);
-  const alreadyCertifiedIds = useMemo(
-    () => new Set(approvedCertifications.map((certification) => certification.translationSetIdentifier)),
-    [approvedCertifications],
-  );
-  const candidateWikis = useMemo(() => {
+  const primaryRelatedResourceType = getRelatedWikisResourceType(primaryCertification?.resourceType);
+  const primaryTranslationSetIdentifier = primaryCertification?.translationSetIdentifier ?? null;
+  const relatedWikisQueryKey = adminQueryKeys.officialCertifications.relatedWikis({
+    identityIdentifier,
+    resourceType: primaryRelatedResourceType,
+    translationSetIdentifier: primaryTranslationSetIdentifier,
+  });
+  const relatedWikisQuery = useQuery({
+    enabled: Boolean(primaryRelatedResourceType) && Boolean(primaryTranslationSetIdentifier),
+    queryFn: () => officialCertificationAdapter.listRelatedWikis({
+      fallbackErrorMessage: t.officialCertificationOwnedWikisLoadFailed,
+      resourceType: primaryRelatedResourceType!,
+      translationSetIdentifier: primaryTranslationSetIdentifier!,
+    }),
+    queryKey: relatedWikisQueryKey,
+    retry: false,
+  });
+  const ownedTranslationSetIds = useMemo(() => {
     const allOwnedWikis = [
       ...(ownedWikisQuery.data?.primaryOwnedWikis ?? []),
       ...(ownedWikisQuery.data?.otherOwnedWikis ?? []),
     ];
-    const byTranslationSet = new Map<string, WikiLike>();
-    for (const wiki of allOwnedWikis) {
-      if (isAdditionalCandidate(wiki) && !byTranslationSet.has(wiki.translationSetIdentifier)) {
-        byTranslationSet.set(wiki.translationSetIdentifier, wiki);
-      }
-    }
-    return Array.from(byTranslationSet.values());
+    return new Set(allOwnedWikis.map((wiki) => wiki.translationSetIdentifier));
   }, [ownedWikisQuery.data]);
+  const candidateWikis = useMemo<AdditionalCandidateRow[]>(() => {
+    const byTranslationSet = new Map<string, WikiLike[]>();
+    for (const wiki of relatedWikisQuery.data?.wikis ?? []) {
+      if (!isAdditionalCandidate(wiki)) continue;
+      const wikis = byTranslationSet.get(wiki.translationSetIdentifier) ?? [];
+      wikis.push(wiki);
+      byTranslationSet.set(wiki.translationSetIdentifier, wikis);
+    }
+
+    return Array.from(byTranslationSet.entries()).map(([translationSetIdentifier, wikis]) => {
+      const displayWiki = wikis.find((wiki) => wiki.language === locale) ?? wikis[0]!;
+      return {
+        displayWiki,
+        translationSetIdentifier,
+        wikis,
+      };
+    });
+  }, [locale, relatedWikisQuery.data?.wikis]);
+  const groupedCandidateWikis = useMemo(
+    () => (["group", "song"] as const)
+      .map((resourceType) => ({
+        resourceType,
+        rows: candidateWikis.filter((row) => row.displayWiki.resourceType === resourceType),
+      }))
+      .filter((group) => group.rows.length > 0),
+    [candidateWikis],
+  );
+  const selectedAdditionalIds = useMemo(
+    () => candidateWikis
+      .filter((row) => additionalSelectionOverrides.get(row.translationSetIdentifier)
+        ?? ownedTranslationSetIds.has(row.translationSetIdentifier))
+      .map((row) => row.translationSetIdentifier),
+    [additionalSelectionOverrides, candidateWikis, ownedTranslationSetIds],
+  );
   const hasPendingRequest = pendingCertifications.length > 0;
-  const isInitialLoading = approvedQuery.isLoading || pendingQuery.isLoading || ownedWikisQuery.isLoading;
-  const loadError = approvedQuery.error ?? pendingQuery.error ?? ownedWikisQuery.error;
+  const isInitialLoading = approvedQuery.isLoading || pendingQuery.isLoading || ownedWikisQuery.isLoading || relatedWikisQuery.isLoading;
+  const loadError = approvedQuery.error ?? pendingQuery.error ?? ownedWikisQuery.error ?? relatedWikisQuery.error;
 
   const requestMutation = useMutation({
     mutationFn: () => {
@@ -210,21 +286,19 @@ export function OfficialCertificationRequestClient() {
   const syncMutation = useMutation({
     mutationFn: () => officialCertificationAdapter.syncOwnedWikiCertifications({
       fallbackErrorMessage: t.officialCertificationOwnedWikisSyncFailed,
-      requestBody: createSyncOwnedWikiCertificationsRequestBody([
-        ...approvedCertifications.map((certification) => certification.translationSetIdentifier),
-        ...selectedAdditionalIds,
-      ]),
+      requestBody: createSyncOwnedWikiCertificationsRequestBody(selectedAdditionalIds),
     }),
     onMutate: () => setState((current) => ({ ...current, error: null, success: null })),
-    onSuccess: (response) => {
+    onSuccess: () => {
       setState((current) => ({
         ...current,
         error: null,
-        success: t.officialCertificationOwnedWikisSyncSucceeded(response.approved.length + response.unchanged.length),
+        success: t.officialCertificationOwnedWikisSyncSucceeded,
       }));
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: approvedQueryKey }),
         queryClient.invalidateQueries({ queryKey: ownedWikisQueryKey }),
+        queryClient.invalidateQueries({ queryKey: relatedWikisQueryKey }),
       ]);
     },
     onError: (error) => setState((current) => ({
@@ -277,10 +351,10 @@ export function OfficialCertificationRequestClient() {
     requestMutation.mutate();
   };
   const toggleAdditionalWiki = (translationSetIdentifier: string) => {
-    setSelectedAdditionalIds((current) => {
-      const next = new Set(current);
-      if (next.has(translationSetIdentifier)) next.delete(translationSetIdentifier);
-      else next.add(translationSetIdentifier);
+    setAdditionalSelectionOverrides((current) => {
+      const currentChecked = current.get(translationSetIdentifier) ?? ownedTranslationSetIds.has(translationSetIdentifier);
+      const next = new Map(current);
+      next.set(translationSetIdentifier, !currentChecked);
       return next;
     });
   };
@@ -436,27 +510,53 @@ export function OfficialCertificationRequestClient() {
               {candidateWikis.length === 0 ? (
                 <p className="mt-4 text-sm text-text-muted">{t.officialCertificationAdditionalEmpty}</p>
               ) : (
-                <div className="mt-4 grid gap-3">
-                  {candidateWikis.map((wiki) => {
-                    const checked = alreadyCertifiedIds.has(wiki.translationSetIdentifier) || selectedAdditionalIds.has(wiki.translationSetIdentifier);
-                    const disabled = alreadyCertifiedIds.has(wiki.translationSetIdentifier) || syncMutation.isPending;
+                <div className="mt-4 grid gap-4">
+                  {groupedCandidateWikis.map((group) => (
+                    <div className="grid gap-2" key={group.resourceType}>
+                      <h4 className="text-sm font-semibold text-text-muted">
+                        {t.draftWikiResourceLabels[group.resourceType]}
+                      </h4>
+                      <div className="grid gap-3">
+                        {group.rows.map((wiki) => {
+                          const checked = additionalSelectionOverrides.get(wiki.translationSetIdentifier)
+                            ?? ownedTranslationSetIds.has(wiki.translationSetIdentifier);
+                          const disabled = syncMutation.isPending;
+                          const displayName = getWikiName(wiki.displayWiki);
 
-                    return (
-                      <label key={wiki.translationSetIdentifier} className="flex items-start gap-3 rounded-lg border border-stroke-subtle bg-surface-raised p-3 text-sm">
-                        <input
-                          checked={checked}
-                          className="mt-1"
-                          disabled={disabled}
-                          onChange={() => toggleAdditionalWiki(wiki.translationSetIdentifier)}
-                          type="checkbox"
-                        />
-                        <span className="min-w-0">
-                          <span className="block font-semibold text-text-strong">{getWikiName(wiki)}</span>
-                          <span className="block text-xs text-text-muted">{getWikiMeta(wiki)}</span>
-                        </span>
-                      </label>
-                    );
-                  })}
+                          return (
+                            <div
+                              className={`flex items-start gap-3 rounded-lg border border-stroke-subtle bg-surface-raised p-3 text-sm ${disabled ? "" : "cursor-pointer"}`}
+                              key={wiki.translationSetIdentifier}
+                              onClick={() => {
+                                if (!disabled) toggleAdditionalWiki(wiki.translationSetIdentifier);
+                              }}
+                            >
+                              <input
+                                aria-label={displayName}
+                                checked={checked}
+                                className="mt-1"
+                                disabled={disabled}
+                                onChange={() => {
+                                  if (!disabled) toggleAdditionalWiki(wiki.translationSetIdentifier);
+                                }}
+                                onClick={(event) => event.stopPropagation()}
+                                type="checkbox"
+                              />
+                              <span className="min-w-0">
+                                <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-semibold text-text-strong">
+                                  <span>{displayName}</span>
+                                  <OfficialCertificationWikiLanguageLinks
+                                    className="flex flex-wrap gap-1 text-xs font-semibold text-text-muted"
+                                    wikis={wiki.wikis}
+                                  />
+                                </span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

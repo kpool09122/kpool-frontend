@@ -15,6 +15,8 @@ const officialCertificationListResponseSchema = z.object({
   per_page: z.number().int(),
 }).passthrough();
 const myOwnedWikisResponseSchema = wikiPrivateApiTypes.schemas.ListMyOwnedWikisResponseBody;
+const relatedWikisResponseSchema = wikiPrivateApiTypes.schemas.ListRelatedWikisResponseBody;
+const relatedWikisResourceTypeSchema = z.enum(["agency", "talent"]);
 const syncOwnedWikiCertificationsRequestSchema = wikiPrivateApiTypes.schemas.SyncOwnedWikiCertificationsRequestBody;
 const syncOwnedWikiCertificationsResponseSchema = z.object({
   approved: z.array(wikiPrivateApiTypes.schemas.SyncedOfficialCertificationResource),
@@ -30,6 +32,8 @@ export type OfficialCertificationSummary = z.infer<typeof officialCertificationS
 export type OfficialCertificationListItem = z.infer<typeof wikiPrivateApiTypes.schemas.OfficialCertificationListItem>;
 export type OfficialCertificationListResponse = z.infer<typeof officialCertificationListResponseSchema>;
 export type MyOwnedWikisResponse = z.infer<typeof myOwnedWikisResponseSchema>;
+export type RelatedWikisResponse = z.infer<typeof relatedWikisResponseSchema>;
+export type RelatedWikisResourceType = z.infer<typeof relatedWikisResourceTypeSchema>;
 export type SyncOwnedWikiCertificationsRequestBody = z.infer<typeof syncOwnedWikiCertificationsRequestSchema>;
 export type SyncOwnedWikiCertificationsResponse = z.infer<typeof syncOwnedWikiCertificationsResponseSchema>;
 export type OfficialCertificationActionRequest = z.infer<typeof officialCertificationActionRequestSchema>;
@@ -50,6 +54,10 @@ type OfficialCertificationApiClient = {
   reviewCertification: (certificationIdentifier: string, action: OfficialCertificationAction) => Promise<OfficialCertificationSummary>;
   listMyCertifications: (params: { perPage?: number; status?: OfficialCertificationListStatus }) => Promise<OfficialCertificationListResponse>;
   listMyOwnedWikis: (params: { perPage?: number }) => Promise<MyOwnedWikisResponse>;
+  listRelatedWikis: (params: {
+    resourceType: RelatedWikisResourceType;
+    translationSetIdentifier: string;
+  }) => Promise<RelatedWikisResponse>;
   syncOwnedWikiCertifications: (body: SyncOwnedWikiCertificationsRequestBody) => Promise<SyncOwnedWikiCertificationsResponse>;
 };
 
@@ -96,6 +104,12 @@ const parseOfficialCertificationActionRequest = (body: unknown): OfficialCertifi
 const parseMyOwnedWikisResponse = (body: unknown): MyOwnedWikisResponse =>
   parseWithSchemaLog("my owned wikis response", myOwnedWikisResponseSchema, body);
 
+const parseRelatedWikisResponse = (body: unknown): RelatedWikisResponse =>
+  parseWithSchemaLog("related wikis response", relatedWikisResponseSchema, body);
+
+const parseRelatedWikisResourceType = (value: unknown): RelatedWikisResourceType =>
+  parseWithSchemaLog("related wikis resource type", relatedWikisResourceTypeSchema, value);
+
 const parseSyncOwnedWikiCertificationsRequest = (body: unknown): SyncOwnedWikiCertificationsRequestBody =>
   parseWithSchemaLog("sync owned wiki certifications request", syncOwnedWikiCertificationsRequestSchema, body);
 
@@ -124,6 +138,15 @@ const getMyOwnedWikisEndpointPath = ({ perPage }: { perPage?: number }): string 
   const query = params.toString();
   return `/my/owned-wikis${query ? `?${query}` : ""}`;
 };
+
+const getRelatedWikisEndpointPath = ({
+  resourceType,
+  translationSetIdentifier,
+}: {
+  resourceType: RelatedWikisResourceType;
+  translationSetIdentifier: string;
+}): string =>
+  `/wiki/${encodeURIComponent(resourceType)}/${encodeURIComponent(translationSetIdentifier)}/related-wikis`;
 
 const getSyncOwnedWikiCertificationsEndpointPath = (): string => "/official-certification/owned-wikis";
 
@@ -264,6 +287,17 @@ export const createOfficialCertificationApiClient = (
       );
       if (!response.ok) await throwApiError(response);
       return parseMyOwnedWikisResponse(await readResponseBody(response));
+    },
+    async listRelatedWikis({ resourceType, translationSetIdentifier }) {
+      const response = await fetchAdapter(
+        `${trimTrailingSlashes(resolvedBaseUrl)}${getRelatedWikisEndpointPath({
+          resourceType: parseRelatedWikisResourceType(resourceType),
+          translationSetIdentifier,
+        })}`,
+        { method: "GET", headers: requestHeaders },
+      );
+      if (!response.ok) await throwApiError(response);
+      return parseRelatedWikisResponse(await readResponseBody(response));
     },
     async syncOwnedWikiCertifications(body) {
       const response = await fetchAdapter(
@@ -432,6 +466,15 @@ export const listMyOwnedWikis = async (
   params: { perPage?: number },
 ): Promise<MyOwnedWikisResponse> => client.listMyOwnedWikis(params);
 
+export const listRelatedWikis = async (
+  client: OfficialCertificationApiClient,
+  params: { resourceType: unknown; translationSetIdentifier: string },
+): Promise<RelatedWikisResponse> =>
+  client.listRelatedWikis({
+    resourceType: parseRelatedWikisResourceType(params.resourceType),
+    translationSetIdentifier: params.translationSetIdentifier,
+  });
+
 export const syncOwnedWikiCertifications = async (
   client: OfficialCertificationApiClient,
   body: unknown,
@@ -452,7 +495,7 @@ export const fetchMyOfficialCertificationsFromBrowser = async ({
   try {
     const params = new URLSearchParams({ perPage: String(perPage) });
     if (status) params.set("status", status);
-    const response = await fetchAdapter(`/api/wiki/official-certification/my?${params.toString()}`, {
+    const response = await fetchAdapter(`/api/wiki/my/official-certifications?${params.toString()}`, {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
@@ -475,13 +518,41 @@ export const fetchMyOwnedWikisFromBrowser = async ({
 }): Promise<MyOwnedWikisResponse> => {
   try {
     const params = new URLSearchParams({ perPage: String(perPage) });
-    const response = await fetchAdapter(`/api/wiki/official-certification/owned-wikis?${params.toString()}`, {
+    const response = await fetchAdapter(`/api/wiki/my/owned-wikis?${params.toString()}`, {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
     });
     if (!response.ok) await throwApiError(response);
     return parseMyOwnedWikisResponse(await readResponseBody(response));
+  } catch (error) {
+    throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
+  }
+};
+
+export const fetchRelatedWikisFromBrowser = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  resourceType,
+  translationSetIdentifier,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: FetchAdapter;
+  resourceType: RelatedWikisResourceType;
+  translationSetIdentifier: string;
+}): Promise<RelatedWikisResponse> => {
+  try {
+    const params = new URLSearchParams({
+      resourceType: parseRelatedWikisResourceType(resourceType),
+      translationSetIdentifier,
+    });
+    const response = await fetchAdapter(`/api/wiki/official-certification/related-wikis?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) await throwApiError(response);
+    return parseRelatedWikisResponse(await readResponseBody(response));
   } catch (error) {
     throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
   }

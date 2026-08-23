@@ -21,6 +21,7 @@ import type {
   fetchMyOfficialCertificationsFromBrowser,
   fetchMyOwnedWikisFromBrowser,
   fetchOfficialCertificationReviews,
+  fetchRelatedWikisFromBrowser,
   requestOfficialCertificationFromBrowser,
   reviewOfficialCertificationFromBrowser,
   syncOwnedWikiCertificationsFromBrowser,
@@ -48,6 +49,7 @@ export type AdminOfficialCertificationAdapter = {
   listOfficialCertifications: typeof fetchOfficialCertificationReviews;
   listMyOfficialCertifications: typeof fetchMyOfficialCertificationsFromBrowser;
   listMyOwnedWikis: typeof fetchMyOwnedWikisFromBrowser;
+  listRelatedWikis: typeof fetchRelatedWikisFromBrowser;
   requestOfficialCertification: typeof requestOfficialCertificationFromBrowser;
   reviewOfficialCertification: typeof reviewOfficialCertificationFromBrowser;
   syncOwnedWikiCertifications: typeof syncOwnedWikiCertificationsFromBrowser;
