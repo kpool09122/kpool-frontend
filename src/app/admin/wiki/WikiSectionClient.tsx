@@ -34,9 +34,13 @@ import {
   rejectWikiImageDeletionRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
+  fetchMyOfficialCertificationsFromBrowser,
+  fetchMyOwnedWikisFromBrowser,
   fetchOfficialCertificationReviews,
+  fetchRelatedWikisFromBrowser,
   requestOfficialCertificationFromBrowser,
   reviewOfficialCertificationFromBrowser,
+  syncOwnedWikiCertificationsFromBrowser,
 } from "@/gateways/wiki/officialCertification";
 import {
   canAutoCreateWikiDraftWikiResourceType,
@@ -99,8 +103,12 @@ export const defaultAdminDraftWikiAdapter: AdminDraftWikiAdapter = {
 
 export const defaultOfficialCertificationAdapter: AdminOfficialCertificationAdapter = {
   listOfficialCertifications: fetchOfficialCertificationReviews,
+  listMyOfficialCertifications: fetchMyOfficialCertificationsFromBrowser,
+  listMyOwnedWikis: fetchMyOwnedWikisFromBrowser,
+  listRelatedWikis: fetchRelatedWikisFromBrowser,
   requestOfficialCertification: requestOfficialCertificationFromBrowser,
   reviewOfficialCertification: reviewOfficialCertificationFromBrowser,
+  syncOwnedWikiCertifications: syncOwnedWikiCertificationsFromBrowser,
 };
 
 const isActionPending = (state: WikiPrincipalState): boolean =>
@@ -339,7 +347,7 @@ const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
     return "imageDeletionRequests";
   }
 
-  if (pathname?.endsWith("/official-certification/request")) {
+  if (pathname?.endsWith("/official-certification")) {
     return "officialCertificationRequest";
   }
 

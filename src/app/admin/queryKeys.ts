@@ -75,7 +75,7 @@ export const adminQueryKeys = {
       status,
     }: {
       identityIdentifier: string | null;
-      status: "pending";
+      status: "pending" | "approved";
     }) => [
       ...adminQueryKeys.officialCertifications.all(),
       "list",
@@ -89,11 +89,37 @@ export const adminQueryKeys = {
     }: {
       identityIdentifier: string | null;
       page: number;
-      status: "pending";
+      status: "pending" | "approved";
     }) => [...adminQueryKeys.officialCertifications.list({
       identityIdentifier,
       status,
     }), page] as const,
+    myList: ({ identityIdentifier, status }: { identityIdentifier: string | null; status?: "pending" | "approved" }) => [
+      ...adminQueryKeys.officialCertifications.all(),
+      "myList",
+      identityIdentifier ?? "guest",
+      status ?? "all",
+    ] as const,
+    ownedWikis: (identityIdentifier: string | null) => [
+      ...adminQueryKeys.officialCertifications.all(),
+      "ownedWikis",
+      identityIdentifier ?? "guest",
+    ] as const,
+    relatedWikis: ({
+      identityIdentifier,
+      resourceType,
+      translationSetIdentifier,
+    }: {
+      identityIdentifier: string | null;
+      resourceType: string | null;
+      translationSetIdentifier: string | null;
+    }) => [
+      ...adminQueryKeys.officialCertifications.all(),
+      "relatedWikis",
+      identityIdentifier ?? "guest",
+      resourceType ?? "unknown",
+      translationSetIdentifier ?? "unknown",
+    ] as const,
   },
   imageDeletionRequests: {
     all: () => [...adminQueryKeys.all, "imageDeletionRequests"] as const,

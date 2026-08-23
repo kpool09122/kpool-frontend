@@ -132,7 +132,7 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
     return "wikiImageDeletionRequests";
   }
 
-  if (pathname?.endsWith("/official-certification/request")) {
+  if (pathname?.endsWith("/official-certification")) {
     return "wikiOfficialCertificationRequest";
   }
 

@@ -18,9 +18,13 @@ import type {
   withdrawWikiDraft,
 } from "../wiki/draftWiki";
 import type {
+  fetchMyOfficialCertificationsFromBrowser,
+  fetchMyOwnedWikisFromBrowser,
   fetchOfficialCertificationReviews,
+  fetchRelatedWikisFromBrowser,
   requestOfficialCertificationFromBrowser,
   reviewOfficialCertificationFromBrowser,
+  syncOwnedWikiCertificationsFromBrowser,
 } from "../wiki/officialCertification";
 import type {
   createWikiPrincipal,
@@ -43,8 +47,12 @@ export type AdminDraftImageAdapter = {
 
 export type AdminOfficialCertificationAdapter = {
   listOfficialCertifications: typeof fetchOfficialCertificationReviews;
+  listMyOfficialCertifications: typeof fetchMyOfficialCertificationsFromBrowser;
+  listMyOwnedWikis: typeof fetchMyOwnedWikisFromBrowser;
+  listRelatedWikis: typeof fetchRelatedWikisFromBrowser;
   requestOfficialCertification: typeof requestOfficialCertificationFromBrowser;
   reviewOfficialCertification: typeof reviewOfficialCertificationFromBrowser;
+  syncOwnedWikiCertifications: typeof syncOwnedWikiCertificationsFromBrowser;
 };
 
 export type AdminDraftWikiAdapter = {
