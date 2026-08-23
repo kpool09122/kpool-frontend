@@ -9,7 +9,9 @@ import { officialCertificationUnavailableMessage } from "@/gateways/wiki/officia
 import { POST as approvePOST } from "./approve/route";
 import { POST as rejectPOST } from "./reject/route";
 import { GET as listGET } from "./route";
+import { GET as myListGET } from "./my/route";
 import { POST as requestPOST } from "./request/route";
+import { GET as ownedWikisGET, PUT as ownedWikisPUT } from "./owned-wikis/route";
 
 const certificationIdentifier = "11111111-1111-4111-8111-111111111111";
 const wikiId = "22222222-2222-4222-8222-222222222222";
@@ -330,6 +332,84 @@ describe("official certification routes", () => {
       { status: 503 },
     );
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain(internalBackendMessage);
+  });
+
+  it("lists my official certifications through the applicant route", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      officialCertifications: [],
+      current_page: 1,
+      last_page: 1,
+      total: 0,
+      per_page: 100,
+    }, 200));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await myListGET(createGetRequest(
+      "https://app.example.test/api/wiki/official-certification/my?status=approved&perPage=100",
+      { "accept-language": "ja", cookie: "session=abc" },
+    ));
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.example.test/api/wiki/my/official-certifications?status=approved&perPage=100",
+      expect.objectContaining({
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja",
+          Cookie: "session=abc",
+        },
+      }),
+    );
+  });
+
+  it("lists owned wikis and syncs official certifications with forwarded headers", async () => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({
+        accountCategory: "agency",
+        primaryOwnedWikis: [],
+        otherOwnedWikis: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 100,
+      }, 200))
+      .mockResolvedValueOnce(jsonResponse({ approved: [], rejected: [], unchanged: [] }, 200));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const getResponse = await ownedWikisGET(createGetRequest(
+      "https://app.example.test/api/wiki/official-certification/owned-wikis?perPage=100",
+      { "accept-language": "ja", cookie: "session=abc" },
+    ));
+    const putResponse = await ownedWikisPUT(createRequest(
+      "https://app.example.test/api/wiki/official-certification/owned-wikis",
+      { translationSetIdentifiers: [translationSetIdentifier] },
+      { "accept-language": "ja", cookie: "session=abc" },
+    ));
+
+    expect(getResponse.status).toBe(200);
+    expect(putResponse.status).toBe(200);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "https://api.example.test/api/wiki/my/owned-wikis?perPage=100",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://api.example.test/api/wiki/official-certification/owned-wikis",
+      expect.objectContaining({
+        body: JSON.stringify({ translationSetIdentifiers: [translationSetIdentifier] }),
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Accept-Language": "ja",
+          "Content-Type": "application/json",
+          Cookie: "session=abc",
+        },
+      }),
+    );
   });
 
   it("does not expose backend messages from review errors", async () => {

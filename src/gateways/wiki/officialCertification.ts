@@ -14,6 +14,13 @@ const officialCertificationListResponseSchema = z.object({
   total: z.number().int(),
   per_page: z.number().int(),
 }).passthrough();
+const myOwnedWikisResponseSchema = wikiPrivateApiTypes.schemas.ListMyOwnedWikisResponseBody;
+const syncOwnedWikiCertificationsRequestSchema = wikiPrivateApiTypes.schemas.SyncOwnedWikiCertificationsRequestBody;
+const syncOwnedWikiCertificationsResponseSchema = z.object({
+  approved: z.array(wikiPrivateApiTypes.schemas.SyncedOfficialCertificationResource),
+  rejected: z.array(wikiPrivateApiTypes.schemas.SyncedOfficialCertificationResource),
+  unchanged: z.array(wikiPrivateApiTypes.schemas.SyncedOfficialCertificationResource),
+}).passthrough();
 const officialCertificationActionRequestSchema = z.object({
   certificationIdentifier: z.string().uuid(),
 });
@@ -22,9 +29,12 @@ export type OfficialCertificationRequest = z.infer<typeof officialCertificationR
 export type OfficialCertificationSummary = z.infer<typeof officialCertificationSummarySchema>;
 export type OfficialCertificationListItem = z.infer<typeof wikiPrivateApiTypes.schemas.OfficialCertificationListItem>;
 export type OfficialCertificationListResponse = z.infer<typeof officialCertificationListResponseSchema>;
+export type MyOwnedWikisResponse = z.infer<typeof myOwnedWikisResponseSchema>;
+export type SyncOwnedWikiCertificationsRequestBody = z.infer<typeof syncOwnedWikiCertificationsRequestSchema>;
+export type SyncOwnedWikiCertificationsResponse = z.infer<typeof syncOwnedWikiCertificationsResponseSchema>;
 export type OfficialCertificationActionRequest = z.infer<typeof officialCertificationActionRequestSchema>;
 export type OfficialCertificationAction = "approve" | "reject";
-export type OfficialCertificationListStatus = "pending";
+export type OfficialCertificationListStatus = "pending" | "approved";
 
 type FetchAdapter = typeof fetch;
 type OfficialCertificationApiClient = {
@@ -38,6 +48,9 @@ type OfficialCertificationApiClient = {
   }) => Promise<OfficialCertificationListResponse>;
   requestCertification: (body: OfficialCertificationRequest) => Promise<OfficialCertificationSummary>;
   reviewCertification: (certificationIdentifier: string, action: OfficialCertificationAction) => Promise<OfficialCertificationSummary>;
+  listMyCertifications: (params: { perPage?: number; status?: OfficialCertificationListStatus }) => Promise<OfficialCertificationListResponse>;
+  listMyOwnedWikis: (params: { perPage?: number }) => Promise<MyOwnedWikisResponse>;
+  syncOwnedWikiCertifications: (body: SyncOwnedWikiCertificationsRequestBody) => Promise<SyncOwnedWikiCertificationsResponse>;
 };
 
 export const defaultOfficialCertificationPerPage = 20;
@@ -80,7 +93,39 @@ const parseOfficialCertificationListResponse = (body: unknown): OfficialCertific
 const parseOfficialCertificationActionRequest = (body: unknown): OfficialCertificationActionRequest =>
   parseWithSchemaLog("official certification action request", officialCertificationActionRequestSchema, body);
 
+const parseMyOwnedWikisResponse = (body: unknown): MyOwnedWikisResponse =>
+  parseWithSchemaLog("my owned wikis response", myOwnedWikisResponseSchema, body);
+
+const parseSyncOwnedWikiCertificationsRequest = (body: unknown): SyncOwnedWikiCertificationsRequestBody =>
+  parseWithSchemaLog("sync owned wiki certifications request", syncOwnedWikiCertificationsRequestSchema, body);
+
+const parseSyncOwnedWikiCertificationsResponse = (body: unknown): SyncOwnedWikiCertificationsResponse =>
+  parseWithSchemaLog("sync owned wiki certifications response", syncOwnedWikiCertificationsResponseSchema, body);
+
 const getOfficialCertificationRequestEndpointPath = (): string => "/official-certification/request";
+
+const getMyOfficialCertificationListEndpointPath = ({
+  perPage,
+  status,
+}: {
+  perPage?: number;
+  status?: OfficialCertificationListStatus;
+}): string => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (perPage) params.set("perPage", String(perPage));
+  const query = params.toString();
+  return `/my/official-certifications${query ? `?${query}` : ""}`;
+};
+
+const getMyOwnedWikisEndpointPath = ({ perPage }: { perPage?: number }): string => {
+  const params = new URLSearchParams();
+  if (perPage) params.set("perPage", String(perPage));
+  const query = params.toString();
+  return `/my/owned-wikis${query ? `?${query}` : ""}`;
+};
+
+const getSyncOwnedWikiCertificationsEndpointPath = (): string => "/official-certification/owned-wikis";
 
 const getOfficialCertificationListEndpointPath = ({
   page,
@@ -133,6 +178,11 @@ export const createOfficialCertificationActionRequestBody = (
   certificationIdentifier: string,
 ): OfficialCertificationActionRequest =>
   parseOfficialCertificationActionRequest({ certificationIdentifier });
+
+export const createSyncOwnedWikiCertificationsRequestBody = (
+  translationSetIdentifiers: string[],
+): SyncOwnedWikiCertificationsRequestBody =>
+  parseSyncOwnedWikiCertificationsRequest({ translationSetIdentifiers: Array.from(new Set(translationSetIdentifiers)) });
 
 export const createOfficialCertificationListUrl = ({
   baseUrl,
@@ -198,6 +248,34 @@ export const createOfficialCertificationApiClient = (
       }
 
       return parseOfficialCertificationSummary(await readResponseBody(response));
+    },
+    async listMyCertifications({ perPage, status }) {
+      const response = await fetchAdapter(
+        `${trimTrailingSlashes(resolvedBaseUrl)}${getMyOfficialCertificationListEndpointPath({ perPage, status })}`,
+        { method: "GET", headers: requestHeaders },
+      );
+      if (!response.ok) await throwApiError(response);
+      return parseOfficialCertificationListResponse(await readResponseBody(response));
+    },
+    async listMyOwnedWikis({ perPage }) {
+      const response = await fetchAdapter(
+        `${trimTrailingSlashes(resolvedBaseUrl)}${getMyOwnedWikisEndpointPath({ perPage })}`,
+        { method: "GET", headers: requestHeaders },
+      );
+      if (!response.ok) await throwApiError(response);
+      return parseMyOwnedWikisResponse(await readResponseBody(response));
+    },
+    async syncOwnedWikiCertifications(body) {
+      const response = await fetchAdapter(
+        `${trimTrailingSlashes(resolvedBaseUrl)}${getSyncOwnedWikiCertificationsEndpointPath()}`,
+        {
+          method: "PUT",
+          headers: { ...requestHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify(parseSyncOwnedWikiCertificationsRequest(body)),
+        },
+      );
+      if (!response.ok) await throwApiError(response);
+      return parseSyncOwnedWikiCertificationsResponse(await readResponseBody(response));
     },
     async reviewCertification(certificationIdentifier, action) {
       const response = await fetchAdapter(
@@ -338,6 +416,99 @@ export const reviewOfficialCertificationFromBrowser = async ({
     }
 
     return parseOfficialCertificationSummary(await readResponseBody(response));
+  } catch (error) {
+    throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
+  }
+};
+
+
+export const listMyOfficialCertifications = async (
+  client: OfficialCertificationApiClient,
+  params: { perPage?: number; status?: OfficialCertificationListStatus },
+): Promise<OfficialCertificationListResponse> => client.listMyCertifications(params);
+
+export const listMyOwnedWikis = async (
+  client: OfficialCertificationApiClient,
+  params: { perPage?: number },
+): Promise<MyOwnedWikisResponse> => client.listMyOwnedWikis(params);
+
+export const syncOwnedWikiCertifications = async (
+  client: OfficialCertificationApiClient,
+  body: unknown,
+): Promise<SyncOwnedWikiCertificationsResponse> =>
+  client.syncOwnedWikiCertifications(parseSyncOwnedWikiCertificationsRequest(body));
+
+export const fetchMyOfficialCertificationsFromBrowser = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  perPage = defaultOfficialCertificationPerPage,
+  status,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: FetchAdapter;
+  perPage?: number;
+  status?: OfficialCertificationListStatus;
+}): Promise<OfficialCertificationListResponse> => {
+  try {
+    const params = new URLSearchParams({ perPage: String(perPage) });
+    if (status) params.set("status", status);
+    const response = await fetchAdapter(`/api/wiki/official-certification/my?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) await throwApiError(response);
+    return parseOfficialCertificationListResponse(await readResponseBody(response));
+  } catch (error) {
+    throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
+  }
+};
+
+export const fetchMyOwnedWikisFromBrowser = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  perPage = 100,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: FetchAdapter;
+  perPage?: number;
+}): Promise<MyOwnedWikisResponse> => {
+  try {
+    const params = new URLSearchParams({ perPage: String(perPage) });
+    const response = await fetchAdapter(`/api/wiki/official-certification/owned-wikis?${params.toString()}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) await throwApiError(response);
+    return parseMyOwnedWikisResponse(await readResponseBody(response));
+  } catch (error) {
+    throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
+  }
+};
+
+export const syncOwnedWikiCertificationsFromBrowser = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: FetchAdapter;
+  requestBody: SyncOwnedWikiCertificationsRequestBody;
+}): Promise<SyncOwnedWikiCertificationsResponse> => {
+  try {
+    const response = await fetchAdapter("/api/wiki/official-certification/owned-wikis", {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        [wikiDraftReviewCsrfHeaderName]: wikiDraftReviewCsrfHeaderValue,
+      },
+      body: JSON.stringify(parseSyncOwnedWikiCertificationsRequest(requestBody)),
+    });
+    if (!response.ok) await throwApiError(response);
+    return parseSyncOwnedWikiCertificationsResponse(await readResponseBody(response));
   } catch (error) {
     throw new Error(getOfficialCertificationErrorMessage(error, fallbackErrorMessage));
   }

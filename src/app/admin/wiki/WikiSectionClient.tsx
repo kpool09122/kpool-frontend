@@ -34,9 +34,12 @@ import {
   rejectWikiImageDeletionRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
 import {
+  fetchMyOfficialCertificationsFromBrowser,
+  fetchMyOwnedWikisFromBrowser,
   fetchOfficialCertificationReviews,
   requestOfficialCertificationFromBrowser,
   reviewOfficialCertificationFromBrowser,
+  syncOwnedWikiCertificationsFromBrowser,
 } from "@/gateways/wiki/officialCertification";
 import {
   canAutoCreateWikiDraftWikiResourceType,
@@ -99,8 +102,11 @@ export const defaultAdminDraftWikiAdapter: AdminDraftWikiAdapter = {
 
 export const defaultOfficialCertificationAdapter: AdminOfficialCertificationAdapter = {
   listOfficialCertifications: fetchOfficialCertificationReviews,
+  listMyOfficialCertifications: fetchMyOfficialCertificationsFromBrowser,
+  listMyOwnedWikis: fetchMyOwnedWikisFromBrowser,
   requestOfficialCertification: requestOfficialCertificationFromBrowser,
   reviewOfficialCertification: reviewOfficialCertificationFromBrowser,
+  syncOwnedWikiCertifications: syncOwnedWikiCertificationsFromBrowser,
 };
 
 const isActionPending = (state: WikiPrincipalState): boolean =>
