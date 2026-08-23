@@ -12,13 +12,13 @@ const syncOwnedWikiCertifications = vi.fn();
 
 const adminDictionary = {
   officialCertificationRequestTitle: "公式認証管理",
-  officialCertificationRequestDescription: "現在の公式認証状態を確認し、必要に応じて公式認証を申請・同期できます。",
+  officialCertificationRequestDescription: "現在の公式認証状態を確認し、必要に応じて公式認証を申請・更新できます。",
   officialCertificationGeneralAccountMessage: "general アカウントでは公式認証を申請できません。",
   officialCertificationWikiSearchLabel: "Wiki",
   officialCertificationWikiSearchPlaceholder: "公式認証を申請する Wiki 名で検索",
   officialCertificationSubmit: "公式認証を申請",
   officialCertificationSubmitting: "申請中",
-  officialCertificationRequestSucceeded: (status: string) => `公式認証を申請しました。状態: ${status}`,
+  officialCertificationRequestSucceeded: (_status: string) => "公式認証を申請しました。",
   officialCertificationRequestFailed: "公式認証を申請できませんでした。",
   officialCertificationRequestUnavailable: "公式認証申請に必要なアカウント情報または Wiki を確認してください。",
   officialCertificationManagementLoading: "公式認証状態を読み込んでいます。",
@@ -29,12 +29,12 @@ const adminDictionary = {
   officialCertificationApprovedPrimaryTitle: "Primary 公式Wiki",
   officialCertificationApprovedPrimaryDescription: "このアカウントは primary 公式Wiki として承認済みです。",
   officialCertificationAdditionalTitle: "追加公式認証",
-  officialCertificationAdditionalDescription: "所有している group / song Wiki を公式認証として同期します。既存の承認済み公式認証も含めて送信します。",
-  officialCertificationAdditionalEmpty: "同期できる追加候補はありません。",
-  officialCertificationOwnedWikisSync: "追加公式認証を同期",
-  officialCertificationOwnedWikisSyncing: "同期中",
-  officialCertificationOwnedWikisSyncSucceeded: (count: number) => `公式認証を同期しました。対象: ${count} 件`,
-  officialCertificationOwnedWikisSyncFailed: "追加公式認証を同期できませんでした。",
+  officialCertificationAdditionalDescription: "Primary 公式Wikiに紐づくグループ / 楽曲 Wikiを追加で公式認証できます。",
+  officialCertificationAdditionalEmpty: "追加できる候補はありません。",
+  officialCertificationOwnedWikisSync: "保存",
+  officialCertificationOwnedWikisSyncing: "保存中",
+  officialCertificationOwnedWikisSyncSucceeded: (count: number) => `保存しました。対象: ${count} 件`,
+  officialCertificationOwnedWikisSyncFailed: "保存できませんでした。",
   officialCertificationSearch: "検索",
   officialCertificationSearching: "検索中",
   officialCertificationSearchLoading: "Wiki候補を検索しています",
@@ -214,23 +214,59 @@ describe("OfficialCertificationRequestClient", () => {
         resourceType: "agency",
         translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
         ownerAccount: null,
-        wikis: [{
-          wikiIdentifier: "33333333-3333-4333-8333-333333333333",
-          translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
-          resourceType: "agency",
-          language: "ja",
-          name: "Primary Wiki",
-          slug: "primary-wiki",
-          normalizedName: "primary wiki",
-          metaDescription: null,
-          keywords: null,
-          imageIdentifier: null,
-          imageUrl: null,
-          imageAltText: null,
-          isHidden: false,
-          publishedAt: null,
-          updatedAt: null,
-        }],
+        wikis: [
+          {
+            wikiIdentifier: "33333333-3333-4333-8333-333333333333",
+            translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+            resourceType: "agency",
+            language: "ja",
+            name: "JYP Entertainment",
+            slug: "ag-jyp",
+            normalizedName: "jyp entertainment",
+            metaDescription: null,
+            keywords: null,
+            imageIdentifier: null,
+            imageUrl: null,
+            imageAltText: null,
+            isHidden: false,
+            publishedAt: null,
+            updatedAt: null,
+          },
+          {
+            wikiIdentifier: "33333333-3333-4333-8333-333333333334",
+            translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+            resourceType: "agency",
+            language: "en",
+            name: "JYP Entertainment",
+            slug: "ag-jyp",
+            normalizedName: "jyp entertainment",
+            metaDescription: null,
+            keywords: null,
+            imageIdentifier: null,
+            imageUrl: null,
+            imageAltText: null,
+            isHidden: false,
+            publishedAt: null,
+            updatedAt: null,
+          },
+          {
+            wikiIdentifier: "33333333-3333-4333-8333-333333333335",
+            translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+            resourceType: "agency",
+            language: "ko",
+            name: "JYP Entertainment",
+            slug: "ag-jyp",
+            normalizedName: "jyp entertainment",
+            metaDescription: null,
+            keywords: null,
+            imageIdentifier: null,
+            imageUrl: null,
+            imageAltText: null,
+            isHidden: false,
+            publishedAt: null,
+            updatedAt: null,
+          },
+        ],
         status: "approved",
         requestedAt: "2026-08-23T01:02:03+00:00",
         approvedAt: "2026-08-23T02:02:03+00:00",
@@ -261,12 +297,17 @@ describe("OfficialCertificationRequestClient", () => {
 
     renderClient();
 
+    expect(await screen.findByText("JYP Entertainment")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ja" })).toHaveAttribute("href", "/ja/wiki/ag-jyp");
+    expect(screen.getByRole("link", { name: "en" })).toHaveAttribute("href", "/en/wiki/ag-jyp");
+    expect(screen.getByRole("link", { name: "ko" })).toHaveAttribute("href", "/ko/wiki/ag-jyp");
+
     fireEvent.click(await screen.findByLabelText(/追加Group/));
-    fireEvent.click(screen.getByRole("button", { name: "追加公式認証を同期" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
       expect(syncOwnedWikiCertifications).toHaveBeenCalledWith({
-        fallbackErrorMessage: "追加公式認証を同期できませんでした。",
+        fallbackErrorMessage: "保存できませんでした。",
         requestBody: {
           translationSetIdentifiers: [
             "22222222-2222-4222-8222-222222222222",

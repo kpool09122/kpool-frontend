@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { type KeyboardEvent, useMemo, useState } from "react";
 
+import { buildWikiPath } from "@kpool/wiki";
 import {
   getAccountCategoryFromIdentity,
   getAccountIdentifierFromIdentity,
@@ -48,6 +50,45 @@ const getWikiMeta = (wiki: WikiLike | undefined): string => [wiki?.resourceType,
 const getPrimaryCertification = (certifications: OfficialCertificationListItem[]): OfficialCertificationListItem | null =>
   certifications.find((certification) => certification.status === "approved") ?? certifications[0] ?? null;
 const isAdditionalCandidate = (wiki: WikiLike): boolean => wiki.resourceType === "group" || wiki.resourceType === "song";
+
+function OfficialCertificationWikiTitle({
+  locale,
+  wikis,
+}: {
+  locale: string;
+  wikis: WikiLike[];
+}) {
+  const displayWiki = wikis.find((wiki) => wiki.language === locale) ?? wikis[0];
+  const displayName = getWikiName(displayWiki);
+  const linkableWikis = wikis.filter((wiki) => wiki.slug && wiki.language);
+
+  if (linkableWikis.length === 0) {
+    return <h3 className="mt-2 text-lg font-semibold text-text-strong">{displayName}</h3>;
+  }
+
+  return (
+    <h3 className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg font-semibold text-text-strong">
+      <span className="break-words">{displayName}</span>
+      <span className="flex flex-wrap gap-1 text-base font-semibold text-text-muted">
+        <span aria-hidden="true">(</span>
+        {linkableWikis.map((wiki, index) => (
+          <span className="flex gap-1" key={wiki.wikiIdentifier}>
+            {index > 0 ? <span aria-hidden="true">/</span> : null}
+            <Link
+              className="text-brand-primary transition hover:brightness-110"
+              href={buildWikiPath(wiki.language, wiki.slug)}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {wiki.language}
+            </Link>
+          </span>
+        ))}
+        <span aria-hidden="true">)</span>
+      </span>
+    </h3>
+  );
+}
 
 export function OfficialCertificationRequestClient() {
   const queryClient = useQueryClient();
@@ -116,7 +157,6 @@ export function OfficialCertificationRequestClient() {
     [pendingQuery.data?.officialCertifications],
   );
   const primaryCertification = getPrimaryCertification(approvedCertifications);
-  const primaryWiki = primaryCertification?.wikis[0];
   const alreadyCertifiedIds = useMemo(
     () => new Set(approvedCertifications.map((certification) => certification.translationSetIdentifier)),
     [approvedCertifications],
@@ -134,7 +174,6 @@ export function OfficialCertificationRequestClient() {
     }
     return Array.from(byTranslationSet.values());
   }, [ownedWikisQuery.data]);
-  const hasApprovedPrimary = Boolean(primaryCertification);
   const hasPendingRequest = pendingCertifications.length > 0;
   const isInitialLoading = approvedQuery.isLoading || pendingQuery.isLoading || ownedWikisQuery.isLoading;
   const loadError = approvedQuery.error ?? pendingQuery.error ?? ownedWikisQuery.error;
@@ -266,12 +305,10 @@ export function OfficialCertificationRequestClient() {
         </p>
       ) : (
         <div className="mt-6 grid gap-5">
-          {hasApprovedPrimary ? (
+          {primaryCertification ? (
             <div className={cardClassName}>
               <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">{t.officialCertificationApprovedPrimaryTitle}</p>
-              <h3 className="mt-2 text-lg font-semibold text-text-strong">{getWikiName(primaryWiki)}</h3>
-              <p className="mt-1 text-sm text-text-muted">{getWikiMeta(primaryWiki)}</p>
-              <p className="mt-3 text-sm text-text-muted">{t.officialCertificationApprovedPrimaryDescription}</p>
+              <OfficialCertificationWikiTitle locale={locale} wikis={primaryCertification.wikis} />
             </div>
           ) : hasPendingRequest ? (
             <div className={cardClassName}>
@@ -380,11 +417,21 @@ export function OfficialCertificationRequestClient() {
               </button>
             </form>
           )}
-          {hasApprovedPrimary ? (
+          {primaryCertification ? (
             <div className={cardClassName}>
-              <div className="space-y-1">
-                <h3 className="text-lg font-semibold text-text-strong">{t.officialCertificationAdditionalTitle}</h3>
-                <p className="text-sm text-text-muted">{t.officialCertificationAdditionalDescription}</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-text-strong">{t.officialCertificationAdditionalTitle}</h3>
+                  <p className="text-sm text-text-muted">{t.officialCertificationAdditionalDescription}</p>
+                </div>
+                <button
+                  className="w-fit shrink-0 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={syncMutation.isPending || candidateWikis.length === 0}
+                  onClick={() => syncMutation.mutate()}
+                  type="button"
+                >
+                  {syncMutation.isPending ? t.officialCertificationOwnedWikisSyncing : t.officialCertificationOwnedWikisSync}
+                </button>
               </div>
               {candidateWikis.length === 0 ? (
                 <p className="mt-4 text-sm text-text-muted">{t.officialCertificationAdditionalEmpty}</p>
@@ -412,14 +459,6 @@ export function OfficialCertificationRequestClient() {
                   })}
                 </div>
               )}
-              <button
-                className="mt-4 w-fit rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={syncMutation.isPending || candidateWikis.length === 0}
-                onClick={() => syncMutation.mutate()}
-                type="button"
-              >
-                {syncMutation.isPending ? t.officialCertificationOwnedWikisSyncing : t.officialCertificationOwnedWikisSync}
-              </button>
             </div>
           ) : null}
           {state.error ? <p role="alert" className={statusErrorClassName}>{state.error}</p> : null}

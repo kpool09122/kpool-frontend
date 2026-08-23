@@ -73,7 +73,7 @@ export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
   untranslatedWikis: "/admin/wiki/untranslated",
   draftImages: "/admin/wiki/draft-images",
   imageDeletionRequests: "/admin/wiki/image-deletion-requests",
-  officialCertificationRequest: "/admin/wiki/official-certification/request",
+  officialCertificationRequest: "/admin/wiki/official-certification",
   officialCertificationReview: "/admin/wiki/official-certification/review",
   principalGroupManagement: "/admin/wiki/principal-groups",
 };

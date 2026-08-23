@@ -345,7 +345,7 @@ const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
     return "imageDeletionRequests";
   }
 
-  if (pathname?.endsWith("/official-certification/request")) {
+  if (pathname?.endsWith("/official-certification")) {
     return "officialCertificationRequest";
   }
 

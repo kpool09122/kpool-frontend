@@ -84,7 +84,6 @@ export function LoginPage({
         navigate(nextDestination);
       } else {
         router.replace(nextDestination);
-        router.refresh();
       }
       refresh?.();
       return;

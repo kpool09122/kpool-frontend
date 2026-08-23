@@ -76,7 +76,6 @@ export function InvitationAcceptPage({
       navigate("/admin");
     } else {
       router.replace("/admin");
-      router.refresh();
     }
     refresh?.();
   };
