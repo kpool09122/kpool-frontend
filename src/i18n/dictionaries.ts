@@ -253,7 +253,7 @@ const ja = {
     officialCertificationRequestSucceeded: (status: string) => `公式認証を申請しました。状態: ${status}`,
     officialCertificationRequestFailed: "公式認証を申請できませんでした。",
     officialCertificationRequestUnavailable: "公式認証申請に必要なアカウント情報または Wiki を確認してください。",
-    officialCertificationReviewTitle: "公式認証 承認・拒否",
+    officialCertificationReviewTitle: "未承認の公式認証",
     officialCertificationReviewDescription: "運営向け Wiki principal policy を持つユーザーが公式認証申請を承認または拒否します。",
     officialCertificationReviewListUnavailable: "現在の backend API には公式認証申請の一覧取得 API が無いため、対象の certification ID を入力して操作します。",
     officialCertificationCertificationIdLabel: "Certification ID",

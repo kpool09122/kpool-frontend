@@ -56,7 +56,7 @@ const stubOfficialCertificationRequestFetch = ({
   accountCategory?: string;
   backendResponse?: Response;
 } = {}) => {
-  const fetchMock = vi.fn((url: string | URL | Request) => {
+  const fetchMock = vi.fn((url: string | URL | Request, _init?: RequestInit) => {
     const urlString = typeof url === "string" ? url : url.toString();
 
     if (urlString.includes("/api/identity/auth/me")) {

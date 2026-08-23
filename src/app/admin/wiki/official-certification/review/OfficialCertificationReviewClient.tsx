@@ -68,7 +68,6 @@ export function OfficialCertificationReviewClient() {
     <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
       <div className="space-y-2">
         <h2 className="text-xl font-semibold text-text-strong">{t.officialCertificationReviewTitle}</h2>
-        <p className="text-sm leading-7 text-text-muted">{t.officialCertificationReviewDescription}</p>
         <p className="text-sm leading-7 text-text-muted">{t.officialCertificationReviewListUnavailable}</p>
       </div>
       <form
