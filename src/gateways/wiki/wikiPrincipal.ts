@@ -114,17 +114,25 @@ const officialCertificationResourceTypes = ["agency", "talent"] as const;
 export const getOfficialCertificationRequestResourceTypesForAccountCategory = (
   accountCategory: string | null,
 ): OfficialCertificationResourceType[] => {
+  const resourceType = getOfficialCertificationRequestResourceTypeForAccountCategory(accountCategory);
+
+  return resourceType ? [resourceType] : [];
+};
+
+export const getOfficialCertificationRequestResourceTypeForAccountCategory = (
+  accountCategory: string | null,
+): OfficialCertificationResourceType | null => {
   const normalizedCategory = accountCategory ? normalizePolicyValue(accountCategory) : "";
 
   if (normalizedCategory === "AGENCY") {
-    return ["agency"];
+    return "agency";
   }
 
   if (normalizedCategory === "TALENT") {
-    return ["talent"];
+    return "talent";
   }
 
-  return [];
+  return null;
 };
 
 export const canReviewOfficialCertifications = (principal: WikiPrincipalSummary): boolean =>

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import {
   createOfficialCertificationApiClient,
+  officialCertificationUnavailableMessage,
   reviewOfficialCertification,
   type OfficialCertificationAction,
 } from "@/gateways/wiki/officialCertification";
@@ -49,7 +50,7 @@ export const createOfficialCertificationReviewRoute =
       });
 
       return NextResponse.json(
-        { message: "Official certification is temporarily unavailable." },
+        { message: officialCertificationUnavailableMessage },
         { status: 502 },
       );
     }
