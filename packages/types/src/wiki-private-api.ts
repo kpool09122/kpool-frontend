@@ -806,6 +806,9 @@ const RelatedProfileItem = z
 const ListRelatedProfilesResponseBody = z
   .object({ profiles: z.array(RelatedProfileItem) })
   .passthrough();
+const ListRelatedWikisResponseBody = z
+  .object({ wikis: z.array(WikiListItem) })
+  .passthrough();
 const DeleteWikiRequestBody = WikiAssociationTargets;
 const WikiWorkflowRequestBody = WikiAssociationTargets;
 const UpdateWikiDraftRequestBody = WikiAssociationTargets;
@@ -933,6 +936,7 @@ export const schemas = {
   TalentWikiDetail,
   RelatedProfileItem,
   ListRelatedProfilesResponseBody,
+  ListRelatedWikisResponseBody,
   DeleteWikiRequestBody,
   WikiWorkflowRequestBody,
   UpdateWikiDraftRequestBody,
@@ -2657,6 +2661,53 @@ const endpoints = makeApi([
     ],
     response: TalentDraftWikiDetail,
     errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/:resourceType/:translationSetIdentifier/related-wikis",
+    alias: "WikiOperations_listRelatedWikis",
+    description: `List related published wikis for an agency or talent translation set.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "resourceType",
+        type: "Path",
+        schema: z.enum(["agency", "talent"]),
+      },
+      {
+        name: "translationSetIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: ListRelatedWikisResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
