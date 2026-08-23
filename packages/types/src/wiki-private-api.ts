@@ -216,6 +216,16 @@ const ListUploadedImagesResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const OfficialCertificationOwnerAccount = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    email: z.string(),
+    type: z.string(),
+    name: z.string(),
+    status: z.string(),
+    category: z.string(),
+  })
+  .passthrough();
 const WikiListItem = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -237,6 +247,19 @@ const WikiListItem = z
     normalizedName: z.string(),
     publishedAt: z.string().nullable(),
     updatedAt: z.string().nullable(),
+  })
+  .passthrough();
+const OfficialCertificationListItem = z
+  .object({
+    certificationIdentifier: KPool_Common_Uuid,
+    resourceType: z.string(),
+    translationSetIdentifier: KPool_Common_Uuid,
+    ownerAccount: OfficialCertificationOwnerAccount.nullable(),
+    wikis: z.array(WikiListItem),
+    status: z.string(),
+    requestedAt: z.string().datetime({ offset: true }),
+    approvedAt: z.string().datetime({ offset: true }).nullable(),
+    rejectedAt: z.string().datetime({ offset: true }).nullable(),
   })
   .passthrough();
 const ListMyOwnedWikisResponseBody = z
@@ -262,29 +285,6 @@ const OfficialCertificationSummary = z
     resourceType: z.string(),
     translationSetIdentifier: KPool_Common_Uuid,
     status: z.string(),
-  })
-  .passthrough();
-const OfficialCertificationOwnerAccount = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    email: z.string(),
-    type: z.string(),
-    name: z.string(),
-    status: z.string(),
-    category: z.string(),
-  })
-  .passthrough();
-const OfficialCertificationListItem = z
-  .object({
-    certificationIdentifier: KPool_Common_Uuid,
-    resourceType: z.string(),
-    translationSetIdentifier: KPool_Common_Uuid,
-    ownerAccount: OfficialCertificationOwnerAccount.nullable(),
-    wikis: z.array(WikiListItem),
-    status: z.string(),
-    requestedAt: z.string().datetime({ offset: true }),
-    approvedAt: z.string().datetime({ offset: true }).nullable(),
-    rejectedAt: z.string().datetime({ offset: true }).nullable(),
   })
   .passthrough();
 const PolicyConditionClause = z
@@ -879,12 +879,12 @@ export const schemas = {
   ImageDeletionRequestSummary,
   UploadedImageListItem,
   ListUploadedImagesResponseBody,
+  OfficialCertificationOwnerAccount,
   WikiListItem,
+  OfficialCertificationListItem,
   ListMyOwnedWikisResponseBody,
   RequestCertificationRequestBody,
   OfficialCertificationSummary,
-  OfficialCertificationOwnerAccount,
-  OfficialCertificationListItem,
   PolicyConditionClause,
   PolicyCondition,
   PolicyStatement,
@@ -1484,6 +1484,56 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/official-certifications",
+    alias: "OfficialCertificationListOperations_listMyOfficialCertifications",
+    description: `List official certification requests owned by the current account.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "status",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+    ],
+    response: z
+      .object({
+        officialCertifications: z.array(OfficialCertificationListItem),
+        current_page: z.number().int(),
+        last_page: z.number().int(),
+        total: z.number().int(),
+        per_page: z.number().int(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
