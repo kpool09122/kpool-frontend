@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import type { I18nDictionary } from "../../i18n/dictionaries";
 import type { Locale } from "../../i18n/locales";
+import { OfficialCertificationBadge } from "@/components/Wiki/OfficialCertificationBadge";
 import type { PublicWikiListItem } from "@/gateways/wiki/publicWiki";
 import { buildWikiPath } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
@@ -30,6 +31,9 @@ const getWikiCardImageSrc = (item: PublicWikiListItem): string | null => {
 
   return item.heroImage?.src ?? item.imageUrl ?? null;
 };
+
+const getWikiCardAriaLabel = (item: PublicWikiListItem): string =>
+  item.isOfficial === true ? `${item.name}（公式認証済みWiki）` : item.name;
 
 const buildWikiCardStyle = (
   item: PublicWikiListItem,
@@ -71,7 +75,7 @@ export const PublicWikiCard = ({
 
   return (
     <Link
-      aria-label={item.name}
+      aria-label={getWikiCardAriaLabel(item)}
       className={`wiki-theme-scope group flex ${minHeightClassName} flex-col justify-between rounded-lg border border-stroke-subtle bg-surface-raised bg-cover bg-center p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-primary/40`}
       href={buildWikiPath(item.language || resolvedLanguage || locale, item.slug)}
       style={buildWikiCardStyle(item)}
@@ -97,12 +101,13 @@ export const PublicWikiCard = ({
           </span>
         </div>
         <Heading
-          className="mt-4 text-2xl font-semibold text-text-strong"
+          className="mt-4 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-semibold text-text-strong"
           style={{
             color: hasHeroImage ? "#fffaf4" : undefined,
           }}
         >
-          {item.name}
+          <span>{item.name}</span>
+          {item.isOfficial === true ? <OfficialCertificationBadge /> : null}
         </Heading>
       </div>
       <div

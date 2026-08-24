@@ -417,6 +417,7 @@ const wikiDetailBaseSchema = z.object({
     alt: z.string(),
     isHidden: z.boolean().optional(),
   }),
+  isOfficial: z.boolean().optional(),
   basic: wikiBasicSchema,
   sections: z.array(wikiSectionSchema),
 });

@@ -7,6 +7,7 @@ import {
 import { useId } from "react";
 
 import { WikiPublicHeroImage } from "../WikiPublicHeroImage/index";
+import { OfficialCertificationBadge } from "../OfficialCertificationBadge/index";
 import { WikiContentTabs } from "../WikiContentTabs/index";
 import { WikiSectionAccordion } from "../WikiSectionAccordion/index";
 import { getWikiResourceLabel } from "@kpool/wiki";
@@ -32,8 +33,11 @@ export function WikiDetailContent({
     <div className="flex flex-col gap-8">
       <header>
         <div className="flex items-start justify-between gap-4">
-          <h1 className="text-4xl font-semibold text-text-strong lg:text-5xl">
-            {data.basic.name}
+          <h1 className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-4xl font-semibold text-text-strong lg:text-5xl">
+            <span>{data.basic.name}</span>
+            {data.isOfficial === true ? (
+              <OfficialCertificationBadge className="h-10 w-10 lg:h-11 lg:w-11" />
+            ) : null}
           </h1>
         </div>
       </header>

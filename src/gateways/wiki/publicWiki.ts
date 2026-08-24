@@ -37,6 +37,7 @@ export type PublicWikiApiResponse = {
   metaDescription?: string | null;
   keywords?: string[] | null;
   heroImage?: PublicWikiHeroImage | null;
+  isOfficial?: boolean | null;
   basic?: unknown;
   sections: unknown[];
   translationSetIdentifier: string;
@@ -76,6 +77,7 @@ const publicWikiListItemSchema = z
     metaDescription: z.string().nullable().optional(),
     keywords: z.array(z.string()).nullable().optional(),
     heroImage: publicWikiHeroImageSchema.nullable().optional(),
+    isOfficial: z.boolean().nullable().optional(),
     imageIdentifier: z.string().nullable(),
     imageUrl: z.string().nullable(),
     imageAltText: z.string().nullable(),

@@ -2,6 +2,7 @@
 
 import { useAdmin } from "../../AdminProvider";
 import {
+  OfficialCertificationBadge,
   WikiListCard,
   WikiListCardActionButton,
   WikiListPanel,
@@ -91,6 +92,7 @@ export function SubmittedWikisClient() {
             style={style}
             subtitle={wiki.language}
             title={wiki.name}
+            titleAdornment={wiki.isOfficial === true ? <OfficialCertificationBadge /> : null}
           />
         );
       })}

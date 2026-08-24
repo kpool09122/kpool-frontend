@@ -11,6 +11,7 @@ export { WikiEditSidebar } from "./WikiEditSidebar/index";
 export { WikiHeroBasicFlipCard } from "./WikiHeroBasicFlipCard/index";
 export { WikiHeroPanel } from "./WikiHeroPanel/index";
 export { WikiImageLibrary, type WikiImageUsageRequestInput } from "./WikiImageLibrary/index";
+export { OfficialCertificationBadge } from "./OfficialCertificationBadge/index";
 export {
   WikiListCard,
   WikiListCardActionButton,

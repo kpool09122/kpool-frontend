@@ -28,6 +28,7 @@ const wikiListState: PublicWikiListState = {
         imageIdentifier: "image-1",
         imageUrl: "https://cdn.example.com/aurora-echo.webp",
         isHidden: false,
+        isOfficial: true,
         keywords: null,
         language: "ja",
         metaDescription: null,
@@ -78,10 +79,11 @@ describe("language wiki list page", () => {
       sort: "name",
     });
     expect(screen.getByLabelText("検索")).toHaveValue("aurora");
-    expect(screen.getByRole("link", { name: /Aurora Echo/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Aurora Echo（公式認証済みWiki）/i })).toHaveAttribute(
       "href",
       "/ja/wiki/gr-aurora-echo",
     );
+    expect(screen.getByRole("img", { name: "公式認証済みWiki" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "次へ" })).toHaveAttribute(
       "href",
       "/ja/wiki?keyword=aurora&resourceType=group&sort=name&order=desc&perPage=30&page=2",
@@ -99,6 +101,7 @@ describe("language wiki list page", () => {
             heroImage: null,
             imageUrl: "https://cdn.example.com/legacy-aurora-echo.webp",
             isHidden: true,
+            isOfficial: false,
           },
         ],
       },
@@ -114,5 +117,6 @@ describe("language wiki list page", () => {
     const card = screen.getByRole("link", { name: /Aurora Echo/i });
     expect(card.getAttribute("style") ?? "").not.toContain("url(");
     expect(card.getAttribute("style") ?? "").not.toContain("legacy-aurora-echo.webp");
+    expect(screen.queryByRole("img", { name: "公式認証済みWiki" })).not.toBeInTheDocument();
   });
 });

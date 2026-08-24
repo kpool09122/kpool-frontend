@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { AdminWikiListItem } from "../../useAdminDraftWikis";
 import { useAdmin } from "../../AdminProvider";
 import {
+  OfficialCertificationBadge,
   WikiListCard,
   WikiListCardActionButton,
   WikiListCardActionLink,
@@ -146,6 +147,7 @@ export function UnapprovedWikisClient() {
               style={style}
               subtitle={wiki.language}
               title={wiki.name}
+              titleAdornment={wiki.isOfficial === true ? <OfficialCertificationBadge /> : null}
             />
           );
         })}

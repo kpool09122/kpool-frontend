@@ -13,6 +13,7 @@ import {
 } from "@/gateways/wiki/publicWiki";
 import { buildWikiPath, wikiResourceTypes, type WikiResourceType } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
+import { OfficialCertificationBadge } from "@/components/Wiki/OfficialCertificationBadge";
 
 export type TopSectionKey = "updated" | "created" | "popular";
 
@@ -108,10 +109,11 @@ const TopWikiSlide = ({
       </div>
       <div>
         <h3
-          className="text-2xl font-semibold leading-tight text-text-strong"
+          className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-semibold leading-tight text-text-strong"
           style={{ color: hasHeroImage ? "#fffaf4" : undefined }}
         >
-          {item.name}
+          <span>{item.name}</span>
+          {item.isOfficial === true ? <OfficialCertificationBadge /> : null}
         </h3>
         <p
           className="mt-4 text-sm font-medium text-text-muted"

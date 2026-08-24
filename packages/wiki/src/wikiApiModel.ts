@@ -127,6 +127,7 @@ type WikiApiResponseBase = {
   slug: string;
   themeColor?: string | null;
   fontStyle?: string | null;
+  isOfficial?: boolean | null;
   title?: string | null;
   metaDescription?: string | null;
   meta_description?: string | null;
@@ -582,6 +583,7 @@ export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
   parseWikiSchema(wikiDetailSchema, {
     basic: adaptWikiBasic(response),
     heroImage: getHeroImage(response),
+    ...(response.isOfficial === true ? { isOfficial: true } : {}),
     keywords: toNullableStringList(response.keywords),
     language: response.language,
     metaDescription: response.metaDescription ?? response.meta_description ?? null,

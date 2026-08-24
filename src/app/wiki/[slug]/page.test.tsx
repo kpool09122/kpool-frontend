@@ -146,6 +146,25 @@ describe("WikiDetailPage", () => {
       "/ja/wiki/gr-aurora-echo/edit",
     );
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "公式認証済みWiki" })).not.toBeInTheDocument();
+  });
+
+  it("renders the official certification badge beside an official wiki name", () => {
+    renderWithI18n(
+      React.createElement(WikiDetailPage, {
+        language: "ja",
+        slug: "gr-aurora-echo",
+        wikiState: {
+          ...successState,
+          data: {
+            ...successState.data,
+            isOfficial: true,
+          },
+        },
+      }),
+    );
+
+    expect(screen.getByRole("img", { name: "公式認証済みWiki" })).toBeInTheDocument();
   });
 
   it("injects theme css variables without rendering the color code when themeColor is provided", () => {
