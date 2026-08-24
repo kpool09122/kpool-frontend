@@ -234,8 +234,26 @@ const parseDraftWikiResponseBody = (body: unknown): DraftWikiApiResponse =>
 const parseDraftWikiSummaryBody = (body: unknown): DraftWikiSummary =>
   parseWithSchemaLog("wiki draft summary response", wikiPrivateApiTypes.schemas.DraftWikiSummary, body);
 
-const parsePublishedWikiSummaryBody = (body: unknown): PublishedWikiSummary =>
-  parseWithSchemaLog("published wiki summary response", wikiPrivateApiTypes.schemas.PublishedWikiSummary, body);
+const parsePublishedWikiSummaryBody = (body: unknown): PublishedWikiSummary => {
+  const bodyRecord =
+    typeof body === "object" && body !== null && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : null;
+  const parsed = parseWithSchemaLog(
+    "published wiki summary response",
+    wikiPrivateApiTypes.schemas.PublishedWikiSummary,
+    bodyRecord ? { isOfficial: false, ...bodyRecord } : body,
+  );
+
+  if (bodyRecord && !("isOfficial" in bodyRecord)) {
+    const summary = { ...(parsed as Record<string, unknown>) };
+    delete summary.isOfficial;
+
+    return summary as PublishedWikiSummary;
+  }
+
+  return parsed;
+};
 
 const parseTranslateWikiResponseBody = (body: unknown): TranslateWikiResponseBody =>
   parseWithSchemaLog("translate wiki response", wikiPrivateApiTypes.schemas.TranslateWikiResponseBody, body);

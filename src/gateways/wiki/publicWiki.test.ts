@@ -49,6 +49,7 @@ const publicWikiResponse = {
     isHidden: false,
     src: "https://cdn.example.com/aurora-echo.webp",
   },
+  isOfficial: true,
   language: "ja",
   resourceType: "group",
   sections: [
@@ -86,6 +87,7 @@ const publicWikiListResponse = {
       publishedAt: "2026-05-01T00:00:00+00:00",
       resourceType: "group",
       slug: "gr-aurora-echo",
+      isOfficial: true,
       themeColor: "#4c5cff",
       fontStyle: "ja_mincho",
       updatedAt: "2026-05-02T00:00:00+00:00",
@@ -126,6 +128,7 @@ describe("publicWiki", () => {
         isHidden: false,
         src: "https://cdn.example.com/aurora-echo.webp",
       },
+      isOfficial: true,
       language: "ja",
       resourceType: "group",
       slug: "gr-aurora-echo",
@@ -154,6 +157,19 @@ describe("publicWiki", () => {
         ],
       },
     ]);
+  });
+
+  it("does not mark public wiki details as official when the flag is false or missing", () => {
+    expect(
+      adaptPublicWikiResponse({
+        ...publicWikiResponse,
+        isOfficial: false,
+      }).isOfficial,
+    ).toBeUndefined();
+    const responseWithoutOfficialFlag: Record<string, unknown> = { ...publicWikiResponse };
+    delete responseWithoutOfficialFlag.isOfficial;
+
+    expect(adaptPublicWikiResponse(responseWithoutOfficialFlag as typeof publicWikiResponse).isOfficial).toBeUndefined();
   });
 
   it("keeps hidden flags from public wiki images", () => {
@@ -470,6 +486,7 @@ describe("publicWiki", () => {
           name: "Aurora Echo",
           resourceType: "group",
           slug: "gr-aurora-echo",
+          isOfficial: true,
         },
       ],
     });

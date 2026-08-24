@@ -25,6 +25,7 @@ export const withDefaultWikiResponseMetadata = (value: unknown): unknown => {
       nextRecord[key] ??= null;
     }
     nextRecord.fontStyle ??= null;
+    nextRecord.isOfficial ??= false;
   }
 
   if ("wikiIdentifier" in nextRecord && "status" in nextRecord) {
