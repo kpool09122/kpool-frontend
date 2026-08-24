@@ -18,6 +18,7 @@ export function WikiListCard({
   style,
   subtitle,
   title,
+  titleAdornment,
 }: {
   actions?: ReactNode;
   badgeLabel: string;
@@ -29,6 +30,7 @@ export function WikiListCard({
   style?: CSSProperties;
   subtitle: string;
   title: string;
+  titleAdornment?: ReactNode;
 }) {
   return (
     <article
@@ -38,7 +40,7 @@ export function WikiListCard({
       <div className="relative z-10">
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="break-words text-base font-semibold">
+            <h3 className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 break-words text-base font-semibold">
               <a
                 className="text-brand-primary underline underline-offset-4"
                 href={href}
@@ -46,6 +48,7 @@ export function WikiListCard({
               >
                 {title}
               </a>
+              {titleAdornment}
             </h3>
             <p
               className="mt-1 text-xs font-semibold uppercase text-text-muted"

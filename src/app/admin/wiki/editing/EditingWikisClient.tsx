@@ -3,6 +3,7 @@
 import { useAdmin } from "../../AdminProvider";
 import type { AdminWikiListItem } from "../../useAdminDraftWikis";
 import {
+  OfficialCertificationBadge,
   WikiListCard,
   WikiListCardActionButton,
   WikiListPanel,
@@ -96,6 +97,7 @@ export function EditingWikisClient() {
             style={style}
             subtitle={wiki.language}
             title={wiki.name}
+            titleAdornment={wiki.isOfficial === true ? <OfficialCertificationBadge /> : null}
           />
         );
       })}

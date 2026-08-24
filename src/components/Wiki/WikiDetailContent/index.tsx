@@ -36,7 +36,7 @@ export function WikiDetailContent({
           <h1 className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-4xl font-semibold text-text-strong lg:text-5xl">
             <span>{data.basic.name}</span>
             {data.isOfficial === true ? (
-              <OfficialCertificationBadge className="h-8 w-8 lg:h-9 lg:w-9" />
+              <OfficialCertificationBadge className="h-10 w-10 lg:h-11 lg:w-11" />
             ) : null}
           </h1>
         </div>
