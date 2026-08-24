@@ -735,6 +735,7 @@ const AgencyWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     version: z.number().int(),
+    isOfficial: z.boolean(),
     themeColor: z.string().nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
@@ -753,6 +754,7 @@ const WikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     version: z.number().int(),
+    isOfficial: z.boolean(),
     themeColor: z.string().nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
@@ -771,6 +773,7 @@ const SongWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     version: z.number().int(),
+    isOfficial: z.boolean(),
     themeColor: z.string().nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
@@ -789,6 +792,7 @@ const TalentWikiDetail = z
     language: z.string(),
     resourceType: z.string(),
     version: z.number().int(),
+    isOfficial: z.boolean(),
     themeColor: z.string().nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
@@ -828,6 +832,7 @@ const PublishedWikiSummary = z
     name: z.string(),
     resourceType: z.string(),
     version: z.number().int(),
+    isOfficial: z.boolean(),
   })
   .passthrough();
 const RejectWikiRequestBody = WikiAssociationTargets;
