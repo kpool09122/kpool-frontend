@@ -14,6 +14,7 @@ import { AccountInvitationsClient } from "../account/invitations/AccountInvitati
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
+import { SiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
 import { AdminRouteProvider } from "../AdminRouteProvider";
 import type { AdminRouteData } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
@@ -58,6 +59,7 @@ type AdminClientPage = "accountAffiliations"
   | "accountInvitations"
   | "accountPrincipalGroups"
   | "accountProfile"
+  | "siteManagementContacts"
   | "userLanguage"
   | "userOther"
   | "userProfile"
@@ -74,7 +76,11 @@ type AdminClientPage = "accountAffiliations"
   | "wikiUntranslated";
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
-  if (pathname?.startsWith("/admin/site-management/")) return "siteManagementPrincipalGroups";
+  if (pathname?.startsWith("/admin/site-management")) {
+    return pathname.endsWith("/principal-groups")
+      ? "siteManagementPrincipalGroups"
+      : "siteManagementContacts";
+  }
   if (pathname?.startsWith("/admin/account")) {
     if (pathname.endsWith("/documents")) {
       return "accountDocuments";
@@ -256,6 +262,8 @@ function AdminResolvedPage({
       </UserPageClient>
     );
   }
+
+  if (page === "siteManagementContacts") return <SiteManagementContactsClient />;
 
   if (page === "userProfile") {
     return (

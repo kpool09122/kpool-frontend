@@ -6,13 +6,15 @@ import { AccountStatusMessage } from "@/components/Account";
 
 import { canShowSiteManagementPrincipalGroupManagement } from "../principalGroupVisibility";
 import { useAdmin } from "../AdminProvider";
-import { adminSectionRoutes } from "../adminTypes";
 
-export function SiteManagementPageClient({ children }: { children: ReactNode }) {
+export function SiteManagementPageClient({ children, activeTab = "principalGroups" }: {
+  children: ReactNode;
+  activeTab?: "contacts" | "principalGroups";
+}) {
   const { currentIdentity, t } = useAdmin();
   const canShowManagement = canShowSiteManagementPrincipalGroupManagement(currentIdentity);
 
-  if (!canShowManagement) return (
+  if (activeTab === "principalGroups" && !canShowManagement) return (
     <AccountStatusMessage variant="empty">
       {t.siteManagementNoAvailableServices}
     </AccountStatusMessage>
@@ -23,13 +25,21 @@ export function SiteManagementPageClient({ children }: { children: ReactNode }) 
       <div className="overflow-x-auto border-b border-stroke-subtle">
         <div aria-label={t.siteManagementTabsLabel} className="-mb-px flex gap-1" role="tablist">
           <Link
-            aria-selected={true}
-            className="whitespace-nowrap border-b-2 border-brand-primary px-4 py-3 text-sm font-semibold text-text-strong transition"
-            href={adminSectionRoutes.siteManagement}
+            aria-selected={activeTab === "contacts"}
+            className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "contacts" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}
+            href="/admin/site-management/contacts"
+            role="tab"
+          >
+            {t.myContacts.tab}
+          </Link>
+          {canShowManagement ? <Link
+            aria-selected={activeTab === "principalGroups"}
+            className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "principalGroups" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}
+            href="/admin/site-management/principal-groups"
             role="tab"
           >
             {t.siteManagementPrincipalGroups.title}
-          </Link>
+          </Link> : null}
         </div>
       </div>
       {children}
