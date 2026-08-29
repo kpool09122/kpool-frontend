@@ -30,6 +30,10 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
     getSingleSearchParam(resolvedSearchParams.returnTo),
   );
 
+  if (resolvedParams.slug?.join("/") === "user/contacts") {
+    redirect("/admin/site-management/contacts");
+  }
+
   if (!returnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
     redirect("/admin/wiki/editing");
   }
