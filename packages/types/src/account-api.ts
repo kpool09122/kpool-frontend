@@ -148,13 +148,6 @@ const UploadAccountDocumentsRequestBody = z
 const UploadAccountDocumentsResponseBody = z
   .object({ documents: z.array(AccountDocumentSummary) })
   .passthrough();
-const AffiliationAccountSummary = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    name: z.string(),
-    email: z.string(),
-  })
-  .passthrough();
 const AffiliationTermsSummary = z
   .object({
     revenueSharePercentage: z.number().int(),
@@ -162,13 +155,11 @@ const AffiliationTermsSummary = z
   })
   .partial()
   .passthrough();
-const AffiliationSummary = z
+const AffiliationCommandSummary = z
   .object({
     affiliationIdentifier: KPool_Common_Uuid,
     agencyAccountIdentifier: KPool_Common_Uuid,
     talentAccountIdentifier: KPool_Common_Uuid,
-    agencyAccount: AffiliationAccountSummary,
-    talentAccount: AffiliationAccountSummary,
     requestedBy: KPool_Common_Uuid,
     status: z.string(),
     terms: AffiliationTermsSummary.nullish(),
@@ -177,6 +168,7 @@ const AffiliationSummary = z
     terminatedAt: KPool_Common_Timestamp.nullish(),
   })
   .passthrough();
+const AffiliationSummary = AffiliationCommandSummary;
 const ListAffiliationsResponseBody = z
   .object({
     affiliations: z.array(AffiliationSummary),
@@ -208,10 +200,7 @@ const DelegationPermissionSummary = z
     createdAt: KPool_Common_Timestamp,
   })
   .passthrough();
-const RequestDelegationRequestBody = z
-  .object({ targetAccountIdentifier: KPool_Common_Uuid })
-  .passthrough();
-const AccountDelegationSummary = z
+const DelegationSummary = z
   .object({
     delegationIdentifier: KPool_Common_Uuid.uuid(),
     affiliationIdentifier: KPool_Common_Uuid.uuid(),
@@ -222,8 +211,20 @@ const AccountDelegationSummary = z
     direction: z.string(),
     requestedAt: KPool_Common_Timestamp,
     approvedAt: KPool_Common_Timestamp.nullish(),
-    revokedAt: KPool_Common_Timestamp.nullish(),
+    rejectedAt: KPool_Common_Timestamp.nullish(),
   })
+  .passthrough();
+const ListDelegationsResponseBody = z
+  .object({
+    delegations: z.array(DelegationSummary),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
+  .passthrough();
+const RequestDelegationRequestBody = z
+  .object({ targetAccountIdentifier: KPool_Common_Uuid })
   .passthrough();
 const InviteMemberRequestBody = z
   .object({
@@ -303,17 +304,11 @@ const UpdatePrincipalGroupMembersRequestBody = z
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
-const DelegationSummary = z
+const AffiliationAccountSummary = z
   .object({
-    delegationIdentifier: KPool_Common_Uuid,
-    affiliationIdentifier: KPool_Common_Uuid,
-    delegateIdentifier: KPool_Common_Uuid,
-    delegatorIdentifier: KPool_Common_Uuid,
-    status: z.string(),
-    direction: z.string(),
-    requestedAt: KPool_Common_Timestamp,
-    approvedAt: KPool_Common_Timestamp.nullish(),
-    revokedAt: KPool_Common_Timestamp.nullish(),
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    email: z.string(),
   })
   .passthrough();
 
@@ -338,16 +333,17 @@ export const schemas = {
   AccountDocumentUploadItem,
   UploadAccountDocumentsRequestBody,
   UploadAccountDocumentsResponseBody,
-  AffiliationAccountSummary,
   AffiliationTermsSummary,
+  AffiliationCommandSummary,
   AffiliationSummary,
   ListAffiliationsResponseBody,
   RequestAffiliationRequestBody,
   TerminateAffiliationRequestBody,
   GrantDelegationPermissionRequestBody,
   DelegationPermissionSummary,
+  DelegationSummary,
+  ListDelegationsResponseBody,
   RequestDelegationRequestBody,
-  AccountDelegationSummary,
   InviteMemberRequestBody,
   InvitationSummary,
   MemberPrincipalGroupSummary,
@@ -362,7 +358,7 @@ export const schemas = {
   UpdatePrincipalGroupMembersItem,
   UpdatePrincipalGroupMembersRequestBody,
   MutatePrincipalGroupMemberRequestBody,
-  DelegationSummary,
+  AffiliationAccountSummary,
 };
 
 const endpoints = makeApi([
@@ -918,16 +914,11 @@ const endpoints = makeApi([
         schema: RequestAffiliationRequestBody,
       },
     ],
-    response: AffiliationSummary,
+    response: AffiliationCommandSummary,
     errors: [
       {
         status: 401,
         description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -960,7 +951,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: AffiliationSummary,
+    response: AffiliationCommandSummary,
     errors: [
       {
         status: 401,
@@ -1049,7 +1040,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: AffiliationSummary,
+    response: AffiliationCommandSummary,
     errors: [
       {
         status: 401,
@@ -1153,6 +1144,58 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "get",
+    path: "/delegations",
+    alias: "DelegationOperations_listDelegations",
+    description: `List delegations related to the authenticated account.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "status",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "viewerRole",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+    ],
+    response: ListDelegationsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/delegations",
     alias: "DelegationOperations_requestDelegation",
@@ -1165,7 +1208,7 @@ const endpoints = makeApi([
         schema: RequestDelegationRequestBody,
       },
     ],
-    response: AccountDelegationSummary,
+    response: DelegationSummary,
     errors: [
       {
         status: 401,
@@ -1212,7 +1255,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: AccountDelegationSummary,
+    response: DelegationSummary,
     errors: [
       {
         status: 401,
