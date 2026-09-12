@@ -209,11 +209,24 @@ const DelegationPermissionSummary = z
   })
   .passthrough();
 const RequestDelegationRequestBody = z
+  .object({ targetAccountIdentifier: KPool_Common_Uuid })
+  .passthrough();
+const AccountDelegationSummary = z
   .object({
-    affiliationIdentifier: KPool_Common_Uuid,
-    delegateIdentifier: KPool_Common_Uuid,
-    delegatorIdentifier: KPool_Common_Uuid,
+    delegationIdentifier: KPool_Common_Uuid.uuid(),
+    affiliationIdentifier: KPool_Common_Uuid.uuid(),
+    delegateAccountIdentifier: KPool_Common_Uuid.uuid(),
+    delegatorAccountIdentifier: KPool_Common_Uuid.uuid(),
+    requestedByAccountIdentifier: KPool_Common_Uuid.uuid(),
+    status: z.string(),
+    direction: z.string(),
+    requestedAt: KPool_Common_Timestamp,
+    approvedAt: KPool_Common_Timestamp.nullish(),
+    revokedAt: KPool_Common_Timestamp.nullish(),
   })
+  .passthrough();
+const ApproveDelegationRequestBody = z
+  .object({ approverIdentifier: KPool_Common_Uuid })
   .passthrough();
 const DelegationSummary = z
   .object({
@@ -227,9 +240,6 @@ const DelegationSummary = z
     approvedAt: KPool_Common_Timestamp.nullish(),
     revokedAt: KPool_Common_Timestamp.nullish(),
   })
-  .passthrough();
-const ApproveDelegationRequestBody = z
-  .object({ approverIdentifier: KPool_Common_Uuid })
   .passthrough();
 const RevokeDelegationRequestBody = z
   .object({ revokerIdentifier: KPool_Common_Uuid })
@@ -343,8 +353,9 @@ export const schemas = {
   GrantDelegationPermissionRequestBody,
   DelegationPermissionSummary,
   RequestDelegationRequestBody,
-  DelegationSummary,
+  AccountDelegationSummary,
   ApproveDelegationRequestBody,
+  DelegationSummary,
   RevokeDelegationRequestBody,
   InviteMemberRequestBody,
   InvitationSummary,
@@ -1162,7 +1173,7 @@ const endpoints = makeApi([
         schema: RequestDelegationRequestBody,
       },
     ],
-    response: DelegationSummary,
+    response: AccountDelegationSummary,
     errors: [
       {
         status: 401,
@@ -1170,8 +1181,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
