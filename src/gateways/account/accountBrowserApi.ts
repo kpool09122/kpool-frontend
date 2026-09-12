@@ -2,7 +2,7 @@ import {
   parseAccountMembersResponse,
   parseAccountSummary,
   parseAccountDelegationSummary,
-  parseAffiliationSummary,
+  parseAffiliationCommandSummary,
   parseInvitationSummaries,
   parseListAccountDocumentsResponse,
   parseAccountCategoryChangeRequestDetailResponse,
@@ -14,7 +14,7 @@ import {
   type AccountCategoryChangeRequestDetailResponse,
   type AccountSummary,
   type AccountDelegationSummary,
-  type AffiliationSummary,
+  type AffiliationCommandSummary,
   type InvitationSummary,
   type InviteAccountMembersRequest,
   type ListAccountCategoryChangeRequestsResponse,
@@ -475,7 +475,7 @@ export const requestAffiliation = async ({
   fallbackErrorMessage,
   fetchAdapter = fetch,
   requestBody,
-}: RequestAffiliationOptions): Promise<AffiliationSummary> => {
+}: RequestAffiliationOptions): Promise<AffiliationCommandSummary> => {
   const response = await fetchAdapter("/api/account/affiliations", {
     method: "POST",
     cache: "no-store",
@@ -492,7 +492,7 @@ export const requestAffiliation = async ({
     throw createRouteError(response, body, fallbackErrorMessage);
   }
 
-  return parseAffiliationSummary(body);
+  return parseAffiliationCommandSummary(body);
 };
 
 export const fetchAffiliations = async ({
@@ -552,7 +552,7 @@ export const approveAffiliation = async ({
   affiliationId,
   fallbackErrorMessage,
   fetchAdapter = fetch,
-}: AffiliationActionOptions): Promise<AffiliationSummary> => {
+}: AffiliationActionOptions): Promise<AffiliationCommandSummary> => {
   const response = await fetchAdapter(`/api/account/affiliations/${encodeURIComponent(affiliationId)}/approve`, {
     method: "POST",
     cache: "no-store",
@@ -565,7 +565,7 @@ export const approveAffiliation = async ({
     throw createRouteError(response, body, fallbackErrorMessage);
   }
 
-  return parseAffiliationSummary(body);
+  return parseAffiliationCommandSummary(body);
 };
 
 export const rejectAffiliation = async ({

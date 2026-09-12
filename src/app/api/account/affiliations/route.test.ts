@@ -25,6 +25,17 @@ const affiliationResponse = {
   activatedAt: null,
   terminatedAt: null,
 };
+const affiliationCommandResponse = {
+  affiliationIdentifier: affiliationResponse.affiliationIdentifier,
+  agencyAccountIdentifier: affiliationResponse.agencyAccountIdentifier,
+  talentAccountIdentifier: affiliationResponse.talentAccountIdentifier,
+  requestedBy: affiliationResponse.requestedBy,
+  status: affiliationResponse.status,
+  terms: affiliationResponse.terms,
+  requestedAt: affiliationResponse.requestedAt,
+  activatedAt: affiliationResponse.activatedAt,
+  terminatedAt: affiliationResponse.terminatedAt,
+};
 
 const createRequest = (body: unknown = requestBody, headers: Record<string, string> = {}): NextRequest =>
   new Request("https://app.example.test/api/account/affiliations", {
@@ -65,7 +76,7 @@ describe("/api/account/affiliations route", () => {
 
   it("forwards affiliation requests to upstream", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(affiliationResponse), { status: 201 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(affiliationCommandResponse), { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await POST(createRequest(requestBody, { "accept-language": "ja", cookie: "laravel_session=abc" }));
@@ -82,7 +93,7 @@ describe("/api/account/affiliations route", () => {
       cache: "no-store",
     });
     expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toEqual(affiliationResponse);
+    await expect(response.json()).resolves.toEqual(affiliationCommandResponse);
   });
 
   it("rejects invalid request bodies without calling upstream", async () => {

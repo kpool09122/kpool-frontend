@@ -18,10 +18,18 @@ export type ListAccountCategoryChangeRequestsResponse = z.infer<typeof accountAp
 export type AccountCategoryChangeRequestDetailResponse = z.infer<typeof accountApiTypes.schemas.AccountCategoryChangeRequestDetailResponseBody>;
 export type RejectAccountCategoryChangeRequest = z.infer<typeof accountApiTypes.schemas.RejectAccountCategoryChangeRequestBody>;
 export type RequestAffiliationRequest = z.infer<typeof accountApiTypes.schemas.RequestAffiliationRequestBody>;
-export type AffiliationSummary = z.infer<typeof accountApiTypes.schemas.AffiliationSummary>;
-export type ListAffiliationsResponse = z.infer<typeof accountApiTypes.schemas.ListAffiliationsResponseBody>;
+const AffiliationSummarySchema = accountApiTypes.schemas.AffiliationSummary.extend({
+  agencyAccount: accountApiTypes.schemas.AffiliationAccountSummary,
+  talentAccount: accountApiTypes.schemas.AffiliationAccountSummary,
+});
+const ListAffiliationsResponseSchema = accountApiTypes.schemas.ListAffiliationsResponseBody.extend({
+  affiliations: z.array(AffiliationSummarySchema),
+});
+export type AffiliationCommandSummary = z.infer<typeof accountApiTypes.schemas.AffiliationCommandSummary>;
+export type AffiliationSummary = z.infer<typeof AffiliationSummarySchema>;
+export type ListAffiliationsResponse = z.infer<typeof ListAffiliationsResponseSchema>;
 export type RequestDelegationRequest = z.infer<typeof accountApiTypes.schemas.RequestDelegationRequestBody>;
-export type AccountDelegationSummary = z.infer<typeof accountApiTypes.schemas.AccountDelegationSummary>;
+export type AccountDelegationSummary = z.infer<typeof accountApiTypes.schemas.DelegationSummary>;
 
 const InviteAccountMembersRequestSchema = z
   .object({
@@ -102,17 +110,20 @@ export const parseRejectAccountCategoryChangeRequest = (body: unknown): RejectAc
 export const parseRequestAffiliationRequest = (body: unknown): RequestAffiliationRequest =>
   parseWithSchemaLog("account affiliation request", accountApiTypes.schemas.RequestAffiliationRequestBody, body);
 
+export const parseAffiliationCommandSummary = (body: unknown): AffiliationCommandSummary =>
+  parseWithSchemaLog("account affiliation command response", accountApiTypes.schemas.AffiliationCommandSummary, body);
+
 export const parseAffiliationSummary = (body: unknown): AffiliationSummary =>
-  parseWithSchemaLog("account affiliation response", accountApiTypes.schemas.AffiliationSummary, body);
+  parseWithSchemaLog("account affiliation response", AffiliationSummarySchema, body);
 
 export const parseListAffiliationsResponse = (body: unknown): ListAffiliationsResponse =>
-  parseWithSchemaLog("account affiliations list response", accountApiTypes.schemas.ListAffiliationsResponseBody, body);
+  parseWithSchemaLog("account affiliations list response", ListAffiliationsResponseSchema, body);
 
 export const parseRequestDelegationRequest = (body: unknown): RequestDelegationRequest =>
   parseWithSchemaLog("account delegation request", accountApiTypes.schemas.RequestDelegationRequestBody, body);
 
 export const parseAccountDelegationSummary = (body: unknown): AccountDelegationSummary =>
-  parseWithSchemaLog("account delegation response", accountApiTypes.schemas.AccountDelegationSummary, body);
+  parseWithSchemaLog("account delegation response", accountApiTypes.schemas.DelegationSummary, body);
 
 export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
   parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);
