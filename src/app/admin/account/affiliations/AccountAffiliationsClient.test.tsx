@@ -24,6 +24,7 @@ const renderClient = (overrides: Partial<Parameters<typeof AccountSectionProvide
           canReceiveAffiliationRequests: true,
           canRejectAffiliations: true,
           canRequestAffiliation: true,
+          canRequestDelegation: false,
           onAuthorizationRejected: vi.fn(),
           t: dictionaries.ja.admin,
           ...overrides,

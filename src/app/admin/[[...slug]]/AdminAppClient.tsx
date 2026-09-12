@@ -7,6 +7,7 @@ import { AccountCategoryChangeClient } from "../account/category-change/AccountC
 import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
 import { AccountCategoryChangeRequestsClient } from "../account/category-change-requests/AccountCategoryChangeRequestsClient";
 import { AccountDocumentsClient } from "../account/documents/AccountDocumentsClient";
+import { AccountDelegationsClient } from "../account/delegations/AccountDelegationsClient";
 import { AccountInvitationsClient } from "../account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
@@ -51,6 +52,7 @@ export function AdminAppClient({
 }
 
 type AdminClientPage = "accountAffiliations"
+  | "accountDelegations"
   | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
   | "accountCategoryChangeRequests"
@@ -83,6 +85,10 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
 
     if (pathname.endsWith("/affiliations")) {
       return "accountAffiliations";
+    }
+
+    if (pathname.endsWith("/delegations")) {
+      return "accountDelegations";
     }
 
     if (pathname?.includes("/category-change-requests/")) {
@@ -154,6 +160,14 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "accountDelegations") {
+    return (
+      <AccountPageClient activeTab="accountDelegations">
+        <AccountDelegationsClient />
+      </AccountPageClient>
+    );
+  }
+
   if (page === "accountAffiliations") {
     return (
       <AccountPageClient activeTab="accountAffiliations">

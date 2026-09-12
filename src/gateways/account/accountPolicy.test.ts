@@ -9,6 +9,7 @@ import {
   canReceiveAffiliationRequests,
   canRejectAffiliations,
   canRequestAffiliation,
+  canRequestDelegation,
   canUpdateAccount,
   getAccountCategoryFromIdentity,
   getAccountTypeFromIdentity,
@@ -149,6 +150,25 @@ describe("accountPolicy", () => {
     expect(canManageAccountCategoryChangeRequests({ ...baseIdentity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["wiki:*"], resourceTypes: ["WIKI"] }] }] })).toBe(false);
   });
 
+
+  it("allows delegation requests only with effective allow and no deny", () => {
+    const allowedIdentity = {
+      ...baseIdentity,
+      accountEffectivePolicies: [{ statements: [
+        { effect: "allow", actions: ["account:delegation-request:create"], resourceTypes: ["ACCOUNT"] },
+      ] }],
+    };
+
+    expect(canRequestDelegation(allowedIdentity)).toBe(true);
+    expect(canRequestDelegation({
+      ...allowedIdentity,
+      accountEffectivePolicies: [{ statements: [
+        { effect: "allow", actions: ["account:delegation-request:create"], resourceTypes: ["ACCOUNT"] },
+        { effect: "deny", actions: ["account:delegation-request:create"], resourceTypes: ["ACCOUNT"] },
+      ] }],
+    })).toBe(false);
+    expect(canRequestDelegation(baseIdentity)).toBe(false);
+  });
 
   it("allows affiliation actions only with their account policies and no deny", () => {
     const allowPolicy = {
