@@ -225,25 +225,6 @@ const AccountDelegationSummary = z
     revokedAt: KPool_Common_Timestamp.nullish(),
   })
   .passthrough();
-const ApproveDelegationRequestBody = z
-  .object({ approverIdentifier: KPool_Common_Uuid })
-  .passthrough();
-const DelegationSummary = z
-  .object({
-    delegationIdentifier: KPool_Common_Uuid,
-    affiliationIdentifier: KPool_Common_Uuid,
-    delegateIdentifier: KPool_Common_Uuid,
-    delegatorIdentifier: KPool_Common_Uuid,
-    status: z.string(),
-    direction: z.string(),
-    requestedAt: KPool_Common_Timestamp,
-    approvedAt: KPool_Common_Timestamp.nullish(),
-    revokedAt: KPool_Common_Timestamp.nullish(),
-  })
-  .passthrough();
-const RevokeDelegationRequestBody = z
-  .object({ revokerIdentifier: KPool_Common_Uuid })
-  .passthrough();
 const InviteMemberRequestBody = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -322,6 +303,19 @@ const UpdatePrincipalGroupMembersRequestBody = z
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
+const DelegationSummary = z
+  .object({
+    delegationIdentifier: KPool_Common_Uuid,
+    affiliationIdentifier: KPool_Common_Uuid,
+    delegateIdentifier: KPool_Common_Uuid,
+    delegatorIdentifier: KPool_Common_Uuid,
+    status: z.string(),
+    direction: z.string(),
+    requestedAt: KPool_Common_Timestamp,
+    approvedAt: KPool_Common_Timestamp.nullish(),
+    revokedAt: KPool_Common_Timestamp.nullish(),
+  })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -354,9 +348,6 @@ export const schemas = {
   DelegationPermissionSummary,
   RequestDelegationRequestBody,
   AccountDelegationSummary,
-  ApproveDelegationRequestBody,
-  DelegationSummary,
-  RevokeDelegationRequestBody,
   InviteMemberRequestBody,
   InvitationSummary,
   MemberPrincipalGroupSummary,
@@ -371,6 +362,7 @@ export const schemas = {
   UpdatePrincipalGroupMembersItem,
   UpdatePrincipalGroupMembersRequestBody,
   MutatePrincipalGroupMemberRequestBody,
+  DelegationSummary,
 };
 
 const endpoints = makeApi([
@@ -1215,17 +1207,12 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "body",
-        type: "Body",
-        schema: ApproveDelegationRequestBody,
-      },
-      {
         name: "delegationId",
         type: "Path",
         schema: z.string().uuid(),
       },
     ],
-    response: DelegationSummary,
+    response: AccountDelegationSummary,
     errors: [
       {
         status: 401,
@@ -1256,23 +1243,18 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/delegations/:delegationId/revoke",
-    alias: "DelegationOperations_revokeDelegation",
-    description: `Revoke a delegation.`,
+    path: "/delegations/:delegationId/reject",
+    alias: "DelegationOperations_rejectDelegation",
+    description: `Reject a pending delegation.`,
     requestFormat: "json",
     parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: RevokeDelegationRequestBody,
-      },
       {
         name: "delegationId",
         type: "Path",
         schema: z.string().uuid(),
       },
     ],
-    response: DelegationSummary,
+    response: z.void(),
     errors: [
       {
         status: 401,
