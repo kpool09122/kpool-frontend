@@ -1,6 +1,7 @@
 import {
   parseAccountMembersResponse,
   parseAccountSummary,
+  parseAccountDelegationSummary,
   parseAffiliationSummary,
   parseInvitationSummaries,
   parseListAccountDocumentsResponse,
@@ -12,6 +13,7 @@ import {
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
   type AccountSummary,
+  type AccountDelegationSummary,
   type AffiliationSummary,
   type InvitationSummary,
   type InviteAccountMembersRequest,
@@ -23,6 +25,7 @@ import {
   type RejectAccountCategoryChangeRequest,
   type RequestAccountCategoryChangeRequest,
   type RequestAffiliationRequest,
+  type RequestDelegationRequest,
   type UploadAccountDocumentsRequest,
   type UpdateAccountRequest,
   type UpdatePrincipalGroupMembersRequest,
@@ -89,6 +92,12 @@ type RequestAffiliationOptions = {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
   requestBody: RequestAffiliationRequest;
+};
+
+type RequestDelegationOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestBody: RequestDelegationRequest;
 };
 
 type FetchAffiliationsOptions = {
@@ -513,6 +522,30 @@ export const fetchAffiliations = async ({
   }
 
   return parseListAffiliationsResponse(body);
+};
+
+export const requestDelegation = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: RequestDelegationOptions): Promise<AccountDelegationSummary> => {
+  const response = await fetchAdapter("/api/account/delegations", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAccountDelegationSummary(body);
 };
 
 export const approveAffiliation = async ({

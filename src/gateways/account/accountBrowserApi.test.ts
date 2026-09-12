@@ -14,6 +14,7 @@ import {
   rejectAffiliation,
   requestAccountCategoryChange,
   requestAffiliation,
+  requestDelegation,
   updateAccount,
   updatePrincipalGroupMembers,
   uploadAccountDocuments,
@@ -280,6 +281,31 @@ describe("account browser API", () => {
     expect(fetchAdapter).toHaveBeenCalledWith("/api/account/affiliations", expect.objectContaining({ method: "POST", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations/${affiliation.affiliationIdentifier}/approve`, expect.objectContaining({ method: "POST", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations/${affiliation.affiliationIdentifier}/reject`, expect.objectContaining({ method: "POST", credentials: "include" }));
+  });
+  it("requests delegation with only the target account identifier", async () => {
+    const requestBody = { targetAccountIdentifier: "33333333-3333-4333-8333-333333333333" };
+    const responseBody = {
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      affiliationIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      delegateAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      delegatorAccountIdentifier: requestBody.targetAccountIdentifier,
+      requestedByAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      status: "pending",
+      direction: "agency_to_talent",
+      requestedAt: "2026-09-12T00:00:00Z",
+      approvedAt: null,
+      revokedAt: null,
+    };
+    const fetchAdapter = vi.fn().mockResolvedValue(new Response(JSON.stringify(responseBody), { status: 201 }));
+
+    await expect(requestDelegation({ fallbackErrorMessage: "failed", fetchAdapter, requestBody })).resolves.toEqual(responseBody);
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/account/delegations", {
+      method: "POST",
+      cache: "no-store",
+      credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
   });
 
 });

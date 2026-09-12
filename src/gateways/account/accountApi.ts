@@ -20,6 +20,8 @@ export type RejectAccountCategoryChangeRequest = z.infer<typeof accountApiTypes.
 export type RequestAffiliationRequest = z.infer<typeof accountApiTypes.schemas.RequestAffiliationRequestBody>;
 export type AffiliationSummary = z.infer<typeof accountApiTypes.schemas.AffiliationSummary>;
 export type ListAffiliationsResponse = z.infer<typeof accountApiTypes.schemas.ListAffiliationsResponseBody>;
+export type RequestDelegationRequest = z.infer<typeof accountApiTypes.schemas.RequestDelegationRequestBody>;
+export type AccountDelegationSummary = z.infer<typeof accountApiTypes.schemas.AccountDelegationSummary>;
 
 const InviteAccountMembersRequestSchema = z
   .object({
@@ -105,6 +107,12 @@ export const parseAffiliationSummary = (body: unknown): AffiliationSummary =>
 
 export const parseListAffiliationsResponse = (body: unknown): ListAffiliationsResponse =>
   parseWithSchemaLog("account affiliations list response", accountApiTypes.schemas.ListAffiliationsResponseBody, body);
+
+export const parseRequestDelegationRequest = (body: unknown): RequestDelegationRequest =>
+  parseWithSchemaLog("account delegation request", accountApiTypes.schemas.RequestDelegationRequestBody, body);
+
+export const parseAccountDelegationSummary = (body: unknown): AccountDelegationSummary =>
+  parseWithSchemaLog("account delegation response", accountApiTypes.schemas.AccountDelegationSummary, body);
 
 export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
   parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);
