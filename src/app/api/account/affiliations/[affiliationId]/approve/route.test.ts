@@ -25,6 +25,17 @@ const affiliationResponse = {
   activatedAt: "2026-08-12T00:00:00Z",
   terminatedAt: null,
 };
+const affiliationCommandResponse = {
+  affiliationIdentifier: affiliationResponse.affiliationIdentifier,
+  agencyAccountIdentifier: affiliationResponse.agencyAccountIdentifier,
+  talentAccountIdentifier: affiliationResponse.talentAccountIdentifier,
+  requestedBy: affiliationResponse.requestedBy,
+  status: affiliationResponse.status,
+  terms: affiliationResponse.terms,
+  requestedAt: affiliationResponse.requestedAt,
+  activatedAt: affiliationResponse.activatedAt,
+  terminatedAt: affiliationResponse.terminatedAt,
+};
 
 const createRequest = (headers: Record<string, string> = {}): NextRequest =>
   new Request(`https://app.example.test/api/account/affiliations/${affiliationId}/approve`, { method: "POST", headers }) as NextRequest;
@@ -37,7 +48,7 @@ describe("/api/account/affiliations/[affiliationId]/approve route", () => {
 
   it("forwards approve requests and returns the parsed affiliation", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(affiliationResponse), { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(affiliationCommandResponse), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await POST(createRequest({ cookie: "laravel_session=abc" }), { params: Promise.resolve({ affiliationId }) });
@@ -48,6 +59,6 @@ describe("/api/account/affiliations/[affiliationId]/approve route", () => {
       cache: "no-store",
     });
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(affiliationResponse);
+    await expect(response.json()).resolves.toEqual(affiliationCommandResponse);
   });
 });

@@ -7,6 +7,7 @@ import {
   parseAccountMembersResponse,
   parseAccountSummary,
   parseCreateAccountResult,
+  parseAffiliationCommandSummary,
   parseListAccountCategoryChangeRequestsResponse,
   parseListAccountDocumentsResponse,
   parseListAffiliationsResponse,
@@ -195,6 +196,22 @@ describe("account API helpers", () => {
     };
 
     expect(parseListAffiliationsResponse({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 })).toEqual({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 });
+  });
+
+  it("parses affiliation command responses without account summaries", () => {
+    const affiliation = {
+      affiliationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      agencyAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      talentAccountIdentifier: "33333333-3333-4333-8333-333333333333",
+      requestedBy: "44444444-4444-4444-8444-444444444444",
+      status: "pending",
+      terms: null,
+      requestedAt: "2026-08-11T00:00:00Z",
+      activatedAt: null,
+      terminatedAt: null,
+    };
+
+    expect(parseAffiliationCommandSummary(affiliation)).toEqual(affiliation);
   });
 
   it("rejects invalid principal group member update payloads", () => {

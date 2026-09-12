@@ -267,15 +267,26 @@ describe("account browser API", () => {
       activatedAt: null,
       terminatedAt: null,
     };
+    const affiliationCommandResponse = {
+      affiliationIdentifier: affiliation.affiliationIdentifier,
+      agencyAccountIdentifier: affiliation.agencyAccountIdentifier,
+      talentAccountIdentifier: affiliation.talentAccountIdentifier,
+      requestedBy: affiliation.requestedBy,
+      status: affiliation.status,
+      terms: affiliation.terms,
+      requestedAt: affiliation.requestedAt,
+      activatedAt: affiliation.activatedAt,
+      terminatedAt: affiliation.terminatedAt,
+    };
     const fetchAdapter = vi.fn().mockImplementation((url: string) => {
       if (url.includes("/reject")) return Promise.resolve(new Response(null, { status: 204 }));
       if (url.includes("status=pending")) return Promise.resolve(new Response(JSON.stringify({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 }), { status: 200 }));
-      return Promise.resolve(new Response(JSON.stringify(affiliation), { status: url.endsWith("/affiliations") ? 201 : 200 }));
+      return Promise.resolve(new Response(JSON.stringify(affiliationCommandResponse), { status: url.endsWith("/affiliations") ? 201 : 200 }));
     });
 
     await expect(fetchAffiliations({ fallbackErrorMessage: "failed", fetchAdapter, status: "pending", viewerRole: "approver" })).resolves.toMatchObject({ affiliations: [affiliation] });
-    await expect(requestAffiliation({ fallbackErrorMessage: "failed", fetchAdapter, requestBody: { targetEmail: "talent@example.com" } })).resolves.toEqual(affiliation);
-    await expect(approveAffiliation({ affiliationId: affiliation.affiliationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toEqual(affiliation);
+    await expect(requestAffiliation({ fallbackErrorMessage: "failed", fetchAdapter, requestBody: { targetEmail: "talent@example.com" } })).resolves.toEqual(affiliationCommandResponse);
+    await expect(approveAffiliation({ affiliationId: affiliation.affiliationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toEqual(affiliationCommandResponse);
     await expect(rejectAffiliation({ affiliationId: affiliation.affiliationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toBeUndefined();
     expect(fetchAdapter).toHaveBeenCalledWith("/api/account/affiliations?status=pending&viewerRole=approver", expect.objectContaining({ method: "GET", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith("/api/account/affiliations", expect.objectContaining({ method: "POST", credentials: "include" }));
@@ -294,7 +305,7 @@ describe("account browser API", () => {
       direction: "agency_to_talent",
       requestedAt: "2026-09-12T00:00:00Z",
       approvedAt: null,
-      revokedAt: null,
+      rejectedAt: null,
     };
     const fetchAdapter = vi.fn().mockResolvedValue(new Response(JSON.stringify(responseBody), { status: 201 }));
 

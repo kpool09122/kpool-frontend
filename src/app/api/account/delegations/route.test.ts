@@ -14,7 +14,7 @@ const delegationResponse = {
   direction: "agency_to_talent",
   requestedAt: "2026-09-12T00:00:00Z",
   approvedAt: null,
-  revokedAt: null,
+  rejectedAt: null,
 };
 
 const createRequest = (body: unknown): NextRequest => new Request(
