@@ -260,6 +260,14 @@ export const canRequestDelegation = (identity: IdentitySummary | null): boolean 
   hasMatchingStatement(identity, "allow", "account:delegation-request:create") &&
   !hasMatchingStatement(identity, "deny", "account:delegation-request:create");
 
+export const canApproveDelegations = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:delegation:approve") &&
+  !hasMatchingStatement(identity, "deny", "account:delegation:approve");
+
+export const canRejectDelegations = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:delegation:reject") &&
+  !hasMatchingStatement(identity, "deny", "account:delegation:reject");
+
 export const canReceiveAffiliationRequests = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:affiliation-request:receive") &&
   !hasMatchingStatement(identity, "deny", "account:affiliation-request:receive");

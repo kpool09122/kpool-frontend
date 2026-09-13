@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   canAccessAffiliations,
   canApproveAffiliations,
+  canApproveDelegations,
   canInviteAccountMembers,
   canManageAccountCategoryChangeRequests,
   canManagePrincipalGroups,
   canReceiveAffiliationRequests,
   canRejectAffiliations,
+  canRejectDelegations,
   canRequestAffiliation,
   canRequestDelegation,
   canUpdateAccount,
@@ -168,6 +170,19 @@ describe("accountPolicy", () => {
       ] }],
     })).toBe(false);
     expect(canRequestDelegation(baseIdentity)).toBe(false);
+  });
+
+  it("allows delegation review actions only with their policies and no deny", () => {
+    const allowedIdentity = { ...baseIdentity, accountEffectivePolicies: [{ statements: [
+      { effect: "allow", actions: ["account:delegation:approve", "account:delegation:reject"], resourceTypes: ["ACCOUNT"] },
+    ] }] };
+    expect(canApproveDelegations(allowedIdentity)).toBe(true);
+    expect(canRejectDelegations(allowedIdentity)).toBe(true);
+    expect(canApproveDelegations({ ...allowedIdentity, accountEffectivePolicies: [{ statements: [
+      { effect: "allow", actions: ["account:delegation:approve"], resourceTypes: ["ACCOUNT"] },
+      { effect: "deny", actions: ["account:delegation:approve"], resourceTypes: ["ACCOUNT"] },
+    ] }] })).toBe(false);
+    expect(canRejectDelegations(baseIdentity)).toBe(false);
   });
 
   it("allows affiliation actions only with their account policies and no deny", () => {

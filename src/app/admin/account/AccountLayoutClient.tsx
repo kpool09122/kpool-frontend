@@ -1,13 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { fetchAffiliations } from "@/gateways/account/accountBrowserApi";
-import { canAccessAffiliations, canApproveAffiliations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManagePrincipalGroups, canReceiveAffiliationRequests, canRejectAffiliations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import { canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManagePrincipalGroups, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { IdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import { AccountSectionProvider } from "./AccountSectionContext";
@@ -16,7 +14,6 @@ import {
   adminAccountTabRoutes,
   type AdminAccountSettingsTab,
 } from "../adminTypes";
-import { adminQueryKeys } from "../queryKeys";
 
 const createAccountSettingsTab = (
   id: AdminAccountSettingsTab,
@@ -52,18 +49,10 @@ export function AccountLayoutClient({
   const canShowAffiliations = canAccessAffiliations(currentIdentity);
   const canCreateAffiliationRequest = canRequestAffiliation(currentIdentity);
   const canCreateDelegationRequest = canRequestDelegation(currentIdentity);
-  const activeAffiliationsQuery = useQuery({
-    enabled: canCreateDelegationRequest,
-    queryFn: () => fetchAffiliations({
-      fallbackErrorMessage: t.accountDelegations.loadFailed,
-      status: "active",
-    }),
-    queryKey: adminQueryKeys.account.affiliations({ status: "active" }),
-  });
-  const hasActiveAffiliations = (activeAffiliationsQuery.data?.affiliations.length ?? 0) > 0;
-  const isDelegationAccessLoading = canCreateDelegationRequest && activeAffiliationsQuery.isLoading;
-  const hasDelegationAccessError = canCreateDelegationRequest && activeAffiliationsQuery.isError;
-  const canShowDelegations = canCreateDelegationRequest && hasActiveAffiliations;
+  const canApproveDelegationRequests = canApproveDelegations(currentIdentity);
+  const canRejectDelegationRequests = canRejectDelegations(currentIdentity);
+  const canReviewDelegations = canApproveDelegationRequests || canRejectDelegationRequests;
+  const canShowDelegations = canCreateDelegationRequest || canReviewDelegations;
   const canReceiveAffiliationReviewRequests = canReceiveAffiliationRequests(currentIdentity);
   const canApproveAffiliationRequests = canApproveAffiliations(currentIdentity);
   const canRejectAffiliationRequests = canRejectAffiliations(currentIdentity);
@@ -96,10 +85,10 @@ export function AccountLayoutClient({
       return;
     }
 
-    if (activeTab === "accountDelegations" && !isDelegationAccessLoading && !hasDelegationAccessError && !canShowDelegations) {
+    if (activeTab === "accountDelegations" && !canShowDelegations) {
       router.replace(fallbackRoute);
     }
-  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, fallbackRoute, hasDelegationAccessError, isDelegationAccessLoading, router]);
+  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, fallbackRoute, router]);
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
@@ -111,8 +100,7 @@ export function AccountLayoutClient({
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
     ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),
   ];
-  const activeTabAllowed = tabs.some((tab) => tab.id === activeTab) ||
-    (activeTab === "accountDelegations" && (isDelegationAccessLoading || hasDelegationAccessError));
+  const activeTabAllowed = tabs.some((tab) => tab.id === activeTab);
   const selectedTab = activeTabAllowed ? activeTab : fallbackTab;
 
   return (
@@ -146,6 +134,8 @@ export function AccountLayoutClient({
           canManageCategoryChangeRequests,
           canRequestAffiliation: canCreateAffiliationRequest,
           canRequestDelegation: canCreateDelegationRequest,
+          canApproveDelegations: canApproveDelegationRequests,
+          canRejectDelegations: canRejectDelegationRequests,
           canReceiveAffiliationRequests: canReceiveAffiliationReviewRequests,
           canApproveAffiliations: canApproveAffiliationRequests,
           canRejectAffiliations: canRejectAffiliationRequests,

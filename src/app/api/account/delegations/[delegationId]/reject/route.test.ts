@@ -1,0 +1,6 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
+import { POST } from "./route";
+const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const request=()=>new Request(`https://app.test/api/account/delegations/${id}/reject`,{method:"POST",headers:{cookie:"session=abc"}}) as NextRequest;
+describe("delegation reject route",()=>{ afterEach(()=>{vi.restoreAllMocks();vi.unstubAllEnvs();}); it("forwards rejection and preserves 204",async()=>{vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL","https://account.test");const f=vi.fn().mockResolvedValue(new Response(null,{status:204}));vi.stubGlobal("fetch",f);const r=await POST(request(),{params:Promise.resolve({delegationId:id})});expect(f).toHaveBeenCalledWith(`https://account.test/api/account/delegations/${id}/reject`,{method:"POST",headers:{Accept:"application/json",Cookie:"session=abc"},cache:"no-store"});expect(r.status).toBe(204);}); it("converts upstream errors",async()=>{vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL","https://account.test");vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response(JSON.stringify({message:"forbidden"}),{status:403})));const r=await POST(request(),{params:Promise.resolve({delegationId:id})});expect(r.status).toBe(403);await expect(r.json()).resolves.toEqual({message:"forbidden"});});});

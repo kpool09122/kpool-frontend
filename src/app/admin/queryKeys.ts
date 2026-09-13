@@ -34,10 +34,23 @@ export const adminQueryKeys = {
       status,
       viewerRole ?? null,
     ] as const,
-    delegations: () => [
-      ...adminQueryKeys.account.all(),
-      "delegations",
-    ] as const,
+    delegations: {
+      all: () => [
+        ...adminQueryKeys.account.all(),
+        "delegations",
+      ] as const,
+      list: ({
+        status,
+        viewerRole,
+      }: {
+        status: string;
+        viewerRole?: "approver" | "requester";
+      }) => [
+        ...adminQueryKeys.account.delegations.all(),
+        status,
+        viewerRole ?? null,
+      ] as const,
+    },
   },
   draftImages: {
     all: () => [...adminQueryKeys.all, "draftImages"] as const,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 const targetAccountIdentifier = "33333333-3333-4333-8333-333333333333";
 const delegationResponse = {
@@ -30,10 +30,36 @@ const createRequest = (body: unknown): NextRequest => new Request(
   },
 ) as NextRequest;
 
-describe("POST /api/account/delegations", () => {
+describe("/api/account/delegations", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+  });
+
+  it("forwards list query parameters and parses the response", async () => {
+    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
+    const listResponse = { delegations: [delegationResponse], current_page: 1, last_page: 1, total: 1, per_page: 50 };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(listResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const request = new Request("https://app.example.test/api/account/delegations?status=pending&viewerRole=approver", { headers: { cookie: "laravel_session=abc", "accept-language": "ja" } }) as NextRequest;
+
+    const response = await GET(request);
+
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/delegations?status=pending&viewerRole=approver", {
+      method: "GET",
+      headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "laravel_session=abc" },
+      cache: "no-store",
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(listResponse);
+  });
+
+  it("returns 502 when a list response violates the schema", async () => {
+    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ delegations: [{}] }), { status: 200 })));
+    const response = await GET(new Request("https://app.example.test/api/account/delegations") as NextRequest);
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({ message: "Invalid account delegations response." });
   });
 
   it("validates with the generated schema and forwards only the target account identifier", async () => {

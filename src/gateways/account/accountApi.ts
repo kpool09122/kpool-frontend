@@ -30,6 +30,7 @@ export type AffiliationSummary = z.infer<typeof AffiliationSummarySchema>;
 export type ListAffiliationsResponse = z.infer<typeof ListAffiliationsResponseSchema>;
 export type RequestDelegationRequest = z.infer<typeof accountApiTypes.schemas.RequestDelegationRequestBody>;
 export type AccountDelegationSummary = z.infer<typeof accountApiTypes.schemas.DelegationSummary>;
+export type ListDelegationsResponse = z.infer<typeof accountApiTypes.schemas.ListDelegationsResponseBody>;
 
 const InviteAccountMembersRequestSchema = z
   .object({
@@ -124,6 +125,9 @@ export const parseRequestDelegationRequest = (body: unknown): RequestDelegationR
 
 export const parseAccountDelegationSummary = (body: unknown): AccountDelegationSummary =>
   parseWithSchemaLog("account delegation response", accountApiTypes.schemas.DelegationSummary, body);
+
+export const parseListDelegationsResponse = (body: unknown): ListDelegationsResponse =>
+  parseWithSchemaLog("account delegations list response", accountApiTypes.schemas.ListDelegationsResponseBody, body);
 
 export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
   parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);
