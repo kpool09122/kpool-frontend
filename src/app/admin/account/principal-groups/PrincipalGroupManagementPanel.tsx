@@ -1,29 +1,22 @@
 "use client";
 
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCorners,
-  useDroppable,
-  useDraggable,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
+import { useMemo, useState } from "react";
 
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import type { AccountMemberSummary, PrincipalGroupSummary } from "@/gateways/account/accountApi";
 import type { useI18n } from "../../../../i18n/I18nProvider";
-import type { useAccountPrincipalGroups } from "./useAccountPrincipalGroups";
-
-const memberDragPrefix = "member:";
+import {
+  getMemberDisplayName,
+  getUserGroupIdentifiers,
+  type useAccountPrincipalGroups,
+} from "./useAccountPrincipalGroups";
 
 type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
 
-const getMemberDisplayName = (member: AccountMemberSummary): string =>
-  member.identityName.trim() || member.email || member.principalIdentifier;
+type EditableMemberDialogState = {
+  member: AccountMemberSummary;
+  selectedGroupIdentifiers: string[];
+} | null;
 
 export function PrincipalGroupManagementPanel({
   canManage,
@@ -37,35 +30,33 @@ export function PrincipalGroupManagementPanel({
   const {
     hasUnsavedChanges,
     isBusy,
-    memberByIdentifier,
     state,
     load,
-    moveMember,
     save,
+    updateUserGroups,
   } = principalGroups;
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor),
-  );
+  const [dialogState, setDialogState] = useState<EditableMemberDialogState>(null);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const activeIdentifier = String(event.active.id);
-    const overIdentifier = event.over?.id ? String(event.over.id) : null;
+  const openMemberDialog = (member: AccountMemberSummary) => {
+    setDialogState({
+      member,
+      selectedGroupIdentifiers: getUserGroupIdentifiers(
+        state.membershipByGroup,
+        member.principalIdentifier,
+      ),
+    });
+  };
 
-    if (!activeIdentifier.startsWith(memberDragPrefix) || !overIdentifier) {
+  const confirmMemberDialog = () => {
+    if (!dialogState) {
       return;
     }
 
-    const principalIdentifier = activeIdentifier.slice(memberDragPrefix.length);
-    const nextGroupIdentifier = overIdentifier.startsWith(memberDragPrefix)
-      ? Object.entries(state.membershipByGroup).find(([, principalIdentifiers]) =>
-          principalIdentifiers.includes(overIdentifier.slice(memberDragPrefix.length)),
-        )?.[0]
-      : overIdentifier;
-
-    if (nextGroupIdentifier) {
-      moveMember(principalIdentifier, nextGroupIdentifier);
-    }
+    updateUserGroups(
+      dialogState.member.principalIdentifier,
+      dialogState.selectedGroupIdentifiers,
+    );
+    setDialogState(null);
   };
 
   return (
@@ -98,20 +89,24 @@ export function PrincipalGroupManagementPanel({
           {t.principalGroupReadOnly}
         </AccountStatusMessage>
       ) : null}
-      <DndContext collisionDetection={closestCorners} onDragEnd={handleDragEnd} sensors={sensors}>
-        <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {state.groups.map((group) => (
-            <PrincipalGroupColumn
-              disabled={isBusy || !canManage}
-              group={group}
-              key={group.principalGroupIdentifier}
-              memberByIdentifier={memberByIdentifier}
-              membershipByGroup={state.membershipByGroup}
-              t={t}
-            />
-          ))}
-        </div>
-      </DndContext>
+      <div aria-label={t.principalGroupUserListLabel} className="mt-5 grid gap-3">
+        {state.members.length === 0 && !state.isLoading ? (
+          <AccountStatusMessage variant="empty">
+            {t.principalGroupNoUsers}
+          </AccountStatusMessage>
+        ) : null}
+        {state.members.map((member) => (
+          <PrincipalMemberRow
+            disabled={isBusy || !canManage}
+            groups={state.groups}
+            key={member.principalIdentifier}
+            member={member}
+            membershipByGroup={state.membershipByGroup}
+            onEdit={() => openMemberDialog(member)}
+            t={t}
+          />
+        ))}
+      </div>
       <div className="mt-5 grid gap-3">
         {hasUnsavedChanges ? (
           <AccountStatusMessage variant="warning">
@@ -140,93 +135,156 @@ export function PrincipalGroupManagementPanel({
           </AccountStatusMessage>
         ) : null}
       </div>
+      <EditMemberGroupsDialog
+        dialogState={dialogState}
+        groups={state.groups}
+        isBusy={isBusy}
+        onConfirm={confirmMemberDialog}
+        setDialogState={setDialogState}
+        t={t}
+      />
     </AccountSettingsPanel>
   );
 }
 
-function PrincipalGroupColumn({
+function PrincipalMemberRow({
   disabled,
-  group,
-  memberByIdentifier,
+  groups,
+  member,
   membershipByGroup,
+  onEdit,
   t,
 }: {
   disabled: boolean;
-  group: PrincipalGroupSummary;
-  memberByIdentifier: Map<string, AccountMemberSummary>;
+  groups: PrincipalGroupSummary[];
+  member: AccountMemberSummary;
   membershipByGroup: Record<string, string[]>;
+  onEdit: () => void;
   t: AdminDictionary;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: group.principalGroupIdentifier, disabled });
-  const principalIdentifiers = membershipByGroup[group.principalGroupIdentifier] ?? [];
+  const groupNames = useMemo(() => {
+    const selectedGroupIdentifiers = new Set(
+      getUserGroupIdentifiers(membershipByGroup, member.principalIdentifier),
+    );
+
+    return groups
+      .filter((group) => selectedGroupIdentifiers.has(group.principalGroupIdentifier))
+      .map((group) => group.name);
+  }, [groups, member.principalIdentifier, membershipByGroup]);
 
   return (
-    <section
-      className={`min-h-56 rounded-xl border border-stroke-subtle bg-surface-base p-4 transition ${
-        isOver ? "ring-4 ring-brand-highlight/50" : ""
-      }`}
-      ref={setNodeRef}
-    >
+    <article className="rounded-xl border border-stroke-subtle bg-surface-raised p-4 shadow-soft">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-semibold">{group.name}</h3>
+          <h3 className="font-semibold text-text-strong">{getMemberDisplayName(member)}</h3>
+          <p className="mt-1 break-all text-xs text-text-muted">{member.email}</p>
         </div>
-        <span className="rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted">
-          {t.principalGroupMemberCount(principalIdentifiers.length)}
-        </span>
+        <button
+          className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={disabled}
+          onClick={onEdit}
+          type="button"
+        >
+          {t.principalGroupEditUserGroups}
+        </button>
       </div>
-      <div className="mt-4 grid gap-2">
-        {principalIdentifiers.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-stroke-subtle p-4 text-center text-sm font-semibold text-text-muted">
-            {t.principalGroupNoMembers}
-          </p>
-        ) : principalIdentifiers.map((principalIdentifier) => {
-          const member = memberByIdentifier.get(principalIdentifier);
-
-          return member ? (
-            <PrincipalMemberCard
-              disabled={disabled}
-              key={principalIdentifier}
-              member={member}
-            />
-          ) : null;
-        })}
-      </div>
-    </section>
+      <p className="mt-3 text-sm text-text-muted">
+        <span className="font-semibold text-text-strong">{t.principalGroupUserGroupsLabel}</span>{" "}
+        {groupNames.length > 0 ? groupNames.join(", ") : t.principalGroupNoSelectedGroups}
+      </p>
+    </article>
   );
 }
 
-function PrincipalMemberCard({
-  disabled,
-  member,
+function EditMemberGroupsDialog({
+  dialogState,
+  groups,
+  isBusy,
+  onConfirm,
+  setDialogState,
+  t,
 }: {
-  disabled: boolean;
-  member: AccountMemberSummary;
+  dialogState: EditableMemberDialogState;
+  groups: PrincipalGroupSummary[];
+  isBusy: boolean;
+  onConfirm: () => void;
+  setDialogState: (state: EditableMemberDialogState) => void;
+  t: AdminDictionary;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `${memberDragPrefix}${member.principalIdentifier}`,
-    disabled,
-  });
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+  if (!dialogState) {
+    return null;
+  }
+
+  const selectedGroupIdentifiers = new Set(dialogState.selectedGroupIdentifiers);
+  const toggleGroup = (groupIdentifier: string) => {
+    const nextGroupIdentifiers = selectedGroupIdentifiers.has(groupIdentifier)
+      ? dialogState.selectedGroupIdentifiers.filter((candidate) => candidate !== groupIdentifier)
+      : [...dialogState.selectedGroupIdentifiers, groupIdentifier];
+
+    setDialogState({
+      ...dialogState,
+      selectedGroupIdentifiers: nextGroupIdentifiers,
+    });
+  };
 
   return (
-    <article
-      className={`rounded-lg border border-stroke-subtle bg-surface-raised p-3 text-sm shadow-soft transition ${
-        isDragging ? "opacity-70" : ""
-      }`}
-      ref={setNodeRef}
-      style={style}
-    >
-      <button
-        className="w-full cursor-grab text-left disabled:cursor-default"
-        disabled={disabled}
-        type="button"
-        {...listeners}
-        {...attributes}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-8">
+      <div
+        aria-modal="true"
+        className="w-full max-w-lg rounded-2xl bg-surface-raised p-6 shadow-xl"
+        role="dialog"
       >
-        <span className="block font-semibold">{getMemberDisplayName(member)}</span>
-        <span className="mt-1 block break-all text-xs text-text-muted">{member.email}</span>
-      </button>
-    </article>
+        <h3 className="text-lg font-semibold text-text-strong">
+          {t.principalGroupDialogTitle(getMemberDisplayName(dialogState.member))}
+        </h3>
+        <p className="mt-2 text-sm leading-7 text-text-muted">
+          {t.principalGroupDialogDescription}
+        </p>
+        <fieldset className="mt-5 grid gap-3">
+          <legend className="text-sm font-semibold text-text-strong">
+            {t.principalGroupCheckboxListLabel}
+          </legend>
+          {groups.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-stroke-subtle p-4 text-sm text-text-muted">
+              {t.principalGroupNoGroups}
+            </p>
+          ) : groups.map((group) => (
+            <label
+              className="flex items-center gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-3 text-sm font-semibold"
+              key={group.principalGroupIdentifier}
+            >
+              <input
+                checked={selectedGroupIdentifiers.has(group.principalGroupIdentifier)}
+                className="size-4"
+                disabled={isBusy}
+                onChange={() => toggleGroup(group.principalGroupIdentifier)}
+                type="checkbox"
+              />
+              <span>{group.name}</span>
+            </label>
+          ))}
+        </fieldset>
+        <p className="mt-4 text-sm text-text-muted">
+          {t.principalGroupSelectedCount(dialogState.selectedGroupIdentifiers.length)}
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base"
+            onClick={() => setDialogState(null)}
+            type="button"
+          >
+            {t.principalGroupDialogCancel}
+          </button>
+          <button
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isBusy}
+            onClick={onConfirm}
+            type="button"
+          >
+            {t.principalGroupDialogConfirm}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1402,7 +1402,7 @@ describe("admin page clients", () => {
     expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
   });
 
-  it("shows the principal group management tab with drag-only membership editing", async () => {
+  it("shows account members with editable multiple principal group memberships", async () => {
     const member = {
       principalIdentifier: "33333333-3333-3333-3333-333333333333",
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
@@ -1465,13 +1465,15 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "ユーザー権限管理" }));
     expect(await screen.findByRole("heading", { name: "ユーザー権限管理" })).toBeInTheDocument();
-    expect(screen.getByText("ユーザーの所属権限グループを変更できます。")).toBeInTheDocument();
+    expect(screen.getByText("ユーザーごとの所属権限グループを編集し、最後に一括保存します。")).toBeInTheDocument();
     expect(screen.queryByText("デフォルトグループ")).not.toBeInTheDocument();
     expect(screen.queryByText("カスタムグループ")).not.toBeInTheDocument();
     expect(await screen.findByText("Default")).toBeInTheDocument();
-    expect(screen.getByText("Default").compareDocumentPosition(screen.getByText("Managers"))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(screen.getByRole("button", { name: /member/ })).toBeInTheDocument();
-    expect(screen.queryByLabelText("移動先グループ")).not.toBeInTheDocument();
+    expect(screen.getByText("member")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "所属グループを編集" }));
+    expect(screen.getByLabelText("Default")).toBeChecked();
+    expect(screen.getByLabelText("Managers")).not.toBeChecked();
   });
 
   it("loads account information and saves the full profile", async () => {

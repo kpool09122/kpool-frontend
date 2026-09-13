@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import {
   fetchAccountMembers,
@@ -47,7 +47,17 @@ const emptyPrincipalGroupQueryState: PrincipalGroupQueryState = {
 };
 
 const sortPrincipalGroups = (groups: PrincipalGroupSummary[]): PrincipalGroupSummary[] =>
-  [...groups].sort((left, right) => Number(right.isDefault) - Number(left.isDefault));
+  [...groups].sort((left, right) =>
+    Number(right.isDefault) - Number(left.isDefault) || left.name.localeCompare(right.name),
+  );
+
+const sortMembers = (members: AccountMemberSummary[]): AccountMemberSummary[] =>
+  [...members].sort((left, right) =>
+    getMemberDisplayName(left).localeCompare(getMemberDisplayName(right)),
+  );
+
+export const getMemberDisplayName = (member: AccountMemberSummary): string =>
+  member.identityName.trim() || member.email || member.principalIdentifier;
 
 const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
@@ -83,14 +93,22 @@ const getGroupMembershipFromResponse = (
   return initialMembership;
 };
 
-const createUpdatePayload = (membershipByGroup: Record<string, string[]>) => ({
+export const createUpdatePayload = (membershipByGroup: Record<string, string[]>) => ({
   principalGroups: Object.entries(membershipByGroup).map(([principalGroupIdentifier, principalIdentifiers]) => ({
     principalGroupIdentifier,
     principalIdentifiers,
   })),
 });
 
-const areMembershipsEqual = (
+const areArraysEqual = (left: string[], right: string[]): boolean => {
+  const sortedLeft = [...left].sort();
+  const sortedRight = [...right].sort();
+
+  return sortedLeft.length === sortedRight.length &&
+    sortedLeft.every((value, index) => value === sortedRight[index]);
+};
+
+export const areMembershipsEqual = (
   left: Record<string, string[]>,
   right: Record<string, string[]>,
 ): boolean => {
@@ -99,10 +117,33 @@ const areMembershipsEqual = (
 
   return leftKeys.length === rightKeys.length &&
     leftKeys.every((key, index) =>
-      key === rightKeys[index] &&
-      left[key].length === right[key].length &&
-      left[key].every((value, valueIndex) => value === right[key][valueIndex]),
+      key === rightKeys[index] && areArraysEqual(left[key], right[key]),
     );
+};
+
+export const getUserGroupIdentifiers = (
+  membershipByGroup: Record<string, string[]>,
+  principalIdentifier: string,
+): string[] =>
+  Object.entries(membershipByGroup)
+    .filter(([, principalIdentifiers]) => principalIdentifiers.includes(principalIdentifier))
+    .map(([groupIdentifier]) => groupIdentifier);
+
+export const updateMembershipForUser = (
+  membershipByGroup: Record<string, string[]>,
+  principalIdentifier: string,
+  nextGroupIdentifiers: string[],
+): Record<string, string[]> => {
+  const selectedGroups = new Set(nextGroupIdentifiers);
+
+  return Object.fromEntries(
+    Object.entries(membershipByGroup).map(([groupIdentifier, principalIdentifiers]) => [
+      groupIdentifier,
+      selectedGroups.has(groupIdentifier)
+        ? Array.from(new Set([...principalIdentifiers, principalIdentifier]))
+        : principalIdentifiers.filter((candidate) => candidate !== principalIdentifier),
+    ]),
+  );
 };
 
 export const useAccountPrincipalGroups = ({
@@ -129,7 +170,7 @@ export const useAccountPrincipalGroups = ({
 
       return {
         groups,
-        members: membersResponse.members,
+        members: sortMembers(membersResponse.members),
         membershipByGroup: getGroupMembershipFromResponse(groups, membersResponse.members),
       };
     },
@@ -140,10 +181,6 @@ export const useAccountPrincipalGroups = ({
   const membershipByGroup = membershipDraft.isDirty
     ? membershipDraft.membershipByGroup
     : queryState.membershipByGroup;
-  const memberByIdentifier = useMemo(
-    () => new Map(queryState.members.map((member) => [member.principalIdentifier, member])),
-    [queryState.members],
-  );
   const hasUnsavedChanges = !areMembershipsEqual(membershipByGroup, queryState.membershipByGroup);
 
   const saveMutation = useMutation<PrincipalGroupQueryState, Error, Record<string, string[]>>({
@@ -159,7 +196,7 @@ export const useAccountPrincipalGroups = ({
 
       return {
         groups,
-        members: membersResponse.members,
+        members: sortMembers(membersResponse.members),
         membershipByGroup: getGroupMembershipFromResponse(groups, membersResponse.members),
       };
     },
@@ -184,25 +221,18 @@ export const useAccountPrincipalGroups = ({
     },
   });
 
-  const moveMember = (principalIdentifier: string, nextGroupIdentifier: string) => {
+  const updateUserGroups = (principalIdentifier: string, nextGroupIdentifiers: string[]) => {
     setMembershipDraft((current) => {
       const currentMembershipByGroup = current.isDirty
         ? current.membershipByGroup
         : queryState.membershipByGroup;
 
-      if (!currentMembershipByGroup[nextGroupIdentifier]) {
-        return current;
-      }
-
       return {
         isDirty: true,
-        membershipByGroup: Object.fromEntries(
-          Object.entries(currentMembershipByGroup).map(([groupIdentifier, principalIdentifiers]) => [
-            groupIdentifier,
-            groupIdentifier === nextGroupIdentifier
-              ? Array.from(new Set([...principalIdentifiers, principalIdentifier]))
-              : principalIdentifiers.filter((candidate) => candidate !== principalIdentifier),
-          ]),
+        membershipByGroup: updateMembershipForUser(
+          currentMembershipByGroup,
+          principalIdentifier,
+          nextGroupIdentifiers,
         ),
       };
     });
@@ -241,10 +271,9 @@ export const useAccountPrincipalGroups = ({
   return {
     hasUnsavedChanges,
     isBusy: state.isLoading || state.isSaving,
-    memberByIdentifier,
     state,
     load,
-    moveMember,
     save,
+    updateUserGroups,
   };
 };
