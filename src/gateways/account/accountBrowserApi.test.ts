@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   approveAccountCategoryChangeRequest,
   approveAffiliation,
+  approveDelegation,
   fetchAffiliations,
+  fetchDelegations,
   fetchAccountCategoryChangeRequestDetail,
   fetchAccountCategoryChangeRequests,
   fetchAccountDocuments,
@@ -12,6 +14,7 @@ import {
   isAccountBrowserApiError,
   rejectAccountCategoryChangeRequest,
   rejectAffiliation,
+  rejectDelegation,
   requestAccountCategoryChange,
   requestAffiliation,
   requestDelegation,
@@ -293,6 +296,32 @@ describe("account browser API", () => {
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations/${affiliation.affiliationIdentifier}/approve`, expect.objectContaining({ method: "POST", credentials: "include" }));
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations/${affiliation.affiliationIdentifier}/reject`, expect.objectContaining({ method: "POST", credentials: "include" }));
   });
+  it("lists, approves, and rejects delegations through browser routes", async () => {
+    const delegation = {
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", affiliationIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      delegateAccountIdentifier: "22222222-2222-4222-8222-222222222222", delegatorAccountIdentifier: "33333333-3333-4333-8333-333333333333",
+      requestedByAccountIdentifier: "22222222-2222-4222-8222-222222222222", status: "pending", direction: "agency_to_talent",
+      requestedAt: "2026-09-12T00:00:00Z", approvedAt: null, rejectedAt: null,
+    };
+    const list = { delegations: [delegation], current_page: 1, last_page: 1, total: 1, per_page: 50 };
+    const fetchAdapter = vi.fn().mockImplementation((url: string) => url.includes("/reject")
+      ? Promise.resolve(new Response(null, { status: 204 }))
+      : Promise.resolve(new Response(JSON.stringify(url.includes("?") ? list : delegation), { status: 200 })));
+    await expect(fetchDelegations({ fallbackErrorMessage: "failed", fetchAdapter, status: "pending", viewerRole: "approver" })).resolves.toEqual(list);
+    await expect(approveDelegation({ delegationId: delegation.delegationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toEqual(delegation);
+    await expect(rejectDelegation({ delegationId: delegation.delegationIdentifier, fallbackErrorMessage: "failed", fetchAdapter })).resolves.toBeUndefined();
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/account/delegations?status=pending&viewerRole=approver", expect.objectContaining({ method: "GET", credentials: "include" }));
+    expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/delegations/${delegation.delegationIdentifier}/approve`, expect.objectContaining({ method: "POST", credentials: "include" }));
+    expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/delegations/${delegation.delegationIdentifier}/reject`, expect.objectContaining({ method: "POST", credentials: "include" }));
+  });
+
+  it("surfaces delegation route errors", async () => {
+    const fetchAdapter = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ message: "forbidden" }), { status: 403 })));
+    await expect(fetchDelegations({ fallbackErrorMessage: "failed", fetchAdapter, status: "approved" })).rejects.toMatchObject({ message: "forbidden", accountRouteStatus: 403 });
+    await expect(approveDelegation({ delegationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", fallbackErrorMessage: "failed", fetchAdapter })).rejects.toThrow("forbidden");
+    await expect(rejectDelegation({ delegationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", fallbackErrorMessage: "failed", fetchAdapter })).rejects.toThrow("forbidden");
+  });
+
   it("requests delegation with only the target account identifier", async () => {
     const requestBody = { targetAccountIdentifier: "33333333-3333-4333-8333-333333333333" };
     const responseBody = {

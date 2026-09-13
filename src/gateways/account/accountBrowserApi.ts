@@ -9,6 +9,7 @@ import {
   parseAccountCategoryChangeRequestSummary,
   parseListAccountCategoryChangeRequestsResponse,
   parseListAffiliationsResponse,
+  parseListDelegationsResponse,
   parsePrincipalGroupsResponse,
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
@@ -20,6 +21,7 @@ import {
   type ListAccountCategoryChangeRequestsResponse,
   type ListAccountDocumentsResponse,
   type ListAffiliationsResponse,
+  type ListDelegationsResponse,
   type ListMembersResponse,
   type ListPrincipalGroupsResponse,
   type RejectAccountCategoryChangeRequest,
@@ -111,6 +113,21 @@ type FetchAffiliationsOptions = {
 
 type AffiliationActionOptions = {
   affiliationId: string;
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+};
+
+type FetchDelegationsOptions = {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  page?: number;
+  perPage?: number;
+  status?: string;
+  viewerRole?: "approver" | "requester";
+};
+
+type DelegationActionOptions = {
+  delegationId: string;
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
 };
@@ -546,6 +563,73 @@ export const requestDelegation = async ({
   }
 
   return parseAccountDelegationSummary(body);
+};
+
+export const fetchDelegations = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  page,
+  perPage,
+  status,
+  viewerRole,
+}: FetchDelegationsOptions): Promise<ListDelegationsResponse> => {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (viewerRole) params.set("viewerRole", viewerRole);
+  if (page !== undefined) params.set("page", String(page));
+  if (perPage !== undefined) params.set("perPage", String(perPage));
+  const queryString = params.toString();
+  const response = await fetchAdapter(`/api/account/delegations${queryString ? `?${queryString}` : ""}`, {
+    method: "GET",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseListDelegationsResponse(body);
+};
+
+export const approveDelegation = async ({
+  delegationId,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: DelegationActionOptions): Promise<AccountDelegationSummary> => {
+  const response = await fetchAdapter(`/api/account/delegations/${encodeURIComponent(delegationId)}/approve`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseAccountDelegationSummary(body);
+};
+
+export const rejectDelegation = async ({
+  delegationId,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: DelegationActionOptions): Promise<void> => {
+  const response = await fetchAdapter(`/api/account/delegations/${encodeURIComponent(delegationId)}/reject`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
 };
 
 export const approveAffiliation = async ({

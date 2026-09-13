@@ -29,7 +29,16 @@ export type AffiliationCommandSummary = z.infer<typeof accountApiTypes.schemas.A
 export type AffiliationSummary = z.infer<typeof AffiliationSummarySchema>;
 export type ListAffiliationsResponse = z.infer<typeof ListAffiliationsResponseSchema>;
 export type RequestDelegationRequest = z.infer<typeof accountApiTypes.schemas.RequestDelegationRequestBody>;
-export type AccountDelegationSummary = z.infer<typeof accountApiTypes.schemas.DelegationSummary>;
+const DelegationSummarySchema = accountApiTypes.schemas.DelegationSummary.extend({
+  delegateAccount: accountApiTypes.schemas.AffiliationAccountSummary.optional(),
+  delegatorAccount: accountApiTypes.schemas.AffiliationAccountSummary.optional(),
+  requestedByAccount: accountApiTypes.schemas.AffiliationAccountSummary.optional(),
+});
+const ListDelegationsResponseSchema = accountApiTypes.schemas.ListDelegationsResponseBody.extend({
+  delegations: z.array(DelegationSummarySchema),
+});
+export type AccountDelegationSummary = z.infer<typeof DelegationSummarySchema>;
+export type ListDelegationsResponse = z.infer<typeof ListDelegationsResponseSchema>;
 
 const InviteAccountMembersRequestSchema = z
   .object({
@@ -123,7 +132,10 @@ export const parseRequestDelegationRequest = (body: unknown): RequestDelegationR
   parseWithSchemaLog("account delegation request", accountApiTypes.schemas.RequestDelegationRequestBody, body);
 
 export const parseAccountDelegationSummary = (body: unknown): AccountDelegationSummary =>
-  parseWithSchemaLog("account delegation response", accountApiTypes.schemas.DelegationSummary, body);
+  parseWithSchemaLog("account delegation response", DelegationSummarySchema, body);
+
+export const parseListDelegationsResponse = (body: unknown): ListDelegationsResponse =>
+  parseWithSchemaLog("account delegations list response", ListDelegationsResponseSchema, body);
 
 export const parseInviteAccountMembersRequest = (body: unknown): InviteAccountMembersRequest =>
   parseWithSchemaLog("account invite members request", InviteAccountMembersRequestSchema, body);

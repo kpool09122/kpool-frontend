@@ -11,6 +11,7 @@ import {
   parseListAccountCategoryChangeRequestsResponse,
   parseListAccountDocumentsResponse,
   parseListAffiliationsResponse,
+  parseListDelegationsResponse,
   parsePrincipalGroupsResponse,
   parseRejectAccountCategoryChangeRequest,
   parseRequestAccountCategoryChangeRequest,
@@ -196,6 +197,35 @@ describe("account API helpers", () => {
     };
 
     expect(parseListAffiliationsResponse({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 })).toEqual({ affiliations: [affiliation], current_page: 1, last_page: 1, total: 1, per_page: 50 });
+  });
+
+  it("parses delegation list responses and rejects malformed entries", () => {
+    const delegation = {
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      affiliationIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      delegateAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      delegatorAccountIdentifier: "33333333-3333-4333-8333-333333333333",
+      requestedByAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      delegateAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Delegate Account",
+        email: "delegate@example.com",
+      },
+      delegatorAccount: {
+        accountIdentifier: "33333333-3333-4333-8333-333333333333",
+        name: "Delegator Account",
+        email: "delegator@example.com",
+      },
+      requestedByAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Requester Account",
+        email: "requester@example.com",
+      },
+      status: "pending", direction: "agency_to_talent", requestedAt: "2026-09-12T00:00:00Z", approvedAt: null, rejectedAt: null,
+    };
+    const response = { delegations: [delegation], current_page: 1, last_page: 1, total: 1, per_page: 50 };
+    expect(parseListDelegationsResponse(response)).toEqual(response);
+    expect(() => parseListDelegationsResponse({ ...response, delegations: [{ status: "pending" }] })).toThrow();
   });
 
   it("parses affiliation command responses without account summaries", () => {
