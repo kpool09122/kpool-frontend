@@ -19,6 +19,9 @@ const affiliation: AffiliationSummary = {
 const delegation = {
   delegationIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", affiliationIdentifier: affiliation.affiliationIdentifier,
   delegateAccountIdentifier: agencyId, delegatorAccountIdentifier: talentId, requestedByAccountIdentifier: agencyId,
+  delegateAccount: { accountIdentifier: agencyId, name: "Agency Account", email: "agency@example.com" },
+  delegatorAccount: { accountIdentifier: talentId, name: "Talent Account", email: "talent@example.com" },
+  requestedByAccount: { accountIdentifier: agencyId, name: "Agency Account", email: "agency@example.com" },
   status: "pending", direction: "agency_to_talent", requestedAt: "2026-09-12T00:00:00Z", approvedAt: null, rejectedAt: null,
 };
 const page = <T,>(key: string, items: T[]) => ({ [key]: items, current_page: 1, last_page: 1, total: items.length, per_page: 50 });
@@ -61,12 +64,16 @@ describe("AccountDelegationsClient", () => {
     expect(screen.getByRole("tab", { name: "未承認" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "成立済み" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "申請中" }));
-    expect(await screen.findByText("agency_to_talent")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText("Agency Account").length).toBeGreaterThan(0));
+    expect(screen.queryByText("agency_to_talent")).not.toBeInTheDocument();
+    expect(screen.queryByText("申請者アカウント")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "未承認" }));
     expect(await screen.findByRole("button", { name: "承認" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "拒否" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "成立済み" }));
-    expect(await screen.findByText(talentId)).toBeInTheDocument();
+    expect(await screen.findByText("Talent Account")).toBeInTheDocument();
+    expect(screen.getByText("talent@example.com")).toBeInTheDocument();
+    expect(screen.queryByText(talentId)).not.toBeInTheDocument();
   });
 
   it("submits approval and refreshes all three delegation lists", async () => {

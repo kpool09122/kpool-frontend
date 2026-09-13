@@ -122,7 +122,7 @@ describe("AccountAffiliationsClient", () => {
     expect(await screen.findByRole("heading", { name: "申請中のリクエスト" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "申請中" })).toHaveAttribute("aria-selected", "true");
 
-    fireEvent.click(screen.getByRole("tab", { name: "承認待ち" }));
+    fireEvent.click(screen.getByRole("tab", { name: "未承認" }));
     expect(await screen.findByRole("heading", { name: "未承認の申請" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText("Agency Account").length).toBeGreaterThan(0));
     expect(screen.getAllByText("Talent Account").length).toBeGreaterThan(0);

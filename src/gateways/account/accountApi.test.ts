@@ -206,6 +206,21 @@ describe("account API helpers", () => {
       delegateAccountIdentifier: "22222222-2222-4222-8222-222222222222",
       delegatorAccountIdentifier: "33333333-3333-4333-8333-333333333333",
       requestedByAccountIdentifier: "22222222-2222-4222-8222-222222222222",
+      delegateAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Delegate Account",
+        email: "delegate@example.com",
+      },
+      delegatorAccount: {
+        accountIdentifier: "33333333-3333-4333-8333-333333333333",
+        name: "Delegator Account",
+        email: "delegator@example.com",
+      },
+      requestedByAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Requester Account",
+        email: "requester@example.com",
+      },
       status: "pending", direction: "agency_to_talent", requestedAt: "2026-09-12T00:00:00Z", approvedAt: null, rejectedAt: null,
     };
     const response = { delegations: [delegation], current_page: 1, last_page: 1, total: 1, per_page: 50 };

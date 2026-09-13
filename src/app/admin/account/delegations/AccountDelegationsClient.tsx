@@ -9,6 +9,7 @@ import { getDelegationTargetAccount, useAccountDelegationLists, useActiveDelegat
 
 type TabId = "request" | "requested" | "pending" | "approved";
 type DelegationCardProps = { affiliation: AffiliationSummary; currentAccountIdentifier: string; t: ReturnType<typeof useAccountSection>["t"] };
+type DelegationAccountSummary = NonNullable<AccountDelegationSummary["delegateAccount"]>;
 
 const DelegationAffiliationCard = ({ affiliation, currentAccountIdentifier, t }: DelegationCardProps) => {
   const targetAccount = getDelegationTargetAccount(affiliation, currentAccountIdentifier);
@@ -28,12 +29,24 @@ const DelegationAffiliationCard = ({ affiliation, currentAccountIdentifier, t }:
   );
 };
 
+const DelegationAccountDetails = ({
+  account,
+  label,
+}: {
+  account: DelegationAccountSummary | undefined;
+  label: string;
+}) => (
+  <div className="grid gap-1">
+    <dt className="text-xs font-semibold text-text-muted">{label}</dt>
+    <dd className="text-base font-semibold text-text-strong">{account?.name ?? "-"}</dd>
+    {account?.email ? <dd className="break-all text-text-muted">{account.email}</dd> : null}
+  </div>
+);
+
 const DelegationDetails = ({ delegation, t }: { delegation: AccountDelegationSummary; t: ReturnType<typeof useAccountSection>["t"] }) => (
   <dl className="grid gap-2 text-sm md:grid-cols-2">
-    <div><dt className="text-text-muted">{t.accountDelegations.delegateAccount}</dt><dd className="break-all text-text-strong">{delegation.delegateAccountIdentifier}</dd></div>
-    <div><dt className="text-text-muted">{t.accountDelegations.delegatorAccount}</dt><dd className="break-all text-text-strong">{delegation.delegatorAccountIdentifier}</dd></div>
-    <div><dt className="text-text-muted">{t.accountDelegations.requestedByAccount}</dt><dd className="break-all text-text-strong">{delegation.requestedByAccountIdentifier}</dd></div>
-    <div><dt className="text-text-muted">{t.accountDelegations.direction}</dt><dd className="text-text-strong">{delegation.direction}</dd></div>
+    <DelegationAccountDetails account={delegation.delegateAccount} label={t.accountDelegations.delegateAccount} />
+    <DelegationAccountDetails account={delegation.delegatorAccount} label={t.accountDelegations.delegatorAccount} />
     <div><dt className="text-text-muted">{t.accountDelegations.requestedAt}</dt><dd className="text-text-strong">{delegation.requestedAt}</dd></div>
     {delegation.approvedAt ? <div><dt className="text-text-muted">{t.accountDelegations.approvedAt}</dt><dd className="text-text-strong">{delegation.approvedAt}</dd></div> : null}
   </dl>
