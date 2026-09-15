@@ -129,6 +129,18 @@ const CreateAccountResult = z
   })
   .partial()
   .passthrough();
+const SwitchAccountRequestBody = z
+  .object({ delegationIdentifier: KPool_Common_Uuid.nullable() })
+  .partial()
+  .passthrough();
+const SwitchAccountResponseBody = z
+  .object({
+    originalIdentityIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    accountPrincipalIdentifier: KPool_Common_Uuid.uuid(),
+    delegationIdentifier: KPool_Common_Uuid.nullish(),
+  })
+  .passthrough();
 const RequestAccountCategoryChangeRequestBody = z
   .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
   .passthrough();
@@ -200,6 +212,13 @@ const DelegationPermissionSummary = z
     createdAt: KPool_Common_Timestamp,
   })
   .passthrough();
+const AffiliationAccountSummary = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    email: z.string(),
+  })
+  .passthrough();
 const DelegationSummary = z
   .object({
     delegationIdentifier: KPool_Common_Uuid.uuid(),
@@ -207,6 +226,9 @@ const DelegationSummary = z
     delegateAccountIdentifier: KPool_Common_Uuid.uuid(),
     delegatorAccountIdentifier: KPool_Common_Uuid.uuid(),
     requestedByAccountIdentifier: KPool_Common_Uuid.uuid(),
+    delegateAccount: AffiliationAccountSummary.optional(),
+    delegatorAccount: AffiliationAccountSummary.optional(),
+    requestedByAccount: AffiliationAccountSummary.optional(),
     status: z.string(),
     direction: z.string(),
     requestedAt: KPool_Common_Timestamp,
@@ -304,13 +326,6 @@ const UpdatePrincipalGroupMembersRequestBody = z
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
-const AffiliationAccountSummary = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    name: z.string(),
-    email: z.string(),
-  })
-  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -328,6 +343,8 @@ export const schemas = {
   RejectAccountCategoryChangeRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
+  SwitchAccountRequestBody,
+  SwitchAccountResponseBody,
   RequestAccountCategoryChangeRequestBody,
   UpdateAccountRequestBody,
   AccountDocumentUploadItem,
@@ -341,6 +358,7 @@ export const schemas = {
   TerminateAffiliationRequestBody,
   GrantDelegationPermissionRequestBody,
   DelegationPermissionSummary,
+  AffiliationAccountSummary,
   DelegationSummary,
   ListDelegationsResponseBody,
   RequestDelegationRequestBody,
@@ -358,7 +376,6 @@ export const schemas = {
   UpdatePrincipalGroupMembersItem,
   UpdatePrincipalGroupMembersRequestBody,
   MutatePrincipalGroupMemberRequestBody,
-  AffiliationAccountSummary,
 };
 
 const endpoints = makeApi([
@@ -821,6 +838,48 @@ const endpoints = makeApi([
       },
     ],
     response: AccountCategoryChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/accounts/switch",
+    alias: "AccountOperations_switchAccount",
+    description: `Switch the current effective account context without changing the authenticated identity.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: SwitchAccountRequestBody,
+      },
+    ],
+    response: SwitchAccountResponseBody,
     errors: [
       {
         status: 401,
