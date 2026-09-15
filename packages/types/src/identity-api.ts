@@ -104,6 +104,9 @@ const AuthenticatedAccountAddressSummary = z
   })
   .partial()
   .passthrough();
+const AuthenticatedAccountReferenceSummary = z
+  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
+  .passthrough();
 const AuthenticatedAccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -114,6 +117,14 @@ const AuthenticatedAccountSummary = z
     accountCategory: z.string(),
     phone: z.string().nullish(),
     address: AuthenticatedAccountAddressSummary.nullish(),
+  })
+  .passthrough();
+const SwitchableAccountSummary = z
+  .object({
+    delegationIdentifier: KPool_Common_Uuid,
+    accountIdentifier: KPool_Common_Uuid,
+    account: AuthenticatedAccountReferenceSummary,
+    isCurrent: z.boolean(),
   })
   .passthrough();
 
@@ -138,7 +149,9 @@ export const schemas = {
   AccountPolicyStatement,
   AccountEffectivePolicySummary,
   AuthenticatedAccountAddressSummary,
+  AuthenticatedAccountReferenceSummary,
   AuthenticatedAccountSummary,
+  SwitchableAccountSummary,
 };
 
 const endpoints = makeApi([
