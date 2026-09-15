@@ -67,4 +67,43 @@ describe("identity API helpers", () => {
       switchableAccounts: [switchableAccount],
     }).switchableAccounts).toEqual([switchableAccount]);
   });
+
+  it("parses account policy condition values with string arrays", () => {
+    const policy = {
+      policyIdentifier: "33333333-3333-4333-8333-333333333333",
+      name: "Affiliation reviewers",
+      isSystemPolicy: true,
+      statements: [
+        {
+          effect: "allow",
+          actions: ["account:affiliation-request:approve"],
+          resourceTypes: ["ACCOUNT"],
+          condition: {
+            clauses: [
+              {
+                field: "resource:accountCategory",
+                operator: "in",
+                value: ["agency", "talent"],
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(parseAuthenticatedIdentitySummary({
+      identityIdentifier: "11111111-1111-4111-8111-111111111111",
+      identityName: "member",
+      email: "member@example.com",
+      language: "ja",
+      accountIdentifier: null,
+      accountPrincipalIdentifier: null,
+      accountType: null,
+      accountPolicies: [policy],
+      account: null,
+      originalAccount: null,
+      delegationIdentifier: null,
+      switchableAccounts: [],
+    }).accountPolicies).toEqual([policy]);
+  });
 });

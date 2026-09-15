@@ -70,7 +70,7 @@ const AccountPolicyConditionClause = z
   .object({
     field: z.string(),
     operator: z.string(),
-    value: z.union([z.string(), z.boolean()]),
+    value: z.union([z.string(), z.array(z.string()), z.boolean()]),
   })
   .passthrough();
 const AccountPolicyCondition = z
