@@ -51,11 +51,6 @@ const CreateIdentityRequestBody = z
   .passthrough();
 const SendAuthCodeRequestBody = z.object({ email: z.string() }).passthrough();
 const RedirectUrlResult = z.object({ redirectUrl: z.string() }).passthrough();
-const SwitchIdentityRequestBody = z
-  .object({ targetDelegationIdentifier: KPool_Common_Uuid.nullable() })
-  .partial()
-  .passthrough();
-const SwitchedIdentitySummary = IdentitySummary;
 const VerifyEmailRequestBody = z
   .object({ email: z.string(), authCode: z.string() })
   .passthrough();
@@ -134,8 +129,6 @@ export const schemas = {
   CreateIdentityRequestBody,
   SendAuthCodeRequestBody,
   RedirectUrlResult,
-  SwitchIdentityRequestBody,
-  SwitchedIdentitySummary,
   VerifyEmailRequestBody,
   KPool_Common_Timestamp,
   VerifyEmailResult,
@@ -399,43 +392,6 @@ const endpoints = makeApi([
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
     errors: [
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/auth/switch-identity",
-    alias: "IdentityAuthOperations_switchIdentity",
-    description: `Switch the current authenticated identity or clear delegation.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: SwitchIdentityRequestBody,
-      },
-    ],
-    response: SwitchedIdentitySummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
       {
         status: 422,
         description: `Client error`,
