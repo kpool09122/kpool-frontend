@@ -5,6 +5,17 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 export type IdentityLoginRequest = z.infer<typeof identityApiTypes.schemas.LoginRequestBody>;
 export type IdentitySummary = z.infer<typeof identityApiTypes.schemas.IdentitySummary>;
+const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySummary.extend({
+  accountIdentifier: z.string().uuid().nullable(),
+  accountPrincipalIdentifier: z.string().uuid().nullable(),
+  accountType: z.string().nullable(),
+  accountPolicies: z.array(identityApiTypes.schemas.AccountEffectivePolicySummary),
+  account: identityApiTypes.schemas.AuthenticatedAccountSummary.nullish(),
+  originalAccount: identityApiTypes.schemas.AuthenticatedAccountReferenceSummary.nullable(),
+  delegationIdentifier: z.string().uuid().nullable(),
+  switchableAccounts: z.array(identityApiTypes.schemas.SwitchableAccountSummary),
+});
+export type AuthenticatedIdentitySummary = z.infer<typeof AuthenticatedIdentitySummarySchema>;
 export type RedirectUrlResult = z.infer<typeof identityApiTypes.schemas.RedirectUrlResult>;
 export type CreateIdentityRequest = z.infer<typeof identityApiTypes.schemas.CreateIdentityRequestBody>;
 export type VerifyEmailRequest = z.infer<typeof identityApiTypes.schemas.VerifyEmailRequestBody>;
@@ -102,6 +113,9 @@ export const parseIdentityLoginRequest = (body: unknown): IdentityLoginRequest =
 
 export const parseIdentitySummary = (body: unknown): IdentitySummary =>
   parseWithSchemaLog("identity summary", identityApiTypes.schemas.IdentitySummary, body);
+
+export const parseAuthenticatedIdentitySummary = (body: unknown): AuthenticatedIdentitySummary =>
+  parseWithSchemaLog("authenticated identity summary", AuthenticatedIdentitySummarySchema, body);
 
 export const parseRedirectUrlResult = (body: unknown): RedirectUrlResult =>
   parseWithSchemaLog("identity redirect url response", identityApiTypes.schemas.RedirectUrlResult, body);

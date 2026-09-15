@@ -15,6 +15,8 @@ import {
   parsePrincipalGroupsResponse,
   parseRejectAccountCategoryChangeRequest,
   parseRequestAccountCategoryChangeRequest,
+  parseSwitchAccountRequest,
+  parseSwitchAccountResponse,
   parseUploadAccountDocumentsRequest,
   parseUploadAccountDocumentsResponse,
   parseUpdateAccountRequest,
@@ -70,6 +72,18 @@ describe("account API helpers", () => {
 
   it("accepts the backend empty array response for an already handled account", () => {
     expect(parseCreateAccountResult([])).toEqual({});
+  });
+
+  it("parses account switch requests and responses", () => {
+    const delegationIdentifier = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    expect(parseSwitchAccountRequest({ delegationIdentifier })).toEqual({ delegationIdentifier });
+    expect(parseSwitchAccountRequest({ delegationIdentifier: null })).toEqual({ delegationIdentifier: null });
+    expect(parseSwitchAccountResponse({
+      originalIdentityIdentifier: "11111111-1111-4111-8111-111111111111",
+      accountIdentifier: "22222222-2222-4222-8222-222222222222",
+      accountPrincipalIdentifier: "33333333-3333-4333-8333-333333333333",
+      delegationIdentifier,
+    })).toMatchObject({ delegationIdentifier });
   });
 
   it("parses account summaries and update requests with phone and address", () => {

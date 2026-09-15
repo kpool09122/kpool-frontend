@@ -1,7 +1,38 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useAuthStore } from "@/gateways/auth/authStore";
 import { buildLocaleChangePath, Header } from "./Header";
+
+const switchableIdentity = {
+  identityIdentifier: "11111111-1111-4111-8111-111111111111",
+  identityName: "member",
+  email: "member@example.com",
+  language: "ja",
+  profileImage: null,
+  accountIdentifier: "22222222-2222-4222-8222-222222222222",
+  accountPrincipalIdentifier: "33333333-3333-4333-8333-333333333333",
+  accountType: "agency",
+  accountPolicies: [],
+  account: null,
+  originalAccount: null,
+  delegationIdentifier: null,
+  switchableAccounts: [
+    {
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      accountIdentifier: "44444444-4444-4444-8444-444444444444",
+      account: {
+        accountIdentifier: "44444444-4444-4444-8444-444444444444",
+        name: "Aurora Agency",
+      },
+      isCurrent: false,
+    },
+  ],
+};
+
+beforeEach(() => {
+  useAuthStore.setState({ identity: null, status: "loading" });
+});
 
 afterEach(() => {
   cleanup();
@@ -42,6 +73,102 @@ describe("Header", () => {
       name: "ログアウト",
     });
     expect(logoutButton).toHaveClass("text-left");
+  });
+
+  it("switches accounts from the desktop submenu and refreshes identity and the page", async () => {
+    const switchAccountAdapter = vi.fn().mockResolvedValue({});
+    const refreshIdentityAdapter = vi.fn().mockResolvedValue(switchableIdentity);
+    const refresh = vi.fn();
+
+    render(
+      <Header
+        initialIdentity={switchableIdentity}
+        initialIsAuthenticated
+        refresh={refresh}
+        refreshIdentityAdapter={refreshIdentityAdapter}
+        switchAccountAdapter={switchAccountAdapter}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "アカウント切り替え" })).toHaveAttribute(
+      "aria-haspopup",
+      "menu",
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Aurora Agency" }));
+
+    await vi.waitFor(() => expect(switchAccountAdapter).toHaveBeenCalledWith({
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      fallbackErrorMessage: "アカウントの切り替えに失敗しました。",
+    }));
+    expect(refreshIdentityAdapter).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows the original account option while delegated and sends null to return", async () => {
+    const switchAccountAdapter = vi.fn().mockResolvedValue({});
+    const delegatedIdentity = {
+      ...switchableIdentity,
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      originalAccount: {
+        accountIdentifier: "22222222-2222-4222-8222-222222222222",
+        name: "Original Account",
+      },
+      switchableAccounts: switchableIdentity.switchableAccounts.map((account) => ({
+        ...account,
+        isCurrent: true,
+      })),
+    };
+
+    render(
+      <Header
+        initialIdentity={delegatedIdentity}
+        initialIsAuthenticated
+        refreshIdentityAdapter={() => delegatedIdentity}
+        switchAccountAdapter={switchAccountAdapter}
+      />,
+    );
+
+    expect(screen.getByRole("menuitem", { name: "Aurora Agency" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Aurora Agency" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: /元のアカウントに戻る/ }));
+
+    await vi.waitFor(() => expect(switchAccountAdapter).toHaveBeenCalledWith({
+      delegationIdentifier: null,
+      fallbackErrorMessage: "アカウントの切り替えに失敗しました。",
+    }));
+  });
+
+  it("does not show an empty account switch menu", () => {
+    render(
+      <Header
+        initialIdentity={{ ...switchableIdentity, switchableAccounts: [] }}
+        initialIsAuthenticated
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "アカウント切り替え" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the current identity visible and reports an account switch failure", async () => {
+    const switchAccountAdapter = vi.fn().mockRejectedValue(new Error("forbidden"));
+
+    render(
+      <Header
+        initialIdentity={switchableIdentity}
+        initialIsAuthenticated
+        switchAccountAdapter={switchAccountAdapter}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Aurora Agency" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "アカウントの切り替えに失敗しました。",
+    );
+    expect(screen.getByRole("button", { name: "member" })).toBeInTheDocument();
   });
 
   it("renders the initial profile image while the auth store is loading", () => {
@@ -122,6 +249,37 @@ describe("Header", () => {
         name: "ログアウト",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("opens the mobile account view and switches the selected account", async () => {
+    const switchAccountAdapter = vi.fn().mockResolvedValue({});
+    const refreshIdentityAdapter = vi.fn().mockResolvedValue(switchableIdentity);
+
+    render(
+      <Header
+        initialIdentity={switchableIdentity}
+        initialIsAuthenticated
+        refreshIdentityAdapter={refreshIdentityAdapter}
+        switchAccountAdapter={switchAccountAdapter}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "ナビゲーションメニュー" }));
+    let mobileNavigation = screen.getByRole("navigation", { name: "モバイルメニュー" });
+    fireEvent.click(within(mobileNavigation).getByRole("button", { name: "アカウント切り替え" }));
+
+    mobileNavigation = screen.getByRole("navigation", { name: "モバイルメニュー" });
+    expect(within(mobileNavigation).getByRole("button", { name: "メニューに戻る" })).toBeInTheDocument();
+    fireEvent.click(within(mobileNavigation).getByRole("button", { name: "Aurora Agency" }));
+
+    await vi.waitFor(() => expect(switchAccountAdapter).toHaveBeenCalledWith({
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      fallbackErrorMessage: "アカウントの切り替えに失敗しました。",
+    }));
+    expect(refreshIdentityAdapter).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(
+      screen.queryByRole("navigation", { name: "モバイルメニュー" }),
+    ).not.toBeInTheDocument());
   });
 
   it("logs out and navigates back to login", async () => {

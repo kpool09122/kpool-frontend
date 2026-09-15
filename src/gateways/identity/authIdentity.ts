@@ -1,5 +1,6 @@
 import {
   getIdentityApiBaseUrl,
+  parseAuthenticatedIdentitySummary,
   parseIdentitySummary,
   type IdentitySummary,
 } from "./identityApi";
@@ -79,7 +80,7 @@ export const fetchAuthenticatedIdentity = async ({
       return null;
     }
 
-    return parseIdentitySummary(await response.json());
+    return parseAuthenticatedIdentitySummary(await response.json());
   } catch {
     return null;
   }

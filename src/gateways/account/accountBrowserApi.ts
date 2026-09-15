@@ -11,6 +11,7 @@ import {
   parseListAffiliationsResponse,
   parseListDelegationsResponse,
   parsePrincipalGroupsResponse,
+  parseSwitchAccountResponse,
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
   type AccountSummary,
@@ -28,6 +29,7 @@ import {
   type RequestAccountCategoryChangeRequest,
   type RequestAffiliationRequest,
   type RequestDelegationRequest,
+  type SwitchAccountResponse,
   type UploadAccountDocumentsRequest,
   type UpdateAccountRequest,
   type UpdatePrincipalGroupMembersRequest,
@@ -132,6 +134,12 @@ type DelegationActionOptions = {
   fetchAdapter?: typeof fetch;
 };
 
+type SwitchAccountOptions = {
+  delegationIdentifier: string | null;
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+};
+
 export type AccountBrowserApiError = Error & { accountRouteStatus: number };
 
 export const isAccountBrowserApiError = (error: unknown): error is AccountBrowserApiError =>
@@ -174,6 +182,30 @@ const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
   }
 
   return btoa(chunks.join(""));
+};
+
+export const switchAccount = async ({
+  delegationIdentifier,
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+}: SwitchAccountOptions): Promise<SwitchAccountResponse> => {
+  const response = await fetchAdapter("/api/account/accounts/switch", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ delegationIdentifier }),
+  });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    throw createRouteError(response, body, fallbackErrorMessage);
+  }
+
+  return parseSwitchAccountResponse(body);
 };
 
 export const fetchAccount = async ({

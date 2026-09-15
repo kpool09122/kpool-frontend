@@ -18,6 +18,7 @@ import {
   requestAccountCategoryChange,
   requestAffiliation,
   requestDelegation,
+  switchAccount,
   updateAccount,
   updatePrincipalGroupMembers,
   uploadAccountDocuments,
@@ -59,6 +60,46 @@ const documentsResponse = {
 };
 
 describe("account browser API", () => {
+  it.each([
+    { delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", label: "delegated account" },
+    { delegationIdentifier: null, label: "original account" },
+  ])("switches to the $label with credentials", async ({ delegationIdentifier }) => {
+    const responseBody = {
+      originalIdentityIdentifier: "11111111-1111-4111-8111-111111111111",
+      accountIdentifier: "22222222-2222-4222-8222-222222222222",
+      accountPrincipalIdentifier: "33333333-3333-4333-8333-333333333333",
+      delegationIdentifier,
+    };
+    const fetchAdapter = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(responseBody), { status: 200 }),
+    );
+
+    await expect(switchAccount({
+      delegationIdentifier,
+      fallbackErrorMessage: "switch failed",
+      fetchAdapter,
+    })).resolves.toEqual(responseBody);
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/account/accounts/switch", {
+      method: "POST",
+      cache: "no-store",
+      credentials: "include",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ delegationIdentifier }),
+    });
+  });
+
+  it("surfaces account switch route errors", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "switch denied" }), { status: 403 }),
+    );
+
+    await expect(switchAccount({
+      delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      fallbackErrorMessage: "switch failed",
+      fetchAdapter,
+    })).rejects.toMatchObject({ message: "switch denied", accountRouteStatus: 403 });
+  });
+
   it("fetches account members with credentials", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(memberResponse), { status: 200 }),
