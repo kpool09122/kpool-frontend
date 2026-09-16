@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -298,6 +298,31 @@ describe("Header", () => {
 
     await vi.waitFor(() => expect(logoutAdapter).toHaveBeenCalled());
     expect(navigate).toHaveBeenCalledWith("/login");
+  });
+
+  it("reenables logout after signing in again without a reload", async () => {
+    const logoutAdapter = vi.fn().mockResolvedValue(undefined);
+    const navigate = vi.fn();
+
+    render(
+      <Header
+        initialIdentity={switchableIdentity}
+        initialIsAuthenticated
+        logoutAdapter={logoutAdapter}
+        navigate={navigate}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+
+    expect(screen.getByRole("button", { name: "ログアウト中" })).toBeDisabled();
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+
+    act(() => {
+      useAuthStore.setState({ identity: switchableIdentity, status: "authenticated" });
+    });
+
+    expect(screen.getByRole("button", { name: "ログアウト" })).toBeEnabled();
   });
 
   it("builds language-prefixed navigation paths when switching locale", () => {

@@ -111,6 +111,7 @@ export function Header({
         router.refresh();
       }
       refresh?.();
+      setIsLoggingOut(false);
     });
   };
   const handleLocaleChange = (nextLocale: Locale) => {
@@ -229,7 +230,7 @@ export function Header({
                   <PersonIcon aria-hidden="true" className="size-5" />
                 )}
               </button>
-              <div className="invisible absolute right-0 top-full z-50 min-w-44 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+              <div className="invisible absolute right-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                 <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
                   <Link
                     className="rounded-lg px-4 py-2 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
@@ -247,7 +248,7 @@ export function Header({
                         <span>{t.switchAccount}</span>
                         <span aria-hidden="true">‹</span>
                       </button>
-                      <div className="invisible absolute right-full top-0 z-50 min-w-56 pr-2 opacity-0 transition group-focus-within/switch:visible group-focus-within/switch:opacity-100 group-hover/switch:visible group-hover/switch:opacity-100">
+                      <div className="invisible absolute right-full top-0 z-50 min-w-72 pr-2 opacity-0 transition group-focus-within/switch:visible group-focus-within/switch:opacity-100 group-hover/switch:visible group-hover/switch:opacity-100">
                         <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft" role="menu">
                           {canReturnToOriginalAccount ? (
                             <button
