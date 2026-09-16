@@ -6,8 +6,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDownIcon, PersonIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
+import { switchAccount } from "@/gateways/account/accountBrowserApi";
 import { useAuthStore } from "@/gateways/auth/authStore";
-import type { IdentitySummary } from "@/gateways/identity/identityApi";
+import type { AuthenticatedIdentitySummary, IdentitySummary } from "@/gateways/identity/identityApi";
 import { useI18n } from "../i18n/I18nProvider";
 import { localeLabels, supportedLocales, type Locale } from "../i18n/locales";
 
@@ -17,6 +18,8 @@ type HeaderProps = {
   logoutAdapter?: () => unknown;
   navigate?: (url: string) => void;
   refresh?: () => void;
+  refreshIdentityAdapter?: () => unknown;
+  switchAccountAdapter?: typeof switchAccount;
 };
 
 const guestNavigation = {
@@ -62,6 +65,8 @@ export function Header({
   logoutAdapter = logoutFromIdentity,
   navigate,
   refresh,
+  refreshIdentityAdapter,
+  switchAccountAdapter = switchAccount,
 }: HeaderProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,14 +75,29 @@ export function Header({
   const currentLocale = locale;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileLanguageViewOpen, setIsMobileLanguageViewOpen] = useState(false);
+  const [isMobileAccountViewOpen, setIsMobileAccountViewOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
+  const [switchAccountError, setSwitchAccountError] = useState<string | null>(null);
   const identity = useAuthStore((state) => state.identity);
   const authStatus = useAuthStore((state) => state.status);
   const clearIdentity = useAuthStore((state) => state.clearIdentity);
+  const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
+  const refreshIdentityAfterSwitch = refreshIdentityAdapter ??
+    (() => refreshIdentity({ preserveOnNull: true }));
   const currentIdentity = identity ?? (authStatus === "loading" ? initialIdentity : null);
   const isAuthenticated =
     authStatus === "loading" ? initialIsAuthenticated : authStatus === "authenticated";
   const t = dictionary.header;
+  const authenticatedIdentity = currentIdentity && "switchableAccounts" in currentIdentity
+    ? currentIdentity as AuthenticatedIdentitySummary
+    : null;
+  const switchableAccounts = authenticatedIdentity?.switchableAccounts ?? [];
+  const canReturnToOriginalAccount = Boolean(
+    authenticatedIdentity?.delegationIdentifier && authenticatedIdentity.originalAccount,
+  );
+  const hasAccountSwitchChoices =
+    canReturnToOriginalAccount || switchableAccounts.some((account) => !account.isCurrent);
 
   const handleLogout = () => {
     setIsLoggingOut(true);
@@ -91,6 +111,7 @@ export function Header({
         router.refresh();
       }
       refresh?.();
+      setIsLoggingOut(false);
     });
   };
   const handleLocaleChange = (nextLocale: Locale) => {
@@ -123,6 +144,27 @@ export function Header({
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
     setIsMobileLanguageViewOpen(false);
+    setIsMobileAccountViewOpen(false);
+  };
+  const handleAccountSwitch = (delegationIdentifier: string | null) => {
+    setIsSwitchingAccount(true);
+    setSwitchAccountError(null);
+
+    void Promise.resolve(switchAccountAdapter({
+      delegationIdentifier,
+      fallbackErrorMessage: t.switchAccountFailed,
+    }))
+      .then(() => Promise.resolve(refreshIdentityAfterSwitch()))
+      .then(() => {
+        closeMobileMenu();
+        if (refresh) {
+          refresh();
+        } else {
+          router.refresh();
+        }
+      })
+      .catch(() => setSwitchAccountError(t.switchAccountFailed))
+      .finally(() => setIsSwitchingAccount(false));
   };
   const mobileRowClassName = "flex w-full items-center justify-between px-1 py-3 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/20 focus:bg-brand-highlight/20 focus:outline-none active:bg-brand-highlight/30";
   const profileImage = currentIdentity?.profileImage ?? null;
@@ -188,7 +230,7 @@ export function Header({
                   <PersonIcon aria-hidden="true" className="size-5" />
                 )}
               </button>
-              <div className="invisible absolute right-0 top-full z-50 min-w-44 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+              <div className="invisible absolute right-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                 <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
                   <Link
                     className="rounded-lg px-4 py-2 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
@@ -196,6 +238,55 @@ export function Header({
                   >
                     {t.admin}
                   </Link>
+                  {hasAccountSwitchChoices ? (
+                    <div className="group/switch relative">
+                      <button
+                        aria-haspopup="menu"
+                        className="flex w-full items-center justify-between gap-4 rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
+                        type="button"
+                      >
+                        <span>{t.switchAccount}</span>
+                        <span aria-hidden="true">‹</span>
+                      </button>
+                      <div className="invisible absolute right-full top-0 z-50 min-w-72 pr-2 opacity-0 transition group-focus-within/switch:visible group-focus-within/switch:opacity-100 group-hover/switch:visible group-hover/switch:opacity-100">
+                        <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft" role="menu">
+                          {canReturnToOriginalAccount ? (
+                            <button
+                              className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                              disabled={isSwitchingAccount}
+                              onClick={() => handleAccountSwitch(null)}
+                              role="menuitem"
+                              type="button"
+                            >
+                              <span className="block">{t.returnToOriginalAccount}</span>
+                              <span className="block text-xs font-normal text-text-muted">
+                                {authenticatedIdentity?.originalAccount?.name}
+                              </span>
+                            </button>
+                          ) : null}
+                          {switchableAccounts.map((account) => (
+                            <button
+                              aria-current={account.isCurrent ? "true" : undefined}
+                              className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                              disabled={isSwitchingAccount || account.isCurrent}
+                              key={account.delegationIdentifier}
+                              onClick={() => handleAccountSwitch(account.delegationIdentifier)}
+                              role="menuitem"
+                              type="button"
+                            >
+                              {account.account.name}
+                            </button>
+                          ))}
+                          {isSwitchingAccount ? (
+                            <p className="px-4 py-2 text-xs text-text-muted" role="status">{t.switchingAccount}</p>
+                          ) : null}
+                          {switchAccountError ? (
+                            <p className="px-4 py-2 text-xs text-status-danger" role="alert">{switchAccountError}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                   <button
                     type="button"
                     className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
@@ -226,6 +317,7 @@ export function Header({
           onClick={() => {
             setIsMobileMenuOpen((current) => !current);
             setIsMobileLanguageViewOpen(false);
+            setIsMobileAccountViewOpen(false);
           }}
         >
           <span className="flex flex-col gap-1.5" aria-hidden="true">
@@ -266,6 +358,45 @@ export function Header({
                 </button>
               ))}
             </div>
+          ) : isMobileAccountViewOpen ? (
+            <div className="grid divide-y divide-stroke-subtle">
+              <button
+                className={mobileRowClassName}
+                onClick={() => setIsMobileAccountViewOpen(false)}
+                type="button"
+              >
+                <span>{t.backToMenu}</span>
+              </button>
+              {canReturnToOriginalAccount ? (
+                <button
+                  className={`${mobileRowClassName} disabled:cursor-not-allowed disabled:opacity-70`}
+                  disabled={isSwitchingAccount}
+                  onClick={() => handleAccountSwitch(null)}
+                  type="button"
+                >
+                  <span>
+                    <span className="block">{t.returnToOriginalAccount}</span>
+                    <span className="block text-xs font-normal text-text-muted">
+                      {authenticatedIdentity?.originalAccount?.name}
+                    </span>
+                  </span>
+                </button>
+              ) : null}
+              {switchableAccounts.map((account) => (
+                <button
+                  aria-current={account.isCurrent ? "true" : undefined}
+                  className={`${mobileRowClassName} disabled:cursor-not-allowed disabled:opacity-70`}
+                  disabled={isSwitchingAccount || account.isCurrent}
+                  key={account.delegationIdentifier}
+                  onClick={() => handleAccountSwitch(account.delegationIdentifier)}
+                  type="button"
+                >
+                  <span>{account.account.name}</span>
+                </button>
+              ))}
+              {isSwitchingAccount ? <p className="py-3 text-sm text-text-muted" role="status">{t.switchingAccount}</p> : null}
+              {switchAccountError ? <p className="py-3 text-sm text-status-danger" role="alert">{switchAccountError}</p> : null}
+            </div>
           ) : (
             <div className="grid divide-y divide-stroke-subtle">
               <button
@@ -281,6 +412,19 @@ export function Header({
                   <Link className={mobileRowClassName} href="/admin" onClick={closeMobileMenu}>
                     {t.admin}
                   </Link>
+                  {hasAccountSwitchChoices ? (
+                    <button
+                      className={mobileRowClassName}
+                      onClick={() => {
+                        setSwitchAccountError(null);
+                        setIsMobileAccountViewOpen(true);
+                      }}
+                      type="button"
+                    >
+                      <span>{t.switchAccount}</span>
+                      <span aria-hidden="true">›</span>
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className={`${mobileRowClassName} disabled:cursor-not-allowed disabled:opacity-70`}

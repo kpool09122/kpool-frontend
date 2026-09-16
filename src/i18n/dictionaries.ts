@@ -15,6 +15,10 @@ const ja = {
     navigationMenu: "ナビゲーションメニュー",
     mobileMenu: "モバイルメニュー",
     backToMenu: "メニューに戻る",
+    switchAccount: "アカウント切り替え",
+    returnToOriginalAccount: "元のアカウントに戻る",
+    switchingAccount: "切り替え中",
+    switchAccountFailed: "アカウントの切り替えに失敗しました。",
   },
   home: {
     eyebrow: "公開Wiki",
@@ -1020,6 +1024,10 @@ const en: typeof ja = {
     navigationMenu: "Navigation menu",
     mobileMenu: "Mobile menu",
     backToMenu: "Back to menu",
+    switchAccount: "Switch account",
+    returnToOriginalAccount: "Return to original account",
+    switchingAccount: "Switching account",
+    switchAccountFailed: "Failed to switch accounts.",
   },
   home: {
     eyebrow: "Public Wikis",
@@ -2026,6 +2034,10 @@ const ko: typeof ja = {
     navigationMenu: "내비게이션 메뉴",
     mobileMenu: "모바일 메뉴",
     backToMenu: "메뉴로 돌아가기",
+    switchAccount: "계정 전환",
+    returnToOriginalAccount: "원래 계정으로 돌아가기",
+    switchingAccount: "계정 전환 중",
+    switchAccountFailed: "계정 전환에 실패했습니다.",
   },
   home: {
     eyebrow: "공개 Wiki",

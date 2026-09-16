@@ -1,5 +1,5 @@
 import {
-  parseIdentitySummary,
+  parseAuthenticatedIdentitySummary,
   type IdentitySummary,
 } from "@/gateways/identity/identityApi";
 
@@ -31,7 +31,7 @@ export const fetchCurrentAuthenticatedIdentity = async ({
       return null;
     }
 
-    return parseIdentitySummary(await readResponseBody(response));
+    return parseAuthenticatedIdentitySummary(await readResponseBody(response));
   } catch {
     return null;
   }

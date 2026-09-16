@@ -12,6 +12,10 @@ const identityResponse = {
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
   accountType: "corporation",
   accountPolicies: [],
+  account: null,
+  originalAccount: null,
+  delegationIdentifier: null,
+  switchableAccounts: [],
 };
 
 const createRequest = (headers: Record<string, string> = {}): NextRequest =>

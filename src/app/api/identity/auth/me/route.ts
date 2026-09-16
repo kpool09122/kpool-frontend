@@ -1,12 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { identityApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import {
   getIdentityApiBaseUrl,
   getIdentityRouteErrorMessage,
+  parseAuthenticatedIdentitySummary,
 } from "@/gateways/identity/identityApi";
-import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getCookieForwardHeaders,
   identityApiNotConfiguredResponse,
@@ -45,11 +44,7 @@ export async function GET(request: NextRequest) {
 
     return withIdentitySetCookie(
       NextResponse.json(
-        parseWithSchemaLog(
-          "identity authenticated response",
-          identityApiTypes.schemas.AuthenticatedIdentitySummary,
-          body,
-        ),
+        parseAuthenticatedIdentitySummary(body),
         { status: 200 },
       ),
       apiResponse,

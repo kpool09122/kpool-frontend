@@ -6,6 +6,8 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 export type CreateAccountRequest = z.infer<typeof accountApiTypes.schemas.CreateAccountRequestBody>;
 export type CreateAccountResult = z.infer<typeof accountApiTypes.schemas.CreateAccountResult>;
 export type AccountSummary = z.infer<typeof accountApiTypes.schemas.AccountSummary>;
+export type SwitchAccountRequest = z.infer<typeof accountApiTypes.schemas.SwitchAccountRequestBody>;
+export type SwitchAccountResponse = z.infer<typeof accountApiTypes.schemas.SwitchAccountResponseBody>;
 export type UpdateAccountRequest = z.infer<typeof accountApiTypes.schemas.UpdateAccountRequestBody>;
 export type AccountDocumentUploadItem = z.infer<typeof accountApiTypes.schemas.AccountDocumentUploadItem>;
 export type UploadAccountDocumentsRequest = z.infer<typeof accountApiTypes.schemas.UploadAccountDocumentsRequestBody>;
@@ -88,6 +90,12 @@ export const parseCreateAccountResult = (body: unknown): CreateAccountResult =>
 
 export const parseAccountSummary = (body: unknown): AccountSummary =>
   parseWithSchemaLog("account summary response", accountApiTypes.schemas.AccountSummary, body);
+
+export const parseSwitchAccountRequest = (body: unknown): SwitchAccountRequest =>
+  parseWithSchemaLog("account switch request", accountApiTypes.schemas.SwitchAccountRequestBody, body);
+
+export const parseSwitchAccountResponse = (body: unknown): SwitchAccountResponse =>
+  parseWithSchemaLog("account switch response", accountApiTypes.schemas.SwitchAccountResponseBody, body);
 
 export const parseUpdateAccountRequest = (body: unknown): UpdateAccountRequest =>
   parseWithSchemaLog("account update request", accountApiTypes.schemas.UpdateAccountRequestBody, body);
