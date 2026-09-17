@@ -319,7 +319,7 @@ const CreatePolicyRequestBody = z
   .object({
     name: z.string(),
     statements: z.array(PolicyStatement),
-    isSystemPolicy: z.boolean(),
+    accountId: KPool_Common_Uuid.nullish(),
   })
   .passthrough();
 const PolicySummary = z
@@ -414,7 +414,7 @@ const CreateRoleRequestBody = z
   .object({
     name: z.string(),
     policies: z.array(KPool_Common_Uuid).optional(),
-    isSystemRole: z.boolean(),
+    accountId: KPool_Common_Uuid.nullish(),
   })
   .passthrough();
 const RoleSummary = z
