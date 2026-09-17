@@ -196,22 +196,6 @@ const RequestAffiliationRequestBody = z
 const TerminateAffiliationRequestBody = z
   .object({ terminatorAccountIdentifier: KPool_Common_Uuid })
   .passthrough();
-const GrantDelegationPermissionRequestBody = z
-  .object({
-    principalGroupIdentifier: KPool_Common_Uuid,
-    targetAccountIdentifier: KPool_Common_Uuid,
-    affiliationIdentifier: KPool_Common_Uuid,
-  })
-  .passthrough();
-const DelegationPermissionSummary = z
-  .object({
-    delegationPermissionIdentifier: KPool_Common_Uuid,
-    principalGroupIdentifier: KPool_Common_Uuid,
-    targetAccountIdentifier: KPool_Common_Uuid,
-    affiliationIdentifier: KPool_Common_Uuid,
-    createdAt: KPool_Common_Timestamp,
-  })
-  .passthrough();
 const AffiliationAccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -356,8 +340,6 @@ export const schemas = {
   ListAffiliationsResponseBody,
   RequestAffiliationRequestBody,
   TerminateAffiliationRequestBody,
-  GrantDelegationPermissionRequestBody,
-  DelegationPermissionSummary,
   AffiliationAccountSummary,
   DelegationSummary,
   ListDelegationsResponseBody,
@@ -1109,80 +1091,6 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/delegation-permissions",
-    alias: "DelegationPermissionOperations_grantDelegationPermission",
-    description: `Grant a delegation permission.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: GrantDelegationPermissionRequestBody,
-      },
-    ],
-    response: DelegationPermissionSummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "delete",
-    path: "/delegation-permissions/:delegationPermissionId",
-    alias: "DelegationPermissionOperations_revokeDelegationPermission",
-    description: `Revoke a delegation permission.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "delegationPermissionId",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-    ],
-    response: z.void(),
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
