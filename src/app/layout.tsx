@@ -7,6 +7,7 @@ import "@fontsource/pretendard/400.css";
 import "react-image-crop/dist/ReactCrop.css";
 import "./globals.css";
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
+import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
 import {
@@ -55,6 +56,7 @@ export default async function RootLayout({
               initialIsAuthenticated={authenticatedIdentity !== null}
             />
             {children}
+            <Footer />
           </QueryProvider>
         </I18nProvider>
       </body>
