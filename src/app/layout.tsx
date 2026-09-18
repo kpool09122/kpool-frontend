@@ -12,6 +12,7 @@ import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
 import {
   appCountryHeaderName,
+  appRouteLocaleHeaderName,
   localeCookieName,
   resolveLocale,
 } from "../i18n/locales";
@@ -40,6 +41,7 @@ export default async function RootLayout({
     cookieHeader: cookieStore.toString(),
   });
   const locale = resolveLocale({
+    routeLocale: headerStore.get(appRouteLocaleHeaderName),
     identityLanguage: authenticatedIdentity?.language,
     savedLocale: cookieStore.get(localeCookieName)?.value,
     country: headerStore.get(appCountryHeaderName),

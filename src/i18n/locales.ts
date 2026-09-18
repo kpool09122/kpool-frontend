@@ -5,6 +5,7 @@ export type Locale = (typeof supportedLocales)[number];
 export const fallbackLocale: Locale = "en";
 export const localeCookieName = "kpool-locale";
 export const appCountryHeaderName = "x-kpool-country";
+export const appRouteLocaleHeaderName = "x-kpool-route-locale";
 
 const localeSet = new Set<string>(supportedLocales);
 
@@ -47,14 +48,17 @@ export const localeFromCountry = (country: unknown): Locale | null => {
 };
 
 export const resolveLocale = ({
+  routeLocale,
   identityLanguage,
   savedLocale,
   country,
 }: {
+  routeLocale?: unknown;
   identityLanguage?: unknown;
   savedLocale?: unknown;
   country?: unknown;
 }): Locale =>
+  normalizeLocale(routeLocale) ??
   normalizeLocale(savedLocale) ??
   normalizeLocale(identityLanguage) ??
   localeFromCountry(country) ??

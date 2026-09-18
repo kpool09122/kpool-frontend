@@ -18,13 +18,16 @@ import { proxy } from "./proxy";
 const createRequest = ({
   cfCountry,
   headers = {},
+  pathname = "/",
 }: {
   cfCountry?: string;
   headers?: Record<string, string>;
+  pathname?: string;
 }) =>
   ({
     cf: cfCountry === undefined ? undefined : { country: cfCountry },
     headers: new Headers(headers),
+    nextUrl: { pathname },
   }) as never;
 
 const getForwardedHeaders = (options: unknown): Headers => {
@@ -92,5 +95,12 @@ describe("proxy", () => {
     );
 
     expect(nextResponseState.options[0]).toBeUndefined();
+  });
+
+  it("forwards the locale from a language-prefixed public route", () => {
+    proxy(createRequest({ pathname: "/ja/terms" }));
+
+    const headers = getForwardedHeaders(nextResponseState.options[0]);
+    expect(headers.get("x-kpool-route-locale")).toBe("ja");
   });
 });

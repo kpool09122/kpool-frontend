@@ -23,6 +23,16 @@ const ja = {
   footer: {
     contact: "お問い合わせ",
     copyright: "© K-Pool",
+    instagram: "Instagram",
+    navigation: "フッターリンク",
+    privacy: "プライバシーポリシー",
+    terms: "利用規約",
+  },
+  legal: {
+    termsTitle: "K-Pool 利用規約",
+    termsDescription: "K-Poolの利用条件、投稿コンテンツおよび共同編集に関する規約です。",
+    privacyTitle: "K-Pool プライバシーポリシー",
+    privacyDescription: "K-Poolにおける個人情報および利用情報の取扱いを説明します。",
   },
   contact: {
     title: "お問い合わせ",
@@ -1060,6 +1070,16 @@ const en: typeof ja = {
   footer: {
     contact: "Contact",
     copyright: "© K-Pool",
+    instagram: "Instagram",
+    navigation: "Footer links",
+    privacy: "Privacy Policy",
+    terms: "Terms of Service",
+  },
+  legal: {
+    termsTitle: "K-Pool Terms of Service",
+    termsDescription: "Terms governing K-Pool, user content, and collaborative editing.",
+    privacyTitle: "K-Pool Privacy Policy",
+    privacyDescription: "How K-Pool collects, uses, protects, and retains personal information.",
   },
   contact: {
     title: "Contact",
@@ -2098,6 +2118,16 @@ const ko: typeof ja = {
   footer: {
     contact: "문의하기",
     copyright: "© K-Pool",
+    instagram: "Instagram",
+    navigation: "푸터 링크",
+    privacy: "개인정보 처리방침",
+    terms: "이용약관",
+  },
+  legal: {
+    termsTitle: "K-Pool 이용약관",
+    termsDescription: "K-Pool 이용, 게시 콘텐츠 및 공동 편집에 관한 약관입니다.",
+    privacyTitle: "K-Pool 개인정보 처리방침",
+    privacyDescription: "K-Pool의 개인정보 수집, 이용, 보호 및 보관 방식을 설명합니다.",
   },
   contact: {
     title: "문의하기",
