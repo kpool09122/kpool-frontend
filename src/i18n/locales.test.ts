@@ -16,6 +16,17 @@ import { dictionaries } from "./dictionaries";
 import { resolveLocale, resolveWikiListLocale } from "./locales";
 
 describe("resolveLocale", () => {
+  it("prefers the route locale for language-prefixed public pages", () => {
+    expect(
+      resolveLocale({
+        routeLocale: "ja",
+        identityLanguage: "ko",
+        savedLocale: "en",
+        country: "KR",
+      }),
+    ).toBe("ja");
+  });
+
   it("prefers saved locale over identity language and country", () => {
     expect(
       resolveLocale({

@@ -343,6 +343,20 @@ describe("Header", () => {
     expect(
       buildLocaleChangePath({
         nextLocale: "en",
+        pathname: "/ja/terms",
+        searchParams: new URLSearchParams(),
+      }),
+    ).toBe("/en/terms");
+    expect(
+      buildLocaleChangePath({
+        nextLocale: "ko",
+        pathname: "/en/privacy",
+        searchParams: new URLSearchParams("source=footer"),
+      }),
+    ).toBe("/ko/privacy?source=footer");
+    expect(
+      buildLocaleChangePath({
+        nextLocale: "en",
         pathname: "/login",
         searchParams: new URLSearchParams(),
       }),

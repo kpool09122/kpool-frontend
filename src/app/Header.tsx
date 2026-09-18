@@ -41,8 +41,12 @@ export const buildLocaleChangePath = ({
   const hasLanguagePrefix = supportedLocales.includes(currentPathLocale as Locale);
   const isLanguageTopPath = segments.length === 2 && hasLanguagePrefix;
   const isLanguageWikiPath = segments.length >= 3 && hasLanguagePrefix && segments[2] === "wiki";
+  const isLanguageLegalPath =
+    segments.length === 3 &&
+    hasLanguagePrefix &&
+    (segments[2] === "terms" || segments[2] === "privacy");
 
-  if (!isLanguageTopPath && !isLanguageWikiPath) {
+  if (!isLanguageTopPath && !isLanguageWikiPath && !isLanguageLegalPath) {
     return null;
   }
 
