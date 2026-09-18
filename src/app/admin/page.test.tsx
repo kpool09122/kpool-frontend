@@ -260,7 +260,7 @@ const draftImage = {
   translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
   displayOrder: 1,
   sourceUrl: "https://source.example.test/review.png",
-  sourceName: "K-Pool archive",
+  sourceName: "k-pool archive",
   altText: "Review image",
   wiki: {
     names: {
@@ -2332,7 +2332,7 @@ describe("admin page clients", () => {
         status: "under_review",
       }),
     );
-    expect(screen.getByRole("link", { name: "K-Pool archive" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "k-pool archive" })).toHaveAttribute(
       "href",
       "https://source.example.test/review.png",
     );
@@ -3289,8 +3289,8 @@ describe("admin page clients", () => {
     );
 
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
-    expect(await screen.findByText("K-Pool archive")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "K-Pool archive" })).not.toBeInTheDocument();
+    expect(await screen.findByText("k-pool archive")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "k-pool archive" })).not.toBeInTheDocument();
   });
 
   it("approves a draft image and removes it from the list", async () => {

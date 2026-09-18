@@ -118,7 +118,7 @@ export function LoginPage({
         <section className="space-y-6">
           <div className="space-y-3">
             <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
-              K-Pool Account
+              k-pool Account
             </p>
 	            <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
           </div>

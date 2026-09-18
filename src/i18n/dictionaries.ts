@@ -2,7 +2,7 @@ import type { Locale } from "./locales";
 
 const ja = {
   common: {
-    accountBrand: "K-Pool Account",
+    accountBrand: "k-pool Account",
     cancel: "Cancel",
     save: "Save",
   },
@@ -22,17 +22,17 @@ const ja = {
   },
   footer: {
     contact: "お問い合わせ",
-    copyright: "© K-Pool",
+    copyright: "© k-pool",
     instagram: "Instagram",
     navigation: "フッターリンク",
     privacy: "プライバシーポリシー",
     terms: "利用規約",
   },
   legal: {
-    termsTitle: "K-Pool 利用規約",
-    termsDescription: "K-Poolの利用条件、投稿コンテンツおよび共同編集に関する規約です。",
-    privacyTitle: "K-Pool プライバシーポリシー",
-    privacyDescription: "K-Poolにおける個人情報および利用情報の取扱いを説明します。",
+    termsTitle: "k-pool 利用規約",
+    termsDescription: "k-poolの利用条件、投稿コンテンツおよび共同編集に関する規約です。",
+    privacyTitle: "k-pool プライバシーポリシー",
+    privacyDescription: "k-poolにおける個人情報および利用情報の取扱いを説明します。",
   },
   contact: {
     title: "お問い合わせ",
@@ -1049,7 +1049,7 @@ const ja = {
 
 const en: typeof ja = {
   common: {
-    accountBrand: "K-Pool Account",
+    accountBrand: "k-pool Account",
     cancel: "Cancel",
     save: "Save",
   },
@@ -1069,17 +1069,17 @@ const en: typeof ja = {
   },
   footer: {
     contact: "Contact",
-    copyright: "© K-Pool",
+    copyright: "© k-pool",
     instagram: "Instagram",
     navigation: "Footer links",
     privacy: "Privacy Policy",
     terms: "Terms of Service",
   },
   legal: {
-    termsTitle: "K-Pool Terms of Service",
-    termsDescription: "Terms governing K-Pool, user content, and collaborative editing.",
-    privacyTitle: "K-Pool Privacy Policy",
-    privacyDescription: "How K-Pool collects, uses, protects, and retains personal information.",
+    termsTitle: "k-pool Terms of Service",
+    termsDescription: "Terms governing k-pool, user content, and collaborative editing.",
+    privacyTitle: "k-pool Privacy Policy",
+    privacyDescription: "How k-pool collects, uses, protects, and retains personal information.",
   },
   contact: {
     title: "Contact",
@@ -2097,7 +2097,7 @@ const en: typeof ja = {
 
 const ko: typeof ja = {
   common: {
-    accountBrand: "K-Pool Account",
+    accountBrand: "k-pool Account",
     cancel: "Cancel",
     save: "Save",
   },
@@ -2117,17 +2117,17 @@ const ko: typeof ja = {
   },
   footer: {
     contact: "문의하기",
-    copyright: "© K-Pool",
+    copyright: "© k-pool",
     instagram: "Instagram",
     navigation: "푸터 링크",
     privacy: "개인정보 처리방침",
     terms: "이용약관",
   },
   legal: {
-    termsTitle: "K-Pool 이용약관",
-    termsDescription: "K-Pool 이용, 게시 콘텐츠 및 공동 편집에 관한 약관입니다.",
-    privacyTitle: "K-Pool 개인정보 처리방침",
-    privacyDescription: "K-Pool의 개인정보 수집, 이용, 보호 및 보관 방식을 설명합니다.",
+    termsTitle: "k-pool 이용약관",
+    termsDescription: "k-pool 이용, 게시 콘텐츠 및 공동 편집에 관한 약관입니다.",
+    privacyTitle: "k-pool 개인정보 처리방침",
+    privacyDescription: "k-pool의 개인정보 수집, 이용, 보호 및 보관 방식을 설명합니다.",
   },
   contact: {
     title: "문의하기",
