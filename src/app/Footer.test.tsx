@@ -19,7 +19,7 @@ describe("Footer", () => {
     const footer = container.querySelector("footer");
     const content = footer?.firstElementChild;
 
-    expect(screen.getByText("© K-Pool")).toBeInTheDocument();
+    expect(screen.getByText("© k-pool")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "フッターリンク" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "利用規約" })).toHaveAttribute(
       "href",

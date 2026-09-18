@@ -45,7 +45,7 @@ describe("Header", () => {
     expect(screen.getByRole("banner")).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
-        name: "K-Pool",
+        name: "k-pool",
       }),
     ).toHaveAttribute("href", "/ja");
 

@@ -118,7 +118,7 @@ test("admin shows under review draft images for an available Wiki principal", as
             translationSetIdentifier: "55555555-5555-5555-5555-555555555555",
             displayOrder: 1,
             sourceUrl: "https://source.example.test/review.png",
-            sourceName: "K-Pool archive",
+            sourceName: "k-pool archive",
             altText: "Review image",
             wiki: {
               names: {
@@ -201,7 +201,7 @@ test("admin shows under review draft images for an available Wiki principal", as
     "aria-selected",
     "true",
   );
-  await expect(page.getByRole("link", { name: "K-Pool archive" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "k-pool archive" })).toHaveAttribute(
     "href",
     "https://source.example.test/review.png",
   );

@@ -204,7 +204,7 @@ export function Header({
         >
           <Image
             src="/kpool-logo.webp"
-            alt="K-Pool"
+            alt="k-pool"
             width={1877}
             height={736}
             priority

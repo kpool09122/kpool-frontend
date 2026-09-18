@@ -481,7 +481,7 @@ export const createMockWikiDetail = (
             blockType: "quote",
             displayOrder: 50,
             content: "A dusk-to-dawn pop sequence.",
-            source: "K-Pool editorial",
+            source: "k-pool editorial",
           },
           {
             blockIdentifier: "block-discography-list",

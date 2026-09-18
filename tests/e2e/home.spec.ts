@@ -79,7 +79,7 @@ test("mobile header menu shows the login link", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("banner")).toBeVisible();
-  await expect(page.getByRole("link", { name: "K-Pool" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "k-pool" })).toBeVisible();
   await expect(page.getByRole("link", { name: "ログイン" })).toBeHidden();
 
   const menuButton = page.getByRole("button", {

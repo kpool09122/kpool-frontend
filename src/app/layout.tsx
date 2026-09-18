@@ -23,7 +23,7 @@ import { ThemeInitializer } from "./ThemeInitializer";
 export const metadata: Metadata = {
   title: siteTitle,
   description:
-    "Brand color tokens and a minimal palette preview for the K-Pool frontend.",
+    "Brand color tokens and a minimal palette preview for the k-pool frontend.",
   icons: {
     icon: "/kpool.ico",
     shortcut: "/kpool.ico",
