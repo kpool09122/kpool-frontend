@@ -166,6 +166,9 @@ const CreatePasskeyRegistrationOptionsRequestBody = z
     return_to: z.string().nullish(),
   })
   .passthrough();
+const UpdatePasskeyRequestBody = z
+  .object({ displayName: z.string().min(1).max(64) })
+  .passthrough();
 const CreateIdentityRequestBody = z
   .object({
     identityName: z.string(),
@@ -282,6 +285,7 @@ export const schemas = {
   PasskeyAuthenticationOptions,
   PasskeyAuthenticationOptionsResult,
   CreatePasskeyRegistrationOptionsRequestBody,
+  UpdatePasskeyRequestBody,
   CreateIdentityRequestBody,
   SendAuthCodeRequestBody,
   RedirectUrlResult,
@@ -424,6 +428,50 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/auth/passkeys/:passkeyIdentifier",
+    alias: "IdentityAuthOperations_updatePasskey",
+    description: `Update a passkey belonging to the authenticated identity.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ displayName: z.string().min(1).max(64) })
+          .passthrough(),
+      },
+      {
+        name: "passkeyIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.object({}).partial().passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
