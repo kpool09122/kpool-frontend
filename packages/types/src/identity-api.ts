@@ -54,6 +54,30 @@ const PasskeySummary = z
 const PasskeyListResult = z
   .object({ passkeys: z.array(PasskeySummary) })
   .passthrough();
+const PasskeyAuthenticatorAttestationResponse = z
+  .object({
+    clientDataJSON: z.string(),
+    attestationObject: z.string(),
+    transports: z.array(z.string()).nullish(),
+  })
+  .passthrough();
+const PasskeyRegistrationCredential = z
+  .object({
+    id: z.string(),
+    rawId: z.string(),
+    type: z.literal("public-key"),
+    response: PasskeyAuthenticatorAttestationResponse,
+    authenticatorAttachment: z.string().nullish(),
+    clientExtensionResults: KPool_Common_EmptyJsonObject.nullish(),
+  })
+  .passthrough();
+const AddPasskeyRequestBody = z
+  .object({
+    challengeKey: KPool_Common_Uuid.uuid(),
+    displayName: z.string().max(64),
+    credential: PasskeyRegistrationCredential,
+  })
+  .passthrough();
 const PasskeyRelyingPartyEntity = z
   .object({ name: z.string(), id: z.string() })
   .passthrough();
@@ -242,6 +266,9 @@ export const schemas = {
   KPool_Common_Timestamp,
   PasskeySummary,
   PasskeyListResult,
+  PasskeyAuthenticatorAttestationResponse,
+  PasskeyRegistrationCredential,
+  AddPasskeyRequestBody,
   PasskeyRelyingPartyEntity,
   PasskeyUserEntity,
   PasskeyCredentialParameter,
@@ -408,8 +435,50 @@ const endpoints = makeApi([
   },
   {
     method: "post",
+    path: "/auth/passkeys/addition",
+    alias: "IdentityAuthOperations_addPasskey",
+    description: `Verify and register an additional passkey for the authenticated identity.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: AddPasskeyRequestBody,
+      },
+    ],
+    response: z.object({}).partial().passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
     path: "/auth/passkeys/addition/options",
-    alias: "IdentityAuthOperations_addPasskeyOptions",
+    alias: "IdentityAuthOperations_createPasskeyOptions",
     description: `Create WebAuthn registration options for adding a passkey to the authenticated identity.`,
     requestFormat: "json",
     response: PasskeyRegistrationOptionsResult,
