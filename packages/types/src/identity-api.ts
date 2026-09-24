@@ -39,6 +39,21 @@ const IdentitySummary = z
 const LoginIdentitySummary = IdentitySummary;
 const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const AuthenticatedIdentitySummary = IdentitySummary;
+const KPool_Common_Timestamp = z.string();
+const PasskeySummary = z
+  .object({
+    passkeyIdentifier: KPool_Common_Uuid,
+    displayName: z.string(),
+    transports: z.array(z.string()),
+    backupEligible: z.boolean(),
+    backupState: z.boolean(),
+    lastUsedAt: KPool_Common_Timestamp.nullable(),
+    createdAt: KPool_Common_Timestamp,
+  })
+  .passthrough();
+const PasskeyListResult = z
+  .object({ passkeys: z.array(PasskeySummary) })
+  .passthrough();
 const PasskeyAuthenticatorAssertionResponse = z
   .object({
     clientDataJSON: z.string(),
@@ -142,7 +157,6 @@ const RedirectUrlResult = z.object({ redirectUrl: z.string() }).passthrough();
 const VerifyEmailRequestBody = z
   .object({ email: z.string(), authCode: z.string() })
   .passthrough();
-const KPool_Common_Timestamp = z.string();
 const VerifyEmailResult = z
   .object({ email: z.string(), verifiedAt: KPool_Common_Timestamp.nullish() })
   .passthrough();
@@ -225,6 +239,9 @@ export const schemas = {
   LoginIdentitySummary,
   KPool_Common_EmptyJsonObject,
   AuthenticatedIdentitySummary,
+  KPool_Common_Timestamp,
+  PasskeySummary,
+  PasskeyListResult,
   PasskeyAuthenticatorAssertionResponse,
   PasskeyAuthenticationCredential,
   AuthenticateWithPasskeyRequestBody,
@@ -242,7 +259,6 @@ export const schemas = {
   SendAuthCodeRequestBody,
   RedirectUrlResult,
   VerifyEmailRequestBody,
-  KPool_Common_Timestamp,
   VerifyEmailResult,
   UpdateIdentityRequestBody,
   AccountPolicyConditionClause,
@@ -361,6 +377,26 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/auth/passkeys",
+    alias: "IdentityAuthOperations_listPasskeys",
+    description: `List passkeys registered by the current authenticated identity.`,
+    requestFormat: "json",
+    response: PasskeyListResult,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
