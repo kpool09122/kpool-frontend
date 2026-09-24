@@ -54,60 +54,6 @@ const PasskeySummary = z
 const PasskeyListResult = z
   .object({ passkeys: z.array(PasskeySummary) })
   .passthrough();
-const PasskeyAuthenticatorAssertionResponse = z
-  .object({
-    clientDataJSON: z.string(),
-    authenticatorData: z.string(),
-    signature: z.string(),
-    userHandle: z.string().nullish(),
-  })
-  .passthrough();
-const PasskeyAuthenticationCredential = z
-  .object({
-    id: z.string(),
-    rawId: z.string(),
-    type: z.literal("public-key"),
-    response: PasskeyAuthenticatorAssertionResponse,
-    authenticatorAttachment: z.string().nullish(),
-    clientExtensionResults: KPool_Common_EmptyJsonObject.nullish(),
-  })
-  .passthrough();
-const AuthenticateWithPasskeyRequestBody = z
-  .object({
-    challengeKey: KPool_Common_Uuid.uuid(),
-    credential: PasskeyAuthenticationCredential,
-  })
-  .passthrough();
-const PasskeyCredentialDescriptor = z
-  .object({
-    type: z.string(),
-    id: z.string(),
-    transports: z.array(z.string()).nullish(),
-  })
-  .passthrough();
-const PasskeyAuthenticationOptions = z
-  .object({
-    challenge: z.string(),
-    timeout: z.number().int(),
-    rpId: z.string(),
-    allowCredentials: z.array(PasskeyCredentialDescriptor),
-    userVerification: z.string(),
-  })
-  .passthrough();
-const PasskeyAuthenticationOptionsResult = z
-  .object({
-    challengeKey: KPool_Common_Uuid,
-    options: PasskeyAuthenticationOptions,
-  })
-  .passthrough();
-const CreatePasskeyRegistrationOptionsRequestBody = z
-  .object({
-    email: z.string(),
-    accountType: z.string().nullish(),
-    oneTimeToken: z.string().nullish(),
-    return_to: z.string().nullish(),
-  })
-  .passthrough();
 const PasskeyRelyingPartyEntity = z
   .object({ name: z.string(), id: z.string() })
   .passthrough();
@@ -116,6 +62,13 @@ const PasskeyUserEntity = z
   .passthrough();
 const PasskeyCredentialParameter = z
   .object({ type: z.string(), alg: z.number().int() })
+  .passthrough();
+const PasskeyCredentialDescriptor = z
+  .object({
+    type: z.string(),
+    id: z.string(),
+    transports: z.array(z.string()).nullish(),
+  })
   .passthrough();
 const PasskeyAuthenticatorSelection = z
   .object({
@@ -140,6 +93,53 @@ const PasskeyRegistrationOptionsResult = z
   .object({
     challengeKey: KPool_Common_Uuid,
     options: PasskeyRegistrationOptions,
+  })
+  .passthrough();
+const PasskeyAuthenticatorAssertionResponse = z
+  .object({
+    clientDataJSON: z.string(),
+    authenticatorData: z.string(),
+    signature: z.string(),
+    userHandle: z.string().nullish(),
+  })
+  .passthrough();
+const PasskeyAuthenticationCredential = z
+  .object({
+    id: z.string(),
+    rawId: z.string(),
+    type: z.literal("public-key"),
+    response: PasskeyAuthenticatorAssertionResponse,
+    authenticatorAttachment: z.string().nullish(),
+    clientExtensionResults: KPool_Common_EmptyJsonObject.nullish(),
+  })
+  .passthrough();
+const AuthenticateWithPasskeyRequestBody = z
+  .object({
+    challengeKey: KPool_Common_Uuid.uuid(),
+    credential: PasskeyAuthenticationCredential,
+  })
+  .passthrough();
+const PasskeyAuthenticationOptions = z
+  .object({
+    challenge: z.string(),
+    timeout: z.number().int(),
+    rpId: z.string(),
+    allowCredentials: z.array(PasskeyCredentialDescriptor),
+    userVerification: z.string(),
+  })
+  .passthrough();
+const PasskeyAuthenticationOptionsResult = z
+  .object({
+    challengeKey: KPool_Common_Uuid,
+    options: PasskeyAuthenticationOptions,
+  })
+  .passthrough();
+const CreatePasskeyRegistrationOptionsRequestBody = z
+  .object({
+    email: z.string(),
+    accountType: z.string().nullish(),
+    oneTimeToken: z.string().nullish(),
+    return_to: z.string().nullish(),
   })
   .passthrough();
 const CreateIdentityRequestBody = z
@@ -242,19 +242,19 @@ export const schemas = {
   KPool_Common_Timestamp,
   PasskeySummary,
   PasskeyListResult,
-  PasskeyAuthenticatorAssertionResponse,
-  PasskeyAuthenticationCredential,
-  AuthenticateWithPasskeyRequestBody,
-  PasskeyCredentialDescriptor,
-  PasskeyAuthenticationOptions,
-  PasskeyAuthenticationOptionsResult,
-  CreatePasskeyRegistrationOptionsRequestBody,
   PasskeyRelyingPartyEntity,
   PasskeyUserEntity,
   PasskeyCredentialParameter,
+  PasskeyCredentialDescriptor,
   PasskeyAuthenticatorSelection,
   PasskeyRegistrationOptions,
   PasskeyRegistrationOptionsResult,
+  PasskeyAuthenticatorAssertionResponse,
+  PasskeyAuthenticationCredential,
+  AuthenticateWithPasskeyRequestBody,
+  PasskeyAuthenticationOptions,
+  PasskeyAuthenticationOptionsResult,
+  CreatePasskeyRegistrationOptionsRequestBody,
   CreateIdentityRequestBody,
   SendAuthCodeRequestBody,
   RedirectUrlResult,
@@ -397,6 +397,36 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/addition/options",
+    alias: "IdentityAuthOperations_addPasskeyOptions",
+    description: `Create WebAuthn registration options for adding a passkey to the authenticated identity.`,
+    requestFormat: "json",
+    response: PasskeyRegistrationOptionsResult,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
