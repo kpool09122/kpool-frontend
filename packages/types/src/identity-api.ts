@@ -39,6 +39,52 @@ const IdentitySummary = z
 const LoginIdentitySummary = IdentitySummary;
 const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const AuthenticatedIdentitySummary = IdentitySummary;
+const PasskeyAuthenticatorAssertionResponse = z
+  .object({
+    clientDataJSON: z.string(),
+    authenticatorData: z.string(),
+    signature: z.string(),
+    userHandle: z.string().nullish(),
+  })
+  .passthrough();
+const PasskeyAuthenticationCredential = z
+  .object({
+    id: z.string(),
+    rawId: z.string(),
+    type: z.literal("public-key"),
+    response: PasskeyAuthenticatorAssertionResponse,
+    authenticatorAttachment: z.string().nullish(),
+    clientExtensionResults: KPool_Common_EmptyJsonObject.nullish(),
+  })
+  .passthrough();
+const AuthenticateWithPasskeyRequestBody = z
+  .object({
+    challengeKey: KPool_Common_Uuid.uuid(),
+    credential: PasskeyAuthenticationCredential,
+  })
+  .passthrough();
+const PasskeyCredentialDescriptor = z
+  .object({
+    type: z.string(),
+    id: z.string(),
+    transports: z.array(z.string()).nullish(),
+  })
+  .passthrough();
+const PasskeyAuthenticationOptions = z
+  .object({
+    challenge: z.string(),
+    timeout: z.number().int(),
+    rpId: z.string(),
+    allowCredentials: z.array(PasskeyCredentialDescriptor),
+    userVerification: z.string(),
+  })
+  .passthrough();
+const PasskeyAuthenticationOptionsResult = z
+  .object({
+    challengeKey: KPool_Common_Uuid,
+    options: PasskeyAuthenticationOptions,
+  })
+  .passthrough();
 const CreatePasskeyRegistrationOptionsRequestBody = z
   .object({
     email: z.string(),
@@ -55,13 +101,6 @@ const PasskeyUserEntity = z
   .passthrough();
 const PasskeyCredentialParameter = z
   .object({ type: z.string(), alg: z.number().int() })
-  .passthrough();
-const PasskeyCredentialDescriptor = z
-  .object({
-    type: z.string(),
-    id: z.string(),
-    transports: z.array(z.string()).nullish(),
-  })
   .passthrough();
 const PasskeyAuthenticatorSelection = z
   .object({
@@ -186,11 +225,16 @@ export const schemas = {
   LoginIdentitySummary,
   KPool_Common_EmptyJsonObject,
   AuthenticatedIdentitySummary,
+  PasskeyAuthenticatorAssertionResponse,
+  PasskeyAuthenticationCredential,
+  AuthenticateWithPasskeyRequestBody,
+  PasskeyCredentialDescriptor,
+  PasskeyAuthenticationOptions,
+  PasskeyAuthenticationOptionsResult,
   CreatePasskeyRegistrationOptionsRequestBody,
   PasskeyRelyingPartyEntity,
   PasskeyUserEntity,
   PasskeyCredentialParameter,
-  PasskeyCredentialDescriptor,
   PasskeyAuthenticatorSelection,
   PasskeyRegistrationOptions,
   PasskeyRegistrationOptionsResult,
@@ -319,6 +363,53 @@ const endpoints = makeApi([
         description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/authentication",
+    alias: "IdentityAuthOperations_authenticateWithPasskey",
+    description: `Verify a WebAuthn assertion and establish an authenticated session.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: AuthenticateWithPasskeyRequestBody,
+      },
+    ],
+    response: IdentitySummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/authentication/options",
+    alias: "IdentityAuthOperations_createPasskeyAuthenticationOptions",
+    description: `Create discoverable WebAuthn authentication options without requiring an email address.`,
+    requestFormat: "json",
+    response: PasskeyAuthenticationOptionsResult,
+    errors: [
       {
         status: 500,
         description: `Server error`,
