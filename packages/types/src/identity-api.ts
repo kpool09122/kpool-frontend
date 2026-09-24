@@ -20,13 +20,7 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
-const LoginRequestBody = z
-  .object({
-    email: z.string(),
-    password: z.string(),
-    return_to: z.string().nullish(),
-  })
-  .passthrough();
+const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const IdentitySummary = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
@@ -36,8 +30,6 @@ const IdentitySummary = z
     profileImage: z.string().nullish(),
   })
   .passthrough();
-const LoginIdentitySummary = IdentitySummary;
-const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const AuthenticatedIdentitySummary = IdentitySummary;
 const KPool_Common_Timestamp = z.string();
 const PasskeySummary = z
@@ -158,6 +150,16 @@ const PasskeyAuthenticationOptionsResult = z
     options: PasskeyAuthenticationOptions,
   })
   .passthrough();
+const RegisterWithPasskeyRequestBody = z
+  .object({
+    challengeKey: KPool_Common_Uuid.uuid(),
+    identityName: z.string().min(1).max(32),
+    displayName: z.string().min(1).max(64),
+    base64EncodedImage: z.string().nullish(),
+    credential: PasskeyRegistrationCredential,
+  })
+  .passthrough();
+const PasskeyIdentityRegistrationResult = IdentitySummary;
 const CreatePasskeyRegistrationOptionsRequestBody = z
   .object({
     email: z.string(),
@@ -168,16 +170,6 @@ const CreatePasskeyRegistrationOptionsRequestBody = z
   .passthrough();
 const UpdatePasskeyRequestBody = z
   .object({ displayName: z.string().min(1).max(64) })
-  .passthrough();
-const CreateIdentityRequestBody = z
-  .object({
-    identityName: z.string(),
-    email: z.string(),
-    password: z.string(),
-    confirmedPassword: z.string(),
-    base64EncodedImage: z.string().nullish(),
-    oneTimeToken: z.string().nullish(),
-  })
   .passthrough();
 const SendAuthCodeRequestBody = z.object({ email: z.string() }).passthrough();
 const RedirectUrlResult = z.object({ redirectUrl: z.string() }).passthrough();
@@ -261,10 +253,8 @@ export const schemas = {
   KPool_Common_Uuid,
   IdentityProfileSummary,
   KPool_Common_ProblemDetails,
-  LoginRequestBody,
-  IdentitySummary,
-  LoginIdentitySummary,
   KPool_Common_EmptyJsonObject,
+  IdentitySummary,
   AuthenticatedIdentitySummary,
   KPool_Common_Timestamp,
   PasskeySummary,
@@ -284,9 +274,10 @@ export const schemas = {
   AuthenticateWithPasskeyRequestBody,
   PasskeyAuthenticationOptions,
   PasskeyAuthenticationOptionsResult,
+  RegisterWithPasskeyRequestBody,
+  PasskeyIdentityRegistrationResult,
   CreatePasskeyRegistrationOptionsRequestBody,
   UpdatePasskeyRequestBody,
-  CreateIdentityRequestBody,
   SendAuthCodeRequestBody,
   RedirectUrlResult,
   VerifyEmailRequestBody,
@@ -326,38 +317,6 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/auth/login",
-    alias: "IdentityAuthOperations_login",
-    description: `Authenticate with email and password.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: LoginRequestBody,
-      },
-    ],
-    response: LoginIdentitySummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -644,24 +603,19 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/auth/passkeys/registration/options",
-    alias: "IdentityAuthOperations_createPasskeyRegistrationOptions",
-    description: `Create WebAuthn registration options for a verified or invited email address.`,
+    path: "/auth/passkeys/registration",
+    alias: "IdentityAuthOperations_registerWithPasskey",
+    description: `Verify a WebAuthn attestation, create an identity and establish an authenticated session.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: CreatePasskeyRegistrationOptionsRequestBody,
+        schema: RegisterWithPasskeyRequestBody,
       },
     ],
-    response: PasskeyRegistrationOptionsResult,
+    response: PasskeyIdentityRegistrationResult,
     errors: [
-      {
-        status: 403,
-        description: `Access is forbidden.`,
-        schema: KPool_Common_ProblemDetails,
-      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -686,18 +640,18 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/auth/register",
-    alias: "IdentityAuthOperations_createIdentity",
-    description: `Register a new identity.`,
+    path: "/auth/passkeys/registration/options",
+    alias: "IdentityAuthOperations_createPasskeyRegistrationOptions",
+    description: `Create WebAuthn registration options for a verified or invited email address.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: CreateIdentityRequestBody,
+        schema: CreatePasskeyRegistrationOptionsRequestBody,
       },
     ],
-    response: IdentitySummary,
+    response: PasskeyRegistrationOptionsResult,
     errors: [
       {
         status: 403,
