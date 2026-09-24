@@ -1,19 +1,18 @@
 import {
-  parseCreateAccountResult,
-  type CreateAccountRequest,
-  type CreateAccountResult,
-} from "@/gateways/account/accountApi";
-import {
-  parseIdentitySummary,
   parseVerifyEmailResult,
-  type CreateIdentityRequest,
+  type CreatePasskeyRegistrationOptionsRequest,
   type IdentitySummary,
+  type PasskeyRegistrationCredential,
+  type PasskeyRegistrationOptionsResult,
+  type RegisterWithPasskeyRequest,
+  type SendAuthCodeRequest,
   type VerifyEmailRequest,
   type VerifyEmailResult,
 } from "@/gateways/identity/identityApi";
+import { passkeyBrowserApi } from "@/gateways/identity/passkeyBrowserApi";
 
-export type SignupStepId = "account" | "verification" | "identity";
-export type SignupPhase = "account" | "verification" | "identity" | "complete";
+export type SignupStepId = "account" | "verification" | "passkey";
+export type SignupPhase = SignupStepId | "complete";
 
 export type SignupStepState = "pending" | "active" | "processing" | "complete" | "error";
 
@@ -28,53 +27,38 @@ export type SignupAccountFormValues = {
   accountName: string;
   accountType: string;
   language: string;
-  identityName: string;
-  password: string;
-  confirmedPassword: string;
+  passkeyDisplayName: string;
   base64EncodedImage: string;
-  oneTimeToken: string;
 };
+
+type RequestLanguageOptions = { language: string };
 
 export type SignupAdapter = {
-  createAccount: (
-    request: CreateAccountRequest,
-    options?: { language: string },
-  ) => Promise<CreateAccountResult>;
-  verifyEmail: (
-    request: VerifyEmailRequest,
-    options?: { language: string },
-  ) => Promise<VerifyEmailResult>;
-  createIdentity: (
-    request: CreateIdentityRequest,
-    options?: { language: string },
+  sendAuthCode: (request: SendAuthCodeRequest, options?: RequestLanguageOptions) => Promise<void>;
+  verifyEmail: (request: VerifyEmailRequest, options?: RequestLanguageOptions) => Promise<VerifyEmailResult>;
+  createRegistrationOptions: (
+    request: CreatePasskeyRegistrationOptionsRequest,
+    options?: RequestLanguageOptions,
+  ) => Promise<PasskeyRegistrationOptionsResult>;
+  registerWithPasskey: (
+    request: RegisterWithPasskeyRequest,
+    options?: RequestLanguageOptions,
   ) => Promise<IdentitySummary>;
 };
-
-export type SignupResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; message: string };
 
 const signupStepLabels: Record<SignupStepId, string> = {
   account: "アカウント情報入力",
   verification: "認証コード入力",
-  identity: "登録情報設定",
+  passkey: "パスキー登録",
 };
 
-const signupStepOrder: SignupStepId[] = ["account", "verification", "identity"];
+const signupStepOrder: SignupStepId[] = ["account", "verification", "passkey"];
 
 const phaseStepIndex: Record<SignupPhase, number> = {
   account: 0,
   verification: 1,
-  identity: 2,
+  passkey: 2,
   complete: 3,
-};
-
-const getActiveStep = (phase: SignupPhase): SignupStepId | null => {
-  if (phase === "complete") {
-    return null;
-  }
-
-  return phase;
 };
 
 export const getSignupStepItems = ({
@@ -86,75 +70,52 @@ export const getSignupStepItems = ({
   pending: boolean;
   errorStep: SignupStepId | null;
 }): SignupStepItem[] => {
-  const activeStep = getActiveStep(phase);
   const currentIndex = phaseStepIndex[phase];
 
-  return signupStepOrder.map((stepId, index) => {
-    const state =
-      errorStep === stepId
-        ? "error"
-        : index < currentIndex
-          ? "complete"
-          : activeStep === stepId && pending
-            ? "processing"
-            : activeStep === stepId
-              ? "active"
-              : "pending";
-
-    return {
-      id: stepId,
-      label: signupStepLabels[stepId],
-      state,
-    };
-  });
+  return signupStepOrder.map((stepId, index) => ({
+    id: stepId,
+    label: signupStepLabels[stepId],
+    state: errorStep === stepId
+      ? "error"
+      : index < currentIndex
+        ? "complete"
+        : phase === stepId && pending
+          ? "processing"
+          : phase === stepId
+            ? "active"
+            : "pending",
+  }));
 };
 
-export const buildCreateAccountRequest = (
+export const buildRegistrationOptionsRequest = (
   values: SignupAccountFormValues,
-): CreateAccountRequest => ({
+  oneTimeToken?: string,
+): CreatePasskeyRegistrationOptionsRequest => ({
   email: values.email,
-  accountName: values.accountName,
-  accountType: values.accountType,
-  identityIdentifier: null,
+  accountType: oneTimeToken ? null : values.accountType,
+  oneTimeToken: oneTimeToken || null,
+  return_to: "/admin",
 });
 
-export const buildCreateIdentityRequest = (
-  values: SignupAccountFormValues,
-): CreateIdentityRequest & { requestLanguage: string } => ({
-  identityName: values.identityName,
-  email: values.email,
-  password: values.password,
-  confirmedPassword: values.confirmedPassword,
-  base64EncodedImage: values.base64EncodedImage || null,
-  oneTimeToken: values.oneTimeToken || null,
-  requestLanguage: values.language,
-});
-
-export const buildInvitationCreateIdentityRequest = ({
-  email,
-  identityName,
-  password,
-  confirmedPassword,
-  oneTimeToken,
-  language,
+export const buildRegisterWithPasskeyRequest = ({
+  values,
+  challengeKey,
+  credential,
+  identityName = values.accountName,
 }: {
-  email: string;
-  identityName: string;
-  password: string;
-  confirmedPassword: string;
-  oneTimeToken: string;
-  language: string;
-}): CreateIdentityRequest & { requestLanguage: string } => ({
+  values: SignupAccountFormValues;
+  challengeKey: string;
+  credential: PasskeyRegistrationCredential;
+  identityName?: string;
+}): RegisterWithPasskeyRequest => ({
+  challengeKey,
   identityName,
-  email,
-  password,
-  confirmedPassword,
-  base64EncodedImage: null,
-  oneTimeToken,
-  requestLanguage: language,
+  displayName: values.passkeyDisplayName,
+  base64EncodedImage: values.base64EncodedImage || null,
+  credential,
 });
 
-export const getSignupErrorMessage = async (response: Response): Promise<string> => {
+const getSignupErrorMessage = async (response: Response): Promise<string> => {
   try {
     const body = (await response.json()) as unknown;
 
@@ -170,54 +131,50 @@ export const getSignupErrorMessage = async (response: Response): Promise<string>
     return "登録処理に失敗しました。時間をおいて再度お試しください。";
   }
 
-  if (response.status === 409) {
-    return "このメールアドレスはすでに登録されています。";
-  }
-
-  if (response.status === 422) {
-    return "入力内容を確認してください。";
-  }
-
-  return "登録処理に失敗しました。時間をおいて再度お試しください。";
+  return response.status === 422
+    ? "入力内容を確認してください。"
+    : "登録処理に失敗しました。時間をおいて再度お試しください。";
 };
 
 const postJson = async <T>(
   url: string,
   body: unknown,
   parseResponse: (body: unknown) => T,
-  options?: { language: string },
-): Promise<SignupResult<T>> => {
+  options?: RequestLanguageOptions,
+): Promise<T> => {
   const response = await fetch(url, {
     method: "POST",
     headers: {
+      Accept: "application/json",
       ...(options?.language ? { "Accept-Language": options.language } : {}),
       "Content-Type": "application/json",
     },
     credentials: "include",
+    cache: "no-store",
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    return {
-      ok: false,
-      message: await getSignupErrorMessage(response),
-    };
+    throw new Error(await getSignupErrorMessage(response));
   }
 
-  return {
-    ok: true,
-    data: parseResponse(await response.json()),
-  };
+  const text = await response.text();
+
+  return parseResponse(text ? JSON.parse(text) as unknown : {});
 };
 
 export const signupWithApi: SignupAdapter = {
-  createAccount: async (request, options) => {
-    const result = await postJson<CreateAccountResult>(
-      "/api/account/accounts",
-      request,
-      parseCreateAccountResult,
-      options,
-    );
+  sendAuthCode: async (request, options) => {
+    await postJson("/api/identity/auth/send-auth-code", request, () => undefined, options);
+  },
+  verifyEmail: (request, options) => postJson(
+    "/api/identity/auth/verify-email",
+    request,
+    parseVerifyEmailResult,
+    options,
+  ),
+  createRegistrationOptions: async (request, options) => {
+    const result = await passkeyBrowserApi.createRegistrationOptions(request, options?.language);
 
     if (!result.ok) {
       throw new Error(result.message);
@@ -225,27 +182,8 @@ export const signupWithApi: SignupAdapter = {
 
     return result.data;
   },
-  verifyEmail: async (request, options) => {
-    const result = await postJson<VerifyEmailResult>(
-      "/api/identity/auth/verify-email",
-      request,
-      parseVerifyEmailResult,
-      options,
-    );
-
-    if (!result.ok) {
-      throw new Error(result.message);
-    }
-
-    return result.data;
-  },
-  createIdentity: async (request, options) => {
-    const result = await postJson<IdentitySummary>(
-      "/api/identity/auth/register",
-      request,
-      parseIdentitySummary,
-      options,
-    );
+  registerWithPasskey: async (request, options) => {
+    const result = await passkeyBrowserApi.register(request, options?.language);
 
     if (!result.ok) {
       throw new Error(result.message);

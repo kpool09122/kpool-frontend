@@ -115,7 +115,7 @@ test("guest header login link opens the login page", async ({ page }) => {
     page.getByRole("button", { name: /Google.*でログイン/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "メールアドレスでログイン" }),
+    page.getByRole("button", { name: "パスキーでログイン" }),
   ).toBeVisible();
 });
 
@@ -136,135 +136,30 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
   await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
 });
 
-test("login page submits email credentials through the Identity API proxy", async ({
+test("login page prioritizes SSO and offers passkey without password fields", async ({
   page,
 }) => {
   await useJapaneseLocale(page);
-  await page.route("**/api/identity/auth/login", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      email: "member@example.com",
-      password: "secret-password",
-      return_to: "/admin",
-    });
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        identityName: "member",
-        email: "member@example.com",
-        language: "ja",
-      }),
-    });
-  });
   await page.goto("/login");
 
-  await page.getByLabel("メールアドレス").fill("member@example.com");
-  await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
-  await page.getByRole("button", { name: "メールアドレスでログイン" }).click();
-
-  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  const buttons = page.getByRole("button");
+  await expect(buttons.filter({ hasText: "Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "パスキーでログイン" })).toBeVisible();
+  await expect(page.getByLabel("パスワード", { exact: true })).toHaveCount(0);
 });
 
-test("login page links to signup and completes the signup flow through API proxies", async ({
+test("signup page prioritizes SSO and offers verified-email passkey registration", async ({
   page,
 }) => {
   await useJapaneseLocale(page);
-  await page.route("**/api/account/accounts", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      email: "new-member@example.com",
-      accountName: "New Member Account",
-      accountType: "individual",
-      identityIdentifier: null,
-    });
-    await route.fulfill({
-      status: 201,
-      contentType: "application/json",
-      body: JSON.stringify({
-        accountIdentifier: "22222222-2222-2222-2222-222222222222",
-        email: "new-member@example.com",
-        type: "individual",
-        name: "New Member Account",
-        status: "active",
-        accountCategory: "standard",
-      }),
-    });
-  });
-  await page.route("**/api/identity/auth/verify-email", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      email: "new-member@example.com",
-      authCode: "123456",
-    });
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        email: "new-member@example.com",
-        verifiedAt: "2026-05-05T00:00:00+00:00",
-      }),
-    });
-  });
-  await page.route("**/api/identity/auth/register", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      identityName: "New Member Account",
-      email: "new-member@example.com",
-      password: "secret-password",
-      confirmedPassword: "secret-password",
-      base64EncodedImage: null,
-      oneTimeToken: null,
-      requestLanguage: "ja",
-    });
-    await route.fulfill({
-      status: 201,
-      contentType: "application/json",
-      body: JSON.stringify({
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        identityName: "New Member Account",
-        email: "new-member@example.com",
-        language: "ja",
-      }),
-    });
-  });
-
   await page.goto("/login");
   await page.getByRole("link", { name: "アカウント登録へ" }).click();
 
   await expect(page).toHaveURL(/\/signup$/);
   await expect(page.getByRole("heading", { name: "アカウント登録" })).toBeVisible();
-
-  await page.getByLabel("登録用メールアドレス").fill("new-member@example.com");
-  await page.getByLabel("アカウント名").fill("New Member Account");
-  await page.getByRole("main").getByLabel("言語").selectOption("ja");
-  await page.getByRole("button", { name: "認証コードを送信" }).click();
-
-  await expect(page.getByRole("heading", { name: "認証コード入力" })).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "アカウント情報入力: 完了" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "認証コード入力: 入力中" }),
-  ).toBeVisible();
-
-  await page.getByLabel("認証コード", { exact: true }).fill("123456");
-  await page.getByRole("button", { name: "認証コードを確認" }).click();
-
-  await expect(page.getByRole("heading", { name: "登録情報設定" })).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "認証コード入力: 完了" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "登録情報設定: 入力中" }),
-  ).toBeVisible();
-
-  await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
-  await page.getByLabel("確認用パスワード").fill("secret-password");
-  await page.getByRole("button", { name: "登録を完了" }).click();
-
-  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  await expect(page.getByRole("heading", { name: "SSOで登録" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Googleで登録" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "パスキーで登録" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "認証コードを送信" })).toBeVisible();
+  await expect(page.getByLabel("パスワード", { exact: true })).toHaveCount(0);
 });

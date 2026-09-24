@@ -3,30 +3,32 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 
 import {
   identityProviders,
-  loginWithEmail,
+  loginWithPasskey,
   normalizeReturnTo,
   requestSocialRedirect,
   type IdentityProvider,
-  type LoginAdapter,
+  type PasskeyLoginAdapter,
   type SocialRedirectAdapter,
 } from "@/gateways/auth/authFlow";
 import { useAuthStore } from "@/gateways/auth/authStore";
+import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 import { useI18n } from "../../i18n/I18nProvider";
 
 type LoginPageProps = {
-  loginAdapter?: LoginAdapter;
+  loginAdapter?: PasskeyLoginAdapter;
   socialRedirectAdapter?: SocialRedirectAdapter;
   navigate?: (url: string) => void;
   refresh?: () => void;
   returnTo?: string | null;
+  webAuthnSupported?: boolean;
 };
 
 type PendingAction =
-  | { type: "email" }
+  | { type: "passkey" }
   | { type: "social"; provider: IdentityProvider["id"] }
   | null;
 
@@ -49,18 +51,18 @@ const getCurrentReturnTo = (): string | null => {
 };
 
 export function LoginPage({
-  loginAdapter = loginWithEmail,
+  loginAdapter = loginWithPasskey,
   socialRedirectAdapter = requestSocialRedirect,
   navigate,
   refresh,
   returnTo,
+  webAuthnSupported = webAuthnBrowserAdapter.isSupported(),
 }: LoginPageProps) {
   const router = useRouter();
-  const { dictionary } = useI18n();
+  const { locale, dictionary } = useI18n();
   const t = dictionary.login;
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const destination = useMemo(
@@ -68,33 +70,46 @@ export function LoginPage({
     [returnTo],
   );
 
-  const handleEmailLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setErrorMessage(null);
-    setPendingAction({ type: "email" });
+  const handlePasskeyLogin = async () => {
+    if (pendingAction) {
+      return;
+    }
 
-    const result = await loginAdapter({ email, password, return_to: destination });
+    setErrorMessage(null);
+    setNoticeMessage(null);
+    setPendingAction({ type: "passkey" });
+
+    const result = await loginAdapter({ language: locale, returnTo: destination });
 
     if (result.ok) {
-      const nextDestination = result.returnTo ?? destination;
-
       await refreshIdentity();
 
       if (navigate) {
-        navigate(nextDestination);
+        navigate(result.returnTo);
       } else {
-        router.replace(nextDestination);
+        router.replace(result.returnTo);
       }
       refresh?.();
       return;
     }
 
-    setErrorMessage(result.message);
+    if (result.reason === "cancelled") {
+      setNoticeMessage(t.passkeyCancelled);
+    } else if (result.reason === "unsupported") {
+      setErrorMessage(t.passkeyUnsupported);
+    } else {
+      setErrorMessage(result.message ?? t.passkeyFailed);
+    }
     setPendingAction(null);
   };
 
   const handleSocialLogin = async (provider: IdentityProvider["id"]) => {
+    if (pendingAction) {
+      return;
+    }
+
     setErrorMessage(null);
+    setNoticeMessage(null);
     setPendingAction({ type: "social", provider });
 
     const result = await socialRedirectAdapter(provider, destination);
@@ -114,20 +129,23 @@ export function LoginPage({
 
   return (
     <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
-      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
-        <section className="space-y-6">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
-              k-pool Account
-            </p>
-	            <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
-          </div>
+      <div className="mx-auto max-w-3xl space-y-8">
+        <div className="space-y-3 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
+            {dictionary.common.accountBrand}
+          </p>
+          <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
+          <p className="text-sm leading-6 text-text-muted">{t.description}</p>
+        </div>
 
-          <div className="grid gap-3">
+        <section className="space-y-5 rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">{t.ssoTitle}</h2>
+            <p className="text-sm leading-6 text-text-muted">{t.ssoDescription}</p>
+          </div>
+          <div className="grid gap-3" aria-label={t.ssoTitle}>
             {identityProviders.map((provider) => {
-              const isPending =
-                pendingAction?.type === "social" &&
-                pendingAction.provider === provider.id;
+              const isPending = pendingAction?.type === "social" && pendingAction.provider === provider.id;
 
               return (
                 <button
@@ -146,84 +164,50 @@ export function LoginPage({
                       className={`${provider.iconClassName} object-contain`}
                     />
                   </span>
-                  {isPending ? (
-	                    <span>{t.socialPending}</span>
-                  ) : (
-                    <span>
-                      <span className="inline-block min-w-[3.25rem] text-left">
-                        {provider.label}
-                      </span>
-	                      <span>{t.socialSuffix}</span>
-                    </span>
-                  )}
+                  {isPending ? t.socialPending : `${provider.label}${t.socialSuffix}`}
                 </button>
               );
             })}
           </div>
-        </section>
 
-        <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
-          <form className="space-y-5" onSubmit={(event) => void handleEmailLogin(event)}>
-            <div className="space-y-2">
-	              <h2 className="text-lg font-semibold">{t.emailTitle}</h2>
-	              <p className="text-sm leading-6 text-text-muted">
-	                {t.emailDescription}
-	              </p>
-            </div>
+          <div className="flex items-center gap-3 text-xs text-text-muted" aria-hidden="true">
+            <span className="h-px flex-1 bg-stroke-subtle" />
+            <span>{t.alternative}</span>
+            <span className="h-px flex-1 bg-stroke-subtle" />
+          </div>
 
-            <label className="block space-y-2 text-sm font-semibold">
-	              <span>{t.email}</span>
-              <input
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight"
-              />
-            </label>
-
-            <label className="block space-y-2 text-sm font-semibold">
-	              <span>{t.password}</span>
-              <input
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight"
-              />
-            </label>
-
-            {errorMessage ? (
-              <p
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
-                role="alert"
-              >
-                {errorMessage}
-              </p>
-            ) : null}
-
-            <button
-              type="submit"
-              className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={pendingAction !== null}
-            >
-              {pendingAction?.type === "email"
-	                ? t.submitting
-	                : t.emailTitle}
-            </button>
-
-            <p className="text-center text-sm text-text-muted">
-	              {t.signupLead}{" "}
-              <Link
-                href="/signup"
-                className="font-semibold text-brand-primary underline-offset-4 hover:underline"
-              >
-	                {t.signupLink}
-              </Link>
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">{t.passkeyTitle}</h2>
+            <p className="text-sm leading-6 text-text-muted">
+              {webAuthnSupported ? t.passkeyDescription : t.passkeyUnsupported}
             </p>
-          </form>
+            <button
+              type="button"
+              className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={pendingAction !== null || !webAuthnSupported}
+              onClick={() => void handlePasskeyLogin()}
+            >
+              {pendingAction?.type === "passkey" ? t.passkeyPending : t.passkeyButton}
+            </button>
+          </div>
+
+          {noticeMessage ? (
+            <p className="rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-sm text-text-muted" role="status">
+              {noticeMessage}
+            </p>
+          ) : null}
+          {errorMessage ? (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+
+          <p className="text-center text-sm text-text-muted">
+            {t.signupLead}{" "}
+            <Link href="/signup" className="font-semibold text-brand-primary underline-offset-4 hover:underline">
+              {t.signupLink}
+            </Link>
+          </p>
         </section>
       </div>
     </main>

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildCreateAccountRequest,
-  buildCreateIdentityRequest,
-  buildInvitationCreateIdentityRequest,
+  buildRegistrationOptionsRequest,
+  buildRegisterWithPasskeyRequest,
   getSignupStepItems,
   type SignupAccountFormValues,
 } from "./signupFlow";
@@ -13,78 +12,54 @@ const values: SignupAccountFormValues = {
   accountName: "Member Account",
   accountType: "individual",
   language: "ja",
-  identityName: "member",
-  password: "secret-password",
-  confirmedPassword: "secret-password",
+  passkeyDisplayName: "MacBook",
   base64EncodedImage: "",
-  oneTimeToken: "",
+};
+
+const credential = {
+  id: "credential-id",
+  rawId: "AQID",
+  type: "public-key" as const,
+  response: { clientDataJSON: "AQID", attestationObject: "AQID", transports: ["internal"] },
+  authenticatorAttachment: null,
+  clientExtensionResults: {},
 };
 
 describe("signup flow helpers", () => {
-  it("builds account and identity requests from form values", () => {
-    expect(buildCreateAccountRequest(values)).toEqual({
+  it("builds registration options without password data", () => {
+    expect(buildRegistrationOptionsRequest(values)).toEqual({
       email: "member@example.com",
-      accountName: "Member Account",
       accountType: "individual",
-      identityIdentifier: null,
-    });
-    expect(buildCreateIdentityRequest(values)).toEqual({
-      identityName: "member",
-      email: "member@example.com",
-      password: "secret-password",
-      confirmedPassword: "secret-password",
-      base64EncodedImage: null,
       oneTimeToken: null,
-      requestLanguage: "ja",
+      return_to: "/admin",
     });
   });
 
-
-
-  it("builds invitation identity requests with oneTimeToken and no account data", () => {
-    expect(buildInvitationCreateIdentityRequest({
-      email: "invited@example.com",
-      identityName: "Invited Member",
-      password: "secret-password",
-      confirmedPassword: "secret-password",
-      oneTimeToken: "invite-token-123",
-      language: "ja",
-    })).toEqual({
-      identityName: "Invited Member",
-      email: "invited@example.com",
-      password: "secret-password",
-      confirmedPassword: "secret-password",
+  it("builds passkey registration from the challenge and credential", () => {
+    expect(buildRegisterWithPasskeyRequest({ values, challengeKey: "11111111-1111-4111-8111-111111111111", credential })).toEqual({
+      challengeKey: "11111111-1111-4111-8111-111111111111",
+      identityName: "Member Account",
+      displayName: "MacBook",
       base64EncodedImage: null,
-      oneTimeToken: "invite-token-123",
-      requestLanguage: "ja",
+      credential,
     });
   });
 
-  it("marks the current step and completed steps for the visible progress", () => {
-    expect(
-      getSignupStepItems({
-        phase: "verification",
-        pending: false,
-        errorStep: null,
-      }),
-    ).toEqual([
+  it("passes invitation tokens and omits account type", () => {
+    expect(buildRegistrationOptionsRequest(values, "invite-token")).toEqual({
+      email: "member@example.com",
+      accountType: null,
+      oneTimeToken: "invite-token",
+      return_to: "/admin",
+    });
+  });
+
+  it("marks current and failed steps", () => {
+    expect(getSignupStepItems({ phase: "passkey", pending: false, errorStep: null })).toEqual([
       { id: "account", label: "アカウント情報入力", state: "complete" },
-      { id: "verification", label: "認証コード入力", state: "active" },
-      { id: "identity", label: "登録情報設定", state: "pending" },
+      { id: "verification", label: "認証コード入力", state: "complete" },
+      { id: "passkey", label: "パスキー登録", state: "active" },
     ]);
-  });
-
-  it("marks the step that failed", () => {
-    expect(
-      getSignupStepItems({
-        phase: "verification",
-        pending: false,
-        errorStep: "verification",
-      })[1],
-    ).toEqual({
-      id: "verification",
-      label: "認証コード入力",
-      state: "error",
-    });
+    expect(getSignupStepItems({ phase: "passkey", pending: false, errorStep: "passkey" })[2]?.state).toBe("error");
   });
 });
