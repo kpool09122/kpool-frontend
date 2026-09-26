@@ -15,6 +15,7 @@ import { AccountPageClient } from "../account/AccountPageClient";
 import { AdminShellClient } from "../AdminShellClient";
 import { AdminProvider } from "../AdminProvider";
 import type { AdminRouteContext } from "../adminTypes";
+import { SiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
 import { UserPageClient } from "../user/UserPageClient";
 import { UserProfileClient } from "../user/profile/UserProfileClient";
@@ -60,6 +61,7 @@ type AdminClientPage = "accountAffiliations"
   | "accountInvitations"
   | "accountPrincipalGroups"
   | "accountProfile"
+  | "siteManagementContacts"
   | "userLanguage"
   | "userProfile"
   | "wikiApproved"
@@ -111,7 +113,12 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   }
 
   if (pathname?.startsWith("/admin/user")) {
-    return pathname.endsWith("/language") ? "userLanguage" : "userProfile";
+    if (pathname.endsWith("/language")) return "userLanguage";
+    return "userProfile";
+  }
+
+  if (pathname?.startsWith("/admin/site-management")) {
+    return "siteManagementContacts";
   }
 
   if (pathname?.endsWith("/submitted")) {
@@ -239,6 +246,8 @@ function AdminResolvedPage({
       </UserPageClient>
     );
   }
+
+  if (page === "siteManagementContacts") return <SiteManagementContactsClient />;
 
   if (page === "userProfile") {
     return (
