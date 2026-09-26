@@ -35,7 +35,8 @@ const request = (path: string, method: string, body?: unknown) => new Request(`h
   ...(body === undefined ? {} : { body: JSON.stringify(body) }),
 }) as NextRequest;
 
-const upstreamResponse = (body: unknown, withCookie = true) => new Response(JSON.stringify(body), {
+const upstreamResponse = (body: unknown, withCookie = true, status = 200) => new Response(JSON.stringify(body), {
+  status,
   headers: withCookie ? { "Set-Cookie": "laravel_session=updated; Path=/; HttpOnly" } : {},
 });
 
@@ -110,7 +111,7 @@ describe("passkey BFF routes", () => {
   it("registers a passkey and forwards the authenticated Set-Cookie", async () => {
     const body = { challengeKey, identityName: "Member", displayName: "MacBook", base64EncodedImage: null, credential };
     const identity = { identityIdentifier: passkeyIdentifier, identityName: "Member", email: "member@example.com", language: "en" };
-    const fetchMock = vi.fn().mockResolvedValue(upstreamResponse(identity));
+    const fetchMock = vi.fn().mockResolvedValue(upstreamResponse(identity, true, 201));
     vi.stubGlobal("fetch", fetchMock);
     const response = await registerPasskey(request("/api/identity/auth/passkeys/registration", "POST", body));
     expect(response.status).toBe(201);

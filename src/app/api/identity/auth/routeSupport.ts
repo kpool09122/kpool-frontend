@@ -81,19 +81,18 @@ type ForwardIdentityRouteOptions = {
   path: string;
   requestSchema?: z.ZodType;
   responseSchema: z.ZodType;
-  successStatus?: number;
 };
 
 export const forwardIdentityRoute = async (
   request: NextRequest,
-  {
+  options: ForwardIdentityRouteOptions,
+): Promise<NextResponse> => {
+  const {
     method,
     path,
     requestSchema,
     responseSchema,
-    successStatus = 200,
-  }: ForwardIdentityRouteOptions,
-): Promise<NextResponse> => {
+  } = options;
   const baseUrl = getIdentityApiBaseUrl();
 
   if (!baseUrl) {
@@ -127,10 +126,17 @@ export const forwardIdentityRoute = async (
       );
     }
 
+    if (apiResponse.status === 204 || apiResponse.status === 205) {
+      return withIdentitySetCookie(
+        new NextResponse(null, { status: apiResponse.status }),
+        apiResponse,
+      );
+    }
+
     return withIdentitySetCookie(
       NextResponse.json(
         parseWithSchemaLog(`identity ${path} response`, responseSchema, body ?? {}),
-        { status: successStatus },
+        { status: apiResponse.status },
       ),
       apiResponse,
     );

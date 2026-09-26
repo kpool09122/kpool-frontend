@@ -8,5 +8,4 @@ export const POST = (request: NextRequest) => forwardIdentityRoute(request, {
   path: "/auth/passkeys/registration",
   requestSchema: identityApiTypes.schemas.RegisterWithPasskeyRequestBody,
   responseSchema: identityApiTypes.schemas.PasskeyIdentityRegistrationResult,
-  successStatus: 201,
 });
