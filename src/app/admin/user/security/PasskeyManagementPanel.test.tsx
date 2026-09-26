@@ -55,6 +55,7 @@ type RenderOptions = {
   passkeyCount?: number;
   passkeys?: PasskeySummary[];
   ssoStepUpCompleted?: boolean;
+  onPasskeysChanged?: () => unknown;
   onStepUpConsumed?: () => void;
   getResult?: { ok: true; credential: typeof authenticationCredential } | { ok: false; reason: "cancelled" | "error" | "unsupported" | "invalid-response" };
   supported?: boolean;
@@ -67,6 +68,7 @@ const renderPanel = ({
   passkeys = [passkey],
   passkeyCount = passkeys.length,
   ssoStepUpCompleted = false,
+  onPasskeysChanged = vi.fn(),
   onStepUpConsumed = vi.fn(),
   getResult = { ok: true, credential: authenticationCredential },
   supported = true,
@@ -92,10 +94,10 @@ const renderPanel = ({
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <PasskeyManagementPanel api={api} linkedSocialProviders={linkedSocialProviders} navigate={navigate} onStepUpConsumed={onStepUpConsumed} passkeyCount={passkeyCount} ssoStepUpCompleted={ssoStepUpCompleted} webAuthnAdapter={adapter} />
+      <PasskeyManagementPanel api={api} linkedSocialProviders={linkedSocialProviders} navigate={navigate} onPasskeysChanged={onPasskeysChanged} onStepUpConsumed={onStepUpConsumed} passkeyCount={passkeyCount} ssoStepUpCompleted={ssoStepUpCompleted} webAuthnAdapter={adapter} />
     </QueryClientProvider>,
   );
-  return { api, adapter, navigate };
+  return { api, adapter, navigate, onPasskeysChanged };
 };
 
 describe("PasskeyManagementPanel", () => {
@@ -121,7 +123,7 @@ describe("PasskeyManagementPanel", () => {
   });
 
   it("adds a passkey after management access has been authorized without asking for a name", async () => {
-    const { api, adapter } = renderPanel();
+    const { api, adapter, onPasskeysChanged } = renderPanel();
     await screen.findByText("MacBook");
     fireEvent.click(screen.getByRole("button", { name: "追加" }));
 
@@ -132,16 +134,41 @@ describe("PasskeyManagementPanel", () => {
     }));
     expect(adapter.get).not.toHaveBeenCalled();
     expect(api.completeStepUpWithPasskey).not.toHaveBeenCalled();
+    expect(onPasskeysChanged).toHaveBeenCalledOnce();
     expect(api.list).toHaveBeenCalledTimes(2);
   });
 
   it("deletes a passkey while management access is authorized", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { api } = renderPanel();
+    const { api, onPasskeysChanged } = renderPanel();
     await screen.findByText("MacBook");
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith(passkey.passkeyIdentifier));
     expect(api.completeStepUpWithPasskey).not.toHaveBeenCalled();
+    expect(onPasskeysChanged).toHaveBeenCalledOnce();
+  });
+
+  it("offers reauthentication after deletion authorization expires without automatically retrying", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const deletePasskey = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 403, message: "Forbidden" })
+      .mockResolvedValueOnce({ ok: true, data: {} });
+    const { api, onPasskeysChanged } = renderPanel({ api: { delete: deletePasskey }, passkeyCount: 1 });
+    await screen.findByText("MacBook");
+
+    fireEvent.click(screen.getByRole("button", { name: "削除" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("本人確認の有効期限が切れました");
+    expect(screen.getByRole("button", { name: "再度本人確認する" })).toBeInTheDocument();
+    expect(deletePasskey).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "再度本人確認する" }));
+    await waitFor(() => expect(api.completeStepUpWithPasskey).toHaveBeenCalledOnce());
+    expect(deletePasskey).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "再度本人確認する" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "削除" }));
+    await waitFor(() => expect(deletePasskey).toHaveBeenCalledTimes(2));
+    expect(onPasskeysChanged).toHaveBeenCalledOnce();
   });
 
   it("keeps existing rename behavior", async () => {

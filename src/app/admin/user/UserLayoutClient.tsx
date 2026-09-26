@@ -90,6 +90,7 @@ export function UserLayoutClient({
           onProfileImageCropConfirm: confirmProfileImageCrop,
           onProfileImageCropError: reportProfileImageCropError,
           onProfileImageDelete: deleteProfileImage,
+          onRefreshIdentity,
           onSave: saveIdentitySettings,
           onUpdateField: updateSettingsField,
         }}

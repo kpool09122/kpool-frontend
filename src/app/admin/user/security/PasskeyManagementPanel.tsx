@@ -22,6 +22,7 @@ type PasskeyManagementPanelProps = {
   api?: PasskeyBrowserApi;
   linkedSocialProviders?: string[];
   navigate?: (url: string) => void;
+  onPasskeysChanged?: () => unknown;
   onStepUpConsumed?: () => void;
   passkeyCount?: number;
   ssoStepUpCompleted?: boolean;
@@ -39,6 +40,7 @@ export function PasskeyManagementPanel({
   api = passkeyBrowserApi,
   linkedSocialProviders = [],
   navigate = defaultNavigate,
+  onPasskeysChanged = () => undefined,
   onStepUpConsumed = () => undefined,
   passkeyCount = 0,
   ssoStepUpCompleted = false,
@@ -50,6 +52,7 @@ export function PasskeyManagementPanel({
   const [editingPasskeyIdentifier, setEditingPasskeyIdentifier] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [reauthenticationRequired, setReauthenticationRequired] = useState(false);
   const passkeyQuery = useQuery({
     queryKey: ["identity-passkeys"],
     queryFn: () => api.list(),
@@ -65,6 +68,20 @@ export function PasskeyManagementPanel({
   const clearMessages = () => {
     setError(null);
     setNotice(null);
+  };
+
+  const handleAuthorizationFailure = (status: number): boolean => {
+    if (status !== 401 && status !== 403) {
+      return false;
+    }
+
+    if (ssoStepUpCompleted) {
+      onStepUpConsumed();
+    }
+
+    setError(t.passkeyVerificationExpired);
+    setReauthenticationRequired(true);
+    return true;
   };
 
   const requireAdditionalVerification = async () => {
@@ -139,6 +156,7 @@ export function PasskeyManagementPanel({
     clearMessages();
 
     if (await requireAdditionalVerification()) {
+      setReauthenticationRequired(false);
       await passkeyQuery.refetch();
     }
 
@@ -151,15 +169,13 @@ export function PasskeyManagementPanel({
     }
 
     setBusyAction("add");
+    setReauthenticationRequired(false);
     clearMessages();
 
     const optionsResult = await api.createAdditionOptions();
 
     if (!optionsResult.ok) {
-      if (ssoStepUpCompleted && (optionsResult.status === 401 || optionsResult.status === 403)) {
-        onStepUpConsumed();
-        setError(t.passkeyVerificationExpired);
-      } else {
+      if (!handleAuthorizationFailure(optionsResult.status)) {
         setError(optionsResult.message);
       }
       setBusyAction(null);
@@ -188,10 +204,13 @@ export function PasskeyManagementPanel({
 
     if (addResult.ok) {
       onStepUpConsumed();
+      await Promise.resolve(onPasskeysChanged());
       setNotice(t.passkeyAdded);
       await passkeyQuery.refetch();
     } else {
-      setError(addResult.message);
+      if (!handleAuthorizationFailure(addResult.status)) {
+        setError(addResult.message);
+      }
     }
     setBusyAction(null);
   };
@@ -209,6 +228,7 @@ export function PasskeyManagementPanel({
     }
 
     setBusyAction(`rename:${passkeyIdentifier}`);
+    setReauthenticationRequired(false);
     clearMessages();
     const result = await api.update(passkeyIdentifier, { displayName: nextName });
 
@@ -217,7 +237,9 @@ export function PasskeyManagementPanel({
       setNotice(t.passkeyRenamed);
       await passkeyQuery.refetch();
     } else {
-      setError(result.message);
+      if (!handleAuthorizationFailure(result.status)) {
+        setError(result.message);
+      }
     }
     setBusyAction(null);
   };
@@ -228,15 +250,21 @@ export function PasskeyManagementPanel({
     }
 
     setBusyAction(`delete:${passkey.passkeyIdentifier}`);
+    setReauthenticationRequired(false);
     clearMessages();
 
     const result = await api.delete(passkey.passkeyIdentifier);
 
     if (result.ok) {
+      await Promise.resolve(onPasskeysChanged());
       setNotice(t.passkeyDeleted);
       await passkeyQuery.refetch();
     } else {
-      setError(result.status === 409 ? t.passkeyLastMethodError : result.message);
+      if (result.status === 409) {
+        setError(t.passkeyLastMethodError);
+      } else if (!handleAuthorizationFailure(result.status)) {
+        setError(result.message);
+      }
     }
     setBusyAction(null);
   };
@@ -312,7 +340,16 @@ export function PasskeyManagementPanel({
         ) : null}
 
         {passkeyQuery.isLoading ? <p className="text-sm text-text-muted">{t.passkeyLoading}</p> : null}
-        {error || listError ? <UserStatusMessage variant="error">{error ?? listError}</UserStatusMessage> : null}
+        {error || listError ? (
+          <UserStatusMessage variant="error">
+            <span>{error ?? listError}</span>
+            {reauthenticationRequired ? (
+              <button className="ml-3 rounded-lg border border-red-400 px-3 py-1.5 text-sm font-semibold disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
+                {busyAction === "verify" ? t.passkeyVerifying : t.passkeyVerifyAgain}
+              </button>
+            ) : null}
+          </UserStatusMessage>
+        ) : null}
         {notice ? <UserStatusMessage variant="success">{notice}</UserStatusMessage> : null}
       </div>
     </UserSettingsPanel>

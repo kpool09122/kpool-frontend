@@ -15,6 +15,7 @@ export type UserSectionContextValue = {
   onProfileImageCropConfirm: (croppedDataUrl: string) => void;
   onProfileImageCropError: (message: string) => void;
   onProfileImageDelete: () => void;
+  onRefreshIdentity: () => unknown;
   onSave: () => void;
   onUpdateField: (field: "identityName" | "language", value: string) => void;
 };
