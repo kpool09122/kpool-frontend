@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { Pencil1Icon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
@@ -23,6 +23,7 @@ type PasskeyManagementPanelProps = {
   linkedSocialProviders?: string[];
   navigate?: (url: string) => void;
   onStepUpConsumed?: () => void;
+  passkeyCount?: number;
   ssoStepUpCompleted?: boolean;
   webAuthnAdapter?: WebAuthnBrowserAdapter;
 };
@@ -39,25 +40,27 @@ export function PasskeyManagementPanel({
   linkedSocialProviders = [],
   navigate = defaultNavigate,
   onStepUpConsumed = () => undefined,
+  passkeyCount = 0,
   ssoStepUpCompleted = false,
   webAuthnAdapter = webAuthnBrowserAdapter,
 }: PasskeyManagementPanelProps) {
   const { locale, dictionary } = useI18n();
   const t = dictionary.admin;
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [editingPasskeyIdentifier, setEditingPasskeyIdentifier] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const passkeyQuery = useQuery({
     queryKey: ["identity-passkeys"],
-    queryFn: async () => {
-      const result = await api.list();
-
-      return result.ok
-        ? result.data.passkeys
-        : Promise.reject(new Error(result.message));
-    },
+    queryFn: () => api.list(),
   });
-  const passkeys = passkeyQuery.data ?? [];
+  const listResult = passkeyQuery.data;
+  const passkeys = listResult?.ok ? listResult.data.passkeys : [];
+  const verificationRequired = listResult?.ok === false
+    && (listResult.status === 401 || listResult.status === 403);
+  const listError = listResult?.ok === false && !verificationRequired
+    ? listResult.message
+    : null;
 
   const clearMessages = () => {
     setError(null);
@@ -65,11 +68,7 @@ export function PasskeyManagementPanel({
   };
 
   const requireAdditionalVerification = async () => {
-    if (passkeys.length === 0) {
-      if (ssoStepUpCompleted) {
-        return true;
-      }
-
+    if (passkeyCount === 0) {
       const provider = linkedSocialProviders.find(isSocialProvider);
 
       if (!provider) {
@@ -131,6 +130,21 @@ export function PasskeyManagementPanel({
     return true;
   };
 
+  const handleVerify = async () => {
+    if (busyAction) {
+      return;
+    }
+
+    setBusyAction("verify");
+    clearMessages();
+
+    if (await requireAdditionalVerification()) {
+      await passkeyQuery.refetch();
+    }
+
+    setBusyAction(null);
+  };
+
   const handleAdd = async () => {
     if (busyAction) {
       return;
@@ -138,11 +152,6 @@ export function PasskeyManagementPanel({
 
     setBusyAction("add");
     clearMessages();
-
-    if (!(await requireAdditionalVerification())) {
-      setBusyAction(null);
-      return;
-    }
 
     const optionsResult = await api.createAdditionOptions();
 
@@ -204,6 +213,7 @@ export function PasskeyManagementPanel({
     const result = await api.update(passkeyIdentifier, { displayName: nextName });
 
     if (result.ok) {
+      setEditingPasskeyIdentifier(null);
       setNotice(t.passkeyRenamed);
       await passkeyQuery.refetch();
     } else {
@@ -220,11 +230,6 @@ export function PasskeyManagementPanel({
     setBusyAction(`delete:${passkey.passkeyIdentifier}`);
     clearMessages();
 
-    if (!(await requireAdditionalVerification())) {
-      setBusyAction(null);
-      return;
-    }
-
     const result = await api.delete(passkey.passkeyIdentifier);
 
     if (result.ok) {
@@ -240,50 +245,74 @@ export function PasskeyManagementPanel({
     value ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : t.passkeyNeverUsed;
 
   return (
-    <UserSettingsPanel title={t.passkeySettingsTitle} description={t.passkeySettingsDescription}>
+    <UserSettingsPanel
+      title={t.passkeySettingsTitle}
+      action={listResult?.ok ? (
+        <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleAdd()}>
+          {busyAction === "add" ? t.passkeyAdding : t.passkeyAdd}
+        </button>
+      ) : null}
+    >
       <div className="mt-5 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
-          <div>
-            <p className="font-semibold">{t.passkeyAdd}</p>
-            <p className="mt-1 text-sm leading-6 text-text-muted">{t.passkeyAddGuidance}</p>
+        {verificationRequired ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
+            <div>
+              <p className="text-sm leading-6 text-text-muted">{t.passkeyVerificationRequired}</p>
+            </div>
+            <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
+              {busyAction === "verify" ? t.passkeyVerifying : t.passkeyVerify}
+            </button>
           </div>
-          <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="button" disabled={busyAction !== null || passkeyQuery.isLoading} onClick={() => void handleAdd()}>
-            {busyAction === "add" ? t.passkeyAdding : t.passkeyAdd}
-          </button>
-        </div>
-        <p className="text-sm leading-6 text-text-muted">{t.passkeyAdditionalVerification}</p>
-        <p className="text-sm leading-6 text-text-muted">
-          {t.passkeyRecoveryGuidance} <Link className="font-semibold text-brand-primary underline" href="/login">{t.passkeyRecoveryLink}</Link>
-        </p>
+        ) : null}
+
+        {listResult?.ok ? (
+          <>
+            {passkeys.length === 0 ? <p className="text-sm text-text-muted">{t.passkeyEmpty}</p> : null}
+            <ul className="space-y-3" aria-label={t.passkeyListLabel}>
+              {passkeys.map((passkey) => (
+                <li key={passkey.passkeyIdentifier} className="rounded-lg border border-stroke-subtle bg-surface-base p-4">
+                  <div className="grid items-center gap-3 lg:grid-cols-[minmax(12rem,1fr)_auto_auto_auto]">
+                    {editingPasskeyIdentifier === passkey.passkeyIdentifier ? (
+                      <form
+                        className="flex min-w-0 items-center gap-2"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const nextName = new FormData(event.currentTarget).get("displayName");
+                          void handleRename(passkey.passkeyIdentifier, typeof nextName === "string" ? nextName : "");
+                        }}
+                      >
+                        <input autoFocus aria-label={t.passkeyDisplayNameLabel} className="w-48 min-w-0 rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2" defaultValue={passkey.displayName} maxLength={64} name="displayName" />
+                        <button type="submit" className="rounded-lg border border-brand-primary px-3 py-2 text-sm font-semibold text-brand-primary disabled:opacity-60" disabled={busyAction !== null}>{t.passkeySave}</button>
+                        <button type="button" className="rounded-lg border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-muted disabled:opacity-60" disabled={busyAction !== null} onClick={() => {
+                          clearMessages();
+                          setEditingPasskeyIdentifier(null);
+                        }}>{t.passkeyCancel}</button>
+                      </form>
+                    ) : (
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-semibold">{passkey.displayName}</span>
+                        <button aria-label={t.passkeyEditName(passkey.displayName)} className="shrink-0 rounded p-1 text-text-muted transition-colors hover:bg-surface-raised hover:text-text-primary disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => {
+                          clearMessages();
+                          setEditingPasskeyIdentifier(passkey.passkeyIdentifier);
+                        }}>
+                          <Pencil1Icon aria-hidden="true" />
+                        </button>
+                      </div>
+                    )}
+                    <dl className="contents text-sm text-text-muted">
+                      <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyCreatedAt}: </dt><dd className="inline">{formatDate(passkey.createdAt)}</dd></div>
+                      <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyLastUsedAt}: </dt><dd className="inline">{formatDate(passkey.lastUsedAt)}</dd></div>
+                    </dl>
+                    <button type="button" className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
 
         {passkeyQuery.isLoading ? <p className="text-sm text-text-muted">{t.passkeyLoading}</p> : null}
-        {!passkeyQuery.isLoading && !passkeyQuery.error && passkeys.length === 0 ? <p className="text-sm text-text-muted">{t.passkeyEmpty}</p> : null}
-        <ul className="space-y-3" aria-label={t.passkeyListLabel}>
-          {passkeys.map((passkey) => (
-            <li key={passkey.passkeyIdentifier} className="space-y-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
-              <form
-                className="grid gap-2 sm:grid-cols-[1fr_auto]"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const nextName = new FormData(event.currentTarget).get("displayName");
-                  void handleRename(passkey.passkeyIdentifier, typeof nextName === "string" ? nextName : "");
-                }}
-              >
-                <label className="grid gap-2 text-sm font-semibold">
-                  {t.passkeyDisplayNameLabel}
-                  <input className="rounded-lg border border-stroke-subtle bg-surface-raised px-3 py-2" defaultValue={passkey.displayName} maxLength={64} name="displayName" />
-                </label>
-                <button type="submit" className="self-end rounded-lg border border-brand-primary px-4 py-2 text-sm font-semibold text-brand-primary disabled:opacity-60" disabled={busyAction !== null}>{t.passkeyRename}</button>
-              </form>
-              <dl className="grid gap-2 text-sm text-text-muted sm:grid-cols-2">
-                <div><dt className="font-semibold">{t.passkeyCreatedAt}</dt><dd>{formatDate(passkey.createdAt)}</dd></div>
-                <div><dt className="font-semibold">{t.passkeyLastUsedAt}</dt><dd>{formatDate(passkey.lastUsedAt)}</dd></div>
-              </dl>
-              <button type="button" className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
-            </li>
-          ))}
-        </ul>
-        {error || passkeyQuery.error ? <UserStatusMessage variant="error">{error ?? passkeyQuery.error?.message}</UserStatusMessage> : null}
+        {error || listError ? <UserStatusMessage variant="error">{error ?? listError}</UserStatusMessage> : null}
         {notice ? <UserStatusMessage variant="success">{notice}</UserStatusMessage> : null}
       </div>
     </UserSettingsPanel>

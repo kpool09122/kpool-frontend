@@ -20,7 +20,7 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
-const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
+const EmptyJsonArray = z.array(z.unknown());
 const IdentitySummary = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
@@ -53,6 +53,7 @@ const PasskeyAuthenticatorAttestationResponse = z
     transports: z.array(z.string()).nullish(),
   })
   .passthrough();
+const KPool_Common_EmptyJsonObject = z.object({}).partial().passthrough();
 const PasskeyRegistrationCredential = z
   .object({
     id: z.string(),
@@ -265,13 +266,14 @@ export const schemas = {
   KPool_Common_Uuid,
   IdentityProfileSummary,
   KPool_Common_ProblemDetails,
-  KPool_Common_EmptyJsonObject,
+  EmptyJsonArray,
   IdentitySummary,
   AuthenticatedIdentitySummary,
   KPool_Common_Timestamp,
   PasskeySummary,
   PasskeyListResult,
   PasskeyAuthenticatorAttestationResponse,
+  KPool_Common_EmptyJsonObject,
   PasskeyRegistrationCredential,
   AddPasskeyRequestBody,
   PasskeyRelyingPartyEntity,
@@ -351,7 +353,7 @@ const endpoints = makeApi([
     alias: "IdentityAuthOperations_logout",
     description: `Log out the current authenticated identity.`,
     requestFormat: "json",
-    response: z.object({}).partial().passthrough(),
+    response: z.array(z.unknown()),
     errors: [
       {
         status: 401,
@@ -430,7 +432,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: z.object({}).partial().passthrough(),
+    response: z.array(z.unknown()),
     errors: [
       {
         status: 401,
@@ -467,7 +469,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: z.object({}).partial().passthrough(),
+    response: z.array(z.unknown()),
     errors: [
       {
         status: 401,
@@ -509,7 +511,7 @@ const endpoints = makeApi([
         schema: AddPasskeyRequestBody,
       },
     ],
-    response: z.object({}).partial().passthrough(),
+    response: z.array(z.unknown()),
     errors: [
       {
         status: 401,
@@ -813,7 +815,7 @@ const endpoints = makeApi([
         schema: CompleteStepUpWithPasskeyRequestBody,
       },
     ],
-    response: z.object({}).partial().passthrough(),
+    response: z.array(z.unknown()),
     errors: [
       {
         status: 401,

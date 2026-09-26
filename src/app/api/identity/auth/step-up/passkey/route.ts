@@ -7,5 +7,5 @@ export const POST = (request: NextRequest) => forwardIdentityRoute(request, {
   method: "POST",
   path: "/auth/step-up/passkey",
   requestSchema: identityApiTypes.schemas.CompleteStepUpWithPasskeyRequestBody,
-  responseSchema: identityApiTypes.schemas.KPool_Common_EmptyJsonObject,
+  responseSchema: identityApiTypes.schemas.EmptyJsonArray,
 });

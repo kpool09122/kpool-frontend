@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, context: PasskeyRouteContext) 
       method: "PATCH",
       path,
       requestSchema: identityApiTypes.schemas.UpdatePasskeyRequestBody,
-      responseSchema: identityApiTypes.schemas.KPool_Common_EmptyJsonObject,
+      responseSchema: identityApiTypes.schemas.EmptyJsonArray,
     })
     : identityApiSchemaErrorResponse();
 }
@@ -35,7 +35,7 @@ export async function DELETE(request: NextRequest, context: PasskeyRouteContext)
     ? forwardIdentityRoute(request, {
       method: "DELETE",
       path,
-      responseSchema: identityApiTypes.schemas.KPool_Common_EmptyJsonObject,
+      responseSchema: identityApiTypes.schemas.EmptyJsonArray,
     })
     : identityApiSchemaErrorResponse();
 }

@@ -52,6 +52,7 @@ type RenderOptions = {
   api?: Partial<typeof passkeyBrowserApi>;
   linkedSocialProviders?: string[];
   navigate?: (url: string) => void;
+  passkeyCount?: number;
   passkeys?: PasskeySummary[];
   ssoStepUpCompleted?: boolean;
   onStepUpConsumed?: () => void;
@@ -64,6 +65,7 @@ const renderPanel = ({
   linkedSocialProviders = [],
   navigate = vi.fn(),
   passkeys = [passkey],
+  passkeyCount = passkeys.length,
   ssoStepUpCompleted = false,
   onStepUpConsumed = vi.fn(),
   getResult = { ok: true, credential: authenticationCredential },
@@ -90,7 +92,7 @@ const renderPanel = ({
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
-      <PasskeyManagementPanel api={api} linkedSocialProviders={linkedSocialProviders} navigate={navigate} onStepUpConsumed={onStepUpConsumed} ssoStepUpCompleted={ssoStepUpCompleted} webAuthnAdapter={adapter} />
+      <PasskeyManagementPanel api={api} linkedSocialProviders={linkedSocialProviders} navigate={navigate} onStepUpConsumed={onStepUpConsumed} passkeyCount={passkeyCount} ssoStepUpCompleted={ssoStepUpCompleted} webAuthnAdapter={adapter} />
     </QueryClientProvider>,
   );
   return { api, adapter, navigate };
@@ -101,8 +103,8 @@ describe("PasskeyManagementPanel", () => {
 
   it("shows the security management UI and multiple passkeys without internal identifiers", async () => {
     renderPanel({ passkeys: [passkey, secondPasskey] });
-    expect(await screen.findByDisplayValue("MacBook")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Security key")).toBeInTheDocument();
+    expect(await screen.findByText("MacBook")).toBeInTheDocument();
+    expect(screen.getByText("Security key")).toBeInTheDocument();
     expect(screen.getByText("パスキー管理")).toBeInTheDocument();
     expect(screen.getByText("未使用")).toBeInTheDocument();
     expect(screen.queryByText(passkey.passkeyIdentifier)).not.toBeInTheDocument();
@@ -118,54 +120,90 @@ describe("PasskeyManagementPanel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("一覧を取得できません");
   });
 
-  it("reauthenticates with an existing passkey before adding without asking for a name", async () => {
+  it("adds a passkey after management access has been authorized without asking for a name", async () => {
     const { api, adapter } = renderPanel();
-    await screen.findByDisplayValue("MacBook");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    await screen.findByText("MacBook");
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
 
     await waitFor(() => expect(api.add).toHaveBeenCalledWith({
       challengeKey: registrationOptions.challengeKey,
       displayName: "新しいパスキー",
       credential: registrationCredential,
     }));
-    expect(adapter.get).toHaveBeenCalledWith(authenticationOptions);
-    expect(api.completeStepUpWithPasskey).toHaveBeenCalledWith({
-      challengeKey: authenticationOptions.challengeKey,
-      credential: authenticationCredential,
-    });
+    expect(adapter.get).not.toHaveBeenCalled();
+    expect(api.completeStepUpWithPasskey).not.toHaveBeenCalled();
     expect(api.list).toHaveBeenCalledTimes(2);
   });
 
-  it("reauthenticates before deleting", async () => {
+  it("deletes a passkey while management access is authorized", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const { api } = renderPanel();
-    await screen.findByDisplayValue("MacBook");
+    await screen.findByText("MacBook");
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith(passkey.passkeyIdentifier));
-    expect(api.completeStepUpWithPasskey).toHaveBeenCalledOnce();
+    expect(api.completeStepUpWithPasskey).not.toHaveBeenCalled();
   });
 
   it("keeps existing rename behavior", async () => {
     const { api } = renderPanel();
-    const input = await screen.findByDisplayValue("MacBook");
+    await screen.findByText("MacBook");
+    expect(api.update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "MacBookの名前を編集" }));
+    let input = await screen.findByRole("textbox", { name: "パスキー名" });
+    expect(api.update).not.toHaveBeenCalled();
     fireEvent.change(input, { target: { value: "Work laptop" } });
-    fireEvent.click(screen.getByRole("button", { name: "名称を変更" }));
+    expect(api.update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+    expect(screen.queryByRole("textbox", { name: "パスキー名" })).not.toBeInTheDocument();
+    expect(api.update).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "MacBookの名前を編集" }));
+    input = await screen.findByRole("textbox", { name: "パスキー名" });
+    fireEvent.change(input, { target: { value: "Work laptop" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
     await waitFor(() => expect(api.update).toHaveBeenCalledWith(passkey.passkeyIdentifier, { displayName: "Work laptop" }));
+    expect(screen.queryByRole("textbox", { name: "パスキー名" })).not.toBeInTheDocument();
   });
 
   it("explains a backend rejection when the last authentication method cannot be deleted", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     renderPanel({ api: { delete: vi.fn().mockResolvedValue({ ok: false, status: 409, message: "Conflict" }) } });
-    await screen.findByDisplayValue("MacBook");
+    await screen.findByText("MacBook");
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("最後の認証手段は削除できません");
   });
 
-  it("uses linked SSO for first-passkey verification and resumes only after redirect", async () => {
+  it("shows a verification prompt instead of an API error and unlocks management with a passkey", async () => {
+    const list = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 403, message: "Recent passkey management authentication is required." })
+      .mockResolvedValueOnce({ ok: true, data: { passkeys: [passkey] } });
+    const { api, adapter } = renderPanel({ api: { list }, passkeyCount: 1 });
+
+    expect(await screen.findByText("パスキーを管理するには追加の本人確認が必要です。")).toBeInTheDocument();
+    expect(screen.queryByText("Recent passkey management authentication is required.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+
+    expect(await screen.findByText("MacBook")).toBeInTheDocument();
+    expect(adapter.get).toHaveBeenCalledWith(authenticationOptions);
+    expect(api.completeStepUpWithPasskey).toHaveBeenCalledWith({
+      challengeKey: authenticationOptions.challengeKey,
+      credential: authenticationCredential,
+    });
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses linked SSO when verification is required before the first passkey", async () => {
     const navigate = vi.fn();
-    const { api } = renderPanel({ passkeys: [], linkedSocialProviders: ["google"], navigate });
-    await screen.findByText("登録済みのパスキーはありません。");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    const { api } = renderPanel({
+      api: { list: vi.fn().mockResolvedValue({ ok: false, status: 403, message: "Forbidden" }) },
+      linkedSocialProviders: ["google"],
+      navigate,
+      passkeyCount: 0,
+    });
+    await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
+    fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth"));
     expect(api.createStepUpSocialRedirect).toHaveBeenCalledWith("google");
     expect(api.createAdditionOptions).not.toHaveBeenCalled();
@@ -175,7 +213,7 @@ describe("PasskeyManagementPanel", () => {
     const onStepUpConsumed = vi.fn();
     const { api } = renderPanel({ passkeys: [], ssoStepUpCompleted: true, onStepUpConsumed });
     await screen.findByText("登録済みのパスキーはありません。");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
     await waitFor(() => expect(api.add).toHaveBeenCalledOnce());
     expect(api.createStepUpSocialRedirect).not.toHaveBeenCalled();
     expect(onStepUpConsumed).toHaveBeenCalledOnce();
@@ -190,35 +228,35 @@ describe("PasskeyManagementPanel", () => {
       onStepUpConsumed,
     });
     await screen.findByText("登録済みのパスキーはありません。");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    fireEvent.click(screen.getByRole("button", { name: "追加" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("有効期限が切れました");
     expect(onStepUpConsumed).toHaveBeenCalledOnce();
   });
 
   it("handles cancellation, expiration, unsupported WebAuthn, and recovery guidance", async () => {
-    const cancelled = renderPanel({ getResult: { ok: false, reason: "cancelled" } });
-    await screen.findByDisplayValue("MacBook");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    const verificationRequired = { list: vi.fn().mockResolvedValue({ ok: false, status: 403, message: "Forbidden" }) };
+    const cancelled = renderPanel({ api: verificationRequired, getResult: { ok: false, reason: "cancelled" }, passkeyCount: 1 });
+    await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
+    fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("本人確認をキャンセルしました");
     expect(cancelled.api.completeStepUpWithPasskey).not.toHaveBeenCalled();
     cleanup();
 
-    renderPanel({ api: { completeStepUpWithPasskey: vi.fn().mockResolvedValue({ ok: false, status: 401, message: "Unauthorized" }) } });
-    await screen.findByDisplayValue("MacBook");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    renderPanel({ api: { ...verificationRequired, completeStepUpWithPasskey: vi.fn().mockResolvedValue({ ok: false, status: 401, message: "Unauthorized" }) }, passkeyCount: 1 });
+    await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
+    fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("有効期限が切れました");
     cleanup();
 
-    renderPanel({ supported: false });
-    await screen.findByDisplayValue("MacBook");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
+    renderPanel({ api: verificationRequired, passkeyCount: 1, supported: false });
+    await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
+    fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("このブラウザーではパスキーを利用できません");
     cleanup();
 
-    renderPanel({ passkeys: [] });
-    expect(await screen.findByText("登録済みのパスキーはありません。")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "ログイン画面へ" })).toHaveAttribute("href", "/login");
-    fireEvent.click(screen.getByRole("button", { name: "パスキーを追加" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("専用の復旧導線");
+    renderPanel({ api: verificationRequired, passkeyCount: 0 });
+    expect(await screen.findByText("パスキーを管理するには追加の本人確認が必要です。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("本人確認に利用できるパスキーまたは連携済みSSOがありません");
   });
 });

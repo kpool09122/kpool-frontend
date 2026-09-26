@@ -65,7 +65,7 @@ describe("passkey BFF routes", () => {
 
   it("adds a passkey and rejects an invalid generated request schema", async () => {
     const body = { challengeKey, displayName: "Security key", credential };
-    const fetchMock = vi.fn().mockResolvedValue(upstreamResponse({}));
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(upstreamResponse([])));
     vi.stubGlobal("fetch", fetchMock);
     const response = await addPasskey(request("/api/identity/auth/passkeys/addition", "POST", body));
 
@@ -73,6 +73,8 @@ describe("passkey BFF routes", () => {
       method: "POST", body: JSON.stringify(body), cache: "no-store",
       headers: { Accept: "application/json", "Accept-Language": "en", "Content-Type": "application/json", Cookie: "laravel_session=abc" },
     }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([]);
     expect(response.headers.get("set-cookie")).toContain("laravel_session=updated");
 
     fetchMock.mockClear();
@@ -120,15 +122,25 @@ describe("passkey BFF routes", () => {
   });
 
   it("updates and deletes a validated passkey identifier", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(upstreamResponse({}));
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(upstreamResponse([])));
     vi.stubGlobal("fetch", fetchMock);
     const context = { params: Promise.resolve({ passkeyIdentifier }) };
-    await PATCH(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "PATCH", { displayName: "Phone" }), context);
-    await DELETE(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "DELETE"), context);
+    const updateResponse = await PATCH(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "PATCH", { displayName: "Phone" }), context);
+    const deleteResponse = await DELETE(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "DELETE"), context);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, `https://identity.example.test/api/identity/auth/passkeys/${passkeyIdentifier}`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ displayName: "Phone" }), cache: "no-store" }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, `https://identity.example.test/api/identity/auth/passkeys/${passkeyIdentifier}`, expect.objectContaining({ method: "DELETE", cache: "no-store" }));
+    expect(updateResponse.status).toBe(200);
+    expect(await updateResponse.json()).toEqual([]);
+    expect(deleteResponse.status).toBe(200);
+    expect(await deleteResponse.json()).toEqual([]);
 
+    const invalidResponseFetchMock = vi.fn().mockResolvedValue(upstreamResponse({}));
+    vi.stubGlobal("fetch", invalidResponseFetchMock);
+    expect((await PATCH(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "PATCH", { displayName: "Phone" }), context)).status).toBe(502);
+    expect(invalidResponseFetchMock).toHaveBeenCalledOnce();
+
+    vi.stubGlobal("fetch", fetchMock);
     fetchMock.mockClear();
     const invalidContext = { params: Promise.resolve({ passkeyIdentifier: "invalid" }) };
     expect((await DELETE(request("/api/identity/auth/passkeys/invalid", "DELETE"), invalidContext)).status).toBe(502);

@@ -31,7 +31,7 @@ describe("step-up BFF routes", () => {
   it("forwards passkey options and completion with cookies, language, schemas, and no-store", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(upstream(authenticationOptions))
-      .mockResolvedValueOnce(upstream({}));
+      .mockResolvedValueOnce(upstream([]));
     vi.stubGlobal("fetch", fetchMock);
 
     const optionsResponse = await createPasskeyStepUpOptions(request("/api/identity/auth/step-up/passkey/options", "POST"));
@@ -46,6 +46,7 @@ describe("step-up BFF routes", () => {
     }));
     expect(optionsResponse.headers.get("set-cookie")).toContain("laravel_session=renewed");
     expect(completionResponse.status).toBe(200);
+    expect(await completionResponse.json()).toEqual([]);
   });
 
   it("forwards only supported SSO providers and rejects invalid providers", async () => {

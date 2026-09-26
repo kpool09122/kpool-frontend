@@ -18,6 +18,7 @@ export function UserSecurityClient() {
     <PasskeyManagementPanel
       linkedSocialProviders={authenticatedIdentity?.authenticationMethods.linkedSocialProviders ?? []}
       onStepUpConsumed={() => router.replace("/admin/user/security")}
+      passkeyCount={authenticatedIdentity?.authenticationMethods.passkeyCount ?? 0}
       ssoStepUpCompleted={searchParams.get("stepUp") === "complete"}
     />
   );

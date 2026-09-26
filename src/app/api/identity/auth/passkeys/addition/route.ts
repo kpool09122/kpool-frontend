@@ -7,5 +7,5 @@ export const POST = (request: NextRequest) => forwardIdentityRoute(request, {
   method: "POST",
   path: "/auth/passkeys/addition",
   requestSchema: identityApiTypes.schemas.AddPasskeyRequestBody,
-  responseSchema: identityApiTypes.schemas.KPool_Common_EmptyJsonObject,
+  responseSchema: identityApiTypes.schemas.EmptyJsonArray,
 });
