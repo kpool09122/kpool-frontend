@@ -151,6 +151,27 @@ const PasskeyAuthenticationOptionsResult = z
     options: PasskeyAuthenticationOptions,
   })
   .passthrough();
+const RecoverPasskeyRequestBody = z
+  .object({
+    recoveryKey: KPool_Common_Uuid,
+    challengeKey: KPool_Common_Uuid,
+    displayName: z.string().min(1).max(64),
+    credential: PasskeyRegistrationCredential,
+  })
+  .passthrough();
+const SendPasskeyRecoveryEmailRequestBody = z
+  .object({ email: z.string() })
+  .passthrough();
+const VerifyPasskeyRecoveryEmailRequestBody = z
+  .object({ email: z.string(), authCode: z.string().min(6).max(6) })
+  .passthrough();
+const PasskeyRecoveryVerificationResult = z
+  .object({ recoveryKey: KPool_Common_Uuid })
+  .passthrough();
+const CreatePasskeyRecoveryOptionsRequestBody = z
+  .object({ recoveryKey: KPool_Common_Uuid })
+  .passthrough();
+const RedirectUrlResult = z.object({ redirectUrl: z.string() }).passthrough();
 const RegisterWithPasskeyRequestBody = z
   .object({
     challengeKey: KPool_Common_Uuid.uuid(),
@@ -173,7 +194,6 @@ const UpdatePasskeyRequestBody = z
   .object({ displayName: z.string().min(1).max(64) })
   .passthrough();
 const SendAuthCodeRequestBody = z.object({ email: z.string() }).passthrough();
-const RedirectUrlResult = z.object({ redirectUrl: z.string() }).passthrough();
 const CompleteStepUpWithPasskeyRequestBody = z
   .object({
     challengeKey: KPool_Common_Uuid.uuid(),
@@ -288,12 +308,17 @@ export const schemas = {
   AuthenticateWithPasskeyRequestBody,
   PasskeyAuthenticationOptions,
   PasskeyAuthenticationOptionsResult,
+  RecoverPasskeyRequestBody,
+  SendPasskeyRecoveryEmailRequestBody,
+  VerifyPasskeyRecoveryEmailRequestBody,
+  PasskeyRecoveryVerificationResult,
+  CreatePasskeyRecoveryOptionsRequestBody,
+  RedirectUrlResult,
   RegisterWithPasskeyRequestBody,
   PasskeyIdentityRegistrationResult,
   CreatePasskeyRegistrationOptionsRequestBody,
   UpdatePasskeyRequestBody,
   SendAuthCodeRequestBody,
-  RedirectUrlResult,
   CompleteStepUpWithPasskeyRequestBody,
   VerifyEmailRequestBody,
   VerifyEmailResult,
@@ -610,6 +635,161 @@ const endpoints = makeApi([
     requestFormat: "json",
     response: PasskeyAuthenticationOptionsResult,
     errors: [
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/recovery",
+    alias: "IdentityAuthOperations_recoverPasskey",
+    description: `Register a replacement passkey, remove all previous passkeys, and invalidate existing login sessions.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RecoverPasskeyRequestBody,
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/recovery/email",
+    alias: "IdentityAuthOperations_sendPasskeyRecoveryEmail",
+    description: `Send a passkey recovery code while returning the same response whether or not the email is registered.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ email: z.string() }).passthrough(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/recovery/email/verification",
+    alias: "IdentityAuthOperations_verifyPasskeyRecoveryEmail",
+    description: `Verify a passkey recovery email code and issue a short-lived recovery key.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: VerifyPasskeyRecoveryEmailRequestBody,
+      },
+    ],
+    response: PasskeyRecoveryVerificationResult,
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/passkeys/recovery/options",
+    alias: "IdentityAuthOperations_createPasskeyRecoveryOptions",
+    description: `Create WebAuthn registration options authorized by a passkey recovery key.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CreatePasskeyRecoveryOptionsRequestBody,
+      },
+    ],
+    response: PasskeyRegistrationOptionsResult,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/auth/passkeys/recovery/social/:provider/redirect",
+    alias: "IdentityAuthOperations_startPasskeyRecoveryWithSocial",
+    description: `Create a reauthentication URL for a social account already linked to the recovery target identity.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "provider",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "identityIdentifier",
+        type: "Query",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.object({ redirectUrl: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 500,
         description: `Server error`,
