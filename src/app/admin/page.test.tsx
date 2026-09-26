@@ -43,6 +43,9 @@ import type { AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 const identityMocks = vi.hoisted(() => ({
   fetchCurrentAuthenticatedIdentity: vi.fn(),
 }));
+const passkeyMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+}));
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
@@ -51,6 +54,16 @@ const navigationMocks = vi.hoisted(() => ({
 
 vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
   fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
+}));
+
+vi.mock("@/gateways/identity/passkeyBrowserApi", () => ({
+  passkeyBrowserApi: {
+    list: passkeyMocks.list,
+    createAdditionOptions: vi.fn(),
+    add: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -735,6 +748,7 @@ describe("admin page clients", () => {
       status: "loading",
     });
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(identity);
+    passkeyMocks.list.mockResolvedValue({ ok: true, data: { passkeys: [] } });
   });
 
   afterEach(() => {
@@ -742,6 +756,7 @@ describe("admin page clients", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockReset();
+    passkeyMocks.list.mockReset();
     navigationMocks.push.mockReset();
   });
 

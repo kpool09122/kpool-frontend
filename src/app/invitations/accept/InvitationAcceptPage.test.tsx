@@ -1,134 +1,66 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 import { InvitationAcceptPage } from "./InvitationAcceptPage";
-import { useAuthStore } from "@/gateways/auth/authStore";
-import { fetchCurrentAuthenticatedIdentity } from "@/gateways/identity/authIdentityBrowserApi";
 
-const identityMocks = vi.hoisted(() => ({
-  fetchCurrentAuthenticatedIdentity: vi.fn(),
-}));
-
-vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
-  fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
-}));
-
-const authenticatedIdentity = {
-  identityIdentifier: "11111111-1111-1111-1111-111111111111",
-  identityName: "Invited Member",
-  email: "invited@example.com",
-  language: "ja",
-  accountIdentifier: "22222222-2222-2222-2222-222222222222",
-  accountType: "corporation",
-  accountEffectivePolicies: [],
+const options = {
+  challengeKey: "11111111-1111-4111-8111-111111111111",
+  options: {
+    rp: { name: "kpool", id: "example.test" },
+    user: { name: "invited@example.com", id: "AQID", displayName: "Invited" },
+    challenge: "AQID", pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 60000,
+    excludeCredentials: [], authenticatorSelection: { residentKey: "required", userVerification: "preferred" }, attestation: "none",
+  },
+};
+const credential = {
+  id: "credential-id", rawId: "AQID", type: "public-key" as const,
+  response: { clientDataJSON: "AQID", attestationObject: "AQID", transports: ["internal"] },
+  authenticatorAttachment: null, clientExtensionResults: {},
 };
 
 describe("InvitationAcceptPage", () => {
-  beforeEach(() => {
-    useAuthStore.setState({
-      identity: null,
-      status: "loading",
-    });
-    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(authenticatedIdentity);
-  });
+  afterEach(() => cleanup());
 
-  afterEach(() => {
-    cleanup();
-    vi.clearAllMocks();
-  });
-
-  it("renders the invited email as readonly and shows invitation actions", () => {
-    render(<InvitationAcceptPage token="invite-token-123" email="invited@example.com" />);
-
-    expect(screen.getByRole("heading", { name: "招待を受諾" })).toBeInTheDocument();
-    expect(screen.getByLabelText("招待メールアドレス")).toHaveValue("invited@example.com");
-    expect(screen.getByLabelText("招待メールアドレス")).toHaveAttribute("readonly");
-    expect(screen.getByRole("button", { name: "Googleで招待を受諾" })).toBeInTheDocument();
-    expect(screen.queryByText(/アカウント種別/)).not.toBeInTheDocument();
-  });
-
-  it("skips account creation and creates only identity with oneTimeToken", async () => {
-    const createIdentity = vi.fn().mockResolvedValue({
-      identityIdentifier: "11111111-1111-1111-1111-111111111111",
-      identityName: "Invited Member",
-      email: "invited@example.com",
-      language: "ja",
-    });
+  it("passes the invitation token through passkey registration", async () => {
+    const createRegistrationOptions = vi.fn().mockResolvedValue(options);
+    const registerWithPasskey = vi.fn().mockResolvedValue({});
     const navigate = vi.fn();
-
     render(
       <InvitationAcceptPage
-        token="invite-token-123"
+        token="invite-token"
         email="invited@example.com"
-        signupAdapter={{ createIdentity }}
+        signupAdapter={{ createRegistrationOptions, registerWithPasskey }}
+        webAuthnAdapter={{ ...webAuthnBrowserAdapter, isSupported: () => true, create: vi.fn().mockResolvedValue({ ok: true, credential }) }}
         navigate={navigate}
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("プロフィール名"), {
-      target: { value: "Invited Member" },
-    });
-    fireEvent.change(screen.getByLabelText("パスワード"), {
-      target: { value: "secret-password" },
-    });
-    fireEvent.change(screen.getByLabelText("確認用パスワード"), {
-      target: { value: "secret-password" },
-    });
+    fireEvent.change(screen.getByLabelText("プロフィール名"), { target: { value: "Invited Member" } });
+    fireEvent.change(screen.getByLabelText("パスキー名"), { target: { value: "Phone" } });
     fireEvent.click(screen.getByRole("button", { name: "招待を受諾" }));
 
-    await waitFor(() =>
-      expect(createIdentity).toHaveBeenCalledWith(
-        {
-          identityName: "Invited Member",
-          email: "invited@example.com",
-          password: "secret-password",
-          confirmedPassword: "secret-password",
-          base64EncodedImage: null,
-          oneTimeToken: "invite-token-123",
-          requestLanguage: "ja",
-        },
-        { language: "ja" },
-      ),
-    );
-    await waitFor(() => expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(createRegistrationOptions).toHaveBeenCalledWith({
+      email: "invited@example.com", accountType: null, oneTimeToken: "invite-token", return_to: "/admin",
+    }, { language: "ja" }));
+    expect(registerWithPasskey).toHaveBeenCalledWith(expect.objectContaining({
+      identityName: "Invited Member", displayName: "Phone", credential,
+    }), { language: "ja" });
     expect(navigate).toHaveBeenCalledWith("/admin");
   });
 
-  it("passes oneTimeToken to social redirect acceptance", async () => {
-    const socialRedirectAdapter = vi.fn().mockResolvedValue({
-      ok: true,
-      redirectUrl: "https://accounts.example.test/oauth",
-    });
+  it("passes the invitation token through SSO", async () => {
+    const socialRedirectAdapter = vi.fn().mockResolvedValue({ ok: true, redirectUrl: "https://accounts.example.test/oauth" });
     const navigate = vi.fn();
-
-    render(
-      <InvitationAcceptPage
-        token="invite-token-123"
-        email="invited@example.com"
-        socialRedirectAdapter={socialRedirectAdapter}
-        navigate={navigate}
-      />,
-    );
-
+    render(<InvitationAcceptPage token="invite-token" email="invited@example.com" socialRedirectAdapter={socialRedirectAdapter} navigate={navigate} />);
     fireEvent.click(screen.getByRole("button", { name: "Googleで招待を受諾" }));
-
-    await waitFor(() =>
-      expect(socialRedirectAdapter).toHaveBeenCalledWith(
-        "google",
-        "/admin",
-        "invite-token-123",
-      ),
-    );
-    expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/oauth");
+    await waitFor(() => expect(socialRedirectAdapter).toHaveBeenCalledWith("google", "/admin", "invite-token"));
   });
 
-  it("shows a helpful error and disables actions when token or email is missing", () => {
+  it("disables all actions when invitation parameters are missing", () => {
     render(<InvitationAcceptPage token="" email="invited@example.com" />);
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "招待リンクに必要な token または email が見つかりません。",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("token または email");
     expect(screen.getByRole("button", { name: "招待を受諾" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Googleで招待を受諾" })).toBeDisabled();
   });

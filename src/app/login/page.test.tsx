@@ -1,231 +1,74 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./LoginPage";
-import { I18nProvider } from "../../i18n/I18nProvider";
 import { useAuthStore } from "@/gateways/auth/authStore";
-import { fetchCurrentAuthenticatedIdentity } from "@/gateways/identity/authIdentityBrowserApi";
-
-const identityMocks = vi.hoisted(() => ({
-  fetchCurrentAuthenticatedIdentity: vi.fn(),
-}));
-
-vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
-  fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
-}));
-
-const loginIdentity = {
-  identityIdentifier: "11111111-1111-1111-1111-111111111111",
-  identityName: "member",
-  email: "member@example.com",
-  language: "ja",
-  profileImage: "https://images.example.test/member.jpg",
-};
-
-const authenticatedIdentity = {
-  ...loginIdentity,
-  identityName: "member from auth me",
-  accountIdentifier: "22222222-2222-2222-2222-222222222222",
-  accountType: "corporation",
-  accountEffectivePolicies: [
-    {
-      policyIdentifier: "99999999-9999-9999-9999-999999999999",
-      name: "ACCOUNT_ADMIN",
-      isSystemPolicy: true,
-      statements: [
-        {
-          effect: "allow",
-          actions: ["account:update"],
-          resourceTypes: ["ACCOUNT"],
-        },
-      ],
-    },
-  ],
-};
+import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 
 describe("LoginPage", () => {
-  beforeEach(() => {
-    useAuthStore.setState({
-      identity: null,
-      status: "loading",
-    });
-    vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(authenticatedIdentity);
-  });
-
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
   });
 
-  it("renders SSO as the primary path and email login as the secondary form", () => {
+  it("renders SSO before passkey and has no password fields", () => {
+    render(<LoginPage webAuthnSupported />);
+
+    expect(screen.queryByText("SSOでのログインをおすすめします。SSOを利用できない場合はパスキーを使用できます。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "SSOでログイン" })).not.toBeInTheDocument();
+    expect(screen.queryByText("普段お使いのサービスを選択してください。")).not.toBeInTheDocument();
+    expect(screen.getByText("SSOで初めてログインすると、アカウントが自動で作成されます。")).toBeInTheDocument();
+    expect(screen.getByText(/パスキーでアカウント登録する方は/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "アカウント登録へ" })).toHaveAttribute("href", "/signup");
+    const buttons = screen.getAllByRole("button");
+    expect(buttons[0]).toHaveAccessibleName("Googleでログイン");
+    expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/パスワード/)).not.toBeInTheDocument();
+  });
+
+  it("logs in with a passkey, refreshes identity, and preserves returnTo", async () => {
+    const loginAdapter = vi.fn().mockResolvedValue({
+      ok: true,
+      identity: { identityIdentifier: "id", identityName: "member", email: "member@example.com", language: "ja" },
+      returnTo: "/wiki/ja/example",
+    });
+    const refreshIdentity = vi.fn().mockResolvedValue({});
+    useAuthStore.setState({ refreshIdentity });
+    const navigate = vi.fn();
+
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} returnTo="/wiki/ja/example" webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+
+    await waitFor(() => expect(loginAdapter).toHaveBeenCalledWith({ language: "ja", returnTo: "/wiki/ja/example" }));
+    expect(refreshIdentity).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/wiki/ja/example");
+  });
+
+  it("returns to a retryable state after cancellation", async () => {
+    const loginAdapter = vi.fn().mockResolvedValue({ ok: false, reason: "cancelled" });
+    render(<LoginPage loginAdapter={loginAdapter} webAuthnSupported />);
+
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("キャンセル");
+    expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeEnabled();
+  });
+
+  it("keeps SSO enabled when WebAuthn is unsupported", () => {
+    render(<LoginPage webAuthnSupported={false} />);
+
+    expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Googleでログイン" })).toBeEnabled();
+    expect(screen.getByText(/このブラウザーではパスキーを利用できません/)).toBeInTheDocument();
+  });
+
+  it("detects WebAuthn support in the browser when support is not provided", () => {
+    vi.spyOn(webAuthnBrowserAdapter, "isSupported").mockReturnValue(true);
+
     render(<LoginPage />);
 
-    expect(screen.getByRole("heading", { name: "ログイン" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Googleでログイン" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "LINEでログイン" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Kakaoでログイン" })).toBeInTheDocument();
-    expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
-    expect(screen.getByLabelText("パスワード")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "メールアドレスでログイン" })).toBeInTheDocument();
-    expect(screen.getByText("アカウントをお持ちでない方は")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "アカウント登録へ" })).toHaveAttribute(
-      "href",
-      "/signup",
-    );
-  });
-
-  it("requests an SSO redirect URL and navigates to it", async () => {
-    const socialRedirectAdapter = vi.fn().mockResolvedValue({
-      ok: true,
-      redirectUrl: "https://accounts.example.test/oauth",
-    });
-    const navigate = vi.fn();
-
-    render(
-      <LoginPage
-        socialRedirectAdapter={socialRedirectAdapter}
-        navigate={navigate}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Googleでログイン" }));
-
-    await waitFor(() =>
-      expect(socialRedirectAdapter).toHaveBeenCalledWith("google", "/admin"),
-    );
-    expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/oauth");
-  });
-
-  it("passes the return destination to SSO redirect requests", async () => {
-    const socialRedirectAdapter = vi.fn().mockResolvedValue({
-      ok: true,
-      redirectUrl: "https://accounts.example.test/oauth",
-    });
-    const navigate = vi.fn();
-
-    render(
-      <LoginPage
-        socialRedirectAdapter={socialRedirectAdapter}
-        navigate={navigate}
-        returnTo="/wiki/ja/gr-aurora-echo/edit"
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Googleでログイン" }));
-
-    await waitFor(() =>
-      expect(socialRedirectAdapter).toHaveBeenCalledWith(
-        "google",
-        "/wiki/ja/gr-aurora-echo/edit",
-      ),
-    );
-  });
-
-  it("logs in with email and password, trusts auth/me, and opens admin", async () => {
-    const loginAdapter = vi.fn().mockResolvedValue({ identity: loginIdentity, ok: true });
-    const navigate = vi.fn();
-
-    render(
-      <LoginPage
-        loginAdapter={loginAdapter}
-        navigate={navigate}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("メールアドレス"), {
-      target: { value: "member@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("パスワード"), {
-      target: { value: "secret-password" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "メールアドレスでログイン" }));
-
-    await waitFor(() =>
-      expect(loginAdapter).toHaveBeenCalledWith({
-        email: "member@example.com",
-        password: "secret-password",
-        return_to: "/admin",
-      }),
-    );
-    await waitFor(() =>
-      expect(fetchCurrentAuthenticatedIdentity).toHaveBeenCalledTimes(1),
-    );
-    expect(navigate).toHaveBeenCalledWith("/admin");
-    expect(useAuthStore.getState()).toMatchObject({
-      identity: authenticatedIdentity,
-      status: "authenticated",
-    });
-  });
-
-  it("uses the safe return destination returned by email login", async () => {
-    const loginAdapter = vi.fn().mockResolvedValue({
-      identity: loginIdentity,
-      ok: true,
-      returnTo: "/wiki/ja/gr-aurora-echo/edit",
-    });
-    const navigate = vi.fn();
-
-    render(
-      <LoginPage
-        loginAdapter={loginAdapter}
-        navigate={navigate}
-        returnTo="/admin"
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("メールアドレス"), {
-      target: { value: "member@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("パスワード"), {
-      target: { value: "secret-password" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "メールアドレスでログイン" }));
-
-    await waitFor(() =>
-      expect(loginAdapter).toHaveBeenCalledWith({
-        email: "member@example.com",
-        password: "secret-password",
-        return_to: "/admin",
-      }),
-    );
-    expect(navigate).toHaveBeenCalledWith("/wiki/ja/gr-aurora-echo/edit");
-  });
-
-  it("shows an understandable error when email login fails", async () => {
-    const loginAdapter = vi.fn().mockResolvedValue({
-      ok: false,
-      message: "メールアドレスまたはパスワードが違います。",
-    });
-
-    render(<LoginPage loginAdapter={loginAdapter} />);
-
-    fireEvent.change(screen.getByLabelText("メールアドレス"), {
-      target: { value: "member@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("パスワード"), {
-      target: { value: "wrong-password" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "メールアドレスでログイン" }));
-
-    expect(
-      await screen.findByText("メールアドレスまたはパスワードが違います。"),
-    ).toBeInTheDocument();
-  });
-
-  it("renders the primary login copy in English", () => {
-    render(
-      <I18nProvider initialLocale="en">
-        <LoginPage />
-      </I18nProvider>,
-    );
-
-    expect(screen.getByRole("heading", { name: "Log in" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Google.*login/ })).toBeInTheDocument();
-    expect(screen.getByLabelText("Email address")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Log in with email" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute(
-      "href",
-      "/signup",
-    );
+    expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeEnabled();
+    expect(screen.queryByText(/この端末、セキュリティキー/)).not.toBeInTheDocument();
   });
 });

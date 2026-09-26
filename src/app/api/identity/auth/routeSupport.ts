@@ -1,4 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+
+import { getIdentityApiBaseUrl, getIdentityRouteErrorMessage } from "@/gateways/identity/identityApi";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 export const identityApiNotConfiguredResponse = (): NextResponse =>
   NextResponse.json(
@@ -70,4 +74,77 @@ export const withIdentitySetCookie = (
   });
 
   return response;
+};
+
+type ForwardIdentityRouteOptions = {
+  method: "DELETE" | "GET" | "PATCH" | "POST";
+  path: string;
+  requestSchema?: z.ZodType;
+  responseSchema: z.ZodType;
+};
+
+export const forwardIdentityRoute = async (
+  request: NextRequest,
+  options: ForwardIdentityRouteOptions,
+): Promise<NextResponse> => {
+  const {
+    method,
+    path,
+    requestSchema,
+    responseSchema,
+  } = options;
+  const baseUrl = getIdentityApiBaseUrl();
+
+  if (!baseUrl) {
+    return identityApiNotConfiguredResponse();
+  }
+
+  try {
+    const requestBody = requestSchema
+      ? parseWithSchemaLog(`identity ${path} request`, requestSchema, await request.json())
+      : undefined;
+    const apiResponse = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        ...getAcceptLanguageForwardHeaders(request),
+        ...(requestBody === undefined ? {} : { "Content-Type": "application/json" }),
+        ...getCookieForwardHeaders(request),
+      },
+      ...(requestBody === undefined ? {} : { body: JSON.stringify(requestBody) }),
+      cache: "no-store",
+    });
+    const body = await readIdentityRouteResponseBody(apiResponse);
+
+    if (!apiResponse.ok) {
+      return withIdentitySetCookie(
+        NextResponse.json(
+          { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+          { status: apiResponse.status },
+        ),
+        apiResponse,
+      );
+    }
+
+    if (apiResponse.status === 204 || apiResponse.status === 205) {
+      return withIdentitySetCookie(
+        new NextResponse(null, { status: apiResponse.status }),
+        apiResponse,
+      );
+    }
+
+    return withIdentitySetCookie(
+      NextResponse.json(
+        parseWithSchemaLog(`identity ${path} response`, responseSchema, body ?? {}),
+        { status: apiResponse.status },
+      ),
+      apiResponse,
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return identityApiSchemaErrorResponse();
+    }
+
+    return identityApiUnavailableResponse();
+  }
 };

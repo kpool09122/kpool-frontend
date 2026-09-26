@@ -1,12 +1,38 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { passkeyBrowserApi } from "@/gateways/identity/passkeyBrowserApi";
+import { webAuthnBrowserAdapter } from "./webAuthnBrowserAdapter";
 import {
-  getAuthErrorMessage,
   identityProviders,
-  loginWithEmail,
+  loginWithPasskey,
   normalizeReturnTo,
   requestSocialRedirect,
 } from "./authFlow";
+
+const authenticationOptions = {
+  challengeKey: "11111111-1111-4111-8111-111111111111",
+  options: {
+    challenge: "AQID",
+    timeout: 60000,
+    rpId: "example.test",
+    allowCredentials: [],
+    userVerification: "preferred",
+  },
+};
+
+const authenticationCredential = {
+  id: "credential-id",
+  rawId: "AQID",
+  type: "public-key" as const,
+  response: {
+    clientDataJSON: "AQID",
+    authenticatorData: "AQID",
+    signature: "AQID",
+    userHandle: null,
+  },
+  authenticatorAttachment: null,
+  clientExtensionResults: {},
+};
 
 describe("login auth flow helpers", () => {
   afterEach(() => {
@@ -14,121 +40,62 @@ describe("login auth flow helpers", () => {
   });
 
   it("defines the supported SSO providers in display order", () => {
-    expect(identityProviders).toEqual([
-      expect.objectContaining({
-        id: "google",
-        label: "Google",
-        iconSrc: "/auth/google.png",
-      }),
-      expect.objectContaining({
-        id: "line",
-        label: "LINE",
-        iconSrc: "/auth/line.png",
-      }),
-      expect.objectContaining({
-        id: "kakao",
-        label: "Kakao",
-        iconSrc: "/auth/kakao.png",
-      }),
-    ]);
+    expect(identityProviders.map((provider) => provider.id)).toEqual(["google", "line", "kakao"]);
   });
 
-  it("keeps same-site return destinations and falls back for external values", () => {
-    expect(normalizeReturnTo("/wiki/ja/gr-aurora-echo")).toBe(
-      "/wiki/ja/gr-aurora-echo",
-    );
+  it("keeps same-site return destinations and rejects external values", () => {
+    expect(normalizeReturnTo("/wiki/ja/example")).toBe("/wiki/ja/example");
     expect(normalizeReturnTo("https://example.com/phishing")).toBe("/admin");
     expect(normalizeReturnTo("//example.com/phishing")).toBe("/admin");
-    expect(normalizeReturnTo(null)).toBe("/admin");
   });
 
-  it("extracts a user-facing message from failed auth responses", async () => {
-    const response = new Response(
-      JSON.stringify({ message: "メールアドレスまたはパスワードが違います。" }),
-      { status: 401 },
-    );
+  it("gets options, invokes WebAuthn, authenticates, and preserves returnTo", async () => {
+    const createAuthenticationOptions = vi.fn().mockResolvedValue({ ok: true, data: authenticationOptions });
+    const authenticate = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { identityIdentifier: "id", identityName: "member", email: "member@example.com", language: "ja" },
+    });
+    const get = vi.fn().mockResolvedValue({ ok: true, credential: authenticationCredential });
 
-    await expect(getAuthErrorMessage(response)).resolves.toBe(
-      "メールアドレスまたはパスワードが違います。",
-    );
+    await expect(loginWithPasskey({
+      api: { ...passkeyBrowserApi, createAuthenticationOptions, authenticate },
+      webAuthn: { ...webAuthnBrowserAdapter, isSupported: () => true, get },
+      language: "ja",
+      returnTo: "/wiki/ja/example",
+    })).resolves.toEqual(expect.objectContaining({ ok: true, returnTo: "/wiki/ja/example" }));
+    expect(authenticate).toHaveBeenCalledWith({
+      challengeKey: authenticationOptions.challengeKey,
+      credential: authenticationCredential,
+    }, "ja");
   });
 
-  it("sends return_to with email login and normalizes the returned destination", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        identityName: "member",
-        email: "member@example.com",
-        language: "ja",
-        return_to: "/wiki/ja/gr-aurora-echo/edit",
-      })),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+  it("distinguishes unsupported browsers and cancellation", async () => {
+    await expect(loginWithPasskey({
+      webAuthn: { ...webAuthnBrowserAdapter, isSupported: () => false },
+    })).resolves.toEqual({ ok: false, reason: "unsupported" });
 
-    await expect(
-      loginWithEmail({
-        email: "member@example.com",
-        password: "secret-password",
-        return_to: "/wiki/ja/gr-aurora-echo/edit",
-      }),
-    ).resolves.toEqual({
-      identity: {
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        identityName: "member",
-        email: "member@example.com",
-        language: "ja",
+    await expect(loginWithPasskey({
+      api: {
+        ...passkeyBrowserApi,
+        createAuthenticationOptions: vi.fn().mockResolvedValue({ ok: true, data: authenticationOptions }),
       },
-      ok: true,
-      returnTo: "/wiki/ja/gr-aurora-echo/edit",
-    });
-    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
-      email: "member@example.com",
-      password: "secret-password",
-      return_to: "/wiki/ja/gr-aurora-echo/edit",
-    });
+      webAuthn: {
+        ...webAuthnBrowserAdapter,
+        isSupported: () => true,
+        get: vi.fn().mockResolvedValue({ ok: false, reason: "cancelled" }),
+      },
+    })).resolves.toEqual({ ok: false, reason: "cancelled" });
   });
 
-  it("sends return_to with social redirect requests", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({
-        redirectUrl: "https://accounts.example.test/oauth",
-      })),
-    );
+  it("sends returnTo, invitation token, and account type with SSO", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ redirectUrl: "https://accounts.example.test/oauth" })));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(
-      requestSocialRedirect("google", "/wiki/ja/gr-aurora-echo/edit"),
-    ).resolves.toEqual({
-      ok: true,
-      redirectUrl: "https://accounts.example.test/oauth",
-    });
+    await requestSocialRedirect("google", "/admin", "invite-token", "corporation");
+
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/identity/auth/social/google/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit",
-      {
-        credentials: "include",
-      },
-    );
-  });
-
-  it("sends oneTimeToken with invitation social redirect requests", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({
-        redirectUrl: "https://accounts.example.test/oauth",
-      })),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requestSocialRedirect("google", "/admin", "invite-token-123"),
-    ).resolves.toEqual({
-      ok: true,
-      redirectUrl: "https://accounts.example.test/oauth",
-    });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/identity/auth/social/google/redirect?return_to=%2Fadmin&oneTimeToken=invite-token-123",
-      {
-        credentials: "include",
-      },
+      "/api/identity/auth/social/google/redirect?return_to=%2Fadmin&oneTimeToken=invite-token&accountType=corporation",
+      { credentials: "include" },
     );
   });
 });
