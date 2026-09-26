@@ -4,13 +4,23 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "./LoginPage";
 import { useAuthStore } from "@/gateways/auth/authStore";
+import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 
 describe("LoginPage", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it("renders SSO before passkey and has no password fields", () => {
     render(<LoginPage webAuthnSupported />);
 
+    expect(screen.queryByText("SSOでのログインをおすすめします。SSOを利用できない場合はパスキーを使用できます。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "SSOでログイン" })).not.toBeInTheDocument();
+    expect(screen.queryByText("普段お使いのサービスを選択してください。")).not.toBeInTheDocument();
+    expect(screen.getByText("SSOで初めてログインすると、アカウントが自動で作成されます。")).toBeInTheDocument();
+    expect(screen.getByText(/パスキーでアカウント登録する方は/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "アカウント登録へ" })).toHaveAttribute("href", "/signup");
     const buttons = screen.getAllByRole("button");
     expect(buttons[0]).toHaveAccessibleName("Googleでログイン");
     expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeInTheDocument();
@@ -51,5 +61,14 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Googleでログイン" })).toBeEnabled();
     expect(screen.getByText(/このブラウザーではパスキーを利用できません/)).toBeInTheDocument();
+  });
+
+  it("detects WebAuthn support in the browser when support is not provided", () => {
+    vi.spyOn(webAuthnBrowserAdapter, "isSupported").mockReturnValue(true);
+
+    render(<LoginPage />);
+
+    expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeEnabled();
+    expect(screen.queryByText(/この端末、セキュリティキー/)).not.toBeInTheDocument();
   });
 });

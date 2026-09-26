@@ -1,15 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-import {
-  identityProviders,
-  requestSocialRedirect,
-  type IdentityProvider,
-  type SocialRedirectAdapter,
-} from "@/gateways/auth/authFlow";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import {
   buildRegistrationOptionsRequest,
@@ -31,7 +24,6 @@ import { localeLabels, type Locale } from "../../i18n/locales";
 
 type SignupPageProps = {
   signupAdapter?: SignupAdapter;
-  socialRedirectAdapter?: SocialRedirectAdapter;
   webAuthnAdapter?: WebAuthnBrowserAdapter;
   navigate?: (url: string) => void;
   refresh?: () => void;
@@ -54,19 +46,8 @@ const stepStateClassName: Record<SignupStepState, string> = {
   error: "bg-red-500",
 };
 
-const getSocialButtonClassName = (provider: IdentityProvider): string =>
-  [
-    "flex min-h-12 items-center justify-center gap-3 rounded-lg px-5 py-0 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70",
-    provider.buttonClassName,
-  ].join(" ");
-
-const defaultNavigate = (url: string): void => {
-  window.location.assign(url);
-};
-
 export function SignupPage({
   signupAdapter = signupWithApi,
-  socialRedirectAdapter = requestSocialRedirect,
   webAuthnAdapter = webAuthnBrowserAdapter,
   navigate,
   refresh,
@@ -78,7 +59,6 @@ export function SignupPage({
   const [authCode, setAuthCode] = useState("");
   const [phase, setPhase] = useState<SignupPhase>("account");
   const [pending, setPending] = useState(false);
-  const [pendingProvider, setPendingProvider] = useState<IdentityProvider["id"] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [errorStep, setErrorStep] = useState<SignupStepId | null>(null);
@@ -95,28 +75,6 @@ export function SignupPage({
   const showError = (error: unknown, step: SignupStepId) => {
     setErrorMessage(error instanceof Error ? error.message : t.fallbackError);
     setErrorStep(step);
-  };
-
-  const handleSocialSignup = async (provider: IdentityProvider["id"]) => {
-    if (pending || pendingProvider) {
-      return;
-    }
-
-    setErrorMessage(null);
-    setPendingProvider(provider);
-    const result = await socialRedirectAdapter(provider, "/admin", undefined, values.accountType);
-
-    if (result.ok) {
-      if (navigate) {
-        navigate(result.redirectUrl);
-      } else {
-        defaultNavigate(result.redirectUrl);
-      }
-      return;
-    }
-
-    setErrorMessage(result.message);
-    setPendingProvider(null);
   };
 
   const handleAccountSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -233,9 +191,12 @@ export function SignupPage({
 
   const steps = getSignupStepItems({ phase, pending, errorStep });
   const accountTypeOptions = [
-    { value: "individual", label: t.individual },
-    { value: "corporation", label: t.corporation },
+    { value: "individual", label: t.individual, panelId: "individual-account-panel" },
+    { value: "corporation", label: t.corporation, panelId: "corporation-account-panel" },
   ];
+  const selectedAccountType = accountTypeOptions.find(
+    (option) => option.value === values.accountType,
+  ) ?? accountTypeOptions[0];
 
   return (
     <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
@@ -245,75 +206,63 @@ export function SignupPage({
             {dictionary.common.accountBrand}
           </p>
           <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
-          <p className="max-w-2xl text-sm leading-6 text-text-muted">{t.description}</p>
         </div>
 
         {phase === "account" ? (
-          <section className="space-y-5 rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
-            <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold">{t.accountType}</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {accountTypeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={values.accountType === option.value}
-                    className={`rounded-lg border px-4 py-3 text-sm font-semibold ${values.accountType === option.value ? "border-brand-primary text-brand-primary" : "border-stroke-subtle text-text-muted"}`}
-                    onClick={() => setField("accountType", option.value)}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+          <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
+            <form className="space-y-5" onSubmit={handleAccountSubmit}>
+              <div
+                role="tablist"
+                aria-label={t.accountType}
+                className="-mx-6 -mt-6 mb-5 flex border-b border-stroke-subtle px-6"
+              >
+                {accountTypeOptions.map((option) => {
+                  const selected = values.accountType === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="tab"
+                      id={`${option.value}-account-tab`}
+                      aria-selected={selected}
+                      aria-controls={option.panelId}
+                      className={[
+                        "relative min-h-12 px-4 text-sm font-semibold transition",
+                        selected
+                          ? "text-brand-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand-primary"
+                          : "text-text-muted hover:text-text-strong",
+                      ].join(" ")}
+                      onClick={() => setField("accountType", option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
               </div>
-            </fieldset>
 
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold">{t.ssoTitle}</h2>
-              <p className="text-sm text-text-muted">{t.ssoDescription}</p>
-            </div>
-            <div className="grid gap-3" aria-label={t.ssoTitle}>
-              {identityProviders.map((provider) => (
-                <button
-                  key={provider.id}
-                  type="button"
-                  className={getSocialButtonClassName(provider)}
-                  disabled={pending || pendingProvider !== null}
-                  onClick={() => void handleSocialSignup(provider.id)}
-                >
-                  <span className="inline-flex h-12 w-12 items-center justify-center" aria-hidden="true">
-                    <Image src={provider.iconSrc} alt="" width={provider.iconSize} height={provider.iconSize} className={`${provider.iconClassName} object-contain`} />
-                  </span>
-                  {pendingProvider === provider.id ? t.socialPending : `${provider.label}${t.socialSuffix}`}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3 text-xs text-text-muted" aria-hidden="true">
-              <span className="h-px flex-1 bg-stroke-subtle" />
-              <span>{t.passkeyAlternative}</span>
-              <span className="h-px flex-1 bg-stroke-subtle" />
-            </div>
-
-            <form className="space-y-4" onSubmit={handleAccountSubmit}>
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold">{t.passkeySignupTitle}</h2>
-                <p className="text-sm text-text-muted">{t.passkeySignupDescription}</p>
+              <div
+                role="tabpanel"
+                id={selectedAccountType.panelId}
+                aria-labelledby={`${selectedAccountType.value}-account-tab`}
+                className="grid gap-4 sm:grid-cols-2"
+              >
+                <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
+                  <span>{t.email}</span>
+                  <input type="email" autoComplete="email" required value={values.email} onChange={(event) => setField("email", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight" />
+                </label>
+                <label className="block space-y-2 text-sm font-semibold">
+                  <span>{t.accountName}</span>
+                  <input type="text" autoComplete="organization" required value={values.accountName} onChange={(event) => setField("accountName", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight" />
+                </label>
+                <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
+                  <span>{t.language}</span>
+                  <select required value={values.language} onChange={(event) => setField("language", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight">
+                    {Object.entries(localeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </label>
               </div>
-              <label className="block space-y-2 text-sm font-semibold">
-                <span>{t.email}</span>
-                <input type="email" autoComplete="email" required value={values.email} onChange={(event) => setField("email", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight" />
-              </label>
-              <label className="block space-y-2 text-sm font-semibold">
-                <span>{t.accountName}</span>
-                <input type="text" autoComplete="organization" required value={values.accountName} onChange={(event) => setField("accountName", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight" />
-              </label>
-              <label className="block space-y-2 text-sm font-semibold">
-                <span>{t.language}</span>
-                <select required value={values.language} onChange={(event) => setField("language", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight">
-                  {Object.entries(localeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
-              </label>
-              <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pending || pendingProvider !== null}>
+              <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pending}>
                 {pending ? t.sendingCode : t.sendCode}
               </button>
             </form>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 import {
   identityProviders,
@@ -42,6 +42,9 @@ const defaultNavigate = (url: string): void => {
   window.location.assign(url);
 };
 
+const subscribeToWebAuthnSupport = (): (() => void) => () => undefined;
+const getServerWebAuthnSupport = (): null => null;
+
 const getCurrentReturnTo = (): string | null => {
   if (typeof window === "undefined") {
     return null;
@@ -56,7 +59,7 @@ export function LoginPage({
   navigate,
   refresh,
   returnTo,
-  webAuthnSupported = webAuthnBrowserAdapter.isSupported(),
+  webAuthnSupported,
 }: LoginPageProps) {
   const router = useRouter();
   const { locale, dictionary } = useI18n();
@@ -64,6 +67,12 @@ export function LoginPage({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const detectedWebAuthnSupport = useSyncExternalStore<boolean | null>(
+    subscribeToWebAuthnSupport,
+    webAuthnBrowserAdapter.isSupported,
+    getServerWebAuthnSupport,
+  );
+  const isWebAuthnSupported = webAuthnSupported ?? detectedWebAuthnSupport;
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const destination = useMemo(
     () => normalizeReturnTo(returnTo ?? getCurrentReturnTo()),
@@ -130,19 +139,14 @@ export function LoginPage({
   return (
     <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto max-w-3xl space-y-8">
-        <div className="space-y-3 text-center">
+        <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">
             {dictionary.common.accountBrand}
           </p>
           <h1 className="text-3xl font-bold sm:text-4xl">{t.title}</h1>
-          <p className="text-sm leading-6 text-text-muted">{t.description}</p>
         </div>
 
         <section className="space-y-5 rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold">{t.ssoTitle}</h2>
-            <p className="text-sm leading-6 text-text-muted">{t.ssoDescription}</p>
-          </div>
           <div className="grid gap-3" aria-label={t.ssoTitle}>
             {identityProviders.map((provider) => {
               const isPending = pendingAction?.type === "social" && pendingAction.provider === provider.id;
@@ -177,14 +181,13 @@ export function LoginPage({
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold">{t.passkeyTitle}</h2>
-            <p className="text-sm leading-6 text-text-muted">
-              {webAuthnSupported ? t.passkeyDescription : t.passkeyUnsupported}
-            </p>
+            {isWebAuthnSupported === false ? (
+              <p className="text-sm leading-6 text-text-muted">{t.passkeyUnsupported}</p>
+            ) : null}
             <button
               type="button"
               className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={pendingAction !== null || !webAuthnSupported}
+              disabled={pendingAction !== null || isWebAuthnSupported !== true}
               onClick={() => void handlePasskeyLogin()}
             >
               {pendingAction?.type === "passkey" ? t.passkeyPending : t.passkeyButton}
@@ -202,12 +205,15 @@ export function LoginPage({
             </p>
           ) : null}
 
-          <p className="text-center text-sm text-text-muted">
-            {t.signupLead}{" "}
-            <Link href="/signup" className="font-semibold text-brand-primary underline-offset-4 hover:underline">
-              {t.signupLink}
-            </Link>
-          </p>
+          <div className="space-y-1 text-left text-sm text-text-muted sm:text-center">
+            <p>{t.ssoSignupNotice}</p>
+            <p>
+              {t.signupLead}{" "}
+              <Link href="/signup" className="font-semibold text-brand-primary underline-offset-4 hover:underline">
+                {t.signupLink}
+              </Link>
+            </p>
+          </div>
         </section>
       </div>
     </main>

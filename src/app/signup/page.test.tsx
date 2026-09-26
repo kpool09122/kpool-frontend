@@ -45,11 +45,24 @@ const webAuthn = {
 describe("SignupPage", () => {
   afterEach(() => cleanup());
 
-  it("prioritizes SSO and does not render password fields", () => {
+  it("renders only the email and passkey signup flow", () => {
     render(<SignupPage signupAdapter={createAdapter()} webAuthnAdapter={webAuthn} />);
-    const buttons = screen.getAllByRole("button");
-    expect(buttons.findIndex((button) => button.textContent?.includes("Google"))).toBeLessThan(buttons.findIndex((button) => button.textContent?.includes("認証コード")));
+
+    expect(screen.queryByText(/メールアドレスを確認してパスキー/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "SSOで登録" })).not.toBeInTheDocument();
+    expect(screen.queryByText("普段お使いのサービスで簡単に登録できます。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Google/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "パスキーで登録" })).not.toBeInTheDocument();
+    expect(screen.queryByText("メールアドレスを確認してからパスキーを作成します。")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "認証コードを送信" })).toBeInTheDocument();
     expect(screen.queryByLabelText(/パスワード/)).not.toBeInTheDocument();
+
+    const individualTab = screen.getByRole("tab", { name: "個人" });
+    const corporationTab = screen.getByRole("tab", { name: "法人" });
+    expect(individualTab).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(corporationTab);
+    expect(corporationTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "corporation-account-panel");
   });
 
   it("sends and verifies the email before options, credential, and registration", async () => {
