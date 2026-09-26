@@ -13,6 +13,10 @@ const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySumm
   originalAccount: identityApiTypes.schemas.AuthenticatedAccountReferenceSummary.nullable(),
   delegationIdentifier: z.string().uuid().nullable(),
   switchableAccounts: z.array(identityApiTypes.schemas.SwitchableAccountSummary),
+  authenticationMethods: identityApiTypes.schemas.AuthenticationMethodsSummary.default({
+    passkeyCount: 0,
+    linkedSocialProviders: [],
+  }),
 });
 export type AuthenticatedIdentitySummary = z.infer<typeof AuthenticatedIdentitySummarySchema>;
 export type RedirectUrlResult = z.infer<typeof identityApiTypes.schemas.RedirectUrlResult>;
@@ -31,6 +35,7 @@ export type RegisterWithPasskeyRequest = z.infer<typeof identityApiTypes.schemas
 export type AuthenticateWithPasskeyRequest = z.infer<typeof identityApiTypes.schemas.AuthenticateWithPasskeyRequestBody>;
 export type AddPasskeyRequest = z.infer<typeof identityApiTypes.schemas.AddPasskeyRequestBody>;
 export type UpdatePasskeyRequest = z.infer<typeof identityApiTypes.schemas.UpdatePasskeyRequestBody>;
+export type CompleteStepUpWithPasskeyRequest = z.infer<typeof identityApiTypes.schemas.CompleteStepUpWithPasskeyRequestBody>;
 
 type IdentityApiEnv = Record<string, string | undefined>;
 
@@ -161,6 +166,9 @@ export const parseAddPasskeyRequest = (body: unknown): AddPasskeyRequest =>
 
 export const parseUpdatePasskeyRequest = (body: unknown): UpdatePasskeyRequest =>
   parseWithSchemaLog("identity update passkey request", identityApiTypes.schemas.UpdatePasskeyRequestBody, body);
+
+export const parseCompleteStepUpWithPasskeyRequest = (body: unknown): CompleteStepUpWithPasskeyRequest =>
+  parseWithSchemaLog("identity complete passkey step-up request", identityApiTypes.schemas.CompleteStepUpWithPasskeyRequestBody, body);
 
 export const parsePasskeyRegistrationCredential = (body: unknown): PasskeyRegistrationCredential =>
   parseWithSchemaLog("identity passkey registration credential", identityApiTypes.schemas.PasskeyRegistrationCredential, body);

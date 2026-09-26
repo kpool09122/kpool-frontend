@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import {
@@ -15,18 +16,34 @@ import {
 } from "@/gateways/identity/passkeyBrowserApi";
 import { useI18n } from "../../../../i18n/I18nProvider";
 
+type SocialProvider = "google" | "line" | "kakao";
+
 type PasskeyManagementPanelProps = {
   api?: PasskeyBrowserApi;
+  linkedSocialProviders?: string[];
+  navigate?: (url: string) => void;
+  onStepUpConsumed?: () => void;
+  ssoStepUpCompleted?: boolean;
   webAuthnAdapter?: WebAuthnBrowserAdapter;
+};
+
+const isSocialProvider = (value: string): value is SocialProvider =>
+  value === "google" || value === "line" || value === "kakao";
+
+const defaultNavigate = (url: string): void => {
+  window.location.assign(url);
 };
 
 export function PasskeyManagementPanel({
   api = passkeyBrowserApi,
+  linkedSocialProviders = [],
+  navigate = defaultNavigate,
+  onStepUpConsumed = () => undefined,
+  ssoStepUpCompleted = false,
   webAuthnAdapter = webAuthnBrowserAdapter,
 }: PasskeyManagementPanelProps) {
   const { locale, dictionary } = useI18n();
   const t = dictionary.admin;
-  const [displayName, setDisplayName] = useState("My passkey");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -42,57 +59,132 @@ export function PasskeyManagementPanel({
   });
   const passkeys = passkeyQuery.data ?? [];
 
-  const handleAdd = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const clearMessages = () => {
+    setError(null);
+    setNotice(null);
+  };
 
-    if (busyAction) {
-      return;
+  const requireAdditionalVerification = async () => {
+    if (passkeys.length === 0) {
+      if (ssoStepUpCompleted) {
+        return true;
+      }
+
+      const provider = linkedSocialProviders.find(isSocialProvider);
+
+      if (!provider) {
+        setError(t.passkeyRecoveryRequired);
+        return false;
+      }
+
+      const redirectResult = await api.createStepUpSocialRedirect(provider);
+
+      if (!redirectResult.ok) {
+        setError(redirectResult.message);
+        return false;
+      }
+
+      setNotice(t.passkeySsoRedirecting);
+      navigate(redirectResult.data.redirectUrl);
+      return false;
     }
 
     if (!webAuthnAdapter.isSupported()) {
       setError(t.passkeyUnsupported);
+      return false;
+    }
+
+    const optionsResult = await api.createStepUpPasskeyOptions();
+
+    if (!optionsResult.ok) {
+      setError(optionsResult.message);
+      return false;
+    }
+
+    const credentialResult = await webAuthnAdapter.get(optionsResult.data);
+
+    if (!credentialResult.ok) {
+      setError(
+        credentialResult.reason === "cancelled"
+          ? t.passkeyVerificationCancelled
+          : credentialResult.reason === "unsupported"
+            ? t.passkeyUnsupported
+            : t.passkeyVerificationFailed,
+      );
+      return false;
+    }
+
+    const verificationResult = await api.completeStepUpWithPasskey({
+      challengeKey: optionsResult.data.challengeKey,
+      credential: credentialResult.credential,
+    });
+
+    if (!verificationResult.ok) {
+      setError(
+        verificationResult.status === 401 || verificationResult.status === 419
+          ? t.passkeyVerificationExpired
+          : verificationResult.message,
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAdd = async () => {
+    if (busyAction) {
       return;
     }
 
     setBusyAction("add");
-    setError(null);
-    setNotice(null);
+    clearMessages();
 
-    void api.createAdditionOptions().then(async (optionsResult) => {
-      if (!optionsResult.ok) {
+    if (!(await requireAdditionalVerification())) {
+      setBusyAction(null);
+      return;
+    }
+
+    const optionsResult = await api.createAdditionOptions();
+
+    if (!optionsResult.ok) {
+      if (ssoStepUpCompleted && (optionsResult.status === 401 || optionsResult.status === 403)) {
+        onStepUpConsumed();
+        setError(t.passkeyVerificationExpired);
+      } else {
         setError(optionsResult.message);
-        return;
       }
+      setBusyAction(null);
+      return;
+    }
 
-      const credentialResult = await webAuthnAdapter.create(optionsResult.data);
+    const credentialResult = await webAuthnAdapter.create(optionsResult.data);
 
-      if (!credentialResult.ok) {
-        if (credentialResult.reason === "cancelled") {
-          setNotice(t.passkeyCancelled);
-        } else if (credentialResult.reason === "unsupported") {
-          setError(t.passkeyUnsupported);
-        } else {
-          setError(t.passkeyOperationFailed);
-        }
-        return;
-      }
+    if (!credentialResult.ok) {
+      setError(
+        credentialResult.reason === "cancelled"
+          ? t.passkeyCancelled
+          : credentialResult.reason === "unsupported"
+            ? t.passkeyUnsupported
+            : t.passkeyOperationFailed,
+      );
+      setBusyAction(null);
+      return;
+    }
 
-      const addResult = await api.add({
-        challengeKey: optionsResult.data.challengeKey,
-        displayName: displayName.trim(),
-        credential: credentialResult.credential,
-      });
+    const addResult = await api.add({
+      challengeKey: optionsResult.data.challengeKey,
+      displayName: t.passkeyDefaultDisplayName,
+      credential: credentialResult.credential,
+    });
 
-      if (!addResult.ok) {
-        setError(addResult.message);
-        return;
-      }
-
+    if (addResult.ok) {
+      onStepUpConsumed();
       setNotice(t.passkeyAdded);
       await passkeyQuery.refetch();
-    }).finally(() => {
-      setBusyAction(null);
-    });
+    } else {
+      setError(addResult.message);
+    }
+    setBusyAction(null);
   };
 
   const handleRename = async (passkeyIdentifier: string, nextDisplayName: string) => {
@@ -108,8 +200,7 @@ export function PasskeyManagementPanel({
     }
 
     setBusyAction(`rename:${passkeyIdentifier}`);
-    setError(null);
-    setNotice(null);
+    clearMessages();
     const result = await api.update(passkeyIdentifier, { displayName: nextName });
 
     if (result.ok) {
@@ -127,8 +218,13 @@ export function PasskeyManagementPanel({
     }
 
     setBusyAction(`delete:${passkey.passkeyIdentifier}`);
-    setError(null);
-    setNotice(null);
+    clearMessages();
+
+    if (!(await requireAdditionalVerification())) {
+      setBusyAction(null);
+      return;
+    }
+
     const result = await api.delete(passkey.passkeyIdentifier);
 
     if (result.ok) {
@@ -146,19 +242,22 @@ export function PasskeyManagementPanel({
   return (
     <UserSettingsPanel title={t.passkeySettingsTitle} description={t.passkeySettingsDescription}>
       <div className="mt-5 space-y-5">
-        <form className="grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={handleAdd}>
-          <label className="grid gap-2 text-sm font-semibold">
-            {t.passkeyDisplayNameLabel}
-            <input className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2" required maxLength={64} value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} />
-          </label>
-          <button className="self-end rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="submit" disabled={busyAction !== null || !displayName.trim()}>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
+          <div>
+            <p className="font-semibold">{t.passkeyAdd}</p>
+            <p className="mt-1 text-sm leading-6 text-text-muted">{t.passkeyAddGuidance}</p>
+          </div>
+          <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="button" disabled={busyAction !== null || passkeyQuery.isLoading} onClick={() => void handleAdd()}>
             {busyAction === "add" ? t.passkeyAdding : t.passkeyAdd}
           </button>
-        </form>
-        <p className="text-sm leading-6 text-text-muted">{t.passkeyAddGuidance}</p>
+        </div>
+        <p className="text-sm leading-6 text-text-muted">{t.passkeyAdditionalVerification}</p>
+        <p className="text-sm leading-6 text-text-muted">
+          {t.passkeyRecoveryGuidance} <Link className="font-semibold text-brand-primary underline" href="/login">{t.passkeyRecoveryLink}</Link>
+        </p>
 
         {passkeyQuery.isLoading ? <p className="text-sm text-text-muted">{t.passkeyLoading}</p> : null}
-        {!passkeyQuery.isLoading && passkeys.length === 0 ? <p className="text-sm text-text-muted">{t.passkeyEmpty}</p> : null}
+        {!passkeyQuery.isLoading && !passkeyQuery.error && passkeys.length === 0 ? <p className="text-sm text-text-muted">{t.passkeyEmpty}</p> : null}
         <ul className="space-y-3" aria-label={t.passkeyListLabel}>
           {passkeys.map((passkey) => (
             <li key={passkey.passkeyIdentifier} className="space-y-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
@@ -180,9 +279,7 @@ export function PasskeyManagementPanel({
                 <div><dt className="font-semibold">{t.passkeyCreatedAt}</dt><dd>{formatDate(passkey.createdAt)}</dd></div>
                 <div><dt className="font-semibold">{t.passkeyLastUsedAt}</dt><dd>{formatDate(passkey.lastUsedAt)}</dd></div>
               </dl>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
-              </div>
+              <button type="button" className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
             </li>
           ))}
         </ul>

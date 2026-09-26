@@ -18,6 +18,7 @@ import type { AdminRouteContext } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
 import { UserPageClient } from "../user/UserPageClient";
 import { UserProfileClient } from "../user/profile/UserProfileClient";
+import { UserSecurityClient } from "../user/security/UserSecurityClient";
 import { ApprovedWikisClient } from "../wiki/approved/ApprovedWikisClient";
 import { DraftImagesClient } from "../wiki/draft-images/DraftImagesClient";
 import { EditingWikisClient } from "../wiki/editing/EditingWikisClient";
@@ -62,6 +63,7 @@ type AdminClientPage = "accountAffiliations"
   | "accountProfile"
   | "userLanguage"
   | "userProfile"
+  | "userSecurity"
   | "wikiApproved"
   | "wikiDraftImages"
   | "wikiEditing"
@@ -111,7 +113,11 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   }
 
   if (pathname?.startsWith("/admin/user")) {
-    return pathname.endsWith("/language") ? "userLanguage" : "userProfile";
+    if (pathname.endsWith("/language")) {
+      return "userLanguage";
+    }
+
+    return pathname.endsWith("/security") ? "userSecurity" : "userProfile";
   }
 
   if (pathname?.endsWith("/submitted")) {
@@ -244,6 +250,14 @@ function AdminResolvedPage({
     return (
       <UserPageClient activeSettingsTab="profileSettings">
         <UserProfileClient />
+      </UserPageClient>
+    );
+  }
+
+  if (page === "userSecurity") {
+    return (
+      <UserPageClient activeSettingsTab="securitySettings">
+        <UserSecurityClient />
       </UserPageClient>
     );
   }
