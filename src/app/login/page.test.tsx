@@ -71,4 +71,13 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeEnabled();
     expect(screen.queryByText(/この端末、セキュリティキー/)).not.toBeInTheDocument();
   });
+
+  it("links to the unauthenticated lost-passkey recovery flow", () => {
+    render(<LoginPage webAuthnSupported />);
+
+    expect(screen.getByRole("link", { name: "パスキーを復旧" })).toHaveAttribute(
+      "href",
+      "/settings/passkeys/recovery",
+    );
+  });
 });

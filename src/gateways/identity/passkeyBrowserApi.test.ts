@@ -44,4 +44,36 @@ describe("passkeyBrowserApi step-up", () => {
       status: 0,
     });
   });
+
+  it("calls every passkey recovery endpoint with credentials and typed payloads", async () => {
+    const recoveryKey = "11111111-1111-4111-8111-111111111111";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ recoveryKey })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ redirectUrl: "https://accounts.example.test/reauth" })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        challengeKey,
+        options: {
+          rp: { name: "k-pool", id: "example.test" },
+          user: { name: "member@example.com", id: "AQID", displayName: "Member" },
+          challenge: "AQID", pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 60000,
+          excludeCredentials: [], authenticatorSelection: { residentKey: "required", userVerification: "preferred" }, attestation: "none",
+        },
+      })))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await passkeyBrowserApi.sendRecoveryEmail({ email: "member@example.com" }, "ja")).toEqual({ ok: true, data: {} });
+    expect(await passkeyBrowserApi.verifyRecoveryEmail({ email: "member@example.com", authCode: "123456" }, "ja")).toEqual({ ok: true, data: { recoveryKey } });
+    expect(await passkeyBrowserApi.createRecoverySocialRedirect("google", recoveryKey, "ja")).toEqual({ ok: true, data: { redirectUrl: "https://accounts.example.test/reauth" } });
+    expect((await passkeyBrowserApi.createRecoveryOptions({ recoveryKey }, "ja")).ok).toBe(true);
+    expect(await passkeyBrowserApi.recover({ recoveryKey, challengeKey, displayName: "Replacement", credential: {
+      id: "credential-id", rawId: "AQID", type: "public-key",
+      response: { clientDataJSON: "AQID", attestationObject: "AQID", transports: ["internal"] },
+      authenticatorAttachment: null, clientExtensionResults: {},
+    } }, "ja")).toEqual({ ok: true, data: {} });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `/api/identity/auth/passkeys/recovery/social/google/redirect?identityIdentifier=${recoveryKey}`, expect.objectContaining({ method: "GET", credentials: "include", cache: "no-store" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(5, "/api/identity/auth/passkeys/recovery", expect.objectContaining({ method: "POST", credentials: "include", cache: "no-store" }));
+  });
 });

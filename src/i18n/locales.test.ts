@@ -81,6 +81,20 @@ describe("resolveWikiListLocale", () => {
 });
 
 
+describe("passkey recovery translations", () => {
+  it("provides the recovery flow and destructive warnings in every locale", () => {
+    Object.values(dictionaries).forEach((dictionary) => {
+      expect(dictionary.login.recoveryLink).toBeTruthy();
+      expect(dictionary.passkeyRecovery.title).toBeTruthy();
+      expect(dictionary.passkeyRecovery.emailSentGeneric).toBeTruthy();
+      expect(dictionary.passkeyRecovery.deleteAllPasskeysWarning).toBeTruthy();
+      expect(dictionary.passkeyRecovery.logoutAllSessionsWarning).toBeTruthy();
+      expect(dictionary.passkeyRecovery.keepSsoWarning).toBeTruthy();
+      expect(dictionary.passkeyRecovery.loginAgainWarning).toBeTruthy();
+    });
+  });
+});
+
 describe("wiki enum labels", () => {
   it("has localized labels for every Wiki Basic enum raw value", () => {
     const requiredEntries = {
