@@ -707,7 +707,7 @@ const endpoints = makeApi([
         schema: z.object({ email: z.string() }).passthrough(),
       },
     ],
-    response: z.object({}).partial().passthrough(),
+    response: z.void(),
     errors: [
       {
         status: 422,
