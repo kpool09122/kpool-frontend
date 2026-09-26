@@ -56,6 +56,7 @@ export function UserLayoutClient({
   const tabs = [
     createSettingsTab("profileSettings", t.profileSettingsTab),
     createSettingsTab("languageSettings", t.languageSettingsTab),
+    createSettingsTab("securitySettings", t.securitySettingsTab),
   ];
 
   return (
@@ -89,6 +90,7 @@ export function UserLayoutClient({
           onProfileImageCropConfirm: confirmProfileImageCrop,
           onProfileImageCropError: reportProfileImageCropError,
           onProfileImageDelete: deleteProfileImage,
+          onRefreshIdentity,
           onSave: saveIdentitySettings,
           onUpdateField: updateSettingsField,
         }}

@@ -5,7 +5,7 @@ import { forwardIdentityRoute } from "../../routeSupport";
 
 export const POST = (request: NextRequest) => forwardIdentityRoute(request, {
   method: "POST",
-  path: "/auth/passkeys/addition",
-  requestSchema: identityApiTypes.schemas.AddPasskeyRequestBody,
+  path: "/auth/step-up/passkey",
+  requestSchema: identityApiTypes.schemas.CompleteStepUpWithPasskeyRequestBody,
   responseSchema: identityApiTypes.schemas.EmptyJsonArray,
 });

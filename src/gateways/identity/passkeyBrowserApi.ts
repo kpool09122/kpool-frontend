@@ -3,13 +3,16 @@ import {
   parsePasskeyAuthenticationOptionsResult,
   parsePasskeyListResult,
   parsePasskeyRegistrationOptionsResult,
+  parseRedirectUrlResult,
   type AddPasskeyRequest,
   type AuthenticateWithPasskeyRequest,
+  type CompleteStepUpWithPasskeyRequest,
   type CreatePasskeyRegistrationOptionsRequest,
   type IdentitySummary,
   type PasskeyAuthenticationOptionsResult,
   type PasskeyListResult,
   type PasskeyRegistrationOptionsResult,
+  type RedirectUrlResult,
   type RegisterWithPasskeyRequest,
   type UpdatePasskeyRequest,
 } from "@/gateways/identity/identityApi";
@@ -125,6 +128,20 @@ export const passkeyBrowserApi = {
     "/api/identity/auth/passkeys/addition/options",
     parsePasskeyRegistrationOptionsResult,
   ),
+  createStepUpPasskeyOptions: () => request(
+    "/api/identity/auth/step-up/passkey/options",
+    parsePasskeyAuthenticationOptionsResult,
+  ),
+  completeStepUpWithPasskey: (body: CompleteStepUpWithPasskeyRequest) => request(
+    "/api/identity/auth/step-up/passkey",
+    parseEmpty,
+    { body },
+  ),
+  createStepUpSocialRedirect: (provider: "google" | "line" | "kakao") => request(
+    `/api/identity/auth/step-up/social/${encodeURIComponent(provider)}/redirect`,
+    parseRedirectUrlResult,
+    { method: "GET" },
+  ),
   add: (body: AddPasskeyRequest) => request(
     "/api/identity/auth/passkeys/addition",
     parseEmpty,
@@ -149,6 +166,9 @@ export type PasskeyBrowserApi = {
   register: (body: RegisterWithPasskeyRequest, language?: string) => Promise<IdentityBrowserApiResult<IdentitySummary>>;
   list: () => Promise<IdentityBrowserApiResult<PasskeyListResult>>;
   createAdditionOptions: () => Promise<IdentityBrowserApiResult<PasskeyRegistrationOptionsResult>>;
+  createStepUpPasskeyOptions: () => Promise<IdentityBrowserApiResult<PasskeyAuthenticationOptionsResult>>;
+  completeStepUpWithPasskey: (body: CompleteStepUpWithPasskeyRequest) => Promise<IdentityBrowserApiResult<Record<string, never>>>;
+  createStepUpSocialRedirect: (provider: "google" | "line" | "kakao") => Promise<IdentityBrowserApiResult<RedirectUrlResult>>;
   add: (body: AddPasskeyRequest) => Promise<IdentityBrowserApiResult<Record<string, never>>>;
   update: (passkeyIdentifier: string, body: UpdatePasskeyRequest) => Promise<IdentityBrowserApiResult<Record<string, never>>>;
   delete: (passkeyIdentifier: string) => Promise<IdentityBrowserApiResult<Record<string, never>>>;
