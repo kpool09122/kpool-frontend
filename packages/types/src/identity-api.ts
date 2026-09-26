@@ -173,6 +173,12 @@ const UpdatePasskeyRequestBody = z
   .passthrough();
 const SendAuthCodeRequestBody = z.object({ email: z.string() }).passthrough();
 const RedirectUrlResult = z.object({ redirectUrl: z.string() }).passthrough();
+const CompleteStepUpWithPasskeyRequestBody = z
+  .object({
+    challengeKey: KPool_Common_Uuid.uuid(),
+    credential: PasskeyAuthenticationCredential,
+  })
+  .passthrough();
 const VerifyEmailRequestBody = z
   .object({ email: z.string(), authCode: z.string() })
   .passthrough();
@@ -240,6 +246,12 @@ const AuthenticatedAccountSummary = z
     address: AuthenticatedAccountAddressSummary.nullish(),
   })
   .passthrough();
+const AuthenticationMethodsSummary = z
+  .object({
+    passkeyCount: z.number().int(),
+    linkedSocialProviders: z.array(z.string()),
+  })
+  .passthrough();
 const SwitchableAccountSummary = z
   .object({
     delegationIdentifier: KPool_Common_Uuid,
@@ -280,6 +292,7 @@ export const schemas = {
   UpdatePasskeyRequestBody,
   SendAuthCodeRequestBody,
   RedirectUrlResult,
+  CompleteStepUpWithPasskeyRequestBody,
   VerifyEmailRequestBody,
   VerifyEmailResult,
   UpdateIdentityRequestBody,
@@ -290,6 +303,7 @@ export const schemas = {
   AuthenticatedAccountAddressSummary,
   AuthenticatedAccountReferenceSummary,
   AuthenticatedAccountSummary,
+  AuthenticationMethodsSummary,
   SwitchableAccountSummary,
 };
 
@@ -380,7 +394,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/passkeys",
     alias: "IdentityAuthOperations_listPasskeys",
-    description: `List passkeys registered by the current authenticated identity.`,
+    description: `List passkeys registered by the current authenticated identity after recent passkey management authentication.`,
     requestFormat: "json",
     response: PasskeyListResult,
     errors: [
@@ -400,7 +414,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/auth/passkeys/:passkeyIdentifier",
     alias: "IdentityAuthOperations_updatePasskey",
-    description: `Update a passkey belonging to the authenticated identity.`,
+    description: `Update a passkey belonging to the authenticated identity after recent passkey management authentication.`,
     requestFormat: "json",
     parameters: [
       {
@@ -774,6 +788,95 @@ const endpoints = makeApi([
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
     errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/step-up/passkey",
+    alias: "IdentityAuthOperations_completeStepUpWithPasskey",
+    description: `Verify an existing passkey and grant reusable passkey management authorization to the current login session for up to ten minutes.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CompleteStepUpWithPasskeyRequestBody,
+      },
+    ],
+    response: z.object({}).partial().passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/step-up/passkey/options",
+    alias: "IdentityAuthOperations_createStepUpPasskeyOptions",
+    description: `Create identity-bound WebAuthn options for passkey management step-up authentication.`,
+    requestFormat: "json",
+    response: PasskeyAuthenticationOptionsResult,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/auth/step-up/social/:provider/redirect",
+    alias: "IdentityAuthOperations_startStepUpWithSocial",
+    description: `Create a linked-SSO reauthentication URL for initial passkey registration.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "provider",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.object({ redirectUrl: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
