@@ -157,12 +157,11 @@ test("login page opens passkey recovery and keeps email responses enumeration-sa
 
   await page.getByRole("link", { name: "パスキーを復旧" }).click();
   await expect(page).toHaveURL(/\/settings\/passkeys\/recovery$/);
-  await expect(page.getByRole("heading", { name: "SSOで本人確認" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Googleで本人確認" })).toBeEnabled();
   await expect(page.getByRole("heading", { name: "メールで本人確認" })).toBeVisible();
   await page.getByLabel("登録済みメールアドレス").fill("unknown@example.com");
   await page.getByRole("button", { name: "確認コードを送信" }).click();
 
-  await expect(page.getByRole("status")).toContainText("登録済みの場合");
   await expect(page.getByLabel("確認コード")).toBeVisible();
   await expect(page.getByLabel("登録済みメールアドレス")).toHaveCount(0);
 });

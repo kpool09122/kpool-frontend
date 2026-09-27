@@ -14,28 +14,24 @@ describe("PasskeyRecoveryPage", () => {
     vi.restoreAllMocks();
   });
 
-  it("is reachable from the login flow and prioritizes SSO before email", () => {
+  it("offers social verification buttons and email verification", () => {
     render(<PasskeyRecoveryPage />);
 
-    const headings = screen.getAllByRole("heading");
-    expect(headings[1]).toHaveTextContent("SSOで本人確認");
-    expect(headings[2]).toHaveTextContent("メールで本人確認");
-    expect(screen.getByLabelText("Identity ID")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Googleで本人確認" })).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "メールで本人確認" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Identity ID")).not.toBeInTheDocument();
     expect(screen.getByLabelText("登録済みメールアドレス")).toBeInTheDocument();
   });
 
-  it("starts linked SSO recovery with a validated identity identifier", async () => {
+  it("starts SSO recovery without entering an identity identifier", async () => {
     const createRecoverySocialRedirect = vi.fn().mockResolvedValue({ ok: true, data: { redirectUrl: "https://accounts.example.test/reauth" } });
     const navigate = vi.fn();
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, createRecoverySocialRedirect }} navigate={navigate} />);
 
-    const identityInput = screen.getByLabelText("Identity ID");
-    fireEvent.change(identityInput, { target: { value: "invalid" } });
-    expect(screen.getByRole("button", { name: "Googleで本人確認" })).toBeDisabled();
-    fireEvent.change(identityInput, { target: { value: recoveryKey } });
+    expect(screen.getByRole("button", { name: "Googleで本人確認" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "Googleで本人確認" }));
 
-    await waitFor(() => expect(createRecoverySocialRedirect).toHaveBeenCalledWith("google", recoveryKey, "ja"));
+    await waitFor(() => expect(createRecoverySocialRedirect).toHaveBeenCalledWith("google", "ja"));
     expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth");
   });
 
@@ -43,7 +39,6 @@ describe("PasskeyRecoveryPage", () => {
     const createRecoverySocialRedirect = vi.fn().mockResolvedValue({ ok: false, status: 422, message: "Provider is not linked" });
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, createRecoverySocialRedirect }} />);
 
-    fireEvent.change(screen.getByLabelText("Identity ID"), { target: { value: recoveryKey } });
     fireEvent.click(screen.getByRole("button", { name: "LINEで本人確認" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("SSOによる本人確認を開始できませんでした");
@@ -51,7 +46,7 @@ describe("PasskeyRecoveryPage", () => {
   });
 
   it.each(["registered@example.com", "missing@example.com"])(
-    "shows the same email-sent message for %s",
+    "opens code verification for %s",
     async (email) => {
       const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: {} });
       render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
@@ -59,7 +54,8 @@ describe("PasskeyRecoveryPage", () => {
       fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: email } });
       fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
 
-      expect(await screen.findByRole("status")).toHaveTextContent("入力されたメールアドレスが登録済みの場合");
+      expect(await screen.findByLabelText("確認コード")).toBeInTheDocument();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
       expect(screen.queryByLabelText("登録済みメールアドレス")).not.toBeInTheDocument();
       expect(screen.getByText(email, { exact: false })).toBeInTheDocument();
     },
@@ -95,11 +91,11 @@ describe("PasskeyRecoveryPage", () => {
     fireEvent.change(screen.getByLabelText("確認コード"), { target: { value: "123456" } });
     fireEvent.click(screen.getByRole("button", { name: "確認する" }));
 
-    expect(await screen.findByText("古いパスキーはすべて削除されます。")).toBeInTheDocument();
-    expect(screen.getByText("連携済みSSOは維持されます。")).toBeInTheDocument();
-    const recoverButton = screen.getByRole("button", { name: "新しいパスキーを登録して全置換" });
+    expect(await screen.findByText("これまでのパスキーはすべて使えなくなります。")).toBeInTheDocument();
+    expect(screen.getByText("Googleなどの連携済みサービスは、引き続き利用できます。")).toBeInTheDocument();
+    const recoverButton = screen.getByRole("button", { name: "新しいパスキーを作成" });
     expect(recoverButton).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox", { name: /全置換と全セッション失効/ }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /これまでのパスキーが使えなくなり、すべての端末からログアウト/ }));
     fireEvent.click(recoverButton);
 
     await waitFor(() => expect(recoveryAdapter).toHaveBeenCalledWith(expect.objectContaining({ recoveryKey, language: "ja" })));
@@ -115,9 +111,9 @@ describe("PasskeyRecoveryPage", () => {
     render(<PasskeyRecoveryPage initialRecoveryKey={recoveryKey} recoveryAdapter={recoveryAdapter} />);
 
     await waitFor(() => expect(window.location.search).toBe(""));
-    fireEvent.click(screen.getByRole("checkbox", { name: /全置換と全セッション失効/ }));
-    fireEvent.click(screen.getByRole("button", { name: "新しいパスキーを登録して全置換" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /これまでのパスキーが使えなくなり、すべての端末からログアウト/ }));
+    fireEvent.click(screen.getByRole("button", { name: "新しいパスキーを作成" }));
     expect(await screen.findByRole("status")).toHaveTextContent("安全に再試行");
-    expect(screen.getByRole("button", { name: "新しいパスキーを登録して全置換" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "新しいパスキーを作成" })).toBeEnabled();
   });
 });

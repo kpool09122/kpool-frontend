@@ -9,7 +9,6 @@ import { GET as createSocialRedirect } from "./social/[provider]/redirect/route"
 
 const recoveryKey = "11111111-1111-4111-8111-111111111111";
 const challengeKey = "22222222-2222-4222-8222-222222222222";
-const identityIdentifier = "33333333-3333-4333-8333-333333333333";
 const credential = {
   id: "credential-id", rawId: "AQID", type: "public-key",
   response: { clientDataJSON: "AQID", attestationObject: "AQID", transports: ["internal"] },
@@ -52,23 +51,23 @@ describe("passkey recovery BFF routes", () => {
     expect(await verifyResponse.json()).toEqual({ recoveryKey });
   });
 
-  it("forwards only validated provider and identity identifier without exposing arbitrary query data", async () => {
+  it("starts recovery without an identity identifier and ignores query data", async () => {
     const fetchMock = vi.fn().mockResolvedValue(json({ redirectUrl: "https://accounts.example.test/reauth" }));
     vi.stubGlobal("fetch", fetchMock);
     const response = await createSocialRedirect(
-      request(`/api/identity/auth/passkeys/recovery/social/google/redirect?identityIdentifier=${identityIdentifier}&ignored=secret`, "GET"),
+      request(`/api/identity/auth/passkeys/recovery/social/google/redirect?ignored=secret`, "GET"),
       { params: Promise.resolve({ provider: "google" }) },
     );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://identity.example.test/api/identity/auth/passkeys/recovery/social/google/redirect?identityIdentifier=${identityIdentifier}`,
+      `https://identity.example.test/api/identity/auth/passkeys/recovery/social/google/redirect`,
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(await response.json()).toEqual({ redirectUrl: "https://accounts.example.test/reauth" });
 
     fetchMock.mockClear();
     const invalid = await createSocialRedirect(
-      request("/api/identity/auth/passkeys/recovery/social/evil/redirect?identityIdentifier=invalid", "GET"),
+      request("/api/identity/auth/passkeys/recovery/social/evil/redirect", "GET"),
       { params: Promise.resolve({ provider: "evil" }) },
     );
     expect(invalid.status).toBe(502);

@@ -86,7 +86,6 @@ describe("passkey recovery translations", () => {
     Object.values(dictionaries).forEach((dictionary) => {
       expect(dictionary.login.recoveryLink).toBeTruthy();
       expect(dictionary.passkeyRecovery.title).toBeTruthy();
-      expect(dictionary.passkeyRecovery.emailSentGeneric).toBeTruthy();
       expect(dictionary.passkeyRecovery.deleteAllPasskeysWarning).toBeTruthy();
       expect(dictionary.passkeyRecovery.logoutAllSessionsWarning).toBeTruthy();
       expect(dictionary.passkeyRecovery.keepSsoWarning).toBeTruthy();

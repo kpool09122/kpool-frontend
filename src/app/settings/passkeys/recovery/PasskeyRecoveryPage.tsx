@@ -21,9 +21,6 @@ type PasskeyRecoveryPageProps = {
   recoveryAdapter?: PasskeyRecoveryAdapter;
 };
 
-const identityIdentifierPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
-const identityIdentifierRegex = new RegExp(`^${identityIdentifierPattern}$`);
-
 export function PasskeyRecoveryPage({
   api = passkeyBrowserApi,
   initialRecoveryKey = null,
@@ -33,7 +30,6 @@ export function PasskeyRecoveryPage({
   const { locale, dictionary } = useI18n();
   const t = dictionary.passkeyRecovery;
   const [phase, setPhase] = useState<RecoveryPhase>(initialRecoveryKey ? "confirm" : "method");
-  const [identityIdentifier, setIdentityIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [authCode, setAuthCode] = useState("");
   const [recoveryKey, setRecoveryKey] = useState(initialRecoveryKey ?? "");
@@ -42,7 +38,6 @@ export function PasskeyRecoveryPage({
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
-  const identityIdentifierIsValid = identityIdentifierRegex.test(identityIdentifier);
 
   useEffect(() => {
     if (initialRecoveryKey && window.location.search) {
@@ -56,7 +51,7 @@ export function PasskeyRecoveryPage({
     setErrorMessage(null);
     setNoticeMessage(null);
 
-    const result = await api.createRecoverySocialRedirect(provider, identityIdentifier, locale);
+    const result = await api.createRecoverySocialRedirect(provider, locale);
 
     if (result.ok) {
       navigate(result.data.redirectUrl);
@@ -78,7 +73,6 @@ export function PasskeyRecoveryPage({
 
     if (result.ok) {
       setPhase("verification");
-      setNoticeMessage(t.emailSentGeneric);
     } else {
       setErrorMessage(t.emailSendFailed);
     }
@@ -145,33 +139,12 @@ export function PasskeyRecoveryPage({
         {phase === "method" ? (
           <div className="space-y-6">
             <section className="space-y-4 rounded-lg border border-stroke-subtle bg-surface-raised p-6">
-              <div>
-                <h2 className="text-xl font-bold">{t.ssoTitle}</h2>
-                <p className="mt-2 text-sm leading-6 text-text-muted">{t.ssoDescription}</p>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="recovery-identity-id" className="block text-sm font-semibold">
-                  {t.identityIdentifier}
-                </label>
-                <input
-                  id="recovery-identity-id"
-                  type="text"
-                  value={identityIdentifier}
-                  required
-                  pattern={identityIdentifierPattern}
-                  autoComplete="off"
-                  aria-describedby="recovery-identity-id-help"
-                  className="min-h-12 w-full rounded-lg border border-stroke-subtle bg-surface-base px-4"
-                  onChange={(event) => setIdentityIdentifier(event.target.value)}
-                />
-                <p id="recovery-identity-id-help" className="text-xs text-text-muted">{t.identityIdentifierHelp}</p>
-              </div>
-              <div className="grid gap-3" aria-label={t.ssoTitle}>
+              <div className="grid gap-3">
                 {identityProviders.map((provider) => (
                   <button
                     key={provider.id}
                     type="button"
-                    disabled={pending || !identityIdentifierIsValid}
+                    disabled={pending}
                     className="flex min-h-12 items-center justify-center gap-3 rounded-lg border border-stroke-subtle bg-surface-base px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={() => void startSocialRecovery(provider.id)}
                   >
@@ -185,7 +158,6 @@ export function PasskeyRecoveryPage({
             <section className="space-y-4 rounded-lg border border-stroke-subtle bg-surface-raised p-6">
               <div>
                 <h2 className="text-xl font-bold">{t.emailTitle}</h2>
-                <p className="mt-2 text-sm leading-6 text-text-muted">{t.emailDescription}</p>
               </div>
               <form className="space-y-4" onSubmit={sendEmail}>
                 <label className="block space-y-2 text-sm font-semibold">
@@ -241,7 +213,6 @@ export function PasskeyRecoveryPage({
           <section className="space-y-5 rounded-lg border border-red-300 bg-surface-raised p-6">
             <div>
               <h2 className="text-xl font-bold">{t.confirmTitle}</h2>
-              <p className="mt-2 text-sm leading-6 text-text-muted">{t.confirmDescription}</p>
             </div>
             <ul className="list-disc space-y-2 pl-5 text-sm font-semibold text-red-700">
               <li>{t.deleteAllPasskeysWarning}</li>

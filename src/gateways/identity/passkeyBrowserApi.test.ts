@@ -65,7 +65,7 @@ describe("passkeyBrowserApi step-up", () => {
 
     expect(await passkeyBrowserApi.sendRecoveryEmail({ email: "member@example.com" }, "ja")).toEqual({ ok: true, data: {} });
     expect(await passkeyBrowserApi.verifyRecoveryEmail({ email: "member@example.com", authCode: "123456" }, "ja")).toEqual({ ok: true, data: { recoveryKey } });
-    expect(await passkeyBrowserApi.createRecoverySocialRedirect("google", recoveryKey, "ja")).toEqual({ ok: true, data: { redirectUrl: "https://accounts.example.test/reauth" } });
+    expect(await passkeyBrowserApi.createRecoverySocialRedirect("google", "ja")).toEqual({ ok: true, data: { redirectUrl: "https://accounts.example.test/reauth" } });
     expect((await passkeyBrowserApi.createRecoveryOptions({ recoveryKey }, "ja")).ok).toBe(true);
     expect(await passkeyBrowserApi.recover({ recoveryKey, challengeKey, displayName: "Replacement", credential: {
       id: "credential-id", rawId: "AQID", type: "public-key",
@@ -73,7 +73,7 @@ describe("passkeyBrowserApi step-up", () => {
       authenticatorAttachment: null, clientExtensionResults: {},
     } }, "ja")).toEqual({ ok: true, data: {} });
 
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `/api/identity/auth/passkeys/recovery/social/google/redirect?identityIdentifier=${recoveryKey}`, expect.objectContaining({ method: "GET", credentials: "include", cache: "no-store" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `/api/identity/auth/passkeys/recovery/social/google/redirect`, expect.objectContaining({ method: "GET", credentials: "include", cache: "no-store" }));
     expect(fetchMock).toHaveBeenNthCalledWith(5, "/api/identity/auth/passkeys/recovery", expect.objectContaining({ method: "POST", credentials: "include", cache: "no-store" }));
   });
 });
