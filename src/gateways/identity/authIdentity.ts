@@ -1,8 +1,7 @@
 import {
   getIdentityApiBaseUrl,
   parseAuthenticatedIdentitySummary,
-  parseIdentitySummary,
-  type IdentitySummary,
+  type AuthenticatedIdentitySummary,
 } from "./identityApi";
 
 type FetchAuthenticatedIdentityOptions = {
@@ -18,10 +17,11 @@ const isMockIdentityEnabled = (): boolean =>
 const hasCookieValue = (cookieHeader: string, name: string, value: string): boolean =>
   cookieHeader.split(";").some((cookie) => cookie.trim() === `${name}=${value}`);
 
-const createMockAuthenticatedIdentity = (cookieHeader: string): IdentitySummary => {
+const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIdentitySummary => {
   const hasAccountUpdatePolicy = hasCookieValue(cookieHeader, mockAccountPolicyCookieName, "update");
+  const accountType = hasAccountUpdatePolicy ? "corporation" : "individual";
 
-  return parseIdentitySummary({
+  return parseAuthenticatedIdentitySummary({
     identityIdentifier: "11111111-1111-1111-1111-111111111111",
     identityName: "member",
     email: "member@example.com",
@@ -29,8 +29,8 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): IdentitySummary 
     profileImage: null,
     accountIdentifier: "22222222-2222-2222-2222-222222222222",
     accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
-    accountType: hasAccountUpdatePolicy ? "corporation" : "individual",
-    accountEffectivePolicies: hasAccountUpdatePolicy
+    accountType,
+    accountPolicies: hasAccountUpdatePolicy
       ? [
           {
             policyIdentifier: "99999999-9999-9999-9999-999999999999",
@@ -46,13 +46,27 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): IdentitySummary 
           },
         ]
       : [],
+    account: {
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: accountType,
+      name: "Member Account",
+      status: "active",
+      accountCategory: "general",
+      phone: null,
+      address: null,
+    },
+    originalAccount: null,
+    delegationIdentifier: null,
+    switchableAccounts: [],
+    authenticationMethods: { passkeyCount: 1, linkedSocialProviders: [] },
   });
 };
 
 export const fetchAuthenticatedIdentity = async ({
   cookieHeader,
   fetchAdapter = fetch,
-}: FetchAuthenticatedIdentityOptions = {}): Promise<IdentitySummary | null> => {
+}: FetchAuthenticatedIdentityOptions = {}): Promise<AuthenticatedIdentitySummary | null> => {
   const baseUrl = getIdentityApiBaseUrl();
 
   if (!cookieHeader) {

@@ -10,7 +10,6 @@ import {
 const values: SignupAccountFormValues = {
   email: "member@example.com",
   accountName: "Member Account",
-  accountType: "individual",
   language: "ja",
   passkeyDisplayName: "MacBook",
   base64EncodedImage: "",
@@ -29,7 +28,6 @@ describe("signup flow helpers", () => {
   it("builds registration options without password data", () => {
     expect(buildRegistrationOptionsRequest(values)).toEqual({
       email: "member@example.com",
-      accountType: "individual",
       oneTimeToken: null,
       return_to: "/admin",
     });
@@ -45,10 +43,9 @@ describe("signup flow helpers", () => {
     });
   });
 
-  it("passes invitation tokens and omits account type", () => {
+  it("passes invitation tokens without a pre-authentication account type", () => {
     expect(buildRegistrationOptionsRequest(values, "invite-token")).toEqual({
       email: "member@example.com",
-      accountType: null,
       oneTimeToken: "invite-token",
       return_to: "/admin",
     });

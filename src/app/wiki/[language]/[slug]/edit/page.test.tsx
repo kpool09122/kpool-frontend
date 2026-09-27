@@ -124,6 +124,19 @@ describe("Wiki edit route", () => {
     );
   });
 
+  it("redirects pending accounts to setup before loading Wiki data", async () => {
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "identity-1",
+      account: { status: "pending" },
+    });
+
+    await expect(Page(routeProps())).rejects.toThrow(
+      "redirect:/admin?authReturnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
+    );
+    expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadDraftWikiState).not.toHaveBeenCalled();
+  });
+
   it("redirects edits to admin with the edit return path when the principal is missing", async () => {
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
 

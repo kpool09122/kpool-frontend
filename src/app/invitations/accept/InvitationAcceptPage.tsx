@@ -101,7 +101,6 @@ export function InvitationAcceptPage({
 
     void signupAdapter.createRegistrationOptions({
       email: normalizedEmail,
-      accountType: null,
       oneTimeToken: normalizedToken,
       return_to: "/admin",
     }, { language: locale }).then(async (options) => {

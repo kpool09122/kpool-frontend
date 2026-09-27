@@ -45,6 +45,43 @@ describe("LoginPage", () => {
     expect(navigate).toHaveBeenCalledWith("/wiki/ja/example");
   });
 
+  it("routes a pending passkey account through admin setup and preserves returnTo", async () => {
+    const loginAdapter = vi.fn().mockResolvedValue({
+      ok: true,
+      identity: { identityIdentifier: "id" },
+      returnTo: "/wiki/ja/example",
+    });
+    const refreshIdentity = vi.fn().mockResolvedValue({
+      account: { status: "pending" },
+    });
+    useAuthStore.setState({ refreshIdentity });
+    const navigate = vi.fn();
+
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} returnTo="/wiki/ja/example" webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith(
+      "/admin?authReturnTo=%2Fwiki%2Fja%2Fexample",
+    ));
+  });
+
+  it("does not enter the service when identity refresh fails", async () => {
+    const loginAdapter = vi.fn().mockResolvedValue({
+      ok: true,
+      identity: { identityIdentifier: "id" },
+      returnTo: "/wiki/ja/example",
+    });
+    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue(null) });
+    const navigate = vi.fn();
+
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeEnabled();
+  });
+
   it("returns to a retryable state after cancellation", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({ ok: false, reason: "cancelled" });
     render(<LoginPage loginAdapter={loginAdapter} webAuthnSupported />);

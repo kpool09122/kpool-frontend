@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { getAuthenticatedAccountStatus } from "@/gateways/identity/identityApi";
+
 import { AdminAppClient } from "./AdminAppClient";
 import { loadAdminRouteContext } from "../adminRouteContext";
 
@@ -10,6 +12,7 @@ type AdminProps = {
     slug?: string[];
   }>;
   searchParams?: Promise<{
+    authReturnTo?: string | string[];
     returnTo?: string | string[];
   }>;
 };
@@ -29,8 +32,11 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
   const returnTo = normalizeOptionalReturnTo(
     getSingleSearchParam(resolvedSearchParams.returnTo),
   );
+  const authReturnTo = normalizeOptionalReturnTo(
+    getSingleSearchParam(resolvedSearchParams.authReturnTo),
+  );
 
-  if (!returnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
+  if (!returnTo && !authReturnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
     redirect("/admin/wiki/editing");
   }
 
@@ -39,5 +45,9 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
     resolvedParams.slug,
   );
 
-  return <AdminAppClient context={context} returnTo={returnTo} />;
+  if (authReturnTo && getAuthenticatedAccountStatus(context.initialIdentity) === "active") {
+    redirect(authReturnTo);
+  }
+
+  return <AdminAppClient context={context} returnTo={authReturnTo ?? returnTo} />;
 }

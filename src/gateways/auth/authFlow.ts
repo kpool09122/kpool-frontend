@@ -77,11 +77,27 @@ export const identityProviders: IdentityProvider[] = [
 ];
 
 export const normalizeReturnTo = (value: string | null | undefined): string => {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+  if (
+    !value ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\") ||
+    /[\u0000-\u001f\u007f]/.test(value) ||
+    value.startsWith("/login") ||
+    value.startsWith("/signup")
+  ) {
     return "/admin";
   }
 
   return value;
+};
+
+export const buildPostSocialAuthReturnTo = (returnTo: string | null | undefined): string => {
+  const destination = normalizeReturnTo(returnTo);
+
+  return destination === "/admin"
+    ? "/admin"
+    : `/admin?authReturnTo=${encodeURIComponent(destination)}`;
 };
 
 export const getAuthErrorMessage = async (response: Response): Promise<string> => {
@@ -148,7 +164,7 @@ export const requestSocialRedirect: SocialRedirectAdapter = async (
   accountType,
 ) => {
   const params = new URLSearchParams();
-  const normalizedReturnTo = normalizeReturnTo(returnTo);
+  const normalizedReturnTo = buildPostSocialAuthReturnTo(returnTo);
 
   params.set("return_to", normalizedReturnTo);
 
@@ -156,9 +172,9 @@ export const requestSocialRedirect: SocialRedirectAdapter = async (
     params.set("oneTimeToken", oneTimeToken);
   }
 
-  if (accountType) {
-    params.set("accountType", accountType);
-  }
+  // Kept in the adapter signature for invitation-flow compatibility. Normal
+  // authentication no longer chooses an account type before sign-in.
+  void accountType;
 
   const response = await fetch(
     `/api/identity/auth/social/${encodeURIComponent(provider)}/redirect?${params.toString()}`,

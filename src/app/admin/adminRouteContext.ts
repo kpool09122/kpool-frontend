@@ -1,7 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
+import {
+  fetchAuthenticatedIdentity,
+} from "@/gateways/identity/authIdentity";
+import {
+  isAccountSetupRequired,
+  isAccountSuspended,
+} from "@/gateways/identity/identityApi";
 import {
   createInitialDraftWikis,
   loadInitialDraftWikiListForRequest,
@@ -35,6 +41,19 @@ export async function loadAdminRouteContext(
 
   if (!authenticatedIdentity) {
     redirect(`/login?returnTo=${encodeURIComponent(loginReturnTo)}`);
+  }
+
+  if (
+    isAccountSetupRequired(authenticatedIdentity) ||
+    isAccountSuspended(authenticatedIdentity)
+  ) {
+    return {
+      initialDraftImages: createInitialDraftImageListState(),
+      initialDraftWikis: createInitialDraftWikis(),
+      initialIdentity: authenticatedIdentity,
+      initialImageDeletionRequests: createInitialImageDeletionRequestListState(),
+      initialPrincipalState: { status: "idle" as const },
+    };
   }
 
   const principalState = target.section === "wiki"

@@ -18,7 +18,34 @@ const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySumm
     linkedSocialProviders: [],
   }),
 });
-export type AuthenticatedIdentitySummary = z.infer<typeof AuthenticatedIdentitySummarySchema>;
+type ParsedAuthenticatedIdentitySummary = z.infer<typeof AuthenticatedIdentitySummarySchema>;
+export type AuthenticatedIdentitySummary = IdentitySummary & Partial<
+  Pick<
+    ParsedAuthenticatedIdentitySummary,
+    | "accountIdentifier"
+    | "accountPolicies"
+    | "accountPrincipalIdentifier"
+    | "accountType"
+    | "authenticationMethods"
+    | "delegationIdentifier"
+    | "originalAccount"
+    | "switchableAccounts"
+  >
+> & {
+  account?: Partial<NonNullable<ParsedAuthenticatedIdentitySummary["account"]>> | null;
+};
+
+export const getAuthenticatedAccountStatus = (
+  identity: Pick<AuthenticatedIdentitySummary, "account">,
+): string | null => identity.account?.status?.toLowerCase() ?? null;
+
+export const isAccountSetupRequired = (
+  identity: Pick<AuthenticatedIdentitySummary, "account">,
+): boolean => getAuthenticatedAccountStatus(identity) === "pending";
+
+export const isAccountSuspended = (
+  identity: Pick<AuthenticatedIdentitySummary, "account">,
+): boolean => getAuthenticatedAccountStatus(identity) === "suspended";
 export type RedirectUrlResult = z.infer<typeof identityApiTypes.schemas.RedirectUrlResult>;
 export type VerifyEmailRequest = z.infer<typeof identityApiTypes.schemas.VerifyEmailRequestBody>;
 export type VerifyEmailResult = z.infer<typeof identityApiTypes.schemas.VerifyEmailResult>;

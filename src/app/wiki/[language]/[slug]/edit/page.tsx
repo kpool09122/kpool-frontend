@@ -2,6 +2,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
+import {
+  isAccountSetupRequired,
+  isAccountSuspended,
+} from "@/gateways/identity/identityApi";
 import { loadDraftWikiState } from "@/gateways/wiki/draftWiki";
 import { WikiEditPage } from "../../../[slug]/edit/WikiEditPage";
 import { getCurrentWikiPrincipalForRequest } from "@/gateways/wiki/wikiPrincipal";
@@ -59,6 +63,13 @@ export default async function Page({ params, searchParams }: WikiEditRouteProps)
 
   if (!authenticatedIdentity) {
     redirect(`/login?returnTo=${encodeURIComponent(editReturnPath)}`);
+  }
+
+  if (
+    isAccountSetupRequired(authenticatedIdentity) ||
+    isAccountSuspended(authenticatedIdentity)
+  ) {
+    redirect(`/admin?authReturnTo=${encodeURIComponent(editReturnPath)}`);
   }
 
   const principalState = await getCurrentWikiPrincipalForRequest({

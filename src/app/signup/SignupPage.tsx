@@ -32,7 +32,6 @@ type SignupPageProps = {
 const getInitialValues = (language: string): SignupAccountFormValues => ({
   email: "",
   accountName: "",
-  accountType: "individual",
   language,
   passkeyDisplayName: "My passkey",
   base64EncodedImage: "",
@@ -190,13 +189,6 @@ export function SignupPage({
   };
 
   const steps = getSignupStepItems({ phase, pending, errorStep });
-  const accountTypeOptions = [
-    { value: "individual", label: t.individual, panelId: "individual-account-panel" },
-    { value: "corporation", label: t.corporation, panelId: "corporation-account-panel" },
-  ];
-  const selectedAccountType = accountTypeOptions.find(
-    (option) => option.value === values.accountType,
-  ) ?? accountTypeOptions[0];
 
   return (
     <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
@@ -211,42 +203,7 @@ export function SignupPage({
         {phase === "account" ? (
           <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
             <form className="space-y-5" onSubmit={handleAccountSubmit}>
-              <div
-                role="tablist"
-                aria-label={t.accountType}
-                className="-mx-6 -mt-6 mb-5 flex border-b border-stroke-subtle px-6"
-              >
-                {accountTypeOptions.map((option) => {
-                  const selected = values.accountType === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="tab"
-                      id={`${option.value}-account-tab`}
-                      aria-selected={selected}
-                      aria-controls={option.panelId}
-                      className={[
-                        "relative min-h-12 px-4 text-sm font-semibold transition",
-                        selected
-                          ? "text-brand-primary after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand-primary"
-                          : "text-text-muted hover:text-text-strong",
-                      ].join(" ")}
-                      onClick={() => setField("accountType", option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div
-                role="tabpanel"
-                id={selectedAccountType.panelId}
-                aria-labelledby={`${selectedAccountType.value}-account-tab`}
-                className="grid gap-4 sm:grid-cols-2"
-              >
+              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
                   <span>{t.email}</span>
                   <input type="email" autoComplete="email" required value={values.email} onChange={(event) => setField("email", event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight" />

@@ -4,6 +4,7 @@ import { passkeyBrowserApi } from "@/gateways/identity/passkeyBrowserApi";
 import { webAuthnBrowserAdapter } from "./webAuthnBrowserAdapter";
 import {
   identityProviders,
+  buildPostSocialAuthReturnTo,
   loginWithPasskey,
   normalizeReturnTo,
   requestSocialRedirect,
@@ -47,6 +48,12 @@ describe("login auth flow helpers", () => {
     expect(normalizeReturnTo("/wiki/ja/example")).toBe("/wiki/ja/example");
     expect(normalizeReturnTo("https://example.com/phishing")).toBe("/admin");
     expect(normalizeReturnTo("//example.com/phishing")).toBe("/admin");
+    expect(normalizeReturnTo("/\\example.com/phishing")).toBe("/admin");
+    expect(normalizeReturnTo("/wiki\n/ja/example")).toBe("/admin");
+    expect(normalizeReturnTo("/login?returnTo=%2Fwiki")).toBe("/admin");
+    expect(buildPostSocialAuthReturnTo("/wiki/ja/example")).toBe(
+      "/admin?authReturnTo=%2Fwiki%2Fja%2Fexample",
+    );
   });
 
   it("gets options, invokes WebAuthn, authenticates, and preserves returnTo", async () => {
@@ -87,14 +94,14 @@ describe("login auth flow helpers", () => {
     })).resolves.toEqual({ ok: false, reason: "cancelled" });
   });
 
-  it("sends returnTo, invitation token, and account type with SSO", async () => {
+  it("routes SSO through admin setup while preserving the destination and invitation", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ redirectUrl: "https://accounts.example.test/oauth" })));
     vi.stubGlobal("fetch", fetchMock);
 
-    await requestSocialRedirect("google", "/admin", "invite-token", "corporation");
+    await requestSocialRedirect("google", "/wiki/ja/example", "invite-token", "corporation");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/identity/auth/social/google/redirect?return_to=%2Fadmin&oneTimeToken=invite-token&accountType=corporation",
+      "/api/identity/auth/social/google/redirect?return_to=%2Fadmin%3FauthReturnTo%3D%252Fwiki%252Fja%252Fexample&oneTimeToken=invite-token",
       { credentials: "include" },
     );
   });

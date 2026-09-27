@@ -25,7 +25,6 @@ export type SignupStepItem = {
 export type SignupAccountFormValues = {
   email: string;
   accountName: string;
-  accountType: string;
   language: string;
   passkeyDisplayName: string;
   base64EncodedImage: string;
@@ -92,7 +91,6 @@ export const buildRegistrationOptionsRequest = (
   oneTimeToken?: string,
 ): CreatePasskeyRegistrationOptionsRequest => ({
   email: values.email,
-  accountType: oneTimeToken ? null : values.accountType,
   oneTimeToken: oneTimeToken || null,
   return_to: "/admin",
 });

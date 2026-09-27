@@ -2,6 +2,11 @@
 
 import { usePathname } from "next/navigation";
 
+import {
+  isAccountSetupRequired,
+  isAccountSuspended,
+} from "@/gateways/identity/identityApi";
+
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
 import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
@@ -12,8 +17,9 @@ import { AccountInvitationsClient } from "../account/invitations/AccountInvitati
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
+import { AccountInitialSetupClient } from "../AccountInitialSetupClient";
 import { AdminShellClient } from "../AdminShellClient";
-import { AdminProvider } from "../AdminProvider";
+import { AdminProvider, useAdmin } from "../AdminProvider";
 import type { AdminRouteContext } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
 import { UserPageClient } from "../user/UserPageClient";
@@ -46,9 +52,26 @@ export function AdminAppClient({
   return (
     <AdminProvider initialContext={context}>
       <AdminShellClient>
-        <AdminResolvedPage page={page} returnTo={returnTo} />
+        {isAccountSetupRequired(context.initialIdentity) ? (
+          <AccountInitialSetupClient returnTo={returnTo} />
+        ) : isAccountSuspended(context.initialIdentity) ? (
+          <SuspendedAccountMessage />
+        ) : (
+          <AdminResolvedPage page={page} returnTo={returnTo} />
+        )}
       </AdminShellClient>
     </AdminProvider>
+  );
+}
+
+function SuspendedAccountMessage() {
+  const { t } = useAdmin();
+
+  return (
+    <section className="rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
+      <h2 className="text-xl font-bold">{t.suspendedAccountTitle}</h2>
+      <p className="mt-3 text-sm leading-7 text-text-muted">{t.suspendedAccountMessage}</p>
+    </section>
   );
 }
 
