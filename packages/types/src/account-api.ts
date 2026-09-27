@@ -21,7 +21,7 @@ const AccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
     email: z.string(),
-    type: z.string(),
+    type: z.string().nullable(),
     name: z.string(),
     status: z.string(),
     accountCategory: z.string(),
@@ -59,6 +59,7 @@ const KPool_Common_ProblemDetails = z
     title: z.string(),
     detail: z.string(),
     instance: z.string(),
+    code: z.string(),
   })
   .partial()
   .passthrough();
@@ -109,7 +110,6 @@ const RejectAccountCategoryChangeRequestBody = z
 const CreateAccountRequestBody = z
   .object({
     email: z.string(),
-    accountType: z.string(),
     accountName: z.string(),
     principalIdentifier: KPool_Common_Uuid.nullish(),
     phone: z.string().nullish(),
@@ -128,6 +128,9 @@ const CreateAccountResult = z
     address: ContactAddressSummary.nullable(),
   })
   .partial()
+  .passthrough();
+const CompleteInitialSetupRequestBody = z
+  .object({ accountType: z.enum(["corporation", "individual"]) })
   .passthrough();
 const SwitchAccountRequestBody = z
   .object({ delegationIdentifier: KPool_Common_Uuid.nullable() })
@@ -327,6 +330,7 @@ export const schemas = {
   RejectAccountCategoryChangeRequestBody,
   CreateAccountRequestBody,
   CreateAccountResult,
+  CompleteInitialSetupRequestBody,
   SwitchAccountRequestBody,
   SwitchAccountResponseBody,
   RequestAccountCategoryChangeRequestBody,
@@ -820,6 +824,48 @@ const endpoints = makeApi([
       },
     ],
     response: AccountCategoryChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/accounts/setup",
+    alias: "AccountOperations_completeInitialSetup",
+    description: `Select the account type and activate a pending account.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CompleteInitialSetupRequestBody,
+      },
+    ],
+    response: z.void(),
     errors: [
       {
         status: 401,
