@@ -31,15 +31,32 @@ const activeIdentity = {
 describe("AccountInitialSetupClient", () => {
   afterEach(() => cleanup());
 
-  it("requires an explicit account type and explains that it cannot be changed", async () => {
-    const completeSetup = vi.fn();
-    render(<AccountInitialSetupClient completeSetup={completeSetup} refreshIdentity={vi.fn()} />);
+  it("defaults to individual and submits it without changing the selection", async () => {
+    const completeSetup = vi.fn().mockResolvedValue(undefined);
+    const navigate = vi.fn();
+    const refreshIdentity = vi.fn().mockResolvedValue({
+      ...activeIdentity,
+      accountType: "individual",
+      account: { ...activeIdentity.account, type: "individual" },
+    });
+    render(
+      <AccountInitialSetupClient
+        completeSetup={completeSetup}
+        navigate={navigate}
+        refreshIdentity={refreshIdentity}
+      />,
+    );
 
-    expect(screen.getByText(/確定後はこの画面から区分を変更できません/)).toBeInTheDocument();
+    expect(screen.getByText("確定後は区分を変更できません。内容を確認して選択してください。")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "個人" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "法人" })).not.toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "区分を確定してサービスを開始" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("法人または個人を選択してください");
-    expect(completeSetup).not.toHaveBeenCalled();
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin"));
+    expect(completeSetup).toHaveBeenCalledWith({
+      fallbackErrorMessage: expect.any(String),
+      requestBody: { accountType: "individual" },
+    });
   });
 
   it("submits once, refreshes identity after 204, and continues only after active is confirmed", async () => {

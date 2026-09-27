@@ -49,12 +49,18 @@ export function AdminAppClient({
   const pathname = usePathname();
   const page = resolveAdminClientPage(pathname);
 
+  if (isAccountSetupRequired(context.initialIdentity)) {
+    return (
+      <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong sm:px-10">
+        <AccountInitialSetupClient returnTo={returnTo} />
+      </main>
+    );
+  }
+
   return (
     <AdminProvider initialContext={context}>
       <AdminShellClient>
-        {isAccountSetupRequired(context.initialIdentity) ? (
-          <AccountInitialSetupClient returnTo={returnTo} />
-        ) : isAccountSuspended(context.initialIdentity) ? (
+        {isAccountSuspended(context.initialIdentity) ? (
           <SuspendedAccountMessage />
         ) : (
           <AdminResolvedPage page={page} returnTo={returnTo} />

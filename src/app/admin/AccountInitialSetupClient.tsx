@@ -42,7 +42,7 @@ export function AccountInitialSetupClient({
   const t = dictionary.admin;
   const storeRefreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const refreshIdentity = refreshIdentityProp ?? storeRefreshIdentity;
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [accountType, setAccountType] = useState<AccountType>("individual");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -60,10 +60,6 @@ export function AccountInitialSetupClient({
     event.preventDefault();
 
     if (isSubmitting) return;
-    if (!accountType) {
-      setErrorMessage(t.initialSetupSelectionRequired);
-      return;
-    }
 
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -93,7 +89,7 @@ export function AccountInitialSetupClient({
   return (
     <section className="mx-auto max-w-2xl space-y-6 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft sm:p-8">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">{t.initialSetupTitle}</h2>
+        <h1 className="text-2xl font-bold">{t.initialSetupTitle}</h1>
         <p className="text-sm leading-7 text-text-muted">{t.initialSetupDescription}</p>
       </div>
 
@@ -102,8 +98,8 @@ export function AccountInitialSetupClient({
           <legend className="text-sm font-semibold">{t.initialSetupAccountTypeLabel}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
             {([
-              ["corporation", t.initialSetupCorporation],
               ["individual", t.initialSetupIndividual],
+              ["corporation", t.initialSetupCorporation],
             ] as const).map(([value, label]) => (
               <label
                 key={value}
