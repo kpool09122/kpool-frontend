@@ -194,6 +194,19 @@ const UpdatePasskeyRequestBody = z
   .object({ displayName: z.string().min(1).max(64) })
   .passthrough();
 const SendAuthCodeRequestBody = z.object({ email: z.string() }).passthrough();
+const SocialLinkingResult = z
+  .object({
+    provider: z.string(),
+    email: z.string(),
+    expiresAt: KPool_Common_Timestamp,
+  })
+  .passthrough();
+const SendSocialLinkingEmailResult = z
+  .object({ accepted: z.boolean() })
+  .passthrough();
+const VerifySocialLinkingEmailRequestBody = z
+  .object({ authCode: z.string().regex(/^[0-9]{6}$/) })
+  .passthrough();
 const CompleteStepUpWithPasskeyRequestBody = z
   .object({
     challengeKey: KPool_Common_Uuid.uuid(),
@@ -319,6 +332,9 @@ export const schemas = {
   CreatePasskeyRegistrationOptionsRequestBody,
   UpdatePasskeyRequestBody,
   SendAuthCodeRequestBody,
+  SocialLinkingResult,
+  SendSocialLinkingEmailResult,
+  VerifySocialLinkingEmailRequestBody,
   CompleteStepUpWithPasskeyRequestBody,
   VerifyEmailRequestBody,
   VerifyEmailResult,
@@ -902,7 +918,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/social/:provider/callback",
     alias: "IdentityAuthOperations_socialLoginCallback",
-    description: `Handle the social login callback and return the client redirect URL.`,
+    description: `Handle OAuth and redirect the browser. An unlinked provider whose email matches an existing identity redirects to the frontend /auth/social/link confirmation screen, retaining server-side pending data for ten minutes in the originating Laravel session. No linking or login occurs before dedicated email verification. Linked login, new identity, invitation, step-up and passkey recovery flows retain their existing redirects.`,
     requestFormat: "json",
     parameters: [
       {
@@ -921,8 +937,13 @@ const endpoints = makeApi([
         schema: z.string(),
       },
     ],
-    response: z.object({ redirectUrl: z.string() }).passthrough(),
+    response: z.void(),
     errors: [
+      {
+        status: 302,
+        description: `Actual browser redirect returned by the OAuth callback.`,
+        schema: z.void(),
+      },
       {
         status: 422,
         description: `Client error`,
@@ -961,6 +982,75 @@ const endpoints = makeApi([
         name: "return_to",
         type: "Query",
         schema: z.string().nullish(),
+      },
+    ],
+    response: z.object({ redirectUrl: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/auth/social/link",
+    alias: "IdentityAuthOperations_getSocialLinking",
+    description: `Read pending SSO linking confirmation using the originating Laravel session cookie. Returns 422 when absent, expired, consumed, or accessed from another session. No provider, identity, email, return path or pending key is accepted from the client.`,
+    requestFormat: "json",
+    response: SocialLinkingResult,
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/social/link/email",
+    alias: "IdentityAuthOperations_sendSocialLinkingEmail",
+    description: `Request a dedicated code for the pending target&#x27;s registered email using the same session cookie. No request body is required. Codes expire with the ten-minute pending operation; a successful resend invalidates the old code without resetting failed attempts. A 60-second cooldown and a maximum of five sends per pending operation and per target identity per hour apply; throttled requests return accepted&#x3D;true without a new code. Invalid or expired pending operations return 422.`,
+    requestFormat: "json",
+    response: z.object({ accepted: z.boolean() }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/auth/social/link/email/verification",
+    alias: "IdentityAuthOperations_verifySocialLinkingEmail",
+    description: `Verify the dedicated code and consume pending authorization in the originating Laravel session. Re-fetch and check the target and SSO ownership, save the addition and log in with a regenerated session ID within an Action-managed database transaction. Returns an allowed frontend return path. Invalid codes, expiry, five failed attempts, reuse and linking conflicts return 422. A save failure never logs in; the authorization remains consumed and OAuth must be restarted before retrying.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ authCode: z.string().regex(/^[0-9]{6}$/) })
+          .passthrough(),
       },
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),

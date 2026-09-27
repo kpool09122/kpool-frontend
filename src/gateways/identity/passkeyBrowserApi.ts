@@ -23,79 +23,8 @@ import {
   type VerifyPasskeyRecoveryEmailRequest,
 } from "@/gateways/identity/identityApi";
 
-export type IdentityBrowserApiResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; message: string; status: number };
-
-type RequestOptions = {
-  body?: unknown;
-  language?: string;
-  method?: "DELETE" | "GET" | "PATCH" | "POST";
-};
-
-const readBody = async (response: Response): Promise<unknown> => {
-  const text = await response.text();
-
-  if (!text) {
-    return {};
-  }
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return {};
-  }
-};
-
-const getMessage = (body: unknown): string => {
-  if (
-    typeof body === "object" &&
-    body !== null &&
-    "message" in body &&
-    typeof (body as { message: unknown }).message === "string"
-  ) {
-    return (body as { message: string }).message;
-  }
-
-  return "認証処理に失敗しました。時間をおいて再度お試しください。";
-};
-
-const request = async <T>(
-  url: string,
-  parseResponse: (body: unknown) => T,
-  { body, language, method = "POST" }: RequestOptions = {},
-): Promise<IdentityBrowserApiResult<T>> => {
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        Accept: "application/json",
-        ...(language ? { "Accept-Language": language } : {}),
-        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-      },
-      credentials: "include",
-      cache: "no-store",
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    const responseBody = await readBody(response);
-
-    if (!response.ok) {
-      return {
-        ok: false,
-        message: getMessage(responseBody),
-        status: response.status,
-      };
-    }
-
-    return { ok: true, data: parseResponse(responseBody) };
-  } catch {
-    return {
-      ok: false,
-      message: "認証処理に失敗しました。時間をおいて再度お試しください。",
-      status: 0,
-    };
-  }
-};
+import { requestIdentity as request, type IdentityBrowserApiResult } from "./identityBrowserRequest";
+export type { IdentityBrowserApiResult } from "./identityBrowserRequest";
 
 const parseEmpty = (): Record<string, never> => ({});
 
