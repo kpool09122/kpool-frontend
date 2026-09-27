@@ -17,6 +17,7 @@ const KPool_Common_ProblemDetails = z
     title: z.string(),
     detail: z.string(),
     instance: z.string(),
+    code: z.string(),
   })
   .partial()
   .passthrough();
@@ -185,7 +186,6 @@ const PasskeyIdentityRegistrationResult = IdentitySummary;
 const CreatePasskeyRegistrationOptionsRequestBody = z
   .object({
     email: z.string(),
-    accountType: z.string().nullish(),
     oneTimeToken: z.string().nullish(),
     return_to: z.string().nullish(),
   })
@@ -272,7 +272,7 @@ const AuthenticatedAccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
     email: z.string(),
-    type: z.string(),
+    type: z.string().nullable(),
     name: z.string(),
     status: z.string(),
     accountCategory: z.string(),
@@ -967,11 +967,6 @@ const endpoints = makeApi([
         name: "provider",
         type: "Path",
         schema: z.string(),
-      },
-      {
-        name: "accountType",
-        type: "Query",
-        schema: z.string().optional(),
       },
       {
         name: "oneTimeToken",

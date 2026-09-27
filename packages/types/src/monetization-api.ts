@@ -22,6 +22,7 @@ const KPool_Common_ProblemDetails = z
     title: z.string(),
     detail: z.string(),
     instance: z.string(),
+    code: z.string(),
   })
   .partial()
   .passthrough();
