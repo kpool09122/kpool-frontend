@@ -5,8 +5,7 @@ import {
   fetchAuthenticatedIdentity,
 } from "@/gateways/identity/authIdentity";
 import {
-  isAccountSetupRequired,
-  isAccountSuspended,
+  isAccountActive,
 } from "@/gateways/identity/identityApi";
 import {
   createInitialDraftWikis,
@@ -43,10 +42,7 @@ export async function loadAdminRouteContext(
     redirect(`/login?returnTo=${encodeURIComponent(loginReturnTo)}`);
   }
 
-  if (
-    isAccountSetupRequired(authenticatedIdentity) ||
-    isAccountSuspended(authenticatedIdentity)
-  ) {
+  if (!isAccountActive(authenticatedIdentity)) {
     return {
       initialDraftImages: createInitialDraftImageListState(),
       initialDraftWikis: createInitialDraftWikis(),

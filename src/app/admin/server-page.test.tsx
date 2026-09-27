@@ -61,6 +61,7 @@ describe("Admin server route", () => {
       identityName: "member",
       email: "member@example.com",
       language: "ja",
+      account: { status: "active", type: "individual" },
     });
     mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
     mocks.loadInitialDraftWikiListForRequest.mockResolvedValue({
@@ -139,6 +140,26 @@ describe("Admin server route", () => {
       searchParams: Promise.resolve({ authReturnTo: "/wiki/ja/example" }),
     })).rejects.toThrow("redirect:/wiki/ja/example");
   });
+
+  it.each(["/\\example.org", "//example.org", "/\texample.org", "https://example.org", "/login"])(
+    "normalizes unsafe authReturnTo %j before redirecting",
+    async (authReturnTo) => {
+      await expect(Admin({ searchParams: Promise.resolve({ authReturnTo }) }))
+        .rejects.toThrow("redirect:/admin");
+    },
+  );
+
+  it.each([null, undefined, { status: "unknown" }, { status: "suspended" }])(
+    "does not load service data for an unavailable account %j",
+    async (account) => {
+      mocks.fetchAuthenticatedIdentity.mockResolvedValue({ identityIdentifier: "identity-1", account });
+      await Admin({ params: Promise.resolve({ slug: ["wiki", "submitted"] }) });
+      expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialWikiDraftImagesForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialWikiImageDeletionRequestsForRequest).not.toHaveBeenCalled();
+    },
+  );
 
   it("does not load Wiki principal or draft lists for account pages", async () => {
     render(

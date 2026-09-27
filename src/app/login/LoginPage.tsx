@@ -17,7 +17,7 @@ import {
 } from "@/gateways/auth/authFlow";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
-import { getAuthenticatedAccountStatus } from "@/gateways/identity/identityApi";
+import { getAuthenticatedAccountStatus, isAccountStatusUnavailable } from "@/gateways/identity/identityApi";
 import { useI18n } from "../../i18n/I18nProvider";
 
 type LoginPageProps = {
@@ -95,8 +95,8 @@ export function LoginPage({
     if (result.ok) {
       const identity = await refreshIdentity().catch(() => null);
 
-      if (!identity) {
-        setErrorMessage(t.passkeyFailed);
+      if (!identity || isAccountStatusUnavailable(identity)) {
+        setErrorMessage(dictionary.admin.accountStatusErrorMessage);
         setPendingAction(null);
         return;
       }

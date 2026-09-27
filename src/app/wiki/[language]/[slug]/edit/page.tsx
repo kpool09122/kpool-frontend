@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import {
-  isAccountSetupRequired,
-  isAccountSuspended,
+  isAccountActive,
 } from "@/gateways/identity/identityApi";
 import { loadDraftWikiState } from "@/gateways/wiki/draftWiki";
 import { WikiEditPage } from "../../../[slug]/edit/WikiEditPage";
@@ -65,10 +64,7 @@ export default async function Page({ params, searchParams }: WikiEditRouteProps)
     redirect(`/login?returnTo=${encodeURIComponent(editReturnPath)}`);
   }
 
-  if (
-    isAccountSetupRequired(authenticatedIdentity) ||
-    isAccountSuspended(authenticatedIdentity)
-  ) {
+  if (!isAccountActive(authenticatedIdentity)) {
     redirect(`/admin?authReturnTo=${encodeURIComponent(editReturnPath)}`);
   }
 

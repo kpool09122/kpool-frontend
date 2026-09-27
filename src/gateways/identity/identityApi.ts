@@ -39,6 +39,14 @@ export const getAuthenticatedAccountStatus = (
   identity: Pick<AuthenticatedIdentitySummary, "account">,
 ): string | null => identity.account?.status?.toLowerCase() ?? null;
 
+export const isAccountActive = (
+  identity: Pick<AuthenticatedIdentitySummary, "account">,
+): boolean => getAuthenticatedAccountStatus(identity) === "active";
+
+export const isAccountStatusUnavailable = (
+  identity: Pick<AuthenticatedIdentitySummary, "account">,
+): boolean => !["active", "pending", "suspended"].includes(getAuthenticatedAccountStatus(identity) ?? "");
+
 export const isAccountSetupRequired = (
   identity: Pick<AuthenticatedIdentitySummary, "account">,
 ): boolean => getAuthenticatedAccountStatus(identity) === "pending";

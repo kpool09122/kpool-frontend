@@ -2,8 +2,11 @@
 
 import { usePathname } from "next/navigation";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import {
   isAccountSetupRequired,
+  isAccountStatusUnavailable,
   isAccountSuspended,
 } from "@/gateways/identity/identityApi";
 
@@ -47,7 +50,19 @@ export function AdminAppClient({
   returnTo = null,
 }: AdminAppClientProps) {
   const pathname = usePathname();
+  const { dictionary } = useI18n();
   const page = resolveAdminClientPage(pathname);
+
+  if (isAccountStatusUnavailable(context.initialIdentity)) {
+    return (
+      <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong sm:px-10">
+        <section role="alert" className="mx-auto max-w-2xl space-y-3 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
+          <h1 className="text-2xl font-bold">{dictionary.admin.accountStatusErrorTitle}</h1>
+          <p className="text-sm leading-7 text-text-muted">{dictionary.admin.accountStatusErrorMessage}</p>
+        </section>
+      </main>
+    );
+  }
 
   if (isAccountSetupRequired(context.initialIdentity)) {
     return (

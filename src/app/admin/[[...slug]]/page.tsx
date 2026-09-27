@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { normalizeReturnTo } from "@/gateways/auth/authFlow";
 import { getAuthenticatedAccountStatus } from "@/gateways/identity/identityApi";
 
 import { AdminAppClient } from "./AdminAppClient";
@@ -21,7 +22,7 @@ const getSingleSearchParam = (value: string | string[] | undefined): string | un
   Array.isArray(value) ? value[0] : value;
 
 const normalizeOptionalReturnTo = (value: string | undefined): string | null =>
-  value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+  value ? normalizeReturnTo(value) : null;
 
 const buildLoginReturnTo = (slug: string[] | undefined): string =>
   slug && slug.length > 0 ? `/admin/${slug.join("/")}` : "/admin";

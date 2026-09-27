@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 
 import {
   completeInitialSetup,
@@ -16,6 +16,8 @@ import {
 import { useI18n } from "../../i18n/I18nProvider";
 
 type AccountType = "corporation" | "individual";
+
+const subscribeToHydration = () => () => {};
 
 type AccountInitialSetupClientProps = {
   completeSetup?: typeof completeInitialSetup;
@@ -45,6 +47,7 @@ export function AccountInitialSetupClient({
   const [accountType, setAccountType] = useState<AccountType>("individual");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
   const finish = (destination: string) => {
     if (navigate) {
@@ -94,7 +97,7 @@ export function AccountInitialSetupClient({
       </div>
 
       <form className="space-y-6" onSubmit={(event) => void handleSubmit(event)}>
-        <fieldset className="space-y-3" disabled={isSubmitting}>
+        <fieldset className="space-y-3" disabled={!isHydrated || isSubmitting}>
           <legend className="text-sm font-semibold">{t.initialSetupAccountTypeLabel}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
             {([
@@ -137,7 +140,7 @@ export function AccountInitialSetupClient({
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={!isHydrated || isSubmitting}
           className="flex min-h-12 w-full items-center justify-center rounded-lg bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting

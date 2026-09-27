@@ -60,6 +60,7 @@ describe("Wiki edit route", () => {
     });
     mocks.fetchAuthenticatedIdentity.mockResolvedValue({
       identityIdentifier: "identity-1",
+      account: { status: "active" },
     });
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({
       status: "available",
@@ -70,6 +71,16 @@ describe("Wiki edit route", () => {
   afterEach(() => {
     cleanup();
   });
+
+  it.each([null, undefined, { status: "unknown" }, { status: "suspended" }])(
+    "blocks editing when the account is unavailable: %j",
+    async (account) => {
+      mocks.fetchAuthenticatedIdentity.mockResolvedValue({ identityIdentifier: "identity-1", account });
+      await expect(Page(routeProps())).rejects.toThrow("redirect:/admin?authReturnTo=");
+      expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadDraftWikiState).not.toHaveBeenCalled();
+    },
+  );
 
   it("disables route caching for realtime draft edits", () => {
     expect(dynamic).toBe("force-dynamic");
