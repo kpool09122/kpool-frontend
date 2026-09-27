@@ -145,7 +145,7 @@ describe("WikiPublicHeroImage", () => {
         jsonResponse(
           {
             imageIdentifier,
-            requesterName: "KPool User",
+            requesterName: "k-pool User",
             requesterEmail: "user@example.test",
             reason: "Rights concern",
             isHidden: true,
@@ -174,7 +174,7 @@ describe("WikiPublicHeroImage", () => {
     const submitButton = screen.getByRole("button", { name: "Submit deletion request" });
     expect(submitButton).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "KPool User" } });
+    fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "k-pool User" } });
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "user@example.test" } });
     fireEvent.change(screen.getByLabelText("Reason for requesting deletion"), {
       target: { value: "Rights concern" },
@@ -192,7 +192,7 @@ describe("WikiPublicHeroImage", () => {
         method: "POST",
         credentials: "include",
         body: JSON.stringify({
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
         }),
@@ -278,7 +278,7 @@ describe("WikiPublicHeroImage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
     await clickImageCard("Hero image");
     expect(screen.getByText("Selected: Hero image")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "KPool User" } });
+    fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "k-pool User" } });
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "user@example.test" } });
     fireEvent.change(screen.getByLabelText("Reason for requesting deletion"), {
       target: { value: "Rights concern" },

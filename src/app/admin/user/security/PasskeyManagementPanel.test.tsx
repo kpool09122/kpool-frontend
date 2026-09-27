@@ -26,7 +26,7 @@ const secondPasskey = {
 const registrationOptions = {
   challengeKey: "22222222-2222-4222-8222-222222222222",
   options: {
-    rp: { name: "kpool", id: "example.test" }, user: { name: "member", id: "AQID", displayName: "Member" }, challenge: "AQID",
+    rp: { name: "k-pool", id: "example.test" }, user: { name: "member", id: "AQID", displayName: "Member" }, challenge: "AQID",
     pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 60000, excludeCredentials: [],
     authenticatorSelection: { residentKey: "required", userVerification: "preferred" }, attestation: "none",
   },

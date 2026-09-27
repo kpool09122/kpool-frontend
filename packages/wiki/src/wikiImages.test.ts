@@ -240,12 +240,12 @@ describe("wikiImages", () => {
   it("trims image deletion request form fields", () => {
     expect(
       createWikiImageDeletionRequest({
-        requesterName: "  KPool User  ",
+        requesterName: "  k-pool User  ",
         requesterEmail: " user@example.test ",
         reason: "  Rights concern  ",
       }),
     ).toMatchObject({
-      requesterName: "KPool User",
+      requesterName: "k-pool User",
       requesterEmail: "user@example.test",
       reason: "Rights concern",
     });

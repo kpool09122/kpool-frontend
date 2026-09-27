@@ -213,6 +213,12 @@ export function LoginPage({
                 {t.signupLink}
               </Link>
             </p>
+            <p>
+              {t.recoveryLead}{" "}
+              <Link href="/settings/passkeys/recovery" className="font-semibold text-brand-primary underline-offset-4 hover:underline">
+                {t.recoveryLink}
+              </Link>
+            </p>
           </div>
         </section>
       </div>

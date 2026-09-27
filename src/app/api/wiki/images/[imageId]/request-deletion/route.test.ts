@@ -5,7 +5,7 @@ import { POST } from "./route";
 
 const imageId = "44444444-4444-4444-4444-444444444444";
 const requestBody = {
-  requesterName: "KPool User",
+  requesterName: "k-pool User",
   requesterEmail: "user@example.test",
   reason: "Rights concern",
 };
@@ -41,7 +41,7 @@ describe("wiki image deletion request route", () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
         imageIdentifier: imageId,
-        requesterName: "KPool User",
+        requesterName: "k-pool User",
         requesterEmail: "user@example.test",
         reason: "Rights concern",
         isHidden: true,

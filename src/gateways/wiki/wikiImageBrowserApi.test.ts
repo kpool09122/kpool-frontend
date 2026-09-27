@@ -224,7 +224,7 @@ describe("wikiImageBrowserApi", () => {
 
   it("submits image deletion requests through the browser route", async () => {
     const requestBody = createWikiImageDeletionRequest({
-      requesterName: "KPool User",
+      requesterName: "k-pool User",
       requesterEmail: "user@example.test",
       reason: "Rights concern",
     });
@@ -232,7 +232,7 @@ describe("wikiImageBrowserApi", () => {
       jsonResponse(
         {
           imageIdentifier,
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
           isHidden: true,
@@ -272,7 +272,7 @@ describe("wikiImageBrowserApi", () => {
         fallbackErrorMessage: "Deletion request failed",
         imageIdentifier,
         requestBody: createWikiImageDeletionRequest({
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
         }),
@@ -288,7 +288,7 @@ describe("wikiImageBrowserApi", () => {
         fallbackErrorMessage: "Deletion request failed",
         imageIdentifier,
         requestBody: createWikiImageDeletionRequest({
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
         }),

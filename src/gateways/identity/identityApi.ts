@@ -36,6 +36,11 @@ export type AuthenticateWithPasskeyRequest = z.infer<typeof identityApiTypes.sch
 export type AddPasskeyRequest = z.infer<typeof identityApiTypes.schemas.AddPasskeyRequestBody>;
 export type UpdatePasskeyRequest = z.infer<typeof identityApiTypes.schemas.UpdatePasskeyRequestBody>;
 export type CompleteStepUpWithPasskeyRequest = z.infer<typeof identityApiTypes.schemas.CompleteStepUpWithPasskeyRequestBody>;
+export type RecoverPasskeyRequest = z.infer<typeof identityApiTypes.schemas.RecoverPasskeyRequestBody>;
+export type SendPasskeyRecoveryEmailRequest = z.infer<typeof identityApiTypes.schemas.SendPasskeyRecoveryEmailRequestBody>;
+export type VerifyPasskeyRecoveryEmailRequest = z.infer<typeof identityApiTypes.schemas.VerifyPasskeyRecoveryEmailRequestBody>;
+export type PasskeyRecoveryVerificationResult = z.infer<typeof identityApiTypes.schemas.PasskeyRecoveryVerificationResult>;
+export type CreatePasskeyRecoveryOptionsRequest = z.infer<typeof identityApiTypes.schemas.CreatePasskeyRecoveryOptionsRequestBody>;
 
 type IdentityApiEnv = Record<string, string | undefined>;
 
@@ -169,6 +174,21 @@ export const parseUpdatePasskeyRequest = (body: unknown): UpdatePasskeyRequest =
 
 export const parseCompleteStepUpWithPasskeyRequest = (body: unknown): CompleteStepUpWithPasskeyRequest =>
   parseWithSchemaLog("identity complete passkey step-up request", identityApiTypes.schemas.CompleteStepUpWithPasskeyRequestBody, body);
+
+export const parseRecoverPasskeyRequest = (body: unknown): RecoverPasskeyRequest =>
+  parseWithSchemaLog("identity passkey recovery request", identityApiTypes.schemas.RecoverPasskeyRequestBody, body);
+
+export const parseSendPasskeyRecoveryEmailRequest = (body: unknown): SendPasskeyRecoveryEmailRequest =>
+  parseWithSchemaLog("identity passkey recovery email request", identityApiTypes.schemas.SendPasskeyRecoveryEmailRequestBody, body);
+
+export const parseVerifyPasskeyRecoveryEmailRequest = (body: unknown): VerifyPasskeyRecoveryEmailRequest =>
+  parseWithSchemaLog("identity passkey recovery verification request", identityApiTypes.schemas.VerifyPasskeyRecoveryEmailRequestBody, body);
+
+export const parsePasskeyRecoveryVerificationResult = (body: unknown): PasskeyRecoveryVerificationResult =>
+  parseWithSchemaLog("identity passkey recovery verification response", identityApiTypes.schemas.PasskeyRecoveryVerificationResult, body);
+
+export const parseCreatePasskeyRecoveryOptionsRequest = (body: unknown): CreatePasskeyRecoveryOptionsRequest =>
+  parseWithSchemaLog("identity passkey recovery options request", identityApiTypes.schemas.CreatePasskeyRecoveryOptionsRequestBody, body);
 
 export const parsePasskeyRegistrationCredential = (body: unknown): PasskeyRegistrationCredential =>
   parseWithSchemaLog("identity passkey registration credential", identityApiTypes.schemas.PasskeyRegistrationCredential, body);

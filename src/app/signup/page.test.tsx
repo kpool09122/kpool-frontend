@@ -9,7 +9,7 @@ import { SignupPage } from "./SignupPage";
 const options = {
   challengeKey: "11111111-1111-4111-8111-111111111111",
   options: {
-    rp: { name: "kpool", id: "example.test" },
+    rp: { name: "k-pool", id: "example.test" },
     user: { name: "member@example.com", id: "AQID", displayName: "Member" },
     challenge: "AQID",
     pubKeyCredParams: [{ type: "public-key", alg: -7 }],

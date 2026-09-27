@@ -16,7 +16,7 @@ const buffer = (...bytes: number[]) => new Uint8Array(bytes).buffer;
 const registrationOptions = {
   challengeKey: "11111111-1111-4111-8111-111111111111",
   options: {
-    rp: { name: "kpool", id: "example.test" },
+    rp: { name: "k-pool", id: "example.test" },
     user: { name: "member@example.com", id: "BAUG", displayName: "Member" },
     challenge: "AQID",
     pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 60000,
