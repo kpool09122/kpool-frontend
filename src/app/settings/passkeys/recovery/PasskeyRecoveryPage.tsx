@@ -51,15 +51,20 @@ export function PasskeyRecoveryPage({
     setErrorMessage(null);
     setNoticeMessage(null);
 
-    const result = await api.createRecoverySocialRedirect(provider, locale);
+    await Promise.resolve().then(async () => {
+      const result = await api.createRecoverySocialRedirect(provider, locale);
 
-    if (result.ok) {
-      navigate(result.data.redirectUrl);
-      return;
-    }
+      if (result.ok) {
+        navigate(result.data.redirectUrl);
+        return;
+      }
 
-    setErrorMessage(t.ssoFailed);
-    setPending(false);
+      setErrorMessage(t.ssoFailed);
+    }).catch(() => {
+      setErrorMessage(t.ssoFailed);
+    }).finally(() => {
+      setPending(false);
+    });
   };
 
   const sendEmail = async (event?: FormEvent<HTMLFormElement>) => {
@@ -69,14 +74,19 @@ export function PasskeyRecoveryPage({
     setErrorMessage(null);
     setNoticeMessage(null);
 
-    const result = await api.sendRecoveryEmail({ email }, locale);
+    await Promise.resolve().then(async () => {
+      const result = await api.sendRecoveryEmail({ email }, locale);
 
-    if (result.ok) {
-      setPhase("verification");
-    } else {
+      if (result.ok) {
+        setPhase("verification");
+      } else {
+        setErrorMessage(t.emailSendFailed);
+      }
+    }).catch(() => {
       setErrorMessage(t.emailSendFailed);
-    }
-    setPending(false);
+    }).finally(() => {
+      setPending(false);
+    });
   };
 
   const verifyEmail = async (event: FormEvent<HTMLFormElement>) => {
@@ -86,15 +96,20 @@ export function PasskeyRecoveryPage({
     setErrorMessage(null);
     setNoticeMessage(null);
 
-    const result = await api.verifyRecoveryEmail({ email, authCode }, locale);
+    await Promise.resolve().then(async () => {
+      const result = await api.verifyRecoveryEmail({ email, authCode }, locale);
 
-    if (result.ok) {
-      setRecoveryKey(result.data.recoveryKey);
-      setPhase("confirm");
-    } else {
+      if (result.ok) {
+        setRecoveryKey(result.data.recoveryKey);
+        setPhase("confirm");
+      } else {
+        setErrorMessage(t.verificationFailed);
+      }
+    }).catch(() => {
       setErrorMessage(t.verificationFailed);
-    }
-    setPending(false);
+    }).finally(() => {
+      setPending(false);
+    });
   };
 
   const registerReplacement = async (event: FormEvent<HTMLFormElement>) => {
@@ -104,25 +119,30 @@ export function PasskeyRecoveryPage({
     setErrorMessage(null);
     setNoticeMessage(null);
 
-    const result = await recoveryAdapter({
-      api,
-      displayName,
-      language: locale,
-      recoveryKey,
-    });
+    await Promise.resolve().then(async () => {
+      const result = await recoveryAdapter({
+        api,
+        displayName,
+        language: locale,
+        recoveryKey,
+      });
 
-    if (result.ok) {
-      setPhase("complete");
-      setRecoveryKey("");
-      setAuthCode("");
-    } else if (result.reason === "cancelled") {
-      setNoticeMessage(t.passkeyCancelled);
-    } else if (result.reason === "unsupported") {
-      setErrorMessage(t.passkeyUnsupported);
-    } else {
+      if (result.ok) {
+        setPhase("complete");
+        setRecoveryKey("");
+        setAuthCode("");
+      } else if (result.reason === "cancelled") {
+        setNoticeMessage(t.passkeyCancelled);
+      } else if (result.reason === "unsupported") {
+        setErrorMessage(t.passkeyUnsupported);
+      } else {
+        setErrorMessage(t.passkeyFailed);
+      }
+    }).catch(() => {
       setErrorMessage(t.passkeyFailed);
-    }
-    setPending(false);
+    }).finally(() => {
+      setPending(false);
+    });
   };
 
   return (

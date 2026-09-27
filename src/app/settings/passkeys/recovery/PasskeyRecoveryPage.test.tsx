@@ -116,4 +116,82 @@ describe("PasskeyRecoveryPage", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("安全に再試行");
     expect(screen.getByRole("button", { name: "新しいパスキーを作成" })).toBeEnabled();
   });
+
+  it("allows SSO retry after an unexpected rejection without exposing details", async () => {
+    const createRecoverySocialRedirect = vi.fn()
+      .mockRejectedValueOnce(new Error("private SSO error"))
+      .mockResolvedValueOnce({ ok: true, data: { redirectUrl: "https://accounts.example.test/reauth" } });
+    const navigate = vi.fn();
+    render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, createRecoverySocialRedirect }} navigate={navigate} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Googleで本人確認" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("SSOによる本人確認を開始できませんでした");
+    expect(screen.queryByText("private SSO error")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Googleで本人確認" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Googleで本人確認" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth"));
+  });
+
+  it("allows email send and resend retries after unexpected rejections", async () => {
+    const sendRecoveryEmail = vi.fn()
+      .mockRejectedValueOnce(new Error("private email error"))
+      .mockResolvedValueOnce({ ok: true, data: {} })
+      .mockRejectedValueOnce(new Error("private resend error"))
+      .mockResolvedValueOnce({ ok: true, data: {} });
+    render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: "member@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("確認コードを送信できませんでした");
+    expect(screen.queryByText("private email error")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "確認コードを送信" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    await screen.findByLabelText("確認コード");
+
+    const resend = screen.getByRole("button", { name: "同じメールアドレスへ確認コードを再送" });
+    fireEvent.click(resend);
+    expect(await screen.findByRole("alert")).toHaveTextContent("確認コードを送信できませんでした");
+    expect(screen.queryByText("private resend error")).not.toBeInTheDocument();
+    expect(resend).toBeEnabled();
+    fireEvent.click(resend);
+    await waitFor(() => expect(resend).toBeEnabled());
+    expect(sendRecoveryEmail).toHaveBeenCalledTimes(4);
+    expect(sendRecoveryEmail).toHaveBeenLastCalledWith({ email: "member@example.com" }, "ja");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("allows verification retry after an unexpected rejection", async () => {
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: {} });
+    const verifyRecoveryEmail = vi.fn()
+      .mockRejectedValueOnce(new Error("private verification error"))
+      .mockResolvedValueOnce({ ok: true, data: { recoveryKey } });
+    render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail, verifyRecoveryEmail }} />);
+
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: "member@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    fireEvent.change(await screen.findByLabelText("確認コード"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "確認する" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("正しくないか、有効期限が切れています");
+    expect(screen.queryByText("private verification error")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "確認する" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "確認する" }));
+    expect(await screen.findByRole("heading", { name: "新しいパスキーを作成" })).toBeInTheDocument();
+  });
+
+  it("allows recovery retry after an unexpected adapter rejection", async () => {
+    const recoveryAdapter = vi.fn()
+      .mockRejectedValueOnce(new Error("private recovery error"))
+      .mockResolvedValueOnce({ ok: true });
+    render(<PasskeyRecoveryPage initialRecoveryKey={recoveryKey} recoveryAdapter={recoveryAdapter} />);
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "新しいパスキーを作成" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("パスキーを登録できませんでした");
+    expect(screen.queryByText("private recovery error")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新しいパスキーを作成" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "新しいパスキーを作成" }));
+    expect(await screen.findByRole("heading", { name: "パスキーの復旧が完了しました" })).toBeInTheDocument();
+    expect(recoveryAdapter).toHaveBeenCalledTimes(2);
+  });
+
 });
