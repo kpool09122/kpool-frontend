@@ -18,7 +18,7 @@ const credential = {
 const optionsResult = {
   challengeKey,
   options: {
-    rp: { name: "kpool", id: "example.test" },
+    rp: { name: "k-pool", id: "example.test" },
     user: { name: "member@example.com", id: "AQID", displayName: "Member" },
     challenge: "AQID", pubKeyCredParams: [{ type: "public-key", alg: -7 }], timeout: 60000,
     excludeCredentials: [], authenticatorSelection: { residentKey: "required", userVerification: "preferred" }, attestation: "none",
