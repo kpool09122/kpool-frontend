@@ -6,15 +6,23 @@ const e2eBaseUrl = `http://127.0.0.1:${e2ePort}`;
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
+  workers: process.env.CI ? 2 : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: "html",
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: e2eBaseUrl,
     trace: "on-first-retry",
   },
   webServer: {
-    command: `KPOOL_ENABLE_MOCK_WIKI_GATEWAY=1 pnpm build && KPOOL_ENABLE_MOCK_WIKI_GATEWAY=1 pnpm exec next start --hostname 127.0.0.1 --port ${e2ePort}`,
+    command: `node node_modules/next/dist/bin/next build && node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port ${e2ePort}`,
+    env: {
+      KPOOL_ENABLE_MOCK_WIKI_GATEWAY: "1",
+      KPOOL_WIKI_PRIVATE_API_BASE_URL: "",
+      KPOOL_IDENTITY_API_BASE_URL: "",
+      KPOOL_ACCOUNT_API_BASE_URL: "",
+      KPOOL_SITE_MANAGEMENT_API_BASE_URL: "",
+    },
     url: e2eBaseUrl,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1",
     timeout: 120_000,

@@ -3,16 +3,16 @@
 import { create } from "zustand";
 
 import { fetchCurrentAuthenticatedIdentity } from "@/gateways/identity/authIdentityBrowserApi";
-import type { IdentitySummary } from "@/gateways/identity/identityApi";
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 
 type AuthStatus = "authenticated" | "guest" | "loading";
 
 type AuthStore = {
-  identity: IdentitySummary | null;
+  identity: AuthenticatedIdentitySummary | null;
   status: AuthStatus;
-  setIdentity: (identity: IdentitySummary | null) => void;
+  setIdentity: (identity: AuthenticatedIdentitySummary | null) => void;
   clearIdentity: () => void;
-  refreshIdentity: (options?: { preserveOnNull?: boolean }) => Promise<IdentitySummary | null>;
+  refreshIdentity: (options?: { preserveOnNull?: boolean }) => Promise<AuthenticatedIdentitySummary | null>;
 };
 
 export type AuthIdentityRefresh = AuthStore["refreshIdentity"];

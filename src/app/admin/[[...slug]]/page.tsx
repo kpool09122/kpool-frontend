@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 
+import { normalizeReturnTo } from "@/gateways/auth/authFlow";
+import { getAuthenticatedAccountStatus } from "@/gateways/identity/identityApi";
+
 import { AdminAppClient } from "./AdminAppClient";
 import { loadAdminRouteContext } from "../adminRouteContext";
 
@@ -10,6 +13,7 @@ type AdminProps = {
     slug?: string[];
   }>;
   searchParams?: Promise<{
+    authReturnTo?: string | string[];
     returnTo?: string | string[];
   }>;
 };
@@ -18,7 +22,7 @@ const getSingleSearchParam = (value: string | string[] | undefined): string | un
   Array.isArray(value) ? value[0] : value;
 
 const normalizeOptionalReturnTo = (value: string | undefined): string | null =>
-  value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+  value ? normalizeReturnTo(value) : null;
 
 const buildLoginReturnTo = (slug: string[] | undefined): string =>
   slug && slug.length > 0 ? `/admin/${slug.join("/")}` : "/admin";
@@ -29,8 +33,11 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
   const returnTo = normalizeOptionalReturnTo(
     getSingleSearchParam(resolvedSearchParams.returnTo),
   );
+  const authReturnTo = normalizeOptionalReturnTo(
+    getSingleSearchParam(resolvedSearchParams.authReturnTo),
+  );
 
-  if (!returnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
+  if (!returnTo && !authReturnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
     redirect("/admin/wiki/editing");
   }
 
@@ -39,5 +46,9 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
     resolvedParams.slug,
   );
 
-  return <AdminAppClient context={context} returnTo={returnTo} />;
+  if (authReturnTo && getAuthenticatedAccountStatus(context.initialIdentity) === "active") {
+    redirect(authReturnTo);
+  }
+
+  return <AdminAppClient context={context} returnTo={authReturnTo ?? returnTo} />;
 }

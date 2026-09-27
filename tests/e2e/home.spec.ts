@@ -11,38 +11,24 @@ const useJapaneseLocale = async (page: Page) => {
   ]);
 };
 
-test("home page shows the wiki list surface", async ({ page }) => {
+test("home page shows Wiki discovery sections", async ({ page }) => {
   await page.goto("/");
-
-  await expect(
-    page.getByRole("heading", {
-      name: "Find a wiki",
-    }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Search")).toBeVisible();
-  await expect(page.getByLabel("Resource")).toHaveValue("");
-  await expect(page.getByLabel("Sort")).toHaveValue("asc");
-  await expect(page.getByLabel("Per page")).toHaveValue("10");
-  await expect(
-    page.getByText(/Theme token preview|Open Wiki Detail Demo/i),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("heading", {
-      name: /Wiki list|No wikis found|Wiki list is unavailable/i,
-    }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Recently updated wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "New wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Frequently updated wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Recently updated wikis" }).getByRole("link", { name: "View more" }))
+    .toHaveAttribute("href", "/en/wiki?sort=updatedAt&order=desc&perPage=10&page=1");
 });
 
-test("home page applies filters and resets to the first page", async ({
+test("wiki list applies filters and resets to the first page", async ({
   page,
 }) => {
-  await page.goto("/?page=3&perPage=10&sort=name&order=asc");
+  await page.goto("/en/wiki?page=3&perPage=10&sort=name&order=asc");
 
   await page.getByLabel("Search").fill("aurora");
   await page.getByLabel("Resource").selectOption("group");
   await page.getByLabel("Sort").selectOption("desc");
   await page.getByLabel("Per page").selectOption("30");
-  await page.getByRole("button", { name: "Apply" }).click();
 
   await expect(page).toHaveURL(/keyword=aurora/);
   await expect(page).toHaveURL(/resourceType=group/);
@@ -62,15 +48,18 @@ test("guest locale defaults to English and persists language switching", async (
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
 
-  await page.getByLabel("Language").selectOption("ja");
+  await expect(async () => {
+    await page.getByRole("banner").getByRole("combobox").selectOption("ja");
+    await expect(page).toHaveURL(/\/ja$/, { timeout: 1000 });
+  }).toPass();
   await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Wikiを探す" })).toBeVisible();
-  await expect(page.getByLabel("検索")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "最近更新されたWiki" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "最近更新されたWiki" }).getByLabel("種別")).toBeVisible();
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Wikiを探す" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "最近更新されたWiki" })).toBeVisible();
 });
 
 test("mobile header menu shows the login link", async ({ page }) => {
@@ -124,6 +113,7 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
 }) => {
   await useJapaneseLocale(page);
   await page.route("**/api/identity/auth/social/google/redirect?*", async (route) => {
+    await page.context().addCookies([{ name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" }]);
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ redirectUrl: "/admin?sso=google" }),
@@ -166,7 +156,7 @@ test("login page opens passkey recovery and keeps email responses enumeration-sa
   await expect(page.getByLabel("登録済みメールアドレス")).toHaveCount(0);
 });
 
-test("signup page prioritizes SSO and offers verified-email passkey registration", async ({
+test("signup page offers verified-email passkey registration without an account type", async ({
   page,
 }) => {
   await useJapaneseLocale(page);
@@ -175,9 +165,9 @@ test("signup page prioritizes SSO and offers verified-email passkey registration
 
   await expect(page).toHaveURL(/\/signup$/);
   await expect(page.getByRole("heading", { name: "アカウント登録" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "SSOで登録" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Googleで登録" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "パスキーで登録" })).toBeVisible();
+  await expect(page.getByLabel("登録用メールアドレス", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("アカウント名", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("アカウント区分", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "認証コードを送信" })).toBeVisible();
   await expect(page.getByLabel("パスワード", { exact: true })).toHaveCount(0);
 });

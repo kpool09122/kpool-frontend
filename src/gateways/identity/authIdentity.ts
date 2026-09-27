@@ -1,8 +1,7 @@
 import {
   getIdentityApiBaseUrl,
   parseAuthenticatedIdentitySummary,
-  parseIdentitySummary,
-  type IdentitySummary,
+  type AuthenticatedIdentitySummary,
 } from "./identityApi";
 
 type FetchAuthenticatedIdentityOptions = {
@@ -11,6 +10,7 @@ type FetchAuthenticatedIdentityOptions = {
 };
 
 export const mockAccountPolicyCookieName = "kpool-mock-account-policy";
+export const mockAccountStatusCookieName = "kpool-mock-account-status";
 
 const isMockIdentityEnabled = (): boolean =>
   process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
@@ -18,19 +18,24 @@ const isMockIdentityEnabled = (): boolean =>
 const hasCookieValue = (cookieHeader: string, name: string, value: string): boolean =>
   cookieHeader.split(";").some((cookie) => cookie.trim() === `${name}=${value}`);
 
-const createMockAuthenticatedIdentity = (cookieHeader: string): IdentitySummary => {
+const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIdentitySummary => {
   const hasAccountUpdatePolicy = hasCookieValue(cookieHeader, mockAccountPolicyCookieName, "update");
+  const accountType = hasAccountUpdatePolicy ? "corporation" : "individual";
+  const accountStatus = cookieHeader.split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${mockAccountStatusCookieName}=`))
+    ?.slice(mockAccountStatusCookieName.length + 1) ?? "active";
 
-  return parseIdentitySummary({
+  return parseAuthenticatedIdentitySummary({
     identityIdentifier: "11111111-1111-1111-1111-111111111111",
     identityName: "member",
     email: "member@example.com",
-    language: "ja",
+    language: hasCookieValue(cookieHeader, "kpool-locale", "en") ? "en" : "ja",
     profileImage: null,
     accountIdentifier: "22222222-2222-2222-2222-222222222222",
     accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
-    accountType: hasAccountUpdatePolicy ? "corporation" : "individual",
-    accountEffectivePolicies: hasAccountUpdatePolicy
+    accountType,
+    accountPolicies: hasAccountUpdatePolicy
       ? [
           {
             policyIdentifier: "99999999-9999-9999-9999-999999999999",
@@ -46,13 +51,27 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): IdentitySummary 
           },
         ]
       : [],
+    account: accountStatus === "missing" ? null : {
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: accountStatus === "pending" ? null : accountType,
+      name: "Member Account",
+      status: accountStatus,
+      accountCategory: "general",
+      phone: null,
+      address: null,
+    },
+    originalAccount: null,
+    delegationIdentifier: null,
+    switchableAccounts: [],
+    authenticationMethods: { passkeyCount: 1, linkedSocialProviders: [] },
   });
 };
 
 export const fetchAuthenticatedIdentity = async ({
   cookieHeader,
   fetchAdapter = fetch,
-}: FetchAuthenticatedIdentityOptions = {}): Promise<IdentitySummary | null> => {
+}: FetchAuthenticatedIdentityOptions = {}): Promise<AuthenticatedIdentitySummary | null> => {
   const baseUrl = getIdentityApiBaseUrl();
 
   if (!cookieHeader) {
@@ -60,7 +79,10 @@ export const fetchAuthenticatedIdentity = async ({
   }
 
   if (isMockIdentityEnabled()) {
-    return createMockAuthenticatedIdentity(cookieHeader);
+    const hasMockSession = cookieHeader.split(";").some((cookie) =>
+      /^(kpool-mock-account-status|kpool-mock-account-policy|kpool-e2e-wiki-principal)=/.test(cookie.trim()),
+    );
+    return hasMockSession ? createMockAuthenticatedIdentity(cookieHeader) : null;
   }
 
   if (!baseUrl) {

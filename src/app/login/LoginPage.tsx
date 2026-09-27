@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import {
+  buildPostSocialAuthReturnTo,
   identityProviders,
   loginWithPasskey,
   normalizeReturnTo,
@@ -16,6 +17,7 @@ import {
 } from "@/gateways/auth/authFlow";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
+import { getAuthenticatedAccountStatus, isAccountStatusUnavailable } from "@/gateways/identity/identityApi";
 import { useI18n } from "../../i18n/I18nProvider";
 
 type LoginPageProps = {
@@ -91,12 +93,25 @@ export function LoginPage({
     const result = await loginAdapter({ language: locale, returnTo: destination });
 
     if (result.ok) {
-      await refreshIdentity();
+      const identity = await refreshIdentity().catch(() => null);
+
+      if (!identity || isAccountStatusUnavailable(identity)) {
+        setErrorMessage(dictionary.admin.accountStatusErrorMessage);
+        setPendingAction(null);
+        return;
+      }
+
+      const accountStatus = getAuthenticatedAccountStatus(identity);
+      const nextDestination = accountStatus === "pending"
+        ? buildPostSocialAuthReturnTo(destination)
+        : accountStatus === "suspended"
+          ? "/admin"
+          : result.returnTo;
 
       if (navigate) {
-        navigate(result.returnTo);
+        navigate(nextDestination);
       } else {
-        router.replace(result.returnTo);
+        router.replace(nextDestination);
       }
       refresh?.();
       return;

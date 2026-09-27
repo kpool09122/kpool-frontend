@@ -1,6 +1,6 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   cookies: vi.fn(),
@@ -49,6 +49,8 @@ vi.mock("./[[...slug]]/AdminAppClient", () => ({
 import Admin from "./[[...slug]]/page";
 
 describe("Admin server route", () => {
+  afterEach(() => cleanup());
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.cookies.mockResolvedValue({
@@ -59,6 +61,7 @@ describe("Admin server route", () => {
       identityName: "member",
       email: "member@example.com",
       language: "ja",
+      account: { status: "active", type: "individual" },
     });
     mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
     mocks.loadInitialDraftWikiListForRequest.mockResolvedValue({
@@ -100,6 +103,63 @@ describe("Admin server route", () => {
       "/wiki/ja/gr-aurora-echo/edit",
     );
   });
+
+  it("does not load any service data for a pending account", async () => {
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "11111111-1111-1111-1111-111111111111",
+      identityName: "member",
+      email: "member@example.com",
+      language: "ja",
+      account: { status: "pending", type: null },
+    });
+
+    render(
+      await Admin({
+        params: Promise.resolve({ slug: ["wiki", "submitted"] }),
+        searchParams: Promise.resolve({ authReturnTo: "/wiki/ja/example" }),
+      }),
+    );
+
+    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadInitialWikiDraftImagesForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadInitialWikiImageDeletionRequestsForRequest).not.toHaveBeenCalled();
+    expect(screen.getByTestId("admin-client")).toHaveTextContent("/wiki/ja/example");
+  });
+
+  it("continues an active SSO account to its safe auth return destination", async () => {
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "11111111-1111-1111-1111-111111111111",
+      identityName: "member",
+      email: "member@example.com",
+      language: "ja",
+      account: { status: "active", type: "individual" },
+    });
+
+    await expect(Admin({
+      searchParams: Promise.resolve({ authReturnTo: "/wiki/ja/example" }),
+    })).rejects.toThrow("redirect:/wiki/ja/example");
+  });
+
+  it.each(["/\\example.org", "//example.org", "/\texample.org", "https://example.org", "/login"])(
+    "normalizes unsafe authReturnTo %j before redirecting",
+    async (authReturnTo) => {
+      await expect(Admin({ searchParams: Promise.resolve({ authReturnTo }) }))
+        .rejects.toThrow("redirect:/admin");
+    },
+  );
+
+  it.each([null, undefined, { status: "unknown" }, { status: "suspended" }])(
+    "does not load service data for an unavailable account %j",
+    async (account) => {
+      mocks.fetchAuthenticatedIdentity.mockResolvedValue({ identityIdentifier: "identity-1", account });
+      await Admin({ params: Promise.resolve({ slug: ["wiki", "submitted"] }) });
+      expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialWikiDraftImagesForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialWikiImageDeletionRequestsForRequest).not.toHaveBeenCalled();
+    },
+  );
 
   it("does not load Wiki principal or draft lists for account pages", async () => {
     render(

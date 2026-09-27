@@ -50,7 +50,7 @@ describe("/api/account/accounts route", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://account.example.test/api/account/accounts",
-      {
+      expect.objectContaining({
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -58,10 +58,11 @@ describe("/api/account/accounts route", () => {
           "Content-Type": "application/json",
           Cookie: "laravel_session=abc",
         },
-        body: JSON.stringify(createAccountRequestBody),
         cache: "no-store",
-      },
+      }),
     );
+    const upstreamOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(upstreamOptions.body))).toEqual(createAccountRequestBody);
   });
 
   it("does not expose upstream 500 details to the client", async () => {

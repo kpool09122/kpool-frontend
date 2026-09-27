@@ -1,3 +1,5 @@
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
+
 import {
   parseAccountMembersResponse,
   parseAccountSummary,
@@ -14,6 +16,7 @@ import {
   parseSwitchAccountResponse,
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
+  type CompleteInitialSetupRequest,
   type AccountSummary,
   type AccountDelegationSummary,
   type AffiliationCommandSummary,
@@ -140,7 +143,10 @@ type SwitchAccountOptions = {
   fetchAdapter?: typeof fetch;
 };
 
-export type AccountBrowserApiError = Error & { accountRouteStatus: number };
+export type AccountBrowserApiError = Error & {
+  accountRouteCode?: string;
+  accountRouteStatus: number;
+};
 
 export const isAccountBrowserApiError = (error: unknown): error is AccountBrowserApiError =>
   error instanceof Error &&
@@ -169,8 +175,77 @@ const createRouteError = (
   fallbackErrorMessage: string,
 ): AccountBrowserApiError =>
   Object.assign(new Error(getRouteErrorMessage(body, fallbackErrorMessage)), {
+    accountRouteCode:
+      typeof body === "object" && body !== null && "code" in body &&
+      typeof (body as { code: unknown }).code === "string"
+        ? (body as { code: string }).code
+        : undefined,
     accountRouteStatus: response.status,
   });
+
+export const completeInitialSetup = async ({
+  fallbackErrorMessage,
+  fetchAdapter = fetch,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestBody: CompleteInitialSetupRequest;
+}): Promise<void> => {
+  const response = await fetchAdapter("/api/account/accounts/setup", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    throw createRouteError(response, await readResponseBody(response), fallbackErrorMessage);
+  }
+};
+
+export type CompleteInitialSetupFlowResult =
+  | { ok: true; identity: AuthenticatedIdentitySummary | null; setupConflict: boolean }
+  | { ok: false; message: string; setupConflict: boolean };
+
+export const completeInitialSetupAndRefresh = async ({
+  completeSetup,
+  fallbackErrorMessage,
+  refreshIdentity,
+  requestBody,
+}: {
+  completeSetup: typeof completeInitialSetup;
+  fallbackErrorMessage: string;
+  refreshIdentity: (options: { preserveOnNull: boolean }) => Promise<AuthenticatedIdentitySummary | null>;
+  requestBody: CompleteInitialSetupRequest;
+}): Promise<CompleteInitialSetupFlowResult> => {
+  let setupConflict = false;
+
+  try {
+    await completeSetup({ fallbackErrorMessage, requestBody });
+  } catch (error) {
+    setupConflict = isAccountBrowserApiError(error) && error.accountRouteStatus === 409;
+    if (!setupConflict) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : fallbackErrorMessage,
+        setupConflict: false,
+      };
+    }
+  }
+
+  const identity = await refreshIdentity({ preserveOnNull: true }).catch(() => null);
+
+  return {
+    ok: true,
+    identity,
+    setupConflict,
+  };
+};
 
 const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
   const bytes = new Uint8Array(arrayBuffer);

@@ -57,12 +57,8 @@ describe("SignupPage", () => {
     expect(screen.getByRole("button", { name: "認証コードを送信" })).toBeInTheDocument();
     expect(screen.queryByLabelText(/パスワード/)).not.toBeInTheDocument();
 
-    const individualTab = screen.getByRole("tab", { name: "個人" });
-    const corporationTab = screen.getByRole("tab", { name: "法人" });
-    expect(individualTab).toHaveAttribute("aria-selected", "true");
-    fireEvent.click(corporationTab);
-    expect(corporationTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "corporation-account-panel");
+    expect(screen.queryByRole("tab", { name: "個人" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "法人" })).not.toBeInTheDocument();
   });
 
   it("sends and verifies the email before options, credential, and registration", async () => {
@@ -83,7 +79,6 @@ describe("SignupPage", () => {
 
     await waitFor(() => expect(adapter.createRegistrationOptions).toHaveBeenCalledWith({
       email: "member@example.com",
-      accountType: "individual",
       oneTimeToken: null,
       return_to: "/admin",
     }, { language: "ja" }));

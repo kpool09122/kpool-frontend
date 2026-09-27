@@ -94,13 +94,14 @@ describe("passkey BFF routes", () => {
     expect((await createAdditionOptions(request("/api/identity/auth/passkeys/addition/options", "POST"))).status).toBe(502);
   });
 
-  it("forwards and validates registration options", async () => {
+  it("strips pre-authentication account type and forwards validated registration options", async () => {
     const body = { email: "member@example.com", accountType: "individual", oneTimeToken: null, return_to: "/admin" };
+    const expectedBody = { email: "member@example.com", oneTimeToken: null, return_to: "/admin" };
     const fetchMock = vi.fn().mockResolvedValue(upstreamResponse(optionsResult));
     vi.stubGlobal("fetch", fetchMock);
     await createRegistrationOptions(request("/api/identity/auth/passkeys/registration/options", "POST", body));
     expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys/registration/options", expect.objectContaining({
-      body: JSON.stringify(body), cache: "no-store",
+      body: JSON.stringify(expectedBody), cache: "no-store",
       headers: expect.objectContaining({ "Accept-Language": "en", Cookie: "laravel_session=abc" }),
     }));
 

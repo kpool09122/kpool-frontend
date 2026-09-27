@@ -1,5 +1,5 @@
 import type { AccountSummary } from "@/gateways/account/accountApi";
-import type { IdentitySummary } from "@/gateways/identity/identityApi";
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { Locale } from "../../i18n/locales";
 import type { DraftImageListState } from "./useAdminDraftImageReview";
@@ -14,7 +14,7 @@ export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDelet
 export type AdminRouteContext = {
   initialDraftImages: DraftImageListState;
   initialDraftWikis: Record<AdminDraftWikiActionTab, DraftWikiListState>;
-  initialIdentity: IdentitySummary;
+  initialIdentity: AuthenticatedIdentitySummary;
   initialImageDeletionRequests: ImageDeletionRequestListState;
   initialPrincipalState: WikiPrincipalState;
 };

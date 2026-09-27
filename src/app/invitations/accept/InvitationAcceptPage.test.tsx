@@ -42,7 +42,7 @@ describe("InvitationAcceptPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "招待を受諾" }));
 
     await waitFor(() => expect(createRegistrationOptions).toHaveBeenCalledWith({
-      email: "invited@example.com", accountType: null, oneTimeToken: "invite-token", return_to: "/admin",
+      email: "invited@example.com", oneTimeToken: "invite-token", return_to: "/admin",
     }, { language: "ja" }));
     expect(registerWithPasskey).toHaveBeenCalledWith(expect.objectContaining({
       identityName: "Invited Member", displayName: "Phone", credential,

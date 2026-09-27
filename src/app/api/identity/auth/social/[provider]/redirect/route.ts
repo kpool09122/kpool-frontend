@@ -38,7 +38,6 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
     const requestParams = new URL(request.url).searchParams;
     const returnTo = requestParams.get("return_to");
     const oneTimeToken = requestParams.get("oneTimeToken");
-    const accountType = requestParams.get("accountType");
     const searchParams = new URLSearchParams();
 
     if (returnTo) {
@@ -47,10 +46,6 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
 
     if (oneTimeToken) {
       searchParams.set("oneTimeToken", oneTimeToken);
-    }
-
-    if (accountType) {
-      searchParams.set("accountType", accountType);
     }
 
     const query = searchParams.toString();

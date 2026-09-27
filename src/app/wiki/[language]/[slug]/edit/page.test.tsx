@@ -60,6 +60,7 @@ describe("Wiki edit route", () => {
     });
     mocks.fetchAuthenticatedIdentity.mockResolvedValue({
       identityIdentifier: "identity-1",
+      account: { status: "active" },
     });
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({
       status: "available",
@@ -70,6 +71,16 @@ describe("Wiki edit route", () => {
   afterEach(() => {
     cleanup();
   });
+
+  it.each([null, undefined, { status: "unknown" }, { status: "suspended" }])(
+    "blocks editing when the account is unavailable: %j",
+    async (account) => {
+      mocks.fetchAuthenticatedIdentity.mockResolvedValue({ identityIdentifier: "identity-1", account });
+      await expect(Page(routeProps())).rejects.toThrow("redirect:/admin?authReturnTo=");
+      expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadDraftWikiState).not.toHaveBeenCalled();
+    },
+  );
 
   it("disables route caching for realtime draft edits", () => {
     expect(dynamic).toBe("force-dynamic");
@@ -122,6 +133,19 @@ describe("Wiki edit route", () => {
     await expect(Page(routeProps({ themeColor: "#d94f70" }))).rejects.toThrow(
       "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit%3FthemeColor%3D%2523d94f70",
     );
+  });
+
+  it("redirects pending accounts to setup before loading Wiki data", async () => {
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "identity-1",
+      account: { status: "pending" },
+    });
+
+    await expect(Page(routeProps())).rejects.toThrow(
+      "redirect:/admin?authReturnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
+    );
+    expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadDraftWikiState).not.toHaveBeenCalled();
   });
 
   it("redirects edits to admin with the edit return path when the principal is missing", async () => {

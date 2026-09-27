@@ -720,7 +720,7 @@ test("admin lets account policy users edit account information", async ({ page }
   await page.route("**/api/account/accounts/22222222-2222-2222-2222-222222222222", async (route) => {
     if (route.request().method() === "PATCH") {
       patchRequests += 1;
-      expect(route.request().postDataJSON()).toEqual({ accountName: "Updated Account" });
+      expect(route.request().postDataJSON()).toEqual({ accountName: "Updated Account", address: null, phone: null });
       await route.fulfill({
         status: 200,
         contentType: "application/json",
