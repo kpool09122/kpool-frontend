@@ -25,7 +25,7 @@
 - ✅ **Require status checks to pass before merging**
   - `Require branches to be up to date before merging` を有効にする
   - `Status checks that are required` で以下を選択する
-    - `check` (`.github/workflows/ci.yml` のジョブ名)
+    - `check` (`.github/workflows/ci.yml` の集約ジョブ。`unit` と E2E の全分割が成功した場合のみ成功)
 
 #### 推奨の設定
 
@@ -76,3 +76,11 @@
 - ブランチ保護ルールは管理者を含む全ユーザーに適用されます
 - ステータスチェック名を変更した場合は、このドキュメントと GitHub 設定を合わせて更新してください
 - CI の前提は `Node.js 26.10.0` と `pnpm 12.4.2` です
+
+## E2E の並列実行
+
+- `unit`（ESLint・単体テスト・通常ビルド）と `e2e` は並列に実行します。
+- `e2e` は Chromium のテストを2分割し、各ジョブで2ワーカーを使用します。
+- 各ジョブがモックを有効にしたアプリをビルド・起動します。外部APIの接続先は空にして、開発用の環境変数に依存しないようにしています。
+- HTMLレポートは `playwright-report-1` / `playwright-report-2` として7日間保存します。リトライ時のトレースもレポートから確認できます。
+- ローカルでは `pnpm exec playwright install chromium` の後に `pnpm test:e2e --workers=2` で実行できます。片方だけ実行する場合は `--shard=1/2` または `--shard=2/2` を指定します。

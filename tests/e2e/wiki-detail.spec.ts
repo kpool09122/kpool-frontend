@@ -2,6 +2,14 @@ import { expect, test } from "@playwright/test";
 
 const e2eBaseUrl = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
 
+test.beforeEach(async ({ page }) => {
+  await page.context().addCookies([
+    { name: "kpool-mock-account-status", value: "active", url: e2eBaseUrl },
+    { name: "kpool-e2e-wiki-principal", value: "basic", url: e2eBaseUrl },
+    { name: "kpool-locale", value: "en", url: e2eBaseUrl },
+  ]);
+});
+
 test("wiki detail page shows the public layout and flip interaction", async ({
   page,
 }) => {
@@ -60,6 +68,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
         name: "Aurora Echo",
         resourceType: "group",
         status: "under_review",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     });
   });
@@ -74,6 +83,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
         name: "Aurora Echo",
         resourceType: "group",
         status: "draft",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     });
   });
@@ -161,7 +171,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await page.getByRole("button", { name: "gui" }).click();
   await expect(page.locator("a", { hasText: "대표 문서" })).toHaveAttribute(
     "href",
-    "/wiki/ja/%EB%AC%B8%EC%84%9C",
+    "/ja/wiki/%EB%AC%B8%EC%84%9C",
   );
   await expect(page.getByLabel("Footnote: 주석 예시")).toBeVisible();
   await expect(page.getByText("Included from 틀:Discography")).toBeVisible();
@@ -268,15 +278,15 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   await expect(page.getByLabel("Wiki code")).toHaveValue(/== Overview ==/);
   await expect(page.getByLabel("Wiki code")).toHaveValue(/\[\[나연\(TWICE\)\|나연\]\]/);
   await page.getByRole("button", { name: "gui" }).click();
-  await expect(page.locator('a[href="/wiki/ja/%EB%82%98%EC%97%B0(TWICE)"]')).toHaveCount(1);
-  await expect(page.locator('a[href="/wiki/ja/tl-nayeon-twice"]')).toHaveCount(0);
+  await expect(page.locator('a[href="/ja/wiki/%EB%82%98%EC%97%B0(TWICE)"]')).toHaveCount(1);
+  await expect(page.locator('a[href="/ja/wiki/tl-nayeon-twice"]')).toHaveCount(0);
   await expect(page.getByLabel("Footnote: 오디션 프로그램 SIXTEEN을 통해 결성되었다.")).toBeVisible();
   await expect(page.getByText("Included from 틀:TWICE/음반")).toBeVisible();
   await expect(page.getByTitle("YouTube embed: TWICE \"CHEER UP\" M/V")).toHaveAttribute(
     "src",
     "https://www.youtube-nocookie.com/embed/c7rCyll5AeY",
   );
-  await expect(page.locator('a[href="/wiki/ja/tl-momo-twice"]')).toHaveCount(0);
+  await expect(page.locator('a[href="/ja/wiki/tl-momo-twice"]')).toHaveCount(0);
   await expect(page.getByText("関連プロフィールはありません")).toBeVisible();
 });
 
@@ -329,6 +339,7 @@ test("wiki edit Profiles block loads related profiles from resource type selecti
         name: "TWICE",
         resourceType: "group",
         status: "draft",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     });
   });
@@ -429,6 +440,7 @@ test("wiki edit page opens the image library and submits an image usage request"
         imageIdentifier: "image-uploaded",
         resourceType: "group",
         status: "draft",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
       }),
     });
   });
@@ -450,8 +462,9 @@ test("wiki edit page opens the image library and submits an image usage request"
   await page.getByTestId("wiki-image-upload-input").setInputFiles({
     name: "upload.png",
     mimeType: "image/png",
-    buffer: Buffer.from("png"),
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1kAAAAASUVORK5CYII=", "base64"),
   });
+  await page.getByRole("button", { name: "切り取りを確定" }).click();
   await expect(page.getByText("選択中: upload.png")).toBeVisible();
   await expect.poll(() => uploadRequestBody).toBeNull();
   await expect(page.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
@@ -483,7 +496,7 @@ test("identifier-only profile cards do not open mock member wiki pages", async (
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/ja/gr-twice/edit");
 
-  await expect(page.locator('a[href="/wiki/ja/tl-nayeon-twice"]')).toHaveCount(0);
+  await expect(page.locator('a[href="/ja/wiki/tl-nayeon-twice"]')).toHaveCount(0);
   await expect(page.getByText("関連プロフィールはありません")).toBeVisible();
 });
 

@@ -10,6 +10,7 @@ type FetchAuthenticatedIdentityOptions = {
 };
 
 export const mockAccountPolicyCookieName = "kpool-mock-account-policy";
+export const mockAccountStatusCookieName = "kpool-mock-account-status";
 
 const isMockIdentityEnabled = (): boolean =>
   process.env.KPOOL_ENABLE_MOCK_WIKI_GATEWAY === "1";
@@ -20,12 +21,16 @@ const hasCookieValue = (cookieHeader: string, name: string, value: string): bool
 const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIdentitySummary => {
   const hasAccountUpdatePolicy = hasCookieValue(cookieHeader, mockAccountPolicyCookieName, "update");
   const accountType = hasAccountUpdatePolicy ? "corporation" : "individual";
+  const accountStatus = cookieHeader.split(";")
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${mockAccountStatusCookieName}=`))
+    ?.slice(mockAccountStatusCookieName.length + 1) ?? "active";
 
   return parseAuthenticatedIdentitySummary({
     identityIdentifier: "11111111-1111-1111-1111-111111111111",
     identityName: "member",
     email: "member@example.com",
-    language: "ja",
+    language: hasCookieValue(cookieHeader, "kpool-locale", "en") ? "en" : "ja",
     profileImage: null,
     accountIdentifier: "22222222-2222-2222-2222-222222222222",
     accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
@@ -46,12 +51,12 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
           },
         ]
       : [],
-    account: {
+    account: accountStatus === "missing" ? null : {
       accountIdentifier: "22222222-2222-2222-2222-222222222222",
       email: "member@example.com",
-      type: accountType,
+      type: accountStatus === "pending" ? null : accountType,
       name: "Member Account",
-      status: "active",
+      status: accountStatus,
       accountCategory: "general",
       phone: null,
       address: null,
@@ -74,7 +79,10 @@ export const fetchAuthenticatedIdentity = async ({
   }
 
   if (isMockIdentityEnabled()) {
-    return createMockAuthenticatedIdentity(cookieHeader);
+    const hasMockSession = cookieHeader.split(";").some((cookie) =>
+      /^(kpool-mock-account-status|kpool-mock-account-policy|kpool-e2e-wiki-principal)=/.test(cookie.trim()),
+    );
+    return hasMockSession ? createMockAuthenticatedIdentity(cookieHeader) : null;
   }
 
   if (!baseUrl) {
