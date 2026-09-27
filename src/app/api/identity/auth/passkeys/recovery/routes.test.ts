@@ -70,8 +70,23 @@ describe("passkey recovery BFF routes", () => {
       request("/api/identity/auth/passkeys/recovery/social/evil/redirect", "GET"),
       { params: Promise.resolve({ provider: "evil" }) },
     );
-    expect(invalid.status).toBe(502);
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toEqual({ message: "Invalid social provider." });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 502 when the upstream redirect response has an invalid schema", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json({ redirectUrl: 123 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await createSocialRedirect(
+      request("/api/identity/auth/passkeys/recovery/social/google/redirect", "GET"),
+      { params: Promise.resolve({ provider: "google" }) },
+    );
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ message: "Identity API response did not match the expected schema." });
   });
 
   it("creates recovery options and completes replacement while forwarding cookies and language", async () => {

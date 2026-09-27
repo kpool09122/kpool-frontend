@@ -1,11 +1,8 @@
 import { identityApiTypes } from "@kpool/types";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import {
-  forwardIdentityRoute,
-  identityApiSchemaErrorResponse,
-} from "../../../../../routeSupport";
+import { forwardIdentityRoute } from "../../../../../routeSupport";
 
 type RecoverySocialRouteContext = {
   params: Promise<{ provider: string }>;
@@ -17,7 +14,7 @@ export async function GET(request: NextRequest, context: RecoverySocialRouteCont
   const { provider } = await context.params;
   const parsedProvider = ProviderSchema.safeParse(provider);
   if (!parsedProvider.success) {
-    return identityApiSchemaErrorResponse();
+    return NextResponse.json({ message: "Invalid social provider." }, { status: 400 });
   }
 
   return forwardIdentityRoute(request, {
