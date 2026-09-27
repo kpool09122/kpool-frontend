@@ -769,18 +769,13 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/passkeys/recovery/social/:provider/redirect",
     alias: "IdentityAuthOperations_startPasskeyRecoveryWithSocial",
-    description: `Create a reauthentication URL for a social account already linked to the recovery target identity.`,
+    description: `Create a social reauthentication URL. Identify the recovery target from the linked social account on callback.`,
     requestFormat: "json",
     parameters: [
       {
         name: "provider",
         type: "Path",
         schema: z.string(),
-      },
-      {
-        name: "identityIdentifier",
-        type: "Query",
-        schema: z.string().uuid(),
       },
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
