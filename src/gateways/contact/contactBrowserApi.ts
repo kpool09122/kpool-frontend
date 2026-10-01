@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import {
   parseSubmitContactResponse,
   type SubmitContactRequest,
@@ -15,7 +17,7 @@ export type SubmitContactAdapter = (options: {
 
 export const submitContact: SubmitContactAdapter = async ({ locale, requestBody }) => {
   try {
-    const response = await fetch("/api/contact", {
+    const response = await browserApiFetch("/api/contact", {
       method: "POST",
       headers: {
         Accept: "application/json",

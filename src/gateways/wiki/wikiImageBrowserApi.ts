@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import {
   normalizeWikiDraftImageListResponse,
   defaultWikiImagePerPage,
@@ -99,7 +101,7 @@ export const fetchWikiDraftImages = async ({
     url.searchParams.set("wikiIdentifier", wikiIdentifier);
   }
 
-  const response = await fetch(`${url.pathname}${url.search}`);
+  const response = await browserApiFetch(`${url.pathname}${url.search}`);
   const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
@@ -124,7 +126,7 @@ export const fetchWikiImageDeletionRequests = async ({
   url.searchParams.set("perPage", String(perPage));
   url.searchParams.set("page", String(page));
 
-  const response = await fetch(`${url.pathname}${url.search}`);
+  const response = await browserApiFetch(`${url.pathname}${url.search}`);
   const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
@@ -148,7 +150,7 @@ export const loadInitialWikiDraftImagesForRequest = async (
   }
 
   try {
-    const response = await fetch(
+    const response = await browserApiFetch(
       createWikiDraftImagesUrl({
         baseUrl,
         page: 1,
@@ -187,7 +189,7 @@ export const loadInitialWikiImageDeletionRequestsForRequest = async (
   }
 
   try {
-    const response = await fetch(
+    const response = await browserApiFetch(
       createWikiImageDeletionRequestsUrl({
         baseUrl,
         page: 1,
@@ -231,7 +233,7 @@ export const fetchWikiImages = async ({
   url.searchParams.set("perPage", String(perPage));
   url.searchParams.set("page", String(page));
 
-  const response = await fetch(`${url.pathname}${url.search}`);
+  const response = await browserApiFetch(`${url.pathname}${url.search}`);
   const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
@@ -250,7 +252,7 @@ export const requestWikiImageDeletion = async ({
   imageIdentifier: string;
   requestBody: WikiImageDeletionRequest;
 }): Promise<WikiImageDeletionRequestResponse> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/images/${encodeURIComponent(imageIdentifier)}/request-deletion`,
     {
       method: "POST",
@@ -282,7 +284,7 @@ export const approveWikiImageDeletionRequest = async ({
   fallbackErrorMessage: string;
   imageIdentifier: string;
 }): Promise<WikiImageDeletionRequestApprovalResponse> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/image-deletion-requests/${encodeURIComponent(imageIdentifier)}/approve`,
     {
       method: "POST",
@@ -315,7 +317,7 @@ export const rejectWikiImageDeletionRequest = async ({
   imageIdentifier: string;
   requestBody: WikiImageDeletionRequestRejectionRequest;
 }): Promise<WikiImageDeletionRequestRejectionResponse> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/image-deletion-requests/${encodeURIComponent(imageIdentifier)}/reject`,
     {
       method: "POST",
@@ -348,7 +350,7 @@ export const uploadWikiImageRequest = async ({
   fallbackErrorMessage: string;
   requestBody: WikiImageUploadRequest;
 }): Promise<WikiImageUploadResponse> => {
-  const response = await fetch("/api/wiki/images/upload", {
+  const response = await browserApiFetch("/api/wiki/images/upload", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -373,7 +375,7 @@ const reviewWikiDraftImage = async ({
   fallbackErrorMessage: string;
   imageIdentifier: string;
 }): Promise<WikiImageReviewResponse> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/draft-images/${encodeURIComponent(imageIdentifier)}/${action}`,
     {
       method: "POST",

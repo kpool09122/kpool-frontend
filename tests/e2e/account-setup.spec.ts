@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 import { mockAccountStatusCookieName } from "@/gateways/identity/authIdentity";
 
@@ -129,7 +129,9 @@ test("pending account resumes setup after reload and direct access while public 
 test("pending account can log out before completing setup", async ({ page }) => {
   await mockAccount(page, "pending");
   await page.route("**/api/identity/auth/logout", async (route) => {
+    expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf-token");
     await page.context().clearCookies({ name: mockAccountStatusCookieName });
+    await page.route("**/api/identity/auth/me", (authRoute) => authRoute.fulfill({ status: 401 }));
     await route.fulfill({ status: 204 });
   });
   await page.goto("/admin");

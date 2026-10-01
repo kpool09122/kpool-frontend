@@ -1,3 +1,5 @@
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -55,6 +57,7 @@ const getForwardHeaders = (request: NextRequest, hasBody: boolean): HeadersInit 
     Accept: "application/json",
     ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    ...getCsrfForwardHeaders(request.headers),
     ...(cookie ? { Cookie: cookie } : {}),
   };
 };

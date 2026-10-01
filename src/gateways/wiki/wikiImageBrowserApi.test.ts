@@ -52,6 +52,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
         },
@@ -104,6 +105,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
         },
@@ -136,6 +138,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           "Content-Type": "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
@@ -216,6 +219,7 @@ describe("wikiImageBrowserApi", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/wiki/images/upload", {
       method: "POST",
       headers: {
+        "X-XSRF-TOKEN": "test-csrf-token",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
@@ -254,6 +258,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),

@@ -1,5 +1,7 @@
 "use client";
 
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import {
   toWikiEditRequestPayload,
   type WikiDraftDetail,
@@ -15,7 +17,7 @@ import { createSubmitWikiRequestBody } from "@/gateways/wiki/draftWiki";
 export type WikiSaveResult = { ok: true; status?: WikiDraftStatus } | { ok: false };
 
 export const saveWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveResult> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/drafts/${encodeURIComponent(draft.wikiIdentifier)}`,
     {
       method: "POST",
@@ -36,7 +38,7 @@ export const saveWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveRes
 };
 
 export const submitWikiDraft = async (draft: WikiDraftDetail): Promise<WikiSaveResult> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/drafts/${encodeURIComponent(draft.wikiIdentifier)}/submit`,
     {
       method: "POST",

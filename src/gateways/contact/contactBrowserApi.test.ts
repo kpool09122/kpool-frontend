@@ -32,6 +32,7 @@ describe("contact browser API", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/contact", {
       method: "POST",
       headers: {
+        "X-XSRF-TOKEN": "test-csrf-token",
         Accept: "application/json",
         "Accept-Language": "ja",
         "Content-Type": "application/json",

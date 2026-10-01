@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import { mockAccountPolicyCookieName } from "@/gateways/identity/authIdentity";
 import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
 

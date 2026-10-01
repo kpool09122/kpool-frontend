@@ -2133,6 +2133,7 @@ describe("draftWiki", () => {
       expect.objectContaining({
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           "Content-Type": "application/json",
         },
@@ -2173,6 +2174,7 @@ describe("draftWiki", () => {
       expect.objectContaining({
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
         },
         method: "POST",

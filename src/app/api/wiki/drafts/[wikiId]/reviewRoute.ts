@@ -1,3 +1,5 @@
+import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
@@ -52,6 +54,8 @@ export const createWikiDraftReviewRoute =
 
       return NextResponse.json(result, { status: 201 });
     } catch (error) {
+      if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
+
       console.error(`Failed to ${action} wiki draft.`, {
         wikiId,
         status: getWikiRouteErrorStatus(error),

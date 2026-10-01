@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import { z } from "zod";
@@ -215,7 +217,7 @@ const getWikiPrincipalBoundaryErrorMessage = (error: unknown): string =>
   error instanceof z.ZodError ? toWikiPrincipalMessage(error) : wikiPrincipalUnavailableMessage;
 
 export const getCurrentWikiPrincipal = async ({
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: {
   fetchAdapter?: FetchAdapter;
 } = {}): Promise<Extract<WikiPrincipalState, { status: "available" | "missing" | "error" }>> => {
@@ -326,7 +328,7 @@ export const getInitialWikiPrincipalForRequest = async ({
 
 export const createWikiPrincipal = async ({
   accountIdentifier,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   identityIdentifier,
 }: WikiPrincipalCreateRequest & {
   fetchAdapter?: FetchAdapter;

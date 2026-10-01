@@ -9,7 +9,7 @@ import {
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getAcceptLanguageForwardHeaders,
-  getCookieForwardHeaders,
+  getSessionForwardHeaders,
   identityApiNotConfiguredResponse,
   identityApiSchemaErrorResponse,
   identityApiUnavailableResponse,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
           headers: {
             Accept: "application/json",
             ...getAcceptLanguageForwardHeaders(request),
-            ...getCookieForwardHeaders(request),
+            ...getSessionForwardHeaders(request),
           },
           cache: "no-store",
         },

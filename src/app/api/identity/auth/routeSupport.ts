@@ -1,3 +1,5 @@
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -36,10 +38,10 @@ export const readIdentityRouteResponseBody = async (response: Response): Promise
   }
 };
 
-export const getCookieForwardHeaders = (request: NextRequest): Record<"Cookie", string> | Record<string, never> => {
+export const getSessionForwardHeaders = (request: NextRequest): Record<string, string> => {
   const cookie = request.headers.get("cookie");
 
-  return cookie ? { Cookie: cookie } : {};
+  return { ...getCsrfForwardHeaders(request.headers), ...(cookie ? { Cookie: cookie } : {}) };
 };
 
 export const getAcceptLanguageForwardHeaders = (
@@ -109,7 +111,7 @@ export const forwardIdentityRoute = async (
         Accept: "application/json",
         ...getAcceptLanguageForwardHeaders(request),
         ...(requestBody === undefined ? {} : { "Content-Type": "application/json" }),
-        ...getCookieForwardHeaders(request),
+        ...getSessionForwardHeaders(request),
       },
       ...(requestBody === undefined ? {} : { body: JSON.stringify(requestBody) }),
       cache: "no-store",

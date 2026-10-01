@@ -1,3 +1,7 @@
+import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
@@ -57,12 +61,15 @@ export async function POST(request: NextRequest) {
         Accept: "application/json",
         ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
         "Content-Type": "application/json",
+        ...getCsrfForwardHeaders(request.headers),
         ...(cookie ? { Cookie: cookie } : {}),
       },
       body: JSON.stringify(requestBody),
       cache: "no-store",
     });
     const responseBody = await readResponseBody(apiResponse);
+
+    if (apiResponse.status === 419) return csrfTokenMismatchResponse();
 
     if (!apiResponse.ok) {
       if (apiResponse.status === 422) {
