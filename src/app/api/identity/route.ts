@@ -17,7 +17,16 @@ import {
   identityApiUnavailableResponse,
   readIdentityRouteResponseBody,
   withIdentitySetCookie,
+  forwardIdentityRoute,
 } from "./auth/routeSupport";
+
+export async function DELETE(request: NextRequest) {
+  return forwardIdentityRoute(request, {
+    method: "DELETE",
+    path: "/identities/me",
+    responseSchema: z.void(),
+  });
+}
 
 export async function PATCH(request: NextRequest) {
   const baseUrl = getIdentityApiBaseUrl();

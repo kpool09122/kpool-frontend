@@ -53,10 +53,10 @@ describe("step-up BFF routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(upstream({ redirectUrl: "https://accounts.example.test/reauth" }));
     vi.stubGlobal("fetch", fetchMock);
     const response = await createSocialStepUpRedirect(
-      request("/api/identity/auth/step-up/social/google/redirect", "GET"),
+      request("/api/identity/auth/step-up/social/google/redirect?returnTo=withdrawal", "GET"),
       { params: Promise.resolve({ provider: "google" }) },
     );
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/step-up/social/google/redirect", expect.objectContaining({ cache: "no-store" }));
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/step-up/social/google/redirect?returnTo=withdrawal", expect.objectContaining({ cache: "no-store" }));
     expect(await response.json()).toEqual({ redirectUrl: "https://accounts.example.test/reauth" });
 
     fetchMock.mockClear();

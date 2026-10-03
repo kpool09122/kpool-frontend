@@ -6,7 +6,7 @@ import type { DraftImageListState } from "./useAdminDraftImageReview";
 import type { DraftWikiListState, AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 import type { ImageDeletionRequestListState } from "./useAdminImageDeletionRequestReview";
 
-export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings";
+export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings" | "otherSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "wiki" | "accountSettings" | "settings";
 export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
@@ -93,4 +93,5 @@ export const adminSettingsTabRoutes: Record<AdminSettingsTab, string> = {
   languageSettings: "/admin/user/language",
   profileSettings: "/admin/user/profile",
   securitySettings: "/admin/user/security",
+  otherSettings: "/admin/user/other",
 };

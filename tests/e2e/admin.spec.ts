@@ -655,6 +655,51 @@ test("admin hides draft image review for principals without image policies", asy
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
 });
 
+test("admin exposes the withdrawal flow from the direct Other route on mobile", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "basic");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.context().addCookies([{
+    name: "XSRF-TOKEN",
+    value: "test-csrf-token",
+    domain: "127.0.0.1",
+    path: "/",
+  }]);
+  let withdrawalRequests = 0;
+  await page.route("**/api/identity", async (route) => {
+    if (route.request().method() !== "DELETE") {
+      await route.continue();
+      return;
+    }
+
+    withdrawalRequests += 1;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await route.fulfill({
+      status: 403,
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: "identity_withdrawal_not_allowed",
+        message: "Withdrawal is not allowed.",
+      }),
+    });
+  });
+
+  await page.goto("/admin/user/other");
+  await expect(page.getByRole("tab", { name: "その他", selected: true })).toBeVisible();
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await page.getByRole("button", { name: "退会手続きへ" }).click();
+  await expect(page.getByRole("dialog", { name: "サービスから退会しますか？" })).toBeVisible();
+  await expect(page.getByText(/お問い合わせと返信、および決済関連データは保持/)).toBeVisible();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+  expect(withdrawalRequests).toBe(0);
+
+  await page.getByRole("button", { name: "退会手続きへ" }).click();
+  const confirm = page.getByRole("button", { name: "退会する" });
+  await confirm.dblclick();
+  await expect(page.getByText(/通常の退会手続きを利用できません/)).toBeVisible();
+  expect(withdrawalRequests).toBe(1);
+});
+
 test("admin lets account policy users edit account information", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "basic");

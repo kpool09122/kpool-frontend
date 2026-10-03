@@ -32,6 +32,7 @@ export default async function LanguageHome({ params, searchParams }: LanguageHom
   const resolvedSearchParams = (await searchParams) ?? {};
   const resourceTypes = getSectionResourceTypes(resolvedSearchParams);
   const t = dictionaries[resolvedLanguage].home;
+  const adminT = dictionaries[resolvedLanguage].admin;
   const queries = {
     updated: {
       perPage: 10,
@@ -87,6 +88,11 @@ export default async function LanguageHome({ params, searchParams }: LanguageHom
   return (
     <main className="min-h-screen bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
+        {resolvedSearchParams.withdrawal === "complete" ? (
+          <p className="rounded-xl border border-green-300 bg-green-50 p-4 text-sm font-semibold text-green-800" role="status">
+            {adminT.withdrawalComplete}
+          </p>
+        ) : null}
         <TopWikiSectionsClient
           initialSections={sections}
           language={resolvedLanguage}

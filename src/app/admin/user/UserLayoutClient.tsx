@@ -57,6 +57,7 @@ export function UserLayoutClient({
     createSettingsTab("profileSettings", t.profileSettingsTab),
     createSettingsTab("languageSettings", t.languageSettingsTab),
     createSettingsTab("securitySettings", t.securitySettingsTab),
+    createSettingsTab("otherSettings", t.otherSettingsTab),
   ];
 
   return (
