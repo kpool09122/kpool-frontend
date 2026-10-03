@@ -163,6 +163,13 @@ const RecoverPasskeyRequestBody = z
 const SendPasskeyRecoveryEmailRequestBody = z
   .object({ email: z.string() })
   .passthrough();
+const EmailSendingStatusResult = z
+  .object({
+    accepted: z.boolean(),
+    remainingSends: z.number().int(),
+    retryAfterSeconds: z.number().int().nullable(),
+  })
+  .passthrough();
 const VerifyPasskeyRecoveryEmailRequestBody = z
   .object({ email: z.string(), authCode: z.string().min(6).max(6) })
   .passthrough();
@@ -200,9 +207,6 @@ const SocialLinkingResult = z
     email: z.string(),
     expiresAt: KPool_Common_Timestamp,
   })
-  .passthrough();
-const SendSocialLinkingEmailResult = z
-  .object({ accepted: z.boolean() })
   .passthrough();
 const VerifySocialLinkingEmailRequestBody = z
   .object({ authCode: z.string().regex(/^[0-9]{6}$/) })
@@ -329,6 +333,7 @@ export const schemas = {
   PasskeyAuthenticationOptionsResult,
   RecoverPasskeyRequestBody,
   SendPasskeyRecoveryEmailRequestBody,
+  EmailSendingStatusResult,
   VerifyPasskeyRecoveryEmailRequestBody,
   PasskeyRecoveryVerificationResult,
   CreatePasskeyRecoveryOptionsRequestBody,
@@ -339,7 +344,6 @@ export const schemas = {
   UpdatePasskeyRequestBody,
   SendAuthCodeRequestBody,
   SocialLinkingResult,
-  SendSocialLinkingEmailResult,
   VerifySocialLinkingEmailRequestBody,
   CompleteStepUpWithPasskeyRequestBody,
   VerifyEmailRequestBody,
@@ -771,7 +775,7 @@ const endpoints = makeApi([
         schema: z.object({ email: z.string() }).passthrough(),
       },
     ],
-    response: z.void(),
+    response: EmailSendingStatusResult,
     errors: [
       {
         status: 419,
@@ -988,7 +992,7 @@ const endpoints = makeApi([
         schema: z.object({ email: z.string() }).passthrough(),
       },
     ],
-    response: z.void(),
+    response: EmailSendingStatusResult,
     errors: [
       {
         status: 419,
@@ -1112,7 +1116,7 @@ const endpoints = makeApi([
     alias: "IdentityAuthOperations_sendSocialLinkingEmail",
     description: `Request a dedicated code for the pending target&#x27;s registered email using the same session cookie. No request body is required. Codes expire with the ten-minute pending operation; a successful resend invalidates the old code without resetting failed attempts. A 60-second cooldown and a maximum of five sends per pending operation and per target identity per hour apply; throttled requests return accepted&#x3D;true without a new code. Invalid or expired pending operations return 422.`,
     requestFormat: "json",
-    response: z.object({ accepted: z.boolean() }).passthrough(),
+    response: EmailSendingStatusResult,
     errors: [
       {
         status: 419,
