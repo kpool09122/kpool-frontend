@@ -1,6 +1,6 @@
 "use client";
 
-import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+import { logoutFromIdentity } from "@/gateways/auth/logoutBrowserApi";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -17,7 +17,7 @@ import { localeLabels, supportedLocales, type Locale } from "../i18n/locales";
 type HeaderProps = {
   initialIdentity?: IdentitySummary | null;
   initialIsAuthenticated?: boolean;
-  logoutAdapter?: () => unknown;
+  logoutAdapter?: typeof logoutFromIdentity;
   navigate?: (url: string) => void;
   refresh?: () => void;
   refreshIdentityAdapter?: () => unknown;
@@ -58,13 +58,6 @@ export const buildLocaleChangePath = ({
   return `${segments.join("/")}${query ? `?${query}` : ""}`;
 };
 
-const logoutFromIdentity = async () => {
-  await browserApiFetch("/api/identity/auth/logout", {
-    method: "POST",
-    credentials: "include",
-  });
-};
-
 export function Header({
   initialIdentity = null,
   initialIsAuthenticated = false,
@@ -83,6 +76,7 @@ export function Header({
   const [isMobileLanguageViewOpen, setIsMobileLanguageViewOpen] = useState(false);
   const [isMobileAccountViewOpen, setIsMobileAccountViewOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [switchAccountError, setSwitchAccountError] = useState<string | null>(null);
   const identity = useAuthStore((state) => state.identity);
@@ -107,8 +101,13 @@ export function Header({
 
   const handleLogout = () => {
     setIsLoggingOut(true);
+    setLogoutError(null);
 
-    void Promise.resolve(logoutAdapter()).finally(() => {
+    void Promise.resolve().then(logoutAdapter).then((result) => {
+      if (!result.ok) {
+        setLogoutError(t.logoutFailed);
+        return;
+      }
       clearIdentity();
       if (navigate) {
         navigate("/login");
@@ -117,6 +116,7 @@ export function Header({
         router.refresh();
       }
       refresh?.();
+    }).catch(() => setLogoutError(t.logoutFailed)).finally(() => {
       setIsLoggingOut(false);
     });
   };
@@ -448,6 +448,11 @@ export function Header({
             </div>
           )}
         </nav>
+      ) : null}
+      {logoutError ? (
+        <p className="px-6 pb-3 text-sm text-status-danger sm:px-10 lg:px-16" role="alert">
+          {logoutError}
+        </p>
       ) : null}
     </header>
   );
