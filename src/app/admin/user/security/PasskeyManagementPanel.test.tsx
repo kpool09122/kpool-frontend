@@ -232,7 +232,7 @@ describe("PasskeyManagementPanel", () => {
     await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth"));
-    expect(api.createStepUpSocialRedirect).toHaveBeenCalledWith("google");
+    expect(api.createStepUpSocialRedirect).toHaveBeenCalledWith("google", "passkeys");
     expect(api.createAdditionOptions).not.toHaveBeenCalled();
   });
 

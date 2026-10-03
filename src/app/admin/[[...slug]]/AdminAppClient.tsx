@@ -25,6 +25,7 @@ import { AdminShellClient } from "../AdminShellClient";
 import { AdminProvider, useAdmin } from "../AdminProvider";
 import type { AdminRouteContext } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
+import { UserOtherClient } from "../user/other/UserOtherClient";
 import { UserPageClient } from "../user/UserPageClient";
 import { UserProfileClient } from "../user/profile/UserProfileClient";
 import { UserSecurityClient } from "../user/security/UserSecurityClient";
@@ -106,6 +107,7 @@ type AdminClientPage = "accountAffiliations"
   | "accountPrincipalGroups"
   | "accountProfile"
   | "userLanguage"
+  | "userOther"
   | "userProfile"
   | "userSecurity"
   | "wikiApproved"
@@ -119,7 +121,7 @@ type AdminClientPage = "accountAffiliations"
   | "wikiUnapproved"
   | "wikiUntranslated";
 
-const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
+export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   if (pathname?.startsWith("/admin/account")) {
     if (pathname.endsWith("/documents")) {
       return "accountDocuments";
@@ -159,6 +161,10 @@ const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   if (pathname?.startsWith("/admin/user")) {
     if (pathname.endsWith("/language")) {
       return "userLanguage";
+    }
+
+    if (pathname.endsWith("/other")) {
+      return "userOther";
     }
 
     return pathname.endsWith("/security") ? "userSecurity" : "userProfile";
@@ -302,6 +308,14 @@ function AdminResolvedPage({
     return (
       <UserPageClient activeSettingsTab="securitySettings">
         <UserSecurityClient />
+      </UserPageClient>
+    );
+  }
+
+  if (page === "userOther") {
+    return (
+      <UserPageClient activeSettingsTab="otherSettings">
+        <UserOtherClient />
       </UserPageClient>
     );
   }

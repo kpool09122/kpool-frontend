@@ -9,14 +9,13 @@ import {
   webAuthnBrowserAdapter,
   type WebAuthnBrowserAdapter,
 } from "@/gateways/auth/webAuthnBrowserAdapter";
+import { performRecentAuthentication } from "@/gateways/auth/recentAuthentication";
 import type { PasskeySummary } from "@/gateways/identity/identityApi";
 import {
   passkeyBrowserApi,
   type PasskeyBrowserApi,
 } from "@/gateways/identity/passkeyBrowserApi";
 import { useI18n } from "../../../../i18n/I18nProvider";
-
-type SocialProvider = "google" | "line" | "kakao";
 
 type PasskeyManagementPanelProps = {
   api?: PasskeyBrowserApi;
@@ -28,9 +27,6 @@ type PasskeyManagementPanelProps = {
   ssoStepUpCompleted?: boolean;
   webAuthnAdapter?: WebAuthnBrowserAdapter;
 };
-
-const isSocialProvider = (value: string): value is SocialProvider =>
-  value === "google" || value === "line" || value === "kakao";
 
 const defaultNavigate = (url: string): void => {
   window.location.assign(url);
@@ -85,66 +81,36 @@ export function PasskeyManagementPanel({
   };
 
   const requireAdditionalVerification = async () => {
-    if (passkeyCount === 0) {
-      const provider = linkedSocialProviders.find(isSocialProvider);
-
-      if (!provider) {
-        setError(t.passkeyRecoveryRequired);
-        return false;
-      }
-
-      const redirectResult = await api.createStepUpSocialRedirect(provider);
-
-      if (!redirectResult.ok) {
-        setError(redirectResult.message);
-        return false;
-      }
-
-      setNotice(t.passkeySsoRedirecting);
-      navigate(redirectResult.data.redirectUrl);
-      return false;
-    }
-
-    if (!webAuthnAdapter.isSupported()) {
-      setError(t.passkeyUnsupported);
-      return false;
-    }
-
-    const optionsResult = await api.createStepUpPasskeyOptions();
-
-    if (!optionsResult.ok) {
-      setError(optionsResult.message);
-      return false;
-    }
-
-    const credentialResult = await webAuthnAdapter.get(optionsResult.data);
-
-    if (!credentialResult.ok) {
-      setError(
-        credentialResult.reason === "cancelled"
-          ? t.passkeyVerificationCancelled
-          : credentialResult.reason === "unsupported"
-            ? t.passkeyUnsupported
-            : t.passkeyVerificationFailed,
-      );
-      return false;
-    }
-
-    const verificationResult = await api.completeStepUpWithPasskey({
-      challengeKey: optionsResult.data.challengeKey,
-      credential: credentialResult.credential,
+    const result = await performRecentAuthentication({
+      api,
+      linkedSocialProviders,
+      passkeyCount,
+      returnTo: "passkeys",
+      webAuthnAdapter,
     });
 
-    if (!verificationResult.ok) {
-      setError(
-        verificationResult.status === 401 || verificationResult.status === 419
-          ? t.passkeyVerificationExpired
-          : verificationResult.message,
-      );
+    if (result.status === "verified") {
+      return true;
+    }
+
+    if (result.status === "redirect") {
+      setNotice(t.passkeySsoRedirecting);
+      navigate(result.url);
       return false;
     }
 
-    return true;
+    setError(
+      result.kind === "unavailable"
+        ? t.passkeyRecoveryRequired
+        : result.kind === "unsupported"
+          ? t.passkeyUnsupported
+          : result.kind === "cancelled"
+            ? t.passkeyVerificationCancelled
+            : result.kind === "expired"
+              ? t.passkeyVerificationExpired
+              : result.message ?? t.passkeyVerificationFailed,
+    );
+    return false;
   };
 
   const handleVerify = async () => {

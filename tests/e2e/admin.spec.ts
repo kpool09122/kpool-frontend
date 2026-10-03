@@ -655,6 +655,85 @@ test("admin hides draft image review for principals without image policies", asy
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
 });
 
+test("admin exposes the withdrawal flow from the direct Other route on mobile", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "basic");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.context().addCookies([{
+    name: "XSRF-TOKEN",
+    value: "test-csrf-token",
+    domain: "127.0.0.1",
+    path: "/",
+  }]);
+  await page.route("**/api/identity/withdrawal-eligibility", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ canWithdraw: true }),
+  }));
+  let withdrawalRequests = 0;
+  let recentlyVerified = false;
+  await page.route("**/api/identity/auth/passkeys", async (route) => {
+    await route.fulfill({
+      status: recentlyVerified ? 200 : 401,
+      contentType: "application/json",
+      body: JSON.stringify(recentlyVerified
+        ? { passkeys: [] }
+        : { code: "recent_authentication_required", message: "Recent authentication required." }),
+    });
+  });
+  await page.route("**/api/identity", async (route) => {
+    if (route.request().method() !== "DELETE") {
+      await route.continue();
+      return;
+    }
+
+    expect(route.request().postDataJSON()).toEqual({ confirmationIdentityName: "member" });
+    withdrawalRequests += 1;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await route.fulfill({
+      status: 403,
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: "identity_withdrawal_not_allowed",
+        message: "Withdrawal is not allowed.",
+      }),
+    });
+  });
+
+  await page.goto("/admin/user/other");
+  await expect(page.getByRole("tab", { name: "その他", selected: true })).toBeVisible();
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByText("退会手続きを行うには追加の本人確認が必要です。")).toBeVisible();
+  await expect(page.getByRole("button", { name: "本人確認を行う" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "退会手続きへ" })).toHaveCount(0);
+  expect(withdrawalRequests).toBe(0);
+
+  recentlyVerified = true;
+  await page.goto("/admin/user/other");
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await page.getByRole("button", { name: "退会手続きへ" }).click();
+  await expect(page.getByRole("dialog", { name: "サービスから退会しますか？" })).toBeVisible();
+  await expect(page.getByText(/退会後は旧利用者として復元できません/)).toBeVisible();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+  expect(withdrawalRequests).toBe(0);
+
+  await page.getByRole("button", { name: "退会手続きへ" }).click();
+  const confirm = page.getByRole("button", { name: "退会する" });
+  await expect(confirm).toBeDisabled();
+  const confirmationInput = page.getByRole("textbox", { name: "署名（ユーザー名）" });
+  await confirmationInput.pressSequentially("wrong");
+  await expect(confirm).toBeDisabled();
+  await confirmationInput.clear();
+  await confirmationInput.pressSequentially("member");
+  await expect(confirm).toBeEnabled();
+  await confirm.dblclick();
+  await expect(page.getByText(/通常の退会手続きを利用できません/)).toBeVisible();
+  expect(withdrawalRequests).toBe(1);
+  await expect(page.getByRole("link", { name: "運営に問い合わせる" })).toHaveAttribute("href", "/contact");
+  await expect(page.getByRole("button", { name: "退会手続きへ" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
 test("admin lets account policy users edit account information", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "basic");

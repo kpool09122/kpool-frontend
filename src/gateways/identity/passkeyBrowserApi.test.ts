@@ -38,7 +38,12 @@ describe("passkeyBrowserApi step-up", () => {
       ok: true,
       data: { redirectUrl: "https://accounts.example.test/reauth" },
     });
-    expect(await passkeyBrowserApi.createStepUpSocialRedirect("line")).toEqual({
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/identity/auth/step-up/social/google/redirect?returnTo=passkeys",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(await passkeyBrowserApi.createStepUpSocialRedirect("line", "withdrawal")).toEqual({
       ok: false,
       message: "認証処理に失敗しました。時間をおいて再度お試しください。",
       status: 0,

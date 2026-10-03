@@ -52,6 +52,12 @@ export const getAcceptLanguageForwardHeaders = (
   return acceptLanguage ? { "Accept-Language": acceptLanguage } : {};
 };
 
+const getProblemCode = (body: unknown): string | undefined =>
+  typeof body === "object" && body !== null && "code" in body
+    && typeof (body as { code: unknown }).code === "string"
+    ? (body as { code: string }).code
+    : undefined;
+
 const getSetCookieHeaders = (headers: Headers): string[] => {
   const headersWithSetCookie = headers as Headers & {
     getSetCookie?: () => string[];
@@ -121,7 +127,10 @@ export const forwardIdentityRoute = async (
     if (!apiResponse.ok) {
       return withIdentitySetCookie(
         NextResponse.json(
-          { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+          {
+            ...(getProblemCode(body) ? { code: getProblemCode(body) } : {}),
+            message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }),
+          },
           { status: apiResponse.status },
         ),
         apiResponse,

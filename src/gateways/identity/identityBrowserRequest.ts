@@ -2,7 +2,7 @@ import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 export type IdentityBrowserApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; message: string; status: number };
+  | { ok: false; code?: string; message: string; status: number };
 
 type RequestOptions = {
   body?: unknown;
@@ -37,6 +37,12 @@ const getMessage = (body: unknown): string => {
   return "認証処理に失敗しました。時間をおいて再度お試しください。";
 };
 
+const getCode = (body: unknown): string | undefined =>
+  typeof body === "object" && body !== null && "code" in body
+    && typeof (body as { code: unknown }).code === "string"
+    ? (body as { code: string }).code
+    : undefined;
+
 export const requestIdentity = async <T>(
   url: string,
   parseResponse: (body: unknown) => T,
@@ -59,6 +65,7 @@ export const requestIdentity = async <T>(
     if (!response.ok) {
       return {
         ok: false,
+        code: getCode(responseBody),
         message: getMessage(responseBody),
         status: response.status,
       };
