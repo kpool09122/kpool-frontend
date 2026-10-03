@@ -12,6 +12,8 @@ import {
   approveWikiImageDeletionRequest,
   fetchWikiImageDeletionRequests,
   fetchWikiImages,
+  loadInitialWikiDraftImagesForRequest,
+  loadInitialWikiImageDeletionRequestsForRequest,
   rejectWikiDraftImage,
   rejectWikiImageDeletionRequest,
   requestWikiImageDeletion,
@@ -29,6 +31,25 @@ const jsonResponse = (body: unknown, status = 200): Response =>
 describe("wikiImageBrowserApi", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    [loadInitialWikiDraftImagesForRequest, "draft-images?status=under_review&perPage=12&page=1"],
+    [loadInitialWikiImageDeletionRequestsForRequest, "image-deletion-requests?perPage=12&page=1"],
+  ] as const)("loads %s from the backend without browser globals", async (loadInitial, path) => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
+    vi.stubGlobal("window", undefined);
+    const body = { images: [], current_page: 1, last_page: 1, total: 0, per_page: 12 };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadInitial("session=abc")).resolves.toEqual(body);
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`https://api.example.test/api/wiki/${path}`, {
+      cache: "no-store",
+      headers: { Accept: "application/json", Cookie: "session=abc" },
+    });
   });
 
   it("sends approve requests with credentials and the review header", async () => {

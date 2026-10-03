@@ -1203,7 +1203,7 @@ export const loadInitialDraftWikiListForRequest = async (
         perPage: defaultWikiDraftPerPage,
         sort: "updatedAt",
       });
-    const response = await browserApiFetch(url, {
+    const response = await fetch(url, {
       cache: "no-store",
       headers: {
         Accept: "application/json",

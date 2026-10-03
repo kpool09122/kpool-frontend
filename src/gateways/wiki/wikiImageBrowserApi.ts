@@ -150,7 +150,7 @@ export const loadInitialWikiDraftImagesForRequest = async (
   }
 
   try {
-    const response = await browserApiFetch(
+    const response = await fetch(
       createWikiDraftImagesUrl({
         baseUrl,
         page: 1,
@@ -189,7 +189,7 @@ export const loadInitialWikiImageDeletionRequestsForRequest = async (
   }
 
   try {
-    const response = await browserApiFetch(
+    const response = await fetch(
       createWikiImageDeletionRequestsUrl({
         baseUrl,
         page: 1,
