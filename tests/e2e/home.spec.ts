@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const useJapaneseLocale = async (page: Page) => {
   await page.context().addCookies([
@@ -141,6 +141,7 @@ test("login page prioritizes SSO and offers passkey without password fields", as
 test("login page opens passkey recovery and keeps email responses enumeration-safe", async ({ page }) => {
   await useJapaneseLocale(page);
   await page.route("**/api/identity/auth/passkeys/recovery/email", async (route) => {
+    expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf-token");
     await route.fulfill({ status: 204 });
   });
   await page.goto("/login");

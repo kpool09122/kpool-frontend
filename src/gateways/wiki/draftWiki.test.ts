@@ -35,6 +35,7 @@ import {
   loadDraftWikiDiffState,
   loadDraftWikiState,
   loadInitialDraftWikisForRequest,
+  loadInitialDraftWikiListForRequest,
   publishDraftWiki,
   publishWikiDraft,
   saveDraftWiki,
@@ -813,6 +814,23 @@ describe("draftWiki", () => {
       }),
     ).toBe(
       "https://api.example.test/api/wiki/wikis/version-inconsistencies?perPage=24&page=2&resourceType=group&sort=updatedAt&order=desc",
+    );
+  });
+
+  it("loads initial draft wikis from the backend without browser globals", async () => {
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "0");
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
+    vi.stubGlobal("window", undefined);
+    const body = { wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify(body)));
+
+    await expect(loadInitialDraftWikiListForRequest("session=abc", "editingWikis")).resolves.toMatchObject({
+      wikis: body.wikis,
+      pageInfo: { current_page: 1, last_page: 1, total: 0 },
+    });
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+      expect.stringMatching(/^https:\/\/api\.example\.test\/api\/wiki\/my\/draft-wikis\?/),
+      { cache: "no-store", headers: { Accept: "application/json", Cookie: "session=abc" } },
     );
   });
 
@@ -2133,6 +2151,7 @@ describe("draftWiki", () => {
       expect.objectContaining({
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           "Content-Type": "application/json",
         },
@@ -2173,6 +2192,7 @@ describe("draftWiki", () => {
       expect.objectContaining({
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
         },
         method: "POST",

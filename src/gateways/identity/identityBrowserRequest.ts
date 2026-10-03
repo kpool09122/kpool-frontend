@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 export type IdentityBrowserApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; message: string; status: number };
@@ -41,7 +43,7 @@ export const requestIdentity = async <T>(
   { body, language, method = "POST" }: RequestOptions = {},
 ): Promise<IdentityBrowserApiResult<T>> => {
   try {
-    const response = await fetch(url, {
+    const response = await browserApiFetch(url, {
       method,
       headers: {
         Accept: "application/json",

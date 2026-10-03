@@ -1,8 +1,11 @@
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse } from "next/server";
 
 export const getForwardedWikiApiHeaders = (headers: Headers): HeadersInit => {
   const forwardedHeaders: Record<string, string> = {
     Accept: "application/json",
+    ...getCsrfForwardHeaders(headers),
   };
   const acceptLanguage = headers.get("accept-language");
   const cookie = headers.get("cookie");

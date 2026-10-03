@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
@@ -356,7 +358,7 @@ export const reviewOfficialCertification = async (
 
 export const fetchOfficialCertificationReviews = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   page = 1,
   perPage = defaultOfficialCertificationPerPage,
   status = "pending",
@@ -393,7 +395,7 @@ export const fetchOfficialCertificationReviews = async ({
 
 export const requestOfficialCertificationFromBrowser = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: {
   fallbackErrorMessage: string;
@@ -425,7 +427,7 @@ export const requestOfficialCertificationFromBrowser = async ({
 export const reviewOfficialCertificationFromBrowser = async ({
   action,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: {
   action: OfficialCertificationAction;
@@ -483,7 +485,7 @@ export const syncOwnedWikiCertifications = async (
 
 export const fetchMyOfficialCertificationsFromBrowser = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   perPage = defaultOfficialCertificationPerPage,
   status,
 }: {
@@ -509,7 +511,7 @@ export const fetchMyOfficialCertificationsFromBrowser = async ({
 
 export const fetchMyOwnedWikisFromBrowser = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   perPage = 100,
 }: {
   fallbackErrorMessage: string;
@@ -532,7 +534,7 @@ export const fetchMyOwnedWikisFromBrowser = async ({
 
 export const fetchRelatedWikisFromBrowser = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   resourceType,
   translationSetIdentifier,
 }: {
@@ -560,7 +562,7 @@ export const fetchRelatedWikisFromBrowser = async ({
 
 export const syncOwnedWikiCertificationsFromBrowser = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: {
   fallbackErrorMessage: string;

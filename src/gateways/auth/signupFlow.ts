@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import {
   parseVerifyEmailResult,
   type CreatePasskeyRegistrationOptionsRequest,
@@ -140,7 +142,7 @@ const postJson = async <T>(
   parseResponse: (body: unknown) => T,
   options?: RequestLanguageOptions,
 ): Promise<T> => {
-  const response = await fetch(url, {
+  const response = await browserApiFetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",

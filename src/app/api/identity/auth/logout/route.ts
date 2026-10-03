@@ -5,7 +5,7 @@ import {
   getIdentityRouteErrorMessage,
 } from "@/gateways/identity/identityApi";
 import {
-  getCookieForwardHeaders,
+  getSessionForwardHeaders,
   identityApiNotConfiguredResponse,
   identityApiUnavailableResponse,
   readIdentityRouteResponseBody,
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         Accept: "application/json",
-        ...getCookieForwardHeaders(request),
+        ...getSessionForwardHeaders(request),
       },
       cache: "no-store",
     });

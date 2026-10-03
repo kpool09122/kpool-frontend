@@ -10,7 +10,7 @@ import {
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getAcceptLanguageForwardHeaders,
-  getCookieForwardHeaders,
+  getSessionForwardHeaders,
   identityApiNotConfiguredResponse,
   identityApiSchemaErrorResponse,
   identityApiUnavailableResponse,
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         Accept: "application/json",
         ...getAcceptLanguageForwardHeaders(request),
         "Content-Type": "application/json",
-        ...getCookieForwardHeaders(request),
+        ...getSessionForwardHeaders(request),
       },
       body: JSON.stringify(verification),
       cache: "no-store",
