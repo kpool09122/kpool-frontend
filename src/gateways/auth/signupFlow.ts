@@ -1,8 +1,10 @@
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import {
+  parseEmailSendingStatus,
   parseVerifyEmailResult,
   type CreatePasskeyRegistrationOptionsRequest,
+  type EmailSendingStatus,
   type IdentitySummary,
   type PasskeyRegistrationCredential,
   type PasskeyRegistrationOptionsResult,
@@ -35,7 +37,7 @@ export type SignupAccountFormValues = {
 type RequestLanguageOptions = { language: string };
 
 export type SignupAdapter = {
-  sendAuthCode: (request: SendAuthCodeRequest, options?: RequestLanguageOptions) => Promise<void>;
+  sendAuthCode: (request: SendAuthCodeRequest, options?: RequestLanguageOptions) => Promise<EmailSendingStatus>;
   verifyEmail: (request: VerifyEmailRequest, options?: RequestLanguageOptions) => Promise<VerifyEmailResult>;
   createRegistrationOptions: (
     request: CreatePasskeyRegistrationOptionsRequest,
@@ -164,9 +166,12 @@ const postJson = async <T>(
 };
 
 export const signupWithApi: SignupAdapter = {
-  sendAuthCode: async (request, options) => {
-    await postJson("/api/identity/auth/send-auth-code", request, () => undefined, options);
-  },
+  sendAuthCode: (request, options) => postJson(
+    "/api/identity/auth/send-auth-code",
+    request,
+    parseEmailSendingStatus,
+    options,
+  ),
   verifyEmail: (request, options) => postJson(
     "/api/identity/auth/verify-email",
     request,

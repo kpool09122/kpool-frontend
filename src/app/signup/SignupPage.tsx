@@ -3,6 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { useEmailSendingStatus, useHydrated } from "@/components/auth/useEmailSendingStatus";
+import {
+  clearSessionStorageValue,
+  readSignupProgress,
+  writeSignupProgress,
+} from "@/gateways/auth/emailSendingStateStorage";
+
 import { useAuthStore } from "@/gateways/auth/authStore";
 import {
   buildRegistrationOptionsRequest,
@@ -37,6 +44,9 @@ const getInitialValues = (language: string): SignupAccountFormValues => ({
   base64EncodedImage: "",
 });
 
+const signupProgressStorageKey = "kpool.signup.progress";
+const signupSendingStatusStorageKey = "kpool.signup.email-sending-status";
+
 const stepStateClassName: Record<SignupStepState, string> = {
   pending: "bg-stroke-subtle",
   active: "bg-brand-primary",
@@ -45,7 +55,12 @@ const stepStateClassName: Record<SignupStepState, string> = {
   error: "bg-red-500",
 };
 
-export function SignupPage({
+export function SignupPage(props: SignupPageProps) {
+  const hydrated = useHydrated();
+  return hydrated ? <SignupPageContent {...props} /> : null;
+}
+
+function SignupPageContent({
   signupAdapter = signupWithApi,
   webAuthnAdapter = webAuthnBrowserAdapter,
   navigate,
@@ -54,14 +69,20 @@ export function SignupPage({
   const router = useRouter();
   const { locale, dictionary, setLocale } = useI18n();
   const t = dictionary.signup;
-  const [values, setValues] = useState<SignupAccountFormValues>(() => getInitialValues(locale));
+  const [values, setValues] = useState<SignupAccountFormValues>(
+    () => readSignupProgress(signupProgressStorageKey) ?? getInitialValues(locale),
+  );
   const [authCode, setAuthCode] = useState("");
-  const [phase, setPhase] = useState<SignupPhase>("account");
+  const [phase, setPhase] = useState<SignupPhase>(
+    () => readSignupProgress(signupProgressStorageKey) ? "verification" : "account",
+  );
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [errorStep, setErrorStep] = useState<SignupStepId | null>(null);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
+  const sendingStatus = useEmailSendingStatus(signupSendingStatusStorageKey, values.email || null);
+
 
   const setField = (field: keyof SignupAccountFormValues, value: string): void => {
     if (field === "language") {
@@ -76,8 +97,8 @@ export function SignupPage({
     setErrorStep(step);
   };
 
-  const handleAccountSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const sendAuthCode = (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
 
     if (pending) {
       return;
@@ -90,7 +111,9 @@ export function SignupPage({
     void signupAdapter.sendAuthCode(
       { email: values.email },
       { language: values.language },
-    ).then(() => {
+    ).then((result) => {
+      sendingStatus.update(result);
+      writeSignupProgress(signupProgressStorageKey, values);
       setPhase("verification");
     }).catch((error: unknown) => {
       showError(error, "account");
@@ -114,6 +137,8 @@ export function SignupPage({
       { email: values.email, authCode },
       { language: values.language },
     ).then(() => {
+      sendingStatus.clear();
+      clearSessionStorageValue(signupProgressStorageKey);
       setPhase("passkey");
     }).catch((error: unknown) => {
       showError(error, "verification");
@@ -202,7 +227,7 @@ export function SignupPage({
 
         {phase === "account" ? (
           <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
-            <form className="space-y-5" onSubmit={handleAccountSubmit}>
+            <form className="space-y-5" onSubmit={sendAuthCode}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
                   <span>{t.email}</span>
@@ -241,6 +266,21 @@ export function SignupPage({
                 {pending ? t.verifyingCode : t.verifyCode}
               </button>
             </form>
+            <div className="mt-4 space-y-2 text-sm text-text-muted" aria-live="polite">
+              {sendingStatus.status ? <p>{t.sendAccepted}</p> : null}
+              {sendingStatus.remainingSends !== null ? <p>{t.remainingSends(sendingStatus.remainingSends)}</p> : null}
+              {sendingStatus.secondsUntilRetry !== null && sendingStatus.secondsUntilRetry > 0
+                ? <p>{t.resendWait(sendingStatus.secondsUntilRetry)}</p>
+                : null}
+              <button
+                type="button"
+                disabled={pending || sendingStatus.retryUnavailable || (sendingStatus.secondsUntilRetry ?? 0) > 0}
+                className="font-semibold text-brand-primary underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => void sendAuthCode()}
+              >
+                {pending ? t.sendingCode : t.resendCode}
+              </button>
+            </div>
           </section>
         ) : null}
 

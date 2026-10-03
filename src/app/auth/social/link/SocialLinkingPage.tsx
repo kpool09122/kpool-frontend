@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+import { useEmailSendingStatus } from "@/components/auth/useEmailSendingStatus";
 import { identityProviders } from "@/gateways/auth/authFlow";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import {
@@ -33,9 +34,11 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
   const [pending, setPending] = useState<"send" | "verify" | null>(null);
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState<"invalidSession" | "loadFailed" | "sendFailed" | "verifyFailed" | null>(null);
-  const [requested, setRequested] = useState(false);
-  const [resendAt, setResendAt] = useState(0);
   const [now, setNow] = useState(Date.now);
+  const sendingStatus = useEmailSendingStatus(
+    "kpool.social-linking.email-sending-status",
+    session?.expiresAt ?? null,
+  );
   const busy = useRef(false);
 
   useEffect(() => {
@@ -66,22 +69,21 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
   const expired = session !== null && new Date(session.expiresAt).getTime() <= now;
   const displayedError = expired ? "invalidSession" : error;
   const unavailable = !session || expired || error === "invalidSession";
-  const secondsUntilResend = Math.max(0, Math.ceil((resendAt - now) / 1000));
+  const secondsUntilResend = sendingStatus.secondsUntilRetry ?? 0;
+  const requested = sendingStatus.status !== null;
   const provider = identityProviders.find((item) => item.id === session?.provider)?.label ?? session?.provider;
 
   const canStart = () => !busy.current && !complete && !unavailable
     && session !== null && new Date(session.expiresAt).getTime() > Date.now();
 
   const sendEmail = async () => {
-    if (!canStart() || resendAt > Date.now()) return;
+    if (!canStart() || sendingStatus.retryUnavailable || secondsUntilResend > 0) return;
     busy.current = true;
     setPending("send");
     setError(null);
     await api.sendEmail(locale).then((result) => {
       if (result.ok && result.data.accepted) {
-        setRequested(true);
-        setResendAt(Date.now() + 60_000);
-        setNow(Date.now());
+        sendingStatus.update(result.data);
       } else {
         setError(!result.ok && result.status === 422 ? "invalidSession" : "sendFailed");
       }
@@ -133,12 +135,18 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
               <div><dt className="text-sm text-text-muted">{t.email}</dt><dd className="break-all font-semibold">{session.email}</dd></div>
             </dl>
             <p className="text-sm leading-6 text-text-muted">{t.instructions}</p>
-            <button type="button" disabled={pending !== null || unavailable || secondsUntilResend > 0}
+            <button type="button" disabled={pending !== null || unavailable || sendingStatus.retryUnavailable || secondsUntilResend > 0}
               className="min-h-12 w-full rounded-lg border border-brand-primary px-5 font-semibold text-brand-primary disabled:opacity-60"
               onClick={() => void sendEmail()}>
               {pending === "send" ? t.sending : secondsUntilResend > 0 ? t.resendWait(secondsUntilResend) : requested ? t.resendCode : t.sendCode}
             </button>
-            {requested ? <p role="status" className="text-sm leading-6 text-text-muted">{t.sendAccepted}</p> : null}
+            {requested ? (
+              <div role="status" className="space-y-1 text-sm leading-6 text-text-muted">
+                <p>{t.sendAccepted}</p>
+                <p>{t.remainingSends(sendingStatus.remainingSends ?? 0)}</p>
+                {sendingStatus.retryUnavailable ? <p>{t.restartRequired}</p> : null}
+              </div>
+            ) : null}
             <form onSubmit={verifyEmail} className="space-y-4">
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.authCode}</span>

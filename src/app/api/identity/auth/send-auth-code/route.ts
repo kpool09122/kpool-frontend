@@ -7,5 +7,5 @@ export const POST = (request: NextRequest) => forwardIdentityRoute(request, {
   method: "POST",
   path: "/auth/send-auth-code",
   requestSchema: identityApiTypes.schemas.SendAuthCodeRequestBody,
-  responseSchema: identityApiTypes.schemas.KPool_Common_EmptyJsonObject,
+  responseSchema: identityApiTypes.schemas.EmailSendingStatusResult,
 });

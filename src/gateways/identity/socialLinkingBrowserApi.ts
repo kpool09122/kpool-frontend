@@ -17,7 +17,7 @@ export const socialLinkingBrowserApi = {
   ),
   sendEmail: (language?: string) => requestIdentity(
     "/api/identity/auth/social/link/email",
-    (body) => parseWithSchemaLog("social linking email", identityApiTypes.schemas.SendSocialLinkingEmailResult, body),
+    (body) => parseWithSchemaLog("social linking email", identityApiTypes.schemas.EmailSendingStatusResult, body),
     { language },
   ),
   verifyEmail: (authCode: string, language?: string) => requestIdentity(

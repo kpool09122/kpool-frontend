@@ -37,7 +37,8 @@ describe("passkey recovery BFF routes", () => {
   afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
   it("forwards email send and verification with generated schemas and generic no-content response", async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(noContent()).mockResolvedValueOnce(json({ recoveryKey }));
+    const sendingStatus = { accepted: true, remainingSends: 4, retryAfterSeconds: 60 };
+    const fetchMock = vi.fn().mockResolvedValueOnce(json(sendingStatus)).mockResolvedValueOnce(json({ recoveryKey }));
     vi.stubGlobal("fetch", fetchMock);
 
     const emailBody = { email: "member@example.com" };
@@ -45,7 +46,8 @@ describe("passkey recovery BFF routes", () => {
     const verifyBody = { ...emailBody, authCode: "123456" };
     const verifyResponse = await verifyEmail(request("/api/identity/auth/passkeys/recovery/email/verification", "POST", verifyBody));
 
-    expect(sendResponse.status).toBe(204);
+    expect(sendResponse.status).toBe(200);
+    expect(await sendResponse.json()).toEqual(sendingStatus);
     expect(fetchMock).toHaveBeenNthCalledWith(1, "https://identity.example.test/api/identity/auth/passkeys/recovery/email", expect.objectContaining({ body: JSON.stringify(emailBody), cache: "no-store" }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/identity/auth/passkeys/recovery/email/verification", expect.objectContaining({ body: JSON.stringify(verifyBody), cache: "no-store" }));
     expect(await verifyResponse.json()).toEqual({ recoveryKey });

@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const response = await forwardIdentityRoute(request, {
     method: "POST",
     path: "/auth/social/link/email",
-    responseSchema: identityApiTypes.schemas.SendSocialLinkingEmailResult,
+    responseSchema: identityApiTypes.schemas.EmailSendingStatusResult,
   });
   response.headers.set("Cache-Control", "no-store");
   return response;
