@@ -149,6 +149,45 @@ describe("UserOtherClient", () => {
     expect(mocks.withdraw).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["unsupported", dictionaries.ja.admin.passkeyUnsupported],
+    ["expired", dictionaries.ja.admin.passkeyVerificationExpired],
+  ])("explains why verification is %s while keeping withdrawal masked", async (kind, message) => {
+    mocks.performRecentAuthentication.mockResolvedValue({ status: "error", kind, message: "upstream" });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("button", { name: "本人確認を行う" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
+    expect(mocks.withdraw).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])("retries an eligibility error and displays the resulting eligibility %s", async (canWithdraw) => {
+    mocks.listPasskeys.mockResolvedValue({ ok: true, data: { passkeys: [] } });
+    mocks.getWithdrawalEligibility.mockResolvedValueOnce({ ok: false, status: 503, message: "Temporarily unavailable" });
+    let resolveEligibility: ((value: { ok: true; data: { canWithdraw: boolean } }) => void) | undefined;
+    mocks.getWithdrawalEligibility.mockImplementationOnce(() => new Promise((resolve) => { resolveEligibility = resolve; }));
+    renderPage();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Temporarily unavailable");
+    const retry = screen.getByRole("button", { name: "再試行" });
+    fireEvent.click(retry);
+    await waitFor(() => expect(retry).toBeDisabled());
+    expect(mocks.getWithdrawalEligibility).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
+
+    resolveEligibility?.({ ok: true, data: { canWithdraw } });
+    if (canWithdraw) {
+      expect(await screen.findByRole("button", { name: "退会手続きへ" })).toBeEnabled();
+    } else {
+      expect(await screen.findByRole("link", { name: "運営に問い合わせる" })).toHaveAttribute("href", "/contact");
+    }
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
+    expect(mocks.withdraw).not.toHaveBeenCalled();
+  });
+
   it("unmasks withdrawal when passkey management has already verified the same session", async () => {
     await renderVerifiedPage();
 

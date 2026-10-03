@@ -119,7 +119,11 @@ export function UserOtherClient() {
           ? t.withdrawalVerificationUnavailable
           : result.kind === "cancelled"
             ? t.withdrawalVerificationCancelled
-            : result.message ?? t.withdrawalVerificationFailed,
+            : result.kind === "unsupported"
+              ? t.passkeyUnsupported
+              : result.kind === "expired"
+                ? t.passkeyVerificationExpired
+                : result.message ?? t.withdrawalVerificationFailed,
       );
     }
     processingRef.current = false;
@@ -203,7 +207,17 @@ export function UserOtherClient() {
             </Link>
           </>
         ) : eligibilityQuery.data?.ok === false ? (
-          <UserStatusMessage variant="error">{eligibilityQuery.data.message}</UserStatusMessage>
+          <>
+            <UserStatusMessage variant="error">{eligibilityQuery.data.message}</UserStatusMessage>
+            <button
+              className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              disabled={eligibilityQuery.isFetching}
+              onClick={() => void eligibilityQuery.refetch()}
+              type="button"
+            >
+              {t.withdrawalRetry}
+            </button>
+          </>
         ) : (
           <>
             <p className="text-sm leading-7 text-text-muted">{t.withdrawalDescription}</p>
