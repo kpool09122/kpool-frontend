@@ -219,7 +219,6 @@ const VerifyEmailRequestBody = z
 const VerifyEmailResult = z
   .object({ email: z.string(), verifiedAt: KPool_Common_Timestamp.nullish() })
   .passthrough();
-const WithdrawalEligibility = z.object({ canWithdraw: z.boolean() }).passthrough();
 const WithdrawFromServiceRequestBody = z
   .object({ confirmationIdentityName: z.string().min(1).max(32) })
   .passthrough();
@@ -230,6 +229,9 @@ const UpdateIdentityRequestBody = z
     base64EncodedImage: z.string().nullable(),
   })
   .partial()
+  .passthrough();
+const WithdrawalEligibility = z
+  .object({ canWithdraw: z.boolean() })
   .passthrough();
 const AccountPolicyConditionClause = z
   .object({
@@ -342,9 +344,9 @@ export const schemas = {
   CompleteStepUpWithPasskeyRequestBody,
   VerifyEmailRequestBody,
   VerifyEmailResult,
-  WithdrawalEligibility,
   WithdrawFromServiceRequestBody,
   UpdateIdentityRequestBody,
+  WithdrawalEligibility,
   AccountPolicyConditionClause,
   AccountPolicyCondition,
   AccountPolicyStatement,
@@ -1305,18 +1307,6 @@ const endpoints = makeApi([
     ],
   },
   {
-    method: "get",
-    path: "/identities/me/withdrawal-eligibility",
-    alias: "IdentityOperations_getWithdrawalEligibility",
-    description: `Check self-service withdrawal eligibility against every actual membership using the same rules as withdrawal. Any corporate membership whose account email matches the identity email case-insensitively blocks self-service withdrawal regardless of role. Does not require recent authentication and does not mutate data.`,
-    requestFormat: "json",
-    response: WithdrawalEligibility,
-    errors: [
-      { status: 401, description: `Access is unauthorized.`, schema: KPool_Common_ProblemDetails },
-      { status: 500, description: `Server error`, schema: KPool_Common_ProblemDetails },
-    ],
-  },
-  {
     method: "delete",
     path: "/identities/me",
     alias: "IdentityOperations_withdrawFromService",
@@ -1326,16 +1316,13 @@ const endpoints = makeApi([
       {
         name: "body",
         type: "Body",
-        schema: WithdrawFromServiceRequestBody,
+        schema: z
+          .object({ confirmationIdentityName: z.string().min(1).max(32) })
+          .passthrough(),
       },
     ],
     response: z.void(),
     errors: [
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
       {
         status: 401,
         description: `Access is unauthorized.`,
@@ -1348,6 +1335,11 @@ const endpoints = makeApi([
       },
       {
         status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
@@ -1396,6 +1388,26 @@ const endpoints = makeApi([
       {
         status: 422,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/identities/me/withdrawal-eligibility",
+    alias: "IdentityOperations_getWithdrawalEligibility",
+    description: `Check self-service withdrawal eligibility against every actual membership using the same rules as withdrawal. Any corporate membership whose account email matches the identity email case-insensitively blocks self-service withdrawal regardless of role. Does not require recent authentication and does not mutate data.`,
+    requestFormat: "json",
+    response: z.object({ canWithdraw: z.boolean() }).passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
