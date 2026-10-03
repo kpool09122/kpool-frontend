@@ -1,6 +1,5 @@
 import { identityApiTypes } from "@kpool/types";
 import type { NextRequest } from "next/server";
-import { z } from "zod";
 
 import { forwardIdentityRoute } from "../../../routeSupport";
 
@@ -9,6 +8,6 @@ export async function POST(request: NextRequest) {
     method: "POST",
     path: "/auth/passkeys/recovery/email",
     requestSchema: identityApiTypes.schemas.SendPasskeyRecoveryEmailRequestBody,
-    responseSchema: z.void(),
+    responseSchema: identityApiTypes.schemas.EmailSendingStatusResult,
   });
 }

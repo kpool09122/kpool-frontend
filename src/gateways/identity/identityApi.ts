@@ -59,6 +59,7 @@ export type VerifyEmailRequest = z.infer<typeof identityApiTypes.schemas.VerifyE
 export type VerifyEmailResult = z.infer<typeof identityApiTypes.schemas.VerifyEmailResult>;
 export type UpdateIdentityRequest = z.infer<typeof identityApiTypes.schemas.UpdateIdentityRequestBody>;
 export type SendAuthCodeRequest = z.infer<typeof identityApiTypes.schemas.SendAuthCodeRequestBody>;
+export type EmailSendingStatus = z.infer<typeof identityApiTypes.schemas.EmailSendingStatusResult>;
 export type PasskeySummary = z.infer<typeof identityApiTypes.schemas.PasskeySummary>;
 export type PasskeyListResult = z.infer<typeof identityApiTypes.schemas.PasskeyListResult>;
 export type PasskeyRegistrationOptionsResult = z.infer<typeof identityApiTypes.schemas.PasskeyRegistrationOptionsResult>;
@@ -182,6 +183,9 @@ export const parseVerifyEmailResult = (body: unknown): VerifyEmailResult =>
 
 export const parseSendAuthCodeRequest = (body: unknown): SendAuthCodeRequest =>
   parseWithSchemaLog("identity send auth code request", identityApiTypes.schemas.SendAuthCodeRequestBody, body);
+
+export const parseEmailSendingStatus = (body: unknown): EmailSendingStatus =>
+  parseWithSchemaLog("identity email sending status response", identityApiTypes.schemas.EmailSendingStatusResult, body);
 
 export const parsePasskeyListResult = (body: unknown): PasskeyListResult =>
   parseWithSchemaLog("identity passkey list response", identityApiTypes.schemas.PasskeyListResult, body);

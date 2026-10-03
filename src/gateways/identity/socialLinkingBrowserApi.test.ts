@@ -9,12 +9,13 @@ describe("socialLinkingBrowserApi", () => {
 
   it("uses the originating session and sends only the dedicated code", async () => {
     const session = { provider: "google", email: "member@example.com", expiresAt: "2026-09-27T12:00:00+09:00" };
+    const sendingStatus = { accepted: true, remainingSends: 4, retryAfterSeconds: 60 };
     const fetchMock = vi.fn().mockResolvedValueOnce(json(session))
-      .mockResolvedValueOnce(json({ accepted: true }))
+      .mockResolvedValueOnce(json(sendingStatus))
       .mockResolvedValueOnce(json({ redirectUrl: "/admin" }));
     vi.stubGlobal("fetch", fetchMock);
     expect(await socialLinkingBrowserApi.get("ja")).toEqual({ ok: true, data: session });
-    expect(await socialLinkingBrowserApi.sendEmail("ja")).toEqual({ ok: true, data: { accepted: true } });
+    expect(await socialLinkingBrowserApi.sendEmail("ja")).toEqual({ ok: true, data: sendingStatus });
     expect(await socialLinkingBrowserApi.verifyEmail("012345", "ja")).toEqual({ ok: true, data: { redirectUrl: "/admin" } });
     for (const [, options] of fetchMock.mock.calls) {
       expect(options).toEqual(expect.objectContaining({ credentials: "include", cache: "no-store", headers: expect.objectContaining({ "Accept-Language": "ja" }) }));
