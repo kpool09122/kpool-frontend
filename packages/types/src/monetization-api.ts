@@ -268,6 +268,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -318,6 +323,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -352,6 +362,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -392,6 +407,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -421,6 +441,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -471,6 +496,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -510,6 +540,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -560,6 +595,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -594,6 +634,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -634,6 +679,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -668,6 +718,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {

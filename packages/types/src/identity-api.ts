@@ -355,7 +355,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/csrf-token",
     alias: "IdentityAuthOperations_getCsrfToken",
-    description: `Safely initialize browser CSRF protection without requiring login. Laravel issues XSRF-TOKEN and the session cookie using Set-Cookie; the empty response is not cacheable. Keep both cookies and send the URL-decoded XSRF-TOKEN cookie value in X-XSRF-TOKEN when withdrawing. This endpoint changes no identity or account data.`,
+    description: `Safely initialize browser CSRF protection without requiring login. Laravel issues XSRF-TOKEN and the session cookie using Set-Cookie; the empty response is not cacheable. Keep both cookies and send the URL-decoded XSRF-TOKEN cookie value in X-XSRF-TOKEN for session API mutations. This endpoint changes no identity or account data. Use these cookies and the X-XSRF-TOKEN header for all session API mutations, including login and signup.`,
     requestFormat: "json",
     response: z.void(),
     errors: [
@@ -414,6 +414,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -501,6 +506,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -540,6 +550,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -585,6 +600,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -620,6 +640,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
         schema: KPool_Common_ProblemDetails,
@@ -647,6 +672,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -666,6 +696,11 @@ const endpoints = makeApi([
     requestFormat: "json",
     response: PasskeyAuthenticationOptionsResult,
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 500,
         description: `Server error`,
@@ -699,6 +734,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -726,6 +766,11 @@ const endpoints = makeApi([
     response: z.void(),
     errors: [
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -752,6 +797,11 @@ const endpoints = makeApi([
     ],
     response: PasskeyRecoveryVerificationResult,
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
@@ -782,6 +832,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -849,6 +904,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -891,6 +951,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -917,6 +982,11 @@ const endpoints = makeApi([
     ],
     response: z.void(),
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
@@ -1037,6 +1107,11 @@ const endpoints = makeApi([
     response: z.object({ accepted: z.boolean() }).passthrough(),
     errors: [
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1065,6 +1140,11 @@ const endpoints = makeApi([
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
@@ -1098,6 +1178,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1125,6 +1210,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1192,6 +1282,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1206,8 +1301,8 @@ const endpoints = makeApi([
   {
     method: "delete",
     path: "/identities/me",
-    alias: "IdentityOperations_withdrawIdentity",
-    description: `Permanently withdraw the authenticated identity. Laravel CSRF protection is required for this route, including POST method override; first GET /api/identity/auth/csrf-token, retain its cookies and send the URL-decoded XSRF-TOKEN cookie in X-XSRF-TOKEN (419 csrf_token_mismatch on failure). Post-commit cleanup and outer session-save failures are logged and do not change the committed 204 result. Requires reusable recent authentication from the same identity and login session within ten minutes, shared with passkey operations without consumption or extension. GENERAL individual accounts (including Owners) and GENERAL corporate non-Owners are eligible. Archives contain allowlisted internal identifiers and metadata only. Corporate accounts remain; individual accounts are archived and deleted. All login sessions are invalidated after commit. No target identity identifier is accepted. 401 code is authentication_required for missing login or recent_authentication_required for missing recent authentication; 403 code is identity_withdrawal_not_allowed.`,
+    alias: "IdentityOperations_withdrawFromService",
+    description: `Permanently withdraw from the service and delete the authenticated identity. Laravel CSRF protection is required for this route, including POST method override; first GET /api/identity/auth/csrf-token, retain its cookies and send the URL-decoded XSRF-TOKEN cookie in X-XSRF-TOKEN (419 csrf_token_mismatch on failure). Post-commit cleanup and outer session-save failures are logged and do not change the committed 204 result. Requires reusable recent authentication from the same identity and login session within ten minutes, shared with passkey operations without consumption or extension. GENERAL individual accounts (including Owners) and GENERAL corporate non-Owners are eligible. Archives contain allowlisted internal identifiers and metadata only. Corporate accounts remain; individual accounts are archived and deleted. All login sessions are invalidated after commit. No target identity identifier is accepted. 401 code is authentication_required for missing login or recent_authentication_required for missing recent authentication; 403 code is identity_withdrawal_not_allowed.`,
     requestFormat: "json",
     response: z.void(),
     errors: [
@@ -1261,6 +1356,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {

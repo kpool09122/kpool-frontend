@@ -1131,6 +1131,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1170,6 +1175,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1215,6 +1225,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1254,6 +1269,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1304,6 +1324,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1346,6 +1371,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1383,6 +1413,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1412,6 +1447,11 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1638,6 +1678,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1685,6 +1730,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1728,6 +1778,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1767,6 +1822,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1857,6 +1917,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -1883,6 +1948,11 @@ const endpoints = makeApi([
     ],
     response: PolicySummary,
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
@@ -1918,6 +1988,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1963,6 +2038,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2000,6 +2080,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2034,6 +2119,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -2079,6 +2169,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2105,6 +2200,11 @@ const endpoints = makeApi([
     ],
     response: PrincipalGroupSummary,
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
@@ -2180,6 +2280,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2209,6 +2314,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -2269,6 +2379,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2303,6 +2418,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -2343,6 +2463,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2370,6 +2495,11 @@ const endpoints = makeApi([
     response: RoleSummary,
     errors: [
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2396,6 +2526,11 @@ const endpoints = makeApi([
     ],
     response: z.void(),
     errors: [
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
@@ -2871,6 +3006,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -2915,6 +3055,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -2965,6 +3110,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -3009,6 +3159,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3059,6 +3214,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -3103,6 +3263,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3153,6 +3318,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -3197,6 +3367,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3247,6 +3422,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -3291,6 +3471,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3358,6 +3543,11 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -3392,6 +3582,11 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
