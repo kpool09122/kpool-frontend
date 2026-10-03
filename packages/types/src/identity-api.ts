@@ -1,15 +1,6 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
-const KPool_Common_Uuid = z.string();
-const IdentityProfileSummary = z
-  .object({
-    identityIdentifier: KPool_Common_Uuid,
-    identityName: z.string(),
-    language: z.string(),
-    profileImage: z.string().nullish(),
-  })
-  .passthrough();
 const KPool_Common_ProblemDetails = z
   .object({
     type: z.string(),
@@ -20,6 +11,15 @@ const KPool_Common_ProblemDetails = z
     code: z.string(),
   })
   .partial()
+  .passthrough();
+const KPool_Common_Uuid = z.string();
+const IdentityProfileSummary = z
+  .object({
+    identityIdentifier: KPool_Common_Uuid,
+    identityName: z.string(),
+    language: z.string(),
+    profileImage: z.string().nullish(),
+  })
   .passthrough();
 const EmptyJsonArray = z.array(z.unknown());
 const IdentitySummary = z
@@ -296,9 +296,9 @@ const SwitchableAccountSummary = z
   .passthrough();
 
 export const schemas = {
+  KPool_Common_ProblemDetails,
   KPool_Common_Uuid,
   IdentityProfileSummary,
-  KPool_Common_ProblemDetails,
   EmptyJsonArray,
   IdentitySummary,
   AuthenticatedIdentitySummary,
@@ -351,6 +351,21 @@ export const schemas = {
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/auth/csrf-token",
+    alias: "IdentityAuthOperations_getCsrfToken",
+    description: `Safely initialize browser CSRF protection without requiring login. Laravel issues XSRF-TOKEN and the session cookie using Set-Cookie; the empty response is not cacheable. Keep both cookies and send the URL-decoded XSRF-TOKEN cookie value in X-XSRF-TOKEN when withdrawing. This endpoint changes no identity or account data.`,
+    requestFormat: "json",
+    response: z.void(),
+    errors: [
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
   {
     method: "get",
     path: "/auth/identities/:identityIdentifier/profile",
@@ -437,7 +452,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/passkeys",
     alias: "IdentityAuthOperations_listPasskeys",
-    description: `List passkeys registered by the current authenticated identity after recent passkey management authentication.`,
+    description: `List passkeys registered by the current authenticated identity after recent authentication.`,
     requestFormat: "json",
     response: PasskeyListResult,
     errors: [
@@ -457,7 +472,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/auth/passkeys/:passkeyIdentifier",
     alias: "IdentityAuthOperations_updatePasskey",
-    description: `Update a passkey belonging to the authenticated identity after recent passkey management authentication.`,
+    description: `Update a passkey belonging to the authenticated identity after recent authentication.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1066,7 +1081,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/auth/step-up/passkey",
     alias: "IdentityAuthOperations_completeStepUpWithPasskey",
-    description: `Verify an existing passkey and grant reusable passkey management authorization to the current login session for up to ten minutes.`,
+    description: `Verify an existing passkey and grant common recent authentication to the same identity and login session for ten minutes from verification. Passkey operations and identity withdrawal share this result without consuming it or extending its expiry.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1098,7 +1113,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/auth/step-up/passkey/options",
     alias: "IdentityAuthOperations_createStepUpPasskeyOptions",
-    description: `Create identity-bound WebAuthn options for passkey management step-up authentication.`,
+    description: `Create identity-bound WebAuthn options for common recent authentication.`,
     requestFormat: "json",
     response: PasskeyAuthenticationOptionsResult,
     errors: [
@@ -1123,13 +1138,18 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/step-up/social/:provider/redirect",
     alias: "IdentityAuthOperations_startStepUpWithSocial",
-    description: `Create a linked-SSO reauthentication URL for initial passkey registration.`,
+    description: `Create a linked-SSO recent authentication URL when no passkey is registered. Persist the allowlisted return destination in the originating login session on the server. The result is reusable for ten minutes by the same identity and login session without consumption or extension.`,
     requestFormat: "json",
     parameters: [
       {
         name: "provider",
         type: "Path",
         schema: z.string(),
+      },
+      {
+        name: "returnTo",
+        type: "Query",
+        schema: z.enum(["passkeys", "withdrawal"]),
       },
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
@@ -1173,6 +1193,36 @@ const endpoints = makeApi([
       },
       {
         status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/identities/me",
+    alias: "IdentityOperations_withdrawIdentity",
+    description: `Permanently withdraw the authenticated identity. Laravel CSRF protection is required for this route, including POST method override; first GET /api/identity/auth/csrf-token, retain its cookies and send the URL-decoded XSRF-TOKEN cookie in X-XSRF-TOKEN (419 csrf_token_mismatch on failure). Post-commit cleanup and outer session-save failures are logged and do not change the committed 204 result. Requires reusable recent authentication from the same identity and login session within ten minutes, shared with passkey operations without consumption or extension. GENERAL individual accounts (including Owners) and GENERAL corporate non-Owners are eligible. Archives contain allowlisted internal identifiers and metadata only. Corporate accounts remain; individual accounts are archived and deleted. All login sessions are invalidated after commit. No target identity identifier is accepted. 401 code is authentication_required for missing login or recent_authentication_required for missing recent authentication; 403 code is identity_withdrawal_not_allowed.`,
+    requestFormat: "json",
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
