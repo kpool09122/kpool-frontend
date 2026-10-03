@@ -24,6 +24,7 @@ export async function DELETE(request: NextRequest) {
   return forwardIdentityRoute(request, {
     method: "DELETE",
     path: "/identities/me",
+    requestSchema: identityApiTypes.schemas.WithdrawFromServiceRequestBody,
     responseSchema: z.void(),
   });
 }

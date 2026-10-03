@@ -38,7 +38,8 @@ const createRequest = (
 const createDeleteRequest = (headers: Record<string, string> = {}): NextRequest =>
   new Request("https://app.example.test/api/identity", {
     method: "DELETE",
-    headers,
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify({ confirmationIdentityName: "Member" }),
   }) as NextRequest;
 
 const jsonResponse = (
@@ -59,7 +60,7 @@ describe("/api/identity route", () => {
     vi.unstubAllEnvs();
   });
 
-  it("forwards withdrawal without an identity body and preserves Cookie, CSRF, Set-Cookie, and 204", async () => {
+  it("forwards the withdrawal confirmation name and preserves Cookie, CSRF, Set-Cookie, and 204", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, {
       status: 204,
@@ -78,9 +79,11 @@ describe("/api/identity route", () => {
         method: "DELETE",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/json",
           Cookie: "laravel_session=abc",
           "X-XSRF-TOKEN": "csrf-token",
         },
+        body: JSON.stringify({ confirmationIdentityName: "Member" }),
         cache: "no-store",
       },
     );
@@ -94,6 +97,7 @@ describe("/api/identity route", () => {
     [401, "recent_authentication_required"],
     [403, "identity_withdrawal_not_allowed"],
     [419, "csrf_token_mismatch"],
+    [422, "identity_name_confirmation_mismatch"],
   ])("preserves withdrawal problem code for status %s (%s)", async (status, code) => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(

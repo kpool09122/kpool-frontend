@@ -219,6 +219,10 @@ const VerifyEmailRequestBody = z
 const VerifyEmailResult = z
   .object({ email: z.string(), verifiedAt: KPool_Common_Timestamp.nullish() })
   .passthrough();
+const WithdrawalEligibility = z.object({ canWithdraw: z.boolean() }).passthrough();
+const WithdrawFromServiceRequestBody = z
+  .object({ confirmationIdentityName: z.string().min(1).max(32) })
+  .passthrough();
 const UpdateIdentityRequestBody = z
   .object({
     identityName: z.string().nullable(),
@@ -338,6 +342,8 @@ export const schemas = {
   CompleteStepUpWithPasskeyRequestBody,
   VerifyEmailRequestBody,
   VerifyEmailResult,
+  WithdrawalEligibility,
+  WithdrawFromServiceRequestBody,
   UpdateIdentityRequestBody,
   AccountPolicyConditionClause,
   AccountPolicyCondition,
@@ -1299,13 +1305,37 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "get",
+    path: "/identities/me/withdrawal-eligibility",
+    alias: "IdentityOperations_getWithdrawalEligibility",
+    description: `Check self-service withdrawal eligibility against every actual membership using the same rules as withdrawal. Any corporate membership whose account email matches the identity email case-insensitively blocks self-service withdrawal regardless of role. Does not require recent authentication and does not mutate data.`,
+    requestFormat: "json",
+    response: WithdrawalEligibility,
+    errors: [
+      { status: 401, description: `Access is unauthorized.`, schema: KPool_Common_ProblemDetails },
+      { status: 500, description: `Server error`, schema: KPool_Common_ProblemDetails },
+    ],
+  },
+  {
     method: "delete",
     path: "/identities/me",
     alias: "IdentityOperations_withdrawFromService",
-    description: `Permanently withdraw from the service and delete the authenticated identity. Laravel CSRF protection is required for this route, including POST method override; first GET /api/identity/auth/csrf-token, retain its cookies and send the URL-decoded XSRF-TOKEN cookie in X-XSRF-TOKEN (419 csrf_token_mismatch on failure). Post-commit cleanup and outer session-save failures are logged and do not change the committed 204 result. Requires reusable recent authentication from the same identity and login session within ten minutes, shared with passkey operations without consumption or extension. GENERAL individual accounts (including Owners) and GENERAL corporate non-Owners are eligible. Archives contain allowlisted internal identifiers and metadata only. Corporate accounts remain; individual accounts are archived and deleted. All login sessions are invalidated after commit. No target identity identifier is accepted. 401 code is authentication_required for missing login or recent_authentication_required for missing recent authentication; 403 code is identity_withdrawal_not_allowed.`,
+    description: `Permanently withdraw from the service and delete the authenticated identity. Laravel CSRF protection is required for this route, including POST method override; first GET /api/identity/auth/csrf-token, retain its cookies and send the URL-decoded XSRF-TOKEN cookie in X-XSRF-TOKEN (419 csrf_token_mismatch on failure). Post-commit cleanup and outer session-save failures are logged and do not change the committed 204 result. Requires reusable recent authentication from the same identity and login session within ten minutes, shared with passkey operations without consumption or extension. GENERAL individual accounts (including Owners) and GENERAL corporate non-Owners are eligible only when no corporate account email matches the identity email case-insensitively, regardless of role. Archives contain allowlisted internal identifiers and metadata only. Corporate accounts remain; individual accounts are archived and deleted. All login sessions are invalidated after commit. Requires confirmationIdentityName to exactly match the current stored identity name, including whitespace and case, before any withdrawal side effect. Missing or invalid confirmation returns 422; mismatch returns 422 identity_name_confirmation_mismatch. No target identity identifier is accepted. 401 code is authentication_required for missing login or recent_authentication_required for missing recent authentication; 403 code is identity_withdrawal_not_allowed.`,
     requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: WithdrawFromServiceRequestBody,
+      },
+    ],
     response: z.void(),
     errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 401,
         description: `Access is unauthorized.`,

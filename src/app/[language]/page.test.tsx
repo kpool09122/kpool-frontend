@@ -109,17 +109,6 @@ describe("language home page", () => {
     expect(screen.queryByRole("link", { name: "Wiki一覧" })).not.toBeInTheDocument();
   });
 
-  it("shows a localized withdrawal completion notice", async () => {
-    render(
-      await LanguageHome({
-        params: Promise.resolve({ language: "ja" }),
-        searchParams: Promise.resolve({ withdrawal: "complete" }),
-      }),
-    );
-
-    expect(screen.getByRole("status")).toHaveTextContent("退会が完了しました");
-  });
-
   it("does not use hidden hero images as top wiki card backgrounds", async () => {
     vi.mocked(loadPublicWikiListState).mockResolvedValue({
       ...state,

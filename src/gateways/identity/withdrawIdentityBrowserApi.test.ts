@@ -12,7 +12,7 @@ describe("withdrawFromService", () => {
     }), { status: 401, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
 
-    expect(await withdrawFromService()).toEqual({
+    expect(await withdrawFromService("Member")).toEqual({
       ok: false,
       code: "recent_authentication_required",
       message: "Recent authentication is required.",
@@ -21,7 +21,7 @@ describe("withdrawFromService", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/identity",
-      expect.objectContaining({ method: "DELETE", credentials: "include", cache: "no-store" }),
+      expect.objectContaining({ method: "DELETE", credentials: "include", cache: "no-store", body: JSON.stringify({ confirmationIdentityName: "Member" }) }),
     );
   });
 });
