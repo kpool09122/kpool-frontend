@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { passkeyBrowserApi } from "@/gateways/identity/passkeyBrowserApi";
@@ -10,8 +10,10 @@ const recoveryKey = "11111111-1111-4111-8111-111111111111";
 describe("PasskeyRecoveryPage", () => {
   afterEach(() => {
     cleanup();
+    window.sessionStorage.clear();
     window.history.replaceState({}, "", "/");
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("offers social verification buttons and email verification", () => {
@@ -48,7 +50,7 @@ describe("PasskeyRecoveryPage", () => {
   it.each(["registered@example.com", "missing@example.com"])(
     "opens code verification for %s",
     async (email) => {
-      const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: {} });
+      const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
       render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
 
       fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: email } });
@@ -61,8 +63,43 @@ describe("PasskeyRecoveryPage", () => {
     },
   );
 
+  it("returns to email entry and clears saved recovery state", async () => {
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { accepted: true, remainingSends: 4, retryAfterSeconds: 60 },
+    });
+    const view = render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), {
+      target: { value: "wrong@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    await screen.findByLabelText("確認コード");
+    fireEvent.change(screen.getByLabelText("確認コード"), { target: { value: "123456" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスを変更" }));
+
+    expect(screen.getByLabelText("登録済みメールアドレス")).toHaveValue("wrong@example.com");
+    expect(screen.queryByLabelText("確認コード")).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem("kpool.passkey-recovery.progress")).toBeNull();
+    expect(window.sessionStorage.getItem("kpool.passkey-recovery.email-sending-status")).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), {
+      target: { value: "correct@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    expect(await screen.findByLabelText("確認コード")).toHaveValue("");
+    expect(sendRecoveryEmail).toHaveBeenLastCalledWith({ email: "correct@example.com" }, "ja");
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスを変更" }));
+
+    view.unmount();
+    render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+    expect(screen.getByLabelText("登録済みメールアドレス")).toBeInTheDocument();
+    expect(screen.queryByLabelText("確認コード")).not.toBeInTheDocument();
+  });
+
   it("shows expiry safely and resends only to the locked email address", async () => {
-    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: {} });
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
     const verifyRecoveryEmail = vi.fn().mockResolvedValue({ ok: false, status: 422, message: "Recovery session expired for identity 123" });
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail, verifyRecoveryEmail }} />);
 
@@ -80,7 +117,7 @@ describe("PasskeyRecoveryPage", () => {
   });
 
   it("verifies email, requires destructive confirmation, and returns to login after replacement", async () => {
-    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: {} });
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
     const verifyRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { recoveryKey } });
     const recoveryAdapter = vi.fn().mockResolvedValue({ ok: true });
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail, verifyRecoveryEmail }} recoveryAdapter={recoveryAdapter} />);
@@ -135,9 +172,9 @@ describe("PasskeyRecoveryPage", () => {
   it("allows email send and resend retries after unexpected rejections", async () => {
     const sendRecoveryEmail = vi.fn()
       .mockRejectedValueOnce(new Error("private email error"))
-      .mockResolvedValueOnce({ ok: true, data: {} })
+      .mockResolvedValueOnce({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } })
       .mockRejectedValueOnce(new Error("private resend error"))
-      .mockResolvedValueOnce({ ok: true, data: {} });
+      .mockResolvedValueOnce({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
 
     fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: "member@example.com" } });
@@ -161,7 +198,7 @@ describe("PasskeyRecoveryPage", () => {
   });
 
   it("allows verification retry after an unexpected rejection", async () => {
-    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: {} });
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
     const verifyRecoveryEmail = vi.fn()
       .mockRejectedValueOnce(new Error("private verification error"))
       .mockResolvedValueOnce({ ok: true, data: { recoveryKey } });
@@ -192,6 +229,29 @@ describe("PasskeyRecoveryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "新しいパスキーを作成" }));
     expect(await screen.findByRole("heading", { name: "パスキーの復旧が完了しました" })).toBeInTheDocument();
     expect(recoveryAdapter).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses the API wait and remaining count and restores them after remount", async () => {
+    vi.useFakeTimers();
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { accepted: true, remainingSends: 4, retryAfterSeconds: 60 },
+    });
+    const view = render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: "member@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    await act(async () => {});
+
+    expect(screen.getByText("あと4回再送できます。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "同じメールアドレスへ確認コードを再送" })).toBeDisabled();
+    view.unmount();
+    render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+    await act(async () => {});
+    expect(screen.getByLabelText("確認コード")).toBeInTheDocument();
+    expect(screen.getByText("あと4回再送できます。")).toBeInTheDocument();
+
+    await act(async () => { vi.advanceTimersByTime(60_000); });
+    expect(screen.getByRole("button", { name: "同じメールアドレスへ確認コードを再送" })).toBeEnabled();
   });
 
 });

@@ -21,7 +21,7 @@ describe("social linking routes", () => {
 
   it.each([
     [GET, "GET", "/auth/social/link", undefined, session],
-    [sendEmail, "POST", "/auth/social/link/email", undefined, { accepted: true }],
+    [sendEmail, "POST", "/auth/social/link/email", undefined, { accepted: true, remainingSends: 4, retryAfterSeconds: 60 }],
     [verifyEmail, "POST", "/auth/social/link/email/verification", { authCode: "012345" }, { redirectUrl: "/admin" }],
   ] as const)("forwards session cookies, rotated cookies and language for %s", async (handler, method, path, body, responseBody) => {
     const fetchMock = vi.fn().mockResolvedValue(json(responseBody));

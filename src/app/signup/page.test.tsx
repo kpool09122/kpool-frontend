@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { SignupAdapter } from "@/gateways/auth/signupFlow";
@@ -30,7 +30,7 @@ const credential = {
 };
 
 const createAdapter = (): SignupAdapter => ({
-  sendAuthCode: vi.fn().mockResolvedValue(undefined),
+  sendAuthCode: vi.fn().mockResolvedValue({ accepted: true, remainingSends: 4, retryAfterSeconds: 60 }),
   verifyEmail: vi.fn().mockResolvedValue({ email: "member@example.com", verifiedAt: "2026-09-25T00:00:00Z" }),
   createRegistrationOptions: vi.fn().mockResolvedValue(options),
   registerWithPasskey: vi.fn().mockResolvedValue({ identityIdentifier: "id", identityName: "Member", email: "member@example.com", language: "ja" }),
@@ -43,7 +43,11 @@ const webAuthn = {
 };
 
 describe("SignupPage", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    window.sessionStorage.clear();
+    vi.useRealTimers();
+  });
 
   it("renders only the email and passkey signup flow", () => {
     render(<SignupPage signupAdapter={createAdapter()} webAuthnAdapter={webAuthn} />);
@@ -89,5 +93,29 @@ describe("SignupPage", () => {
       credential,
     }), { language: "ja" });
     expect(navigate).toHaveBeenCalledWith("/admin");
+  });
+
+  it("shows and restores the API resend state, then enables resend after the wait", async () => {
+    vi.useFakeTimers();
+    const adapter = createAdapter();
+    const view = render(<SignupPage signupAdapter={adapter} webAuthnAdapter={webAuthn} />);
+
+    fireEvent.change(screen.getByLabelText("登録用メールアドレス"), { target: { value: "member@example.com" } });
+    fireEvent.change(screen.getByLabelText("アカウント名"), { target: { value: "Member Account" } });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを送信" }));
+    await act(async () => {});
+
+    expect(screen.getByText("あと4回再送できます。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "認証コードを再送" })).toBeDisabled();
+    view.unmount();
+    render(<SignupPage signupAdapter={adapter} webAuthnAdapter={webAuthn} />);
+    await act(async () => {});
+    expect(screen.getByRole("heading", { name: "認証コード入力" })).toBeInTheDocument();
+    expect(screen.getByText("あと4回再送できます。")).toBeInTheDocument();
+
+    await act(async () => { vi.advanceTimersByTime(60_000); });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを再送" }));
+    await act(async () => {});
+    expect(adapter.sendAuthCode).toHaveBeenCalledTimes(2);
   });
 });

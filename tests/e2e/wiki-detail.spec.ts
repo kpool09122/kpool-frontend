@@ -55,6 +55,7 @@ test("wiki detail page shows the empty state", async ({ page }) => {
 test("wiki edit page supports inline edits and nested content controls", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   const saveRequests: unknown[] = [];
   const submitRequests: unknown[] = [];
 

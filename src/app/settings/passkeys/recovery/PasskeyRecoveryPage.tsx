@@ -4,7 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 
+import { useEmailSendingStatus, useHydrated } from "@/components/auth/useEmailSendingStatus";
 import { identityProviders, type IdentityProvider } from "@/gateways/auth/authFlow";
+import {
+  clearSessionStorageValue,
+  readRecoveryEmail,
+  writeRecoveryEmail,
+} from "@/gateways/auth/emailSendingStateStorage";
 import {
   recoverPasskey,
   type PasskeyRecoveryAdapter,
@@ -14,6 +20,9 @@ import { useI18n } from "../../../../i18n/I18nProvider";
 
 type RecoveryPhase = "method" | "verification" | "confirm" | "complete";
 
+const recoveryProgressStorageKey = "kpool.passkey-recovery.progress";
+const recoverySendingStatusStorageKey = "kpool.passkey-recovery.email-sending-status";
+
 type PasskeyRecoveryPageProps = {
   api?: PasskeyBrowserApi;
   initialRecoveryKey?: string | null;
@@ -21,7 +30,12 @@ type PasskeyRecoveryPageProps = {
   recoveryAdapter?: PasskeyRecoveryAdapter;
 };
 
-export function PasskeyRecoveryPage({
+export function PasskeyRecoveryPage(props: PasskeyRecoveryPageProps) {
+  const hydrated = useHydrated();
+  return hydrated ? <PasskeyRecoveryPageContent {...props} /> : null;
+}
+
+function PasskeyRecoveryPageContent({
   api = passkeyBrowserApi,
   initialRecoveryKey = null,
   navigate = (url) => window.location.assign(url),
@@ -29,8 +43,9 @@ export function PasskeyRecoveryPage({
 }: PasskeyRecoveryPageProps) {
   const { locale, dictionary } = useI18n();
   const t = dictionary.passkeyRecovery;
-  const [phase, setPhase] = useState<RecoveryPhase>(initialRecoveryKey ? "confirm" : "method");
-  const [email, setEmail] = useState("");
+  const [phase, setPhase] = useState<RecoveryPhase>(() =>
+    initialRecoveryKey ? "confirm" : readRecoveryEmail(recoveryProgressStorageKey) ? "verification" : "method");
+  const [email, setEmail] = useState(() => readRecoveryEmail(recoveryProgressStorageKey) ?? "");
   const [authCode, setAuthCode] = useState("");
   const [recoveryKey, setRecoveryKey] = useState(initialRecoveryKey ?? "");
   const [displayName, setDisplayName] = useState(t.defaultPasskeyName);
@@ -38,6 +53,7 @@ export function PasskeyRecoveryPage({
   const [pending, setPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  const sendingStatus = useEmailSendingStatus(recoverySendingStatusStorageKey, email || null);
 
   useEffect(() => {
     if (initialRecoveryKey && window.location.search) {
@@ -78,6 +94,8 @@ export function PasskeyRecoveryPage({
       const result = await api.sendRecoveryEmail({ email }, locale);
 
       if (result.ok) {
+        sendingStatus.update(result.data);
+        writeRecoveryEmail(recoveryProgressStorageKey, email);
         setPhase("verification");
       } else {
         setErrorMessage(t.emailSendFailed);
@@ -100,6 +118,8 @@ export function PasskeyRecoveryPage({
       const result = await api.verifyRecoveryEmail({ email, authCode }, locale);
 
       if (result.ok) {
+        sendingStatus.clear();
+        clearSessionStorageValue(recoveryProgressStorageKey);
         setRecoveryKey(result.data.recoveryKey);
         setPhase("confirm");
       } else {
@@ -110,6 +130,16 @@ export function PasskeyRecoveryPage({
     }).finally(() => {
       setPending(false);
     });
+  };
+
+  const changeRecoveryEmail = () => {
+    if (pending) return;
+    sendingStatus.clear();
+    clearSessionStorageValue(recoveryProgressStorageKey);
+    setAuthCode("");
+    setErrorMessage(null);
+    setNoticeMessage(null);
+    setPhase("method");
   };
 
   const registerReplacement = async (event: FormEvent<HTMLFormElement>) => {
@@ -204,6 +234,14 @@ export function PasskeyRecoveryPage({
             <div>
               <h2 className="text-xl font-bold">{t.verificationTitle}</h2>
               <p className="mt-2 text-sm leading-6 text-text-muted">{t.verificationDescription(email)}</p>
+              <button
+                type="button"
+                disabled={pending}
+                className="mt-2 text-sm font-semibold text-brand-primary underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={changeRecoveryEmail}
+              >
+                {t.changeEmail}
+              </button>
             </div>
             <form className="space-y-4" onSubmit={verifyEmail}>
               <label className="block space-y-2 text-sm font-semibold">
@@ -223,9 +261,21 @@ export function PasskeyRecoveryPage({
                 {pending ? t.verifying : t.verifyCode}
               </button>
             </form>
-            <button type="button" disabled={pending} className="text-sm font-semibold text-brand-primary underline-offset-4 hover:underline" onClick={() => void sendEmail()}>
-              {t.resendCode}
-            </button>
+            <div className="space-y-2 text-sm text-text-muted" aria-live="polite">
+              {sendingStatus.status ? <p>{t.sendAccepted}</p> : null}
+              {sendingStatus.remainingSends !== null ? <p>{t.remainingSends(sendingStatus.remainingSends)}</p> : null}
+              {sendingStatus.secondsUntilRetry !== null && sendingStatus.secondsUntilRetry > 0
+                ? <p>{t.resendWait(sendingStatus.secondsUntilRetry)}</p>
+                : null}
+              <button
+                type="button"
+                disabled={pending || sendingStatus.retryUnavailable || (sendingStatus.secondsUntilRetry ?? 0) > 0}
+                className="font-semibold text-brand-primary underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => void sendEmail()}
+              >
+                {t.resendCode}
+              </button>
+            </div>
           </section>
         ) : null}
 

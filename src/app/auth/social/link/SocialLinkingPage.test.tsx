@@ -8,7 +8,7 @@ import { SocialLinkingPage } from "./SocialLinkingPage";
 const session = () => ({ provider: "google", email: "member@example.com", expiresAt: new Date(Date.now() + 600_000).toISOString() });
 const apiMock = () => ({
   get: vi.fn().mockResolvedValue({ ok: true, data: session() }),
-  sendEmail: vi.fn().mockResolvedValue({ ok: true, data: { accepted: true } }),
+  sendEmail: vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 60 } }),
   verifyEmail: vi.fn().mockResolvedValue({ ok: true, data: { redirectUrl: "/wiki/ja/example?tab=edit" } }),
 });
 const failure = { ok: false, status: 422, message: "private backend details" };
@@ -22,6 +22,7 @@ describe("SocialLinkingPage", () => {
   beforeEach(() => useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue(null) }));
   afterEach(() => {
     cleanup();
+    window.sessionStorage.clear();
     vi.useRealTimers();
     vi.restoreAllMocks();
     useAuthStore.setState({ refreshIdentity: originalRefresh });
@@ -140,6 +141,21 @@ describe("SocialLinkingPage", () => {
     expect(api.sendEmail).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
     expect(await screen.findByRole("status")).toHaveTextContent("送信リクエストを受け付けました");
+  });
+
+  it("distinguishes a null retry delay and requires restarting the SSO operation", async () => {
+    const api = apiMock();
+    api.sendEmail.mockResolvedValue({
+      ok: true,
+      data: { accepted: true, remainingSends: 0, retryAfterSeconds: null },
+    });
+    render(<SocialLinkingPage api={api} />);
+    await screen.findByLabelText("確認コード");
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+
+    expect(await screen.findByText("あと0回再送できます。")).toBeInTheDocument();
+    expect(screen.getByText(/この連携操作ではこれ以上再送できません/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "確認コードを再送" })).toBeDisabled();
   });
 
   it("does not submit a non-numeric code", async () => {

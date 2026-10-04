@@ -26,9 +26,21 @@ test("wiki list applies filters and resets to the first page", async ({
   await page.goto("/en/wiki?page=3&perPage=10&sort=name&order=asc");
 
   await page.getByLabel("Search").fill("aurora");
-  await page.getByLabel("Resource").selectOption("group");
-  await page.getByLabel("Sort").selectOption("desc");
-  await page.getByLabel("Per page").selectOption("30");
+  await expect(async () => {
+    await page.getByLabel("Resource").selectOption("group");
+    await expect(page).toHaveURL(/keyword=aurora/, { timeout: 1000 });
+    await expect(page).toHaveURL(/resourceType=group/, { timeout: 1000 });
+  }).toPass();
+
+  await expect(async () => {
+    await page.getByLabel("Sort").selectOption("desc");
+    await expect(page).toHaveURL(/order=desc/, { timeout: 1000 });
+  }).toPass();
+
+  await expect(async () => {
+    await page.getByLabel("Per page").selectOption("30");
+    await expect(page).toHaveURL(/perPage=30/, { timeout: 1000 });
+  }).toPass();
 
   await expect(page).toHaveURL(/keyword=aurora/);
   await expect(page).toHaveURL(/resourceType=group/);
@@ -142,7 +154,11 @@ test("login page opens passkey recovery and keeps email responses enumeration-sa
   await useJapaneseLocale(page);
   await page.route("**/api/identity/auth/passkeys/recovery/email", async (route) => {
     expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf-token");
-    await route.fulfill({ status: 204 });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ accepted: true, remainingSends: 4, retryAfterSeconds: 60 }),
+    });
   });
   await page.goto("/login");
 

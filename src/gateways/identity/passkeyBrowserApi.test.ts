@@ -53,7 +53,10 @@ describe("passkeyBrowserApi step-up", () => {
   it("calls every passkey recovery endpoint with credentials and typed payloads", async () => {
     const recoveryKey = "11111111-1111-4111-8111-111111111111";
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ accepted: true, remainingSends: 4, retryAfterSeconds: 60 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ recoveryKey })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ redirectUrl: "https://accounts.example.test/reauth" })))
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -68,7 +71,7 @@ describe("passkeyBrowserApi step-up", () => {
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    expect(await passkeyBrowserApi.sendRecoveryEmail({ email: "member@example.com" }, "ja")).toEqual({ ok: true, data: {} });
+    expect(await passkeyBrowserApi.sendRecoveryEmail({ email: "member@example.com" }, "ja")).toEqual({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 60 } });
     expect(await passkeyBrowserApi.verifyRecoveryEmail({ email: "member@example.com", authCode: "123456" }, "ja")).toEqual({ ok: true, data: { recoveryKey } });
     expect(await passkeyBrowserApi.createRecoverySocialRedirect("google", "ja")).toEqual({ ok: true, data: { redirectUrl: "https://accounts.example.test/reauth" } });
     expect((await passkeyBrowserApi.createRecoveryOptions({ recoveryKey }, "ja")).ok).toBe(true);
