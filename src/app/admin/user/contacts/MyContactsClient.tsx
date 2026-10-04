@@ -6,6 +6,7 @@ import { useState } from "react";
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import { fetchMyContactDetail, fetchMyContacts } from "@/gateways/contact/contactBrowserApi";
 import { useI18n } from "../../../../i18n/I18nProvider";
+import { useAdmin } from "../../AdminProvider";
 
 type StatusFilter = "all" | "replied" | "awaitingReply";
 
@@ -30,16 +31,18 @@ const formatContactDate = (value: string): string => {
 
 export function MyContactsClient() {
   const { dictionary } = useI18n();
+  const { currentIdentity } = useAdmin();
   const t = dictionary.admin.myContacts;
+  const identityIdentifier = currentIdentity.identityIdentifier;
   const [status, setStatus] = useState<StatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = useQuery({
-    queryKey: ["myContacts"],
+    queryKey: ["myContacts", identityIdentifier],
     queryFn: () => fetchMyContacts({ fallbackErrorMessage: t.loadFailed }),
   });
   const detail = useQuery({
     enabled: selectedId !== null,
-    queryKey: ["myContacts", selectedId],
+    queryKey: ["myContacts", identityIdentifier, selectedId],
     queryFn: () => fetchMyContactDetail({
       contactIdentifier: selectedId!,
       fallbackErrorMessage: t.detailLoadFailed,
