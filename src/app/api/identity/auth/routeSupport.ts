@@ -1,4 +1,10 @@
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
+
+import { getIdentityApiBaseUrl, getIdentityRouteErrorMessage } from "@/gateways/identity/identityApi";
+import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
 export const identityApiNotConfiguredResponse = (): NextResponse =>
   NextResponse.json(
@@ -32,10 +38,10 @@ export const readIdentityRouteResponseBody = async (response: Response): Promise
   }
 };
 
-export const getCookieForwardHeaders = (request: NextRequest): Record<"Cookie", string> | Record<string, never> => {
+export const getSessionForwardHeaders = (request: NextRequest): Record<string, string> => {
   const cookie = request.headers.get("cookie");
 
-  return cookie ? { Cookie: cookie } : {};
+  return { ...getCsrfForwardHeaders(request.headers), ...(cookie ? { Cookie: cookie } : {}) };
 };
 
 export const getAcceptLanguageForwardHeaders = (
@@ -45,6 +51,12 @@ export const getAcceptLanguageForwardHeaders = (
 
   return acceptLanguage ? { "Accept-Language": acceptLanguage } : {};
 };
+
+const getProblemCode = (body: unknown): string | undefined =>
+  typeof body === "object" && body !== null && "code" in body
+    && typeof (body as { code: unknown }).code === "string"
+    ? (body as { code: string }).code
+    : undefined;
 
 const getSetCookieHeaders = (headers: Headers): string[] => {
   const headersWithSetCookie = headers as Headers & {
@@ -70,4 +82,80 @@ export const withIdentitySetCookie = (
   });
 
   return response;
+};
+
+type ForwardIdentityRouteOptions = {
+  method: "DELETE" | "GET" | "PATCH" | "POST";
+  path: string;
+  requestSchema?: z.ZodType;
+  responseSchema: z.ZodType;
+};
+
+export const forwardIdentityRoute = async (
+  request: NextRequest,
+  options: ForwardIdentityRouteOptions,
+): Promise<NextResponse> => {
+  const {
+    method,
+    path,
+    requestSchema,
+    responseSchema,
+  } = options;
+  const baseUrl = getIdentityApiBaseUrl();
+
+  if (!baseUrl) {
+    return identityApiNotConfiguredResponse();
+  }
+
+  try {
+    const requestBody = requestSchema
+      ? parseWithSchemaLog(`identity ${path} request`, requestSchema, await request.json())
+      : undefined;
+    const apiResponse = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        ...getAcceptLanguageForwardHeaders(request),
+        ...(requestBody === undefined ? {} : { "Content-Type": "application/json" }),
+        ...getSessionForwardHeaders(request),
+      },
+      ...(requestBody === undefined ? {} : { body: JSON.stringify(requestBody) }),
+      cache: "no-store",
+    });
+    const body = await readIdentityRouteResponseBody(apiResponse);
+
+    if (!apiResponse.ok) {
+      return withIdentitySetCookie(
+        NextResponse.json(
+          {
+            ...(getProblemCode(body) ? { code: getProblemCode(body) } : {}),
+            message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }),
+          },
+          { status: apiResponse.status },
+        ),
+        apiResponse,
+      );
+    }
+
+    if (apiResponse.status === 204 || apiResponse.status === 205) {
+      return withIdentitySetCookie(
+        new NextResponse(null, { status: apiResponse.status }),
+        apiResponse,
+      );
+    }
+
+    return withIdentitySetCookie(
+      NextResponse.json(
+        parseWithSchemaLog(`identity ${path} response`, responseSchema, body ?? {}),
+        { status: apiResponse.status },
+      ),
+      apiResponse,
+    );
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return identityApiSchemaErrorResponse();
+    }
+
+    return identityApiUnavailableResponse();
+  }
 };

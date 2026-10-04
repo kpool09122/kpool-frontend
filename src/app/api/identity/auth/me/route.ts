@@ -7,7 +7,7 @@ import {
   parseAuthenticatedIdentitySummary,
 } from "@/gateways/identity/identityApi";
 import {
-  getCookieForwardHeaders,
+  getSessionForwardHeaders,
   identityApiNotConfiguredResponse,
   identityApiSchemaErrorResponse,
   identityApiUnavailableResponse,
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const apiResponse = await fetch(`${baseUrl}/auth/me`, {
       headers: {
         Accept: "application/json",
-        ...getCookieForwardHeaders(request),
+        ...getSessionForwardHeaders(request),
       },
       cache: "no-store",
     });

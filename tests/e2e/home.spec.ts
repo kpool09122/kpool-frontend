@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 
 const useJapaneseLocale = async (page: Page) => {
   await page.context().addCookies([
@@ -11,38 +11,36 @@ const useJapaneseLocale = async (page: Page) => {
   ]);
 };
 
-test("home page shows the wiki list surface", async ({ page }) => {
+test("home page shows Wiki discovery sections", async ({ page }) => {
   await page.goto("/");
-
-  await expect(
-    page.getByRole("heading", {
-      name: "Find a wiki",
-    }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Search")).toBeVisible();
-  await expect(page.getByLabel("Resource")).toHaveValue("");
-  await expect(page.getByLabel("Sort")).toHaveValue("asc");
-  await expect(page.getByLabel("Per page")).toHaveValue("10");
-  await expect(
-    page.getByText(/Theme token preview|Open Wiki Detail Demo/i),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("heading", {
-      name: /Wiki list|No wikis found|Wiki list is unavailable/i,
-    }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Recently updated wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "New wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Frequently updated wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Recently updated wikis" }).getByRole("link", { name: "View more" }))
+    .toHaveAttribute("href", "/en/wiki?sort=updatedAt&order=desc&perPage=10&page=1");
 });
 
-test("home page applies filters and resets to the first page", async ({
+test("wiki list applies filters and resets to the first page", async ({
   page,
 }) => {
-  await page.goto("/?page=3&perPage=10&sort=name&order=asc");
+  await page.goto("/en/wiki?page=3&perPage=10&sort=name&order=asc");
 
   await page.getByLabel("Search").fill("aurora");
-  await page.getByLabel("Resource").selectOption("group");
-  await page.getByLabel("Sort").selectOption("desc");
-  await page.getByLabel("Per page").selectOption("30");
-  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(async () => {
+    await page.getByLabel("Resource").selectOption("group");
+    await expect(page).toHaveURL(/keyword=aurora/, { timeout: 1000 });
+    await expect(page).toHaveURL(/resourceType=group/, { timeout: 1000 });
+  }).toPass();
+
+  await expect(async () => {
+    await page.getByLabel("Sort").selectOption("desc");
+    await expect(page).toHaveURL(/order=desc/, { timeout: 1000 });
+  }).toPass();
+
+  await expect(async () => {
+    await page.getByLabel("Per page").selectOption("30");
+    await expect(page).toHaveURL(/perPage=30/, { timeout: 1000 });
+  }).toPass();
 
   await expect(page).toHaveURL(/keyword=aurora/);
   await expect(page).toHaveURL(/resourceType=group/);
@@ -62,15 +60,18 @@ test("guest locale defaults to English and persists language switching", async (
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
 
-  await page.getByLabel("Language").selectOption("ja");
+  await expect(async () => {
+    await page.getByRole("banner").getByRole("combobox").selectOption("ja");
+    await expect(page).toHaveURL(/\/ja$/, { timeout: 1000 });
+  }).toPass();
   await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Wikiを探す" })).toBeVisible();
-  await expect(page.getByLabel("検索")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "最近更新されたWiki" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "最近更新されたWiki" }).getByLabel("種別")).toBeVisible();
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByRole("link", { name: "ログイン" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Wikiを探す" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "最近更新されたWiki" })).toBeVisible();
 });
 
 test("mobile header menu shows the login link", async ({ page }) => {
@@ -115,7 +116,7 @@ test("guest header login link opens the login page", async ({ page }) => {
     page.getByRole("button", { name: /Google.*でログイン/ }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "メールアドレスでログイン" }),
+    page.getByRole("button", { name: "パスキーでログイン" }),
   ).toBeVisible();
 });
 
@@ -124,6 +125,7 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
 }) => {
   await useJapaneseLocale(page);
   await page.route("**/api/identity/auth/social/google/redirect?*", async (route) => {
+    await page.context().addCookies([{ name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" }]);
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({ redirectUrl: "/admin?sso=google" }),
@@ -136,135 +138,53 @@ test("login page starts SSO redirect through the Identity API proxy", async ({
   await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
 });
 
-test("login page submits email credentials through the Identity API proxy", async ({
+test("login page prioritizes SSO and offers passkey without password fields", async ({
   page,
 }) => {
   await useJapaneseLocale(page);
-  await page.route("**/api/identity/auth/login", async (route) => {
-    const requestBody = route.request().postDataJSON();
+  await page.goto("/login");
 
-    expect(requestBody).toEqual({
-      email: "member@example.com",
-      password: "secret-password",
-      return_to: "/admin",
-    });
+  const buttons = page.getByRole("button");
+  await expect(buttons.filter({ hasText: "Google" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "パスキーでログイン" })).toBeVisible();
+  await expect(page.getByLabel("パスワード", { exact: true })).toHaveCount(0);
+});
+
+test("login page opens passkey recovery and keeps email responses enumeration-safe", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await page.route("**/api/identity/auth/passkeys/recovery/email", async (route) => {
+    expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf-token");
     await route.fulfill({
+      status: 200,
       contentType: "application/json",
-      body: JSON.stringify({
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        identityName: "member",
-        email: "member@example.com",
-        language: "ja",
-      }),
+      body: JSON.stringify({ accepted: true, remainingSends: 4, retryAfterSeconds: 60 }),
     });
   });
   await page.goto("/login");
 
-  await page.getByLabel("メールアドレス").fill("member@example.com");
-  await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
-  await page.getByRole("button", { name: "メールアドレスでログイン" }).click();
+  await page.getByRole("link", { name: "パスキーを復旧" }).click();
+  await expect(page).toHaveURL(/\/settings\/passkeys\/recovery$/);
+  await expect(page.getByRole("button", { name: "Googleで本人確認" })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "メールで本人確認" })).toBeVisible();
+  await page.getByLabel("登録済みメールアドレス").fill("unknown@example.com");
+  await page.getByRole("button", { name: "確認コードを送信" }).click();
 
-  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  await expect(page.getByLabel("確認コード")).toBeVisible();
+  await expect(page.getByLabel("登録済みメールアドレス")).toHaveCount(0);
 });
 
-test("login page links to signup and completes the signup flow through API proxies", async ({
+test("signup page offers verified-email passkey registration without an account type", async ({
   page,
 }) => {
   await useJapaneseLocale(page);
-  await page.route("**/api/account/accounts", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      email: "new-member@example.com",
-      accountName: "New Member Account",
-      accountType: "individual",
-      identityIdentifier: null,
-    });
-    await route.fulfill({
-      status: 201,
-      contentType: "application/json",
-      body: JSON.stringify({
-        accountIdentifier: "22222222-2222-2222-2222-222222222222",
-        email: "new-member@example.com",
-        type: "individual",
-        name: "New Member Account",
-        status: "active",
-        accountCategory: "standard",
-      }),
-    });
-  });
-  await page.route("**/api/identity/auth/verify-email", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      email: "new-member@example.com",
-      authCode: "123456",
-    });
-    await route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        email: "new-member@example.com",
-        verifiedAt: "2026-05-05T00:00:00+00:00",
-      }),
-    });
-  });
-  await page.route("**/api/identity/auth/register", async (route) => {
-    const requestBody = route.request().postDataJSON();
-
-    expect(requestBody).toEqual({
-      identityName: "New Member Account",
-      email: "new-member@example.com",
-      password: "secret-password",
-      confirmedPassword: "secret-password",
-      base64EncodedImage: null,
-      oneTimeToken: null,
-      requestLanguage: "ja",
-    });
-    await route.fulfill({
-      status: 201,
-      contentType: "application/json",
-      body: JSON.stringify({
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        identityName: "New Member Account",
-        email: "new-member@example.com",
-        language: "ja",
-      }),
-    });
-  });
-
   await page.goto("/login");
   await page.getByRole("link", { name: "アカウント登録へ" }).click();
 
   await expect(page).toHaveURL(/\/signup$/);
   await expect(page.getByRole("heading", { name: "アカウント登録" })).toBeVisible();
-
-  await page.getByLabel("登録用メールアドレス").fill("new-member@example.com");
-  await page.getByLabel("アカウント名").fill("New Member Account");
-  await page.getByRole("main").getByLabel("言語").selectOption("ja");
-  await page.getByRole("button", { name: "認証コードを送信" }).click();
-
-  await expect(page.getByRole("heading", { name: "認証コード入力" })).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "アカウント情報入力: 完了" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "認証コード入力: 入力中" }),
-  ).toBeVisible();
-
-  await page.getByLabel("認証コード", { exact: true }).fill("123456");
-  await page.getByRole("button", { name: "認証コードを確認" }).click();
-
-  await expect(page.getByRole("heading", { name: "登録情報設定" })).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "認証コード入力: 完了" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("listitem", { name: "登録情報設定: 入力中" }),
-  ).toBeVisible();
-
-  await page.getByLabel("パスワード", { exact: true }).fill("secret-password");
-  await page.getByLabel("確認用パスワード").fill("secret-password");
-  await page.getByRole("button", { name: "登録を完了" }).click();
-
-  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  await expect(page.getByLabel("登録用メールアドレス", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("アカウント名", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("アカウント区分", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "認証コードを送信" })).toBeVisible();
+  await expect(page.getByLabel("パスワード", { exact: true })).toHaveCount(0);
 });

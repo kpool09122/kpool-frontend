@@ -8,11 +8,13 @@ import {
 } from "@/gateways/identity/identityApi";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
-  getCookieForwardHeaders,
+  getAcceptLanguageForwardHeaders,
+  getSessionForwardHeaders,
   identityApiNotConfiguredResponse,
   identityApiSchemaErrorResponse,
   identityApiUnavailableResponse,
   readIdentityRouteResponseBody,
+  withIdentitySetCookie,
 } from "../../../routeSupport";
 
 type SocialRedirectRouteContext = {
@@ -20,6 +22,9 @@ type SocialRedirectRouteContext = {
     provider: string;
   }>;
 };
+
+const normalizeReturnTo = (value: string): string =>
+  value.startsWith("/") && !value.startsWith("//") ? value : "/admin";
 
 export async function GET(request: NextRequest, context: SocialRedirectRouteContext) {
   const baseUrl = getIdentityApiBaseUrl();
@@ -36,7 +41,7 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
     const searchParams = new URLSearchParams();
 
     if (returnTo) {
-      searchParams.set("return_to", returnTo);
+      searchParams.set("return_to", normalizeReturnTo(returnTo));
     }
 
     if (oneTimeToken) {
@@ -49,7 +54,8 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
         {
           headers: {
             Accept: "application/json",
-            ...getCookieForwardHeaders(request),
+            ...getAcceptLanguageForwardHeaders(request),
+            ...getSessionForwardHeaders(request),
           },
           cache: "no-store",
         },
@@ -57,15 +63,21 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
     const body = await readIdentityRouteResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
-      return NextResponse.json(
-        { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
-        { status: apiResponse.status },
+      return withIdentitySetCookie(
+        NextResponse.json(
+          { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+          { status: apiResponse.status },
+        ),
+        apiResponse,
       );
     }
 
-    return NextResponse.json(
-      parseWithSchemaLog("identity social redirect response", identityApiTypes.schemas.RedirectUrlResult, body),
-      { status: 200 },
+    return withIdentitySetCookie(
+      NextResponse.json(
+        parseWithSchemaLog("identity social redirect response", identityApiTypes.schemas.RedirectUrlResult, body),
+        { status: 200 },
+      ),
+      apiResponse,
     );
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -49,6 +49,24 @@ describe("/api/identity/auth/social/[provider]/redirect route", () => {
     );
   });
 
+  it("normalizes an external return_to before forwarding it upstream", async () => {
+    vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ redirectUrl: "https://accounts.example.test/oauth" })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await GET(
+      createRequest({}, "?return_to=https%3A%2F%2Fevil.example%2Fcallback"),
+      createContext("google"),
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://identity.example.test/api/identity/auth/social/google/redirect?return_to=%2Fadmin",
+      expect.any(Object),
+    );
+  });
+
   it("does not expose internal fetch errors to the client", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://internal.identity.example.test");
     vi.stubGlobal(

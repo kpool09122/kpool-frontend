@@ -16,6 +16,7 @@ import { AccountProfileClient } from "./account/profile/AccountProfileClient";
 import { UserPageClient } from "./user/UserPageClient";
 import { UserLanguageClient } from "./user/language/UserLanguageClient";
 import { UserProfileClient } from "./user/profile/UserProfileClient";
+import { UserSecurityClient } from "./user/security/UserSecurityClient";
 import { WikiSectionClient } from "./wiki/WikiSectionClient";
 import { ApprovedWikisClient } from "./wiki/approved/ApprovedWikisClient";
 import { DraftImagesClient } from "./wiki/draft-images/DraftImagesClient";
@@ -43,6 +44,9 @@ import type { AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 const identityMocks = vi.hoisted(() => ({
   fetchCurrentAuthenticatedIdentity: vi.fn(),
 }));
+const passkeyMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+}));
 const navigationMocks = vi.hoisted(() => ({
   push: vi.fn(),
   replace: vi.fn(),
@@ -53,8 +57,22 @@ vi.mock("@/gateways/identity/authIdentityBrowserApi", () => ({
   fetchCurrentAuthenticatedIdentity: identityMocks.fetchCurrentAuthenticatedIdentity,
 }));
 
+vi.mock("@/gateways/identity/passkeyBrowserApi", () => ({
+  passkeyBrowserApi: {
+    list: passkeyMocks.list,
+    createAdditionOptions: vi.fn(),
+    createStepUpPasskeyOptions: vi.fn(),
+    completeStepUpWithPasskey: vi.fn(),
+    createStepUpSocialRedirect: vi.fn(),
+    add: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
 vi.mock("next/navigation", () => ({
   usePathname: navigationMocks.usePathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
   useRouter: () => ({
     push: navigationMocks.push,
     replace: navigationMocks.replace,
@@ -562,7 +580,13 @@ function AdminClient({
 
     if (href.startsWith("/admin/user")) {
       setActiveSection("settings");
-      setActiveSettingsTab(href.endsWith("/language") ? "languageSettings" : "profileSettings");
+      setActiveSettingsTab(
+        href.endsWith("/language")
+          ? "languageSettings"
+          : href.endsWith("/security")
+            ? "securitySettings"
+            : "profileSettings",
+      );
       return;
     }
 
@@ -583,7 +607,11 @@ function AdminClient({
     </AccountPageClient>
   ) : activeSection === "settings" ? (
     <UserPageClient activeSettingsTab={activeSettingsTab}>
-      {activeSettingsTab === "languageSettings" ? <UserLanguageClient /> : <UserProfileClient />}
+      {activeSettingsTab === "languageSettings"
+        ? <UserLanguageClient />
+        : activeSettingsTab === "securitySettings"
+          ? <UserSecurityClient />
+          : <UserProfileClient />}
     </UserPageClient>
   ) : (
     <WikiSectionClient
@@ -663,7 +691,9 @@ const getInitialAdminPathname = ({
   if (initialSection === "settings") {
     return initialSettingsTab === "languageSettings"
       ? "/admin/user/language"
-      : "/admin/user/profile";
+      : initialSettingsTab === "securitySettings"
+        ? "/admin/user/security"
+        : "/admin/user/profile";
   }
 
   if (initialWikiTab === "submittedWikis") {
@@ -735,6 +765,7 @@ describe("admin page clients", () => {
       status: "loading",
     });
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(identity);
+    passkeyMocks.list.mockResolvedValue({ ok: true, data: { passkeys: [] } });
   });
 
   afterEach(() => {
@@ -742,6 +773,7 @@ describe("admin page clients", () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockReset();
+    passkeyMocks.list.mockReset();
     navigationMocks.push.mockReset();
   });
 
@@ -871,6 +903,25 @@ describe("admin page clients", () => {
     expect(await screen.findByRole("heading", { name: "ユーザー設定", level: 1 })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "言語", selected: true })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
+  });
+
+  it("renders and switches to the security settings tab", async () => {
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="settings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    const securityTab = screen.getByRole("tab", { name: "セキュリティ" });
+    expect(securityTab).toHaveAttribute("href", "/admin/user/security");
+    fireEvent.click(securityTab);
+    expect(screen.getByRole("tab", { name: "セキュリティ", selected: true })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "パスキー管理" })).toBeInTheDocument();
   });
 
   it("hides account settings when /auth/me has no account policy", () => {

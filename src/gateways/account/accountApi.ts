@@ -3,8 +3,7 @@ import { z } from "zod";
 
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
-export type CreateAccountRequest = z.infer<typeof accountApiTypes.schemas.CreateAccountRequestBody>;
-export type CreateAccountResult = z.infer<typeof accountApiTypes.schemas.CreateAccountResult>;
+export type CompleteInitialSetupRequest = z.infer<typeof accountApiTypes.schemas.CompleteInitialSetupRequestBody>;
 export type AccountSummary = z.infer<typeof accountApiTypes.schemas.AccountSummary>;
 export type SwitchAccountRequest = z.infer<typeof accountApiTypes.schemas.SwitchAccountRequestBody>;
 export type SwitchAccountResponse = z.infer<typeof accountApiTypes.schemas.SwitchAccountResponseBody>;
@@ -82,11 +81,8 @@ export const getAccountApiBaseUrl = (
     ? withAccountApiPrefix(env.KPOOL_ACCOUNT_API_BASE_URL)
     : null;
 
-export const parseCreateAccountRequest = (body: unknown): CreateAccountRequest =>
-  parseWithSchemaLog("account create request", accountApiTypes.schemas.CreateAccountRequestBody, body);
-
-export const parseCreateAccountResult = (body: unknown): CreateAccountResult =>
-  parseWithSchemaLog("account create response", accountApiTypes.schemas.CreateAccountResult, Array.isArray(body) && body.length === 0 ? {} : body);
+export const parseCompleteInitialSetupRequest = (body: unknown): CompleteInitialSetupRequest =>
+  parseWithSchemaLog("account initial setup request", accountApiTypes.schemas.CompleteInitialSetupRequestBody, body);
 
 export const parseAccountSummary = (body: unknown): AccountSummary =>
   parseWithSchemaLog("account summary response", accountApiTypes.schemas.AccountSummary, body);

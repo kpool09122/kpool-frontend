@@ -30,7 +30,16 @@ const createRequest = (
   }) as NextRequest;
 
 describe("/api/contact route", () => {
+  it("preserves CSRF rejection instead of treating it as an upstream outage", async () => {
+    vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "https://backend.example.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "csrf_token_mismatch" }), { status: 419 })));
+    const response = await POST(createRequest());
+    expect(response.status).toBe(419);
+    expect(await response.json()).toEqual({ message: "Please refresh the page and try again.", code: "csrf_token_mismatch" });
+  });
+
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
   });

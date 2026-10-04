@@ -1,3 +1,5 @@
+import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
@@ -41,6 +43,8 @@ export async function POST(request: NextRequest, context: WikiDraftSaveRouteCont
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
+    if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
+
     console.error("Failed to save wiki draft.", {
       wikiId,
       status: getWikiRouteErrorStatus(error),
@@ -71,6 +75,8 @@ export async function DELETE(request: NextRequest, context: WikiDraftSaveRouteCo
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
+    if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
+
     console.error("Failed to delete wiki draft.", {
       wikiId,
       status: getWikiRouteErrorStatus(error),

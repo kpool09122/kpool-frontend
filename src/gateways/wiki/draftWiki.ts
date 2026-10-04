@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import { createMockWikiDetail, type WikiDetailState, type WikiDraftDetail } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
@@ -1034,7 +1036,7 @@ const fetchWikiDraftWikisFromRoute = async (
     },
   );
 
-  const response = await fetch(`${url.pathname}${url.search}`, {
+  const response = await browserApiFetch(`${url.pathname}${url.search}`, {
     credentials: "include",
   });
   const body = await readBrowserJsonResponse(response);
@@ -1063,7 +1065,7 @@ export const createWiki = async ({
   fallbackErrorMessage: string;
   requestBody: CreateWikiRequestBody;
 }): Promise<DraftWikiSummary> => {
-  const response = await fetch("/api/wiki/draft-wikis", {
+  const response = await browserApiFetch("/api/wiki/draft-wikis", {
     method: "POST",
     credentials: "include",
     headers: {
@@ -1088,7 +1090,7 @@ export const autoCreateWiki = async ({
   fallbackErrorMessage: string;
   requestBody: AutoCreateWikiRequestBody;
 }): Promise<DraftWikiSummary> => {
-  const response = await fetch("/api/wiki/draft-wikis/auto-create", {
+  const response = await browserApiFetch("/api/wiki/draft-wikis/auto-create", {
     method: "POST",
     credentials: "include",
     headers: {
@@ -1138,7 +1140,7 @@ export const fetchVersionInconsistentWikis = async ({
     url.searchParams.set("order", order);
   }
 
-  const response = await fetch(`${url.pathname}${url.search}`, {
+  const response = await browserApiFetch(`${url.pathname}${url.search}`, {
     credentials: "include",
   });
   const body = await readBrowserJsonResponse(response);
@@ -1250,7 +1252,7 @@ const reviewWikiDraftRequest = async ({
   wikiId: string;
   requestBody: ReviewWikiRequestBody | RejectWikiRequestBody | TranslateWikiRequestBody;
 }): Promise<DraftWikiSummary | PublishedWikiSummary | TranslateWikiResponseBody> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}/${action}`,
     {
       method: "POST",
@@ -1317,7 +1319,7 @@ export const deleteWikiDraft = async ({
   requestBody: DeleteWikiRequestBody;
   wikiId: string;
 }): Promise<void> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}`,
     {
       method: "DELETE",
@@ -1375,7 +1377,7 @@ export const withdrawWikiDraft = async ({
   fallbackErrorMessage: string;
   wikiId: string;
 }): Promise<DraftWikiSummary> => {
-  const response = await fetch(
+  const response = await browserApiFetch(
     `/api/wiki/drafts/${encodeURIComponent(wikiId)}/withdraw`,
     {
       method: "POST",

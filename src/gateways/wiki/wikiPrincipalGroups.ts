@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
@@ -82,7 +84,7 @@ export const createWikiPrincipalGroupMembersUrl = (baseUrl: string): string =>
 export const fetchWikiPrincipalGroups = async ({
   accountIdentifier,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: {
   accountIdentifier: string;
   fallbackErrorMessage: string;
@@ -105,7 +107,7 @@ export const fetchWikiPrincipalGroups = async ({
 
 export const updateWikiPrincipalGroupMembers = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: {
   fallbackErrorMessage: string;

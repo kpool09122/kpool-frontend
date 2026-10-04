@@ -10,11 +10,12 @@ import {
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   getAcceptLanguageForwardHeaders,
-  getCookieForwardHeaders,
+  getSessionForwardHeaders,
   identityApiNotConfiguredResponse,
   identityApiSchemaErrorResponse,
   identityApiUnavailableResponse,
   readIdentityRouteResponseBody,
+  withIdentitySetCookie,
 } from "../routeSupport";
 
 export async function POST(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
         Accept: "application/json",
         ...getAcceptLanguageForwardHeaders(request),
         "Content-Type": "application/json",
-        ...getCookieForwardHeaders(request),
+        ...getSessionForwardHeaders(request),
       },
       body: JSON.stringify(verification),
       cache: "no-store",
@@ -40,15 +41,21 @@ export async function POST(request: NextRequest) {
     const body = await readIdentityRouteResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
-      return NextResponse.json(
-        { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
-        { status: apiResponse.status },
+      return withIdentitySetCookie(
+        NextResponse.json(
+          { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+          { status: apiResponse.status },
+        ),
+        apiResponse,
       );
     }
 
-    return NextResponse.json(
-      parseWithSchemaLog("identity verify email response", identityApiTypes.schemas.VerifyEmailResult, body),
-      { status: 200 },
+    return withIdentitySetCookie(
+      NextResponse.json(
+        parseWithSchemaLog("identity verify email response", identityApiTypes.schemas.VerifyEmailResult, body),
+        { status: 200 },
+      ),
+      apiResponse,
     );
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -36,6 +36,8 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("Header", () => {
@@ -283,7 +285,7 @@ describe("Header", () => {
   });
 
   it("logs out and navigates back to login", async () => {
-    const logoutAdapter = vi.fn().mockResolvedValue(undefined);
+    const logoutAdapter = vi.fn().mockResolvedValue({ ok: true, data: undefined });
     const navigate = vi.fn();
 
     render(
@@ -300,8 +302,66 @@ describe("Header", () => {
     expect(navigate).toHaveBeenCalledWith("/login");
   });
 
+  it.each([
+    ["CSRF initialization failure", true, 500],
+    ["CSRF initialization without a readable cookie", true, 204],
+    ["CSRF rejection", false, 419],
+    ["server failure", false, 500],
+  ])("preserves identity and navigation on %s during logout", async (_name, needsInitialization, status) => {
+    useAuthStore.setState({ identity: switchableIdentity, status: "authenticated" });
+    if (needsInitialization) document.cookie = "XSRF-TOKEN=; Max-Age=0; Path=/";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status }));
+    vi.stubGlobal("fetch", fetchMock);
+    const navigate = vi.fn();
+    const refresh = vi.fn();
+    render(<Header navigate={navigate} refresh={refresh} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("ログアウトに失敗しました。再度お試しください。");
+    expect(useAuthStore.getState().identity).toEqual(switchableIdentity);
+    expect(useAuthStore.getState().status).toBe("authenticated");
+    expect(navigate).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "ログアウト" })).toBeEnabled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(needsInitialization
+      ? "/api/identity/auth/csrf-token"
+      : "/api/identity/auth/logout");
+  });
+
+  it.each([200, 204])("clears identity after a successful %s logout response", async (status) => {
+    useAuthStore.setState({ identity: switchableIdentity, status: "authenticated" });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status })));
+    const navigate = vi.fn();
+    render(<Header navigate={navigate} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+    expect(useAuthStore.getState().identity).toBeNull();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("can retry logout after an adapter throws synchronously", async () => {
+    useAuthStore.setState({ identity: switchableIdentity, status: "authenticated" });
+    const logoutAdapter = vi.fn().mockImplementationOnce(() => { throw new Error("Network unavailable"); })
+      .mockResolvedValue({ ok: true, data: undefined });
+    const navigate = vi.fn();
+    render(<Header logoutAdapter={logoutAdapter} navigate={navigate} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(navigate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+    expect(useAuthStore.getState().identity).toBeNull();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("reenables logout after signing in again without a reload", async () => {
-    const logoutAdapter = vi.fn().mockResolvedValue(undefined);
+    const logoutAdapter = vi.fn().mockResolvedValue({ ok: true, data: undefined });
     const navigate = vi.fn();
 
     render(

@@ -1,3 +1,7 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
+
 import {
   parseAccountMembersResponse,
   parseAccountSummary,
@@ -14,6 +18,7 @@ import {
   parseSwitchAccountResponse,
   parseUploadAccountDocumentsResponse,
   type AccountCategoryChangeRequestDetailResponse,
+  type CompleteInitialSetupRequest,
   type AccountSummary,
   type AccountDelegationSummary,
   type AffiliationCommandSummary,
@@ -140,7 +145,10 @@ type SwitchAccountOptions = {
   fetchAdapter?: typeof fetch;
 };
 
-export type AccountBrowserApiError = Error & { accountRouteStatus: number };
+export type AccountBrowserApiError = Error & {
+  accountRouteCode?: string;
+  accountRouteStatus: number;
+};
 
 export const isAccountBrowserApiError = (error: unknown): error is AccountBrowserApiError =>
   error instanceof Error &&
@@ -169,8 +177,77 @@ const createRouteError = (
   fallbackErrorMessage: string,
 ): AccountBrowserApiError =>
   Object.assign(new Error(getRouteErrorMessage(body, fallbackErrorMessage)), {
+    accountRouteCode:
+      typeof body === "object" && body !== null && "code" in body &&
+      typeof (body as { code: unknown }).code === "string"
+        ? (body as { code: string }).code
+        : undefined,
     accountRouteStatus: response.status,
   });
+
+export const completeInitialSetup = async ({
+  fallbackErrorMessage,
+  fetchAdapter = browserApiFetch,
+  requestBody,
+}: {
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+  requestBody: CompleteInitialSetupRequest;
+}): Promise<void> => {
+  const response = await fetchAdapter("/api/account/accounts/setup", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (!response.ok) {
+    throw createRouteError(response, await readResponseBody(response), fallbackErrorMessage);
+  }
+};
+
+export type CompleteInitialSetupFlowResult =
+  | { ok: true; identity: AuthenticatedIdentitySummary | null; setupConflict: boolean }
+  | { ok: false; message: string; setupConflict: boolean };
+
+export const completeInitialSetupAndRefresh = async ({
+  completeSetup,
+  fallbackErrorMessage,
+  refreshIdentity,
+  requestBody,
+}: {
+  completeSetup: typeof completeInitialSetup;
+  fallbackErrorMessage: string;
+  refreshIdentity: (options: { preserveOnNull: boolean }) => Promise<AuthenticatedIdentitySummary | null>;
+  requestBody: CompleteInitialSetupRequest;
+}): Promise<CompleteInitialSetupFlowResult> => {
+  let setupConflict = false;
+
+  try {
+    await completeSetup({ fallbackErrorMessage, requestBody });
+  } catch (error) {
+    setupConflict = isAccountBrowserApiError(error) && error.accountRouteStatus === 409;
+    if (!setupConflict) {
+      return {
+        ok: false,
+        message: error instanceof Error ? error.message : fallbackErrorMessage,
+        setupConflict: false,
+      };
+    }
+  }
+
+  const identity = await refreshIdentity({ preserveOnNull: true }).catch(() => null);
+
+  return {
+    ok: true,
+    identity,
+    setupConflict,
+  };
+};
 
 const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
   const bytes = new Uint8Array(arrayBuffer);
@@ -187,7 +264,7 @@ const arrayBufferToBase64 = (arrayBuffer: ArrayBuffer): string => {
 export const switchAccount = async ({
   delegationIdentifier,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: SwitchAccountOptions): Promise<SwitchAccountResponse> => {
   const response = await fetchAdapter("/api/account/accounts/switch", {
     method: "POST",
@@ -211,7 +288,7 @@ export const switchAccount = async ({
 export const fetchAccount = async ({
   accountIdentifier,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: AccountRequestOptions): Promise<AccountSummary> => {
   const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}`, {
     cache: "no-store",
@@ -230,7 +307,7 @@ export const fetchAccount = async ({
 export const updateAccount = async ({
   accountIdentifier,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: UpdateAccountOptions): Promise<AccountSummary> => {
   const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}`, {
@@ -254,7 +331,7 @@ export const updateAccount = async ({
 
 export const inviteAccountMembers = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: InviteAccountMembersOptions): Promise<InvitationSummary[]> => {
   const response = await fetchAdapter("/api/account/invitations", {
@@ -278,7 +355,7 @@ export const inviteAccountMembers = async ({
 
 export const fetchAccountMembers = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
@@ -299,7 +376,7 @@ export const fetchAccountMembers = async ({
 
 export const fetchPrincipalGroups = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: {
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
@@ -320,7 +397,7 @@ export const fetchPrincipalGroups = async ({
 
 export const updatePrincipalGroupMembers = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: UpdatePrincipalGroupMembersOptions): Promise<ListPrincipalGroupsResponse> => {
   const response = await fetchAdapter("/api/account/principal-groups/members", {
@@ -344,7 +421,7 @@ export const updatePrincipalGroupMembers = async ({
 
 export const fetchAccountDocuments = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: AccountRequestOptions): Promise<ListAccountDocumentsResponse> => {
   const response = await fetchAdapter("/api/account/my/documents", {
     cache: "no-store",
@@ -364,7 +441,7 @@ export const fetchAccountDocumentFileContents = async ({
   accountIdentifier,
   documentType,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: FetchAccountDocumentFileOptions): Promise<string> => {
   const documentPath = accountIdentifier
     ? `/api/account/accounts/${accountIdentifier}/documents/${encodeURIComponent(documentType)}`
@@ -384,7 +461,7 @@ export const fetchAccountDocumentFileContents = async ({
 export const uploadAccountDocuments = async ({
   accountIdentifier,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: UploadAccountDocumentsOptions): Promise<ListAccountDocumentsResponse> => {
   const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}/documents`, {
@@ -410,7 +487,7 @@ export const uploadAccountDocuments = async ({
 export const requestAccountCategoryChange = async ({
   accountIdentifier,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: RequestAccountCategoryChangeOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
   const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}/category-change-requests`, {
@@ -434,7 +511,7 @@ export const requestAccountCategoryChange = async ({
 
 export const fetchAccountCategoryChangeRequests = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   page = 1,
   perPage = 20,
   requestedAccountCategory,
@@ -460,7 +537,7 @@ export const fetchAccountCategoryChangeRequests = async ({
 
 export const fetchAccountCategoryChangeRequestDetail = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestId,
 }: AccountCategoryChangeRequestDetailOptions): Promise<AccountCategoryChangeRequestDetailResponse> => {
   const response = await fetchAdapter(`/api/account/account-category-change-requests/${encodeURIComponent(requestId)}`, {
@@ -479,7 +556,7 @@ export const fetchAccountCategoryChangeRequestDetail = async ({
 
 export const approveAccountCategoryChangeRequest = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestId,
 }: AccountCategoryChangeRequestDetailOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
   const response = await fetchAdapter(`/api/account/account-category-change-requests/${encodeURIComponent(requestId)}/approve`, {
@@ -499,7 +576,7 @@ export const approveAccountCategoryChangeRequest = async ({
 
 export const rejectAccountCategoryChangeRequest = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
   requestId,
 }: RejectAccountCategoryChangeRequestOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
@@ -522,7 +599,7 @@ export const rejectAccountCategoryChangeRequest = async ({
 
 export const requestAffiliation = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: RequestAffiliationOptions): Promise<AffiliationCommandSummary> => {
   const response = await fetchAdapter("/api/account/affiliations", {
@@ -546,7 +623,7 @@ export const requestAffiliation = async ({
 
 export const fetchAffiliations = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   page,
   perPage,
   status,
@@ -575,7 +652,7 @@ export const fetchAffiliations = async ({
 
 export const requestDelegation = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   requestBody,
 }: RequestDelegationOptions): Promise<AccountDelegationSummary> => {
   const response = await fetchAdapter("/api/account/delegations", {
@@ -599,7 +676,7 @@ export const requestDelegation = async ({
 
 export const fetchDelegations = async ({
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
   page,
   perPage,
   status,
@@ -629,7 +706,7 @@ export const fetchDelegations = async ({
 export const approveDelegation = async ({
   delegationId,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: DelegationActionOptions): Promise<AccountDelegationSummary> => {
   const response = await fetchAdapter(`/api/account/delegations/${encodeURIComponent(delegationId)}/approve`, {
     method: "POST",
@@ -649,7 +726,7 @@ export const approveDelegation = async ({
 export const rejectDelegation = async ({
   delegationId,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: DelegationActionOptions): Promise<void> => {
   const response = await fetchAdapter(`/api/account/delegations/${encodeURIComponent(delegationId)}/reject`, {
     method: "POST",
@@ -667,7 +744,7 @@ export const rejectDelegation = async ({
 export const approveAffiliation = async ({
   affiliationId,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: AffiliationActionOptions): Promise<AffiliationCommandSummary> => {
   const response = await fetchAdapter(`/api/account/affiliations/${encodeURIComponent(affiliationId)}/approve`, {
     method: "POST",
@@ -687,7 +764,7 @@ export const approveAffiliation = async ({
 export const rejectAffiliation = async ({
   affiliationId,
   fallbackErrorMessage,
-  fetchAdapter = fetch,
+  fetchAdapter = browserApiFetch,
 }: AffiliationActionOptions): Promise<void> => {
   const response = await fetchAdapter(`/api/account/affiliations/${encodeURIComponent(affiliationId)}/reject`, {
     method: "POST",

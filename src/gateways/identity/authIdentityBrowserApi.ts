@@ -1,6 +1,6 @@
 import {
   parseAuthenticatedIdentitySummary,
-  type IdentitySummary,
+  type AuthenticatedIdentitySummary,
 } from "@/gateways/identity/identityApi";
 
 type FetchCurrentAuthenticatedIdentityOptions = {
@@ -17,7 +17,7 @@ const readResponseBody = async (response: Response): Promise<unknown> => {
 
 export const fetchCurrentAuthenticatedIdentity = async ({
   fetchAdapter = fetch,
-}: FetchCurrentAuthenticatedIdentityOptions = {}): Promise<IdentitySummary | null> => {
+}: FetchCurrentAuthenticatedIdentityOptions = {}): Promise<AuthenticatedIdentitySummary | null> => {
   try {
     const response = await fetchAdapter("/api/identity/auth/me", {
       cache: "no-store",

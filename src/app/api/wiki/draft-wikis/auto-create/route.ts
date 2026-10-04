@@ -1,3 +1,7 @@
+import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+
+import { getWikiRouteErrorStatus } from "@/app/api/wiki/wikiRouteSupport";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createDraftWikiApiClient } from "@/gateways/wiki/draftWiki";
@@ -25,6 +29,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
+    if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
+
     const status = typeof error === "object" &&
       error !== null &&
       "response" in error &&

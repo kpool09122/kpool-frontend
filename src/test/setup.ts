@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import React from "react";
-import { vi } from "vitest";
+import { beforeEach, vi } from "vitest";
 
 vi.mock("next/image", () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
@@ -27,3 +27,8 @@ vi.mock("next/navigation", () => ({
   }),
   useSearchParams: () => new URLSearchParams(),
 }));
+
+// Browser API fixtures begin with an initialized session. Bootstrap is tested separately.
+beforeEach(() => {
+  document.cookie = "XSRF-TOKEN=test-csrf-token; Path=/";
+});

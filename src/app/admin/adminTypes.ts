@@ -1,12 +1,12 @@
 import type { AccountSummary } from "@/gateways/account/accountApi";
-import type { IdentitySummary } from "@/gateways/identity/identityApi";
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import type { Locale } from "../../i18n/locales";
 import type { DraftImageListState } from "./useAdminDraftImageReview";
 import type { DraftWikiListState, AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 import type { ImageDeletionRequestListState } from "./useAdminImageDeletionRequestReview";
 
-export type AdminSettingsTab = "profileSettings" | "languageSettings";
+export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings" | "otherSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "wiki" | "accountSettings" | "settings" | "siteManagement";
 export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
@@ -14,7 +14,7 @@ export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDelet
 export type AdminRouteContext = {
   initialDraftImages: DraftImageListState;
   initialDraftWikis: Record<AdminDraftWikiActionTab, DraftWikiListState>;
-  initialIdentity: IdentitySummary;
+  initialIdentity: AuthenticatedIdentitySummary;
   initialImageDeletionRequests: ImageDeletionRequestListState;
   initialPrincipalState: WikiPrincipalState;
 };
@@ -93,4 +93,6 @@ export const adminAccountTabRoutes: Record<AdminAccountSettingsTab, string> = {
 export const adminSettingsTabRoutes: Record<AdminSettingsTab, string> = {
   languageSettings: "/admin/user/language",
   profileSettings: "/admin/user/profile",
+  securitySettings: "/admin/user/security",
+  otherSettings: "/admin/user/other",
 };

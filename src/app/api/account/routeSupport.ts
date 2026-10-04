@@ -1,3 +1,5 @@
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 export const readResponseBody = async (response: Response): Promise<unknown> => {
@@ -44,6 +46,7 @@ export const getForwardHeaders = (request: NextRequest, hasBody: boolean): Heade
     Accept: "application/json",
     ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
+    ...getCsrfForwardHeaders(request.headers),
     ...(cookie ? { Cookie: cookie } : {}),
   };
 };

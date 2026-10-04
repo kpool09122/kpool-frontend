@@ -12,6 +12,8 @@ import {
   approveWikiImageDeletionRequest,
   fetchWikiImageDeletionRequests,
   fetchWikiImages,
+  loadInitialWikiDraftImagesForRequest,
+  loadInitialWikiImageDeletionRequestsForRequest,
   rejectWikiDraftImage,
   rejectWikiImageDeletionRequest,
   requestWikiImageDeletion,
@@ -29,6 +31,25 @@ const jsonResponse = (body: unknown, status = 200): Response =>
 describe("wikiImageBrowserApi", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    [loadInitialWikiDraftImagesForRequest, "draft-images?status=under_review&perPage=12&page=1"],
+    [loadInitialWikiImageDeletionRequestsForRequest, "image-deletion-requests?perPage=12&page=1"],
+  ] as const)("loads %s from the backend without browser globals", async (loadInitial, path) => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
+    vi.stubGlobal("window", undefined);
+    const body = { images: [], current_page: 1, last_page: 1, total: 0, per_page: 12 };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadInitial("session=abc")).resolves.toEqual(body);
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`https://api.example.test/api/wiki/${path}`, {
+      cache: "no-store",
+      headers: { Accept: "application/json", Cookie: "session=abc" },
+    });
   });
 
   it("sends approve requests with credentials and the review header", async () => {
@@ -52,6 +73,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
         },
@@ -104,6 +126,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
         },
@@ -136,6 +159,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           Accept: "application/json",
           "Content-Type": "application/json",
           [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue,
@@ -216,6 +240,7 @@ describe("wikiImageBrowserApi", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/wiki/images/upload", {
       method: "POST",
       headers: {
+        "X-XSRF-TOKEN": "test-csrf-token",
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
@@ -224,7 +249,7 @@ describe("wikiImageBrowserApi", () => {
 
   it("submits image deletion requests through the browser route", async () => {
     const requestBody = createWikiImageDeletionRequest({
-      requesterName: "KPool User",
+      requesterName: "k-pool User",
       requesterEmail: "user@example.test",
       reason: "Rights concern",
     });
@@ -232,7 +257,7 @@ describe("wikiImageBrowserApi", () => {
       jsonResponse(
         {
           imageIdentifier,
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
           isHidden: true,
@@ -254,6 +279,7 @@ describe("wikiImageBrowserApi", () => {
         method: "POST",
         credentials: "include",
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
@@ -272,7 +298,7 @@ describe("wikiImageBrowserApi", () => {
         fallbackErrorMessage: "Deletion request failed",
         imageIdentifier,
         requestBody: createWikiImageDeletionRequest({
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
         }),
@@ -288,7 +314,7 @@ describe("wikiImageBrowserApi", () => {
         fallbackErrorMessage: "Deletion request failed",
         imageIdentifier,
         requestBody: createWikiImageDeletionRequest({
-          requesterName: "KPool User",
+          requesterName: "k-pool User",
           requesterEmail: "user@example.test",
           reason: "Rights concern",
         }),

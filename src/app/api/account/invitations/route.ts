@@ -1,3 +1,5 @@
+import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
+
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
         Accept: "application/json",
         ...(acceptLanguage ? { "Accept-Language": acceptLanguage } : {}),
         "Content-Type": "application/json",
+        ...getCsrfForwardHeaders(request.headers),
         ...(cookie ? { Cookie: cookie } : {}),
       },
       body: JSON.stringify(invitationRequest),

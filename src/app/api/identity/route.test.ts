@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-import { PATCH } from "./route";
+import { DELETE, PATCH } from "./route";
 
 const updateRequestBody = {
   identityName: "Updated Member",
@@ -35,6 +35,13 @@ const createRequest = (
     body: JSON.stringify(body),
   }) as NextRequest;
 
+const createDeleteRequest = (headers: Record<string, string> = {}): NextRequest =>
+  new Request("https://app.example.test/api/identity", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify({ confirmationIdentityName: "Member" }),
+  }) as NextRequest;
+
 const jsonResponse = (
   body: unknown,
   init: ResponseInit = {},
@@ -51,6 +58,56 @@ describe("/api/identity route", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
+  });
+
+  it("forwards the withdrawal confirmation name and preserves Cookie, CSRF, Set-Cookie, and 204", async () => {
+    vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, {
+      status: 204,
+      headers: { "set-cookie": "laravel_session=deleted; Path=/; HttpOnly" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await DELETE(createDeleteRequest({
+      cookie: "laravel_session=abc",
+      "x-xsrf-token": "csrf-token",
+    }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://identity.example.test/api/identity/identities/me",
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Cookie: "laravel_session=abc",
+          "X-XSRF-TOKEN": "csrf-token",
+        },
+        body: JSON.stringify({ confirmationIdentityName: "Member" }),
+        cache: "no-store",
+      },
+    );
+    expect(response.status).toBe(204);
+    expect(await response.text()).toBe("");
+    expect(response.headers.get("set-cookie")).toContain("laravel_session=deleted");
+  });
+
+  it.each([
+    [401, "authentication_required"],
+    [401, "recent_authentication_required"],
+    [403, "identity_withdrawal_not_allowed"],
+    [419, "csrf_token_mismatch"],
+    [422, "identity_name_confirmation_mismatch"],
+  ])("preserves withdrawal problem code for status %s (%s)", async (status, code) => {
+    vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(
+      { code, detail: "upstream detail" },
+      { status },
+    )));
+
+    const response = await DELETE(createDeleteRequest());
+    expect(response.status).toBe(status);
+    expect(await response.json()).toMatchObject({ code });
   });
 
   it("forwards update body, Cookie and Accept-Language to upstream", async () => {

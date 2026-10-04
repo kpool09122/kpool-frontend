@@ -2,10 +2,10 @@
   "name": "kpool-frontend",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.4.2",
   "engines": {
-    "node": "24.16.0",
-    "pnpm": "11.20.0"
+    "node": "26.10.0",
+    "pnpm": "12.4.2"
   },
   "scripts": {
     "dev": "next dev",
@@ -28,13 +28,13 @@
     "@kpool/types": "workspace:*",
     "@kpool/wiki": "workspace:*",
     "@radix-ui/react-icons": "^1.3.2",
-    "@tanstack/react-query": "5.103.1",
+    "@tanstack/react-query": "5.104.0",
     "@tiptap/extension-link": "^3.29.2",
     "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.29.2",
     "@zodios/core": "10.9.6",
     "cldr-subdivisions-full": "48.2.0",
-    "next": "16.3.5",
+    "next": "16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-image-crop": "^11.1.2",
@@ -55,7 +55,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^9",
-    "eslint-config-next": "16.3.5",
+    "eslint-config-next": "16.3.8",
     "eslint-plugin-boundaries": "^6.0.2",
     "jsdom": "^30.0.0",
     "storybook": "^10.3.5",

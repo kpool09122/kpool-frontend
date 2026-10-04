@@ -39,6 +39,7 @@ describe("saveWikiDraft", () => {
           fontStyle: "ja_gothic",
         }),
         headers: {
+          "X-XSRF-TOKEN": "test-csrf-token",
           "Content-Type": "application/json",
         },
         method: "POST",

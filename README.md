@@ -4,8 +4,8 @@ This project is managed with `pnpm`.
 
 ## Requirements
 
-- Node.js `24.16.0`
-- `pnpm` `11.20.0`
+- Node.js `26.10.0`
+- `pnpm` `12.4.2`
 - `task` `3.x`
 
 ## Getting Started

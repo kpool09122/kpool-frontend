@@ -1,3 +1,5 @@
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+
 import {
   parseUpdateIdentityResult,
   type IdentitySummary,
@@ -34,7 +36,7 @@ export const updateAuthenticatedIdentity = async ({
   fallbackErrorMessage: string;
   requestBody: UpdateIdentityRequest;
 }): Promise<IdentitySummary> => {
-  const response = await fetch("/api/identity", {
+  const response = await browserApiFetch("/api/identity", {
     method: "PATCH",
     headers: {
       Accept: "application/json",
