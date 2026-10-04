@@ -107,28 +107,6 @@ const RejectAccountCategoryChangeRequestBody = z
     rejectionReasonDetail: z.string().nullish(),
   })
   .passthrough();
-const CreateAccountRequestBody = z
-  .object({
-    email: z.string(),
-    accountName: z.string(),
-    principalIdentifier: KPool_Common_Uuid.nullish(),
-    phone: z.string().nullish(),
-    address: ContactAddressSummary.nullish(),
-  })
-  .passthrough();
-const CreateAccountResult = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid,
-    email: z.string(),
-    type: z.string(),
-    name: z.string(),
-    status: z.string(),
-    accountCategory: z.string(),
-    phone: z.string().nullable(),
-    address: ContactAddressSummary.nullable(),
-  })
-  .partial()
-  .passthrough();
 const CompleteInitialSetupRequestBody = z
   .object({ accountType: z.enum(["corporation", "individual"]) })
   .passthrough();
@@ -328,8 +306,6 @@ export const schemas = {
   AccountDocumentSummary,
   AccountCategoryChangeRequestDetailResponseBody,
   RejectAccountCategoryChangeRequestBody,
-  CreateAccountRequestBody,
-  CreateAccountResult,
   CompleteInitialSetupRequestBody,
   SwitchAccountRequestBody,
   SwitchAccountResponseBody,
@@ -543,43 +519,6 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 419,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/accounts",
-    alias: "AccountOperations_createAccount",
-    description: `Create an account.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: CreateAccountRequestBody,
-      },
-    ],
-    response: CreateAccountResult,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
