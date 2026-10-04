@@ -20,12 +20,16 @@ export const useHydrated = (): boolean => useSyncExternalStore(
 
 export const useEmailSendingStatus = (storageKey: string, context: string | null) => {
   const [currentStatus, setCurrentStatus] = useState<StoredEmailSendingStatus | null>(null);
+  const [invalidatedStatusIdentity, setInvalidatedStatusIdentity] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
+  const statusIdentity = context ? `${storageKey}:${context}` : null;
   const storedStatus = useMemo(
     () => context ? readEmailSendingStatusStorage(storageKey, context) : null,
     [context, storageKey],
   );
-  const status = currentStatus?.context === context ? currentStatus : storedStatus;
+  const status = currentStatus?.context === context
+    ? currentStatus
+    : invalidatedStatusIdentity === statusIdentity ? null : storedStatus;
 
   useEffect(() => {
     if (!status || status.retryAt === null || status.retryAt <= now) return;
@@ -42,6 +46,7 @@ export const useEmailSendingStatus = (storageKey: string, context: string | null
         ? null
         : Date.now() + Math.max(0, result.retryAfterSeconds) * 1000,
     };
+    setInvalidatedStatusIdentity(null);
     setCurrentStatus(nextStatus);
     setNow(Date.now());
     writeEmailSendingStatusStorage(storageKey, nextStatus);
@@ -49,8 +54,9 @@ export const useEmailSendingStatus = (storageKey: string, context: string | null
 
   const clear = useCallback(() => {
     setCurrentStatus(null);
+    setInvalidatedStatusIdentity(statusIdentity);
     clearSessionStorageValue(storageKey);
-  }, [storageKey]);
+  }, [statusIdentity, storageKey]);
 
   const secondsUntilRetry = useMemo(() => {
     if (!status || status.retryAt === null) return null;

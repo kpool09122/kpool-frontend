@@ -136,6 +136,7 @@ test("pending account can log out before completing setup", async ({ page }) => 
   });
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "アカウントの初期設定" })).toBeVisible();
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-theme"));
   await page.getByRole("banner").getByRole("button", { name: /member/ }).hover();
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);

@@ -63,6 +63,41 @@ describe("PasskeyRecoveryPage", () => {
     },
   );
 
+  it("returns to email entry and clears saved recovery state", async () => {
+    const sendRecoveryEmail = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { accepted: true, remainingSends: 4, retryAfterSeconds: 60 },
+    });
+    const view = render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), {
+      target: { value: "wrong@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    await screen.findByLabelText("確認コード");
+    fireEvent.change(screen.getByLabelText("確認コード"), { target: { value: "123456" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスを変更" }));
+
+    expect(screen.getByLabelText("登録済みメールアドレス")).toHaveValue("wrong@example.com");
+    expect(screen.queryByLabelText("確認コード")).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem("kpool.passkey-recovery.progress")).toBeNull();
+    expect(window.sessionStorage.getItem("kpool.passkey-recovery.email-sending-status")).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), {
+      target: { value: "correct@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    expect(await screen.findByLabelText("確認コード")).toHaveValue("");
+    expect(sendRecoveryEmail).toHaveBeenLastCalledWith({ email: "correct@example.com" }, "ja");
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスを変更" }));
+
+    view.unmount();
+    render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail }} />);
+    expect(screen.getByLabelText("登録済みメールアドレス")).toBeInTheDocument();
+    expect(screen.queryByLabelText("確認コード")).not.toBeInTheDocument();
+  });
+
   it("shows expiry safely and resends only to the locked email address", async () => {
     const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
     const verifyRecoveryEmail = vi.fn().mockResolvedValue({ ok: false, status: 422, message: "Recovery session expired for identity 123" });

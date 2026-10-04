@@ -132,6 +132,16 @@ function PasskeyRecoveryPageContent({
     });
   };
 
+  const changeRecoveryEmail = () => {
+    if (pending) return;
+    sendingStatus.clear();
+    clearSessionStorageValue(recoveryProgressStorageKey);
+    setAuthCode("");
+    setErrorMessage(null);
+    setNoticeMessage(null);
+    setPhase("method");
+  };
+
   const registerReplacement = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending || !confirmed) return;
@@ -224,6 +234,14 @@ function PasskeyRecoveryPageContent({
             <div>
               <h2 className="text-xl font-bold">{t.verificationTitle}</h2>
               <p className="mt-2 text-sm leading-6 text-text-muted">{t.verificationDescription(email)}</p>
+              <button
+                type="button"
+                disabled={pending}
+                className="mt-2 text-sm font-semibold text-brand-primary underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={changeRecoveryEmail}
+              >
+                {t.changeEmail}
+              </button>
             </div>
             <form className="space-y-4" onSubmit={verifyEmail}>
               <label className="block space-y-2 text-sm font-semibold">

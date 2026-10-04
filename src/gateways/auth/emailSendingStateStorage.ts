@@ -20,12 +20,21 @@ const signupProgressSchema = z.object({
   }),
 });
 
+const ignoreSessionStorageFailure = (operation: () => void): void => {
+  if (typeof window === "undefined") return;
+  try {
+    operation();
+  } catch {
+    // Browser privacy settings and storage quotas must not block authentication flows.
+  }
+};
+
 const readSessionJson = (key: string): unknown => {
   if (typeof window === "undefined") return null;
   try {
     return JSON.parse(window.sessionStorage.getItem(key) ?? "null") as unknown;
   } catch {
-    window.sessionStorage.removeItem(key);
+    ignoreSessionStorageFailure(() => window.sessionStorage.removeItem(key));
     return null;
   }
 };
@@ -41,10 +50,11 @@ export const readEmailSendingStatusStorage = (
 export const writeEmailSendingStatusStorage = (
   storageKey: string,
   value: StoredEmailSendingStatus,
-): void => window.sessionStorage.setItem(storageKey, JSON.stringify(value));
+): void => ignoreSessionStorageFailure(() =>
+  window.sessionStorage.setItem(storageKey, JSON.stringify(value)));
 
 export const clearSessionStorageValue = (storageKey: string): void =>
-  window.sessionStorage.removeItem(storageKey);
+  ignoreSessionStorageFailure(() => window.sessionStorage.removeItem(storageKey));
 
 export const readSignupProgress = (storageKey: string): SignupAccountFormValues | null => {
   const result = signupProgressSchema.safeParse(readSessionJson(storageKey));
@@ -54,7 +64,8 @@ export const readSignupProgress = (storageKey: string): SignupAccountFormValues 
 export const writeSignupProgress = (
   storageKey: string,
   values: SignupAccountFormValues,
-): void => window.sessionStorage.setItem(storageKey, JSON.stringify({ values }));
+): void => ignoreSessionStorageFailure(() =>
+  window.sessionStorage.setItem(storageKey, JSON.stringify({ values })));
 
 export const readRecoveryEmail = (storageKey: string): string | null => {
   const value = readSessionJson(storageKey);
@@ -62,4 +73,5 @@ export const readRecoveryEmail = (storageKey: string): string | null => {
 };
 
 export const writeRecoveryEmail = (storageKey: string, email: string): void =>
-  window.sessionStorage.setItem(storageKey, JSON.stringify(email));
+  ignoreSessionStorageFailure(() =>
+    window.sessionStorage.setItem(storageKey, JSON.stringify(email)));
