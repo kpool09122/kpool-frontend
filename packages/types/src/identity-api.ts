@@ -372,8 +372,18 @@ const endpoints = makeApi([
     response: z.void(),
     errors: [
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -409,8 +419,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -434,8 +454,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -459,8 +489,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -479,8 +519,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -528,8 +578,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -575,8 +635,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -622,8 +692,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -657,8 +737,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -694,8 +784,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -714,8 +814,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -756,8 +866,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -788,8 +908,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -820,8 +950,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -857,8 +997,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -884,8 +1034,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -926,8 +1086,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -973,8 +1143,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1005,8 +1185,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1047,8 +1237,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1084,8 +1284,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1104,8 +1314,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1129,8 +1349,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1163,8 +1393,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1200,8 +1440,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1230,8 +1480,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1267,8 +1527,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1304,8 +1574,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1348,8 +1628,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1395,8 +1685,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -1415,8 +1715,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
