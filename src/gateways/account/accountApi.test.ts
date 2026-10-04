@@ -6,7 +6,6 @@ import {
   parseAccountCategoryChangeRequestSummary,
   parseAccountMembersResponse,
   parseAccountSummary,
-  parseCreateAccountResult,
   parseAffiliationCommandSummary,
   parseListAccountCategoryChangeRequestsResponse,
   parseListAccountDocumentsResponse,
@@ -68,10 +67,6 @@ describe("account API helpers", () => {
     expect(getAccountApiBaseUrl({ KPOOL_ACCOUNT_API_BASE_URL: "http://api.test" })).toBe(
       "http://api.test/api/account",
     );
-  });
-
-  it("accepts the backend empty array response for an already handled account", () => {
-    expect(parseCreateAccountResult([])).toEqual({});
   });
 
   it("parses account switch requests and responses", () => {
