@@ -2,12 +2,12 @@
 
 ## 固定sourceと環境
 
-- 実装source SHA: `be50451c869f810a735ca4d875d4f0faf53c1a5b`
+- 実装source SHA: `46340f9406fd5aae5d5ab68acaf5d6cc8a540efd`
 - base main SHA: `8822097`（取得済み origin/main）
 - 直接参照したbackend checkout SHA: `44697fc66217ae017efe05a85cd3da2d43d6c5b2`
 - Node 26.10.0 / pnpm 12.4.2 / Next 16.3.8 / React 19.3.0
-- OpenNext Cloudflare 1.20.8 / OpenNext AWS 4.1.7（アダプター内部依存。AWS操作は未実施）/ Wrangler 4.125.0
-- workerd 1.20260820.1 / compatibility_date 2026-08-20
+- OpenNext Cloudflare 1.20.8 / OpenNext AWS 4.1.7（アダプター内部依存。AWS操作は未実施）/ Wrangler 4.147.0
+- workerd 1.20261001.1 / compatibility_date 2026-08-20
 - buildとsmokeの前後でgit statusがcleanであることを確認。後続commitはこの検証記録のみ。
 - `.open-next/worker.js` SHA256: `d05223bf4d44c84108a102ab62aa3bc9c5568f0c3ac2064c37be5cc65c64bc45`（単一entry fileの確認値。artifact全体のchecksumの代用ではない）
 
@@ -17,13 +17,15 @@
 | --- | --- |
 | `pnpm install --frozen-lockfile` | 成功。pnpm供給網policy確認成功。workerd postinstallは明示allowBuildsで許可 |
 | `pnpm exec vitest run src/config/workersDeployment.test.ts 'src/app/[language]/legal/LegalDocument.test.tsx'` | 2ファイル・18件成功 |
-| `task check` | lint + Next build + 全unit成功。161ファイル・974件。lintは0 error / 4 warning |
+| `task check`（最初のWrangler 4.125.0版） | lint + Next build + 全unit成功。161ファイル・974件 |
+| `task check`（最終固定SHA） | lint/Next build成功（0 error / 4 warning）。unitは既定並列で9件timeout / 965件成功。全PASSとは記録しない |
+| `pnpm exec vitest run --maxWorkers=2`（最終固定SHA） | 全161ファイル・974件成功。上記timeout後に並列数だけ変更し再実行、source変更なし |
 | 固定SHAで `pnpm workers:build` | 成功。Turbopack build、TypeScript、68静的page生成、全dynamic app routeとproxyのバンドル作成。`OpenNext build complete.` |
 | 固定SHAのbuild成果物で `pnpm workers:smoke` | 成功。実workerdローカルpreview起動・fixture APIとの通信 |
 | `pnpm workers:deploy`（明示配備config無し） | 意図通りexit 1。Cloudflareへの配備を呼ばず停止 |
 | `git diff --check` / staged diff check | 成功 |
 
-固定SHAのbuildログ `/tmp/kpool-427-fixed-build.log`、smokeログ `/tmp/kpool-427-fixed-smoke.log`、全checkログ `/tmp/kpool-427-check.log` は実行ホスト上の一時証跡。恒久CI artifactではない。#156では同じコマンドの結果を固定source SHAとともに保存する。
+固定SHAのbuildログ `/tmp/kpool-427-final-build.log`、smokeログ `/tmp/kpool-427-final-smoke.log`、全checkログ `/tmp/kpool-427-final-check.log` と `/tmp/kpool-427-final-unit.log` は実行ホスト上の一時証跡。恒久CI artifactではない。#156では同じコマンドの結果を固定source SHAとともに保存する。
 
 ## runtimeで確認した範囲
 
@@ -56,7 +58,9 @@ project-local `.codex/skills/{qa-review,test-review,security-review,architecture
 - Security: local設定誤配備、資格情報付きURL、binding不足の拒否を追加。Cookie/Set-Cookie/no-store/419とOAuth return_toを検証。runtime secretは導入せず、画像host許可範囲を広げない。本番hostの承認・実認証は残余ゲート。
 - Architecture: 既存gateway/env/BFFをそのまま利用、Workers固有設定・CLIはroot config/scriptsへ隔離。規約正本と生成artifactの責務を明記。R2共有cache + DO queue、tag cacheは現行未使用のため追加しない。生成物をlint/gitから除外し、既存依存境界を保持。
 
-妥当な実装指摘は修正済み。未対応のコード指摘なし。ただし以下はPASSではなく、承認済み実環境の確認事項として引き渡す。
+追加依存監査では初期Wrangler版にsharp/undiciの新規報告があり、Wrangler 4.147.0へ更新して修正した。最終 `pnpm audit --json` と未変更 origin/main SHA `8822097` の同コマンドを比較し、新規advisory IDは0件。最終残存報告は main と同じ high 22 / moderate 19 / low 1 / critical 0。axios、vite、nanoid、browserslist、baseline-browser-mapping、js-yaml、brace-expansion、braces等の既存依存全体の更新は本Issueの範囲外として未対応。監査全体をPASS/脆弱性なしとは扱わない。
+
+妥当な今回の実装指摘は修正済み。既存依存の監査報告以外に未対応のコード指摘なし。ただし以下はPASSではなく、承認済み実環境の確認事項として引き渡す。
 
 ## 未実施・残余リスク
 
