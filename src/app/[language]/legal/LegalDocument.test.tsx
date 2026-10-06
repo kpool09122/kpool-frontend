@@ -1,5 +1,13 @@
+import { readFileSync } from "node:fs";
+import documents from "./documents.json";
+
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("node:fs/promises", () => {
+  const readFile = vi.fn().mockRejectedValue(new Error("Runtime filesystem is unavailable in Workers"));
+  return { readFile, default: { readFile } };
+});
 
 import { supportedLocales } from "../../../i18n/locales";
 import { LegalDocument } from "./LegalDocument";
@@ -25,6 +33,11 @@ afterEach(() => {
 });
 
 describe("LegalDocument", () => {
+  it.each(supportedLocales)("bundles the exact repository-owned HTML for %s", (locale) => {
+    for (const kind of ["terms", "privacy"] as const) {
+      expect(documents[locale][kind]).toBe(readFileSync(`public/legal/${locale}/${kind}.html`, "utf8"));
+    }
+  });
   it.each(supportedLocales)("loads the terms fragment for %s", async (locale) => {
     render(await LegalDocument({ document: "terms", locale }));
 
