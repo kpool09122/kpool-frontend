@@ -2,7 +2,7 @@
 
 ## 採用方式・責務
 
-Next.js 16.3.8 / React 19.3.0 を変更せず、`@opennextjs/cloudflare` 1.20.8 と Wrangler 4.125.0 を lockfile と直接依存で固定する。アダプターの peerDependencies は `next >=15.5.27 <16 || >=16.3.8`、Wrangler `^4.125.0`。実際の Turbopack build と workerd preview を検証した。静的 export / next-on-pages では SSR・BFF・proxy を保持できないため採用しない。
+Next.js 16.3.8 / React 19.3.0 を変更せず、`@opennextjs/cloudflare` 1.20.8 と Wrangler 4.147.0 を lockfile と直接依存で固定する。アダプターの peerDependencies は `next >=15.5.27 <16 || >=16.3.8`、Wrangler `^4.125.0`。実際の Turbopack build と workerd preview を検証した。静的 export / next-on-pages では SSR・BFF・proxy を保持できないため採用しない。
 
 作業前に AGENTS.md、インストール版 Next の `dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md` と `01-app/02-guides/environment-variables.md` を確認した。backend の既存 `infra/cloudformation/{README.md,contracts.json}`、`doc/infrastructure/{pipeline-handoff.md,backend-release.md}` を直接参照した。AWS 基盤・Actions workflow・本番 Cloudflare resource/DNS は変更しない。
 
