@@ -27,11 +27,15 @@ export function AdminShellClient({
     ? t.wikiHeaderTitle
     : activeSection === "accountSettings"
       ? t.accountSettingsHeaderTitle
+      : activeSection === "siteManagement"
+        ? t.siteManagementHeaderTitle
       : t.settingsHeaderTitle;
   const headerDescription = activeSection === "wiki"
     ? t.wikiHeaderDescription
     : activeSection === "settings"
       ? t.settingsHeaderDescription
+      : activeSection === "siteManagement"
+        ? t.siteManagementHeaderDescription
       : null;
 
   useEffect(() => {
@@ -80,6 +84,11 @@ export function AdminShellClient({
                 />
               ) : null}
               <AdminSectionLink
+                href={adminSectionRoutes.siteManagement}
+                isSelected={activeSection === "siteManagement"}
+                label={t.siteManagementMenu}
+              />
+              <AdminSectionLink
                 href={adminSectionRoutes.settings}
                 isSelected={activeSection === "settings"}
                 label={t.settingsMenu}
@@ -113,6 +122,10 @@ const resolveActiveSection = (pathname: string | null): AdminSection => {
 
   if (pathname?.startsWith("/admin/user")) {
     return "settings";
+  }
+
+  if (pathname?.startsWith("/admin/site-management")) {
+    return "siteManagement";
   }
 
   return "wiki";
