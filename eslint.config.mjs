@@ -114,6 +114,7 @@ export default defineConfig([
       "tests/**/*.{js,jsx,ts,tsx}",
       "playwright.config.ts",
       "vitest.config.ts",
+      "scripts/workers-smoke.mjs",
     ],
     rules: {
       "no-restricted-syntax": ["error", ...baseRestrictedSyntax],
@@ -122,6 +123,8 @@ export default defineConfig([
   globalIgnores([
     "node_modules/**",
     ".next/**",
+    ".open-next/**",
+    ".wrangler/**",
     "out/**",
     "build/**",
     "storybook-static/**",

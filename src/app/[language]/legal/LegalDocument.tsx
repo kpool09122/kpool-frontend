@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import documents from "./documents.json";
 
 import type { Locale } from "../../../i18n/locales";
 
@@ -12,10 +11,7 @@ export async function LegalDocument({
   document: LegalDocumentKind;
   locale: Locale;
 }) {
-  const content = await readFile(
-    path.join(process.cwd(), "public", "legal", locale, `${document}.html`),
-    "utf8",
-  );
+  const content = documents[locale][document];
 
   return (
     <main className="min-h-screen bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
