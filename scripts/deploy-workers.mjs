@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { validateDeploymentConfig } from "./workers-deployment-config.mjs";
 
-// No build or implicit resource creation: publish the already validated artifact.
+// Publish the validated artifact without rebuilding. OpenNext populates the remote
+// cache first and can create a missing R2 bucket; administrators must verify resources.
 const configPath = process.env.KPOOL_WORKERS_DEPLOY_CONFIG;
 if (!configPath || resolve(configPath) === resolve("wrangler.json")) {
   console.error("Set KPOOL_WORKERS_DEPLOY_CONFIG to an approved deployment JSON; wrangler.json is local-only.");

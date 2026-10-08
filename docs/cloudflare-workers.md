@@ -46,7 +46,7 @@ pnpm workers:preview --config wrangler.deploy.json --port 8787
 KPOOL_WORKERS_DEPLOY_CONFIG=wrangler.deploy.json pnpm workers:deploy
 ```
 
-配備入口は明示configを要求し、local設定・self reference不一致・cache/DO/image/Node binding不足・未設定/非HTTPS/資格情報付きAPI URLを拒否する。構造検査はリソース実在・権限・配備承認の検証ではない。Wranglerの自動provisionに依存せず、管理者は既存resourceとtoken権限を事前確認する。wrangler.deploy.json/.dev.vars/.open-next/.wrangler はgit対象外。秘密値を設定ファイルや成果物に保存しない。
+配備入口は明示configを要求し、local設定・self reference不一致・cache/DO/image/Node binding不足・タグ付き `DOQueueHandler` の `new_sqlite_classes` migration不足・未設定/非HTTPS/資格情報付きAPI URLを拒否する。構造検査はリソース実在・権限・配備承認の検証ではない。OpenNext 1.20.8 はWorker公開前にcache初期値を投入し、投入対象がある場合は存在しないR2 bucketを作成する。このため、配備入口の構造検査だけでは既存resourceのみの利用を保証できず、Worker公開が失敗してもbucket作成・cache投入が残り得る。管理者は実行前に対象account・既存bucket・token権限を確認する。wrangler.deploy.json/.dev.vars/.open-next/.wrangler はgit対象外。秘密値を設定ファイルや成果物に保存しない。
 
 ## bindings とキャッシュ
 

@@ -17,6 +17,33 @@ describe("Workers deployment gate", () => {
   it("accepts explicit runtime API URLs and consistent resource names", () => {
     expect(validateDeploymentConfig(valid())).toEqual([]);
   });
+  it.each([
+    undefined,
+    null,
+    {},
+    [],
+    [null],
+    [{ tag: "v1" }],
+    [{ tag: "v1", new_sqlite_classes: "DOQueueHandler" }],
+    [{ tag: "v1", new_sqlite_classes: ["AnotherHandler"] }],
+    [{ tag: "v1", new_classes: ["DOQueueHandler"] }],
+    [{ new_sqlite_classes: ["DOQueueHandler"] }],
+    [{ tag: " ", new_sqlite_classes: ["DOQueueHandler"] }],
+  ].map((migrations) => ({ migrations })))("rejects missing or invalid queue SQLite migration %j", ({ migrations }) => {
+    expect(validateDeploymentConfig({ ...valid(), migrations })).toEqual([
+      "A tagged new_sqlite_classes migration for DOQueueHandler is required",
+    ]);
+  });
+  it("accepts queue initialization in a later migration with a custom tag", () => {
+    expect(validateDeploymentConfig({
+      ...valid(),
+      migrations: [
+        { tag: "initial", new_sqlite_classes: ["AnotherHandler"] },
+        { tag: "add-cache-queue", new_sqlite_classes: ["DOQueueHandler"] },
+        { tag: "follow-up", new_sqlite_classes: ["OtherHandler"] },
+      ],
+    })).toEqual([]);
+  });
   it("rejects missing cache queue, image and Node compatibility bindings", () => {
     expect(validateDeploymentConfig({ ...valid(), durable_objects: {}, images: {}, compatibility_flags: [] }).length).toBeGreaterThan(0);
   });

@@ -3,7 +3,11 @@ const apiKeys = [
   "KPOOL_ACCOUNT_API_BASE_URL", "KPOOL_SITE_MANAGEMENT_API_BASE_URL",
 ];
 
-/** @param {Record<string, unknown>} config */
+/**
+ * Validate deployment resource bindings, queue initialization and runtime API URLs.
+ * @param {Record<string, unknown>} config
+ * @returns {string[]} Configuration errors that prevent deployment.
+ */
 export const validateDeploymentConfig = (config) => {
   const errors = [];
   if (typeof config.name !== "string" || !config.name || config.name.includes("local")) {
@@ -29,6 +33,16 @@ export const validateDeploymentConfig = (config) => {
   const bindings = objects && typeof objects === "object" && Array.isArray(objects.bindings) ? objects.bindings : [];
   if (!bindings.some((item) => item.name === "NEXT_CACHE_DO_QUEUE" && item.class_name === "DOQueueHandler")) {
     errors.push("NEXT_CACHE_DO_QUEUE / DOQueueHandler is required");
+  }
+  const migrations = Array.isArray(config.migrations) ? config.migrations : [];
+  const hasQueueMigration = migrations.some((migration) =>
+    migration &&
+    typeof migration.tag === "string" && migration.tag.trim() &&
+    Array.isArray(migration.new_sqlite_classes) &&
+    migration.new_sqlite_classes.includes("DOQueueHandler"),
+  );
+  if (!hasQueueMigration) {
+    errors.push("A tagged new_sqlite_classes migration for DOQueueHandler is required");
   }
   if (!config.images || config.images.binding !== "IMAGES") {
     errors.push("IMAGES binding is required");
