@@ -296,6 +296,21 @@ const AuthenticationMethodsSummary = z
     linkedSocialProviders: z.array(z.string()),
   })
   .passthrough();
+const SiteManagementPolicyStatement = z
+  .object({
+    effect: z.string(),
+    actions: z.array(z.string()),
+    resourceTypes: z.array(z.string()),
+    condition: z.string().nullable(),
+  })
+  .passthrough();
+const SiteManagementEffectivePolicySummary = z
+  .object({
+    policyIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string(),
+    statements: z.array(SiteManagementPolicyStatement),
+  })
+  .passthrough();
 const SwitchableAccountSummary = z
   .object({
     delegationIdentifier: KPool_Common_Uuid,
@@ -359,6 +374,8 @@ export const schemas = {
   AuthenticatedAccountReferenceSummary,
   AuthenticatedAccountSummary,
   AuthenticationMethodsSummary,
+  SiteManagementPolicyStatement,
+  SiteManagementEffectivePolicySummary,
   SwitchableAccountSummary,
 };
 
