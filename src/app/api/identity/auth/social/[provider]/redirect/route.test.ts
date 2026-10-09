@@ -38,7 +38,7 @@ describe("/api/identity/auth/social/[provider]/redirect route", () => {
     );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/social/google%20oauth/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit&oneTimeToken=invite-token-123",
+      "https://identity.example.test/api/v1/identity/auth/social/google%20oauth/redirect?return_to=%2Fwiki%2Fja%2Fgr-aurora-echo%2Fedit&oneTimeToken=invite-token-123",
       {
         headers: {
           Accept: "application/json",
@@ -62,7 +62,7 @@ describe("/api/identity/auth/social/[provider]/redirect route", () => {
     );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/social/google/redirect?return_to=%2Fadmin",
+      "https://identity.example.test/api/v1/identity/auth/social/google/redirect?return_to=%2Fadmin",
       expect.any(Object),
     );
   });

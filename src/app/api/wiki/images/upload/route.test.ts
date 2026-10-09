@@ -140,7 +140,7 @@ describe("wiki image upload route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/image/upload",
+      "https://api.example.test/api/v1/wiki/image/upload",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({

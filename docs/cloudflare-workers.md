@@ -62,12 +62,12 @@ KPOOL_WORKERS_DEPLOY_CONFIG=wrangler.deploy.json pnpm workers:deploy
 
 ## 4 API URLの注入契約
 
-| 非秘密変数 | 既存アプリのprefix |
+| 非秘密変数 | バックエンドv1のprefix |
 | --- | --- |
-| KPOOL_WIKI_PRIVATE_API_BASE_URL | `/api/wiki` |
-| KPOOL_IDENTITY_API_BASE_URL | `/api/identity` |
-| KPOOL_ACCOUNT_API_BASE_URL | `/api/account` |
-| KPOOL_SITE_MANAGEMENT_API_BASE_URL | `/api/site-management` |
+| KPOOL_WIKI_PRIVATE_API_BASE_URL | `/api/v1/wiki` |
+| KPOOL_IDENTITY_API_BASE_URL | `/api/v1/identity` |
+| KPOOL_ACCOUNT_API_BASE_URL | `/api/v1/account` |
+| KPOOL_SITE_MANAGEMENT_API_BASE_URL | `/api/v1/site-management` |
 
 runtime `ApiUrl` を管理者/Pipelineが解決し、各base URLへ渡す。originまたは対応prefix付きURLを既存gatewayが扱う。URLにtoken/userinfo/query/fragmentを含めない。4変数は `NEXT_PUBLIC_*` や next.config.env にせずブラウザへの埋め込みを避ける。
 

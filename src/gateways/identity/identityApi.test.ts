@@ -10,16 +10,16 @@ import {
 describe("identity API helpers", () => {
   it("adds the backend identity prefix when the base URL omits it", () => {
     expect(withIdentityApiPrefix("http://127.0.0.1:8080")).toBe(
-      "http://127.0.0.1:8080/api/identity",
+      "http://127.0.0.1:8080/api/v1/identity",
     );
-    expect(withIdentityApiPrefix("http://127.0.0.1:8080/api/identity")).toBe(
-      "http://127.0.0.1:8080/api/identity",
+    expect(withIdentityApiPrefix("http://127.0.0.1:8080/api/v1/identity")).toBe(
+      "http://127.0.0.1:8080/api/v1/identity",
     );
   });
 
   it("uses the server-only env var for the Identity API base URL", () => {
     expect(getIdentityApiBaseUrl({ KPOOL_IDENTITY_API_BASE_URL: "http://api.test" })).toBe(
-      "http://api.test/api/identity",
+      "http://api.test/api/v1/identity",
     );
   });
 

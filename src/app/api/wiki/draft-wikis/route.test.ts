@@ -86,7 +86,7 @@ describe("wiki draft wikis route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12&page=1",
+      "https://api.example.test/api/v1/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12&page=1",
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -104,7 +104,7 @@ describe("wiki draft wikis route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12&page=1",
+      "https://api.example.test/api/v1/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12&page=1",
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -141,7 +141,7 @@ describe("wiki draft wikis route", () => {
       wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wiki/create",
+      "https://api.example.test/api/v1/wiki/wiki/create",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({

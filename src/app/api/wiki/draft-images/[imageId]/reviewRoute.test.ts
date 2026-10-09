@@ -56,7 +56,7 @@ describe("wiki draft image review route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/image/${imageId}/approve`,
+      `https://api.example.test/api/v1/wiki/image/${imageId}/approve`,
       expect.objectContaining({
         method: "POST",
         headers: {
@@ -83,7 +83,7 @@ describe("wiki draft image review route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/image/${imageId}/reject`,
+      `https://api.example.test/api/v1/wiki/image/${imageId}/reject`,
       expect.objectContaining({ method: "POST" }),
     );
   });

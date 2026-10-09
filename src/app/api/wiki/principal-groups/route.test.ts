@@ -34,7 +34,7 @@ describe("/api/wiki/principal-groups route", () => {
 
     const response = await GET(createRequest("22222222-2222-4222-8222-222222222222", { "accept-language": "ja", cookie: "session=abc" }));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://wiki.example.test/api/wiki/principal-groups?accountIdentifier=22222222-2222-4222-8222-222222222222", {
+    expect(fetchMock).toHaveBeenCalledWith("https://wiki.example.test/api/v1/wiki/principal-groups?accountIdentifier=22222222-2222-4222-8222-222222222222", {
       method: "GET",
       headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "session=abc" },
       cache: "no-store",

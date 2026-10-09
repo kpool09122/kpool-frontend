@@ -48,8 +48,8 @@ describe("passkey recovery BFF routes", () => {
 
     expect(sendResponse.status).toBe(200);
     expect(await sendResponse.json()).toEqual(sendingStatus);
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://identity.example.test/api/identity/auth/passkeys/recovery/email", expect.objectContaining({ body: JSON.stringify(emailBody), cache: "no-store" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/identity/auth/passkeys/recovery/email/verification", expect.objectContaining({ body: JSON.stringify(verifyBody), cache: "no-store" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://identity.example.test/api/v1/identity/auth/passkeys/recovery/email", expect.objectContaining({ body: JSON.stringify(emailBody), cache: "no-store" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/v1/identity/auth/passkeys/recovery/email/verification", expect.objectContaining({ body: JSON.stringify(verifyBody), cache: "no-store" }));
     expect(await verifyResponse.json()).toEqual({ recoveryKey });
   });
 
@@ -62,7 +62,7 @@ describe("passkey recovery BFF routes", () => {
     );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://identity.example.test/api/identity/auth/passkeys/recovery/social/google/redirect`,
+      `https://identity.example.test/api/v1/identity/auth/passkeys/recovery/social/google/redirect`,
       expect.objectContaining({ method: "GET", cache: "no-store" }),
     );
     expect(await response.json()).toEqual({ redirectUrl: "https://accounts.example.test/reauth" });
@@ -102,7 +102,7 @@ describe("passkey recovery BFF routes", () => {
     expect(await optionsResponse.json()).toEqual(options);
     expect(recoveryResponse.status).toBe(204);
     expect(recoveryResponse.headers.get("set-cookie")).toContain("laravel_session=renewed");
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/identity/auth/passkeys/recovery", expect.objectContaining({
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/v1/identity/auth/passkeys/recovery", expect.objectContaining({
       body: JSON.stringify(body),
       headers: expect.objectContaining({ "Accept-Language": "ko", Cookie: "laravel_session=abc" }),
       cache: "no-store",

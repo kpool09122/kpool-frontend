@@ -63,7 +63,7 @@ describe("/api/identity/auth/me route", () => {
     await GET(createRequest({ cookie: "laravel_session=abc; theme=dark" }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/me",
+      "https://identity.example.test/api/v1/identity/auth/me",
       {
         headers: {
           Accept: "application/json",

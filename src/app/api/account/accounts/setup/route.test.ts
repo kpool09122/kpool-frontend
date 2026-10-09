@@ -30,7 +30,7 @@ describe("POST /api/account/accounts/setup", () => {
     const response = await POST(createRequest({ accountType: "corporation" }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/accounts/setup",
+      "https://account.example.test/api/v1/account/accounts/setup",
       {
         method: "POST",
         headers: {

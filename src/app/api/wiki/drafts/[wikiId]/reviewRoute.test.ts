@@ -66,7 +66,7 @@ describe("wiki draft review route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/approve`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/approve`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",
@@ -98,7 +98,7 @@ describe("wiki draft review route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/reject`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/reject`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",
@@ -124,7 +124,7 @@ describe("wiki draft review route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/publish`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/publish`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",
@@ -164,7 +164,7 @@ describe("wiki draft review route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/translate`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/translate`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",

@@ -33,7 +33,7 @@ describe("/api/account/my/documents route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/my/documents",
+      "https://account.example.test/api/v1/account/my/documents",
       {
         method: "GET",
         headers: {

@@ -59,7 +59,7 @@ describe("wiki version inconsistent wikis route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wikis/version-inconsistencies?perPage=12&page=2&resourceType=group&sort=updatedAt&order=desc",
+      "https://api.example.test/api/v1/wiki/wikis/version-inconsistencies?perPage=12&page=2&resourceType=group&sort=updatedAt&order=desc",
       expect.objectContaining({
         method: "GET",
         headers: {

@@ -23,7 +23,7 @@ describe("/api/identity/auth/logout route", () => {
     await POST(createRequest({ cookie: "laravel_session=abc" }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/logout",
+      "https://identity.example.test/api/v1/identity/auth/logout",
       {
         method: "POST",
         headers: {

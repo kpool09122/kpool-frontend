@@ -49,7 +49,7 @@ describe("/api/account/account-category-change-requests route", () => {
 
     const response = await GET(createRequest({ "accept-language": "ja", cookie: "session=abc" }));
 
-    expect(fetchMock).toHaveBeenCalledWith(new URL("https://account.example.test/api/account/account-category-change-requests?status=pending&perPage=20&page=1"), {
+    expect(fetchMock).toHaveBeenCalledWith(new URL("https://account.example.test/api/v1/account/account-category-change-requests?status=pending&perPage=20&page=1"), {
       method: "GET",
       headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "session=abc" },
       cache: "no-store",

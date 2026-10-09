@@ -30,7 +30,7 @@ describe("passkey authentication route", () => {
 
     const response = await POST(createRequest());
 
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys/authentication", {
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/passkeys/authentication", {
       method: "POST",
       headers: { Accept: "application/json", "Accept-Language": "ko", "Content-Type": "application/json", Cookie: "laravel_session=abc" },
       body: JSON.stringify(body),

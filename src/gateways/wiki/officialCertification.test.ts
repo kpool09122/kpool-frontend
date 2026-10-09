@@ -19,7 +19,7 @@ describe("officialCertification", () => {
       page: 2,
       perPage: 20,
       status: "pending",
-    })).toBe("https://api.example.test/api/wiki/official-certifications?status=pending&page=2&perPage=20");
+    })).toBe("https://api.example.test/api/v1/wiki/official-certifications?status=pending&page=2&perPage=20");
   });
 
   it("fetches pending official certifications from the browser BFF", async () => {
@@ -60,7 +60,7 @@ describe("officialCertification", () => {
       status: "pending",
     })).resolves.toMatchObject({ officialCertifications: [] });
     expect(fetchAdapter).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/official-certifications?status=pending&page=1&perPage=20",
+      "https://api.example.test/api/v1/wiki/official-certifications?status=pending&page=1&perPage=20",
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -132,7 +132,7 @@ describe("officialCertification", () => {
       translationSetIdentifier: "11111111-1111-4111-8111-111111111111",
     })).resolves.toMatchObject({ wikis: [] });
     expect(fetchAdapter).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wiki/agency/11111111-1111-4111-8111-111111111111/related-wikis",
+      "https://api.example.test/api/v1/wiki/wiki/agency/11111111-1111-4111-8111-111111111111/related-wikis",
       expect.objectContaining({ method: "GET" }),
     );
   });

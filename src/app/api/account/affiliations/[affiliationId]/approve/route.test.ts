@@ -53,7 +53,7 @@ describe("/api/account/affiliations/[affiliationId]/approve route", () => {
 
     const response = await POST(createRequest({ cookie: "laravel_session=abc" }), { params: Promise.resolve({ affiliationId }) });
 
-    expect(fetchMock).toHaveBeenCalledWith(`https://account.example.test/api/account/affiliations/${affiliationId}/approve`, {
+    expect(fetchMock).toHaveBeenCalledWith(`https://account.example.test/api/v1/account/affiliations/${affiliationId}/approve`, {
       method: "POST",
       headers: { Accept: "application/json", Cookie: "laravel_session=abc" },
       cache: "no-store",

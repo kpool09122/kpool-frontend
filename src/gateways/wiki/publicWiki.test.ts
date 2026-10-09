@@ -448,7 +448,7 @@ describe("publicWiki", () => {
       publicWikiResponse,
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/ja/group/gr-aurora-echo",
       expect.objectContaining({
         headers: {
           accept: "application/json",

@@ -41,7 +41,7 @@ describe("/api/account/principal-groups/members route", () => {
   it("forwards final group membership updates to upstream", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url === "https://account.example.test/api/account/principal-groups/members") {
+      if (url === "https://account.example.test/api/v1/account/principal-groups/members") {
         return Promise.resolve(new Response(null, { status: 204 }));
       }
 
@@ -51,13 +51,13 @@ describe("/api/account/principal-groups/members route", () => {
 
     const response = await PATCH(createRequest(updateRequest, { "accept-language": "ko", cookie: "session=abc" }));
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://account.example.test/api/account/principal-groups/members", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://account.example.test/api/v1/account/principal-groups/members", {
       method: "PATCH",
       headers: { Accept: "application/json", "Accept-Language": "ko", "Content-Type": "application/json", Cookie: "session=abc" },
       body: JSON.stringify(updateRequest),
       cache: "no-store",
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://account.example.test/api/account/principal-groups", {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://account.example.test/api/v1/account/principal-groups", {
       headers: { Accept: "application/json", "Accept-Language": "ko", Cookie: "session=abc" },
       cache: "no-store",
     });

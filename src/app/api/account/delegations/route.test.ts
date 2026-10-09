@@ -45,7 +45,7 @@ describe("/api/account/delegations", () => {
 
     const response = await GET(request);
 
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/delegations?status=pending&viewerRole=approver", {
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/delegations?status=pending&viewerRole=approver", {
       method: "GET",
       headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "laravel_session=abc" },
       cache: "no-store",
@@ -74,7 +74,7 @@ describe("/api/account/delegations", () => {
       identityIdentifier: "not-forwarded",
     }));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/delegations", {
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/delegations", {
       method: "POST",
       headers: {
         Accept: "application/json",

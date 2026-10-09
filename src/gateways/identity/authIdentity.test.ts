@@ -47,7 +47,7 @@ describe("fetchAuthenticatedIdentity", () => {
       email: "member@example.com",
     });
     expect(fetchAdapter).toHaveBeenCalledWith(
-      "http://api.test/api/identity/auth/me",
+      "http://api.test/api/v1/identity/auth/me",
       {
         headers: {
           Accept: "application/json",

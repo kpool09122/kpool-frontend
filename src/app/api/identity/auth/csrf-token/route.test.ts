@@ -16,7 +16,7 @@ describe("CSRF initialization route", () => {
     const response = await GET(new NextRequest("https://app.example.test/api/identity/auth/csrf-token", {
       headers: { Cookie: "laravel_session=existing", "Accept-Language": "ja" },
     }));
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("https://backend.example.test/api/identity/auth/csrf-token", {
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("https://backend.example.test/api/v1/identity/auth/csrf-token", {
       headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "laravel_session=existing" }, cache: "no-store",
     });
     expect(response.status).toBe(204);

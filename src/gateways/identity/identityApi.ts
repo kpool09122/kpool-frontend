@@ -107,10 +107,20 @@ const hasDetail = (value: unknown): value is { detail: string } =>
   "detail" in value &&
   typeof (value as { detail: unknown }).detail === "string";
 
-export const withIdentityApiPrefix = (baseUrl: string): string =>
-  baseUrl.endsWith("/api/identity")
-    ? baseUrl
-    : `${trimTrailingSlashes(baseUrl)}/api/identity`;
+export const withIdentityApiPrefix = (baseUrl: string): string => {
+  const trimmedBaseUrl = trimTrailingSlashes(baseUrl);
+  const prefix = "/api/v1/identity";
+  const legacyPrefix = "/api/identity";
+
+  if (trimmedBaseUrl.endsWith(prefix)) return trimmedBaseUrl;
+
+  // Normalize configuration only; never retry or request a legacy endpoint.
+  const origin = trimmedBaseUrl.endsWith(legacyPrefix)
+    ? trimmedBaseUrl.slice(0, -legacyPrefix.length)
+    : trimmedBaseUrl;
+
+  return `${origin}${prefix}`;
+};
 
 export const getIdentityApiBaseUrl = (
   env: IdentityApiEnv = process.env,

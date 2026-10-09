@@ -14,6 +14,21 @@ const valid = () => ({
 });
 
 describe("Workers deployment gate", () => {
+  it.each([
+    ["KPOOL_IDENTITY_API_BASE_URL", "identity"],
+    ["KPOOL_ACCOUNT_API_BASE_URL", "account"],
+    ["KPOOL_WIKI_PRIVATE_API_BASE_URL", "wiki"],
+    ["KPOOL_SITE_MANAGEMENT_API_BASE_URL", "site-management"],
+  ])("accepts the matching full v1 prefix for %s", (key, context) => {
+    const config = valid();
+    config.vars[key] = `https://api.example.org/api/v1/${context}/`;
+    expect(validateDeploymentConfig(config)).toEqual([]);
+  });
+  it.each(["/api/identity", "/api/v2/identity", "/api/v1/account", "/api/v1", "/api/v1/identity/auth/me"])("rejects incorrect deployment prefix %s", (path) => {
+    const config = valid();
+    config.vars.KPOOL_IDENTITY_API_BASE_URL = `https://api.example.org${path}`;
+    expect(validateDeploymentConfig(config)).toContain("KPOOL_IDENTITY_API_BASE_URL requires an origin or matching /api/v1/identity prefix");
+  });
   it("accepts explicit runtime API URLs and consistent resource names", () => {
     expect(validateDeploymentConfig(valid())).toEqual([]);
   });

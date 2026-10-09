@@ -78,7 +78,7 @@ describe("wiki draft save route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/edit`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/edit`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",
@@ -139,7 +139,7 @@ describe("wiki draft save route", () => {
 
     expect(response.status).toBe(204);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}`,
       expect.objectContaining({
         cache: "no-store",
         headers: {

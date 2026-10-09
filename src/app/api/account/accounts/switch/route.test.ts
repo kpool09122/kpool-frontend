@@ -44,7 +44,7 @@ describe("POST /api/account/accounts/switch", () => {
     const response = await POST(createRequest({ delegationIdentifier: value }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/accounts/switch",
+      "https://account.example.test/api/v1/account/accounts/switch",
       {
         method: "POST",
         headers: {
