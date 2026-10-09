@@ -50,7 +50,7 @@ describe("wiki image deletion request reject route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/image/${imageId}/reject-deletion`,
+      `https://api.example.test/api/v1/wiki/image/${imageId}/reject-deletion`,
       expect.objectContaining({
         method: "POST",
         headers: {

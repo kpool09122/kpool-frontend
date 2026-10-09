@@ -53,7 +53,7 @@ describe("wiki draft withdraw route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/withdraw`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/withdraw`,
       expect.objectContaining({
         cache: "no-store",
         method: "POST",

@@ -64,7 +64,7 @@ describe("wiki draft submit route", () => {
 
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/wiki/wiki/${wikiId}/submit`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/submit`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",

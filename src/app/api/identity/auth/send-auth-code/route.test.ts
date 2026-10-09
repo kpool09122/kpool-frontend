@@ -17,7 +17,7 @@ describe("send auth code route", () => {
     }) as NextRequest;
 
     const response = await POST(request);
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/send-auth-code", expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/send-auth-code", expect.objectContaining({
       body: JSON.stringify({ email: "member@example.com" }), cache: "no-store",
       headers: expect.objectContaining({ "Accept-Language": "en", Cookie: "laravel_session=abc" }),
     }));

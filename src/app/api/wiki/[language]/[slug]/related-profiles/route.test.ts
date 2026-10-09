@@ -58,7 +58,7 @@ describe("wiki related profiles route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wiki/ja/gr-twice/related-profiles?resourceType=talent",
+      "https://api.example.test/api/v1/wiki/wiki/ja/gr-twice/related-profiles?resourceType=talent",
       expect.objectContaining({
         method: "GET",
         headers: {

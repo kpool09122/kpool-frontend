@@ -55,7 +55,7 @@ describe("/api/wiki/principal/create route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://wiki.example.test/api/wiki/principal/create",
+      "https://wiki.example.test/api/v1/wiki/principal/create",
       {
         method: "POST",
         headers: {

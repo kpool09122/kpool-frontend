@@ -69,10 +69,20 @@ const trimTrailingSlashes = (value: string): string => {
   return trimmedValue;
 };
 
-export const withAccountApiPrefix = (baseUrl: string): string =>
-  baseUrl.endsWith("/api/account")
-    ? baseUrl
-    : `${trimTrailingSlashes(baseUrl)}/api/account`;
+export const withAccountApiPrefix = (baseUrl: string): string => {
+  const trimmedBaseUrl = trimTrailingSlashes(baseUrl);
+  const prefix = "/api/v1/account";
+  const legacyPrefix = "/api/account";
+
+  if (trimmedBaseUrl.endsWith(prefix)) return trimmedBaseUrl;
+
+  // Normalize configuration only; never retry or request a legacy endpoint.
+  const origin = trimmedBaseUrl.endsWith(legacyPrefix)
+    ? trimmedBaseUrl.slice(0, -legacyPrefix.length)
+    : trimmedBaseUrl;
+
+  return `${origin}${prefix}`;
+};
 
 export const getAccountApiBaseUrl = (
   env: AccountApiEnv = process.env,

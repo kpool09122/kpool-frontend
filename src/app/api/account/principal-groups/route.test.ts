@@ -32,7 +32,7 @@ describe("/api/account/principal-groups route", () => {
 
     const response = await GET(createRequest({ "accept-language": "en", cookie: "session=abc" }));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/principal-groups", {
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/principal-groups", {
       method: "GET",
       headers: { Accept: "application/json", "Accept-Language": "en", Cookie: "session=abc" },
       cache: "no-store",

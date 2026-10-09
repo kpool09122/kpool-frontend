@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   try {
     const acceptLanguage = request.headers.get("accept-language");
     const cookie = request.headers.get("cookie");
-    const apiResponse = await fetch(`${baseUrl}/contact/submit/v1`, {
+    const apiResponse = await fetch(`${baseUrl}/contact/submit`, {
       method: "POST",
       headers: {
         Accept: "application/json",

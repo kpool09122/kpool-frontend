@@ -27,7 +27,7 @@ describe("social linking routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(json(responseBody));
     vi.stubGlobal("fetch", fetchMock);
     const response = await handler(request(method, body));
-    expect(fetchMock).toHaveBeenCalledWith(`https://identity.example.test/api/identity${path}`, expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith(`https://identity.example.test/api/v1/identity${path}`, expect.objectContaining({
       method, cache: "no-store", headers: expect.objectContaining({ Cookie: "laravel_session=original", "Accept-Language": "ko" }),
     }));
     expect(fetchMock.mock.calls[0][1].body).toBe(body === undefined ? undefined : JSON.stringify(body));

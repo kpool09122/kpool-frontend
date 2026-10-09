@@ -67,7 +67,7 @@ describe("wiki draft wiki auto-create route", () => {
       wikiIdentifier: "99999999-9999-4999-8999-999999999999",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wiki/auto-create",
+      "https://api.example.test/api/v1/wiki/wiki/auto-create",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify(requestBody),

@@ -9,12 +9,12 @@ describe("translation set master search model", () => {
   it("builds translation set master search URLs without language", () => {
     expect(
       createTranslationSetMasterSearchUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         keyword: "twice",
         limit: 20,
         resourceType: "agency",
       }),
-    ).toBe("https://api.example.test/api/wiki/wiki-translation-sets/masters?resourceType=agency&keyword=twice&limit=20");
+    ).toBe("https://api.example.test/api/v1/wiki/wiki-translation-sets/masters?resourceType=agency&keyword=twice&limit=20");
   });
 
   it("selects the UI locale wiki before falling back to another language", () => {

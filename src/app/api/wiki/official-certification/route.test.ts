@@ -85,7 +85,7 @@ const stubOfficialCertificationRequestFetch = ({
     void init;
     const urlString = typeof url === "string" ? url : url.toString();
 
-    if (urlString.includes("/api/identity/auth/me")) {
+    if (urlString.includes("/api/v1/identity/auth/me")) {
       return Promise.resolve(jsonResponse(authenticatedIdentity(accountCategory), 200));
     }
 
@@ -140,7 +140,7 @@ describe("official certification routes", () => {
     expect(response.status).toBe(200);
     expect(body.officialCertifications).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/official-certifications?status=pending&page=1&perPage=20",
+      "https://api.example.test/api/v1/wiki/official-certifications?status=pending&page=1&perPage=20",
       expect.objectContaining({
         method: "GET",
         headers: {
@@ -199,7 +199,7 @@ describe("official certification routes", () => {
     expect(response.status).toBe(201);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "https://identity.example.test/api/identity/auth/me",
+      "https://identity.example.test/api/v1/identity/auth/me",
       expect.objectContaining({
         cache: "no-store",
         headers: {
@@ -210,7 +210,7 @@ describe("official certification routes", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "https://api.example.test/api/wiki/official-certification/request",
+      "https://api.example.test/api/v1/wiki/official-certification/request",
       expect.objectContaining({
         body: expect.any(String),
         method: "POST",
@@ -285,12 +285,12 @@ describe("official certification routes", () => {
     ).toMatchObject({ status: 201 });
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      `https://api.example.test/api/wiki/official-certification/${certificationIdentifier}/approve`,
+      `https://api.example.test/api/v1/wiki/official-certification/${certificationIdentifier}/approve`,
       expect.objectContaining({ method: "POST" }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      `https://api.example.test/api/wiki/official-certification/${certificationIdentifier}/reject`,
+      `https://api.example.test/api/v1/wiki/official-certification/${certificationIdentifier}/reject`,
       expect.objectContaining({ method: "POST" }),
     );
   });
@@ -361,7 +361,7 @@ describe("official certification routes", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/my/official-certifications?status=approved&perPage=100",
+      "https://api.example.test/api/v1/wiki/my/official-certifications?status=approved&perPage=100",
       expect.objectContaining({
         method: "GET",
         headers: {
@@ -402,12 +402,12 @@ describe("official certification routes", () => {
     expect(putResponse.status).toBe(200);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "https://api.example.test/api/wiki/my/owned-wikis?perPage=100",
+      "https://api.example.test/api/v1/wiki/my/owned-wikis?perPage=100",
       expect.objectContaining({ method: "GET" }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "https://api.example.test/api/wiki/official-certification/owned-wikis",
+      "https://api.example.test/api/v1/wiki/official-certification/owned-wikis",
       expect.objectContaining({
         body: JSON.stringify({ translationSetIdentifiers: [translationSetIdentifier] }),
         method: "PUT",
@@ -435,7 +435,7 @@ describe("official certification routes", () => {
     expect(response.status).toBe(200);
     expect(body.wikis).toEqual([]);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wiki/agency/44444444-4444-4444-8444-444444444444/related-wikis",
+      "https://api.example.test/api/v1/wiki/wiki/agency/44444444-4444-4444-8444-444444444444/related-wikis",
       expect.objectContaining({
         method: "GET",
         headers: {

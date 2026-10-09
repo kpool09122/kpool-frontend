@@ -1,7 +1,9 @@
-const apiKeys = [
-  "KPOOL_WIKI_PRIVATE_API_BASE_URL", "KPOOL_IDENTITY_API_BASE_URL",
-  "KPOOL_ACCOUNT_API_BASE_URL", "KPOOL_SITE_MANAGEMENT_API_BASE_URL",
-];
+const apiPrefixes = {
+  KPOOL_WIKI_PRIVATE_API_BASE_URL: "/api/v1/wiki",
+  KPOOL_IDENTITY_API_BASE_URL: "/api/v1/identity",
+  KPOOL_ACCOUNT_API_BASE_URL: "/api/v1/account",
+  KPOOL_SITE_MANAGEMENT_API_BASE_URL: "/api/v1/site-management",
+};
 
 /**
  * Validate deployment resource bindings, queue initialization and runtime API URLs.
@@ -22,11 +24,13 @@ export const validateDeploymentConfig = (config) => {
     errors.push("An approved NEXT_INC_CACHE_R2_BUCKET is required");
   }
   const vars = config.vars && typeof config.vars === "object" ? config.vars : {};
-  for (const key of apiKeys) {
+  for (const [key, prefix] of Object.entries(apiPrefixes)) {
     const value = vars[key];
     const url = typeof value === "string" && URL.canParse(value) ? new URL(value) : null;
     if (!url || url.protocol !== "https:" || url.username || url.password || url.search || url.hash || ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
       errors.push(`${key} requires a credential-free public HTTPS base URL`);
+    } else if (!["", prefix].includes(url.pathname.replace(/\/+$/, ""))) {
+      errors.push(`${key} requires an origin or matching ${prefix} prefix`);
     }
   }
   const objects = config.durable_objects;

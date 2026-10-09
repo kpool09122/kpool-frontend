@@ -125,27 +125,27 @@ describe("wikiImages", () => {
   it("builds image list urls with pagination query values", () => {
     expect(
       createWikiImagesUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         page: 2,
         perPage: 12,
         translationSetIdentifier: "translation-set-1",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/images?translationSetIdentifier=translation-set-1&perPage=12&page=2",
+      "https://api.example.test/api/v1/wiki/images?translationSetIdentifier=translation-set-1&perPage=12&page=2",
     );
   });
 
   it("builds draft image list urls with status and optional filters", () => {
     expect(
       createWikiDraftImagesUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         page: 3,
         perPage: 24,
         status: "under_review",
         wikiIdentifier: "wiki-1",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/draft-images?status=under_review&perPage=24&page=3&wikiIdentifier=wiki-1",
+      "https://api.example.test/api/v1/wiki/draft-images?status=under_review&perPage=24&page=3&wikiIdentifier=wiki-1",
     );
   });
 
@@ -153,22 +153,22 @@ describe("wikiImages", () => {
     expect(
       createWikiDraftImageReviewUrl({
         action: "approve",
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         imageIdentifier: "44444444-4444-4444-4444-444444444444",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/approve",
+      "https://api.example.test/api/v1/wiki/image/44444444-4444-4444-4444-444444444444/approve",
     );
   });
 
   it("builds image deletion request urls for backend image actions", () => {
     expect(
       createWikiImageDeletionRequestUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         imageIdentifier: "44444444-4444-4444-4444-444444444444",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/request-deletion",
+      "https://api.example.test/api/v1/wiki/image/44444444-4444-4444-4444-444444444444/request-deletion",
     );
   });
 
@@ -176,19 +176,19 @@ describe("wikiImages", () => {
   it("builds image deletion request list and review urls", () => {
     expect(
       createWikiImageDeletionRequestsUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         page: 2,
         perPage: 12,
       }),
-    ).toBe("https://api.example.test/api/wiki/image-deletion-requests?perPage=12&page=2");
+    ).toBe("https://api.example.test/api/v1/wiki/image-deletion-requests?perPage=12&page=2");
     expect(
       createWikiImageDeletionRequestReviewUrl({
         action: "approve",
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         imageIdentifier: "44444444-4444-4444-4444-444444444444",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/image/44444444-4444-4444-4444-444444444444/approve-deletion",
+      "https://api.example.test/api/v1/wiki/image/44444444-4444-4444-4444-444444444444/approve-deletion",
     );
   });
 

@@ -37,7 +37,7 @@ describe("/api/account/accounts/[accountId]/documents/[documentType] route", () 
 
     const response = await GET(createRequest(true), context);
 
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/accounts/44444444-4444-4444-8444-444444444444/documents/passport", {
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/accounts/44444444-4444-4444-8444-444444444444/documents/passport", {
       method: "GET",
       headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "session=abc" },
       cache: "no-store",

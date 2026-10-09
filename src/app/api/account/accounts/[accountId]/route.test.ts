@@ -47,7 +47,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     }), context);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/accounts/22222222-2222-2222-2222-222222222222",
+      "https://account.example.test/api/v1/account/accounts/22222222-2222-2222-2222-222222222222",
       {
         method: "GET",
         headers: {
@@ -91,7 +91,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     }), context);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/accounts/22222222-2222-2222-2222-222222222222",
+      "https://account.example.test/api/v1/account/accounts/22222222-2222-2222-2222-222222222222",
       {
         method: "PATCH",
         headers: {

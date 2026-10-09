@@ -61,7 +61,7 @@ describe("/api/account/affiliations route", () => {
 
     const response = await GET(createGetRequest(undefined, { "accept-language": "ja", cookie: "laravel_session=abc" }));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/affiliations?status=pending&viewerRole=approver", {
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/affiliations?status=pending&viewerRole=approver", {
       method: "GET",
       headers: {
         Accept: "application/json",
@@ -81,7 +81,7 @@ describe("/api/account/affiliations route", () => {
 
     const response = await POST(createRequest(requestBody, { "accept-language": "ja", cookie: "laravel_session=abc" }));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/account/affiliations", {
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/affiliations", {
       method: "POST",
       headers: {
         Accept: "application/json",

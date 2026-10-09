@@ -38,10 +38,10 @@ describe("step-up BFF routes", () => {
     const completionBody = { challengeKey, credential };
     const completionResponse = await completePasskeyStepUp(request("/api/identity/auth/step-up/passkey", "POST", completionBody));
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://identity.example.test/api/identity/auth/step-up/passkey/options", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://identity.example.test/api/v1/identity/auth/step-up/passkey/options", {
       method: "POST", headers: { Accept: "application/json", "Accept-Language": "ja", Cookie: "laravel_session=abc" }, cache: "no-store",
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/identity/auth/step-up/passkey", expect.objectContaining({
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://identity.example.test/api/v1/identity/auth/step-up/passkey", expect.objectContaining({
       method: "POST", body: JSON.stringify(completionBody), cache: "no-store",
     }));
     expect(optionsResponse.headers.get("set-cookie")).toContain("laravel_session=renewed");
@@ -56,7 +56,7 @@ describe("step-up BFF routes", () => {
       request("/api/identity/auth/step-up/social/google/redirect?returnTo=withdrawal", "GET"),
       { params: Promise.resolve({ provider: "google" }) },
     );
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/step-up/social/google/redirect?returnTo=withdrawal", expect.objectContaining({ cache: "no-store" }));
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/step-up/social/google/redirect?returnTo=withdrawal", expect.objectContaining({ cache: "no-store" }));
     expect(await response.json()).toEqual({ redirectUrl: "https://accounts.example.test/reauth" });
 
     fetchMock.mockClear();

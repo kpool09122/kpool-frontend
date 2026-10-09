@@ -43,7 +43,7 @@ describe("/api/identity/auth/verify-email route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/auth/verify-email",
+      "https://identity.example.test/api/v1/identity/auth/verify-email",
       {
         method: "POST",
         headers: {

@@ -48,7 +48,7 @@ describe("/api/account/accounts/[accountId]/documents route", () => {
 
     await expect(response.json()).resolves.toEqual(documentsResponse);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/accounts/22222222-2222-2222-2222-222222222222/documents",
+      "https://account.example.test/api/v1/account/accounts/22222222-2222-2222-2222-222222222222/documents",
       {
         method: "POST",
         headers: {

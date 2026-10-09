@@ -53,7 +53,7 @@ describe("translation set master search route", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(translationSetSearchBody);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wiki-translation-sets/masters?resourceType=agency&keyword=twice&limit=20",
+      "https://api.example.test/api/v1/wiki/wiki-translation-sets/masters?resourceType=agency&keyword=twice&limit=20",
       expect.objectContaining({
         method: "GET",
         headers: expect.objectContaining({

@@ -56,16 +56,16 @@ const principalGroup = {
 describe("account API helpers", () => {
   it("adds the backend account prefix when the base URL omits it", () => {
     expect(withAccountApiPrefix("http://127.0.0.1:8080")).toBe(
-      "http://127.0.0.1:8080/api/account",
+      "http://127.0.0.1:8080/api/v1/account",
     );
-    expect(withAccountApiPrefix("http://127.0.0.1:8080/api/account")).toBe(
-      "http://127.0.0.1:8080/api/account",
+    expect(withAccountApiPrefix("http://127.0.0.1:8080/api/v1/account")).toBe(
+      "http://127.0.0.1:8080/api/v1/account",
     );
   });
 
   it("uses the server-only env var for the Account API base URL", () => {
     expect(getAccountApiBaseUrl({ KPOOL_ACCOUNT_API_BASE_URL: "http://api.test" })).toBe(
-      "http://api.test/api/account",
+      "http://api.test/api/v1/account",
     );
   });
 

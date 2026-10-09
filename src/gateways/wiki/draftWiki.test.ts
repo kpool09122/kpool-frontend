@@ -411,10 +411,10 @@ describe("draftWiki", () => {
 
   it("normalizes the backend base url to the wiki api prefix", () => {
     expect(createDraftWikiApiClient("http://127.0.0.1:8080")?.baseUrl).toBe(
-      "http://127.0.0.1:8080/api/wiki",
+      "http://127.0.0.1:8080/api/v1/wiki",
     );
-    expect(createDraftWikiApiClient("http://127.0.0.1:8080/api/wiki")?.baseUrl).toBe(
-      "http://127.0.0.1:8080/api/wiki",
+    expect(createDraftWikiApiClient("http://127.0.0.1:8080/api/v1/wiki")?.baseUrl).toBe(
+      "http://127.0.0.1:8080/api/v1/wiki",
     );
   });
 
@@ -786,7 +786,7 @@ describe("draftWiki", () => {
 
   it("builds my and managed draft wiki list urls without legacy filtering query", () => {
     const params = {
-      baseUrl: "https://api.example.test/api/wiki/",
+      baseUrl: "https://api.example.test/api/v1/wiki/",
       page: 2,
       perPage: 24,
       resourceType: "group",
@@ -795,17 +795,17 @@ describe("draftWiki", () => {
     };
 
     expect(createMyWikiDraftWikisUrl(params)).toBe(
-      "https://api.example.test/api/wiki/my/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+      "https://api.example.test/api/v1/wiki/my/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
     );
     expect(createManagedWikiDraftWikisUrl(params)).toBe(
-      "https://api.example.test/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+      "https://api.example.test/api/v1/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
     );
   });
 
   it("builds version inconsistent wiki list urls with optional filters", () => {
     expect(
       createVersionInconsistentWikisUrl({
-        baseUrl: "https://api.example.test/api/wiki/",
+        baseUrl: "https://api.example.test/api/v1/wiki/",
         order: "desc",
         page: 2,
         perPage: 24,
@@ -813,7 +813,7 @@ describe("draftWiki", () => {
         sort: "updatedAt",
       }),
     ).toBe(
-      "https://api.example.test/api/wiki/wikis/version-inconsistencies?perPage=24&page=2&resourceType=group&sort=updatedAt&order=desc",
+      "https://api.example.test/api/v1/wiki/wikis/version-inconsistencies?perPage=24&page=2&resourceType=group&sort=updatedAt&order=desc",
     );
   });
 
@@ -829,7 +829,7 @@ describe("draftWiki", () => {
       pageInfo: { current_page: 1, last_page: 1, total: 0 },
     });
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
-      expect.stringMatching(/^https:\/\/api\.example\.test\/api\/wiki\/my\/draft-wikis\?/),
+      expect.stringMatching(/^https:\/\/api\.example\.test\/api\/v1\/wiki\/my\/draft-wikis\?/),
       { cache: "no-store", headers: { Accept: "application/json", Cookie: "session=abc" } },
     );
   });
@@ -1137,7 +1137,7 @@ describe("draftWiki", () => {
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo/my/draft",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/ja/group/gr-aurora-echo/my/draft",
       expect.objectContaining({
         cache: "no-store",
         headers: {
@@ -1195,7 +1195,7 @@ describe("draftWiki", () => {
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/group/wiki-1/draft",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/group/wiki-1/draft",
       expect.objectContaining({
         cache: "no-store",
         headers: {
@@ -1299,7 +1299,7 @@ describe("draftWiki", () => {
     });
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "http://127.0.0.1:8080/api/wiki/wiki/group/wiki-1/draft",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/group/wiki-1/draft",
       expect.objectContaining({
         headers: {
           Accept: "application/json",
@@ -1309,7 +1309,7 @@ describe("draftWiki", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "http://127.0.0.1:8080/api/wiki/wiki/ja/group/gr-aurora-echo",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/ja/group/gr-aurora-echo",
       expect.objectContaining({
         headers: {
           Accept: "application/json",
@@ -1348,7 +1348,7 @@ describe("draftWiki", () => {
       wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/create",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/create",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",
@@ -1398,7 +1398,7 @@ describe("draftWiki", () => {
       wikiIdentifier: "wiki-2",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/auto-create",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/auto-create",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",
@@ -1719,7 +1719,7 @@ describe("draftWiki", () => {
       wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/edit",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1/edit",
       expect.objectContaining({
         cache: "no-store",
         headers: {
@@ -1747,7 +1747,7 @@ describe("draftWiki", () => {
 
     await expect(deleteDraftWiki(client!, "wiki-1", requestBody)).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1",
       expect.objectContaining({
         body: JSON.stringify(requestBody),
         cache: "no-store",
@@ -1793,7 +1793,7 @@ describe("draftWiki", () => {
       wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/submit",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1/submit",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",
@@ -1835,7 +1835,7 @@ describe("draftWiki", () => {
       wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/withdraw",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1/withdraw",
       expect.objectContaining({
         cache: "no-store",
         headers: {
@@ -1892,7 +1892,7 @@ describe("draftWiki", () => {
       wikiIdentifier: "88888888-8888-4888-8888-888888888888",
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/approve",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1/approve",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",
@@ -1937,7 +1937,7 @@ describe("draftWiki", () => {
       version: 2,
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/publish",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1/publish",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",
@@ -1991,7 +1991,7 @@ describe("draftWiki", () => {
       ],
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8080/api/wiki/wiki/wiki-1/translate",
+      "http://127.0.0.1:8080/api/v1/wiki/wiki/wiki-1/translate",
       expect.objectContaining({
         body: JSON.stringify(body),
         cache: "no-store",

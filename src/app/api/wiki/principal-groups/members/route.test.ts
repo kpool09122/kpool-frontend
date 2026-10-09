@@ -61,7 +61,7 @@ describe("/api/wiki/principal-groups/members route", () => {
 
     const response = await PATCH(createRequest(updateRequest, { "accept-language": "ko", cookie: "session=abc" }));
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://wiki.example.test/api/wiki/principal-groups/members", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://wiki.example.test/api/v1/wiki/principal-groups/members", {
       method: "PATCH",
       headers: { Accept: "application/json", "Accept-Language": "ko", Cookie: "session=abc", "Content-Type": "application/json" },
       body: JSON.stringify(updateRequest),
@@ -69,7 +69,7 @@ describe("/api/wiki/principal-groups/members route", () => {
     });
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "https://wiki.example.test/api/wiki/principal-groups?accountIdentifier=22222222-2222-4222-8222-222222222222",
+      "https://wiki.example.test/api/v1/wiki/principal-groups?accountIdentifier=22222222-2222-4222-8222-222222222222",
       {
         method: "GET",
         headers: { Accept: "application/json", "Accept-Language": "ko", Cookie: "session=abc" },

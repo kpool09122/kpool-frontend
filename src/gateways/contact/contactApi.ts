@@ -40,10 +40,20 @@ const trimTrailingSlashes = (value: string): string => {
   return trimmedValue;
 };
 
-export const withSiteManagementApiPrefix = (baseUrl: string): string =>
-  baseUrl.endsWith("/api/site-management")
-    ? baseUrl
-    : `${trimTrailingSlashes(baseUrl)}/api/site-management`;
+export const withSiteManagementApiPrefix = (baseUrl: string): string => {
+  const trimmedBaseUrl = trimTrailingSlashes(baseUrl);
+  const prefix = "/api/v1/site-management";
+  const legacyPrefix = "/api/site-management";
+
+  if (trimmedBaseUrl.endsWith(prefix)) return trimmedBaseUrl;
+
+  // Normalize configuration only; never retry or request a legacy endpoint.
+  const origin = trimmedBaseUrl.endsWith(legacyPrefix)
+    ? trimmedBaseUrl.slice(0, -legacyPrefix.length)
+    : trimmedBaseUrl;
+
+  return `${origin}${prefix}`;
+};
 
 export const getSiteManagementApiBaseUrl = (
   env: SiteManagementApiEnv = process.env,

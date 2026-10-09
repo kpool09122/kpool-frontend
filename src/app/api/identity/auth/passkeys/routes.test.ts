@@ -53,7 +53,7 @@ describe("passkey BFF routes", () => {
     vi.stubGlobal("fetch", fetchMock);
     const response = await listPasskeys(request("/api/identity/auth/passkeys", "GET"));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys", {
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/passkeys", {
       method: "GET", headers: { Accept: "application/json", "Accept-Language": "en", Cookie: "laravel_session=abc" }, cache: "no-store",
     });
     expect(response.headers.get("set-cookie")).toContain("laravel_session=updated");
@@ -69,7 +69,7 @@ describe("passkey BFF routes", () => {
     vi.stubGlobal("fetch", fetchMock);
     const response = await addPasskey(request("/api/identity/auth/passkeys/addition", "POST", body));
 
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys/addition", expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/passkeys/addition", expect.objectContaining({
       method: "POST", body: JSON.stringify(body), cache: "no-store",
       headers: { Accept: "application/json", "Accept-Language": "en", "Content-Type": "application/json", Cookie: "laravel_session=abc" },
     }));
@@ -87,7 +87,7 @@ describe("passkey BFF routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(upstreamResponse(optionsResult));
     vi.stubGlobal("fetch", fetchMock);
     const response = await createAdditionOptions(request("/api/identity/auth/passkeys/addition/options", "POST"));
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys/addition/options", expect.objectContaining({ cache: "no-store" }));
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/passkeys/addition/options", expect.objectContaining({ cache: "no-store" }));
     expect(response.headers.get("set-cookie")).toContain("laravel_session=updated");
 
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(upstreamResponse({ challengeKey }, false)));
@@ -100,7 +100,7 @@ describe("passkey BFF routes", () => {
     const fetchMock = vi.fn().mockResolvedValue(upstreamResponse(optionsResult));
     vi.stubGlobal("fetch", fetchMock);
     await createRegistrationOptions(request("/api/identity/auth/passkeys/registration/options", "POST", body));
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys/registration/options", expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/passkeys/registration/options", expect.objectContaining({
       body: JSON.stringify(expectedBody), cache: "no-store",
       headers: expect.objectContaining({ "Accept-Language": "en", Cookie: "laravel_session=abc" }),
     }));
@@ -119,7 +119,7 @@ describe("passkey BFF routes", () => {
     const response = await registerPasskey(request("/api/identity/auth/passkeys/registration", "POST", body));
     expect(response.status).toBe(201);
     expect(response.headers.get("set-cookie")).toContain("laravel_session=updated");
-    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/identity/auth/passkeys/registration", expect.objectContaining({ body: JSON.stringify(body), cache: "no-store" }));
+    expect(fetchMock).toHaveBeenCalledWith("https://identity.example.test/api/v1/identity/auth/passkeys/registration", expect.objectContaining({ body: JSON.stringify(body), cache: "no-store" }));
   });
 
   it("updates and deletes a validated passkey identifier", async () => {
@@ -129,8 +129,8 @@ describe("passkey BFF routes", () => {
     const updateResponse = await PATCH(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "PATCH", { displayName: "Phone" }), context);
     const deleteResponse = await DELETE(request(`/api/identity/auth/passkeys/${passkeyIdentifier}`, "DELETE"), context);
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, `https://identity.example.test/api/identity/auth/passkeys/${passkeyIdentifier}`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ displayName: "Phone" }), cache: "no-store" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `https://identity.example.test/api/identity/auth/passkeys/${passkeyIdentifier}`, expect.objectContaining({ method: "DELETE", cache: "no-store" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `https://identity.example.test/api/v1/identity/auth/passkeys/${passkeyIdentifier}`, expect.objectContaining({ method: "PATCH", body: JSON.stringify({ displayName: "Phone" }), cache: "no-store" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `https://identity.example.test/api/v1/identity/auth/passkeys/${passkeyIdentifier}`, expect.objectContaining({ method: "DELETE", cache: "no-store" }));
     expect(updateResponse.status).toBe(200);
     expect(await updateResponse.json()).toEqual([]);
     expect(deleteResponse.status).toBe(200);

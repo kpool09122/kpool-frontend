@@ -18,7 +18,7 @@ describe("/api/account/my/documents/[documentType] route", () => {
   });
 
   it("streams the authenticated account document from upstream", async () => {
-    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test/api/account");
+    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test/api/v1/account");
     const fetchMock = vi.fn().mockResolvedValue(new Response("image-bytes", {
       headers: {
         "cache-control": "private, no-store",
@@ -37,7 +37,7 @@ describe("/api/account/my/documents/[documentType] route", () => {
     expect(response.headers.get("content-type")).toBe("image/jpeg");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/my/documents/representative_id",
+      "https://account.example.test/api/v1/account/my/documents/representative_id",
       {
         method: "GET",
         headers: {
@@ -51,7 +51,7 @@ describe("/api/account/my/documents/[documentType] route", () => {
   });
 
   it("returns sanitized upstream errors as json", async () => {
-    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test/api/account");
+    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test/api/v1/account");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
       detail: "Account document not found.",
     }), { status: 404 })));
@@ -64,7 +64,7 @@ describe("/api/account/my/documents/[documentType] route", () => {
   });
 
   it("returns attachment disposition for authenticated downloads", async () => {
-    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test/api/account");
+    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test/api/v1/account");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("pdf-bytes", {
       headers: {
         "content-disposition": 'inline; filename="representative_id.pdf"',

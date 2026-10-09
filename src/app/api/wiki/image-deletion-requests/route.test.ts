@@ -39,7 +39,7 @@ describe("wiki image deletion requests route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/image-deletion-requests?perPage=6&page=2",
+      "https://api.example.test/api/v1/wiki/image-deletion-requests?perPage=6&page=2",
       expect.objectContaining({
         method: "GET",
         headers: {

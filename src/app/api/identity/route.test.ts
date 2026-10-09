@@ -74,7 +74,7 @@ describe("/api/identity route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/identities/me",
+      "https://identity.example.test/api/v1/identity/identities/me",
       {
         method: "DELETE",
         headers: {
@@ -121,7 +121,7 @@ describe("/api/identity route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://identity.example.test/api/identity/identities/me",
+      "https://identity.example.test/api/v1/identity/identities/me",
       {
         method: "PATCH",
         headers: {

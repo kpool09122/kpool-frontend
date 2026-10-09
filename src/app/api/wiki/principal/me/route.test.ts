@@ -47,7 +47,7 @@ describe("/api/wiki/principal/me route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://wiki.example.test/api/wiki/principal/me",
+      "https://wiki.example.test/api/v1/wiki/principal/me",
       {
         method: "GET",
         headers: {

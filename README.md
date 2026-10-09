@@ -32,7 +32,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Environment Variables
 
-Wiki pages fetch backend data via `KPOOL_WIKI_PRIVATE_API_BASE_URL`.
+Wiki pages fetch backend data via `KPOOL_WIKI_PRIVATE_API_BASE_URL`. Backend requests use `/api/v1/{context}`; browser-facing Next.js API URLs remain unversioned. Deploy together with kpool-backend#698.
 For local development, create `.env.local` from the example and point it at the backend:
 
 ```bash

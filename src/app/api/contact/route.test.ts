@@ -59,7 +59,7 @@ describe("/api/contact route", () => {
     expect(response.status).toBe(201);
     expect(await response.json()).toEqual(responseBody);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://site.example.test/api/site-management/contact/submit/v1",
+      "https://site.example.test/api/v1/site-management/contact/submit",
       {
         method: "POST",
         headers: {

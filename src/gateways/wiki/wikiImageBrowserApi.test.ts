@@ -46,7 +46,7 @@ describe("wikiImageBrowserApi", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(loadInitial("session=abc")).resolves.toEqual(body);
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`https://api.example.test/api/wiki/${path}`, {
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`https://api.example.test/api/v1/wiki/${path}`, {
       cache: "no-store",
       headers: { Accept: "application/json", Cookie: "session=abc" },
     });

@@ -40,7 +40,7 @@ describe("wiki master search route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/wiki/wikis/ja/masters?resourceType=group&keyword=twice&limit=10",
+      "https://api.example.test/api/v1/wiki/wikis/ja/masters?resourceType=group&keyword=twice&limit=10",
       expect.objectContaining({
         method: "GET",
         headers: {

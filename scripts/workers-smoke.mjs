@@ -20,7 +20,7 @@ const upstream = createServer((request, response) => {
     response.end(JSON.stringify({ redirectUrl: "https://accounts.google.com/fixture" }));
   } else if (request.url.includes("/passkeys")) {
     response.end(JSON.stringify({ passkeys: [] }));
-  } else if (request.url.includes("/contact/submit/v1")) {
+  } else if (request.url.includes("/contact/submit")) {
     response.statusCode = 419;
     response.end(JSON.stringify({ code: "csrf_token_mismatch" }));
   } else {
@@ -73,6 +73,7 @@ try {
   assert.equal(csrf.headers.get("cache-control"), "no-store");
   assert.equal(csrf.headers.getSetCookie().length, 2);
   const forwarded = requests.find((item) => item.url.includes("/csrf-token"));
+  assert.equal(forwarded.url, "/api/v1/identity/auth/csrf-token");
   assert.equal(forwarded.headers.cookie, headers.cookie);
   assert.equal(forwarded.headers["accept-language"], "ja");
   const oauth = await fetch(`${origin}/api/identity/auth/social/google/redirect?return_to=//evil.example`, { headers });
@@ -89,6 +90,7 @@ try {
     body: JSON.stringify({ category: 1, name: "fixture", email: "fixture@example.org", content: "fixture" }),
   });
   assert.equal(contact.status, 419);
+  assert.ok(requests.some((item) => item.url === "/api/v1/site-management/contact/submit"));
   const wikiPath = "/api/wiki/public-wikis?language=en";
   const first = await fetch(`${origin}${wikiPath}`);
   assert.deepEqual(await first.json(), { status: "empty" });
@@ -96,9 +98,10 @@ try {
   assert.ok(count > 0);
   await fetch(`${origin}${wikiPath}`);
   assert.equal(requests.filter((item) => item.url.includes("/wikis/en")).length, count, "R2 fetch cache must avoid a second upstream request");
-  for (const path of ["/api/wiki/", "/api/identity/", "/api/account/", "/api/site-management/"]) {
+  for (const path of ["/api/v1/wiki/", "/api/v1/identity/", "/api/v1/account/", "/api/v1/site-management/"]) {
     assert.ok(requests.some((item) => item.url.startsWith(path)), `runtime injection failed for ${path}`);
   }
+  assert.ok(requests.every((item) => item.url.startsWith("/api/v1/")), "no legacy backend request or fallback is allowed");
   const image = await fetch(`${origin}/_next/image?url=%2Fauth%2Fgoogle.png&w=32&q=75`);
   assert.equal(image.status, 200, "IMAGES binding must optimize a local image");
   assert.ok(image.headers.get("content-type").startsWith("image/"));

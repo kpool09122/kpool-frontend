@@ -54,7 +54,7 @@ describe("/api/account/invitations route", () => {
     }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://account.example.test/api/account/invitations",
+      "https://account.example.test/api/v1/account/invitations",
       {
         method: "POST",
         headers: {
