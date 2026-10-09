@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { act, renderHook } from "@testing-library/react";
 import {
   createMockWikiDetail,
@@ -73,4 +74,69 @@ describe("useWikiEditDraft", () => {
     });
     expect(result.current.draft.sections).toEqual(expectedDraft.sections);
   });
+
+  it.each(["saveDraft", "requestPublication"] as const)(
+    "uses the refreshed wiki for %s before passive effects run",
+    (action) => {
+      const wiki = createMockWikiDetail("gr-aurora-echo");
+      const adapter = vi.fn().mockResolvedValue({ ok: true });
+      const { rerender } = renderHook(({ wiki }) => {
+        const editor = useWikiEditDraft(wiki, {
+          saveAdapter: adapter,
+          submitAdapter: adapter,
+        });
+        const previousWiki = useRef(wiki);
+
+        useLayoutEffect(() => {
+          if (previousWiki.current !== wiki) {
+            previousWiki.current = wiki;
+            editor[action]();
+          }
+        }, [editor, wiki]);
+
+        return editor;
+      }, { initialProps: { wiki } });
+
+      const refreshedWiki = { ...wiki, title: "Refreshed title" };
+      rerender({ wiki: refreshedWiki });
+
+      expect(adapter).toHaveBeenCalledTimes(1);
+      expect(adapter.mock.calls[0][0].title).toBe("Refreshed title");
+    },
+  );
+
+  it("updates the refreshed wiki and saves consecutive changes in one callback", () => {
+    const wiki = createMockWikiDetail("gr-aurora-echo");
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const { result, rerender } = renderHook(({ wiki }) => {
+      const editor = useWikiEditDraft(wiki, { saveAdapter });
+      const previousWiki = useRef(wiki);
+
+      useLayoutEffect(() => {
+        if (previousWiki.current !== wiki) {
+          previousWiki.current = wiki;
+          editor.updateSettings({ metaDescription: "Updated description" });
+          editor.updateSettings({ keywords: ["Updated keywords"] });
+          editor.saveDraft();
+        }
+      }, [editor, wiki]);
+
+      return editor;
+    }, { initialProps: { wiki } });
+
+    rerender({ wiki: { ...wiki, title: "Refreshed title" } });
+
+    expect(saveAdapter).toHaveBeenCalledTimes(1);
+    expect(saveAdapter.mock.calls[0][0]).toMatchObject({
+      title: "Refreshed title",
+      metaDescription: "Updated description",
+      keywords: ["Updated keywords"],
+    });
+    expect(result.current.draft).toMatchObject({
+      title: "Refreshed title",
+      metaDescription: "Updated description",
+      keywords: ["Updated keywords"],
+    });
+  });
+
 });
