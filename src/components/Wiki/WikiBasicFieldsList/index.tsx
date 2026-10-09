@@ -172,6 +172,9 @@ export function WikiBasicFieldsList({
                     {index > 0 ? <span className="mr-2 text-text-muted">,</span> : null}
                     <Link
                       className={`${basicFieldTextWrapClassName} font-semibold text-brand-primary underline-offset-4 hover:underline`}
+                      data-wiki-link-placement="basic_info"
+                      data-wiki-id={link.wikiIdentifier}
+                      data-wiki-resource-type={link.resourceType}
                       href={link.href}
                     >
                       {link.label}

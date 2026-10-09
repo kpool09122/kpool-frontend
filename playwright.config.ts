@@ -22,6 +22,8 @@ export default defineConfig({
       KPOOL_IDENTITY_API_BASE_URL: "",
       KPOOL_ACCOUNT_API_BASE_URL: "",
       KPOOL_SITE_MANAGEMENT_API_BASE_URL: "",
+      NEXT_PUBLIC_ANALYTICS_ENABLED: "true",
+      NEXT_PUBLIC_GTM_ID: "GTM-TEST436",
     },
     url: e2eBaseUrl,
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === "1",

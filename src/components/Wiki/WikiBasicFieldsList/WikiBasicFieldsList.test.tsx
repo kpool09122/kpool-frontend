@@ -145,7 +145,11 @@ describe("WikiBasicFieldsList", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "TWICE" })).toHaveAttribute(
+    const groupLink = screen.getByRole("link", { name: "TWICE" });
+    expect(groupLink).toHaveAttribute("data-wiki-link-placement", "basic_info");
+    expect(groupLink).toHaveAttribute("data-wiki-id", "group-wiki-1");
+    expect(groupLink).toHaveAttribute("data-wiki-resource-type", "group");
+    expect(groupLink).toHaveAttribute(
       "href",
       "/ko/wiki/gr-twice",
     );

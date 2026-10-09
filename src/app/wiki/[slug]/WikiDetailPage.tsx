@@ -12,6 +12,7 @@ import {
 import { useI18n } from "../../../i18n/I18nProvider";
 import { buildWikiEditPath } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
+import { PublicWikiAnalytics } from "@/components/Analytics/PublicWikiAnalytics";
 
 type WikiDetailPageProps = {
   language: string;
@@ -72,11 +73,13 @@ export function WikiDetailPage({
       }}
     >
       <div className="mx-auto max-w-6xl">
-        <WikiDetailContent
-          data={data}
-          editHref={editHref}
-          language={language}
-        />
+        <PublicWikiAnalytics wiki={data}>
+          <WikiDetailContent
+            data={data}
+            editHref={editHref}
+            language={language}
+          />
+        </PublicWikiAnalytics>
       </div>
     </main>
   );

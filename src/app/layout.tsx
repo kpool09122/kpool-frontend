@@ -19,6 +19,8 @@ import {
 import { siteTitle } from "./metadata";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
+import { AnalyticsProvider } from "@/components/Analytics/AnalyticsProvider";
+import { resolveGtmContainerId } from "@/gateways/analytics/wikiAnalytics";
 
 export const metadata: Metadata = {
   title: siteTitle,
@@ -52,13 +54,18 @@ export default async function RootLayout({
       <body className="antialiased">
         <I18nProvider initialLocale={locale}>
           <QueryProvider>
-            <ThemeInitializer />
-            <Header
-              initialIdentity={authenticatedIdentity}
-              initialIsAuthenticated={authenticatedIdentity !== null}
-            />
-            {children}
-            <Footer />
+            <AnalyticsProvider containerId={resolveGtmContainerId(
+              process.env.NEXT_PUBLIC_ANALYTICS_ENABLED,
+              process.env.NEXT_PUBLIC_GTM_ID,
+            )}>
+              <ThemeInitializer />
+              <Header
+                initialIdentity={authenticatedIdentity}
+                initialIsAuthenticated={authenticatedIdentity !== null}
+              />
+              {children}
+              <Footer />
+            </AnalyticsProvider>
           </QueryProvider>
         </I18nProvider>
       </body>
