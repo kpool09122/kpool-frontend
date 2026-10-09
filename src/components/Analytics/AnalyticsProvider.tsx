@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { createContext, useContext, useEffect, useMemo, useState, Suspense, type ReactNode } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import {
   createBrowserWikiAnalytics,
@@ -17,17 +17,25 @@ type AnalyticsContextValue = {
 const AnalyticsContext = createContext<AnalyticsContextValue | null>(null);
 export const useWikiAnalytics = () => useContext(AnalyticsContext);
 
+function AnalyticsNavigationObserver({ pathname, tracker }: {
+  pathname: string;
+  tracker: ReturnType<typeof createBrowserWikiAnalytics>;
+}) {
+  const searchParams = useSearchParams();
+  // Wiki以外や履歴移動も描画確定後に記録し、クエリだけの変更でも直前URLを最新に保つ。
+  // 閲覧の重複抑止と再訪の判定は、tracker側で引き続きパス単位で行う。
+  useEffect(() => {
+    tracker.observeNavigation(pathname);
+  }, [pathname, searchParams, tracker]);
+  return null;
+}
+
 export function AnalyticsProvider({ children, containerId }: {
   children: ReactNode;
   containerId: string | null;
 }) {
   const pathname = usePathname();
   const [tracker] = useState(createBrowserWikiAnalytics);
-  // Wiki以外への遷移も描画確定後に記録し、同じWikiに戻ったときは新しい閲覧として扱う。
-  // クリックだけでは拾えないブラウザーの戻る・進むも、pathnameの変化で検知する。
-  useEffect(() => {
-    if (containerId) tracker.observeNavigation(pathname);
-  }, [containerId, pathname, tracker]);
 
   const value = useMemo<AnalyticsContextValue | null>(() => containerId ? {
     pageView: (wiki) => tracker.pageView(pathname, wiki),
@@ -36,6 +44,12 @@ export function AnalyticsProvider({ children, containerId }: {
 
   return (
     <AnalyticsContext.Provider value={value}>
+      {containerId ? (
+        // クエリの読み取りに伴うSuspenseの範囲を計測用コンポーネントに限定する。
+        <Suspense fallback={null}>
+          <AnalyticsNavigationObserver pathname={pathname} tracker={tracker} />
+        </Suspense>
+      ) : null}
       {children}
       {containerId ? (
         <Script id="kpool-gtm" strategy="afterInteractive">{
