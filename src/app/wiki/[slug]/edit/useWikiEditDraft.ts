@@ -93,6 +93,7 @@ export const useWikiEditDraft = (
 ) => {
   const initialDraft = useMemo(() => createInitialDraft(wiki), [wiki]);
   const initialCode = useMemo(() => getCodeFromSections(initialDraft.sections), [initialDraft]);
+  const [sourceDraft, setSourceDraft] = useState(initialDraft);
   const [draft, setDraft] = useState<WikiDraftDetail>(initialDraft);
   const draftRef = useRef<WikiDraftDetail>(initialDraft);
   const [code, setCode] = useState(initialCode);
@@ -114,7 +115,11 @@ export const useWikiEditDraft = (
   const onSubmitSuccess = options?.onSubmitSuccess;
 
   useEffect(() => {
-    draftRef.current = initialDraft;
+    draftRef.current = draft;
+  }, [draft]);
+
+  if (sourceDraft !== initialDraft) {
+    setSourceDraft(initialDraft);
     setDraft(initialDraft);
     setCode(initialCode);
     setCodeParseError(null);
@@ -127,7 +132,7 @@ export const useWikiEditDraft = (
       payload: toWikiEditPayload(initialDraft),
       showMessage: false,
     });
-  }, [initialCode, initialDraft]);
+  }
 
   const commitDraft = (
     nextDraft: WikiDraftDetail,
