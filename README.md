@@ -47,6 +47,8 @@ KPOOL_WIKI_PRIVATE_API_BASE_URL=http://127.0.0.1:8000
 
 After updating `.env.local`, restart `pnpm dev` or `task dev`.
 
+公開WikiのGTM・GA4計測は既定で無効です。有効化、イベント契約、外部サービスの設定・確認手順は [Wiki計測ガイド](docs/wiki-analytics.md) を参照してください。
+
 ## Available Tasks
 
 ```bash

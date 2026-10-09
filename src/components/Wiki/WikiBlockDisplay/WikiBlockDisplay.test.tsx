@@ -115,6 +115,7 @@ describe("WikiBlockDisplay", () => {
       "https://example.com",
     );
     expect(screen.getByRole("link", { name: "site" })).toHaveAttribute("target", "_blank");
+    expect(screen.getByRole("link", { name: "site" })).toHaveAttribute("data-wiki-link-placement", "body");
   });
 
   it("renders supported inline markdown inside list items", () => {
@@ -142,7 +143,11 @@ describe("WikiBlockDisplay", () => {
       "href",
       "https://example.com",
     );
-    expect(within(listItem as HTMLElement).getByRole("link", { name: "agency" })).toHaveAttribute(
+    const wikiLink = within(listItem as HTMLElement).getByRole("link", { name: "agency" });
+    expect(wikiLink).toHaveAttribute("data-wiki-link-placement", "body");
+    expect(wikiLink).not.toHaveAttribute("data-wiki-id");
+    expect(wikiLink).toHaveAttribute("target", "_blank");
+    expect(wikiLink).toHaveAttribute(
       "href",
       "/ko/wiki/HYBE",
     );

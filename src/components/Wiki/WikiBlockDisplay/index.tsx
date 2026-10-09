@@ -48,6 +48,7 @@ export function WikiBlockDisplay({
         nodes.push(
           <a
             className={inlineLinkClassName}
+            data-wiki-link-placement="body"
             href={buildWikiPath(language, target)}
             key={`${keyPrefix}-namu-link-${match.index}`}
             rel="noopener noreferrer"
@@ -91,6 +92,7 @@ export function WikiBlockDisplay({
           return (
             <a
               className={inlineLinkClassName}
+              data-wiki-link-placement="body"
               href={href}
               key={`link-${index}`}
               rel="noopener noreferrer"

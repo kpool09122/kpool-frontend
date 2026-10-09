@@ -47,7 +47,11 @@ describe("WikiRelatedProfiles", () => {
       "src",
       "https://upload.wikimedia.org/wikipedia/commons/example/momo.jpg",
     );
-    expect(screen.getByRole("link", { name: /MOMO/i })).toHaveAttribute(
+    const talentLink = screen.getByRole("link", { name: /MOMO/i });
+    expect(talentLink).toHaveAttribute("data-wiki-link-placement", "related_profile");
+    expect(talentLink).toHaveAttribute("data-wiki-id", "momo-wiki");
+    expect(talentLink).toHaveAttribute("data-wiki-resource-type", "talent");
+    expect(talentLink).toHaveAttribute(
       "href",
       "/ko/wiki/tl-momo",
     );

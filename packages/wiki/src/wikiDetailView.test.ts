@@ -98,6 +98,8 @@ describe("wikiDetailView", () => {
           {
             href: "/ko/wiki/ag-north-harbor-entertainment",
             label: "North Harbor Entertainment",
+            wikiIdentifier: "agency-wiki-1",
+            resourceType: "agency",
           },
         ],
         value: "North Harbor Entertainment",
@@ -105,8 +107,8 @@ describe("wikiDetailView", () => {
       {
         label: "Talents",
         links: [
-          { href: "/ko/wiki/tl-momo", label: "MOMO" },
-          { href: "/ko/wiki/tl-sana", label: "SANA" },
+          { href: "/ko/wiki/tl-momo", label: "MOMO", wikiIdentifier: "talent-wiki-1", resourceType: "talent" },
+          { href: "/ko/wiki/tl-sana", label: "SANA", wikiIdentifier: "talent-wiki-2", resourceType: "talent" },
         ],
         value: "MOMO, SANA",
       },

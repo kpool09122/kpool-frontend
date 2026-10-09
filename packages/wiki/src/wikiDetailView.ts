@@ -1,9 +1,11 @@
-import type { WikiBasic, WikiOfficialColor, WikiSection } from "./types/wiki";
+import type { WikiBasic, WikiOfficialColor, WikiResourceType, WikiSection } from "./types/wiki";
 import { isWikiSection, sortWikiSectionContents } from "./wikiEditModel";
 import { buildWikiPath } from "./wikiRouting";
 
 export type WikiBasicFieldLink = {
   href: string;
+  wikiIdentifier: string;
+  resourceType: WikiResourceType;
   label: string;
 };
 
@@ -15,18 +17,24 @@ export type WikiBasicField = {
 };
 
 type LinkableRelation = {
+  wikiIdentifier: string;
   slug?: string;
   language?: string;
   name: string;
 };
 
-const getRelationLinks = (relations: LinkableRelation[] | undefined | null): WikiBasicFieldLink[] | undefined => {
+const getRelationLinks = (
+  relations: LinkableRelation[] | undefined | null,
+  resourceType: WikiResourceType,
+): WikiBasicFieldLink[] | undefined => {
   const links = relations?.flatMap((relation) =>
     relation.slug && relation.language
       ? [
           {
             href: buildWikiPath(relation.language, relation.slug),
             label: relation.name,
+            wikiIdentifier: relation.wikiIdentifier,
+            resourceType,
           },
         ]
       : [],
@@ -35,8 +43,11 @@ const getRelationLinks = (relations: LinkableRelation[] | undefined | null): Wik
   return links && links.length > 0 ? links : undefined;
 };
 
-const getRelationLink = (relation: LinkableRelation | undefined | null): WikiBasicFieldLink[] | undefined =>
-  relation ? getRelationLinks([relation]) : undefined;
+const getRelationLink = (
+  relation: LinkableRelation | undefined | null,
+  resourceType: WikiResourceType,
+): WikiBasicFieldLink[] | undefined =>
+  relation ? getRelationLinks([relation], resourceType) : undefined;
 
 const basicFieldLabels: Array<{
   label: string;
@@ -60,17 +71,17 @@ const basicFieldLabels: Array<{
   { label: "Genres", getValue: (basic) => basic.genres?.join(", ") ?? null },
   {
     label: "Agency",
-    getLinks: (basic) => getRelationLink(basic.agency),
+    getLinks: (basic) => getRelationLink(basic.agency, "agency"),
     getValue: (basic) => basic.agency?.name ?? basic.agencyName,
   },
   {
     label: "Groups",
-    getLinks: (basic) => getRelationLinks(basic.groups),
+    getLinks: (basic) => getRelationLinks(basic.groups, "group"),
     getValue: (basic) => basic.groups?.map((group) => group.name).join(", ") ?? null,
   },
   {
     label: "Talents",
-    getLinks: (basic) => getRelationLinks(basic.talents),
+    getLinks: (basic) => getRelationLinks(basic.talents, "talent"),
     getValue: (basic) => basic.talents?.map((talent) => talent.name).join(", ") ?? null,
   },
   { label: "Release Date", getValue: (basic) => basic.releaseDate },
