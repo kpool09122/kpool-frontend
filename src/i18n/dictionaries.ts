@@ -279,11 +279,7 @@ const ja = {
     accountUnavailableMessage:
       "principal 作成に必要な accountId を取得できません。",
     wikiHeaderTitle: "Wiki",
-    wikiHeaderDescription:
-      "Wiki 関連の確認やレビューをここから行えます。",
     settingsHeaderTitle: "ユーザー設定",
-    settingsHeaderDescription:
-      "プロフィールと言語の設定をここから更新できます。",
     createWiki: "新規作成",
     createWikiDialogTitle: "Wikiを新規作成",
     createWikiManualMode: "手動作成",
@@ -1484,11 +1480,7 @@ const en: typeof ja = {
     accountUnavailableMessage:
       "The accountId required to create a principal is unavailable.",
     wikiHeaderTitle: "Wiki",
-    wikiHeaderDescription:
-      "Review and check Wiki-related items from here.",
     settingsHeaderTitle: "User settings",
-    settingsHeaderDescription:
-      "Update profile and language settings from here.",
     createWiki: "Create",
     createWikiDialogTitle: "Create Wiki",
     createWikiManualMode: "Manual create",
@@ -2688,11 +2680,7 @@ const ko: typeof ja = {
     identityUnavailableMessage: "로그인 정보를 확인할 수 없습니다. 다시 로그인하세요.",
     accountUnavailableMessage: "principal 생성에 필요한 accountId를 가져올 수 없습니다.",
     wikiHeaderTitle: "Wiki",
-    wikiHeaderDescription:
-      "Wiki 관련 확인 및 리뷰를 여기에서 진행할 수 있습니다.",
     settingsHeaderTitle: "사용자 설정",
-    settingsHeaderDescription:
-      "프로필과 언어 설정을 여기에서 업데이트할 수 있습니다.",
     createWiki: "새로 만들기",
     createWikiDialogTitle: "Wiki 새로 만들기",
     createWikiManualMode: "수동 생성",
