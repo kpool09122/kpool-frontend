@@ -1,3 +1,4 @@
+import { getWikiVisitorLocationSigner } from "../../../visitorLocation";
 import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest, context: WikiDraftSubmitRouteCo
   const client = createDraftWikiApiClient(
     undefined,
     getForwardedWikiApiHeaders(request.headers),
+    getWikiVisitorLocationSigner(),
   );
 
   if (!client) {

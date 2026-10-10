@@ -1,3 +1,4 @@
+import { getWikiVisitorLocationSigner } from "../../visitorLocation";
 import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -37,6 +38,7 @@ export const createWikiDraftReviewRoute =
     const client = createDraftWikiApiClient(
       undefined,
       getForwardedWikiApiHeaders(request.headers),
+      getWikiVisitorLocationSigner(),
     );
 
     if (!client) {
