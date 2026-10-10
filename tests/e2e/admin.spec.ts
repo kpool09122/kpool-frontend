@@ -765,6 +765,48 @@ test("admin exposes the withdrawal flow from the direct Other route on mobile", 
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("admin keeps profile fields within the panel at mobile and desktop widths", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useAccountUpdatePolicy(page);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.route("**/api/account/accounts/22222222-2222-2222-2222-222222222222", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "corporation",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "standard",
+      address: { countryCode: "JP", administrativeAreaCode: "JP-13" },
+    }),
+  }));
+
+  await page.goto("/admin/account/profile");
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByLabel("アカウント名")).toHaveValue("Member Account");
+  const panel = page.locator("section").filter({ has: page.getByRole("heading", { name: "プロフィール設定", exact: true }) }).last();
+
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect.poll(() => panel.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const left = bounds.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+      const right = bounds.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight);
+      return Array.from(element.querySelectorAll("input, select")).every((field) => {
+        const fieldBounds = field.getBoundingClientRect();
+        return fieldBounds.width > 0 && fieldBounds.left >= left - 1 && fieldBounds.right <= right + 1;
+      }) && bounds.right <= window.innerWidth;
+    }), { message: `Profile controls fit inside their panel at ${width}px` }).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.getByLabel("アカウント名").fill("モバイルから編集");
+  await expect(page.getByLabel("アカウント名")).toHaveValue("モバイルから編集");
+});
+
 test("admin lets account policy users edit account information", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "basic");
