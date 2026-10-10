@@ -51,7 +51,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className="antialiased">
+      <body className="flex min-h-dvh flex-col antialiased">
         <I18nProvider initialLocale={locale}>
           <QueryProvider>
             <AnalyticsProvider containerId={resolveGtmContainerId(
@@ -63,7 +63,7 @@ export default async function RootLayout({
                 initialIdentity={authenticatedIdentity}
                 initialIsAuthenticated={authenticatedIdentity !== null}
               />
-              {children}
+              <div className="flex flex-1 flex-col">{children}</div>
               <Footer />
             </AnalyticsProvider>
           </QueryProvider>

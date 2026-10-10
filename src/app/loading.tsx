@@ -2,7 +2,7 @@ export default function Loading() {
   return (
     <main
       aria-busy="true"
-      className="min-h-screen bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16"
+      className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16"
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <div className="space-y-3">

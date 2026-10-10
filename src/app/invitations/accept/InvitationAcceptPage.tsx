@@ -161,7 +161,7 @@ export function InvitationAcceptPage({
   };
 
   return (
-    <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
+    <main className="flex-1 bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-start">
         <section className="space-y-6">
           <div className="space-y-3">

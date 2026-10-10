@@ -28,11 +28,6 @@ export function AdminShellClient({
     : activeSection === "accountSettings"
       ? t.accountSettingsHeaderTitle
       : t.settingsHeaderTitle;
-  const headerDescription = activeSection === "wiki"
-    ? t.wikiHeaderDescription
-    : activeSection === "settings"
-      ? t.settingsHeaderDescription
-      : null;
 
   useEffect(() => {
     // The sidebar toggle is disabled until hydration so pre-hydration clicks are not lost.
@@ -42,7 +37,7 @@ export function AdminShellClient({
 
   return (
     <main
-      className={`min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
+      className={`flex-1 bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
         isSidebarOpen ? "lg:pl-80" : "lg:pl-20"
       }`}
     >
@@ -93,11 +88,6 @@ export function AdminShellClient({
         <section className="min-w-0 space-y-6">
           <header className="space-y-3">
             <h1 className="text-3xl font-bold">{headerTitle}</h1>
-            {headerDescription ? (
-              <p className="max-w-3xl text-sm leading-7 text-text-muted">
-                {headerDescription}
-              </p>
-            ) : null}
           </header>
           {children}
         </section>

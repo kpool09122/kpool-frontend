@@ -65,7 +65,7 @@ export function WikiDetailPage({
 
   return (
     <main
-      className="wiki-theme-scope min-h-screen px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+      className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
       data-testid="wiki-theme-root"
       style={{
         ...themeStyles,

@@ -57,7 +57,7 @@ describe("ContactPage", () => {
       ok: true,
       contact: {
         contactIdentifier: "11111111-1111-4111-8111-111111111111",
-        identityIdentifier: null,
+        principalIdentifier: null,
         category: 1,
         name: "member",
         email: "member@example.com",

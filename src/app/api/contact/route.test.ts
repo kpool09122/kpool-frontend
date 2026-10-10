@@ -12,7 +12,7 @@ const requestBody = {
 
 const responseBody = {
   contactIdentifier: "11111111-1111-4111-8111-111111111111",
-  identityIdentifier: null,
+  principalIdentifier: null,
   ...requestBody,
 };
 
@@ -83,6 +83,32 @@ describe("/api/contact route", () => {
 
     expect(response.status).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("lets the backend resolve the logged-in principal from the session", async () => {
+    vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "https://site.example.test");
+    const principalIdentifier = "55555555-5555-4555-8555-555555555555";
+    const contact = { ...responseBody, principalIdentifier };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(contact), { status: 201 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(createRequest({
+      ...requestBody,
+      principalIdentifier: "99999999-9999-4999-8999-999999999999",
+      identityIdentifier: "88888888-8888-4888-8888-888888888888",
+    }, { cookie: "laravel_session=abc" }));
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual(contact);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://site.example.test/api/v1/site-management/contact/submit",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Cookie: "laravel_session=abc" }),
+        body: JSON.stringify(requestBody),
+      }),
+    );
   });
 
   it("does not expose backend validation details", async () => {

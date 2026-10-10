@@ -10,6 +10,7 @@ const identityResponse = {
   language: "ja",
   accountIdentifier: "22222222-2222-2222-2222-222222222222",
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  siteManagementPrincipalIdentifier: "55555555-5555-4555-8555-555555555555",
   accountType: "corporation",
   accountPolicies: [],
   account: null,
@@ -90,6 +91,7 @@ describe("/api/identity/auth/me route", () => {
     expect(body).toMatchObject({
       identityIdentifier: identityResponse.identityIdentifier,
       identityName: "member",
+      siteManagementPrincipalIdentifier: identityResponse.siteManagementPrincipalIdentifier,
     });
     expect(response.headers.get("set-cookie")).toContain("laravel_session=refreshed");
   });

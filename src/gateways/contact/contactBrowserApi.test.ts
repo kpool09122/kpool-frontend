@@ -11,7 +11,7 @@ const requestBody = {
 
 const responseBody = {
   contactIdentifier: "11111111-1111-4111-8111-111111111111",
-  identityIdentifier: null,
+  principalIdentifier: null,
   ...requestBody,
 };
 
@@ -48,6 +48,21 @@ describe("contact browser API", () => {
     ));
 
     await expect(submitContact({ locale: "ja", requestBody })).resolves.toEqual({ ok: false });
+  });
+
+  it("preserves the authenticated principal in the submitted contact", async () => {
+    const contact = {
+      ...responseBody,
+      principalIdentifier: "55555555-5555-4555-8555-555555555555",
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(contact), { status: 201 }),
+    ));
+
+    await expect(submitContact({ locale: "ja", requestBody })).resolves.toEqual({
+      ok: true,
+      contact,
+    });
   });
 
   it("returns a failure result for an invalid successful response", async () => {

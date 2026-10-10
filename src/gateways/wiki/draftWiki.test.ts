@@ -1413,149 +1413,48 @@ describe("draftWiki", () => {
     );
   });
 
-  it("creates and refetches a draft when the draft detail is not found", async () => {
-    const fetchDraftWikiMock = vi
-      .fn()
-      .mockRejectedValueOnce({
-        response: {
-          status: 404,
-        },
-      })
-      .mockResolvedValueOnce({
-        basic: {
-          name: "Aurora Echo",
-          normalizedName: "aurora-echo",
-        },
-        heroImage: null,
-        language: "ja",
-        resourceType: "group",
-        sections: [
-          {
-            id: "overview",
-            title: "Overview",
-          },
-        ],
-        slug: "gr-aurora-echo",
-        translationSetIdentifier: "translation-set-1",
-        version: 1,
-        wikiIdentifier: "wiki-1",
-      });
-    const client = {
-      createWikiDraft: vi.fn().mockResolvedValue({
-        language: "ja",
-        name: "Aurora Echo",
-        resourceType: "group",
-        status: "draft",
-      }),
-      fetchDraftWiki: fetchDraftWikiMock,
-      fetchPublicWiki: vi.fn().mockResolvedValue({
-        basic: {
-          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
-          name: "Aurora Echo",
-          normalizedName: "aurora-echo",
-        },
-        heroImage: null,
-        language: "ja",
-        resourceType: "group",
-        sections: [
-          {
-            id: "overview",
-            title: "Overview",
-          },
-        ],
-        slug: "gr-aurora-echo",
-        translationSetIdentifier: "translation-set-1",
-        version: 1,
-        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
-      }),
-    };
 
-    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).resolves.toEqual(
-      expect.objectContaining({
-        slug: "gr-aurora-echo",
-        wikiIdentifier: "wiki-1",
-      }),
-    );
-    expect(fetchDraftWikiMock).toHaveBeenCalledTimes(2);
-    expect(client.fetchPublicWiki).toHaveBeenCalledWith("ja", "group", "gr-aurora-echo");
-    expect(client.createWikiDraft).toHaveBeenCalledWith({
-      agencyIdentifier: "11111111-1111-4111-8111-111111111111",
-      basic: {
-        agencyIdentifier: "11111111-1111-4111-8111-111111111111",
-        name: "Aurora Echo",
-        normalizedName: "aurora-echo",
-      },
-      language: "ja",
-      publishedWikiIdentifier: "33333333-3333-4333-8333-333333333333",
-      resourceType: "group",
-      sections: [
-        {
-          contents: [],
-          displayOrder: 1,
-          title: "Overview",
-          type: "section",
-        },
-      ],
-      slug: "gr-aurora-echo",
-    });
+
+  it("returns a missing draft without creating it during a read", async () => {
+    const client = {
+      fetchDraftWiki: vi.fn().mockRejectedValue({ response: { status: 404 } }),
+      fetchPublicWiki: vi.fn(),
+      createWikiDraft: vi.fn(),
+    };
+    await expect(fetchDraftWiki(client as never, "ko", "tl-nayeon")).resolves.toBeNull();
+    expect(client.createWikiDraft).not.toHaveBeenCalled();
+    expect(client.fetchPublicWiki).not.toHaveBeenCalled();
   });
 
-  it("refetches a created draft by wiki identifier when the create response includes it", async () => {
-    const client = {
-      createWikiDraft: vi.fn().mockResolvedValue({
-        language: "ja",
-        name: "Aurora Echo",
-        resourceType: "group",
-        status: "draft",
-        wikiIdentifier: "created-draft-wiki-1",
-      }),
-      fetchDraftWiki: vi.fn().mockRejectedValue({
-        response: {
-          status: 404,
-        },
-      }),
-      fetchDraftWikiByIdentifier: vi.fn().mockResolvedValue({
-        basic: {
-          name: "Aurora Echo",
-          normalizedName: "aurora-echo",
-        },
-        heroImage: null,
-        language: "ja",
-        resourceType: "group",
-        sections: [],
-        slug: "gr-aurora-echo",
-        translationSetIdentifier: "translation-set-1",
-        version: 1,
-        wikiIdentifier: "created-draft-wiki-1",
-      }),
-      fetchPublicWiki: vi.fn().mockResolvedValue({
-        basic: {
-          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
-          name: "Aurora Echo",
-          normalizedName: "aurora-echo",
-        },
-        heroImage: null,
-        language: "ja",
-        resourceType: "group",
-        sections: [],
-        slug: "gr-aurora-echo",
-        translationSetIdentifier: "translation-set-1",
-        version: 1,
-        wikiIdentifier: "33333333-3333-4333-8333-333333333333",
-      }),
+  it("prepares a missing draft using only GET requests after login", async () => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "http://api.test");
+    const publicWiki = {
+      wikiIdentifier: "11111111-1111-4111-8111-111111111111",
+      translationSetIdentifier: "22222222-2222-4222-8222-222222222222",
+      language: "ko", resourceType: "talent", slug: "tl-nayeon", version: 1,
+      themeColor: null,
+      basic: {
+        name: "Nayeon", normalizedName: "nayeon", realName: "", normalizedRealName: "",
+        birthday: null, agencyIdentifier: null, agency: null, emoji: "",
+        representativeSymbol: "", position: "", mbti: null, zodiacSign: null,
+        englishLevel: null, height: null, bloodType: null, fandomName: "", groups: [],
+      },
+      heroImage: null, sections: [],
     };
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 404 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(publicWiki), { status: 200 }));
 
-    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).resolves.toEqual(
-      expect.objectContaining({
-        slug: "gr-aurora-echo",
-        wikiIdentifier: "created-draft-wiki-1",
-      }),
-    );
-    expect(client.fetchDraftWiki).toHaveBeenCalledTimes(1);
-    expect(client.fetchDraftWikiByIdentifier).toHaveBeenCalledWith(
-      "group",
-      "created-draft-wiki-1",
-    );
+    await expect(loadDraftWikiState("ko", "tl-nayeon", { Cookie: "session=logged-in" }))
+      .resolves.toMatchObject({
+        status: "needs-creation",
+        requestBody: { publishedWikiIdentifier: publicWiki.wikiIdentifier, language: "ko", slug: "tl-nayeon" },
+      });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const [, options] of fetchMock.mock.calls) {
+      expect(options?.method ?? "GET").toBe("GET");
+      expect(options?.headers).toMatchObject({ Cookie: "session=logged-in" });
+    }
   });
 
   it("does not create a draft when the draft detail already exists", async () => {
@@ -1604,87 +1503,7 @@ describe("draftWiki", () => {
     expect(client.createWikiDraft).not.toHaveBeenCalled();
   });
 
-  it("surfaces create failures after a missing draft detail", async () => {
-    const createError = {
-      response: {
-        status: 409,
-      },
-    };
-    const client = {
-      createWikiDraft: vi.fn().mockRejectedValue(createError),
-      fetchDraftWiki: vi.fn().mockRejectedValue({
-        response: {
-          status: 404,
-        },
-      }),
-      fetchPublicWiki: vi.fn().mockResolvedValue({
-        basic: {
-          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
-          name: "Aurora Echo",
-          normalizedName: "aurora-echo",
-        },
-        heroImage: null,
-        language: "ja",
-        resourceType: "group",
-        sections: [],
-        slug: "gr-aurora-echo",
-        translationSetIdentifier: "translation-set-1",
-        version: 1,
-        wikiIdentifier: "published-wiki-1",
-      }),
-    };
 
-    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).rejects.toBe(
-      createError,
-    );
-    expect(client.createWikiDraft).toHaveBeenCalledTimes(1);
-    expect(client.fetchDraftWiki).toHaveBeenCalledTimes(1);
-  });
-
-  it("surfaces refetch failures after creating a missing draft", async () => {
-    const refetchError = {
-      response: {
-        status: 500,
-      },
-    };
-    const client = {
-      createWikiDraft: vi.fn().mockResolvedValue({
-        language: "ja",
-        name: "Aurora Echo",
-        resourceType: "group",
-        status: "draft",
-      }),
-      fetchDraftWiki: vi
-        .fn()
-        .mockRejectedValueOnce({
-          response: {
-            status: 404,
-          },
-        })
-        .mockRejectedValueOnce(refetchError),
-      fetchPublicWiki: vi.fn().mockResolvedValue({
-        basic: {
-          agencyIdentifier: "11111111-1111-4111-8111-111111111111",
-          name: "Aurora Echo",
-          normalizedName: "aurora-echo",
-        },
-        heroImage: null,
-        language: "ja",
-        resourceType: "group",
-        sections: [],
-        slug: "gr-aurora-echo",
-        translationSetIdentifier: "translation-set-1",
-        version: 1,
-        wikiIdentifier: "published-wiki-1",
-      }),
-    };
-
-    await expect(fetchDraftWiki(client as never, "ja", "gr-aurora-echo")).rejects.toBe(
-      refetchError,
-    );
-    expect(client.createWikiDraft).toHaveBeenCalledTimes(1);
-    expect(client.fetchDraftWiki).toHaveBeenCalledTimes(2);
-  });
 
   it("forwards cookie headers when saving a draft wiki through fetch", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(

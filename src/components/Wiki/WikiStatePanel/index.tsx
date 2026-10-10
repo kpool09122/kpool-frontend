@@ -17,7 +17,7 @@ export function WikiStatePanel({
     tone === "danger" ? "text-status-danger" : "text-text-muted";
 
   return (
-    <main className="min-h-screen bg-surface-base px-6 py-12 text-text-strong sm:px-10">
+    <main className="flex-1 bg-surface-base px-6 py-12 text-text-strong sm:px-10">
       <div
         className={`mx-auto max-w-5xl rounded-[2rem] border ${borderClass} bg-surface-raised p-8 shadow-soft`}
       >

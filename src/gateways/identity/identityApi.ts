@@ -7,6 +7,7 @@ export type IdentitySummary = z.infer<typeof identityApiTypes.schemas.IdentitySu
 const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySummary.extend({
   accountIdentifier: z.string().uuid().nullable(),
   accountPrincipalIdentifier: z.string().uuid().nullable(),
+  siteManagementPrincipalIdentifier: z.string().uuid().nullable().optional(),
   accountType: z.string().nullable(),
   accountPolicies: z.array(identityApiTypes.schemas.AccountEffectivePolicySummary),
   account: identityApiTypes.schemas.AuthenticatedAccountSummary.nullish(),
@@ -30,6 +31,7 @@ export type AuthenticatedIdentitySummary = IdentitySummary & Partial<
     | "delegationIdentifier"
     | "originalAccount"
     | "switchableAccounts"
+    | "siteManagementPrincipalIdentifier"
   >
 > & {
   account?: Partial<NonNullable<ParsedAuthenticatedIdentitySummary["account"]>> | null;
