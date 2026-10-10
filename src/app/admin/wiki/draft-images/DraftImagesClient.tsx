@@ -10,13 +10,15 @@ import {
 import type { useI18n } from "../../../../i18n/I18nProvider";
 import type { Locale } from "../../../../i18n/locales";
 import { useAdmin } from "../../AdminProvider";
+import { useAdminRouteData } from "../../AdminRouteProvider";
 import type { DraftImageListState } from "../../useAdminDraftImageReview";
 import { formatDraftDate } from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useDraftImages } from "./useDraftImages";
 
 export function DraftImagesClient() {
-  const { currentIdentity, initialDraftImages, locale, t } = useAdmin();
+  const { currentIdentity, locale, t } = useAdmin();
+  const { initialDraftImages } = useAdminRouteData();
   const { draftImageAdapter } = useWikiSection();
   const {
     draftImages,

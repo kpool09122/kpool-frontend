@@ -71,6 +71,37 @@ test("admin shows the Wiki collaborator activation path", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("admin preserves sidebar state across tabs and sections", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "basic");
+  await page.goto("/admin/wiki/editing");
+
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("main")).toHaveCSS("padding-left", "80px");
+  await page.getByRole("tab", { name: "申請中のWiki" }).click();
+  await expect(page).toHaveURL(/\/admin\/wiki\/submitted$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
+
+  await page.getByRole("button", { name: "管理画面メニューを開く" }).click();
+  await expect(page.getByRole("main")).toHaveCSS("padding-left", "320px");
+  await page.getByRole("tab", { name: "申請中のWiki" }).click();
+  await expect(page).toHaveURL(/\/admin\/wiki\/submitted$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを閉じる" })).toHaveAttribute("aria-expanded", "true");
+
+  await page.getByRole("link", { name: "ユーザー設定", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/user\/profile$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを閉じる" })).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("main")).toHaveCSS("padding-left", "80px");
+  await page.getByRole("tab", { name: "言語", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/user\/language$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
+});
+
 test("admin shows under review draft images for an available Wiki principal", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "image-review");

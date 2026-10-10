@@ -11,13 +11,15 @@ import {
 import type { useI18n } from "../../../../i18n/I18nProvider";
 import type { Locale } from "../../../../i18n/locales";
 import { useAdmin } from "../../AdminProvider";
+import { useAdminRouteData } from "../../AdminRouteProvider";
 import type { ImageDeletionRequestListState } from "../../useAdminImageDeletionRequestReview";
 import { formatDraftDate } from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useImageDeletionRequests } from "./useImageDeletionRequests";
 
 export function ImageDeletionRequestsClient() {
-  const { currentIdentity, initialImageDeletionRequests, locale, t } = useAdmin();
+  const { currentIdentity, locale, t } = useAdmin();
+  const { initialImageDeletionRequests } = useAdminRouteData();
   const { draftImageAdapter } = useWikiSection();
   const {
     imageDeletionRequests,

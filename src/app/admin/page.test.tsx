@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminShellClient } from "./AdminShellClient";
+import { AdminRouteProvider } from "./AdminRouteProvider";
 import { AdminProvider } from "./AdminProvider";
 import { AccountPageClient } from "./account/AccountPageClient";
 import { AccountDocumentsClient } from "./account/documents/AccountDocumentsClient";
@@ -87,6 +88,7 @@ const identity = {
   accountId: "22222222-2222-2222-2222-222222222222",
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
   accountType: "corporation",
+  account: { status: "active" },
   accountEffectivePolicies: [
     {
       policyIdentifier: "99999999-9999-9999-9999-999999999999",
@@ -626,8 +628,10 @@ function AdminClient({
 
   return (
     <div onClickCapture={handleRouteClick}>
-      <AdminProvider initialContext={context}>
-        <AdminShellClient>{activeContent}</AdminShellClient>
+      <AdminProvider initialIdentity={initialIdentity}>
+        <AdminShellClient>
+          <AdminRouteProvider key={activePathname} value={context}>{activeContent}</AdminRouteProvider>
+        </AdminShellClient>
       </AdminProvider>
     </div>
   );
@@ -812,11 +816,13 @@ describe("admin page clients", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "管理画面メニューを閉じる" }));
+    fireEvent.click(screen.getByRole("tab", { name: "申請中のWiki" }));
     expect(
       screen.getByRole("button", { name: "管理画面メニューを開く" }),
     ).toHaveAttribute("aria-expanded", "false");
 
     fireEvent.click(screen.getByRole("button", { name: "管理画面メニューを開く" }));
+    fireEvent.click(screen.getByRole("tab", { name: "編集中のWiki" }));
     expect(
       screen.getByRole("button", { name: "管理画面メニューを閉じる" }),
     ).toHaveAttribute("aria-expanded", "true");
@@ -2321,6 +2327,7 @@ describe("admin page clients", () => {
       identityName: "member",
       email: "member@example.com",
       language: "ja",
+      account: { status: "active" },
     };
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue({
       ...identityWithoutAccount,
@@ -3635,6 +3642,7 @@ describe("admin page clients", () => {
       identityName: "member",
       email: "member@example.com",
       language: "ja",
+      account: { status: "active" },
     };
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(identityWithoutAccount);
 

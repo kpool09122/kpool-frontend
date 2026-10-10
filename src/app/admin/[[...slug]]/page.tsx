@@ -41,14 +41,14 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
     redirect("/admin/wiki/editing");
   }
 
-  const context = await loadAdminRouteContext(
+  const { initialIdentity, ...data } = await loadAdminRouteContext(
     buildLoginReturnTo(resolvedParams.slug),
     resolvedParams.slug,
   );
 
-  if (authReturnTo && getAuthenticatedAccountStatus(context.initialIdentity) === "active") {
+  if (authReturnTo && getAuthenticatedAccountStatus(initialIdentity) === "active") {
     redirect(authReturnTo);
   }
 
-  return <AdminAppClient context={context} returnTo={authReturnTo ?? returnTo} />;
+  return <AdminAppClient data={data} returnTo={authReturnTo ?? returnTo} />;
 }

@@ -7,11 +7,11 @@ import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { useAuthStore, type AuthIdentityRefresh } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
-import type { AdminRouteContext } from "./adminTypes";
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 
-type AdminContextValue = AdminRouteContext & {
+type AdminContextValue = {
   canShowAccountSettings: boolean;
-  currentIdentity: AdminRouteContext["initialIdentity"];
+  currentIdentity: AuthenticatedIdentitySummary;
   locale: Locale;
   refreshIdentity: AuthIdentityRefresh;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
@@ -19,7 +19,7 @@ type AdminContextValue = AdminRouteContext & {
 
 const AdminContext = createContext<AdminContextValue | null>(null);
 
-const canShowAccountSettingsForIdentity = (currentIdentity: AdminRouteContext["initialIdentity"]) => {
+const canShowAccountSettingsForIdentity = (currentIdentity: AuthenticatedIdentitySummary) => {
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
 
   return Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
@@ -27,20 +27,19 @@ const canShowAccountSettingsForIdentity = (currentIdentity: AdminRouteContext["i
 
 export function AdminProvider({
   children,
-  initialContext,
+  initialIdentity,
 }: {
   children: ReactNode;
-  initialContext: AdminRouteContext;
+  initialIdentity: AuthenticatedIdentitySummary;
 }) {
   const authIdentity = useAuthStore((state) => state.identity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
-  const currentIdentity = authIdentity ?? initialContext.initialIdentity;
+  const currentIdentity = authIdentity ?? initialIdentity;
   const { dictionary, locale } = useI18n();
 
   return (
     <AdminContext.Provider
       value={{
-        ...initialContext,
         canShowAccountSettings: canShowAccountSettingsForIdentity(currentIdentity),
         currentIdentity,
         locale,

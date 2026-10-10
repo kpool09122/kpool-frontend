@@ -99,7 +99,7 @@ for (const method of ["sso", "passkey"] as const) {
       await route.fulfill({ status: 204 });
     });
     await page.goto(`/login?returnTo=${encodeURIComponent(destination)}`);
-    await page.getByRole("button", { name: "表示モード" }).click();
+    await page.getByRole("switch", { name: "表示モード" }).click();
     const deviceTheme = await page.locator("html").getAttribute("data-theme");
     await page.getByRole("button", { name: method === "sso" ? "Googleでログイン" : "パスキーでログイン" }).click();
     await expect(page.getByRole("heading", { name: "アカウントの初期設定" })).toBeVisible();
@@ -141,7 +141,7 @@ test("pending account can log out before completing setup", async ({ page }) => 
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "アカウントの初期設定" })).toBeVisible();
   await page.waitForFunction(() => document.documentElement.hasAttribute("data-theme"));
-  await page.getByRole("button", { name: "表示モード" }).click();
+  await page.getByRole("switch", { name: "表示モード" }).click();
   const deviceTheme = await page.locator("html").getAttribute("data-theme");
   await page.getByRole("banner").getByRole("button", { name: /member/ }).hover();
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();

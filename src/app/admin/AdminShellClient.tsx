@@ -2,12 +2,15 @@
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
 import { useAdmin } from "./AdminProvider";
+import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
+import { normalizeReturnTo } from "@/gateways/auth/authFlow";
+import { isAccountSetupRequired, isAccountStatusUnavailable, isAccountSuspended } from "@/gateways/identity/identityApi";
 
 const selectedSectionClass = "bg-brand-highlight/70 text-text-strong";
 
@@ -19,7 +22,8 @@ export function AdminShellClient({
   children,
 }: AdminShellClientProps) {
   const pathname = usePathname();
-  const { canShowAccountSettings, t } = useAdmin();
+  const { canShowAccountSettings, currentIdentity, t } = useAdmin();
+  const searchParams = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
   const activeSection = resolveActiveSection(pathname);
@@ -34,6 +38,26 @@ export function AdminShellClient({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSidebarHydrated(true);
   }, []);
+
+  if (isAccountStatusUnavailable(currentIdentity)) {
+    return (
+      <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
+        <section role="alert" className="mx-auto max-w-2xl space-y-3 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
+          <h1 className="text-2xl font-bold">{t.accountStatusErrorTitle}</h1>
+          <p className="text-sm leading-7 text-text-muted">{t.accountStatusErrorMessage}</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (isAccountSetupRequired(currentIdentity)) {
+    const returnTo = searchParams.get("authReturnTo") || searchParams.get("returnTo");
+    return (
+      <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
+        <AccountInitialSetupClient returnTo={returnTo ? normalizeReturnTo(returnTo) : null} />
+      </main>
+    );
+  }
 
   return (
     <main
@@ -89,7 +113,12 @@ export function AdminShellClient({
           <header className="space-y-3">
             <h1 className="text-3xl font-bold">{headerTitle}</h1>
           </header>
-          {children}
+          {isAccountSuspended(currentIdentity) ? (
+            <section className="rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
+              <h2 className="text-xl font-bold">{t.suspendedAccountTitle}</h2>
+              <p className="mt-3 text-sm leading-7 text-text-muted">{t.suspendedAccountMessage}</p>
+            </section>
+          ) : children}
         </section>
       </div>
     </main>
