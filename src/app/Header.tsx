@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDownIcon, PersonIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 
 import { switchAccount } from "@/gateways/account/accountBrowserApi";
@@ -73,13 +73,26 @@ export function Header({
   const searchParams = useSearchParams();
   const { locale, dictionary, setLocale } = useI18n();
   const currentLocale = locale;
+  const headerRef = useRef<HTMLElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileLanguageViewOpen, setIsMobileLanguageViewOpen] = useState(false);
-  const [isMobileAccountViewOpen, setIsMobileAccountViewOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"menu" | "language" | "account" | "theme">("menu");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [isSwitchingAccount, setIsSwitchingAccount] = useState(false);
   const [switchAccountError, setSwitchAccountError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !headerRef.current?.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+        setMobileView("menu");
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
+  }, [isMobileMenuOpen]);
   const identity = useAuthStore((state) => state.identity);
   const authStatus = useAuthStore((state) => state.status);
   const clearIdentity = useAuthStore((state) => state.clearIdentity);
@@ -150,8 +163,7 @@ export function Header({
   };
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    setIsMobileLanguageViewOpen(false);
-    setIsMobileAccountViewOpen(false);
+    setMobileView("menu");
   };
   const handleAccountSwitch = (delegationIdentifier: string | null) => {
     setIsSwitchingAccount(true);
@@ -181,7 +193,7 @@ export function Header({
       <span className="sr-only">{t.language}</span>
       <select
         aria-label={t.language}
-        className="h-10 appearance-none rounded-full border border-stroke-subtle bg-surface-base py-0 pl-4 pr-10 text-sm font-semibold text-text-strong outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight"
+        className="h-10 appearance-none rounded bg-transparent py-0 pl-2 pr-7 text-sm font-semibold text-text-strong outline-none transition hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
         value={currentLocale}
         onChange={(event) => handleLocaleChange(event.target.value as Locale)}
       >
@@ -193,13 +205,13 @@ export function Header({
       </select>
       <ChevronDownIcon
         aria-hidden="true"
-        className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+        className="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
       />
     </label>
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-stroke-subtle bg-surface-raised/95 text-text-strong shadow-[0_8px_30px_rgba(29,47,73,0.06)] backdrop-blur">
+    <header ref={headerRef} className="sticky top-0 z-40 border-b border-stroke-subtle bg-surface-raised/95 text-text-strong shadow-[0_8px_30px_rgba(29,47,73,0.06)] backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10 lg:px-16">
         <Link
           className="inline-flex items-center rounded-lg bg-white/88 px-2 py-1 ring-1 ring-stroke-subtle transition hover:bg-white"
@@ -215,7 +227,7 @@ export function Header({
           />
         </Link>
 
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-5 sm:flex">
           <ThemeToggle />
           {languageSwitcher}
           {isAuthenticated ? (
@@ -308,7 +320,7 @@ export function Header({
             </div>
           ) : (
             <Link
-              className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 sm:inline-flex"
+              className="hidden min-h-10 items-center rounded px-2 text-sm font-semibold text-text-strong transition hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary sm:inline-flex"
               href={guestNavigation.href}
             >
               {t.login}
@@ -324,8 +336,7 @@ export function Header({
           aria-expanded={isMobileMenuOpen}
           onClick={() => {
             setIsMobileMenuOpen((current) => !current);
-            setIsMobileLanguageViewOpen(false);
-            setIsMobileAccountViewOpen(false);
+            setMobileView("menu");
           }}
         >
           <span className="flex flex-col gap-1.5" aria-hidden="true">
@@ -342,11 +353,22 @@ export function Header({
           aria-label={t.mobileMenu}
           className="border-t border-stroke-subtle bg-surface-raised px-6 py-4 sm:hidden"
         >
-          {isMobileLanguageViewOpen ? (
+          {mobileView === "theme" ? (
             <div className="grid divide-y divide-stroke-subtle">
               <button
                 className={mobileRowClassName}
-                onClick={() => setIsMobileLanguageViewOpen(false)}
+                onClick={() => setMobileView("menu")}
+                type="button"
+              >
+                <span>{t.backToMenu}</span>
+              </button>
+              <ThemeToggle variant="choices" />
+            </div>
+          ) : mobileView === "language" ? (
+            <div className="grid divide-y divide-stroke-subtle">
+              <button
+                className={mobileRowClassName}
+                onClick={() => setMobileView("menu")}
                 type="button"
               >
                 <span>{t.backToMenu}</span>
@@ -366,11 +388,11 @@ export function Header({
                 </button>
               ))}
             </div>
-          ) : isMobileAccountViewOpen ? (
+          ) : mobileView === "account" ? (
             <div className="grid divide-y divide-stroke-subtle">
               <button
                 className={mobileRowClassName}
-                onClick={() => setIsMobileAccountViewOpen(false)}
+                onClick={() => setMobileView("menu")}
                 type="button"
               >
                 <span>{t.backToMenu}</span>
@@ -407,10 +429,17 @@ export function Header({
             </div>
           ) : (
             <div className="grid divide-y divide-stroke-subtle">
-              <ThemeToggle />
               <button
                 className={mobileRowClassName}
-                onClick={() => setIsMobileLanguageViewOpen(true)}
+                onClick={() => setMobileView("theme")}
+                type="button"
+              >
+                <span>{t.themeMode}</span>
+                <span aria-hidden="true">›</span>
+              </button>
+              <button
+                className={mobileRowClassName}
+                onClick={() => setMobileView("language")}
                 type="button"
               >
                 <span>{t.language}</span>
@@ -426,7 +455,7 @@ export function Header({
                       className={mobileRowClassName}
                       onClick={() => {
                         setSwitchAccountError(null);
-                        setIsMobileAccountViewOpen(true);
+                        setMobileView("account");
                       }}
                       type="button"
                     >

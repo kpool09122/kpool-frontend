@@ -14,11 +14,14 @@ test("guest keyboard toggle persists across desktop/mobile, navigation and reloa
   page.on("console", (message) => { if (/hydration|did not match/i.test(message.text())) hydrationErrors.push(message.text()); });
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/en");
-  const toggle = page.getByRole("button", { name: "Display mode" });
+  const login = page.getByRole("banner").getByRole("link", { name: "Log in", exact: true });
+  await expect(login).toHaveCSS("color", "rgb(29, 47, 73)");
+  await expect(login).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  const toggle = page.getByRole("switch", { name: "Display mode" });
   await toggle.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
   expect(await page.evaluate(() => localStorage.getItem("kpool-theme"))).toBe("dark");
   await page.getByRole("contentinfo").getByRole("link", { name: "Terms" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -26,12 +29,16 @@ test("guest keyboard toggle persists across desktop/mobile, navigation and reloa
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Navigation menu" }).click();
-  const mobile = page.getByRole("navigation", { name: "Mobile menu" }).getByRole("button", { name: "Display mode" });
-  await expect(mobile).toHaveAttribute("aria-pressed", "true");
-  await mobile.click();
+  const mobile = page.getByRole("navigation", { name: "Mobile menu" });
+  await mobile.getByRole("button", { name: "Display mode" }).click();
+  await expect(mobile.getByRole("radio", { name: "Dark", exact: true })).toBeChecked();
+  await mobile.getByRole("radio", { name: "Light", exact: true }).click();
+  await expect(mobile.getByRole("radio", { name: "Light", exact: true })).toBeChecked();
+  await mobile.getByRole("button", { name: "Back to menu" }).click();
+  await expect(mobile.getByRole("button", { name: "Language" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.setViewportSize({ width: 1280, height: 900 });
-  await expect(toggle.first()).toHaveAttribute("aria-pressed", "false");
+  await expect(toggle.first()).toHaveAttribute("aria-checked", "false");
   expect(hydrationErrors).toEqual([]);
 });
 
@@ -40,14 +47,14 @@ for (const mode of ["light", "dark"] as const) {
     await page.addInitScript((selected) => localStorage.setItem("kpool-theme", selected), mode);
     await addMember(page);
     const background = mode === "dark" ? "rgb(22, 34, 58)" : "rgb(255, 251, 247)";
-    const raised = mode === "dark" ? "#21304b" : "#fff";
+    const raised = mode === "dark" ? "#21304b" : "#ffffff";
     for (const route of ["/en", "/en/wiki", "/wiki/ja/gr-aurora-echo", "/wiki/ja/gr-aurora-echo/edit", "/login", "/signup", "/admin", "/admin/user/language", "/en/terms", "/en/privacy", "/contact"]) {
       await page.goto(route);
       await expect(page.locator("html")).toHaveAttribute("data-theme", mode);
       await expect(page.locator("body")).toHaveCSS("background-color", background);
       expect(await page.getByRole("banner").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-raised").trim())).toBe(raised);
       expect(await page.getByRole("contentinfo").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-raised").trim())).toBe(raised);
-      await expect(page.getByRole("button", { name: "Display mode" }).first()).toHaveAttribute("aria-pressed", String(mode === "dark"));
+      await expect(page.getByRole("switch", { name: "Display mode" }).first()).toHaveAttribute("aria-checked", String(mode === "dark"));
     }
   });
 }
@@ -57,9 +64,9 @@ test("Wiki preview isolates all four global/local combinations and preserves pal
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
   const preview = page.getByTestId("wiki-edit-preview");
-  const globalToggle = page.getByRole("banner").getByRole("button", { name: "Display mode" });
+  const globalToggle = page.getByRole("banner").getByRole("switch", { name: "Display mode" });
   for (const globalMode of ["light", "dark"] as const) {
-    if (await globalToggle.getAttribute("aria-pressed") !== String(globalMode === "dark")) await globalToggle.click();
+    if (await globalToggle.getAttribute("aria-checked") !== String(globalMode === "dark")) await globalToggle.click();
     for (const localMode of ["light", "dark"] as const) {
       const storageBefore = await page.evaluate(() => localStorage.getItem("kpool-theme"));
       await page.getByRole("group", { name: "Preview mode" }).getByRole("button", { name: localMode === "dark" ? "Dark" : "Light", exact: true }).click();
@@ -81,12 +88,12 @@ test("Wiki preview isolates all four global/local combinations and preserves pal
   }
 });
 
-test("dark primary buttons use readable foreground", async ({ page }) => {
+test("dark header login uses readable text without a button background", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("kpool-theme", "dark"));
   await page.goto("/login");
-  const buttons = page.locator(".bg-brand-primary");
-  expect(await buttons.count()).toBeGreaterThan(0);
-  for (const button of await buttons.all()) await expect(button).toHaveCSS("color", "rgb(29, 47, 73)");
+  const login = page.getByRole("banner").getByRole("link", { name: "Log in", exact: true });
+  await expect(login).toHaveCSS("color", "rgb(255, 247, 239)");
+  await expect(login).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 });
 
 test("OS fallback and denied storage remain usable without false save success", async ({ page }) => {
@@ -96,7 +103,9 @@ test("OS fallback and denied storage remain usable without false save success", 
   });
   await page.goto("/en");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByRole("button", { name: "Display mode" }).click();
+  const toggle = page.getByRole("switch", { name: "Display mode" });
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  await toggle.click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByRole("status").filter({ hasText: "Could not save" })).toBeVisible();
   await page.reload();
@@ -106,6 +115,6 @@ test("OS fallback and denied storage remain usable without false save success", 
 for (const locale of ["ja", "ko"] as const) {
   test(`theme controls are localized for ${locale}`, async ({ page }) => {
     await page.goto(`/${locale}`);
-    await expect(page.getByRole("button", { name: locale === "ja" ? "表示モード" : "표시 모드" })).toBeVisible();
+    await expect(page.getByRole("switch", { name: locale === "ja" ? "表示モード" : "표시 모드" })).toBeVisible();
   });
 }

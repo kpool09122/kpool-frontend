@@ -62,7 +62,8 @@ describe("Header", () => {
       name: "ログイン",
     });
     expect(desktopLoginLink).toHaveAttribute("href", "/login");
-    expect(desktopLoginLink).toHaveClass("hidden", "sm:inline-flex");
+    expect(desktopLoginLink).toHaveClass("hidden", "sm:inline-flex", "text-text-strong");
+    expect(desktopLoginLink).not.toHaveClass("bg-brand-primary", "text-on-primary");
   });
 
   it("renders the desktop profile menu with admin and logout when authenticated", () => {
@@ -234,6 +235,31 @@ describe("Header", () => {
         name: "モバイルメニュー",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("closes the mobile submenu on an outside tap without blocking the content action", () => {
+    const onContentClick = vi.fn();
+    render(<><Header /><main><button onClick={onContentClick}><span>コンテンツ操作</span></button></main></>);
+
+    const menuButton = screen.getByRole("button", { name: "ナビゲーションメニュー" });
+    fireEvent.click(menuButton);
+    const mobile = screen.getByRole("navigation", { name: "モバイルメニュー" });
+    const themeRow = within(mobile).getByRole("button", { name: "表示モード" });
+    fireEvent.pointerDown(themeRow);
+    fireEvent.click(themeRow);
+    expect(within(mobile).getByRole("radio", { name: "ライト" })).toBeInTheDocument();
+    expect(menuButton).toHaveAttribute("aria-expanded", "true");
+
+    const content = screen.getByText("コンテンツ操作");
+    fireEvent.pointerDown(content, { pointerType: "touch" });
+    fireEvent.click(content);
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("navigation", { name: "モバイルメニュー" })).not.toBeInTheDocument();
+    expect(onContentClick).toHaveBeenCalledOnce();
+
+    fireEvent.click(menuButton);
+    expect(screen.getByRole("navigation", { name: "モバイルメニュー" })).toContainElement(screen.getByRole("button", { name: "表示モード" }));
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
   });
 
   it("shows the admin link in the mobile menu when authenticated", () => {
@@ -432,18 +458,32 @@ describe("Header", () => {
 });
 
 
-it("synchronizes guest desktop and mobile theme controls and persists without API calls", () => {
+it("selects mobile display mode from a submenu and synchronizes the desktop toggle", () => {
   const fetchSpy = vi.spyOn(globalThis, "fetch");
   render(<Header />);
+  const toggle = screen.getByRole("switch", { name: "表示モード" });
   fireEvent.click(screen.getByRole("button", { name: "ナビゲーションメニュー" }));
-  const controls = screen.getAllByRole("button", { name: /表示モード/ });
-  expect(controls).toHaveLength(2);
-  fireEvent.click(controls[0]);
+  const mobile = screen.getByRole("navigation", { name: "モバイルメニュー" });
+  expect(within(mobile).queryByRole("radio")).not.toBeInTheDocument();
+  fireEvent.click(within(mobile).getByRole("button", { name: "表示モード" }));
+  const light = within(mobile).getByRole("radio", { name: "ライト" });
+  const dark = within(mobile).getByRole("radio", { name: "ダーク" });
+  expect(light).toBeChecked();
+  fireEvent.click(dark);
   expect(document.documentElement).toHaveAttribute("data-theme", "dark");
   expect(window.localStorage.getItem("kpool-theme")).toBe("dark");
-  controls.forEach((button) => expect(button).toHaveAttribute("aria-pressed", "true"));
-  fireEvent.click(controls[1]);
-  controls.forEach((button) => expect(button).toHaveAttribute("aria-pressed", "false"));
+  expect(toggle).toHaveAttribute("aria-checked", "true");
+  expect(dark).toBeChecked();
+  fireEvent.click(toggle);
+  expect(light).toBeChecked();
+  expect(window.localStorage.getItem("kpool-theme")).toBe("light");
+  fireEvent.click(within(mobile).getByRole("button", { name: "メニューに戻る" }));
+  expect(within(mobile).getByRole("button", { name: "言語" })).toBeInTheDocument();
+  fireEvent.click(within(mobile).getByRole("button", { name: "表示モード" }));
+  fireEvent.click(screen.getByRole("button", { name: "ナビゲーションメニュー" }));
+  fireEvent.click(screen.getByRole("button", { name: "ナビゲーションメニュー" }));
+  expect(screen.getByRole("navigation", { name: "モバイルメニュー" })).toContainElement(screen.getByRole("button", { name: "表示モード" }));
+  expect(screen.queryByText("この端末の表示設定")).not.toBeInTheDocument();
   expect(fetchSpy).not.toHaveBeenCalled();
 });
 
@@ -460,6 +500,6 @@ it("retains the device theme through account switching, logout and sign-in witho
   await vi.waitFor(() => expect(logoutAdapter).toHaveBeenCalledOnce());
   await act(async () => undefined);
   act(() => useAuthStore.setState({ identity: { ...switchableIdentity, account: null, accountIdentifier: null, switchableAccounts: [] }, status: "authenticated" }));
-  expect(screen.getByRole("button", { name: "表示モード" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("switch", { name: "表示モード" })).toHaveAttribute("aria-checked", "true");
   expect(window.localStorage.getItem("kpool-theme")).toBe("dark");
 });
