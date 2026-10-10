@@ -3525,6 +3525,26 @@ const endpoints = makeApi([
         schema: WikiWorkflowRequestBody,
       },
       {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
         name: "wikiId",
         type: "Path",
         schema: z.string().uuid(),
@@ -3711,6 +3731,26 @@ const endpoints = makeApi([
         schema: WikiWorkflowRequestBody,
       },
       {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
         name: "wikiId",
         type: "Path",
         schema: z.string().uuid(),
@@ -3771,6 +3811,26 @@ const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: RejectWikiRequestBody,
+      },
+      {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
       },
       {
         name: "wikiId",
@@ -3835,6 +3895,26 @@ const endpoints = makeApi([
         schema: RollbackWikiRequestBody,
       },
       {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
         name: "wikiId",
         type: "Path",
         schema: z.string().uuid(),
@@ -3895,6 +3975,26 @@ const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: WikiWorkflowRequestBody,
+      },
+      {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
       },
       {
         name: "wikiId",
@@ -4019,6 +4119,26 @@ const endpoints = makeApi([
         name: "body",
         type: "Body",
         schema: WithdrawWikiRequestBody.optional(),
+      },
+      {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
       },
       {
         name: "wikiId",
