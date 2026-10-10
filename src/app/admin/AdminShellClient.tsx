@@ -42,7 +42,7 @@ export function AdminShellClient({
 
   return (
     <main
-      className={`min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
+      className={`flex-1 bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
         isSidebarOpen ? "lg:pl-80" : "lg:pl-20"
       }`}
     >

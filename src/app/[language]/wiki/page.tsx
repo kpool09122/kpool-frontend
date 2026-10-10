@@ -221,7 +221,7 @@ export default async function WikiListPage({ params, searchParams }: WikiListPag
   const state = await loadPublicWikiListState(resolvedLanguage, query);
 
   return (
-    <main className="min-h-screen bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
+    <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <header className="space-y-3">
           <p className="text-sm font-semibold uppercase text-text-muted">

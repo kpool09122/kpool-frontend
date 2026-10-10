@@ -56,7 +56,7 @@ export function AdminAppClient({
 
   if (isAccountStatusUnavailable(context.initialIdentity)) {
     return (
-      <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong sm:px-10">
+      <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
         <section role="alert" className="mx-auto max-w-2xl space-y-3 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
           <h1 className="text-2xl font-bold">{dictionary.admin.accountStatusErrorTitle}</h1>
           <p className="text-sm leading-7 text-text-muted">{dictionary.admin.accountStatusErrorMessage}</p>
@@ -67,7 +67,7 @@ export function AdminAppClient({
 
   if (isAccountSetupRequired(context.initialIdentity)) {
     return (
-      <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-8 text-text-strong sm:px-10">
+      <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
         <AccountInitialSetupClient returnTo={returnTo} />
       </main>
     );

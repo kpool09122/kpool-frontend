@@ -14,7 +14,7 @@ export async function LegalDocument({
   const content = documents[locale][document];
 
   return (
-    <main className="min-h-screen bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
+    <main className="flex-1 bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
       <article
         className="legal-content mx-auto max-w-4xl rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft sm:p-10"
         dangerouslySetInnerHTML={{ __html: content }}

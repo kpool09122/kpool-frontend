@@ -85,7 +85,7 @@ export default async function LanguageHome({ params, searchParams }: LanguageHom
   ];
 
   return (
-    <main className="min-h-screen bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
+    <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <TopWikiSectionsClient
           initialSections={sections}

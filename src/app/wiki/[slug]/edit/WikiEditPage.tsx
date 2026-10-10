@@ -266,7 +266,7 @@ export function WikiEditContent({
 
   return (
     <main
-      className="wiki-theme-scope min-h-screen px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+      className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
       data-theme={previewMode}
       data-testid="wiki-edit-root"
       style={{

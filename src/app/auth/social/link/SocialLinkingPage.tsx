@@ -119,7 +119,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
   };
 
   return (
-    <main className="min-h-[calc(100vh-73px)] bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
+    <main className="flex-1 bg-surface-base px-6 py-10 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto max-w-3xl space-y-7">
         <div className="space-y-3">
           <p className="text-sm font-semibold uppercase tracking-[0.08em] text-brand-primary">{dictionary.common.accountBrand}</p>
