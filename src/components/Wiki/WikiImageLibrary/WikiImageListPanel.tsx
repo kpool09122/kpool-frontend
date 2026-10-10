@@ -32,7 +32,7 @@ export function WikiImageListPanel({
       role="tabpanel"
     >
       {loadError ? (
-        <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-800">
+        <div className="rounded-2xl border border-status-danger bg-status-danger/10 p-4 text-sm font-semibold text-status-danger">
           {loadError}
         </div>
       ) : null}

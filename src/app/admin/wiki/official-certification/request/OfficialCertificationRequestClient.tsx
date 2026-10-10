@@ -39,9 +39,9 @@ type SearchState =
 const chipClassName =
   "inline-flex max-w-full items-center gap-1.5 rounded-full border border-stroke-subtle bg-surface-raised px-2.5 py-1 text-xs font-semibold text-text-strong";
 const statusErrorClassName =
-  "rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800";
+  "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
 const statusSuccessClassName =
-  "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800";
+  "rounded-lg border border-status-success bg-status-success/10 p-3 text-sm font-semibold text-status-success";
 const cardClassName = "rounded-xl border border-stroke-subtle bg-surface-base p-4";
 
 type WikiLike = OfficialCertificationListItem["wikis"][number];
@@ -483,7 +483,7 @@ export function OfficialCertificationRequestClient() {
                 </div>
               ) : null}
               <button
-                className="w-fit rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-fit rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!canSubmit || requestMutation.isPending}
                 type="submit"
               >
@@ -499,7 +499,7 @@ export function OfficialCertificationRequestClient() {
                   <p className="text-sm text-text-muted">{t.officialCertificationAdditionalDescription}</p>
                 </div>
                 <button
-                  className="w-fit shrink-0 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-fit shrink-0 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={syncMutation.isPending || candidateWikis.length === 0}
                   onClick={() => syncMutation.mutate()}
                   type="button"

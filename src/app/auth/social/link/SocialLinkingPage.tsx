@@ -156,14 +156,14 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
                   className="min-h-12 w-full rounded-lg border border-stroke-subtle bg-surface-base px-4" />
               </label>
               <button type="submit" disabled={pending !== null || unavailable || !/^[0-9]{6}$/.test(authCode)}
-                className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-white disabled:opacity-60">
+                className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                 {pending === "verify" ? t.verifying : t.verifyCode}
               </button>
             </form>
           </section>
         ) : null}
         {!complete && displayedError ? (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">
             {t[displayedError]}
           </p>
         ) : null}

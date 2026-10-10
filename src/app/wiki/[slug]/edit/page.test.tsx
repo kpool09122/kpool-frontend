@@ -105,7 +105,14 @@ describe("WikiEditPage", () => {
       "aria-expanded",
       "true",
     );
-    expect(screen.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "light");
+    expect(screen.getByTestId("wiki-edit-root")).not.toHaveAttribute("data-theme");
+    expect(screen.getByTestId("wiki-edit-preview")).toHaveAttribute("data-theme", "light");
+    document.documentElement.dataset.theme = "dark";
+    fireEvent.click(within(screen.getByRole("group", { name: "Preview mode" })).getByRole("button", { name: "Dark" }));
+    expect(screen.getByTestId("wiki-edit-preview")).toHaveAttribute("data-theme", "dark");
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    document.documentElement.dataset.theme = "light";
+    expect(screen.getByTestId("wiki-edit-preview")).toHaveAttribute("data-theme", "dark");
     expect(screen.getByRole("tablist", { name: "Wiki content tabs" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel")).toBeInTheDocument();

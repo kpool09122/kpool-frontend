@@ -127,7 +127,7 @@ export function AccountAffiliationsClient() {
                     />
                   </label>
                   <div>
-                    <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={state.isRequesting} type="submit">
+                    <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50" disabled={state.isRequesting} type="submit">
                       {state.isRequesting ? t.accountAffiliations.requesting : t.accountAffiliations.requestSubmit}
                     </button>
                   </div>
@@ -172,12 +172,12 @@ export function AccountAffiliationsClient() {
                   </dl>
                   <div className="flex flex-wrap gap-3">
                     {canApproveAffiliations ? (
-                      <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={state.isReviewing} onClick={() => void state.submitReview("approve", affiliation.affiliationIdentifier)} type="button">
+                      <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50" disabled={state.isReviewing} onClick={() => void state.submitReview("approve", affiliation.affiliationIdentifier)} type="button">
                         {state.isReviewing ? t.accountAffiliations.reviewing : t.accountAffiliations.approve}
                       </button>
                     ) : null}
                     {canRejectAffiliations ? (
-                      <button className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50" disabled={state.isReviewing} onClick={() => void state.submitReview("reject", affiliation.affiliationIdentifier)} type="button">
+                      <button className="rounded-lg border border-status-danger px-4 py-2 text-sm font-semibold text-status-danger disabled:opacity-50" disabled={state.isReviewing} onClick={() => void state.submitReview("reject", affiliation.affiliationIdentifier)} type="button">
                         {state.isReviewing ? t.accountAffiliations.reviewing : t.accountAffiliations.reject}
                       </button>
                     ) : null}

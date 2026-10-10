@@ -200,7 +200,7 @@ export function CreateDraftWikiDialog({
           ) : null}
           {error ? (
             <p
-              className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+              className="rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger"
               role="alert"
             >
               {error}
@@ -217,7 +217,7 @@ export function CreateDraftWikiDialog({
             {t.cancelCreateWiki}
           </button>
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isCreating}
             type="submit"
           >
@@ -275,7 +275,7 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
           />
         </label>
         {!trimmedReason ? (
-          <p className="mt-2 text-sm font-semibold text-red-700" role="alert">
+          <p className="mt-2 text-sm font-semibold text-status-danger" role="alert">
             {t.rejectDraftWikiReasonRequired}
           </p>
         ) : null}
@@ -292,7 +292,7 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
             {t.cancelDraftWikiRejectReason}
           </button>
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting || !trimmedReason}
             type="submit"
           >
@@ -425,7 +425,7 @@ export function DraftWikiRejectionReasonButton({
     <>
       <button
         aria-label={t.showDraftWikiRejectReason}
-        className="grid size-8 place-items-center text-yellow-500 transition hover:text-yellow-600"
+        className="grid size-8 place-items-center text-yellow-500 transition hover:text-status-warning"
         onClick={() => setIsRejectionReasonOpen(true)}
         type="button"
       >

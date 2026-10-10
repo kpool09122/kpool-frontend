@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDownIcon, PersonIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
+import { ThemeToggle } from "./ThemeToggle";
 
 import { switchAccount } from "@/gateways/account/accountBrowserApi";
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -215,6 +216,7 @@ export function Header({
         </Link>
 
         <div className="hidden items-center gap-2 sm:flex">
+          <ThemeToggle />
           {languageSwitcher}
           {isAuthenticated ? (
             <div className="group relative">
@@ -306,7 +308,7 @@ export function Header({
             </div>
           ) : (
             <Link
-              className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 sm:inline-flex"
+              className="hidden items-center rounded-full bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 sm:inline-flex"
               href={guestNavigation.href}
             >
               {t.login}
@@ -405,6 +407,7 @@ export function Header({
             </div>
           ) : (
             <div className="grid divide-y divide-stroke-subtle">
+              <ThemeToggle />
               <button
                 className={mobileRowClassName}
                 onClick={() => setIsMobileLanguageViewOpen(true)}

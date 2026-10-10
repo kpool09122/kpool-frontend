@@ -56,7 +56,7 @@ export const identityProviders: IdentityProvider[] = [
     iconClassName: "h-9 w-9",
     iconSize: 36,
     buttonClassName:
-      "border border-stroke-subtle bg-white text-text-strong hover:border-[#4285F4] hover:bg-[#f8fbff]",
+      "border border-stroke-subtle bg-surface-raised text-text-strong hover:border-[#4285F4] hover:bg-brand-highlight/20",
   },
   {
     id: "line",

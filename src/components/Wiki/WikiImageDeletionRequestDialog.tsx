@@ -207,7 +207,7 @@ export function WikiImageDeletionRequestDialog({
             <div>
               <p className="text-sm font-semibold text-text-muted">{t.selectImageTitle}</p>
               {loadError ? (
-                <div className="mt-3 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm font-semibold text-red-800">
+                <div className="mt-3 rounded-2xl border border-status-danger bg-status-danger/10 p-4 text-sm font-semibold text-status-danger">
                   {loadError}
                 </div>
               ) : null}
@@ -323,18 +323,18 @@ export function WikiImageDeletionRequestDialog({
               <p className="mt-2 text-xs text-text-muted">{t.requiredHint}</p>
 
               {submitStatus === "success" ? (
-                <div className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
+                <div className="mt-4 rounded-2xl border border-status-success bg-status-success/10 p-3 text-sm font-semibold text-status-success">
                   {t.submitSucceeded}
                 </div>
               ) : null}
               {submitError ? (
-                <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800">
+                <div className="mt-4 rounded-2xl border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger">
                   {submitError}
                 </div>
               ) : null}
 
               <button
-                className="mt-5 w-full rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-5 w-full rounded-full bg-brand-primary px-5 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!canSubmit}
                 type="submit"
               >

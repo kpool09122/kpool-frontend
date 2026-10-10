@@ -157,7 +157,7 @@ export function ContactPage({
             </p>
 
             <button
-              className="inline-flex w-full items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-brand-highlight focus:ring-offset-2 focus:ring-offset-surface-raised disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-on-primary transition hover:brightness-105 focus:outline-none focus:ring-2 focus:ring-brand-highlight focus:ring-offset-2 focus:ring-offset-surface-raised disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
               disabled={isSubmitting}
               type="submit"
             >
@@ -166,7 +166,7 @@ export function ContactPage({
 
             {submissionState === "success" ? (
               <p
-                className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-800"
+                className="rounded-lg border border-status-success bg-status-success/10 p-4 text-sm font-semibold leading-6 text-status-success"
                 role="status"
               >
                 {t.submitSuccess}
@@ -174,7 +174,7 @@ export function ContactPage({
             ) : null}
             {submissionState === "error" ? (
               <p
-                className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm font-semibold leading-6 text-red-800"
+                className="rounded-lg border border-status-danger bg-status-danger/10 p-4 text-sm font-semibold leading-6 text-status-danger"
                 role="alert"
               >
                 {t.submitError}

@@ -170,7 +170,7 @@ export function InvitationAcceptPage({
             <p className="max-w-2xl text-sm leading-6 text-text-muted">{t.description}</p>
           </div>
           {!invitationReady ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">
+            <div className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger" role="alert">
               <p>{t.missingParamsMessage}</p>
               <Link href="/login" className="mt-2 inline-flex underline-offset-4 hover:underline">{t.loginLink}</Link>
             </div>
@@ -210,7 +210,7 @@ export function InvitationAcceptPage({
               <input type="text" required maxLength={64} value={passkeyDisplayName} onChange={(event) => setPasskeyDisplayName(event.target.value)} className="w-full rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-base outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-highlight" />
             </label>
             {noticeMessage ? <p className="rounded-lg border border-stroke-subtle bg-surface-base px-4 py-3 text-sm text-text-muted" role="status">{noticeMessage}</p> : null}
-            {errorMessage ? <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">{errorMessage}</p> : null}
+            {errorMessage ? <p className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger" role="alert">{errorMessage}</p> : null}
             <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pendingAction !== null || !invitationReady}>
               {pendingAction?.type === "passkey" ? t.submitting : t.complete}
             </button>

@@ -99,6 +99,8 @@ for (const method of ["sso", "passkey"] as const) {
       await route.fulfill({ status: 204 });
     });
     await page.goto(`/login?returnTo=${encodeURIComponent(destination)}`);
+    await page.getByRole("button", { name: "表示モード" }).click();
+    const deviceTheme = await page.locator("html").getAttribute("data-theme");
     await page.getByRole("button", { name: method === "sso" ? "Googleでログイン" : "パスキーでログイン" }).click();
     await expect(page.getByRole("heading", { name: "アカウントの初期設定" })).toBeVisible();
     await expect(page.getByRole("complementary", { name: "管理画面メニュー" })).toHaveCount(0);
@@ -108,6 +110,8 @@ for (const method of ["sso", "passkey"] as const) {
     await page.getByRole("button", { name: "区分を確定してサービスを開始" }).click();
     await expect(page).toHaveURL(destination);
     expect(setupRequests).toEqual([{ accountType: "individual" }]);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", deviceTheme ?? "dark");
+    expect(await page.evaluate(() => localStorage.getItem("kpool-theme"))).toBe(deviceTheme);
     await page.goto("/admin");
     await expect(page.getByRole("heading", { name: "Wiki", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "アカウントの初期設定" })).toHaveCount(0);
@@ -137,9 +141,13 @@ test("pending account can log out before completing setup", async ({ page }) => 
   await page.goto("/admin");
   await expect(page.getByRole("heading", { name: "アカウントの初期設定" })).toBeVisible();
   await page.waitForFunction(() => document.documentElement.hasAttribute("data-theme"));
+  await page.getByRole("button", { name: "表示モード" }).click();
+  const deviceTheme = await page.locator("html").getAttribute("data-theme");
   await page.getByRole("banner").getByRole("button", { name: /member/ }).hover();
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
+  await expect(page.locator("html")).toHaveAttribute("data-theme", deviceTheme ?? "dark");
+  expect(await page.evaluate(() => localStorage.getItem("kpool-theme"))).toBe(deviceTheme);
   await expect(page.getByRole("heading", { name: "ログイン", exact: true })).toBeVisible();
 });
 

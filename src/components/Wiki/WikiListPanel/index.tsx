@@ -41,10 +41,10 @@ export function WikiListPanel({
 }) {
   if (loadError) {
     return (
-      <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+      <div className="mt-5 rounded-lg border border-status-danger bg-status-danger/10 p-4 text-sm text-status-danger">
         <p role="alert" className="font-semibold">{loadError}</p>
         <button
-          className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold transition hover:bg-red-100"
+          className="mt-3 rounded-lg border border-status-danger px-4 py-2 font-semibold transition hover:bg-status-danger/10"
           onClick={onReload}
           type="button"
         >
@@ -80,7 +80,7 @@ export function WikiListPanel({
       ) : null}
       {reviewError ? (
         <p
-          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+          className="rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger"
           role="alert"
         >
           {reviewError}

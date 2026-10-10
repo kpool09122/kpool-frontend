@@ -211,7 +211,7 @@ export function WikiImageRequestForm({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-text-muted">{t.requiredHint}</p>
         <button
-          className="rounded-full border border-brand-primary bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-brand-primary bg-brand-primary px-5 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canSubmitRequest}
           onClick={() => {
             void submitRequest();
@@ -222,12 +222,12 @@ export function WikiImageRequestForm({
         </button>
       </div>
       {errorMessage ? (
-        <p className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+        <p className="rounded-2xl border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">
           {errorMessage}
         </p>
       ) : null}
       {successMessage ? (
-        <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="rounded-2xl border border-status-success bg-status-success/10 px-4 py-3 text-sm text-status-success">
           <p className="font-semibold">{successMessage}</p>
         </div>
       ) : null}
