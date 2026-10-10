@@ -26,6 +26,7 @@ describe("fetchAuthenticatedIdentity", () => {
           language: "ja",
           accountIdentifier: null,
           accountPrincipalIdentifier: null,
+          siteManagementPrincipalIdentifier: "55555555-5555-4555-8555-555555555555",
           accountType: null,
           accountPolicies: [],
           account: null,
@@ -45,6 +46,7 @@ describe("fetchAuthenticatedIdentity", () => {
     ).resolves.toMatchObject({
       identityName: "member",
       email: "member@example.com",
+      siteManagementPrincipalIdentifier: "55555555-5555-4555-8555-555555555555",
     });
     expect(fetchAdapter).toHaveBeenCalledWith(
       "http://api.test/api/v1/identity/auth/me",

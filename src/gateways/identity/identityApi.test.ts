@@ -8,6 +8,30 @@ import {
 } from "./identityApi";
 
 describe("identity API helpers", () => {
+  it.each([
+    "55555555-5555-4555-8555-555555555555",
+    null,
+    undefined,
+  ])("preserves the site management principal context: %s", (principalIdentifier) => {
+    const identity = parseAuthenticatedIdentitySummary({
+      identityIdentifier: "11111111-1111-4111-8111-111111111111",
+      identityName: "member",
+      email: "member@example.com",
+      language: "ja",
+      accountIdentifier: null,
+      accountPrincipalIdentifier: null,
+      siteManagementPrincipalIdentifier: principalIdentifier,
+      accountType: null,
+      accountPolicies: [],
+      account: null,
+      originalAccount: null,
+      delegationIdentifier: null,
+      switchableAccounts: [],
+    });
+
+    expect(identity.siteManagementPrincipalIdentifier).toBe(principalIdentifier);
+  });
+
   it("adds the backend identity prefix when the base URL omits it", () => {
     expect(withIdentityApiPrefix("http://127.0.0.1:8080")).toBe(
       "http://127.0.0.1:8080/api/v1/identity",

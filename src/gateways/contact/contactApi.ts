@@ -18,7 +18,7 @@ export const submitContactRequestSchema = z.object({
 
 export const submitContactResponseSchema = z.object({
   contactIdentifier: z.string().uuid(),
-  identityIdentifier: z.string().uuid().nullable().optional(),
+  principalIdentifier: z.string().uuid().nullable().optional(),
   category: contactCategorySchema,
   name: z.string(),
   email: z.string(),
