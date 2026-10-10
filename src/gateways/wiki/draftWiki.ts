@@ -194,6 +194,9 @@ export type DraftWikiState =
   | { status: "empty" }
   | { status: "error"; message: string };
 
+export type DraftWikiEditState = DraftWikiState
+  | { status: "needs-creation"; requestBody: CreateWikiRequestBody };
+
 export type DraftWikiDiffState = {
   draftWikiState: DraftWikiState;
   language: string;
@@ -481,12 +484,6 @@ const isNotFoundApiError = (error: unknown): boolean =>
   (error as { response?: unknown }).response !== null &&
   (error as { response: { status?: unknown } }).response.status === 404;
 
-const getDraftWikiSummaryIdentifier = (summary: DraftWikiSummary): string | null => {
-  const wikiIdentifier = (summary as Record<string, unknown>).wikiIdentifier;
-
-  return typeof wikiIdentifier === "string" ? wikiIdentifier : null;
-};
-
 export const createSubmitWikiRequestBody = (
   draft: Pick<WikiDraftDetail, "resourceType" | "wikiIdentifier"> & Record<string, unknown>,
 ): SubmitWikiRequestBody => {
@@ -672,21 +669,7 @@ export const fetchDraftWiki = async (
       throw error;
     }
 
-    const publicWiki = await client.fetchPublicWiki(language, resourceType, slug);
-    const createBody = createWikiDraftRequestBodyFromPublicWiki(publicWiki);
-
-    const createdDraft = await client.createWikiDraft(createBody);
-    const createdDraftIdentifier = getDraftWikiSummaryIdentifier(createdDraft);
-
-    if (createdDraftIdentifier) {
-      const response = await client.fetchDraftWikiByIdentifier(resourceType, createdDraftIdentifier);
-
-      return adaptDraftWikiResponse(response);
-    }
-
-    const response = await client.fetchDraftWiki(language, resourceType, slug);
-
-    return adaptDraftWikiResponse(response);
+    return null;
   }
 };
 
@@ -1400,7 +1383,7 @@ export const loadDraftWikiState = async (
   language: string,
   slug: string,
   forwardedHeaders: HeadersInit = {},
-): Promise<DraftWikiState> => {
+): Promise<DraftWikiEditState> => {
   if (isMockWikiGatewayEnabled()) {
     return slug === "empty"
       ? { status: "empty" }
@@ -1425,7 +1408,16 @@ export const loadDraftWikiState = async (
   try {
     const wiki = await fetchDraftWiki(client, language, slug);
 
-    return wiki ? { status: "success", data: wiki } : { status: "empty" };
+    if (wiki) return { status: "success", data: wiki };
+
+    const resourceType = getWikiResourceTypeFromSlug(slug);
+    if (!resourceType) return { status: "empty" };
+
+    const publicWiki = await client.fetchPublicWiki(language, resourceType, slug);
+    return {
+      status: "needs-creation",
+      requestBody: createWikiDraftRequestBodyFromPublicWiki(publicWiki),
+    };
   } catch (error) {
     return {
       status: "error",

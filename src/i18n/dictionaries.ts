@@ -877,6 +877,7 @@ const ja = {
   wiki: {
     loadingTitle: "Loading Wiki",
     loadingMessage: "Preparing the public detail view...",
+    preparingEditMessage: "編集画面を準備しています。",
     loadErrorTitle: "Unable to load wiki",
     emptyPublicTitle: "No public wiki yet",
     emptyPublicMessage:
@@ -2078,6 +2079,7 @@ const en: typeof ja = {
   wiki: {
     loadingTitle: "Loading Wiki",
     loadingMessage: "Preparing the public detail view...",
+    preparingEditMessage: "Preparing the editor...",
     loadErrorTitle: "Unable to load wiki",
     emptyPublicTitle: "No public wiki yet",
     emptyPublicMessage:
@@ -3278,6 +3280,7 @@ const ko: typeof ja = {
   wiki: {
     loadingTitle: "Wiki 로딩 중",
     loadingMessage: "공개 상세 화면을 준비하고 있습니다...",
+    preparingEditMessage: "편집 화면을 준비하고 있습니다...",
     loadErrorTitle: "Wiki를 불러올 수 없습니다",
     emptyPublicTitle: "공개 Wiki가 없습니다",
     emptyPublicMessage: "현재 이 리소스에는 공개 Wiki 상세 페이지가 없습니다.",

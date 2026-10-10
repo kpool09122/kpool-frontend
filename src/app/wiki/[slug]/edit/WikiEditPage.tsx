@@ -36,6 +36,7 @@ import {
 import { fetchWikiImages, uploadWikiImageRequest } from "@/gateways/wiki/wikiImageBrowserApi";
 import { saveWikiDraft, submitWikiDraft } from "@/gateways/wiki/edit/saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
+import { WikiDraftInitializer } from "./WikiDraftInitializer";
 
 type WikiEditPageProps = {
   language: string;
@@ -517,6 +518,15 @@ export function WikiEditPage({
 }: WikiEditPageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
+
+  if (wikiState.status === "needs-creation") {
+    return (
+      <WikiDraftInitializer
+        key={`${wikiState.requestBody.language}:${wikiState.requestBody.slug}`}
+        requestBody={wikiState.requestBody}
+      />
+    );
+  }
 
   if (wikiState.status === "error") {
     return <WikiStatePanel message={wikiState.message} title={t.loadErrorTitle} tone="danger" />;
