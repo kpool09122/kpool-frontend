@@ -191,7 +191,7 @@ const WikiListContent = ({
             aria-current={page === currentPage ? "page" : undefined}
             className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
               page === currentPage
-                ? "border-brand-primary bg-brand-primary text-white"
+                ? "border-brand-primary bg-brand-primary text-on-primary"
                 : "border-stroke-subtle bg-surface-raised text-text-strong"
             }`}
             href={buildHref(resolvedLanguage, query, { page })}

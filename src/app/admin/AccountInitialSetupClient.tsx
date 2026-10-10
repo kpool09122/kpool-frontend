@@ -128,12 +128,12 @@ export function AccountInitialSetupClient({
           </div>
         </fieldset>
 
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
+        <p className="rounded-lg border border-status-warning bg-status-warning/10 px-4 py-3 text-sm leading-6 text-status-warning">
           {t.initialSetupImmutableNotice}
         </p>
 
         {errorMessage ? (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">
             {errorMessage}
           </p>
         ) : null}
@@ -141,7 +141,7 @@ export function AccountInitialSetupClient({
         <button
           type="submit"
           disabled={!isHydrated || isSubmitting}
-          className="flex min-h-12 w-full items-center justify-center rounded-lg bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex min-h-12 w-full items-center justify-center rounded-lg bg-brand-primary px-5 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting
             ? t.initialSetupSubmitting

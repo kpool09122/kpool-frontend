@@ -221,7 +221,7 @@ function PasskeyRecoveryPageContent({
                     onChange={(event) => setEmail(event.target.value)}
                   />
                 </label>
-                <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-white disabled:opacity-60">
+                <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                   {pending ? t.sending : t.sendCode}
                 </button>
               </form>
@@ -257,7 +257,7 @@ function PasskeyRecoveryPageContent({
                   onChange={(event) => setAuthCode(event.target.value)}
                 />
               </label>
-              <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-white disabled:opacity-60">
+              <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                 {pending ? t.verifying : t.verifyCode}
               </button>
             </form>
@@ -280,11 +280,11 @@ function PasskeyRecoveryPageContent({
         ) : null}
 
         {phase === "confirm" ? (
-          <section className="space-y-5 rounded-lg border border-red-300 bg-surface-raised p-6">
+          <section className="space-y-5 rounded-lg border border-status-danger bg-surface-raised p-6">
             <div>
               <h2 className="text-xl font-bold">{t.confirmTitle}</h2>
             </div>
-            <ul className="list-disc space-y-2 pl-5 text-sm font-semibold text-red-700">
+            <ul className="list-disc space-y-2 pl-5 text-sm font-semibold text-status-danger">
               <li>{t.deleteAllPasskeysWarning}</li>
               <li>{t.logoutAllSessionsWarning}</li>
               <li>{t.keepSsoWarning}</li>
@@ -314,17 +314,17 @@ function PasskeyRecoveryPageContent({
         ) : null}
 
         {phase === "complete" ? (
-          <section className="space-y-4 rounded-lg border border-emerald-300 bg-surface-raised p-6" role="status">
+          <section className="space-y-4 rounded-lg border border-status-success bg-surface-raised p-6" role="status">
             <h2 className="text-xl font-bold">{t.completeTitle}</h2>
             <p className="text-sm leading-6 text-text-muted">{t.completeDescription}</p>
-            <Link href="/login" className="inline-flex min-h-12 items-center rounded-lg bg-brand-primary px-5 font-semibold text-white">
+            <Link href="/login" className="inline-flex min-h-12 items-center rounded-lg bg-brand-primary px-5 font-semibold text-on-primary">
               {t.loginAgain}
             </Link>
           </section>
         ) : null}
 
         {noticeMessage ? <p role="status" className="rounded-lg border border-stroke-subtle bg-surface-raised px-4 py-3 text-sm">{noticeMessage}</p> : null}
-        {errorMessage ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{errorMessage}</p> : null}
+        {errorMessage ? <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">{errorMessage}</p> : null}
 
         {phase !== "complete" ? (
           <Link href="/login" className="inline-flex text-sm font-semibold text-brand-primary underline-offset-4 hover:underline">

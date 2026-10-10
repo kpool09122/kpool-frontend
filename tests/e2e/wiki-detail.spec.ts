@@ -107,7 +107,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
     "true",
   );
   await page.getByRole("button", { name: "Dark" }).click();
-  await expect(page.getByTestId("wiki-edit-root")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByTestId("wiki-edit-preview")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });

@@ -27,15 +27,15 @@ export function AccountStatusMessage({
 
 const getStatusMessageClassName = (variant: AccountStatusMessageVariant): string => {
   if (variant === "error") {
-    return "rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800";
+    return "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
   }
 
   if (variant === "success") {
-    return "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800";
+    return "rounded-lg border border-status-success bg-status-success/10 p-3 text-sm font-semibold text-status-success";
   }
 
   if (variant === "warning") {
-    return "rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-sm font-semibold text-yellow-800";
+    return "rounded-lg border border-status-warning bg-status-warning/10 p-3 text-sm font-semibold text-status-warning";
   }
 
   return "rounded-lg border border-dashed border-stroke-subtle p-4 text-sm font-semibold text-text-muted";

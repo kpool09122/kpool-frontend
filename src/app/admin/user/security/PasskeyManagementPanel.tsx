@@ -242,7 +242,7 @@ export function PasskeyManagementPanel({
     <UserSettingsPanel
       title={t.passkeySettingsTitle}
       action={listResult?.ok ? (
-        <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleAdd()}>
+        <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleAdd()}>
           {busyAction === "add" ? t.passkeyAdding : t.passkeyAdd}
         </button>
       ) : null}
@@ -253,7 +253,7 @@ export function PasskeyManagementPanel({
             <div>
               <p className="text-sm leading-6 text-text-muted">{t.passkeyVerificationRequired}</p>
             </div>
-            <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
+            <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
               {busyAction === "verify" ? t.passkeyVerifying : t.passkeyVerify}
             </button>
           </div>
@@ -297,7 +297,7 @@ export function PasskeyManagementPanel({
                       <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyCreatedAt}: </dt><dd className="inline">{formatDate(passkey.createdAt)}</dd></div>
                       <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyLastUsedAt}: </dt><dd className="inline">{formatDate(passkey.lastUsedAt)}</dd></div>
                     </dl>
-                    <button type="button" className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
+                    <button type="button" className="rounded-lg border border-status-danger px-4 py-2 text-sm font-semibold text-status-danger disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
                   </div>
                 </li>
               ))}
@@ -310,7 +310,7 @@ export function PasskeyManagementPanel({
           <UserStatusMessage variant="error">
             <span>{error ?? listError}</span>
             {reauthenticationRequired ? (
-              <button className="ml-3 rounded-lg border border-red-400 px-3 py-1.5 text-sm font-semibold disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
+              <button className="ml-3 rounded-lg border border-status-danger px-3 py-1.5 text-sm font-semibold disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
                 {busyAction === "verify" ? t.passkeyVerifying : t.passkeyVerifyAgain}
               </button>
             ) : null}

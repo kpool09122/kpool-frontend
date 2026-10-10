@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { buildLocaleChangePath, Header } from "./Header";
+import { applyThemeMode } from "./themeMode";
 
 const switchableIdentity = {
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
@@ -32,6 +33,12 @@ const switchableIdentity = {
 
 beforeEach(() => {
   useAuthStore.setState({ identity: null, status: "loading" });
+  document.documentElement.dataset.theme = "light";
+  const stored = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => stored.get(key) ?? null,
+    setItem: (key: string, value: string) => stored.set(key, value),
+  });
 });
 
 afterEach(() => {
@@ -422,4 +429,37 @@ describe("Header", () => {
       }),
     ).toBeNull();
   });
+});
+
+
+it("synchronizes guest desktop and mobile theme controls and persists without API calls", () => {
+  const fetchSpy = vi.spyOn(globalThis, "fetch");
+  render(<Header />);
+  fireEvent.click(screen.getByRole("button", { name: "ナビゲーションメニュー" }));
+  const controls = screen.getAllByRole("button", { name: /表示モード/ });
+  expect(controls).toHaveLength(2);
+  fireEvent.click(controls[0]);
+  expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+  expect(window.localStorage.getItem("kpool-theme")).toBe("dark");
+  controls.forEach((button) => expect(button).toHaveAttribute("aria-pressed", "true"));
+  fireEvent.click(controls[1]);
+  controls.forEach((button) => expect(button).toHaveAttribute("aria-pressed", "false"));
+  expect(fetchSpy).not.toHaveBeenCalled();
+});
+
+
+it("retains the device theme through account switching, logout and sign-in without an account", async () => {
+  applyThemeMode("dark", true);
+  const switchAccountAdapter = vi.fn().mockResolvedValue({});
+  const logoutAdapter = vi.fn().mockResolvedValue({ ok: true });
+  render(<Header initialIdentity={switchableIdentity} initialIsAuthenticated switchAccountAdapter={switchAccountAdapter} refreshIdentityAdapter={() => switchableIdentity} logoutAdapter={logoutAdapter} navigate={() => undefined} refresh={() => undefined} />);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Aurora Agency" }));
+  await vi.waitFor(() => expect(switchAccountAdapter).toHaveBeenCalledOnce());
+  expect(document.documentElement.dataset.theme).toBe("dark");
+  fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+  await vi.waitFor(() => expect(logoutAdapter).toHaveBeenCalledOnce());
+  await act(async () => undefined);
+  act(() => useAuthStore.setState({ identity: { ...switchableIdentity, account: null, accountIdentifier: null, switchableAccounts: [] }, status: "authenticated" }));
+  expect(screen.getByRole("button", { name: "表示モード" })).toHaveAttribute("aria-pressed", "true");
+  expect(window.localStorage.getItem("kpool-theme")).toBe("dark");
 });

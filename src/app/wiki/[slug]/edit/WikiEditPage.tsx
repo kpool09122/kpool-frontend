@@ -268,7 +268,6 @@ export function WikiEditContent({
   return (
     <main
       className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
-      data-theme={previewMode}
       data-testid="wiki-edit-root"
       style={{
         ...themeStyles,
@@ -348,7 +347,12 @@ export function WikiEditContent({
           </div>
         </header>
 
-        <div className="flex min-w-0 flex-col gap-8">
+        <div
+          className="wiki-theme-scope flex min-w-0 flex-col gap-8 rounded-3xl p-4 text-text-strong"
+          data-theme={previewMode}
+          data-testid="wiki-edit-preview"
+          style={mainBackgroundStyle}
+        >
           <section>
             <WikiHeroBasicFlipCard
               basic={draft.basic}

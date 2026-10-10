@@ -447,6 +447,6 @@ describe("OfficialCertificationRequestClient", () => {
     const alert = await screen.findByRole("alert");
 
     expect(alert).toHaveTextContent("Official certification is temporarily unavailable. Please try again later.");
-    expect(alert).toHaveClass("border-red-300", "bg-red-50", "text-red-800");
+    expect(alert).toHaveClass("border-status-danger", "bg-status-danger/10", "text-status-danger");
   });
 });

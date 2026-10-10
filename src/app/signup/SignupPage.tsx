@@ -303,7 +303,7 @@ function SignupPageContent({
         ) : null}
 
         {noticeMessage ? <p className="rounded-lg border border-stroke-subtle bg-surface-raised px-4 py-3 text-sm text-text-muted" role="status">{noticeMessage}</p> : null}
-        {errorMessage ? <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700" role="alert">{errorMessage}</p> : null}
+        {errorMessage ? <p className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger" role="alert">{errorMessage}</p> : null}
 
         <ol className="grid grid-cols-3 gap-2" aria-label={t.steps}>
           {steps.map((step) => <li key={step.id} className={`h-1.5 rounded-full ${stepStateClassName[step.state]}`} aria-label={`${step.label}: ${t.stepState[step.state]}`} />)}
