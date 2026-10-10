@@ -107,6 +107,11 @@ describe("WikiEditPage", () => {
     );
     expect(screen.getByTestId("wiki-edit-root")).not.toHaveAttribute("data-theme");
     expect(screen.getByTestId("wiki-edit-preview")).toHaveAttribute("data-theme", "light");
+    expect(screen.getByTestId("wiki-edit-preview")).toContainElement(screen.getByRole("heading", { name: "Aurora Echo" }));
+    expect(screen.getByTestId("wiki-edit-preview")).not.toContainElement(screen.getByTestId("wiki-edit-sidebar"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
+    expect(screen.getByTestId("wiki-edit-preview")).toContainElement(screen.getByRole("textbox", { name: "Title" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     document.documentElement.dataset.theme = "dark";
     fireEvent.click(within(screen.getByRole("group", { name: "Preview mode" })).getByRole("button", { name: "Dark" }));
     expect(screen.getByTestId("wiki-edit-preview")).toHaveAttribute("data-theme", "dark");
@@ -1108,7 +1113,7 @@ describe("WikiEditPage", () => {
     fireEvent.change(screen.getByLabelText("Font style"), {
       target: { value: "ja_mincho" },
     });
-    expect(screen.getByTestId("wiki-edit-root").getAttribute("style")).toContain("Yu Mincho");
+    expect(screen.getByTestId("wiki-edit-preview").getAttribute("style")).toContain("Yu Mincho");
     fireEvent.change(screen.getByLabelText("Keyword 1"), {
       target: { value: " aurora " },
     });

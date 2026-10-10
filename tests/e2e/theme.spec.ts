@@ -79,6 +79,16 @@ test("Wiki preview isolates all four global/local combinations and preserves pal
       }, localMode);
       expect(palette.actual).toBe(palette.expected);
       expect(palette.surface).toBe(localMode === "dark" ? "#16223a" : "#fffbf7");
+      const title = page.getByRole("heading", { name: "Aurora Echo", exact: true });
+      await expect(title).toHaveCSS("color", localMode === "dark" ? "rgb(255, 247, 239)" : "rgb(29, 47, 73)");
+      const titleInput = preview.getByRole("textbox", { name: "Title", exact: true });
+      await preview.getByRole("button", { name: "Edit wiki title", exact: true }).click();
+      await expect(titleInput).toHaveCSS("background-color", localMode === "dark" ? "rgb(33, 48, 75)" : "rgb(255, 255, 255)");
+      await preview.getByRole("button", { name: "Cancel", exact: true }).click();
+      expect(await preview.evaluate((element) => getComputedStyle(element).backgroundImage)).not.toBe("none");
+      for (const chrome of [page.getByRole("banner"), page.getByRole("contentinfo"), page.getByTestId("wiki-edit-sidebar")]) {
+        expect(await chrome.evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-base").trim())).toBe(globalMode === "dark" ? "#16223a" : "#fffbf7");
+      }
       await expect(page.getByTestId("wiki-edit-root")).not.toHaveAttribute("data-theme");
       expect(await page.getByTestId("wiki-edit-sidebar").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-base").trim())).toBe(globalMode === "dark" ? "#16223a" : "#fffbf7");
       await globalToggle.click();

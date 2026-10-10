@@ -266,249 +266,244 @@ export function WikiEditContent({
   };
 
   return (
-    <main
-      className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
-      data-testid="wiki-edit-root"
-      style={{
-        ...themeStyles,
-        ...mainBackgroundStyle,
-      }}
-    >
-      <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <header>
-          <div className="max-w-3xl">
-            {editingId === "title" ? (
-              <form
-                className="grid gap-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const formData = new FormData(event.currentTarget);
-                  const name = getString(formData, "title");
+    <main className="flex flex-1 flex-col" data-testid="wiki-edit-root">
+      <div
+        className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+        data-theme={previewMode}
+        data-testid="wiki-edit-preview"
+        style={{ ...themeStyles, ...mainBackgroundStyle }}
+      >
+        <div className="mx-auto flex max-w-6xl flex-col gap-8">
+          <header>
+            <div className="max-w-3xl">
+              {editingId === "title" ? (
+                <form
+                  className="grid gap-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const formData = new FormData(event.currentTarget);
+                    const name = getString(formData, "title");
 
-                  updateBasic({
-                    ...draft.basic,
-                    name,
-                  });
-                  closeEditor();
-                }}
-              >
-                <label className="grid gap-2 text-sm font-semibold text-text-strong">
-                  {t.editPage.titleLabel}
-                  <input
-                    autoFocus
-                    className="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3 text-3xl font-semibold text-text-strong outline-none focus:border-text-muted lg:text-4xl"
-                    defaultValue={draft.basic.name}
-                    name="title"
-                  />
-                </label>
-                <div className="flex flex-wrap gap-2">
+                    updateBasic({
+                      ...draft.basic,
+                      name,
+                    });
+                    closeEditor();
+                  }}
+                >
+                  <label className="grid gap-2 text-sm font-semibold text-text-strong">
+                    {t.editPage.titleLabel}
+                    <input
+                      autoFocus
+                      className="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3 text-3xl font-semibold text-text-strong outline-none focus:border-text-muted lg:text-4xl"
+                      defaultValue={draft.basic.name}
+                      name="title"
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong"
+                      style={cardSurfaceStyle}
+                      type="submit"
+                    >
+                      {t.editPage.saveTitle}
+                    </button>
+                    <button
+                      className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
+                      onClick={closeEditor}
+                      style={cardSurfaceStyle}
+                      type="button"
+                    >
+                      {t.editPage.cancelTitle}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <h1 className="min-w-0 text-4xl font-semibold text-text-strong lg:text-5xl">
+                    {draft.basic.name}
+                  </h1>
                   <button
-                    className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong"
-                    style={cardSurfaceStyle}
-                    type="submit"
-                  >
-                    {t.editPage.saveTitle}
-                  </button>
-                  <button
-                    className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-muted"
-                    onClick={closeEditor}
+                    aria-label={t.editPage.editTitle}
+                    className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+                    disabled={isEditLocked}
+                    onClick={editTitle}
                     style={cardSurfaceStyle}
                     type="button"
                   >
-                    {t.editPage.cancelTitle}
+                    <EditIcon />
                   </button>
                 </div>
-              </form>
-            ) : (
-              <div className="flex items-start gap-3">
-                <h1 className="min-w-0 text-4xl font-semibold text-text-strong lg:text-5xl">
-                  {draft.basic.name}
-                </h1>
-                <button
-                  aria-label={t.editPage.editTitle}
-                  className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
-                  disabled={isEditLocked}
-                  onClick={editTitle}
-                  style={cardSurfaceStyle}
-                  type="button"
+              )}
+              {saveState.showMessage ? (
+                <p
+                  className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
+                  data-testid="wiki-edit-save-state"
                 >
-                  <EditIcon />
-                </button>
-              </div>
-            )}
-            {saveState.showMessage ? (
-              <p
-                className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
-                data-testid="wiki-edit-save-state"
-              >
-                {saveState.message}
-              </p>
-            ) : null}
-          </div>
-        </header>
+                  {saveState.message}
+                </p>
+              ) : null}
+            </div>
+          </header>
 
-        <div
-          className="wiki-theme-scope flex min-w-0 flex-col gap-8 rounded-3xl p-4 text-text-strong"
-          data-theme={previewMode}
-          data-testid="wiki-edit-preview"
-          style={mainBackgroundStyle}
-        >
-          <section>
-            <WikiHeroBasicFlipCard
-              basic={draft.basic}
-              disabled={isEditLocked}
-              flipCardId={flipCardId}
-              heroImage={draft.heroImage}
-              isBasicEditing={editingId === "basic"}
-              isFlipped={isBasicFlipped}
-              language={language}
-              onCancel={closeEditor}
-              onEditBasic={editBasic}
-              onFlipChange={setIsBasicFlipped}
-              onOpenImageLibrary={openImageLibrary}
-              onSaveBasic={(basic) => {
-                updateBasic(basic);
-                closeEditor();
-              }}
-              profileLabel={`${resourceLabel} ${t.profileSuffix}`}
-            />
-            <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-              <WikiHeroPanel
-                heroImage={draft.heroImage}
-                onOpenImageLibrary={isEditLocked ? undefined : openImageLibrary}
-              />
-              <WikiBasicPanel
+          <div className="flex min-w-0 flex-col gap-8">
+            <section>
+              <WikiHeroBasicFlipCard
                 basic={draft.basic}
                 disabled={isEditLocked}
-                isEditing={editingId === "basic"}
+                flipCardId={flipCardId}
+                heroImage={draft.heroImage}
+                isBasicEditing={editingId === "basic"}
+                isFlipped={isBasicFlipped}
                 language={language}
                 onCancel={closeEditor}
-                onEdit={editBasic}
-                onSave={(basic) => {
+                onEditBasic={editBasic}
+                onFlipChange={setIsBasicFlipped}
+                onOpenImageLibrary={openImageLibrary}
+                onSaveBasic={(basic) => {
                   updateBasic(basic);
                   closeEditor();
                 }}
+                profileLabel={`${resourceLabel} ${t.profileSuffix}`}
               />
-            </div>
-          </section>
+              <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
+                <WikiHeroPanel
+                  heroImage={draft.heroImage}
+                  onOpenImageLibrary={isEditLocked ? undefined : openImageLibrary}
+                />
+                <WikiBasicPanel
+                  basic={draft.basic}
+                  disabled={isEditLocked}
+                  isEditing={editingId === "basic"}
+                  language={language}
+                  onCancel={closeEditor}
+                  onEdit={editBasic}
+                  onSave={(basic) => {
+                    updateBasic(basic);
+                    closeEditor();
+                  }}
+                />
+              </div>
+            </section>
 
-          {editorMode === "gui" ? (
-            <WikiContentTabs
-              ariaLabel={t.contentTabsLabel}
-              tabs={[
-                {
-                  id: "wiki",
-                  label: t.contentWikiTab,
-                  panel: (
-                    <div className="space-y-5">
-                      {draft.sections.map((section) => (
-                        <WikiSectionEditor
-                          editingId={editingId}
-                          key={section.sectionIdentifier}
-                          language={language}
-                          onAddBlock={addBlock}
-                          onAddSection={addSection}
-                          onCancel={cancelEditing}
-                          onDeleteContent={deleteContent}
+            {editorMode === "gui" ? (
+              <WikiContentTabs
+                ariaLabel={t.contentTabsLabel}
+                tabs={[
+                  {
+                    id: "wiki",
+                    label: t.contentWikiTab,
+                    panel: (
+                      <div className="space-y-5">
+                        {draft.sections.map((section) => (
+                          <WikiSectionEditor
+                            editingId={editingId}
+                            key={section.sectionIdentifier}
+                            language={language}
+                            onAddBlock={addBlock}
+                            onAddSection={addSection}
+                            onCancel={cancelEditing}
+                            onDeleteContent={deleteContent}
+                            disabled={isEditLocked}
+                            onEdit={setEditingId}
+                            onSaveBlock={(blockIdentifier, changes) => {
+                              updateBlock(blockIdentifier, changes);
+                              closeEditor();
+                            }}
+                            onSaveSection={(sectionIdentifier, changes) => {
+                              updateSection(sectionIdentifier, changes);
+                              closeEditor();
+                            }}
+                            section={section}
+                            sourceWiki={sourceWiki}
+                          />
+                        ))}
+                        <button
+                          className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
                           disabled={isEditLocked}
-                          onEdit={setEditingId}
-                          onSaveBlock={(blockIdentifier, changes) => {
-                            updateBlock(blockIdentifier, changes);
-                            closeEditor();
-                          }}
-                          onSaveSection={(sectionIdentifier, changes) => {
-                            updateSection(sectionIdentifier, changes);
-                            closeEditor();
-                          }}
-                          section={section}
-                          sourceWiki={sourceWiki}
-                        />
-                      ))}
-                      <button
-                        className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
-                        disabled={isEditLocked}
-                        onClick={() => addSection()}
-                        style={cardSurfaceStyle}
-                        type="button"
-                      >
-                        {t.addSection}
-                      </button>
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          ) : (
-            <WikiCodeEditor
-              code={code}
-              disabled={isEditLocked}
-              errorMessage={codeParseError}
-              warnings={codeWarnings}
-              onChange={updateCode}
-              onClear={clearChanges}
-            />
-          )}
-        </div>
+                          onClick={() => addSection()}
+                          style={cardSurfaceStyle}
+                          type="button"
+                        >
+                          {t.addSection}
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            ) : (
+              <WikiCodeEditor
+                code={code}
+                disabled={isEditLocked}
+                errorMessage={codeParseError}
+                warnings={codeWarnings}
+                onChange={updateCode}
+                onClear={clearChanges}
+              />
+            )}
+          </div>
 
-        <WikiEditSidebar
-          canPersist={canPersist && !editingId}
-          editorMode={editorMode}
-          isEditorModeDisabled={Boolean(editingId)}
-          isBusy={isBusy}
-          isOpen={isSidebarOpen}
-          isReviewLocked={isEditLocked}
-          onEditorModeChange={(mode) => {
-            if (!isEditLocked && !editingId) {
-              setEditorMode(mode);
-            }
-          }}
-          onClear={clearChanges}
-          onPreviewModeChange={setPreviewMode}
-          onSave={() => {
-            if (!isEditLocked && !editingId) {
-              saveDraft();
-            }
-          }}
-          onSubmit={() => {
-            if (!isEditLocked && !editingId) {
-              void requestPublication();
-            }
-          }}
-          onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
-          onUpdateSettings={(settings) => {
-            if (!isEditLocked) {
-              updateSettings(settings);
-            }
-          }}
-          previewMode={previewMode}
-          language={draft.language}
-          slug={draft.slug}
-          themeColor={draft.themeColor}
-          fontStyle={draft.fontStyle}
-          title={draft.title}
-          metaDescription={draft.metaDescription}
-          keywords={draft.keywords}
-        />
-        <WikiImageLibrary
-          images={imageLibrary.images}
-          isInitialLoading={imageLibrary.isInitialLoading}
-          isLoadingMore={imageLibrary.isLoadingMore}
-          isOpen={imageLibrary.isOpen}
-          isUploading={imageLibrary.isUploading}
-          loadError={imageLibrary.loadError}
-          onClose={() => setImageLibrary((state) => ({ ...state, isOpen: false }))}
-          onLoadMore={() => {
-            if (imageLibrary.pageInfo) {
-              void loadImageLibraryPage(imageLibrary.pageInfo.current_page + 1);
-            }
-          }}
-          onSelectImage={selectImageFromLibrary}
-          onUpload={uploadImage}
-          pageInfo={imageLibrary.pageInfo}
-          resourceType={draft.resourceType}
-          uploadError={imageLibrary.uploadError}
-        />
+          <WikiImageLibrary
+            images={imageLibrary.images}
+            isInitialLoading={imageLibrary.isInitialLoading}
+            isLoadingMore={imageLibrary.isLoadingMore}
+            isOpen={imageLibrary.isOpen}
+            isUploading={imageLibrary.isUploading}
+            loadError={imageLibrary.loadError}
+            onClose={() => setImageLibrary((state) => ({ ...state, isOpen: false }))}
+            onLoadMore={() => {
+              if (imageLibrary.pageInfo) {
+                void loadImageLibraryPage(imageLibrary.pageInfo.current_page + 1);
+              }
+            }}
+            onSelectImage={selectImageFromLibrary}
+            onUpload={uploadImage}
+            pageInfo={imageLibrary.pageInfo}
+            resourceType={draft.resourceType}
+            uploadError={imageLibrary.uploadError}
+          />
+        </div>
       </div>
+      <WikiEditSidebar
+        canPersist={canPersist && !editingId}
+        editorMode={editorMode}
+        isEditorModeDisabled={Boolean(editingId)}
+        isBusy={isBusy}
+        isOpen={isSidebarOpen}
+        isReviewLocked={isEditLocked}
+        onEditorModeChange={(mode) => {
+          if (!isEditLocked && !editingId) {
+            setEditorMode(mode);
+          }
+        }}
+        onClear={clearChanges}
+        onPreviewModeChange={setPreviewMode}
+        onSave={() => {
+          if (!isEditLocked && !editingId) {
+            saveDraft();
+          }
+        }}
+        onSubmit={() => {
+          if (!isEditLocked && !editingId) {
+            void requestPublication();
+          }
+        }}
+        onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+        onUpdateSettings={(settings) => {
+          if (!isEditLocked) {
+            updateSettings(settings);
+          }
+        }}
+        previewMode={previewMode}
+        language={draft.language}
+        slug={draft.slug}
+        themeColor={draft.themeColor}
+        fontStyle={draft.fontStyle}
+        title={draft.title}
+        metaDescription={draft.metaDescription}
+        keywords={draft.keywords}
+      />
     </main>
   );
 }
