@@ -90,3 +90,8 @@ Secret名: 配備jobに `CLOUDFLARE_API_TOKEN`（backend production Environment 
 - 公開Wiki詳細・編集・管理画面、実cache expiry/revalidation/DO動作、複数isolate、デプロイ切替・rollback、Workersサイズ/CPU制限と本番accountの課金・binding権限。
 
 固定SHAでのローカル結果は [Workers検証記録](workers-validation.md) を参照。本番deploy・resource作成・AWS操作は本Issueの実行証跡に含めない。
+
+
+## Wiki履歴の接続元情報
+
+#440の国・地域/HMAC署名・runtime secret・実配備ゲートは [wiki-visitor-location.md](wiki-visitor-location.md) を参照。受信ヘッダーや画面言語用の国コードは履歴情報源として信頼しない。

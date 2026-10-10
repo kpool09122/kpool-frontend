@@ -70,3 +70,32 @@ project-local `.codex/skills/{qa-review,test-review,security-review,architecture
 - 外部CloudFront画像、実OAuth callback、WebAuthn署名/登録/ログイン、Secure/SameSite/domain/CORS/CSRFの実ブラウザ成功・拒否は未検証。
 - 全Playwright E2Eは未実施。通常next devのE2E結果をWorkers証明の代用にせず、今回のruntime smokeと全unitを記録。
 - #156のActions統合・artifact受渡し・Worker version記録は本Issueの範囲外。契約は [cloudflare-workers.md](cloudflare-workers.md) に記載。
+
+
+## Wiki接続元情報 (#440) の検証
+
+base: origin/main `0f155a6`（Next 16.4.0 / OpenNext 1.20.9 / Wrangler 4.148.0）。Node 26.10.0 / pnpm 12.4.2。backend #700 / merged PR #701の `VisitorLocationVerifier` / `VisitorLocation` / `config/wiki.php` をGitHubから直接確認し、HMAC契約を合わせた。配備・秘密鍵変更は実施していない。
+
+| コマンド | 実結果 |
+| --- | --- |
+| `pnpm install --frozen-lockfile` | 成功、lockfile変更なし |
+| 新規提出ルート署名テスト RED | 期待するJPヘッダーがnullで失敗し、未実装を検出 |
+| `pnpm exec vitest run src/app/api/wiki/visitorLocation.test.ts` | 56件成功。5操作×10パターンの201、Cookie/CSRF/言語/no-store、署名一致、未取得/偽装/先頭ゼロ/Enum未登録、鍵不在、署名失敗、リクエスト分離、翻訳への非適用 |
+| 最終 `task check` | lint + Next build + 全unit成功。166ファイル・1103件成功。lintは0 error / 4 warning（変更外の未使用変数） |
+| 最終 `pnpm workers:build` | 成功、OpenNext build complete。Node proxy experimental警告あり |
+| 最終 `pnpm workers:smoke` | **失敗**。Next.js起動時 `Unexpected loadManifest(/.next/server/preview-props.json) call!`、/ja/termsが500。Wikiの追加runtimeシナリオには到達しない |
+| 未変更mainを専用baseline worktreeでinstall/build/smoke | build成功、smokeは同じloadManifestエラーで失敗。今回の変更前からの問題と再現確認 |
+| `node scripts/workers-visitor-location-smoke.mjs` | **成功**。実workerdで生成OpenNext ALS/context API + Web Cryptoを利用。JP/01、ZZ/NEW9、国のみ、全未取得、受信偽装無視、Nodeの独立HMAC計算との一致 |
+
+全体smokeとcontext smokeのfixture cfは合成値。実Cloudflare接続元推定取得を検証したものではない。追加した全体smokeの5操作×cfあり/なし検証は、既存Next/OpenNextの起動問題が解消した後に改めて実行する。context smokeはNext.jsの起動/ルート/バックエンド実通信成功を証明しない。
+
+4つのproject-local skillを読み、同一セッションで同期レビュー（delegate/background reviewなし、未入手スキルなし）:
+
+- QA (`qa-review`): 5既存操作の201成功、位置情報欠落でも操作継続、既存認証/CSRF/言語/エラー処理を維持。画面・言語解決の変更なし。実管理画面操作と本番履歴保存は未検証。
+- Test (`test-review`): 提出だけでなくapprove/reject/withdraw/publishの実ルート→実gateway→fetch mockを網羅。独立Node HMACでURI/実body/Cookieバインドを検証。全体Workersエラーをmainで再現し、context-only成功と区別。全Playwrightは未実施（UI変更なし）。
+- Security (`security-review`): 受信ヘッダーやbody/言語国を信頼しない。runtime secretをBFFに隔離し、型importだけのcallback経由でgatewayへ渡す。Web Cryptoでbody/URI/Cookie/時刻へ署名し、鍵不在時は位置情報を省略。生IP/秘密鍵/位置情報ログを追加しない。backendの署名検証・時間窓と一致。本番経路・鍵配備と完全同一リクエストの時間窓内再送は残余確認事項。
+- Architecture (`architecture-review`): Cloudflare取得/署名はBFFの協調オブジェクトに集約。gatewayは最終送信bodyとURLだけをcallbackへ渡す。React/client/共有WikiモデルにCloudflare依存・秘密鍵を持ち込まない。proxy/i18nは変更せず責務分離。runtime検証scriptは明示lint例外対象に追加。
+
+妥当な今回のコード指摘は解消し、未対応のコード指摘なし。既存Workers起動障害は基盤互換性の別対応とし、本Issueで生成bundleへの手修正や依存更新は行わない。実配備時のCloudflare取得、secret一致、5操作の実backend履歴・署名改変拒否の確認は [wiki-visitor-location.md](wiki-visitor-location.md) の配備ゲートとして残す。
+
+実行ホストの一時ログ: `/tmp/kpool-440-final-check.log`、`/tmp/kpool-440-final-workers-build.log`、`/tmp/kpool-440-final-smoke.log`、`/tmp/kpool-440-baseline-build.log`、`/tmp/kpool-440-baseline-smoke.log`、`/tmp/kpool-440-visitor-smoke.log`。恒久CI artifactではない。

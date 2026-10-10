@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash, createHmac } from "node:crypto";
 import { createServer } from "node:http";
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
@@ -7,8 +8,10 @@ import { setTimeout } from "node:timers/promises";
 
 // Local fixtures, NOT proof of production backend/OAuth/passkey interoperability.
 const requests = [];
-const upstream = createServer((request, response) => {
-  requests.push({ url: request.url, headers: request.headers });
+const upstream = createServer(async (request, response) => {
+  let body = "";
+  for await (const chunk of request) body += chunk;
+  requests.push({ url: request.url, headers: request.headers, body });
   response.setHeader("Content-Type", "application/json");
   if (request.url.includes("/wikis/")) {
     response.end(JSON.stringify({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 10 }));
@@ -31,13 +34,25 @@ const upstream = createServer((request, response) => {
 await new Promise((done) => upstream.listen(0, "127.0.0.1", done));
 const upstreamUrl = `http://127.0.0.1:${upstream.address().port}`;
 const config = JSON.parse(readFileSync("wrangler.json", "utf8"));
-config.main = resolve(config.main);
+// Fixture-only wrapper: exercise OpenNext request.cf propagation in actual workerd.
+// Never deploy this wrapper or confuse its synthetic geo with real Cloudflare lookup.
+mkdirSync(".wrangler", { recursive: true });
+const geoWorkerPath = resolve(".wrangler/visitor-smoke-worker.mjs");
+writeFileSync(geoWorkerPath, `export * from ${JSON.stringify(resolve(config.main))};
+import worker from ${JSON.stringify(resolve(config.main))};
+export default { ...worker, fetch(request, env, ctx) {
+  const url = new URL(request.url);
+  const cf = url.searchParams.has("no_geo") ? {} : { country: "JP", regionCode: "01" };
+  return worker.fetch(new Request(request, { cf }), env, ctx);
+} };`);
+config.main = geoWorkerPath;
 config.assets.directory = resolve(config.assets.directory);
 config.vars = Object.fromEntries([
   "KPOOL_WIKI_PRIVATE_API_BASE_URL", "KPOOL_IDENTITY_API_BASE_URL",
   "KPOOL_ACCOUNT_API_BASE_URL", "KPOOL_SITE_MANAGEMENT_API_BASE_URL",
 ].map((key) => [key, upstreamUrl]));
-mkdirSync(".wrangler", { recursive: true });
+const visitorSecret = "workers-smoke-only-secret-32-characters";
+config.vars.WIKI_VISITOR_LOCATION_SECRET = visitorSecret;
 const configPath = resolve(".wrangler/smoke.json");
 writeFileSync(configPath, JSON.stringify(config));
 const port = process.env.KPOOL_WORKERS_SMOKE_PORT ?? "8791";
@@ -51,7 +66,7 @@ preview.stderr.on("data", (data) => { log += data; });
 try {
   let ready = false;
   for (let attempt = 0; attempt < 120; attempt++) {
-    const response = await fetch(`${origin}/ja/terms`).catch(() => null);
+    const response = await fetch(`${origin}/ja/terms`, { signal: AbortSignal.timeout(3000) }).catch(() => null);
     if (response?.status === 200) { ready = true; break; }
     if (preview.exitCode !== null) break;
     await setTimeout(500);
@@ -91,6 +106,32 @@ try {
   });
   assert.equal(contact.status, 419);
   assert.ok(requests.some((item) => item.url === "/api/v1/site-management/contact/submit"));
+  const hash = (value) => createHash("sha256").update(value).digest("hex");
+  for (const noGeo of [false, true]) {
+    for (const action of ["submit", "approve", "reject", "withdraw", "publish"]) {
+      const response = await fetch(`${origin}/api/wiki/drafts/fixture-id/${action}${noGeo ? "?no_geo=1" : ""}`, {
+        method: "POST", headers: { ...headers, "content-type": "application/json", "x-xsrf-token": "csrf-fixture",
+          "x-kpool-wiki-review-request": "1", "x-kpool-visitor-country": "US", "x-kpool-visitor-region": "CA",
+          "x-kpool-visitor-signature": "forged", "x-kpool-visitor-timestamp": "1234567890" },
+        body: JSON.stringify({ resourceType: "group", wikiId: "fixture-id", rejectionReason: "fixture" }),
+      });
+      assert.equal(response.status, 502, "fixture backend returns 401; existing route error handling remains intact");
+      const forwarded = requests.filter((item) => item.url.endsWith(`/fixture-id/${action}`)).at(-1);
+      assert.ok(forwarded, `${action} must reach backend`);
+      assert.equal(forwarded.headers.cookie, headers.cookie);
+      assert.equal(forwarded.headers["x-xsrf-token"], "csrf-fixture");
+      if (noGeo) {
+        for (const name of ["country", "region", "signature", "timestamp"]) assert.equal(forwarded.headers[`x-kpool-visitor-${name}`], undefined);
+      } else {
+        assert.equal(forwarded.headers["x-kpool-visitor-country"], "JP");
+        assert.equal(forwarded.headers["x-kpool-visitor-region"], "01");
+        const payload = ["kpool-visitor-v1", forwarded.headers["x-kpool-visitor-timestamp"], "POST", forwarded.url,
+          hash(forwarded.body), hash(""), hash(headers.cookie), "JP", "01"].join("\n");
+        assert.equal(forwarded.headers["x-kpool-visitor-signature"], createHmac("sha256", visitorSecret).update(payload).digest("hex"));
+      }
+    }
+  }
+  console.log("PASS Wiki visitor location: 5 actions x geo/missing fixtures in workerd, leading zero, spoof rejection, backend-compatible HMAC and Cookie/CSRF.");
   const wikiPath = "/api/wiki/public-wikis?language=en";
   const first = await fetch(`${origin}${wikiPath}`);
   assert.deepEqual(await first.json(), { status: "empty" });
@@ -116,4 +157,5 @@ try {
   process.kill(-preview.pid, "SIGTERM");
   upstream.close();
   rmSync(configPath, { force: true });
+  rmSync(geoWorkerPath, { force: true });
 }

@@ -749,9 +749,16 @@ export const translateDraftWiki = async (
 ): Promise<TranslateWikiResponseBody> =>
   client.reviewDraftWiki(wikiId, "translate", body) as Promise<TranslateWikiResponseBody>;
 
+export type WikiHistoryHeaders = (
+  url: string,
+  body: string,
+  headers: HeadersInit,
+) => Promise<Record<string, string>>;
+
 export const createDraftWikiApiClient = (
   baseUrl: string = getDefaultApiBaseUrl(),
   forwardedHeaders: HeadersInit = {},
+  historyHeaders?: WikiHistoryHeaders,
 ): DraftWikiApiClient | null => {
   const apiBaseUrl = baseUrl ? withWikiApiPrefix(baseUrl) : "";
 
@@ -907,16 +914,22 @@ export const createDraftWikiApiClient = (
           }
         },
         reviewDraftWiki: async (wikiId, action, body) => {
+          const url = `${apiBaseUrl}${getReviewWikiEndpointPath(wikiId, action)}`;
+          const serializedBody = JSON.stringify(body);
+          const locationHeaders = action === "translate"
+            ? {}
+            : await historyHeaders?.(url, serializedBody, forwardedHeaders) ?? {};
           const response = await fetch(
-            `${apiBaseUrl}${getReviewWikiEndpointPath(wikiId, action)}`,
+            url,
             {
               method: "POST",
               headers: {
                 ...forwardedHeaders,
+                ...locationHeaders,
                 Accept: "application/json",
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(body),
+              body: serializedBody,
               cache: "no-store",
             },
           );
@@ -934,16 +947,20 @@ export const createDraftWikiApiClient = (
               : parseDraftWikiSummaryBody(responseBody);
         },
         submitDraftWiki: async (wikiId, body) => {
+          const url = `${apiBaseUrl}${getSubmitWikiEndpointPath(wikiId)}`;
+          const serializedBody = JSON.stringify(body);
+          const locationHeaders = await historyHeaders?.(url, serializedBody, forwardedHeaders) ?? {};
           const response = await fetch(
-            `${apiBaseUrl}${getSubmitWikiEndpointPath(wikiId)}`,
+            url,
             {
               method: "POST",
               headers: {
                 ...forwardedHeaders,
+                ...locationHeaders,
                 Accept: "application/json",
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify(body),
+              body: serializedBody,
               cache: "no-store",
             },
           );
@@ -957,12 +974,16 @@ export const createDraftWikiApiClient = (
           return parseDraftWikiSummaryBody(responseBody);
         },
         withdrawDraftWiki: async (wikiId) => {
+          const url = `${apiBaseUrl}${getWithdrawWikiEndpointPath(wikiId)}`;
+          const serializedBody = "";
+          const locationHeaders = await historyHeaders?.(url, serializedBody, forwardedHeaders) ?? {};
           const response = await fetch(
-            `${apiBaseUrl}${getWithdrawWikiEndpointPath(wikiId)}`,
+            url,
             {
               method: "POST",
               headers: {
                 ...forwardedHeaders,
+                ...locationHeaders,
                 Accept: "application/json",
               },
               cache: "no-store",

@@ -1,3 +1,4 @@
+import { getWikiVisitorLocationSigner } from "../../../visitorLocation";
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest, context: WikiDraftWithdrawRoute
   const client = createDraftWikiApiClient(
     undefined,
     getForwardedWikiApiHeaders(request.headers),
+    getWikiVisitorLocationSigner(),
   );
 
   if (!client) {

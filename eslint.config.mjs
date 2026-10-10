@@ -115,6 +115,7 @@ export default defineConfig([
       "playwright.config.ts",
       "vitest.config.ts",
       "scripts/workers-smoke.mjs",
+      "scripts/workers-visitor-location-smoke.mjs",
     ],
     rules: {
       "no-restricted-syntax": ["error", ...baseRestrictedSyntax],
