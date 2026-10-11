@@ -61,6 +61,15 @@ const documentsResponse = {
 
 describe("account browser API", () => {
   it.each([
+    { enabled: true, query: "1" },
+    { enabled: false, query: "0" },
+  ])("sends the delegation availability filter as $query", async ({ enabled, query }) => {
+    const fetchAdapter = vi.fn().mockResolvedValue(new Response(JSON.stringify({ affiliations: [], current_page: 1, last_page: 1, total: 0, per_page: 50 }), { status: 200 }));
+    await fetchAffiliations({ fallbackErrorMessage: "failed", fetchAdapter, onlyWithoutPendingOrApprovedDelegation: enabled });
+    expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations?onlyWithoutPendingOrApprovedDelegation=${query}`, expect.objectContaining({ method: "GET", credentials: "include" }));
+  });
+
+  it.each([
     { delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", label: "delegated account" },
     { delegationIdentifier: null, label: "original account" },
   ])("switches to the $label with credentials", async ({ delegationIdentifier }) => {
@@ -389,4 +398,17 @@ describe("account browser API", () => {
     });
   });
 
+});
+
+
+describe("category change error language", () => {
+  it.each([
+    ["ja", "プロフィールで電話番号と住所の必須項目を入力・保存してから、もう一度申請してください。"],
+    ["en", "Enter and save your phone number and all required address fields in Profile, then try again."],
+    ["ko", "프로필에서 전화번호와 주소의 필수 항목을 입력하고 저장한 뒤 다시 신청해 주세요."],
+  ] as const)("sends UI language %s and preserves the localized error", async (locale, message) => {
+    const fetchAdapter = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message }), { status: 422 }));
+    await expect(requestAccountCategoryChange({ accountIdentifier: "account-1", locale, fallbackErrorMessage: "failed", fetchAdapter, requestBody: { requestedAccountCategory: "agency" } })).rejects.toThrow(message);
+    expect(fetchAdapter).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ headers: expect.objectContaining({ "Accept-Language": locale }) }));
+  });
 });

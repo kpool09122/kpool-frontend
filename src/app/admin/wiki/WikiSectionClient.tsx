@@ -44,7 +44,6 @@ import {
 } from "@/gateways/wiki/officialCertification";
 import {
   canAutoCreateWikiDraftWikiResourceType,
-  canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
@@ -65,6 +64,7 @@ import { useAdminRouteData } from "../AdminRouteProvider";
 import {
   CreateDraftWikiDialog,
 } from "./WikiContentClient";
+import { canShowWikiPrincipalGroupManagement } from "../principalGroupVisibility";
 import { WikiLayoutClient } from "./WikiLayoutClient";
 import { WikiSectionProvider } from "./WikiSectionProvider";
 
@@ -207,7 +207,7 @@ export function WikiSectionClient({
     const canReviewDraftWikis = canReviewWikiDraftWikis(principalState.principal);
     const canReviewOfficialCertificationRequests = canReviewOfficialCertifications(principalState.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(principalState.principal);
-    const canManagePrincipalGroups = canManageWikiPrincipalGroups(principalState.principal);
+    const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(principalState.principal);
     const isAllowed =
       activeWikiTab === "editingWikis" ||
       (activeWikiTab === "submittedWikis" || activeWikiTab === "officialCertificationRequest") ||

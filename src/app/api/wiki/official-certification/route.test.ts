@@ -67,6 +67,7 @@ const authenticatedIdentity = (accountCategory: string) => ({
   accountPrincipalIdentifier: "44444444-4444-4444-8444-444444444444",
   accountType: "corporation",
   accountPolicies: [],
+  accountIdentityCount: 1,
   account: null,
   originalAccount: null,
   delegationIdentifier: null,

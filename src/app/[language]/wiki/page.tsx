@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import Link from "next/link";
 
@@ -14,11 +15,21 @@ import {
 import { AutoSubmitSelect } from "../AutoSubmitSelect";
 import { PublicWikiCard } from "../WikiListCard";
 import { firstQueryValue, toResourceType } from "../wikiListQuery";
+import { siteTitle } from "../../metadata";
 
 type WikiListPageProps = {
   params: Promise<{ language: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({ params }: WikiListPageProps): Promise<Metadata> {
+  const { language } = await params;
+  const locale = normalizeLocale(language) ?? fallbackLocale;
+
+  return {
+    title: `${dictionaries[locale].home.listTitle} | ${siteTitle}`,
+  };
+}
 
 const pageSizes = [10, 30, 50] as const;
 const defaultQuery = {
@@ -150,17 +161,10 @@ const WikiListContent = ({
   const lastPage = Math.max(1, data.lastPage);
 
   return (
-    <section aria-labelledby="wiki-list-heading" className="space-y-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 id="wiki-list-heading" className="text-2xl font-semibold">
-            {t.listTitle}
-          </h2>
-          <p className="mt-1 text-sm text-text-muted">
-            {t.listSummary(data.total, currentPage, lastPage)}
-          </p>
-        </div>
-      </div>
+    <section aria-label={t.listTitle} className="space-y-5">
+      <p className="text-sm text-text-muted">
+        {t.listSummary(data.total, currentPage, lastPage)}
+      </p>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.wikis.map((item) => (
@@ -225,9 +229,6 @@ export default async function WikiListPage({ params, searchParams }: WikiListPag
     <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <header className="space-y-3">
-          <p className="text-sm font-semibold uppercase text-text-muted">
-            {t.eyebrow}
-          </p>
           <h1 className="text-4xl font-semibold text-text-strong sm:text-5xl">
             {t.title}
           </h1>

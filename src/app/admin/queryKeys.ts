@@ -23,9 +23,11 @@ export const adminQueryKeys = {
       "principalGroups",
     ] as const,
     affiliations: ({
+      onlyWithoutPendingOrApprovedDelegation,
       status,
       viewerRole,
     }: {
+      onlyWithoutPendingOrApprovedDelegation?: boolean;
       status: string;
       viewerRole?: "approver" | "requester";
     }) => [
@@ -33,6 +35,7 @@ export const adminQueryKeys = {
       "affiliations",
       status,
       viewerRole ?? null,
+      onlyWithoutPendingOrApprovedDelegation ?? false,
     ] as const,
     delegations: {
       all: () => [
@@ -198,10 +201,11 @@ export const adminQueryKeys = {
     ] as const,
   },
   principal: {
-    current: (identityIdentifier: string | null) => [
+    current: (identityIdentifier: string | null, accountIdentifier: string | null) => [
       ...adminQueryKeys.all,
       "wikiPrincipal",
       identityIdentifier ?? "guest",
+      accountIdentifier ?? "unavailable",
       "current",
     ] as const,
   },

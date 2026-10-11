@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/locales";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
@@ -63,6 +64,7 @@ type FetchAccountDocumentFileOptions = {
 
 
 type RequestAccountCategoryChangeOptions = AccountRequestOptions & {
+  locale?: Locale;
   requestBody: RequestAccountCategoryChangeRequest;
 };
 
@@ -110,6 +112,7 @@ type RequestDelegationOptions = {
 };
 
 type FetchAffiliationsOptions = {
+  onlyWithoutPendingOrApprovedDelegation?: boolean;
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
   page?: number;
@@ -487,6 +490,7 @@ export const uploadAccountDocuments = async ({
 export const requestAccountCategoryChange = async ({
   accountIdentifier,
   fallbackErrorMessage,
+  locale,
   fetchAdapter = browserApiFetch,
   requestBody,
 }: RequestAccountCategoryChangeOptions): Promise<AccountCategoryChangeRequestDetailResponse["request"]> => {
@@ -496,6 +500,7 @@ export const requestAccountCategoryChange = async ({
     credentials: "include",
     headers: {
       Accept: "application/json",
+      ...(locale ? { "Accept-Language": locale } : {}),
       "Content-Type": "application/json",
     },
     body: JSON.stringify(requestBody),
@@ -622,6 +627,7 @@ export const requestAffiliation = async ({
 };
 
 export const fetchAffiliations = async ({
+  onlyWithoutPendingOrApprovedDelegation,
   fallbackErrorMessage,
   fetchAdapter = browserApiFetch,
   page,
@@ -630,6 +636,7 @@ export const fetchAffiliations = async ({
   viewerRole,
 }: FetchAffiliationsOptions): Promise<ListAffiliationsResponse> => {
   const params = new URLSearchParams();
+  if (onlyWithoutPendingOrApprovedDelegation !== undefined) params.set("onlyWithoutPendingOrApprovedDelegation", onlyWithoutPendingOrApprovedDelegation ? "1" : "0");
   if (status) params.set("status", status);
   if (viewerRole) params.set("viewerRole", viewerRole);
   if (page !== undefined) params.set("page", String(page));

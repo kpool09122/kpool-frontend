@@ -1,6 +1,7 @@
 "use client";
 
 import { LocalizedForm } from "@/components/LocalizedForm";
+import { AccountStatusMessage } from "@/components/Account";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, type FormEvent } from "react";
 
@@ -129,9 +130,9 @@ export function AccountInitialSetupClient({
           </div>
         </fieldset>
 
-        <p className="rounded-lg border border-status-warning bg-status-warning/10 px-4 py-3 text-sm leading-6 text-status-warning">
+        <AccountStatusMessage variant="warning">
           {t.initialSetupImmutableNotice}
-        </p>
+        </AccountStatusMessage>
 
         {errorMessage ? (
           <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">

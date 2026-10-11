@@ -31,7 +31,9 @@ const IdentitySummary = z
     profileImage: z.string().nullish(),
   })
   .passthrough();
-const AuthenticatedIdentitySummary = IdentitySummary;
+const AuthenticatedIdentitySummary = IdentitySummary.extend({
+  accountIdentityCount: z.number().int().nonnegative(),
+});
 const KPool_Common_Timestamp = z.string();
 const PasskeySummary = z
   .object({

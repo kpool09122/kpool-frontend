@@ -4,15 +4,16 @@ import { mockAccountStatusCookieName } from "@/gateways/identity/authIdentity";
 
 const accountErrorMessage = "時間を置いて再度ログインしてください。解決しない場合は、運営にお問い合わせください。";
 const identity = {
-  identityIdentifier: "11111111-1111-4111-8111-111111111111",
+  identityIdentifier: "11111111-1111-1111-1111-111111111111",
   identityName: "member",
   email: "member@example.com",
   language: "ja",
   profileImage: null,
-  accountIdentifier: "22222222-2222-4222-8222-222222222222",
-  accountPrincipalIdentifier: "33333333-3333-4333-8333-333333333333",
+  accountIdentifier: "22222222-2222-2222-2222-222222222222",
+  accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
   accountType: "individual",
   accountPolicies: [],
+  accountIdentityCount: 1,
   originalAccount: null,
   delegationIdentifier: null,
   switchableAccounts: [],

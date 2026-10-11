@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { canManageWikiPrincipalGroups } from "@/gateways/wiki/wikiPrincipal";
+import { canShowWikiPrincipalGroupManagement } from "../../principalGroupVisibility";
 import { useAdmin } from "../../AdminProvider";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useWikiPrincipalGroups } from "./useWikiPrincipalGroups";
@@ -15,7 +15,7 @@ export function WikiPrincipalGroupsClient() {
   const { currentIdentity, t } = useAdmin();
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const canManage = principalState.status === "available" &&
-    canManageWikiPrincipalGroups(principalState.principal);
+    canShowWikiPrincipalGroupManagement(principalState.principal);
   const principalGroups = useWikiPrincipalGroups({
     accountIdentifier,
     canManage,

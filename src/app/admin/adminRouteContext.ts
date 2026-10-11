@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { loadAdminIdentity } from "./adminIdentity";
+import { getAdminAccountScope } from "./accountScope";
 import {
   isAccountActive,
 } from "@/gateways/identity/identityApi";
@@ -40,6 +41,7 @@ export async function loadAdminRouteContext(
 
   if (!isAccountActive(authenticatedIdentity)) {
     return {
+      accountScope: getAdminAccountScope(authenticatedIdentity),
       initialDraftImages: createInitialDraftImageListState(),
       initialDraftWikis: createInitialDraftWikis(),
       initialIdentity: authenticatedIdentity,
@@ -77,6 +79,7 @@ export async function loadAdminRouteContext(
   }
 
   return {
+    accountScope: getAdminAccountScope(authenticatedIdentity),
     initialDraftImages,
     initialDraftWikis,
     initialIdentity: authenticatedIdentity,

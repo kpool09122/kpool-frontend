@@ -28,6 +28,7 @@ describe("fetchAuthenticatedIdentity", () => {
           accountPrincipalIdentifier: null,
           siteManagementPrincipalIdentifier: "55555555-5555-4555-8555-555555555555",
           accountType: null,
+          accountIdentityCount: 0,
           accountPolicies: [],
           account: null,
           originalAccount: null,

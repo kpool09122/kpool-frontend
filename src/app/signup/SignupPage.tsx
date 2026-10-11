@@ -2,6 +2,7 @@
 
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useRouter } from "next/navigation";
+import { ChevronLeftIcon } from "@radix-ui/react-icons";
 import { useState, type FormEvent } from "react";
 
 import { useEmailSendingStatus, useHydrated } from "@/components/auth/useEmailSendingStatus";
@@ -96,6 +97,18 @@ function SignupPageContent({
   const showError = (error: unknown, step: SignupStepId) => {
     setErrorMessage(error instanceof Error ? error.message : t.fallbackError);
     setErrorStep(step);
+  };
+
+  const changeEmail = () => {
+    if (pending) return;
+
+    sendingStatus.clear();
+    clearSessionStorageValue(signupProgressStorageKey);
+    setAuthCode("");
+    setErrorMessage(null);
+    setNoticeMessage(null);
+    setErrorStep(null);
+    setPhase("account");
   };
 
   const sendAuthCode = (event?: FormEvent<HTMLFormElement>) => {
@@ -282,6 +295,15 @@ function SignupPageContent({
                 {pending ? t.sendingCode : t.resendCode}
               </button>
             </div>
+            <button
+              type="button"
+              disabled={pending}
+              className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-primary underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={changeEmail}
+            >
+              <ChevronLeftIcon aria-hidden="true" className="h-4 w-4" />
+              {t.changeEmail}
+            </button>
           </section>
         ) : null}
 

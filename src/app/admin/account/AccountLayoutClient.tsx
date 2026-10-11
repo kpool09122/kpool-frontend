@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManagePrincipalGroups, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
-import type { IdentitySummary } from "@/gateways/identity/identityApi";
+import { canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
+import { canShowAccountPrincipalGroupManagement } from "../principalGroupVisibility";
 import { AccountSectionProvider } from "./AccountSectionContext";
 import {
   adminSectionRoutes,
@@ -26,7 +27,7 @@ const createAccountSettingsTab = (
 type AccountLayoutClientProps = {
   activeTab: AdminAccountSettingsTab;
   children: ReactNode;
-  currentIdentity: IdentitySummary | null;
+  currentIdentity: AuthenticatedIdentitySummary | null;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
   onAuthorizationRejected: () => void;
 };
@@ -44,7 +45,7 @@ export function AccountLayoutClient({
   const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
   const canEdit = canUpdateAccount(currentIdentity);
   const canInvite = canInviteAccountMembers(currentIdentity);
-  const canManageAccountPrincipalGroups = canManagePrincipalGroups(currentIdentity);
+  const canManageAccountPrincipalGroups = canShowAccountPrincipalGroupManagement(currentIdentity);
   const canManageCategoryChangeRequests = canManageAccountCategoryChangeRequests(currentIdentity);
   const canShowAffiliations = canAccessAffiliations(currentIdentity);
   const canCreateAffiliationRequest = canRequestAffiliation(currentIdentity);

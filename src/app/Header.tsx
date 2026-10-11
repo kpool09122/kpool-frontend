@@ -6,7 +6,7 @@ import { logoutFromIdentity } from "@/gateways/auth/logoutBrowserApi";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronDownIcon, PersonIcon } from "@radix-ui/react-icons";
+import { PersonIcon } from "@radix-ui/react-icons";
 import { useEffect, useRef, useState } from "react";
 import { isWikiEditPath } from "@kpool/wiki";
 import { ThemeToggle } from "./ThemeToggle";
@@ -98,13 +98,15 @@ export function Header({
   }, [isMobileMenuOpen]);
   const identity = useAuthStore((state) => state.identity);
   const authStatus = useAuthStore((state) => state.status);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const clearIdentity = useAuthStore((state) => state.clearIdentity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const refreshIdentityAfterSwitch = refreshIdentityAdapter ??
     (() => refreshIdentity({ preserveOnNull: true }));
-  const currentIdentity = identity ?? (authStatus === "loading" ? initialIdentity : null);
+  const useInitialIdentity = authStatus === "loading" && sessionVersion === 0;
+  const currentIdentity = identity ?? (useInitialIdentity ? initialIdentity : null);
   const isAuthenticated =
-    authStatus === "loading" ? initialIsAuthenticated : authStatus === "authenticated";
+    useInitialIdentity ? initialIsAuthenticated : authStatus === "authenticated";
   const t = dictionary.header;
   const authenticatedIdentity = currentIdentity && "switchableAccounts" in currentIdentity
     ? currentIdentity as AuthenticatedIdentitySummary
@@ -131,8 +133,9 @@ export function Header({
       if (navigate) {
         navigate("/login");
       } else {
-        router.replace("/login");
-        router.refresh();
+        // Discard authenticated route payloads when starting a new session.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/login");
       }
       refresh?.();
     }).catch(() => {
@@ -204,7 +207,7 @@ export function Header({
       <span className="sr-only">{t.language}</span>
       <select
         aria-label={t.language}
-        className="h-10 appearance-none rounded bg-transparent py-0 pl-2 pr-7 text-sm font-semibold text-text-strong outline-none transition hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+        className="h-10 rounded bg-transparent py-0 pl-2 text-sm font-semibold text-text-strong outline-none transition hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
         value={currentLocale}
         onChange={(event) => handleLocaleChange(event.target.value as Locale)}
       >
@@ -214,10 +217,6 @@ export function Header({
           </option>
         ))}
       </select>
-      <ChevronDownIcon
-        aria-hidden="true"
-        className="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
-      />
     </label>
   );
 

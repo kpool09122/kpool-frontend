@@ -118,4 +118,49 @@ describe("SignupPage", () => {
     await act(async () => {});
     expect(adapter.sendAuthCode).toHaveBeenCalledTimes(2);
   });
+
+  it("lets users change their email after a failed verification, preserving account details", async () => {
+    const adapter = createAdapter();
+    vi.mocked(adapter.verifyEmail).mockRejectedValueOnce(new Error("Invalid verification code"));
+    render(<SignupPage signupAdapter={adapter} webAuthnAdapter={webAuthn} />);
+    fireEvent.change(screen.getByLabelText("登録用メールアドレス"), { target: { value: "existing@example.com" } });
+    fireEvent.change(screen.getByLabelText("アカウント名"), { target: { value: "Member Account" } });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを送信" }));
+    await screen.findByRole("heading", { name: "認証コード入力" });
+    fireEvent.change(screen.getByLabelText("認証コード"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを確認" }));
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスを変更" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("アカウント名")).toHaveValue("Member Account");
+    expect(sessionStorage.getItem("kpool.signup.progress")).toBeNull();
+    expect(sessionStorage.getItem("kpool.signup.email-sending-status")).toBeNull();
+    fireEvent.change(screen.getByLabelText("登録用メールアドレス"), { target: { value: "new@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを送信" }));
+    await screen.findByRole("heading", { name: "認証コード入力" });
+    expect(adapter.sendAuthCode).toHaveBeenLastCalledWith({ email: "new@example.com" }, { language: "ja" });
+    expect(screen.getByLabelText("認証コード")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("認証コード"), { target: { value: "654321" } });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを確認" }));
+    await screen.findByRole("heading", { name: "パスキー登録" });
+    expect(adapter.verifyEmail).toHaveBeenLastCalledWith({ email: "new@example.com", authCode: "654321" }, { language: "ja" });
+  });
+
+  it("can leave restored verification even while resend is unavailable and stays on the form after remount", async () => {
+    const adapter = createAdapter();
+    const view = render(<SignupPage signupAdapter={adapter} webAuthnAdapter={webAuthn} />);
+    fireEvent.change(screen.getByLabelText("登録用メールアドレス"), { target: { value: "existing@example.com" } });
+    fireEvent.change(screen.getByLabelText("アカウント名"), { target: { value: "Member Account" } });
+    fireEvent.click(screen.getByRole("button", { name: "認証コードを送信" }));
+    await screen.findByRole("heading", { name: "認証コード入力" });
+    view.unmount();
+    const restored = render(<SignupPage signupAdapter={adapter} webAuthnAdapter={webAuthn} />);
+    expect(screen.getByRole("button", { name: "認証コードを再送" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "メールアドレスを変更" }));
+    restored.unmount();
+    render(<SignupPage signupAdapter={adapter} webAuthnAdapter={webAuthn} />);
+    expect(screen.getByLabelText("登録用メールアドレス")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "認証コード入力" })).not.toBeInTheDocument();
+  });
+
 });

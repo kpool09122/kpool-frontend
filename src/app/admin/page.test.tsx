@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AdminShellClient } from "./AdminShellClient";
+import { getAdminAccountScope } from "./accountScope";
 import { AdminRouteProvider } from "./AdminRouteProvider";
 import { AdminProvider } from "./AdminProvider";
 import { AccountPageClient } from "./account/AccountPageClient";
@@ -149,6 +150,7 @@ const identityWithAccountInvitePolicy = {
 
 const identityWithPrincipalGroupManagePolicy = {
   ...identity,
+  accountIdentityCount: 2,
   accountEffectivePolicies: [
     ...identity.accountEffectivePolicies,
     {
@@ -174,6 +176,7 @@ const individualIdentityWithAccountPolicy = {
 const principal = {
   principalIdentifier: "33333333-3333-3333-3333-333333333333",
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
+  accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
   isEnabled: true,
   policies: [
@@ -346,6 +349,7 @@ const createAdapter = (
     status: "available",
     principalIdentifier: principal.principalIdentifier,
     identityIdentifier: principal.identityIdentifier,
+    accountPrincipalCount: 1,
     isDelegatedPrincipal: principal.isDelegatedPrincipal,
     isEnabled: principal.isEnabled,
   }),
@@ -546,6 +550,7 @@ function AdminClient({
     }),
   );
   const context: AdminRouteContext = {
+    accountScope: getAdminAccountScope(initialIdentity),
     initialDraftImages: emptyDraftImages,
     initialDraftWikis,
     initialIdentity,
@@ -767,6 +772,7 @@ describe("admin page clients", () => {
     useAuthStore.setState({
       identity: null,
       status: "loading",
+      sessionVersion: 0,
     });
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(identity);
     passkeyMocks.list.mockResolvedValue({ ok: true, data: { passkeys: [] } });
