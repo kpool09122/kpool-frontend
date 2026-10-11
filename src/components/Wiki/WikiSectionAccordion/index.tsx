@@ -1,6 +1,9 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import Link from "next/link";
+import type { MouseEventHandler } from "react";
 import { useState } from "react";
 import {
   isWikiBlock,
@@ -15,11 +18,13 @@ import { WikiBlockDisplay } from "../WikiBlockDisplay";
 
 type WikiSectionAccordionProps = {
   editHref?: string;
+  onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
   section: WikiSection;
 };
 
-export function WikiSectionAccordion({ editHref, language, section }: WikiSectionAccordionProps) {
+export function WikiSectionAccordion({ editHref, onEdit, language, section }: WikiSectionAccordionProps) {
+  const { dictionary } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const contents = sortWikiSectionContents(section.contents);
 
@@ -51,10 +56,10 @@ export function WikiSectionAccordion({ editHref, language, section }: WikiSectio
         </span>
         {editHref ? (
           <Link
-            aria-label={`Edit section ${section.title}`}
+            aria-label={`${dictionary.wiki.ui.editSection}: ${section.title}`}
             className="rounded-full border border-stroke-subtle p-3 text-text-strong transition group-hover:bg-brand-highlight/30"
             href={editHref}
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
             style={cardSurfaceMutedStyle}
           >
             <EditIcon />
@@ -78,6 +83,7 @@ export function WikiSectionAccordion({ editHref, language, section }: WikiSectio
             ) : isWikiSection(content) ? (
               <WikiSectionAccordion
                 editHref={editHref}
+                onEdit={onEdit}
                 key={content.sectionIdentifier}
                 language={language}
                 section={content}

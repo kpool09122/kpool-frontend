@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import Image from "next/image";
 import { type WikiDetail } from "@kpool/wiki";
 
@@ -15,11 +17,12 @@ export function WikiHeroPanel({
   heroImage,
   onOpenImageLibrary,
 }: WikiHeroPanelProps) {
+  const { dictionary } = useI18n();
   return (
     <div className="relative h-full min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-stroke-subtle" style={cardSurfaceStyle}>
       {onOpenImageLibrary ? (
         <button
-          aria-label="Open wiki image library"
+          aria-label={dictionary.wiki.ui.openImageLibrary}
           className="absolute inset-0 z-10 cursor-pointer"
           onClick={onOpenImageLibrary}
           type="button"

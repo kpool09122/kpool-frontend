@@ -79,7 +79,7 @@ describe("browserApiFetch", () => {
         return new Response(null, { status: 204 });
       }).mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(browserApiFetch("/api/contact", { method: "POST" })).rejects.toThrow("CSRF initialization failed");
+    await expect(browserApiFetch("/api/contact", { method: "POST" })).rejects.toThrow("Unable to prepare authentication. Reload the page and try again.");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await browserApiFetch("/api/contact", { method: "POST" });
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -88,7 +88,7 @@ describe("browserApiFetch", () => {
   it("does not send a mutation if initialization supplies no readable cookie", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", fetchMock);
-    await expect(browserApiFetch("/api/contact", { method: "POST" })).rejects.toThrow("CSRF cookie is unavailable");
+    await expect(browserApiFetch("/api/contact", { method: "POST" })).rejects.toThrow("Unable to prepare authentication. Reload the page and try again.");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

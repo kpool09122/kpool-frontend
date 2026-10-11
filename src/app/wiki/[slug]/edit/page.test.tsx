@@ -130,7 +130,7 @@ describe("WikiEditPage", () => {
       "src",
       "https://www.youtube-nocookie.com/embed/low-tide-high-lights",
     );
-    expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("No related profiles.")[0]).toBeInTheDocument();
   });
 
   it("locks under-review drafts from editing, saving, and submitting", () => {
@@ -158,10 +158,10 @@ describe("WikiEditPage", () => {
 
     expect(screen.getByRole("button", { name: "Edit wiki title" })).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "Edit basic" })[0]).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Open wiki image library" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: `Edit section Overview` })).toBeDisabled();
-    expect(screen.getByRole("button", { name: `Delete section Overview` })).toBeDisabled();
-    expect(screen.getAllByRole("button", { name: "Edit text block" })[0]).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: `Edit section: Overview` })).toBeDisabled();
+    expect(screen.getByRole("button", { name: `Delete section: Overview` })).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: "Edit block: Text" })[0]).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "+ Section" })[0]).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "+ Block" })[0]).toBeDisabled();
 
@@ -286,7 +286,7 @@ describe("WikiEditPage", () => {
 
     renderPage(successState, saveAdapter, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
 
     expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
     expect(await screen.findByText("代替テキスト: Cover image")).toBeInTheDocument();
@@ -307,7 +307,7 @@ describe("WikiEditPage", () => {
       "src",
       "https://images.example.test/image-2.webp",
     );
-    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(screen.getByText(/Unsaved changes|未保存の変更があります/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Wikiの変更を保存" }));
     await waitFor(() => expect(saveAdapter).toHaveBeenCalled());
     expect(saveAdapter).toHaveBeenCalledWith(
@@ -357,7 +357,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    const opener = screen.getAllByRole("button", { name: "Open wiki image library" })[0];
+    const opener = screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0];
 
     opener.focus();
     fireEvent.click(opener);
@@ -400,7 +400,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
@@ -464,7 +464,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
 
@@ -554,7 +554,7 @@ describe("WikiEditPage", () => {
       ),
     );
     fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
 
     expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
     expect(
@@ -579,7 +579,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
@@ -628,7 +628,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
@@ -660,7 +660,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
@@ -714,7 +714,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
@@ -754,7 +754,7 @@ describe("WikiEditPage", () => {
 
     renderPage(undefined, undefined, undefined, "ja");
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })[0]);
     expect(await screen.findByText("アップロード済み画像はまだありません")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "画像の利用申請" }));
 
@@ -854,7 +854,7 @@ describe("WikiEditPage", () => {
       data: createMockWikiDetail("gr-twice"),
     }, saveAdapter);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit profile_card_list block" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit block: Profiles" })[0]);
     const resourceTypeSelect = screen.getAllByLabelText("Resource type")[0] as HTMLSelectElement;
 
     expect([...resourceTypeSelect.options].map((option) => option.value)).not.toContain("group");
@@ -897,7 +897,7 @@ describe("WikiEditPage", () => {
     fireEvent.click(within(titleForm as HTMLFormElement).getByRole("button", { name: "Save" }));
 
     expect(screen.getByRole("heading", { name: "Aurora Echo Updated" })).toBeInTheDocument();
-    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    expect(screen.getByText(/Unsaved changes|未保存の変更があります/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
 
@@ -916,7 +916,7 @@ describe("WikiEditPage", () => {
 
     expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit text block" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit block: Text" })[0]);
 
     expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Italic" })).toBeInTheDocument();
@@ -933,7 +933,7 @@ describe("WikiEditPage", () => {
 
     expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit quote block" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Edit block: Quote" })[0]);
 
     expect(screen.queryByRole("button", { name: "Bold" })).not.toBeInTheDocument();
   });
@@ -1360,7 +1360,7 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "gui" }));
     expect(document.querySelector('a[href="/ja/wiki/tl-nayeon-twice"]')).toBeNull();
     expect(screen.getByText("TWICE Members")).toBeInTheDocument();
-    expect(screen.getAllByText("関連プロフィールはありません")[0]).toBeInTheDocument();
+    expect(screen.getAllByText("No related profiles.")[0]).toBeInTheDocument();
   });
 
   it("maps supported media include macros into embed blocks in gui mode", () => {
@@ -1402,6 +1402,43 @@ describe("WikiEditPage", () => {
         wikiState: { status: "empty" },
       }),
     );
-    expect(screen.getByText("No wiki draft")).toBeInTheDocument();
+    expect(screen.getByText("Wikiの下書きはありません")).toBeInTheDocument();
   });
+});
+
+it("warns for unfinished form input and stops warning after cancelling that form", () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  renderPage();
+  const anchor = document.createElement("a");
+  anchor.href = "/mypage";
+  anchor.addEventListener("click", (event) => event.preventDefault());
+  document.body.append(anchor);
+  fireEvent.click(screen.getAllByRole("button", { name: "Edit basic" })[0]);
+  fireEvent.change(screen.getAllByRole("textbox", { name: "Fandom Name" })[0], { target: { value: "Unsaved fandom" } });
+  fireEvent.click(anchor);
+  expect(confirm).toHaveBeenCalledWith("You have unsaved changes. Leaving without saving will lose your edits. Leave this page?");
+  confirm.mockClear();
+  fireEvent.click(screen.getAllByRole("button", { name: "Cancel" })[0]);
+  fireEvent.click(anchor);
+  expect(confirm).not.toHaveBeenCalled();
+  anchor.remove();
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+it("removes the leave warning when a basic form value is restored", () => {
+  renderPage();
+  fireEvent.click(screen.getAllByRole("button", { name: "Edit basic" })[0]);
+  const input = screen.getAllByRole("textbox", { name: "Fandom Name" })[0] as HTMLInputElement;
+  const originalValue = input.value;
+  const beforeUnload = () => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  fireEvent.change(input, { target: { value: "Edited fandom" } });
+  expect(beforeUnload()).toBe(true);
+  fireEvent.change(input, { target: { value: originalValue } });
+  expect(beforeUnload()).toBe(false);
+  cleanup();
 });

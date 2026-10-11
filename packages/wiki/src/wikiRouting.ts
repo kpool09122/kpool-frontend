@@ -20,6 +20,25 @@ export const buildWikiPath = (language: string, slug: string): string =>
 export const buildWikiEditPath = (language: string, slug: string): string =>
   `${buildWikiPath(language, slug)}/edit`;
 
+export const buildWikiEditEntryPath = (language: string, slug: string, themeColor?: string): string => {
+  const query = new URLSearchParams({ edit: "1" });
+  if (themeColor) query.set("themeColor", themeColor);
+  return `${buildWikiPath(language, slug)}?${query}`;
+};
+
+export const buildWikiDraftEditPath = (
+  wikiDraftId: string,
+  resourceType: string,
+  themeColor?: string,
+): string => {
+  const query = new URLSearchParams({ resourceType });
+  if (themeColor) query.set("themeColor", themeColor);
+  return `/wiki/${encodeURIComponent(wikiDraftId)}/edit?${query}`;
+};
+
+export const isWikiEditPath = (pathname: string): boolean =>
+  /^\/(?:wiki\/[^/]+(?:\/[^/]+)?|[^/]+\/wiki\/[^/]+)\/edit\/?$/.test(pathname);
+
 export const getWikiResourceTypeFromSlug = (
   slug: string,
 ): WikiResourceType | null =>

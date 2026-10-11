@@ -1400,21 +1400,46 @@ export const withdrawWikiDraft = async ({
   return parseDraftWikiSummaryBody(body);
 };
 
+export const resolveWikiEditDestination = async ({
+  language,
+  slug,
+  themeColor,
+  fallbackErrorMessage,
+}: {
+  language: string;
+  slug: string;
+  themeColor?: string;
+  fallbackErrorMessage: string;
+}): Promise<string> => {
+  const response = await browserApiFetch("/api/wiki/drafts/resolve", {
+    method: "POST",
+    credentials: "include",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ language, slug, themeColor }),
+  });
+  const body = await readBrowserJsonResponse(response);
+  if (!response.ok) throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
+  const destination = z.object({ href: z.string() }).safeParse(body);
+  if (!destination.success) throw new Error(fallbackErrorMessage);
+  return destination.data.href;
+};
+
 export const loadDraftWikiState = async (
   language: string,
   slug: string,
   forwardedHeaders: HeadersInit = {},
 ): Promise<DraftWikiEditState> => {
   if (isMockWikiGatewayEnabled()) {
-    return slug === "empty"
-      ? { status: "empty" }
-      : {
-          status: "success",
-          data: {
-            ...createMockWikiDetail(slug),
-            language,
-          },
-        };
+    if (slug === "empty") return { status: "empty" };
+    const wiki = createMockWikiDetail(slug);
+    return {
+      status: "success",
+      data: {
+        ...wiki,
+        language,
+        wikiIdentifier: language === "ja" ? wiki.wikiIdentifier : `${language}--${wiki.slug}`,
+      },
+    };
   }
 
   const client = createDraftWikiApiClient(getDefaultApiBaseUrl(), forwardedHeaders);
@@ -1444,6 +1469,37 @@ export const loadDraftWikiState = async (
       status: "error",
       message: getDraftWikiErrorMessage(error),
     };
+  }
+};
+
+export const loadDraftWikiStateByIdentifier = async (
+  resourceType: WikiResourceType,
+  wikiIdentifier: string,
+  forwardedHeaders: HeadersInit = {},
+): Promise<DraftWikiEditState> => {
+  if (isMockWikiGatewayEnabled()) {
+    const listedWiki = createMockInitialDraftWikis().editingWikis.wikis.find((wiki) => wiki.wikiIdentifier === wikiIdentifier);
+    const [mockLanguage, mockSlug] = wikiIdentifier.includes("--") ? wikiIdentifier.split("--", 2) : ["ja", wikiIdentifier];
+    return {
+      status: "success",
+      data: {
+        ...createMockWikiDetail(listedWiki?.slug ?? mockSlug),
+        wikiIdentifier,
+        resourceType,
+        language: listedWiki?.language ?? mockLanguage,
+      },
+    };
+  }
+
+  const client = createDraftWikiApiClient(getDefaultApiBaseUrl(), forwardedHeaders);
+  if (!client) return { status: "error", message: "Wiki draft API is not configured." };
+
+  try {
+    return { status: "success", data: await fetchDraftWikiByIdentifier(client, resourceType, wikiIdentifier) };
+  } catch (error) {
+    return isNotFoundApiError(error)
+      ? { status: "empty" }
+      : { status: "error", message: getDraftWikiErrorMessage(error) };
   }
 };
 

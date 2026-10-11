@@ -2080,7 +2080,7 @@ describe("admin page clients", () => {
         }),
       ),
     );
-    expect(navigationMocks.push).toHaveBeenCalledWith("/en/wiki/gr-new-wiki/edit");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/88888888-8888-4888-8888-888888888888/edit?resourceType=group");
   });
 
   it("does not show the auto-create mode for principals with only basic editing", async () => {
@@ -2139,20 +2139,20 @@ describe("admin page clients", () => {
     const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
     fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
 
-    expect(within(dialog).getByLabelText("関連事務所 keyword")).toBeEnabled();
-    expect(within(dialog).queryByLabelText("関連グループ keyword")).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText("関連事務所: 検索キーワード")).toBeEnabled();
+    expect(within(dialog).queryByLabelText("関連グループ: 検索キーワード")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("選択肢はまだありません")).not.toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByLabelText("リソース種別"), {
       target: { value: "song" },
     });
 
-    expect(within(dialog).getByLabelText("関連事務所 keyword")).toBeEnabled();
-    expect(within(dialog).getByLabelText("関連グループ keyword")).toBeEnabled();
-    expect(within(dialog).getByLabelText("関連タレント keyword")).toBeEnabled();
+    expect(within(dialog).getByLabelText("関連事務所: 検索キーワード")).toBeEnabled();
+    expect(within(dialog).getByLabelText("関連グループ: 検索キーワード")).toBeEnabled();
+    expect(within(dialog).getByLabelText("関連タレント: 検索キーワード")).toBeEnabled();
   });
 
-  it("auto-creates a draft wiki with the normalized request slug and navigates with that slug", async () => {
+  it("auto-creates a draft wiki with the normalized request slug and navigates with the returned ID", async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url.includes("/api/wiki/master-search")) {
         const parsedUrl = new URL(url, "https://app.example.test");
@@ -2204,7 +2204,7 @@ describe("admin page clients", () => {
     });
 
     const searchAndSelect = async (label: string, keyword: string, option: string) => {
-      const input = within(dialog).getByLabelText(`${label} keyword`);
+      const input = within(dialog).getByLabelText(`${label}: 検索キーワード`);
       fireEvent.change(input, {
         target: { value: keyword },
       });
@@ -2241,7 +2241,7 @@ describe("admin page clients", () => {
         }),
       ),
     );
-    expect(navigationMocks.push).toHaveBeenCalledWith("/ja/wiki/sg-generated-wiki/edit");
+    expect(navigationMocks.push).toHaveBeenCalledWith("/wiki/99999999-9999-4999-8999-999999999999/edit?resourceType=song");
   });
 
   it("keeps the auto-create dialog open when auto-create fails", async () => {
@@ -2576,7 +2576,7 @@ describe("admin page clients", () => {
     expect(draftWikiAdapter.listManagedDraftWikis).not.toHaveBeenCalled();
     expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/edit",
+      "/wiki/88888888-8888-8888-8888-888888888888/edit?resourceType=group",
     );
     expect(screen.getByRole("link", { name: "編集中 Wiki" }).closest("article")?.getAttribute("style")).toContain(
       'url("https://images.example.test/editing-wiki.webp")',
@@ -2595,7 +2595,7 @@ describe("admin page clients", () => {
     );
     expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
-      "/wiki/ja/gr-review-wiki/edit",
+      "/wiki/88888888-8888-8888-8888-888888888888/edit?resourceType=group",
     );
   });
 

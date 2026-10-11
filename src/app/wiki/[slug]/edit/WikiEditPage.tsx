@@ -1,6 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
+import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
+import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
+import { LocalizedForm } from "@/components/LocalizedForm";
+import { useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type WikiDraftDetail } from "@kpool/wiki";
 
@@ -22,8 +25,10 @@ import {
   mainBackgroundStyle,
   type WikiImageUsageRequestInput,
 } from "../../../../components/Wiki";
+import { dictionaries } from "../../../../i18n/dictionaries";
+import { normalizeLocale } from "../../../../i18n/locales";
 import { useI18n } from "../../../../i18n/I18nProvider";
-import { getWikiResourceLabel, type WikiResourceType } from "@kpool/wiki";
+import { type WikiResourceType } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "../wikiThemePalette";
 import { type loadDraftWikiState } from "@/gateways/wiki/draftWiki";
 import {
@@ -94,6 +99,7 @@ export function WikiEditContent({
   const [isSubmittedReviewLocked, setIsSubmittedReviewLocked] = useState(false);
 
   const {
+    hasUnsavedChanges,
     canPersist,
     code,
     codeParseError,
@@ -125,7 +131,9 @@ export function WikiEditContent({
     saveAdapter,
     submitAdapter,
   });
-  const resourceLabel = getWikiResourceLabel(draft.resourceType as WikiResourceType);
+  const { rootRef, hasPendingChanges } = usePendingFormChanges(editingId);
+  useUnsavedChangesGuard(hasUnsavedChanges || hasPendingChanges, t.leaveUnsavedChanges);
+  const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const sourceWiki = {
     language,
     resourceType: data.resourceType as WikiResourceType,
@@ -226,7 +234,7 @@ export function WikiEditContent({
   });
   const uploadImage = (input: WikiImageUsageRequestInput) => {
     if (isEditLocked) {
-      return Promise.reject(new Error("Draft wiki is under review."));
+      return Promise.reject(new Error(t.ui.underReview));
     }
 
     setImageLibrary((state) => ({
@@ -266,7 +274,7 @@ export function WikiEditContent({
   };
 
   return (
-    <main className="flex flex-1 flex-col" data-testid="wiki-edit-root">
+    <main className="flex flex-1 flex-col" data-testid="wiki-edit-root" ref={rootRef}>
       <div
         className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
         data-theme={previewMode}
@@ -277,7 +285,7 @@ export function WikiEditContent({
           <header>
             <div className="max-w-3xl">
               {editingId === "title" ? (
-                <form
+                <LocalizedForm
                   className="grid gap-3"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -317,7 +325,7 @@ export function WikiEditContent({
                       {t.editPage.cancelTitle}
                     </button>
                   </div>
-                </form>
+                </LocalizedForm>
               ) : (
                 <div className="flex items-start gap-3">
                   <h1 className="min-w-0 text-4xl font-semibold text-text-strong lg:text-5xl">
@@ -340,7 +348,7 @@ export function WikiEditContent({
                   className="mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted"
                   data-testid="wiki-edit-save-state"
                 >
-                  {saveState.message}
+                  {t.saveMessages[saveState.messageKey]}
                 </p>
               ) : null}
             </div>
@@ -364,7 +372,7 @@ export function WikiEditContent({
                   updateBasic(basic);
                   closeEditor();
                 }}
-                profileLabel={`${resourceLabel} ${t.profileSuffix}`}
+                profileLabel={contentDictionary.wiki.profileLabel}
               />
               <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
                 <WikiHeroPanel
@@ -436,7 +444,7 @@ export function WikiEditContent({
               <WikiCodeEditor
                 code={code}
                 disabled={isEditLocked}
-                errorMessage={codeParseError}
+                errorCode={codeParseError}
                 warnings={codeWarnings}
                 onChange={updateCode}
                 onClear={clearChanges}
@@ -517,12 +525,17 @@ export function WikiEditPage({
 }: WikiEditPageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
+  const editData = useMemo(() => wikiState.status === "success" ? {
+    ...wikiState.data,
+    themeColor: themeColor ?? wikiState.data.themeColor,
+  } : null, [wikiState, themeColor]);
 
   if (wikiState.status === "needs-creation") {
     return (
       <WikiDraftInitializer
         key={`${wikiState.requestBody.language}:${wikiState.requestBody.slug}`}
         requestBody={wikiState.requestBody}
+        themeColor={themeColor}
       />
     );
   }
@@ -531,7 +544,7 @@ export function WikiEditPage({
     return <WikiStatePanel message={wikiState.message} title={t.loadErrorTitle} tone="danger" />;
   }
 
-  if (wikiState.status === "empty") {
+  if (wikiState.status === "empty" || !editData) {
     return (
       <WikiStatePanel
         message={t.emptyDraftMessage}
@@ -542,10 +555,7 @@ export function WikiEditPage({
 
   return (
     <WikiEditContent
-      data={{
-        ...wikiState.data,
-        themeColor: themeColor ?? wikiState.data.themeColor,
-      }}
+      data={editData}
       language={language}
       saveAdapter={saveAdapter}
       submitAdapter={submitAdapter}

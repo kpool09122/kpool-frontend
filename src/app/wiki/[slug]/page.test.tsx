@@ -137,16 +137,16 @@ describe("WikiDetailPage", () => {
     );
     expect(screen.getAllByRole("link", { name: "Edit basic" })[0]).toHaveAttribute(
       "href",
-      "/ja/wiki/gr-aurora-echo/edit",
+      "/ja/wiki/gr-aurora-echo?edit=1",
     );
     const sectionEditLinks = screen.getAllByRole("link", { name: /Edit section/i });
     expect(sectionEditLinks).toHaveLength(2);
     expect(sectionEditLinks[0]).toHaveAttribute(
       "href",
-      "/ja/wiki/gr-aurora-echo/edit",
+      "/ja/wiki/gr-aurora-echo?edit=1",
     );
     expect(screen.queryByTestId("wiki-theme-badge")).not.toBeInTheDocument();
-    expect(screen.queryByRole("img", { name: "公式認証済みWiki" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Officially certified wiki" })).not.toBeInTheDocument();
   });
 
   it("renders the official certification badge beside an official wiki name", () => {
@@ -164,7 +164,7 @@ describe("WikiDetailPage", () => {
       }),
     );
 
-    expect(screen.getByRole("img", { name: "公式認証済みWiki" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Officially certified wiki" })).toBeInTheDocument();
   });
 
   it("injects theme css variables without rendering the color code when themeColor is provided", () => {
@@ -202,10 +202,10 @@ describe("WikiDetailPage", () => {
       }),
     );
 
-    expect(screen.getByText("No public wiki yet")).toBeInTheDocument();
+    expect(screen.getByText("公開Wikiはありません")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "This resource does not have a public wiki detail page at the moment.",
+        "このリソースには公開Wikiがまだありません。",
       ),
     ).toBeInTheDocument();
   });

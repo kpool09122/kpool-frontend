@@ -1,13 +1,15 @@
 "use client";
 
+import type { WikiCodeErrorCode, WikiCodeWarningCode } from "@kpool/wiki";
+
 import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiCodeEditorProps = {
   code: string;
   disabled?: boolean;
-  errorMessage: string | null;
-  warnings: string[];
+  errorCode: WikiCodeErrorCode | null;
+  warnings: WikiCodeWarningCode[];
   onChange: (value: string) => void;
   onClear: () => void;
 };
@@ -15,13 +17,14 @@ type WikiCodeEditorProps = {
 export function WikiCodeEditor({
   code,
   disabled = false,
-  errorMessage,
+  errorCode,
   warnings,
   onChange,
   onClear,
 }: WikiCodeEditorProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.codeEditor;
+  const errorMessage = errorCode ? dictionary.wiki.codeErrors[errorCode] : null;
 
   return (
     <section
@@ -77,7 +80,7 @@ export function WikiCodeEditor({
               <p className="font-semibold text-status-warning">{t.compatibilityNotes}</p>
               <ul className="mt-2 list-disc pl-5">
                 {warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
+                  <li key={warning}>{dictionary.wiki.codeWarnings[warning]}</li>
                 ))}
               </ul>
             </div>

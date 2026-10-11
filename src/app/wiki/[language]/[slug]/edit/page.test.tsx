@@ -56,7 +56,7 @@ describe("Wiki edit route", () => {
     });
     mocks.loadDraftWikiState.mockResolvedValue({
       status: "success",
-      data: {},
+      data: { wikiIdentifier: "draft-1", resourceType: "group" },
     });
     mocks.fetchAuthenticatedIdentity.mockResolvedValue({
       identityIdentifier: "identity-1",
@@ -88,9 +88,8 @@ describe("Wiki edit route", () => {
   });
 
   it("loads the draft with forwarded cookies when authenticated principal is available", async () => {
-    render(await Page(routeProps()));
+    await expect(Page(routeProps())).rejects.toThrow("redirect:/wiki/draft-1/edit?resourceType=group");
 
-    expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
     expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalledWith({
       cookieHeader: "session=abc",
     });
@@ -107,9 +106,8 @@ describe("Wiki edit route", () => {
       toString: () => "",
     });
 
-    render(await Page(routeProps()));
+    await expect(Page(routeProps())).rejects.toThrow("redirect:/wiki/draft-1/edit?resourceType=group");
 
-    expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
     expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalledWith({
       cookieHeader: "",
     });
@@ -123,7 +121,7 @@ describe("Wiki edit route", () => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
 
     await expect(Page(routeProps())).rejects.toThrow(
-      "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
+      "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%3Fedit%3D1",
     );
   });
 
@@ -131,7 +129,7 @@ describe("Wiki edit route", () => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
 
     await expect(Page(routeProps({ themeColor: "#d94f70" }))).rejects.toThrow(
-      "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit%3FthemeColor%3D%2523d94f70",
+      "redirect:/login?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%3Fedit%3D1%26themeColor%3D%2523d94f70",
     );
   });
 
@@ -142,7 +140,7 @@ describe("Wiki edit route", () => {
     });
 
     await expect(Page(routeProps())).rejects.toThrow(
-      "redirect:/admin?authReturnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
+      "redirect:/admin?authReturnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%3Fedit%3D1",
     );
     expect(mocks.getCurrentWikiPrincipalForRequest).not.toHaveBeenCalled();
     expect(mocks.loadDraftWikiState).not.toHaveBeenCalled();
@@ -152,14 +150,13 @@ describe("Wiki edit route", () => {
     mocks.getCurrentWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
 
     await expect(Page(routeProps())).rejects.toThrow(
-      "redirect:/admin?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%2Fedit",
+      "redirect:/admin?returnTo=%2Fja%2Fwiki%2Fgr-aurora-echo%3Fedit%3D1",
     );
   });
 
   it("loads the draft when identity and principal are available without a gate query", async () => {
-    render(await Page(routeProps()));
+    await expect(Page(routeProps())).rejects.toThrow("redirect:/wiki/draft-1/edit?resourceType=group");
 
-    expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("success");
     expect(mocks.getCurrentWikiPrincipalForRequest).toHaveBeenCalledWith({
       cookieHeader: "session=abc",
     });
@@ -167,4 +164,17 @@ describe("Wiki edit route", () => {
       Cookie: "session=abc",
     });
   });
+  it("prepares first-time creation without redirecting before an ID exists", async () => {
+    mocks.loadDraftWikiState.mockResolvedValue({ status: "needs-creation", requestBody: { language: "ja", slug: "gr-aurora-echo" } });
+    render(await Page(routeProps()));
+    expect(screen.getByTestId("wiki-edit-page")).toHaveTextContent("needs-creation");
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("preserves the preview theme when redirecting an existing draft", async () => {
+    await expect(Page(routeProps({ themeColor: "#d94f70" }))).rejects.toThrow(
+      "redirect:/wiki/draft-1/edit?resourceType=group&themeColor=%23d94f70",
+    );
+  });
+
 });

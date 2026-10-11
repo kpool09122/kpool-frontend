@@ -1,14 +1,10 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
-import {
-  isAccountActive,
-} from "@/gateways/identity/identityApi";
 import { loadDraftWikiState } from "@/gateways/wiki/draftWiki";
 import { WikiEditPage } from "../../../[slug]/edit/WikiEditPage";
-import { getCurrentWikiPrincipalForRequest } from "@/gateways/wiki/wikiPrincipal";
-import { buildWikiEditPath } from "@kpool/wiki";
+import { buildWikiDraftEditPath, buildWikiEditEntryPath } from "@kpool/wiki";
+
+import { loadWikiEditAccess } from "../../../wikiEditAccess";
 
 type WikiEditRouteProps = {
   params: Promise<{
@@ -26,73 +22,22 @@ export const revalidate = 0;
 const getSingleSearchParam = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;
 
-const buildEditReturnPath = ({
-  editPath,
-  themeColor,
-}: {
-  editPath: string;
-  themeColor?: string;
-}): string => {
-  const params = new URLSearchParams();
-
-  if (themeColor) {
-    params.set("themeColor", themeColor);
-  }
-
-  const query = params.toString();
-
-  return query ? `${editPath}?${query}` : editPath;
-};
-
 export default async function Page({ params, searchParams }: WikiEditRouteProps) {
   const { language, slug } = await params;
   const { themeColor } = await searchParams;
   const normalizedThemeColor = getSingleSearchParam(themeColor);
-  const editPath = buildWikiEditPath(language, slug);
-  const editReturnPath = buildEditReturnPath({
-    editPath,
-    themeColor: normalizedThemeColor,
-  });
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
-  const wikiApiHeaders = cookieHeader ? { Cookie: cookieHeader } : undefined;
-  const authenticatedIdentity = await fetchAuthenticatedIdentity({
-    cookieHeader,
-  });
+  const editReturnPath = buildWikiEditEntryPath(language, slug, normalizedThemeColor);
+  const access = await loadWikiEditAccess(editReturnPath);
+  if (access.status === "redirect") redirect(access.href);
+  const wikiState = access.status === "error"
+    ? access
+    : access.headers
+      ? await loadDraftWikiState(language, slug, access.headers)
+      : await loadDraftWikiState(language, slug);
 
-  if (!authenticatedIdentity) {
-    redirect(`/login?returnTo=${encodeURIComponent(editReturnPath)}`);
+  if (wikiState.status === "success") {
+    redirect(buildWikiDraftEditPath(wikiState.data.wikiIdentifier, wikiState.data.resourceType, normalizedThemeColor));
   }
-
-  if (!isAccountActive(authenticatedIdentity)) {
-    redirect(`/admin?authReturnTo=${encodeURIComponent(editReturnPath)}`);
-  }
-
-  const principalState = await getCurrentWikiPrincipalForRequest({
-    cookieHeader,
-  });
-
-  if (principalState.status === "missing") {
-    redirect(`/admin?returnTo=${encodeURIComponent(editReturnPath)}`);
-  }
-
-  if (principalState.status === "error") {
-    return (
-      <WikiEditPage
-        language={language}
-        slug={slug}
-        themeColor={normalizedThemeColor}
-        wikiState={{
-          status: "error",
-          message: principalState.message,
-        }}
-      />
-    );
-  }
-
-  const wikiState = wikiApiHeaders
-    ? await loadDraftWikiState(language, slug, wikiApiHeaders)
-    : await loadDraftWikiState(language, slug);
 
   return (
     <WikiEditPage

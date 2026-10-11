@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import { type WikiBlock, type WikiResourceType } from "@kpool/wiki";
 
 import { EditIcon, TrashIcon } from "../icons";
@@ -34,10 +36,13 @@ export function WikiBlockEditorItem({
   onDelete,
   sourceWiki,
 }: WikiBlockEditorItemProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.ui;
+  const blockLabel = dictionary.wiki.blockTypes[block.blockType];
   const controls = (
     <div className="flex gap-2">
-      <button aria-label={`Edit ${block.blockType} block`} className="rounded-full border border-stroke-subtle p-2 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button>
-      <button aria-label={`Delete ${block.blockType} block`} className="rounded-full border border-status-danger/30 p-2 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onDelete} type="button"><TrashIcon /></button>
+      <button aria-label={`${t.editBlock}: ${blockLabel}`} className="rounded-full border border-stroke-subtle p-2 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button>
+      <button aria-label={`${t.deleteBlock}: ${blockLabel}`} className="rounded-full border border-status-danger/30 p-2 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onDelete} type="button"><TrashIcon /></button>
     </div>
   );
 

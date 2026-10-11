@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import { Fragment } from "react";
 import Image from "next/image";
 import { type WikiBlock, type WikiTableCell } from "@kpool/wiki";
@@ -28,6 +30,8 @@ export function WikiBlockDisplay({
   showEditableImageOverlay = false,
   textClassName = "text-base leading-7 text-text-strong",
 }: WikiBlockDisplayProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.ui;
   const renderPlainTextWithNamuLinks = (text: string, keyPrefix: string) => {
     const pattern = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
     const nodes: React.ReactNode[] = [];
@@ -104,7 +108,7 @@ export function WikiBlockDisplay({
         case "footnote":
           return (
             <sup
-              aria-label={`Footnote: ${token.content}`}
+              aria-label={`${t.footnote}: ${token.content}`}
               className="ml-1 text-sm font-semibold text-text-muted"
               key={`footnote-${index}`}
               title={token.content}
@@ -118,7 +122,7 @@ export function WikiBlockDisplay({
               className={`${textWrapClassName} inline-flex max-w-full rounded-full border border-stroke-subtle px-2 py-0.5 text-sm font-semibold text-text-muted`}
               key={`include-${index}`}
             >
-              Included from {token.target}
+              {t.includedFrom} {token.target}
             </span>
           );
         case "text":

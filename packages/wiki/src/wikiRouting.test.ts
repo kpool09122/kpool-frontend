@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import { wikiResourceTypeSchema, wikiResourceTypes } from "./types/wiki";
 import {
   buildWikiEditPath,
+  buildWikiEditEntryPath,
+  buildWikiDraftEditPath,
+  isWikiEditPath,
   buildWikiPath,
   getWikiResourceLabel,
   getWikiResourceTypeFromSlug,
@@ -13,6 +16,20 @@ import {
 } from "./wikiRouting";
 
 describe("wikiRouting", () => {
+  it("keeps an edit intent on the original content language detail through login", () => {
+    expect(buildWikiEditEntryPath("ko", "gr-twice", "#fff")).toBe("/ko/wiki/gr-twice?edit=1&themeColor=%23fff");
+  });
+  it("builds draft ID edit URLs with a persistent resource type and optional theme", () => {
+    expect(buildWikiDraftEditPath("draft/id", "group", "#fff")).toBe(
+      "/wiki/draft%2Fid/edit?resourceType=group&themeColor=%23fff",
+    );
+    expect(buildWikiDraftEditPath("draft-1", "talent")).toBe("/wiki/draft-1/edit?resourceType=talent");
+  });
+
+  it.each(["/wiki/draft-1/edit", "/wiki/ko/gr-twice/edit", "/ko/wiki/gr-twice/edit"])(
+    "recognizes the edit route %s independently of the UI locale", (path) => expect(isWikiEditPath(path)).toBe(true),
+  );
+
   it("builds language-aware wiki paths", () => {
     expect(buildWikiPath("ja", "gr-aurora-echo")).toBe("/ja/wiki/gr-aurora-echo");
     expect(buildWikiEditPath("ko", "tl-nayeon-twice")).toBe(

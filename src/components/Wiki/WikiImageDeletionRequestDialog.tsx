@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
@@ -202,7 +203,7 @@ export function WikiImageDeletionRequestDialog({
           </button>
         </div>
 
-        <form className="min-h-0 flex-1 overflow-y-auto p-5" onSubmit={handleSubmit}>
+        <LocalizedForm className="min-h-0 flex-1 overflow-y-auto p-5" onSubmit={handleSubmit}>
           {requestStep === "selectImage" ? (
             <div>
               <p className="text-sm font-semibold text-text-muted">{t.selectImageTitle}</p>
@@ -342,7 +343,7 @@ export function WikiImageDeletionRequestDialog({
               </button>
             </div>
           )}
-        </form>
+        </LocalizedForm>
       </div>
     </section>
   );

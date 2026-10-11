@@ -52,6 +52,52 @@ test("wiki detail page shows the empty state", async ({ page }) => {
   await expect(page.getByText("No public wiki yet")).toBeVisible();
 });
 
+test("both legacy language edit URLs redirect to the draft ID", async ({ page }) => {
+  for (const path of ["/wiki/ja/gr-twice/edit", "/ja/wiki/gr-twice/edit"]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/wiki\/gr-twice\/edit\?resourceType=group$/);
+    await expect(page.getByRole("heading", { name: "TWICE", exact: true })).toBeVisible();
+  }
+});
+
+test("public edit moves to a draft ID and changing UI language preserves unsaved content", async ({ page }) => {
+  await page.goto("/ko/wiki/gr-twice?themeColor=%234c5cff");
+  await page.getByRole("link", { name: "섹션 편집: Overview", exact: true }).click();
+  await expect(page).toHaveURL(/\/wiki\/ko--gr-twice\/edit\?resourceType=group&themeColor=%234c5cff$/);
+  const editorUrl = page.url();
+  await page.getByRole("button", { name: /^(code|코드)$/, exact: true }).click();
+  const code = page.getByTestId("wiki-code-textarea");
+  await code.fill(`${await code.inputValue()}\n\nUnsaved edit language check`);
+  const unsaved = await code.inputValue();
+  await page.getByRole("banner").getByRole("combobox").selectOption("ja");
+  await expect(page).toHaveURL(editorUrl);
+  await expect(code).toHaveValue(unsaved);
+  await page.reload();
+  await expect(page).toHaveURL(editorUrl);
+  await expect(page.getByRole("heading", { name: "TWICE", exact: true })).toBeVisible();
+});
+
+test("anonymous edit returns through the public detail before resolving a draft", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.context().addCookies([{ name: "kpool-locale", value: "en", url: e2eBaseUrl }]);
+  await page.goto("/ko/wiki/gr-twice?themeColor=%234c5cff");
+  await page.getByRole("link", { name: "섹션 편집: Overview", exact: true }).click();
+  await expect(page).toHaveURL(/\/login\?returnTo=/);
+  const returnTo = new URL(page.url()).searchParams.get("returnTo");
+  expect(returnTo).toBe("/ko/wiki/gr-twice?edit=1&themeColor=%234c5cff");
+  // Resume the destination after login has established the authenticated session.
+  await page.context().addCookies([
+    { name: "kpool-mock-account-status", value: "active", url: e2eBaseUrl },
+    { name: "kpool-e2e-wiki-principal", value: "basic", url: e2eBaseUrl },
+  ]);
+  await page.goto(returnTo!);
+  await expect(page).toHaveURL(/\/wiki\/ko--gr-twice\/edit\?resourceType=group&themeColor=%234c5cff$/);
+  await expect(page.getByRole("heading", { name: "TWICE", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/ko\/wiki\/gr-twice\?themeColor=%234c5cff$/);
+  await expect(page.getByRole("link", { name: "섹션 편집: Overview", exact: true })).toBeVisible();
+});
+
 test("wiki edit page supports inline edits and nested content controls", async ({
   page,
 }) => {
@@ -90,7 +136,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   });
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
+  await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group&themeColor=%234c5cff");
 
   await expect(page.getByRole("heading", { name: "Aurora Echo" })).toBeVisible();
   await expect(page.getByTestId("wiki-edit-theme-badge")).toHaveCount(0);
@@ -121,7 +167,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(editFlipCard.getByText("North Harbor Entertainment")).toBeVisible();
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
+  await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group&themeColor=%234c5cff");
   await expect(page.getByText("Saved")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
@@ -186,7 +232,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByRole("textbox", { name: "Quote" })).toBeVisible();
 
   const overviewTextBlock = page.getByTestId("wiki-edit-block-block-overview-text");
-  await overviewTextBlock.getByRole("button", { name: "Edit text block" }).click();
+  await overviewTextBlock.getByRole("button", { name: "Edit block: Text" }).click();
   await expect(page.getByRole("button", { name: "Bold" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Insert link" })).toBeVisible();
   const textEditor = page.getByRole("textbox", { name: "Text" });
@@ -256,9 +302,13 @@ test("wiki edit page supports inline edits and nested content controls", async (
 
   const submitButton = page.getByRole("button", { name: "Submit wiki for review" });
 
+  const submissionResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/wiki/drafts/gr-aurora-echo/submit") &&
+      response.request().method() === "POST",
+  );
   await submitButton.click();
-  await expect(submitButton).toBeDisabled();
-  await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Submitted for review");
+  expect((await submissionResponse).status()).toBe(201);
   expect(submitRequests).toEqual([
     expect.objectContaining({
       resourceType: "group",
@@ -271,7 +321,7 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-twice/edit");
+  await page.goto("/wiki/gr-twice/edit?resourceType=group");
 
   await expect(page.getByRole("heading", { name: "TWICE", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "code" }).click();
@@ -288,7 +338,7 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
     "https://www.youtube-nocookie.com/embed/c7rCyll5AeY",
   );
   await expect(page.locator('a[href="/ja/wiki/tl-momo-twice"]')).toHaveCount(0);
-  await expect(page.getByText("関連プロフィールはありません")).toBeVisible();
+  await expect(page.getByText("No related profiles.")).toBeVisible();
 });
 
 test("wiki edit Profiles block loads related profiles from resource type selection", async ({
@@ -346,11 +396,11 @@ test("wiki edit Profiles block loads related profiles from resource type selecti
   });
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-twice/edit");
+  await page.goto("/wiki/gr-twice/edit?resourceType=group");
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
 
   const profilesBlock = page.getByTestId("wiki-edit-block-block-twice-members-profiles");
-  await profilesBlock.getByRole("button", { name: "Edit profile_card_list block" }).click();
+  await profilesBlock.getByRole("button", { name: "Edit block: Profiles" }).click();
   const resourceTypeSelect = profilesBlock.getByLabel("Resource type");
 
   await expect(resourceTypeSelect.locator("option[value='group']")).toHaveCount(0);
@@ -450,8 +500,8 @@ test("wiki edit page opens the image library and submits an image usage request"
     { name: "kpool-locale", value: "ja", url: e2eBaseUrl },
   ]);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-aurora-echo/edit");
-  await page.getByRole("button", { name: "Open wiki image library" }).last().click();
+  await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
+  await page.getByRole("button", { name: "Wiki画像ライブラリを開く" }).last().click();
 
   await expect(page.getByTestId("wiki-image-library")).toBeVisible();
   await expect(page.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
@@ -495,17 +545,17 @@ test("wiki edit page opens the image library and submits an image usage request"
 
 test("identifier-only profile cards do not open mock member wiki pages", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-twice/edit");
+  await page.goto("/wiki/gr-twice/edit?resourceType=group");
 
   await expect(page.locator('a[href="/ja/wiki/tl-nayeon-twice"]')).toHaveCount(0);
-  await expect(page.getByText("関連プロフィールはありません")).toBeVisible();
+  await expect(page.getByText("No related profiles.")).toBeVisible();
 });
 
 test("wiki edit page converts supported media includes into embeds", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-aurora-echo/edit");
+  await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
 
   await page.getByRole("button", { name: "code" }).click();
   await page.getByLabel("Wiki code").fill(
@@ -522,3 +572,147 @@ test("wiki edit page converts supported media includes into embeds", async ({
     "https://www.youtube-nocookie.com/embed/jNQXAC9IVRw",
   );
 });
+
+test("editor UI language changes preserve basic input and local validation messages", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/wiki/ko--gr-twice/edit?resourceType=group");
+  const url = page.url();
+  await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+  await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+  await page.getByRole("textbox", { name: "Fandom Name", exact: true }).fill("Unsaved fandom");
+  await page.getByRole("banner").getByRole("combobox").selectOption("ja");
+  await expect(page).toHaveURL(url);
+  await expect(page.getByRole("textbox", { name: "ファンダム名", exact: true })).toHaveValue("Unsaved fandom");
+  await expect(page.getByRole("textbox", { name: "事務所: 検索キーワード", exact: true })).toHaveAttribute("placeholder", "Wiki名で検索");
+  await page.getByRole("button", { name: "キャンセル", exact: true }).click();
+  await page.getByRole("button", { name: "編集サイドバーを開く" }).click();
+  await page.getByRole("button", { name: "コード", exact: true }).click();
+  await page.getByTestId("wiki-code-textarea").fill("invalid code without a heading");
+  await expect(page.getByTestId("wiki-code-error")).toContainText("最上位の見出し");
+  await page.getByRole("banner").getByRole("combobox").selectOption("ko");
+  await expect(page.getByTestId("wiki-code-error")).toContainText("최상위 제목");
+  await expect(page.getByTestId("wiki-code-textarea")).toHaveValue("invalid code without a heading");
+  await expect(page).toHaveURL(url);
+});
+
+test("unsaved Wiki edits warn on links, browser back and reload, and stop after saving", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/en/wiki/gr-aurora-echo");
+  await page.getByRole("link", { name: "Edit section: Overview", exact: true }).click();
+  await expect(page).toHaveURL(/\/wiki\/en--gr-aurora-echo\/edit\?resourceType=group$/);
+  const editorUrl = page.url();
+  await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+  await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+  await page.getByRole("textbox", { name: "Fandom Name", exact: true }).fill("Unsaved fandom");
+  const warning = "You have unsaved changes. Leaving without saving will lose your edits. Leave this page?";
+  let dialog = page.waitForEvent("dialog");
+  const homeClick = page.getByRole("banner").locator('a[href="/en"]').click();
+  expect((await dialog).message()).toBe(warning);
+  await (await dialog).dismiss();
+  await homeClick;
+  await expect(page).toHaveURL(editorUrl);
+  await expect(page.getByRole("textbox", { name: "Fandom Name", exact: true })).toHaveValue("Unsaved fandom");
+  dialog = page.waitForEvent("dialog");
+  const back = page.evaluate(() => history.back());
+  const backDialog = await dialog;
+  expect(["confirm", "beforeunload"]).toContain(backDialog.type());
+  if (backDialog.type() === "confirm") expect(backDialog.message()).toBe(warning);
+  await backDialog.dismiss();
+  await back;
+  await expect(page).toHaveURL(editorUrl);
+  dialog = page.waitForEvent("dialog");
+  const reload = page.evaluate(() => location.reload());
+  expect((await dialog).type()).toBe("beforeunload");
+  await (await dialog).dismiss();
+  await reload;
+  await expect(page.getByRole("textbox", { name: "Fandom Name", exact: true })).toHaveValue("Unsaved fandom");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Expand editor sidebar" }).click();
+  await page.route("**/api/wiki/drafts/en--gr-aurora-echo", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "draft", wikiIdentifier: "88888888-8888-4888-8888-888888888888", language: "en", name: "Aurora Echo", resourceType: "group" }) }));
+  await page.getByRole("button", { name: "Save wiki changes", exact: true }).click();
+  await expect(page.getByTestId("wiki-edit-save-state")).toContainText("Saved");
+  await page.getByRole("banner").locator('a[href="/en"]').click();
+  await expect(page).toHaveURL(/\/en$/);
+});
+
+test("restoring Wiki data and unfinished form inputs clears unsaved warnings", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
+  const font = page.getByRole("combobox", { name: "Font style", exact: true });
+  const originalFont = await font.inputValue();
+  const otherFont = await font.locator("option").evaluateAll((options, original) => options.map((option) => (option as HTMLOptionElement).value).find((value) => value !== original), originalFont);
+  await font.selectOption(otherFont!);
+  await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Unsaved changes");
+  await font.selectOption(originalFont);
+  await expect(page.getByTestId("wiki-edit-save-state")).toHaveCount(0);
+  const hasLeaveWarning = () => page.evaluate(() => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(await hasLeaveWarning()).toBe(false);
+  await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+  await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+  const fandom = page.getByRole("textbox", { name: "Fandom Name", exact: true });
+  const originalFandom = await fandom.inputValue();
+  await fandom.fill("Changed fandom");
+  expect(await hasLeaveWarning()).toBe(true);
+  await fandom.fill(originalFandom);
+  expect(await hasLeaveWarning()).toBe(false);
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Edit block: Text", exact: true }).first().click();
+  const text = page.getByRole("textbox", { name: "Text", exact: true });
+  await expect(text).toBeVisible();
+  expect(await hasLeaveWarning()).toBe(false);
+  await text.fill("Changed paragraph");
+  expect(await hasLeaveWarning()).toBe(true);
+  await text.press("ControlOrMeta+z");
+  await expect.poll(hasLeaveWarning).toBe(false);
+  const dialogs: string[] = [];
+  page.on("dialog", async (dialog) => { dialogs.push(dialog.message()); await dialog.dismiss(); });
+  await page.getByRole("banner").locator('a[href="/en"]').click();
+  await expect(page).toHaveURL(/\/en$/);
+  expect(dialogs).toEqual([]);
+});
+
+for (const viewport of [{ name: "desktop", width: 1280, height: 900 }, { name: "mobile", width: 390, height: 844 }]) {
+  test(`unsaved editor logout confirms before the request on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    let logoutRequests = 0;
+    await page.route("**/api/identity/auth/logout", async (route) => {
+      logoutRequests += 1;
+      await page.context().clearCookies({ name: "kpool-mock-account-status" });
+      await page.route("**/api/identity/auth/me", (authRoute) => authRoute.fulfill({ status: 401 }));
+      await route.fulfill({ status: 204 });
+    });
+    await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
+    const editorUrl = page.url();
+    await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+    if (viewport.name === "mobile") await page.getByTestId("wiki-edit-flip-front-toggle").click();
+    await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+    const fandom = page.getByRole("textbox", { name: "Fandom Name", exact: true });
+    await fandom.fill("Unsaved fandom");
+    const banner = page.getByRole("banner");
+    if (viewport.name === "mobile") await banner.getByRole("button", { name: "Navigation menu" }).click();
+    else await banner.getByRole("button", { name: /member/ }).hover();
+    const messages: string[] = [];
+    page.on("dialog", async (dialog) => {
+      messages.push(dialog.message());
+      if (messages.length <= 2) expect(logoutRequests).toBe(0);
+      if (messages.length === 2) await dialog.accept();
+      else await dialog.dismiss();
+    });
+    await banner.getByRole("button", { name: "Log out", exact: true }).click();
+    await expect(page).toHaveURL(editorUrl);
+    expect(logoutRequests).toBe(0);
+    expect((await page.context().cookies()).find((cookie) => cookie.name === "kpool-mock-account-status")?.value).toBe("active");
+    await expect(fandom).toHaveValue("Unsaved fandom");
+    expect(messages).toHaveLength(1);
+    if (viewport.name === "desktop") await banner.getByRole("button", { name: /member/ }).hover();
+    await banner.getByRole("button", { name: "Log out", exact: true }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    expect(logoutRequests).toBe(1);
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toContain("Leaving without saving will lose your edits");
+  });
+}

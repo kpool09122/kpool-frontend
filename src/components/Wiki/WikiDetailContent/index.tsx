@@ -4,27 +4,32 @@ import {
   normalizeWikiSectionContents,
   sortWikiSections,
 } from "@kpool/wiki";
-import { useId } from "react";
+import { useId, type MouseEventHandler } from "react";
 
 import { WikiPublicHeroImage } from "../WikiPublicHeroImage/index";
 import { OfficialCertificationBadge } from "../OfficialCertificationBadge/index";
 import { WikiContentTabs } from "../WikiContentTabs/index";
 import { WikiSectionAccordion } from "../WikiSectionAccordion/index";
-import { getWikiResourceLabel } from "@kpool/wiki";
+
+import { dictionaries } from "../../../i18n/dictionaries";
+import { normalizeLocale } from "../../../i18n/locales";
 import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiDetailContentProps = {
   data: WikiDetail | WikiDraftDetail;
   editHref?: string;
+  onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
 };
 
 export function WikiDetailContent({
   data,
   editHref,
+  onEdit,
   language,
 }: WikiDetailContentProps) {
   const { dictionary } = useI18n();
+  const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const t = dictionary.wiki;
   const flipCardId = useId();
   const sections = sortWikiSections(data.sections.map(normalizeWikiSectionContents));
@@ -45,10 +50,11 @@ export function WikiDetailContent({
       <WikiPublicHeroImage
         basic={data.basic}
         editHref={editHref}
+        onEdit={onEdit}
         flipCardId={flipCardId}
         heroImage={data.heroImage}
         language={language}
-        profileLabel={`${getWikiResourceLabel(data.resourceType)} ${t.profileSuffix}`}
+        profileLabel={contentDictionary.wiki.profileLabel}
         translationSetIdentifier={data.translationSetIdentifier}
       />
 
@@ -63,6 +69,7 @@ export function WikiDetailContent({
                 {sections.map((section) => (
                   <WikiSectionAccordion
                     editHref={editHref}
+                    onEdit={onEdit}
                     key={section.sectionIdentifier}
                     language={language}
                     section={section}

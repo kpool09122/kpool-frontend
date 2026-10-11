@@ -46,7 +46,7 @@ describe("WikiSectionAccordion", () => {
 
     const section = screen.getByTestId(`section-${wikiStorySection.sectionIdentifier}`);
     const editLink = screen.getByRole("link", {
-      name: `Edit section ${wikiStorySection.title}`,
+      name: `セクションを編集: ${wikiStorySection.title}`,
     });
 
     expect(section).not.toHaveAttribute("open");

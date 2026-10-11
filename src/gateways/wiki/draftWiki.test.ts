@@ -34,6 +34,7 @@ import {
   getWithdrawWikiEndpointPath,
   loadDraftWikiDiffState,
   loadDraftWikiState,
+  loadDraftWikiStateByIdentifier,
   loadInitialDraftWikisForRequest,
   loadInitialDraftWikiListForRequest,
   publishDraftWiki,
@@ -2018,4 +2019,24 @@ describe("draftWiki", () => {
       }),
     );
   });
+  it.each([404, 403, 503])("loads an ID without creation or slug fallback on HTTP %s", async (status) => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "http://api.test");
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({}), { status }));
+    const state = await loadDraftWikiStateByIdentifier("group", "draft-1", { Cookie: "session=abc" });
+    expect(state.status).toBe(status === 404 ? "empty" : "error");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("http://api.test/api/v1/wiki/wiki/group/draft-1/draft", expect.objectContaining({
+      cache: "no-store", headers: { Accept: "application/json", Cookie: "session=abc" },
+    }));
+  });
+
+  it("keeps mock draft identity and content language after moving to the ID route", async () => {
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
+    const original = await loadDraftWikiState("ko", "gr-twice");
+    expect(original.status).toBe("success");
+    if (original.status !== "success") return;
+    const loaded = await loadDraftWikiStateByIdentifier("group", original.data.wikiIdentifier);
+    expect(loaded).toMatchObject({ status: "success", data: { wikiIdentifier: original.data.wikiIdentifier, language: "ko", slug: "gr-twice" } });
+  });
+
 });

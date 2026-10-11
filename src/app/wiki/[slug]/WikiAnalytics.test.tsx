@@ -11,6 +11,7 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 
 const navigation = vi.hoisted(() => ({ pathname: "/ja/wiki/gr-example", searchParams: new URLSearchParams() }));
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
   usePathname: () => navigation.pathname,
   useSearchParams: () => navigation.searchParams,
 }));

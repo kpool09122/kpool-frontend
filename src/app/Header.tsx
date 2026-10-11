@@ -1,5 +1,6 @@
 "use client";
 
+import { cancelPageLeave, confirmPageLeave } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
 import { logoutFromIdentity } from "@/gateways/auth/logoutBrowserApi";
 
 import Image from "next/image";
@@ -7,6 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDownIcon, PersonIcon } from "@radix-ui/react-icons";
 import { useEffect, useRef, useState } from "react";
+import { isWikiEditPath } from "@kpool/wiki";
 import { ThemeToggle } from "./ThemeToggle";
 
 import { switchAccount } from "@/gateways/account/accountBrowserApi";
@@ -39,6 +41,7 @@ export const buildLocaleChangePath = ({
   pathname: string;
   searchParams: URLSearchParams;
 }): string | null => {
+  if (isWikiEditPath(pathname)) return null;
   const segments = pathname.split("/");
   const currentPathLocale = segments[1];
   const hasLanguagePrefix = supportedLocales.includes(currentPathLocale as Locale);
@@ -114,11 +117,13 @@ export function Header({
     canReturnToOriginalAccount || switchableAccounts.some((account) => !account.isCurrent);
 
   const handleLogout = () => {
+    if (!confirmPageLeave("/login")) return;
     setIsLoggingOut(true);
     setLogoutError(null);
 
     void Promise.resolve().then(logoutAdapter).then((result) => {
       if (!result.ok) {
+        cancelPageLeave();
         setLogoutError(t.logoutFailed);
         return;
       }
@@ -130,12 +135,17 @@ export function Header({
         router.refresh();
       }
       refresh?.();
-    }).catch(() => setLogoutError(t.logoutFailed)).finally(() => {
+    }).catch(() => {
+      cancelPageLeave();
+      setLogoutError(t.logoutFailed);
+    }).finally(() => {
       setIsLoggingOut(false);
     });
   };
   const handleLocaleChange = (nextLocale: Locale) => {
     setLocale(nextLocale);
+
+    if (isWikiEditPath(pathname)) return;
 
     const nextPath = buildLocaleChangePath({
       nextLocale,
@@ -166,6 +176,7 @@ export function Header({
     setMobileView("menu");
   };
   const handleAccountSwitch = (delegationIdentifier: string | null) => {
+    if (!confirmPageLeave()) return;
     setIsSwitchingAccount(true);
     setSwitchAccountError(null);
 

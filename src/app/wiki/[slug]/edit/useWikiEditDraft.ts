@@ -16,45 +16,24 @@ import {
   type WikiDraftDetail,
   type WikiDraftStatus,
   type WikiEditPayload,
+  type WikiCodeErrorCode,
+  type WikiCodeWarningCode,
 } from "@kpool/wiki";
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   normalizeWikiSlugForResourceType,
   type WikiResourceType,
 } from "@kpool/wiki";
 
-type WikiSaveState =
-  | {
-      status: "dirty";
-      message: string;
-      payload: WikiEditPayload;
-      showMessage: boolean;
-    }
-  | {
-      status: "saved";
-      message: string;
-      payload: WikiEditPayload;
-      showMessage: boolean;
-    }
-  | {
-      status: "saving";
-      message: string;
-      payload: WikiEditPayload;
-      showMessage: boolean;
-    }
-  | {
-      status: "submitting";
-      message: string;
-      payload: WikiEditPayload;
-      showMessage: boolean;
-    }
-  | {
-      status: "failed";
-      message: string;
-      payload: WikiEditPayload;
-      showMessage: boolean;
-    };
+type WikiSaveMessage = "dirty" | "saving" | "saved" | "saveFailed" | "submitting" | "submitted" | "submitFailed";
+
+type WikiSaveState = {
+  status: "dirty" | "saved" | "saving" | "submitting" | "failed";
+  messageKey: WikiSaveMessage;
+  payload: WikiEditPayload;
+  showMessage: boolean;
+};
 
 type WikiPersistenceResult = { ok: true; status?: WikiDraftStatus } | { ok: false };
 
@@ -81,7 +60,7 @@ const createInitialDraft = (wiki: WikiDraftDetail): WikiDraftDetail => ({
 const getCodeFromSections = (sections: WikiDraftDetail["sections"]): string =>
   serializeWikiSectionsToCode(sections);
 
-const getWarningsFromCode = (code: string): string[] => {
+const getWarningsFromCode = (code: string): WikiCodeWarningCode[] => {
   const parsed = parseWikiSectionsFromCode(code);
 
   return parsed.ok ? parsed.warnings : [];
@@ -95,9 +74,10 @@ export const useWikiEditDraft = (
   const initialCode = useMemo(() => getCodeFromSections(initialDraft.sections), [initialDraft]);
   const [sourceDraft, setSourceDraft] = useState(initialDraft);
   const [draft, setDraft] = useState<WikiDraftDetail>(initialDraft);
-  const draftRef = useRef({ source: initialDraft, value: initialDraft });
+  const draftRef = useRef({ source: initialDraft, value: initialDraft, code: initialCode });
   const [code, setCode] = useState(initialCode);
-  const [codeParseError, setCodeParseError] = useState<string | null>(null);
+  const [persisted, setPersisted] = useState({ draft: initialDraft, code: initialCode });
+  const [codeParseError, setCodeParseError] = useState<WikiCodeErrorCode | null>(null);
   const [codeWarnings, setCodeWarnings] = useState(() => getWarningsFromCode(initialCode));
   const [editingId, setEditingId] = useState<
     WikiContentEditorId | "basic" | "title" | null
@@ -106,7 +86,7 @@ export const useWikiEditDraft = (
     useState<WikiContentEditorId | null>(null);
   const [saveState, setSaveState] = useState<WikiSaveState>({
     status: "saved",
-    message: "Saved",
+    messageKey: "saved",
     payload: toWikiEditPayload(initialDraft),
     showMessage: false,
   });
@@ -116,6 +96,7 @@ export const useWikiEditDraft = (
 
   if (sourceDraft !== initialDraft) {
     setSourceDraft(initialDraft);
+    setPersisted({ draft: initialDraft, code: initialCode });
     setDraft(initialDraft);
     setCode(initialCode);
     setCodeParseError(null);
@@ -124,12 +105,15 @@ export const useWikiEditDraft = (
     setNewContentEditorId(null);
     setSaveState({
       status: "saved",
-      message: "Saved",
+      messageKey: "saved",
       payload: toWikiEditPayload(initialDraft),
       showMessage: false,
     });
   }
 
+  useLayoutEffect(() => {
+    if (draftRef.current.source !== initialDraft) draftRef.current = { source: initialDraft, value: initialDraft, code: initialCode };
+  }, [initialDraft, initialCode]);
   const getCurrentDraft = () =>
     draftRef.current.source === initialDraft ? draftRef.current.value : initialDraft;
 
@@ -140,26 +124,36 @@ export const useWikiEditDraft = (
     const parsedCode = parseWikiSectionsFromCode(nextCode);
     const payload = toWikiEditPayload(nextDraft);
 
-    draftRef.current = { source: initialDraft, value: nextDraft };
+    draftRef.current = { source: initialDraft, value: nextDraft, code: nextCode };
     setDraft(nextDraft);
     setCode(nextCode);
     setCodeParseError(null);
     setCodeWarnings(parsedCode.ok ? parsedCode.warnings : []);
     setSaveState({
       status: "dirty",
-      message: "Unsaved changes",
+      messageKey: "dirty",
       payload,
       showMessage: true,
     });
   };
 
+  const hasUnsavedChanges = JSON.stringify(toWikiEditPayload(draft)) !== JSON.stringify(toWikiEditPayload(persisted.draft))
+    || (codeParseError !== null && code !== persisted.code);
+
+  const visibleSaveState: WikiSaveState = saveState.status === "saved" && hasUnsavedChanges
+    ? { ...saveState, status: "dirty", messageKey: "dirty" }
+    : saveState.status === "dirty" && !hasUnsavedChanges
+      ? { ...saveState, status: "saved", messageKey: "saved", showMessage: false }
+      : saveState;
+
   const saveDraft = () => {
     const nextDraft = getCurrentDraft();
     const payload = toWikiEditPayload(nextDraft);
+    const savedCode = draftRef.current.source === initialDraft ? draftRef.current.code : initialCode;
 
     setSaveState({
       status: "saving",
-      message: "Saving changes",
+      messageKey: "saving",
       payload,
       showMessage: true,
     });
@@ -167,16 +161,19 @@ export const useWikiEditDraft = (
     void Promise.resolve(saveAdapter(nextDraft)).then((adapterResult) => {
       const result: WikiPersistenceResult = isWikiPersistenceResult(adapterResult) ? adapterResult : { ok: false };
 
+      if (draftRef.current.source !== initialDraft) return;
+      if (result.ok) setPersisted({ draft: nextDraft, code: savedCode });
+
       setSaveState({
         status: result.ok ? "saved" : "failed",
-        message: result.ok ? "Saved" : "Save failed",
+        messageKey: result.ok ? "saved" : "saveFailed",
         payload,
         showMessage: true,
       });
     }).catch(() => {
       setSaveState({
         status: "failed",
-        message: "Save failed",
+        messageKey: "saveFailed",
         payload,
         showMessage: true,
       });
@@ -184,16 +181,16 @@ export const useWikiEditDraft = (
   };
 
   const clearDraft = () => {
-    draftRef.current = { source: initialDraft, value: initialDraft };
-    setDraft(initialDraft);
-    setCode(getCodeFromSections(initialDraft.sections));
+    draftRef.current = { source: initialDraft, value: persisted.draft, code: persisted.code };
+    setDraft(persisted.draft);
+    setCode(persisted.code);
     setCodeParseError(null);
-    setCodeWarnings([]);
+    setCodeWarnings(getWarningsFromCode(persisted.code));
     setEditingId(null);
     setSaveState({
       status: "saved",
-      message: "Saved",
-      payload: toWikiEditPayload(initialDraft),
+      messageKey: "saved",
+      payload: toWikiEditPayload(persisted.draft),
       showMessage: false,
     });
   };
@@ -201,10 +198,11 @@ export const useWikiEditDraft = (
   const requestPublication = () => {
     const nextDraft = getCurrentDraft();
     const payload = toWikiEditPayload(nextDraft);
+    const savedCode = draftRef.current.source === initialDraft ? draftRef.current.code : initialCode;
 
     setSaveState({
       status: "submitting",
-      message: "Submitting for review",
+      messageKey: "submitting",
       payload,
       showMessage: true,
     });
@@ -212,9 +210,12 @@ export const useWikiEditDraft = (
     void Promise.resolve(submitAdapter(nextDraft)).then((adapterResult) => {
       const result: WikiPersistenceResult = isWikiPersistenceResult(adapterResult) ? adapterResult : { ok: false };
 
+      if (draftRef.current.source !== initialDraft) return;
+      if (result.ok) setPersisted({ draft: nextDraft, code: savedCode });
+
       setSaveState({
         status: result.ok ? "saved" : "failed",
-        message: result.ok ? "Submitted for review" : "Submit failed",
+        messageKey: result.ok ? "submitted" : "submitFailed",
         payload,
         showMessage: true,
       });
@@ -225,7 +226,7 @@ export const useWikiEditDraft = (
     }).catch(() => {
       setSaveState({
         status: "failed",
-        message: "Submit failed",
+        messageKey: "submitFailed",
         payload,
         showMessage: true,
       });
@@ -233,13 +234,14 @@ export const useWikiEditDraft = (
   };
 
   return {
+    hasUnsavedChanges,
     canPersist: !codeParseError,
     code,
     codeParseError,
     codeWarnings,
     draft,
     editingId,
-    saveState,
+    saveState: visibleSaveState,
     clearDraft,
     requestPublication,
     saveDraft,
@@ -273,15 +275,20 @@ export const useWikiEditDraft = (
       setEditingId(null);
     },
     updateCode: (nextCode: string) => {
+      if (nextCode.trimEnd() === persisted.code.trimEnd()) {
+        commitDraft({ ...getCurrentDraft(), sections: persisted.draft.sections }, nextCode);
+        return;
+      }
+      draftRef.current = { source: initialDraft, value: getCurrentDraft(), code: nextCode };
       setCode(nextCode);
       const parsed = parseWikiSectionsFromCode(nextCode);
 
       if (!parsed.ok) {
-        setCodeParseError(parsed.message);
+        setCodeParseError(parsed.code);
         setCodeWarnings([]);
         setSaveState({
           status: "dirty",
-          message: "Unsaved changes",
+          messageKey: "dirty",
           payload: toWikiEditPayload(getCurrentDraft()),
           showMessage: true,
         });

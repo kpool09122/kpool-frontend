@@ -29,6 +29,9 @@ describe("WikiHeroBasicFlipCard", () => {
       />,
     );
 
+    expect(screen.getAllByText("基本情報").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Basic")).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByTestId("wiki-edit-flip-front-toggle"));
     fireEvent.click(screen.getByTestId("wiki-edit-flip-input"));
 

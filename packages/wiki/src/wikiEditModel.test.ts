@@ -344,7 +344,7 @@ describe("wikiEditModel", () => {
       parseWikiSectionsFromCode(["== Overview ==", "", "==== Broken ===="].join("\n")),
     ).toEqual({
       ok: false,
-      message: "Heading depth cannot skip levels. Add the missing parent section first.",
+      code: "headingSkipped",
     });
 
     expect(
@@ -357,7 +357,7 @@ describe("wikiEditModel", () => {
       ].join("\n")),
     ).toEqual({
       ok: false,
-      message: "Code mode supports headings up to depth 3.",
+      code: "headingDepth",
     });
   });
 
@@ -370,8 +370,7 @@ describe("wikiEditModel", () => {
       ].join("\n")),
     ).toEqual({
       ok: false,
-      message:
-        "Code mode could not parse a structured block. Fix the macro syntax or clear the draft.",
+      code: "invalidMacro",
     });
   });
 
@@ -390,7 +389,7 @@ describe("wikiEditModel", () => {
     }
 
     expect(parsed.warnings).toEqual([
-      "Extended table syntax was preserved as plain cell text because the GUI table editor cannot model merged cells or attributes yet.",
+      "extendedTable",
     ]);
     expect(serializeWikiSectionsToCode(parsed.sections)).toContain("|| !Name || !Year ||");
   });

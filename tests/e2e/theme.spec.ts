@@ -47,13 +47,13 @@ for (const mode of ["light", "dark"] as const) {
     await page.addInitScript((selected) => localStorage.setItem("kpool-theme", selected), mode);
     await addMember(page);
     const background = mode === "dark" ? "rgb(22, 34, 58)" : "rgb(255, 251, 247)";
-    const raised = mode === "dark" ? "#21304b" : "#ffffff";
-    for (const route of ["/en", "/en/wiki", "/wiki/ja/gr-aurora-echo", "/wiki/ja/gr-aurora-echo/edit", "/login", "/signup", "/admin", "/admin/user/language", "/en/terms", "/en/privacy", "/contact"]) {
+    const raised = mode === "dark" ? ["#21304b"] : ["#ffffff", "#fff"];
+    for (const route of ["/en", "/en/wiki", "/wiki/ja/gr-aurora-echo", "/wiki/gr-aurora-echo/edit?resourceType=group", "/login", "/signup", "/admin", "/admin/user/language", "/en/terms", "/en/privacy", "/contact"]) {
       await page.goto(route);
       await expect(page.locator("html")).toHaveAttribute("data-theme", mode);
       await expect(page.locator("body")).toHaveCSS("background-color", background);
-      expect(await page.getByRole("banner").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-raised").trim())).toBe(raised);
-      expect(await page.getByRole("contentinfo").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-raised").trim())).toBe(raised);
+      expect(raised).toContain(await page.getByRole("banner").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-raised").trim()));
+      expect(raised).toContain(await page.getByRole("contentinfo").evaluate((element) => getComputedStyle(element).getPropertyValue("--surface-raised").trim()));
       await expect(page.getByRole("switch", { name: "Display mode" }).first()).toHaveAttribute("aria-checked", String(mode === "dark"));
     }
   });
@@ -62,7 +62,7 @@ for (const mode of ["light", "dark"] as const) {
 test("Wiki preview isolates all four global/local combinations and preserves palette", async ({ page }) => {
   await addMember(page);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/wiki/ja/gr-aurora-echo/edit?themeColor=%234c5cff");
+  await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group&themeColor=%234c5cff");
   const preview = page.getByTestId("wiki-edit-preview");
   const globalToggle = page.getByRole("banner").getByRole("switch", { name: "Display mode" });
   for (const globalMode of ["light", "dark"] as const) {

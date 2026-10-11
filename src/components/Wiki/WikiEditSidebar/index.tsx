@@ -285,7 +285,7 @@ export function WikiEditSidebar({
                 <option value="">{t.defaultFont}</option>
                 {fontStyleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {dictionary.wiki.fontLabels[option.value]}
                   </option>
                 ))}
               </select>

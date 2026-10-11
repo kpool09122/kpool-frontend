@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
@@ -13,6 +14,7 @@ import { localeLabels, type Locale } from "../../../i18n/locales";
 import { buildWikiThemeCssVariables } from "../../wiki/[slug]/wikiThemePalette";
 import type { WikiDraftWiki } from "@/gateways/wiki/draftWiki";
 import {
+  buildWikiDraftEditPath,
   type WikiMasterSearchItem,
   type WikiResourceType,
   wikiResourceTypes,
@@ -74,7 +76,7 @@ export function CreateDraftWikiDialog({
       className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4 py-6"
       role="dialog"
     >
-      <form
+      <LocalizedForm
         className="w-full max-w-md rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft"
         onSubmit={(event) => {
           event.preventDefault();
@@ -224,7 +226,7 @@ export function CreateDraftWikiDialog({
             {isCreating ? t.creatingWiki : effectiveMode === "auto" ? t.autoCreateWiki : t.createWiki}
           </button>
         </div>
-      </form>
+      </LocalizedForm>
     </div>
   );
 }
@@ -248,7 +250,7 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
       role="dialog"
     >
-      <form
+      <LocalizedForm
         className="mx-auto w-full max-w-[30rem] rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft"
         onSubmit={(event) => {
           event.preventDefault();
@@ -299,7 +301,7 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
             {isSubmitting ? t.draftWikiReviewing : t.submitDraftWikiRejectReason}
           </button>
         </div>
-      </form>
+      </LocalizedForm>
     </section>
   );
 }
@@ -456,7 +458,7 @@ const isDraftWikiListItem = (wiki: AdminWikiListItem): wiki is WikiDraftWiki =>
 export const getDraftWikiListCardHref = (wiki: AdminWikiListItem, tab: AdminDraftWikiActionTab): string =>
   tab === "untranslatedWikis"
     ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
-    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+    : buildWikiDraftEditPath(wiki.wikiIdentifier, wiki.resourceType);
 
 export const getDraftWikiListCardMeta = ({
   locale,

@@ -75,7 +75,7 @@ describe("WikiRelatedProfiles", () => {
 
     render(<WikiRelatedProfiles block={block} language="ko" />);
 
-    expect(screen.getByText("関連プロフィールはありません")).toBeInTheDocument();
+    expect(screen.getByText("関連プロフィールはありません。")).toBeInTheDocument();
     expect(screen.queryByText("Aurora Echo")).not.toBeInTheDocument();
   });
 });

@@ -10,15 +10,18 @@ import {
   mainBackgroundStyle,
 } from "../../../components/Wiki";
 import { useI18n } from "../../../i18n/I18nProvider";
-import { buildWikiEditPath } from "@kpool/wiki";
+import { buildWikiEditEntryPath } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
 import { PublicWikiAnalytics } from "@/components/Analytics/PublicWikiAnalytics";
+
+import { useWikiEditEntry } from "./useWikiEditEntry";
 
 type WikiDetailPageProps = {
   language: string;
   slug: string;
   themeColor?: string;
   wikiState: WikiDetailState;
+  resumeEditing?: boolean;
 };
 
 export function WikiDetailPage({
@@ -26,9 +29,11 @@ export function WikiDetailPage({
   slug,
   themeColor,
   wikiState,
+  resumeEditing = false,
 }: WikiDetailPageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
+  const editEntry = useWikiEditEntry({ language, slug, themeColor }, resumeEditing && wikiState.status === "success");
 
   if (wikiState.status === "loading") {
     return (
@@ -61,7 +66,7 @@ export function WikiDetailPage({
   const { data } = wikiState;
   const effectiveThemeColor = themeColor ?? data.themeColor ?? undefined;
   const themeStyles = buildWikiThemeCssVariables(effectiveThemeColor, data.fontStyle);
-  const editHref = buildWikiEditPath(language, slug);
+  const editHref = buildWikiEditEntryPath(language, slug, themeColor);
 
   return (
     <main
@@ -73,10 +78,13 @@ export function WikiDetailPage({
       }}
     >
       <div className="mx-auto max-w-6xl">
+        {editEntry.isStarting ? <p className="mb-4 text-text-muted" role="status">{t.preparingEditMessage}</p> : null}
+        {editEntry.error ? <p className="mb-4 text-status-danger" role="alert">{editEntry.error}</p> : null}
         <PublicWikiAnalytics wiki={data}>
           <WikiDetailContent
             data={data}
             editHref={editHref}
+            onEdit={editEntry.startEditing}
             language={language}
           />
         </PublicWikiAnalytics>

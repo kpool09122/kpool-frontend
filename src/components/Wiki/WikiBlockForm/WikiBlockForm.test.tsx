@@ -351,7 +351,7 @@ describe("WikiBlockForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Load related profiles" }));
 
-    expect(await screen.findByText("関連プロフィールはありません")).toBeInTheDocument();
+    expect(await screen.findByText("No related profiles.")).toBeInTheDocument();
     expect(screen.queryByLabelText("Wiki slugs")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 

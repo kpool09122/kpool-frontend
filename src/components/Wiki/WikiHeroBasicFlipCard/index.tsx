@@ -7,6 +7,8 @@ import { WikiBasicPanel } from "../WikiBasicPanel";
 import { WikiHeroPanel } from "../WikiHeroPanel";
 import { EditIcon } from "../icons";
 import { cardSurfaceStyle } from "../styles";
+import { dictionaries } from "../../../i18n/dictionaries";
+import { normalizeLocale } from "../../../i18n/locales";
 import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiHeroBasicFlipCardProps = {
@@ -41,8 +43,9 @@ export function WikiHeroBasicFlipCard({
   onSaveBasic,
 }: WikiHeroBasicFlipCardProps) {
   const { dictionary } = useI18n();
+  const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const t = dictionary.wiki.heroCard;
-  const resolvedProfileLabel = profileLabel ?? t.basicProfile;
+  const resolvedProfileLabel = profileLabel ?? contentDictionary.wiki.heroCard.basicProfile;
 
   return (
     <div className="grid gap-4 lg:hidden">
@@ -114,7 +117,7 @@ export function WikiHeroBasicFlipCard({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                        {t.basic}
+                        {contentDictionary.wiki.heroCard.basic}
                       </p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
                         {resolvedProfileLabel}

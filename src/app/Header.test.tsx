@@ -1,6 +1,9 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as navigation from "next/navigation";
+import { I18nProvider } from "../i18n/I18nProvider";
 
+import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { buildLocaleChangePath, Header } from "./Header";
 import { applyThemeMode } from "./themeMode";
@@ -48,6 +51,19 @@ afterEach(() => {
 });
 
 describe("Header", () => {
+  it.each(["/wiki/draft-1/edit", "/wiki/ko/gr-twice/edit", "/ko/wiki/gr-twice/edit"])(
+    "changes UI language without navigating or refreshing the editor at %s", (pathname) => {
+      vi.spyOn(navigation, "usePathname").mockReturnValue(pathname);
+      const navigate = vi.fn();
+      const refresh = vi.fn();
+      render(<I18nProvider initialLocale="ja"><Header navigate={navigate} refresh={refresh} /></I18nProvider>);
+      fireEvent.change(screen.getByRole("combobox", { name: "言語" }), { target: { value: "en" } });
+      expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en");
+      expect(navigate).not.toHaveBeenCalled();
+      expect(refresh).not.toHaveBeenCalled();
+      expect(buildLocaleChangePath({ nextLocale: "en", pathname, searchParams: new URLSearchParams("resourceType=group") })).toBeNull();
+    },
+  );
   it("renders the logo and desktop login link", () => {
     render(<Header />);
 
@@ -315,6 +331,61 @@ describe("Header", () => {
     await vi.waitFor(() => expect(
       screen.queryByRole("navigation", { name: "モバイルメニュー" }),
     ).not.toBeInTheDocument());
+  });
+
+  it("keeps the authenticated session when leaving an unsaved editor is cancelled", async () => {
+    const logoutAdapter = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+    const navigate = vi.fn();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    function GuardedHeader() {
+      useUnsavedChangesGuard(true, "Unsaved edits will be lost.");
+      return <Header initialIsAuthenticated logoutAdapter={logoutAdapter} navigate={navigate} />;
+    }
+    render(<GuardedHeader />);
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+    expect(confirm).toHaveBeenCalledWith("Unsaved edits will be lost.");
+    expect(logoutAdapter).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+  });
+
+  it("confirms before logging out and permits the resulting login navigation without another warning", async () => {
+    const browserNavigation = new EventTarget();
+    vi.stubGlobal("navigation", browserNavigation);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(true).mockReturnValue(false);
+    const logoutAdapter = vi.fn().mockResolvedValue({ ok: true, data: undefined });
+    const loginNavigation = new Event("navigate", { cancelable: true });
+    Object.assign(loginNavigation, { destination: { url: new URL("/login", window.location.href).href }, hashChange: false, navigationType: "replace" });
+    const navigate = vi.fn(() => browserNavigation.dispatchEvent(loginNavigation));
+    function GuardedHeader() {
+      useUnsavedChangesGuard(true, "Unsaved edits will be lost.");
+      return <Header initialIsAuthenticated logoutAdapter={logoutAdapter} navigate={navigate} />;
+    }
+    render(<GuardedHeader />);
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+    await vi.waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(logoutAdapter).toHaveBeenCalledTimes(1);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(loginNavigation.defaultPrevented).toBe(false);
+  });
+
+  it("restores unsaved protection when a confirmed logout fails", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const logoutAdapter = vi.fn().mockResolvedValue({ ok: false, message: "Failed", status: 500 });
+    const navigate = vi.fn();
+    function GuardedHeader() {
+      useUnsavedChangesGuard(true, "Unsaved edits will be lost.");
+      return <Header initialIsAuthenticated logoutAdapter={logoutAdapter} navigate={navigate} />;
+    }
+    render(<GuardedHeader />);
+    fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("ログアウトに失敗しました");
+    expect(navigate).not.toHaveBeenCalled();
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
   });
 
   it("logs out and navigates back to login", async () => {
