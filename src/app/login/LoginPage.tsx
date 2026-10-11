@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import {
@@ -63,7 +62,6 @@ export function LoginPage({
   returnTo,
   webAuthnSupported,
 }: LoginPageProps) {
-  const router = useRouter();
   const { locale, dictionary } = useI18n();
   const t = dictionary.login;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -111,7 +109,7 @@ export function LoginPage({
       if (navigate) {
         navigate(nextDestination);
       } else {
-        router.replace(nextDestination);
+        defaultNavigate(nextDestination);
       }
       refresh?.();
       return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
@@ -8,6 +8,8 @@ import { useAuthStore, type AuthIdentityRefresh } from "@/gateways/auth/authStor
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
+import { QueryProvider } from "../QueryProvider";
+import { getAdminAccountScope } from "./accountScope";
 
 type AdminContextValue = {
   canShowAccountSettings: boolean;
@@ -33,9 +35,28 @@ export function AdminProvider({
   initialIdentity: AuthenticatedIdentitySummary;
 }) {
   const authIdentity = useAuthStore((state) => state.identity);
+  const authStatus = useAuthStore((state) => state.status);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
-  const currentIdentity = authIdentity ?? initialIdentity;
+  const currentIdentity = authIdentity ?? (authStatus === "loading" && sessionVersion === 0 ? initialIdentity : null);
   const { dictionary, locale } = useI18n();
+  const serverScope = getAdminAccountScope(initialIdentity);
+  const currentScope = currentIdentity ? getAdminAccountScope(currentIdentity) : null;
+  const previousServerScope = useRef(serverScope);
+
+  useEffect(() => {
+    if (previousServerScope.current === serverScope) return;
+    previousServerScope.current = serverScope;
+    if (authIdentity && currentScope !== serverScope) {
+      void refreshIdentity({ preserveOnNull: true });
+    }
+  }, [authIdentity, currentScope, serverScope, refreshIdentity]);
+
+  if (!currentIdentity) return null;
+
+  if (currentScope !== serverScope) {
+    return <p className="p-6 text-sm text-text-muted" role="status">{dictionary.header.switchingAccount}</p>;
+  }
 
   return (
     <AdminContext.Provider
@@ -47,7 +68,7 @@ export function AdminProvider({
         t: dictionary.admin,
       }}
     >
-      {children}
+      <QueryProvider key={`${sessionVersion}:${currentScope}`}>{children}</QueryProvider>
     </AdminContext.Provider>
   );
 }

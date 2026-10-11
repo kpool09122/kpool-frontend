@@ -98,13 +98,15 @@ export function Header({
   }, [isMobileMenuOpen]);
   const identity = useAuthStore((state) => state.identity);
   const authStatus = useAuthStore((state) => state.status);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const clearIdentity = useAuthStore((state) => state.clearIdentity);
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
   const refreshIdentityAfterSwitch = refreshIdentityAdapter ??
     (() => refreshIdentity({ preserveOnNull: true }));
-  const currentIdentity = identity ?? (authStatus === "loading" ? initialIdentity : null);
+  const useInitialIdentity = authStatus === "loading" && sessionVersion === 0;
+  const currentIdentity = identity ?? (useInitialIdentity ? initialIdentity : null);
   const isAuthenticated =
-    authStatus === "loading" ? initialIsAuthenticated : authStatus === "authenticated";
+    useInitialIdentity ? initialIsAuthenticated : authStatus === "authenticated";
   const t = dictionary.header;
   const authenticatedIdentity = currentIdentity && "switchableAccounts" in currentIdentity
     ? currentIdentity as AuthenticatedIdentitySummary
@@ -131,8 +133,9 @@ export function Header({
       if (navigate) {
         navigate("/login");
       } else {
-        router.replace("/login");
-        router.refresh();
+        // Discard authenticated route payloads when starting a new session.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/login");
       }
       refresh?.();
     }).catch(() => {

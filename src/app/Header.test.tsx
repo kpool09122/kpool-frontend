@@ -35,7 +35,7 @@ const switchableIdentity = {
 };
 
 beforeEach(() => {
-  useAuthStore.setState({ identity: null, status: "loading" });
+  useAuthStore.setState({ identity: null, status: "loading", sessionVersion: 0 });
   document.documentElement.dataset.theme = "light";
   const stored = new Map<string, string>();
   vi.stubGlobal("localStorage", {

@@ -12,6 +12,7 @@ export type AdminSection = "wiki" | "accountSettings" | "settings";
 export type AdminWikiTab = AdminDraftWikiActionTab | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
 
 export type AdminRouteContext = {
+  accountScope: string;
   initialDraftImages: DraftImageListState;
   initialDraftWikis: Record<AdminDraftWikiActionTab, DraftWikiListState>;
   initialIdentity: AuthenticatedIdentitySummary;

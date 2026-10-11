@@ -39,6 +39,7 @@ export const useAdminWikiPrincipal = ({
   const queryClient = useQueryClient();
   const principalQueryKey = adminQueryKeys.principal.current(
     initialIdentity?.identityIdentifier ?? null,
+    getAccountIdentifierFromIdentity(initialIdentity),
   );
   const { data: principalState = initialPrincipalState } = useQuery({
     enabled: false,

@@ -10,6 +10,7 @@ type AuthStatus = "authenticated" | "guest" | "loading";
 type AuthStore = {
   identity: AuthenticatedIdentitySummary | null;
   status: AuthStatus;
+  sessionVersion: number;
   setIdentity: (identity: AuthenticatedIdentitySummary | null) => void;
   clearIdentity: () => void;
   refreshIdentity: (options?: { preserveOnNull?: boolean }) => Promise<AuthenticatedIdentitySummary | null>;
@@ -17,22 +18,29 @@ type AuthStore = {
 
 export type AuthIdentityRefresh = AuthStore["refreshIdentity"];
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   identity: null,
   status: "loading",
+  sessionVersion: 0,
   setIdentity: (identity) =>
-    set({
+    set((state) => ({
       identity,
       status: identity ? "authenticated" : "guest",
-    }),
+      sessionVersion: identity ? state.sessionVersion : state.sessionVersion + 1,
+    })),
   clearIdentity: () =>
-    set({
+    set((state) => ({
       identity: null,
       status: "guest",
-    }),
+      sessionVersion: state.sessionVersion + 1,
+    })),
   refreshIdentity: async ({ preserveOnNull = false } = {}) => {
+    const sessionVersion = get().sessionVersion;
+    const hadIdentity = get().identity !== null;
     set({ status: "loading" });
     const identity = await fetchCurrentAuthenticatedIdentity();
+
+    if (get().sessionVersion !== sessionVersion) return null;
 
     if (identity === null && preserveOnNull) {
       set((state) => ({
@@ -41,10 +49,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return null;
     }
 
-    set({
+    set((state) => ({
       identity,
       status: identity ? "authenticated" : "guest",
-    });
+      sessionVersion: identity || !hadIdentity ? state.sessionVersion : state.sessionVersion + 1,
+    }));
 
     return identity;
   },
