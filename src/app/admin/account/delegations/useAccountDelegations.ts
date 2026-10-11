@@ -23,8 +23,8 @@ export const getDelegationTargetAccount = (
 
 export const useActiveDelegationAffiliations = ({ enabled, t }: { enabled: boolean; t: AdminDictionary }) => useQuery({
   enabled,
-  queryFn: () => fetchAffiliations({ fallbackErrorMessage: t.accountDelegations.loadFailed, status: "active", excludeOpenDelegations: true }),
-  queryKey: adminQueryKeys.account.affiliations({ status: "active", excludeOpenDelegations: true }),
+  queryFn: () => fetchAffiliations({ fallbackErrorMessage: t.accountDelegations.loadFailed, status: "active", onlyWithoutPendingOrApprovedDelegation: true }),
+  queryKey: adminQueryKeys.account.affiliations({ status: "active", onlyWithoutPendingOrApprovedDelegation: true }),
 });
 
 const getRequestErrorMessage = (error: unknown, t: AdminDictionary): string => {
@@ -53,7 +53,7 @@ export const useRequestDelegation = (t: AdminDictionary) => {
       onSuccess: () => {
         void Promise.all([
           queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.delegations.all() }),
-          queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.affiliations({ status: "active", excludeOpenDelegations: true }) }),
+          queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.affiliations({ status: "active", onlyWithoutPendingOrApprovedDelegation: true }) }),
         ]);
       },
       onSettled: () => { inFlight.current = false; },
@@ -116,7 +116,7 @@ export const useAccountDelegationLists = ({
         queryClient.invalidateQueries({ queryKey: requestedKey }),
         queryClient.invalidateQueries({ queryKey: pendingKey }),
         queryClient.invalidateQueries({ queryKey: approvedKey }),
-        queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.affiliations({ status: "active", excludeOpenDelegations: true }) }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.affiliations({ status: "active", onlyWithoutPendingOrApprovedDelegation: true }) }),
       ]);
     },
     onError: (caughtError, variables) => {

@@ -113,9 +113,9 @@ describe("/api/account/affiliations route", () => {
     const listResponse = { affiliations: [], current_page: 1, last_page: 1, total: 0, per_page: 50 };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(listResponse), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
-    const response = await GET(createGetRequest("https://app.example.test/api/account/affiliations?excludeOpenDelegations=true&status=active"));
+    const response = await GET(createGetRequest("https://app.example.test/api/account/affiliations?onlyWithoutPendingOrApprovedDelegation=1&status=active"));
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/affiliations?excludeOpenDelegations=true&status=active", expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/affiliations?onlyWithoutPendingOrApprovedDelegation=1&status=active", expect.any(Object));
   });
 
 });

@@ -23,11 +23,11 @@ export const adminQueryKeys = {
       "principalGroups",
     ] as const,
     affiliations: ({
-      excludeOpenDelegations,
+      onlyWithoutPendingOrApprovedDelegation,
       status,
       viewerRole,
     }: {
-      excludeOpenDelegations?: boolean;
+      onlyWithoutPendingOrApprovedDelegation?: boolean;
       status: string;
       viewerRole?: "approver" | "requester";
     }) => [
@@ -35,7 +35,7 @@ export const adminQueryKeys = {
       "affiliations",
       status,
       viewerRole ?? null,
-      excludeOpenDelegations ?? false,
+      onlyWithoutPendingOrApprovedDelegation ?? false,
     ] as const,
     delegations: {
       all: () => [

@@ -61,6 +61,15 @@ const documentsResponse = {
 
 describe("account browser API", () => {
   it.each([
+    { enabled: true, query: "1" },
+    { enabled: false, query: "0" },
+  ])("sends the delegation availability filter as $query", async ({ enabled, query }) => {
+    const fetchAdapter = vi.fn().mockResolvedValue(new Response(JSON.stringify({ affiliations: [], current_page: 1, last_page: 1, total: 0, per_page: 50 }), { status: 200 }));
+    await fetchAffiliations({ fallbackErrorMessage: "failed", fetchAdapter, onlyWithoutPendingOrApprovedDelegation: enabled });
+    expect(fetchAdapter).toHaveBeenCalledWith(`/api/account/affiliations?onlyWithoutPendingOrApprovedDelegation=${query}`, expect.objectContaining({ method: "GET", credentials: "include" }));
+  });
+
+  it.each([
     { delegationIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", label: "delegated account" },
     { delegationIdentifier: null, label: "original account" },
   ])("switches to the $label with credentials", async ({ delegationIdentifier }) => {

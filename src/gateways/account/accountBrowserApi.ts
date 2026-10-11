@@ -112,7 +112,7 @@ type RequestDelegationOptions = {
 };
 
 type FetchAffiliationsOptions = {
-  excludeOpenDelegations?: boolean;
+  onlyWithoutPendingOrApprovedDelegation?: boolean;
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
   page?: number;
@@ -627,7 +627,7 @@ export const requestAffiliation = async ({
 };
 
 export const fetchAffiliations = async ({
-  excludeOpenDelegations,
+  onlyWithoutPendingOrApprovedDelegation,
   fallbackErrorMessage,
   fetchAdapter = browserApiFetch,
   page,
@@ -636,7 +636,7 @@ export const fetchAffiliations = async ({
   viewerRole,
 }: FetchAffiliationsOptions): Promise<ListAffiliationsResponse> => {
   const params = new URLSearchParams();
-  if (excludeOpenDelegations !== undefined) params.set("excludeOpenDelegations", String(excludeOpenDelegations));
+  if (onlyWithoutPendingOrApprovedDelegation !== undefined) params.set("onlyWithoutPendingOrApprovedDelegation", onlyWithoutPendingOrApprovedDelegation ? "1" : "0");
   if (status) params.set("status", status);
   if (viewerRole) params.set("viewerRole", viewerRole);
   if (page !== undefined) params.set("page", String(page));

@@ -39,7 +39,7 @@ const renderClient = (permissions: { request?: boolean; approve?: boolean; rejec
 
 const installFetch = (reviewStatus = 200) => {
   const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-    if (url === "/api/account/affiliations?excludeOpenDelegations=true&status=active") return Promise.resolve(new Response(JSON.stringify(page("affiliations", [affiliation])), { status: 200 }));
+    if (url === "/api/account/affiliations?onlyWithoutPendingOrApprovedDelegation=1&status=active") return Promise.resolve(new Response(JSON.stringify(page("affiliations", [affiliation])), { status: 200 }));
     if (url.includes("/approve")) return Promise.resolve(new Response(JSON.stringify(reviewStatus === 200 ? { ...delegation, status: "approved", approvedAt: "2026-09-13T00:00:00Z" } : { message: "承認エラー" }), { status: reviewStatus }));
     if (url.includes("/reject")) return Promise.resolve(reviewStatus === 204 ? new Response(null, { status: 204 }) : new Response(JSON.stringify({ message: "拒否エラー" }), { status: reviewStatus }));
     if (init?.method === "POST") return Promise.resolve(new Response(JSON.stringify(delegation), { status: 201 }));
@@ -105,7 +105,7 @@ describe("AccountDelegationsClient", () => {
     const fetchMock = installFetch();
     renderClient({ request: true });
     await screen.findByText("Talent Account");
-    expect(fetchMock).toHaveBeenCalledWith("/api/account/affiliations?excludeOpenDelegations=true&status=active", expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith("/api/account/affiliations?onlyWithoutPendingOrApprovedDelegation=1&status=active", expect.any(Object));
   });
 
   it("removes a target from request candidates immediately after a successful request", async () => {
