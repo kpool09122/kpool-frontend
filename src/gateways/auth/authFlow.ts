@@ -1,3 +1,4 @@
+import { getBrowserDictionary } from "@/i18n/browserDictionary";
 import {
   parseRedirectUrlResult,
   type IdentitySummary,
@@ -113,10 +114,10 @@ export const getAuthErrorMessage = async (response: Response): Promise<string> =
       return (body as { message: string }).message;
     }
   } catch {
-    return "ログインに失敗しました。時間をおいて再度お試しください。";
+    return getBrowserDictionary().login.fallbackError;
   }
 
-  return "ログインに失敗しました。時間をおいて再度お試しください。";
+  return getBrowserDictionary().login.fallbackError;
 };
 
 export const loginWithPasskey: PasskeyLoginAdapter = async ({

@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil1Icon } from "@radix-ui/react-icons";
 import { useState } from "react";
@@ -267,7 +268,7 @@ export function PasskeyManagementPanel({
                 <li key={passkey.passkeyIdentifier} className="rounded-lg border border-stroke-subtle bg-surface-base p-4">
                   <div className="grid items-center gap-3 lg:grid-cols-[minmax(12rem,1fr)_auto_auto_auto]">
                     {editingPasskeyIdentifier === passkey.passkeyIdentifier ? (
-                      <form
+                      <LocalizedForm
                         className="flex min-w-0 items-center gap-2"
                         onSubmit={(event) => {
                           event.preventDefault();
@@ -281,7 +282,7 @@ export function PasskeyManagementPanel({
                           clearMessages();
                           setEditingPasskeyIdentifier(null);
                         }}>{t.passkeyCancel}</button>
-                      </form>
+                      </LocalizedForm>
                     ) : (
                       <div className="flex min-w-0 items-center gap-2">
                         <span className="truncate font-semibold">{passkey.displayName}</span>

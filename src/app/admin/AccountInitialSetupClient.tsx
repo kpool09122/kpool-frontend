@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, type FormEvent } from "react";
 
@@ -96,7 +97,7 @@ export function AccountInitialSetupClient({
         <p className="text-sm leading-7 text-text-muted">{t.initialSetupDescription}</p>
       </div>
 
-      <form className="space-y-6" onSubmit={(event) => void handleSubmit(event)}>
+      <LocalizedForm className="space-y-6" onSubmit={(event) => void handleSubmit(event)}>
         <fieldset className="space-y-3" disabled={!isHydrated || isSubmitting}>
           <legend className="text-sm font-semibold">{t.initialSetupAccountTypeLabel}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -149,7 +150,7 @@ export function AccountInitialSetupClient({
               ? t.initialSetupRetry
               : t.initialSetupSubmit}
         </button>
-      </form>
+      </LocalizedForm>
     </section>
   );
 }

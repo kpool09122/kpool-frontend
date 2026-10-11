@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -192,7 +193,7 @@ export function InvitationAcceptPage({
         </section>
 
         <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
-          <form className="space-y-5" onSubmit={handlePasskeyAccept}>
+          <LocalizedForm className="space-y-5" onSubmit={handlePasskeyAccept}>
             <div className="space-y-2">
               <h2 className="text-lg font-semibold">{t.passkeyTitle}</h2>
               <p className="text-sm leading-6 text-text-muted">{t.passkeyDescription}</p>
@@ -214,7 +215,7 @@ export function InvitationAcceptPage({
             <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pendingAction !== null || !invitationReady}>
               {pendingAction?.type === "passkey" ? t.submitting : t.complete}
             </button>
-          </form>
+          </LocalizedForm>
         </section>
       </div>
     </main>

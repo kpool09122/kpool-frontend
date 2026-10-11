@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
@@ -209,7 +210,7 @@ function PasskeyRecoveryPageContent({
               <div>
                 <h2 className="text-xl font-bold">{t.emailTitle}</h2>
               </div>
-              <form className="space-y-4" onSubmit={sendEmail}>
+              <LocalizedForm className="space-y-4" onSubmit={sendEmail}>
                 <label className="block space-y-2 text-sm font-semibold">
                   <span>{t.email}</span>
                   <input
@@ -224,7 +225,7 @@ function PasskeyRecoveryPageContent({
                 <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                   {pending ? t.sending : t.sendCode}
                 </button>
-              </form>
+              </LocalizedForm>
             </section>
           </div>
         ) : null}
@@ -243,7 +244,7 @@ function PasskeyRecoveryPageContent({
                 {t.changeEmail}
               </button>
             </div>
-            <form className="space-y-4" onSubmit={verifyEmail}>
+            <LocalizedForm className="space-y-4" onSubmit={verifyEmail}>
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.authCode}</span>
                 <input
@@ -260,7 +261,7 @@ function PasskeyRecoveryPageContent({
               <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                 {pending ? t.verifying : t.verifyCode}
               </button>
-            </form>
+            </LocalizedForm>
             <div className="space-y-2 text-sm text-text-muted" aria-live="polite">
               {sendingStatus.status ? <p>{t.sendAccepted}</p> : null}
               {sendingStatus.remainingSends !== null ? <p>{t.remainingSends(sendingStatus.remainingSends)}</p> : null}
@@ -290,7 +291,7 @@ function PasskeyRecoveryPageContent({
               <li>{t.keepSsoWarning}</li>
               <li>{t.loginAgainWarning}</li>
             </ul>
-            <form className="space-y-4" onSubmit={registerReplacement}>
+            <LocalizedForm className="space-y-4" onSubmit={registerReplacement}>
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.passkeyDisplayName}</span>
                 <input
@@ -309,7 +310,7 @@ function PasskeyRecoveryPageContent({
               <button type="submit" disabled={pending || !confirmed} className="min-h-12 w-full rounded-lg bg-red-700 px-5 font-semibold text-white disabled:opacity-60">
                 {pending ? t.recovering : t.recover}
               </button>
-            </form>
+            </LocalizedForm>
           </section>
         ) : null}
 

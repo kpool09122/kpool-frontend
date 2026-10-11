@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { useId, useState } from "react";
 
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
@@ -105,7 +106,7 @@ export function AccountAffiliationsClient() {
               role="tabpanel"
             >
               {activeTab.id === "request" ? (
-                <form
+                <LocalizedForm
                   className="grid gap-3"
                   onSubmit={(event) => {
                     event.preventDefault();
@@ -131,7 +132,7 @@ export function AccountAffiliationsClient() {
                       {state.isRequesting ? t.accountAffiliations.requesting : t.accountAffiliations.requestSubmit}
                     </button>
                   </div>
-                </form>
+                </LocalizedForm>
               ) : null}
 
               {activeTab.id === "sentPending" ? (

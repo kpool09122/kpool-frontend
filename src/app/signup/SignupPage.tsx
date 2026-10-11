@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
@@ -36,11 +37,11 @@ type SignupPageProps = {
   refresh?: () => void;
 };
 
-const getInitialValues = (language: string): SignupAccountFormValues => ({
+const getInitialValues = (language: string, passkeyDisplayName: string): SignupAccountFormValues => ({
   email: "",
   accountName: "",
   language,
-  passkeyDisplayName: "My passkey",
+  passkeyDisplayName,
   base64EncodedImage: "",
 });
 
@@ -70,7 +71,7 @@ function SignupPageContent({
   const { locale, dictionary, setLocale } = useI18n();
   const t = dictionary.signup;
   const [values, setValues] = useState<SignupAccountFormValues>(
-    () => readSignupProgress(signupProgressStorageKey) ?? getInitialValues(locale),
+    () => readSignupProgress(signupProgressStorageKey) ?? getInitialValues(locale, t.defaultPasskeyName),
   );
   const [authCode, setAuthCode] = useState("");
   const [phase, setPhase] = useState<SignupPhase>(
@@ -227,7 +228,7 @@ function SignupPageContent({
 
         {phase === "account" ? (
           <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-[0_12px_36px_rgba(29,47,73,0.08)]">
-            <form className="space-y-5" onSubmit={sendAuthCode}>
+            <LocalizedForm className="space-y-5" onSubmit={sendAuthCode}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-2 text-sm font-semibold sm:col-span-2">
                   <span>{t.email}</span>
@@ -247,13 +248,13 @@ function SignupPageContent({
               <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pending}>
                 {pending ? t.sendingCode : t.sendCode}
               </button>
-            </form>
+            </LocalizedForm>
           </section>
         ) : null}
 
         {phase === "verification" ? (
           <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
-            <form className="space-y-5" onSubmit={handleVerificationSubmit}>
+            <LocalizedForm className="space-y-5" onSubmit={handleVerificationSubmit}>
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold">{t.verificationTitle}</h2>
                 <p className="text-sm text-text-muted">{t.verificationDescription(values.email)}</p>
@@ -265,7 +266,7 @@ function SignupPageContent({
               <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pending}>
                 {pending ? t.verifyingCode : t.verifyCode}
               </button>
-            </form>
+            </LocalizedForm>
             <div className="mt-4 space-y-2 text-sm text-text-muted" aria-live="polite">
               {sendingStatus.status ? <p>{t.sendAccepted}</p> : null}
               {sendingStatus.remainingSends !== null ? <p>{t.remainingSends(sendingStatus.remainingSends)}</p> : null}
@@ -286,7 +287,7 @@ function SignupPageContent({
 
         {phase === "passkey" ? (
           <section className="rounded-lg border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
-            <form className="space-y-5" onSubmit={handlePasskeySubmit}>
+            <LocalizedForm className="space-y-5" onSubmit={handlePasskeySubmit}>
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold">{t.passkeyTitle}</h2>
                 <p className="text-sm text-text-muted">{t.passkeyDescription}</p>
@@ -298,7 +299,7 @@ function SignupPageContent({
               <button type="submit" className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary px-5 py-3 text-sm font-semibold text-brand-primary hover:bg-brand-highlight/30 disabled:opacity-70" disabled={pending}>
                 {pending ? t.completing : t.complete}
               </button>
-            </form>
+            </LocalizedForm>
           </section>
         ) : null}
 
@@ -306,7 +307,7 @@ function SignupPageContent({
         {errorMessage ? <p className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger" role="alert">{errorMessage}</p> : null}
 
         <ol className="grid grid-cols-3 gap-2" aria-label={t.steps}>
-          {steps.map((step) => <li key={step.id} className={`h-1.5 rounded-full ${stepStateClassName[step.state]}`} aria-label={`${step.label}: ${t.stepState[step.state]}`} />)}
+          {steps.map((step) => <li key={step.id} className={`h-1.5 rounded-full ${stepStateClassName[step.state]}`} aria-label={`${t.stepLabels[step.id]}: ${t.stepState[step.state]}`} />)}
         </ol>
       </div>
     </main>

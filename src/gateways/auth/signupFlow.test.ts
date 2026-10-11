@@ -53,9 +53,9 @@ describe("signup flow helpers", () => {
 
   it("marks current and failed steps", () => {
     expect(getSignupStepItems({ phase: "passkey", pending: false, errorStep: null })).toEqual([
-      { id: "account", label: "アカウント情報入力", state: "complete" },
-      { id: "verification", label: "認証コード入力", state: "complete" },
-      { id: "passkey", label: "パスキー登録", state: "active" },
+      { id: "account", state: "complete" },
+      { id: "verification", state: "complete" },
+      { id: "passkey", state: "active" },
     ]);
     expect(getSignupStepItems({ phase: "passkey", pending: false, errorStep: "passkey" })[2]?.state).toBe("error");
   });

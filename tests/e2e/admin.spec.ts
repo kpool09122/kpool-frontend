@@ -224,7 +224,7 @@ test("admin shows under review draft images for an available Wiki principal", as
   );
   await expect(page.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
     "href",
-    "/wiki/ja/gr-review-wiki/edit",
+    "/wiki/88888888-8888-8888-8888-888888888888/edit?resourceType=group",
   );
   await page.getByRole("tab", { name: "未承認の画像" }).click();
   await expect(page).toHaveURL(/\/admin\/wiki\/draft-images$/);
@@ -297,7 +297,7 @@ test("admin keeps wiki tabs interactive after browser back", async ({ page }) =>
   await page.goto("/admin");
   await expect(page.getByRole("link", { name: "編集中 Wiki" })).toBeVisible();
   await page.goto("/wiki/ja/gr-review-wiki/edit");
-  await expect(page).toHaveURL(/\/wiki\/ja\/gr-review-wiki\/edit$/);
+  await expect(page).toHaveURL(/\/wiki\/gr-review-wiki\/edit\?resourceType=group$/);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);

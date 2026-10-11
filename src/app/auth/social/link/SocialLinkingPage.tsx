@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
@@ -147,7 +148,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
                 {sendingStatus.retryUnavailable ? <p>{t.restartRequired}</p> : null}
               </div>
             ) : null}
-            <form onSubmit={verifyEmail} className="space-y-4">
+            <LocalizedForm onSubmit={verifyEmail} className="space-y-4">
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.authCode}</span>
                 <input value={authCode} onChange={(event) => setAuthCode(event.target.value)} required
@@ -159,7 +160,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
                 className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                 {pending === "verify" ? t.verifying : t.verifyCode}
               </button>
-            </form>
+            </LocalizedForm>
           </section>
         ) : null}
         {!complete && displayedError ? (

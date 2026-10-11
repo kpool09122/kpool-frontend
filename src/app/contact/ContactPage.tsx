@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { useState, type FormEvent } from "react";
 
 import {
@@ -81,7 +82,7 @@ export function ContactPage({
 
         <section className="rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft sm:p-8">
           <p className="mb-6 text-sm text-text-muted">{t.requiredHint}</p>
-          <form
+          <LocalizedForm
             aria-busy={isSubmitting}
             className="space-y-5"
             onSubmit={(event) => void handleSubmit(event)}
@@ -180,7 +181,7 @@ export function ContactPage({
                 {t.submitError}
               </p>
             ) : null}
-          </form>
+          </LocalizedForm>
         </section>
       </div>
     </main>

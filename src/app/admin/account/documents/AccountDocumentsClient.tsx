@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import {
@@ -72,6 +74,7 @@ const getDocumentOptionGroups = (
 };
 
 export function AccountDocumentsClient() {
+  const { dictionary } = useI18n();
   const { accountIdentifier, t } = useAccountSection();
   const state = useAccountDocuments({ accountIdentifier, t });
 
@@ -169,7 +172,7 @@ export function AccountDocumentsClient() {
                               <p className="font-medium text-text-strong">{documentLabel}</p>
                               {isPdfDocument(uploaded.documentPath) ? (
                                 <a
-                                  aria-label={`${documentLabel}をダウンロード`}
+                                  aria-label={`${dictionary.wiki.ui.download}: ${documentLabel}`}
                                   className="mt-3 flex min-w-0 items-center gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-3 transition hover:bg-surface-raised"
                                   download={getDocumentFileName(uploaded.documentPath)}
                                   href={getDocumentDownloadUrl(uploaded.documentType)}
@@ -188,7 +191,7 @@ export function AccountDocumentsClient() {
                               ) : (
                                 <div className="mt-3 w-full overflow-hidden rounded-lg border border-stroke-subtle bg-surface-base">
                                   <a
-                                    aria-label={`${documentLabel}をダウンロード`}
+                                    aria-label={`${dictionary.wiki.ui.download}: ${documentLabel}`}
                                     download={getDocumentFileName(uploaded.documentPath)}
                                     href={getDocumentDownloadUrl(uploaded.documentType)}
                                   >

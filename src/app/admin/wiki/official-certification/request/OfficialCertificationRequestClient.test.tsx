@@ -157,7 +157,7 @@ describe("OfficialCertificationRequestClient", () => {
     renderClient();
 
     await screen.findByRole("button", { name: "公式認証を申請" });
-    fireEvent.change(screen.getByLabelText("Wiki keyword"), {
+    fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), {
       target: { value: "twice" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
@@ -437,7 +437,7 @@ describe("OfficialCertificationRequestClient", () => {
     renderClient();
 
     await screen.findByRole("button", { name: "公式認証を申請" });
-    fireEvent.change(screen.getByLabelText("Wiki keyword"), {
+    fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), {
       target: { value: "twice" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
