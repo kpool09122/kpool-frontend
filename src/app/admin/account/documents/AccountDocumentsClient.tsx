@@ -97,7 +97,6 @@ export function AccountDocumentsClient() {
           {state.isUploading ? t.accountDocuments.uploading : t.accountDocuments.upload}
         </button>
       ) : null}
-      description={t.accountDocuments.description}
       title={t.accountDocuments.title}
     >
       {accountType !== "corporation" && accountType !== "individual" ? (
