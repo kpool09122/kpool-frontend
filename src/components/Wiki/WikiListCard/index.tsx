@@ -188,11 +188,11 @@ export function WikiListCardDisabledAction({
 
 const getActionClassName = (variant: "primary" | "secondary" | "danger"): string => {
   if (variant === "primary") {
-    return "rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60";
+    return "rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60";
   }
 
   if (variant === "danger") {
-    return "rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60";
+    return "rounded-lg border border-status-danger bg-status-danger/10 px-4 py-2 text-sm font-semibold text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:opacity-60";
   }
 
   return "rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-60";

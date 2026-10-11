@@ -1,3 +1,4 @@
+import { getBrowserDictionary } from "@/i18n/browserDictionary";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 export type IdentityBrowserApiResult<T> =
@@ -24,7 +25,7 @@ const readBody = async (response: Response): Promise<unknown> => {
   }
 };
 
-const getMessage = (body: unknown): string => {
+const getMessage = (body: unknown, language?: string): string => {
   if (
     typeof body === "object" &&
     body !== null &&
@@ -34,7 +35,7 @@ const getMessage = (body: unknown): string => {
     return (body as { message: string }).message;
   }
 
-  return "認証処理に失敗しました。時間をおいて再度お試しください。";
+  return getBrowserDictionary(language).common.authenticationFailed;
 };
 
 const getCode = (body: unknown): string | undefined =>
@@ -66,7 +67,7 @@ export const requestIdentity = async <T>(
       return {
         ok: false,
         code: getCode(responseBody),
-        message: getMessage(responseBody),
+        message: getMessage(responseBody, language),
         status: response.status,
       };
     }
@@ -75,7 +76,7 @@ export const requestIdentity = async <T>(
   } catch {
     return {
       ok: false,
-      message: "認証処理に失敗しました。時間をおいて再度お試しください。",
+      message: getBrowserDictionary(language).common.authenticationFailed,
       status: 0,
     };
   }

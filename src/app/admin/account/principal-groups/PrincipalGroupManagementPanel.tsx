@@ -63,7 +63,7 @@ export function PrincipalGroupManagementPanel({
     <AccountSettingsPanel
       action={
         <button
-          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isBusy || !canManage || !hasUnsavedChanges || state.groups.length === 0}
           onClick={save}
           type="button"
@@ -117,7 +117,7 @@ export function PrincipalGroupManagementPanel({
           <AccountStatusMessage
             action={
               <button
-                className="mt-3 rounded-lg border border-red-300 px-4 py-2 transition hover:bg-red-100"
+                className="mt-3 rounded-lg border border-status-danger px-4 py-2 transition hover:bg-status-danger/10"
                 onClick={load}
                 type="button"
               >
@@ -276,7 +276,7 @@ function EditMemberGroupsDialog({
             {t.principalGroupDialogCancel}
           </button>
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isBusy}
             onClick={onConfirm}
             type="button"

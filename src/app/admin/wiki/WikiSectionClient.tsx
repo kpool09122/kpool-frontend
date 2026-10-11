@@ -56,11 +56,12 @@ import {
   getOfficialCertificationRequestResourceTypesForAccountCategory,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
-import { buildWikiEditPath, normalizeWikiSlugForResourceType, type WikiResourceType } from "@kpool/wiki";
+import { buildWikiDraftEditPath, normalizeWikiSlugForResourceType, type WikiResourceType } from "@kpool/wiki";
 import type { Locale } from "../../../i18n/locales";
 import { useAdminWikiPrincipal } from "../useAdminWikiPrincipal";
 import { type AdminWikiTab, adminWikiTabRoutes } from "../adminTypes";
 import { useAdmin } from "../AdminProvider";
+import { useAdminRouteData } from "../AdminRouteProvider";
 import {
   CreateDraftWikiDialog,
 } from "./WikiContentClient";
@@ -133,13 +134,8 @@ export function WikiSectionClient({
 }: WikiSectionClientProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const {
-    currentIdentity,
-    initialPrincipalState,
-    locale,
-    refreshIdentity,
-    t,
-  } = useAdmin();
+  const { currentIdentity, locale, refreshIdentity, t } = useAdmin();
+  const { initialPrincipalState } = useAdminRouteData();
   const activeWikiTab = resolveActiveWikiTab(pathname);
   const [createDialog, setCreateDialog] = useState<CreateDraftWikiDialogState>({
     error: null,
@@ -268,8 +264,8 @@ export function WikiSectionClient({
           }),
         });
 
-    void request.then(() => {
-      router.push(buildWikiEditPath(input.language, slug));
+    void request.then((draft) => {
+      router.push(buildWikiDraftEditPath(draft.wikiIdentifier, draft.resourceType));
     }).catch((error: unknown) => {
       setCreateDialog({
         error: error instanceof Error ? error.message : t.createWikiFailed,

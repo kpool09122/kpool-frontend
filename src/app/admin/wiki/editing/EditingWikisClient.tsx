@@ -1,6 +1,7 @@
 "use client";
 
 import { useAdmin } from "../../AdminProvider";
+import { useAdminRouteData } from "../../AdminRouteProvider";
 import type { AdminWikiListItem } from "../../useAdminDraftWikis";
 import {
   OfficialCertificationBadge,
@@ -21,7 +22,8 @@ import { useEditingDraftWikis } from "./useEditingDraftWikis";
 
 export function EditingWikisClient() {
   const tab = "editingWikis";
-  const { currentIdentity, initialDraftWikis, locale, t } = useAdmin();
+  const { currentIdentity, locale, t } = useAdmin();
+  const { initialDraftWikis } = useAdminRouteData();
   const { draftWikiAdapter } = useWikiSection();
   const {
     deleteDraftWiki,

@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { WikiProfileCardListBlock } from "@kpool/wiki";
@@ -19,23 +21,24 @@ export function WikiRelatedProfiles({
   block: WikiProfileCardListBlock;
   language: string;
 }) {
+  const { dictionary } = useI18n();
   const profiles = block.profiles ?? [];
 
   if (profiles.length === 0) {
     return (
-      <section aria-label={block.title ?? "Related profiles"}>
+      <section aria-label={block.title ?? dictionary.wiki.ui.relatedSearch}>
         {block.title ? (
           <h3 className="text-lg font-semibold text-text-strong">{block.title}</h3>
         ) : null}
         <p className="mt-3 rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-5 text-base text-text-muted">
-          関連プロフィールはありません
+          {dictionary.wiki.ui.relatedEmpty}
         </p>
       </section>
     );
   }
 
   return (
-    <section aria-label={block.title ?? "Related profiles"}>
+    <section aria-label={block.title ?? dictionary.wiki.ui.relatedSearch}>
       {block.title ? (
         <h3 className="text-lg font-semibold text-text-strong">{block.title}</h3>
       ) : null}

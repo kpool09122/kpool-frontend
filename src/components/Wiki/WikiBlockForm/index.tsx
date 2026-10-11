@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import Image from "next/image";
@@ -572,7 +573,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
   };
 
   return (
-    <form className="grid gap-4" onSubmit={submitTable}>
+    <LocalizedForm className="grid gap-4" onSubmit={submitTable}>
       <div className="flex flex-wrap items-end gap-3">
         <label className="grid gap-2 text-sm font-semibold text-text-strong">
           {t.tableWidth}
@@ -703,7 +704,7 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
       </div>
 
       <WikiFormActions onCancel={onCancel} />
-    </form>
+    </LocalizedForm>
   );
 }
 
@@ -884,7 +885,7 @@ function InlineMarkdownEditor({
     ].join(" ");
 
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2" data-unsaved-value={content}>
       <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
         {label}
       </label>
@@ -945,6 +946,7 @@ function InlineMarkdownEditor({
                 </label>
                 <input
                   autoFocus
+                  data-unsaved-ignore
                   className={`${formTextWrapClassName} w-full rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal`}
                   id={`${editorId}-link`}
                   onChange={(event) => setLinkUrl(event.target.value)}
@@ -973,7 +975,7 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
   const [content, setContent] = useState(block.content);
 
   return (
-    <form onSubmit={(event) => {
+    <LocalizedForm onSubmit={(event) => {
       event.preventDefault();
       onSave({ content });
     }}
@@ -985,7 +987,7 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
         onChange={setContent}
       />
       <WikiFormActions onCancel={onCancel} />
-    </form>
+    </LocalizedForm>
   );
 }
 
@@ -1021,7 +1023,7 @@ function WikiListBlockForm({ block, onCancel, onSave }: ListBlockFormProps) {
   };
 
   return (
-    <form
+    <LocalizedForm
       onSubmit={(event) => {
         event.preventDefault();
         onSave({
@@ -1071,7 +1073,7 @@ function WikiListBlockForm({ block, onCancel, onSave }: ListBlockFormProps) {
         {t.addItem}
       </button>
       <WikiFormActions onCancel={onCancel} />
-    </form>
+    </LocalizedForm>
   );
 }
 
@@ -1142,7 +1144,7 @@ function WikiProfileCardListBlockForm({
   };
 
   return (
-    <form
+    <LocalizedForm
       onSubmit={(event) => {
         event.preventDefault();
         onSave({
@@ -1219,7 +1221,7 @@ function WikiProfileCardListBlockForm({
         <WikiMasterSearchSelect
           disabled={!sourceWiki}
           language={sourceWiki?.language ?? "ja"}
-          label="Related Wiki search"
+          label={dictionary.wiki.ui.relatedSearch}
           mode="multiple"
           onChange={(items) => {
             const selectedProfiles = items.map((item) =>
@@ -1236,7 +1238,7 @@ function WikiProfileCardListBlockForm({
       </div>
       {loadState.status === "success" && profiles?.length === 0 ? (
         <p className="mt-3 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-4 text-sm text-text-muted">
-          関連プロフィールはありません
+          {dictionary.wiki.ui.relatedEmpty}
         </p>
       ) : null}
       {profiles && profiles.length > 0 ? (
@@ -1247,7 +1249,7 @@ function WikiProfileCardListBlockForm({
         </div>
       ) : null}
       <WikiFormActions onCancel={onCancel} />
-    </form>
+    </LocalizedForm>
   );
 }
 
@@ -1272,7 +1274,7 @@ export function WikiBlockForm({
       return <WikiTextBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "image":
       return (
-        <form onSubmit={(event) => submit(event, (data) => ({ imageIdentifier: getString(data, "imageIdentifier"), imageSrc: getString(data, "imageSrc"), caption: getString(data, "caption") || null, alt: getString(data, "alt") || null }))}>
+        <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ imageIdentifier: getString(data, "imageIdentifier"), imageSrc: getString(data, "imageSrc"), caption: getString(data, "caption") || null, alt: getString(data, "alt") || null }))}>
           <div className="grid gap-3">
             <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
               {t.imageIdentifier}
@@ -1292,11 +1294,11 @@ export function WikiBlockForm({
             </label>
           </div>
           <WikiFormActions onCancel={onCancel} />
-        </form>
+        </LocalizedForm>
       );
     case "image_gallery":
       return (
-        <form onSubmit={(event) => submit(event, (data) => ({ images: getLines(data, "images").map((line, index) => ({ imageIdentifier: line, imageSrc: block.images[index]?.imageSrc ?? block.images[0]?.imageSrc ?? "", alt: block.images[index]?.alt ?? line })), caption: getString(data, "caption") || null }))}>
+        <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ images: getLines(data, "images").map((line, index) => ({ imageIdentifier: line, imageSrc: block.images[index]?.imageSrc ?? block.images[0]?.imageSrc ?? "", alt: block.images[index]?.alt ?? line })), caption: getString(data, "caption") || null }))}>
           <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
             {t.imageIdentifier}
             <textarea className={textAreaClassName} defaultValue={block.images.map((image) => image.imageIdentifier).join("\n")} name="images" />
@@ -1306,11 +1308,11 @@ export function WikiBlockForm({
             <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
           </label>
           <WikiFormActions onCancel={onCancel} />
-        </form>
+        </LocalizedForm>
       );
     case "embed":
       return (
-        <form onSubmit={(event) => submit(event, (data) => ({ provider: getString(data, "provider") as WikiEmbedProvider, embedId: getString(data, "embedId"), caption: getString(data, "caption") || null }))}>
+        <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ provider: getString(data, "provider") as WikiEmbedProvider, embedId: getString(data, "embedId"), caption: getString(data, "caption") || null }))}>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-semibold text-text-strong">{t.provider}<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.provider} name="provider"><option value="youtube">youtube</option><option value="spotify">spotify</option><option value="x">x</option><option value="tiktok">tiktok</option></select></label>
             <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
@@ -1323,11 +1325,11 @@ export function WikiBlockForm({
             </label>
           </div>
           <WikiFormActions onCancel={onCancel} />
-        </form>
+        </LocalizedForm>
       );
     case "quote":
       return (
-        <form onSubmit={(event) => submit(event, (data) => ({ content: getString(data, "content"), source: getString(data, "source") || null }))}>
+        <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ content: getString(data, "content"), source: getString(data, "source") || null }))}>
           <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
             {t.quote}
             <textarea className={textAreaClassName} defaultValue={block.content} name="content" />
@@ -1337,7 +1339,7 @@ export function WikiBlockForm({
             <input className={textInputClassName} defaultValue={block.source ?? ""} name="source" />
           </label>
           <WikiFormActions onCancel={onCancel} />
-        </form>
+        </LocalizedForm>
       );
     case "list":
       return <WikiListBlockForm block={block} onCancel={onCancel} onSave={onSave} />;

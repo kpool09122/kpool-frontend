@@ -17,7 +17,7 @@ export function UserLanguageClient() {
     <UserSettingsPanel
       action={
         <button
-          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={settingsState.isSaving || !currentIdentity}
           onClick={onSave}
           type="button"

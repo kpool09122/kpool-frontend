@@ -1,3 +1,4 @@
+import { getBrowserDictionary } from "@/i18n/browserDictionary";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import {
@@ -22,7 +23,6 @@ export type SignupStepState = "pending" | "active" | "processing" | "complete" |
 
 export type SignupStepItem = {
   id: SignupStepId;
-  label: string;
   state: SignupStepState;
 };
 
@@ -49,12 +49,6 @@ export type SignupAdapter = {
   ) => Promise<IdentitySummary>;
 };
 
-const signupStepLabels: Record<SignupStepId, string> = {
-  account: "アカウント情報入力",
-  verification: "認証コード入力",
-  passkey: "パスキー登録",
-};
-
 const signupStepOrder: SignupStepId[] = ["account", "verification", "passkey"];
 
 const phaseStepIndex: Record<SignupPhase, number> = {
@@ -77,7 +71,6 @@ export const getSignupStepItems = ({
 
   return signupStepOrder.map((stepId, index) => ({
     id: stepId,
-    label: signupStepLabels[stepId],
     state: errorStep === stepId
       ? "error"
       : index < currentIndex
@@ -117,7 +110,7 @@ export const buildRegisterWithPasskeyRequest = ({
   credential,
 });
 
-const getSignupErrorMessage = async (response: Response): Promise<string> => {
+const getSignupErrorMessage = async (response: Response, language?: string): Promise<string> => {
   try {
     const body = (await response.json()) as unknown;
 
@@ -130,12 +123,12 @@ const getSignupErrorMessage = async (response: Response): Promise<string> => {
       return (body as { message: string }).message;
     }
   } catch {
-    return "登録処理に失敗しました。時間をおいて再度お試しください。";
+    return getBrowserDictionary(language).signup.fallbackError;
   }
 
   return response.status === 422
-    ? "入力内容を確認してください。"
-    : "登録処理に失敗しました。時間をおいて再度お試しください。";
+    ? getBrowserDictionary(language).signup.invalidInput
+    : getBrowserDictionary(language).signup.fallbackError;
 };
 
 const postJson = async <T>(
@@ -157,7 +150,7 @@ const postJson = async <T>(
   });
 
   if (!response.ok) {
-    throw new Error(await getSignupErrorMessage(response));
+    throw new Error(await getSignupErrorMessage(response, options?.language));
   }
 
   const text = await response.text();

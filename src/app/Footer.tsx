@@ -10,9 +10,9 @@ export function Footer() {
 
   return (
     <footer className="border-t border-stroke-subtle bg-surface-raised/95 text-text-strong">
-      <div className="mx-auto flex w-[90%] max-w-6xl flex-wrap items-center justify-between gap-4 py-4">
+      <div className="mx-auto flex w-[90%] max-w-6xl flex-col flex-wrap items-start justify-between gap-4 py-4 sm:flex-row sm:items-center">
         <p className="text-xs text-text-muted">{t.copyright}</p>
-        <nav aria-label={t.navigation} className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <nav aria-label={t.navigation} className="flex flex-col items-start gap-x-4 gap-y-2 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
             className="w-fit rounded-md text-sm font-semibold text-text-muted underline-offset-4 transition hover:text-brand-primary hover:underline focus:outline-none focus:ring-2 focus:ring-brand-highlight"
             href={`/${locale}/terms`}

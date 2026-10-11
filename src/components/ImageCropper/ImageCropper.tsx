@@ -132,7 +132,7 @@ export function ImageCropper({
       {!isImageLoaded ? <p className="text-sm text-text-muted">{t.loading}</p> : null}
       <div className="flex flex-wrap justify-end gap-2">
         <button
-          className="rounded-full border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!canConfirmCrop}
           onClick={confirmCrop}
           type="button"

@@ -1,7 +1,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { I18nProvider } from "../../../i18n/I18nProvider";
+import { I18nProvider, useI18n } from "../../../i18n/I18nProvider";
 
 import { wikiStoryBasic } from "../storybook/fixtures";
 import { WikiBasicPanel } from "./index";
@@ -13,7 +13,10 @@ const jsonResponse = (body: unknown, status = 200): Response =>
   });
 
 const renderWithI18n = (ui: React.ReactElement) =>
-  render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
+  {
+    const result = render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
+    return { ...result, rerender: (nextUi: React.ReactElement) => result.rerender(<I18nProvider initialLocale="en">{nextUi}</I18nProvider>) };
+  };
 
 describe("WikiBasicPanel", () => {
   afterEach(() => {
@@ -32,8 +35,27 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.getByText("Group profile")).toBeInTheDocument();
+    expect(screen.getByText("Profile")).toBeInTheDocument();
     expect(screen.getByText("Girl Group")).toBeInTheDocument();
+  });
+
+  it("keeps viewed headings in the Wiki language while action labels follow the UI language", () => {
+    function Panel() {
+      const { setLocale } = useI18n();
+      return <>
+        <button onClick={() => setLocale("ja")}>日本語</button>
+        <WikiBasicPanel basic={{ ...wikiStoryBasic, resourceType: "talent" }} language="ko"
+          isEditing={false} onCancel={() => {}} onEdit={() => {}} onSave={() => {}} />
+      </>;
+    }
+    renderWithI18n(<Panel />);
+    expect(screen.getByText("기본 정보")).toBeInTheDocument();
+    expect(screen.getByText("프로필")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit basic" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "日本語" }));
+    expect(screen.getByText("기본 정보")).toBeInTheDocument();
+    expect(screen.getByText("프로필")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "基本情報を編集" })).toBeInTheDocument();
   });
 
   it("submits edited basic fields", () => {
@@ -50,17 +72,17 @@ describe("WikiBasicPanel", () => {
     );
 
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "North Harbor Entertainment を削除" }));
-    fireEvent.change(screen.getByLabelText("Official Colors color 1"), {
+    fireEvent.click(screen.getByRole("button", { name: "Remove: North Harbor Entertainment" }));
+    fireEvent.change(screen.getByLabelText("Official Colors: Color 1"), {
       target: { value: "#ff0000" },
     });
-    fireEvent.change(screen.getByLabelText("Official Colors label 1"), {
+    fireEvent.change(screen.getByLabelText("Official Colors: Color label 1"), {
       target: { value: "Red" },
     });
-    fireEvent.change(screen.getByLabelText("Official Colors color 2"), {
+    fireEvent.change(screen.getByLabelText("Official Colors: Color 2"), {
       target: { value: "#0000ff" },
     });
-    fireEvent.change(screen.getByLabelText("Official Colors label 2"), {
+    fireEvent.change(screen.getByLabelText("Official Colors: Color label 2"), {
       target: { value: "Blue" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -291,12 +313,12 @@ describe("WikiBasicPanel", () => {
 
     expect(panel.getByLabelText("Group Type")).toHaveValue("");
     expect(panel.getByLabelText("Status")).toHaveValue("");
-    expect(panel.queryByLabelText("Official Colors label 1")).not.toBeInTheDocument();
-    fireEvent.click(panel.getByRole("button", { name: "Official Colors を追加" }));
-    expect(panel.getByLabelText("Official Colors label 1")).toHaveValue("");
-    expect(panel.getByLabelText("Official Colors label 1")).toHaveAttribute("maxLength", "16");
-    expect(panel.getByLabelText("Official Colors color 1")).toHaveValue("#000000");
-    expect(panel.getByRole("button", { name: "Official Colors を追加" })).toBeInTheDocument();
+    expect(panel.queryByLabelText("Official Colors: Color label 1")).not.toBeInTheDocument();
+    fireEvent.click(panel.getByRole("button", { name: "Add: Official Colors" }));
+    expect(panel.getByLabelText("Official Colors: Color label 1")).toHaveValue("");
+    expect(panel.getByLabelText("Official Colors: Color label 1")).toHaveAttribute("maxLength", "16");
+    expect(panel.getByLabelText("Official Colors: Color 1")).toHaveValue("#000000");
+    expect(panel.getByRole("button", { name: "Add: Official Colors" })).toBeInTheDocument();
     expect(panel.getByLabelText("Agency")).toHaveValue("");
   });
 
@@ -314,19 +336,19 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Official Colors を追加" }));
-    fireEvent.click(screen.getByRole("button", { name: "Official Colors を追加" }));
-    expect(screen.queryByRole("button", { name: "Official Colors を追加" })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Official Colors color 1"), {
+    fireEvent.click(screen.getByRole("button", { name: "Add: Official Colors" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add: Official Colors" }));
+    expect(screen.queryByRole("button", { name: "Add: Official Colors" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Official Colors: Color 1"), {
       target: { value: "#abcdef" },
     });
-    fireEvent.change(screen.getByLabelText("Official Colors label 1"), {
+    fireEvent.change(screen.getByLabelText("Official Colors: Color label 1"), {
       target: { value: "12345678901234567890" },
     });
-    fireEvent.change(screen.getByLabelText("Official Colors color 2"), {
+    fireEvent.change(screen.getByLabelText("Official Colors: Color 2"), {
       target: { value: "#123456" },
     });
-    fireEvent.change(screen.getByLabelText("Official Colors label 2"), {
+    fireEvent.change(screen.getByLabelText("Official Colors: Color label 2"), {
       target: { value: "" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -351,8 +373,8 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Official Colors color 1 を削除" }));
-    expect(screen.queryByLabelText("Official Colors color 1")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove: Official Colors 1" }));
+    expect(screen.queryByLabelText("Official Colors: Color 1")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).toHaveBeenCalledWith(
@@ -395,8 +417,8 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.getByLabelText("상태").tagName).toBe("SELECT");
-    expect(screen.getByRole("option", { name: "리브랜딩됨" })).toHaveValue("rebranded");
+    expect(screen.getByLabelText("Status").tagName).toBe("SELECT");
+    expect(screen.getByRole("option", { name: "Rebranded" })).toHaveValue("rebranded");
 
     rerender(
       <WikiBasicPanel
@@ -414,10 +436,10 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    expect(screen.getByLabelText("楽曲種別").tagName).toBe("SELECT");
-    expect(screen.getByLabelText("ジャンル").tagName).toBe("SELECT");
-    expect(screen.getByRole("option", { name: "タイトル曲" })).toHaveValue("title_track");
-    expect(screen.getByRole("option", { name: "ダンス" })).toHaveValue("dance");
+    expect(screen.getByLabelText("Song Type").tagName).toBe("SELECT");
+    expect(screen.getByLabelText("Genres").tagName).toBe("SELECT");
+    expect(screen.getByRole("option", { name: "Title track" })).toHaveValue("title_track");
+    expect(screen.getByRole("option", { name: "Dance" })).toHaveValue("dance");
 
     rerender(
       <WikiBasicPanel
@@ -574,10 +596,10 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("소속사 keyword"), {
+    fireEvent.change(screen.getByLabelText("Agency: Search keyword"), {
       target: { value: "JYP" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "検索" }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
     fireEvent.click(await screen.findByRole("button", { name: /JYP Entertainment/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -623,8 +645,8 @@ describe("WikiBasicPanel", () => {
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Real Name")).toHaveValue("Aurora Echo Real");
     expect(screen.queryByRole("link", { name: "TWICE" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Groups keyword")).toHaveValue("TWICE");
-    expect(within(screen.getByLabelText("Groups selected")).getByText("TWICE")).toBeInTheDocument();
+    expect(screen.getByLabelText("Groups: Search keyword")).toHaveValue("TWICE");
+    expect(within(screen.getByLabelText("Groups: Selected")).getByText("TWICE")).toBeInTheDocument();
 
     const fieldGrid = container.querySelector("form > div");
     const labels = Array.from(fieldGrid?.children ?? []).map((element) => {
@@ -734,10 +756,10 @@ describe("WikiBasicPanel", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("아티스트 keyword"), {
+    fireEvent.change(screen.getByLabelText("Talents: Search keyword"), {
       target: { value: "NAYEON" },
     });
-    fireEvent.keyDown(screen.getByLabelText("아티스트 keyword"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByLabelText("Talents: Search keyword"), { key: "Enter" });
     fireEvent.click(await screen.findByRole("button", { name: /NAYEON/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
@@ -757,4 +779,27 @@ describe("WikiBasicPanel", () => {
       ),
     );
   });
+});
+
+it("uses UI labels while searching in the Wiki content language and preserving form values", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ wikis: [] }));
+  vi.stubGlobal("fetch", fetchMock);
+  const props = { basic: wikiStoryBasic, isEditing: true, language: "ko", onCancel: vi.fn(), onEdit: vi.fn(), onSave: vi.fn() };
+  function Editor() {
+    const { setLocale } = useI18n();
+    return <><button onClick={() => setLocale("ja")}>日本語</button><WikiBasicPanel {...props} /></>;
+  }
+  render(<I18nProvider initialLocale="en"><Editor /></I18nProvider>);
+  const searchInput = screen.getByLabelText("Agency: Search keyword");
+  fireEvent.change(searchInput, { target: { value: "TWICE" } });
+  fireEvent.keyDown(searchInput, { key: "Enter" });
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  expect(fetchMock.mock.calls[0][0]).toContain("language=ko");
+  fireEvent.change(screen.getByLabelText("Official Colors: Color label 1"), { target: { value: "My color" } });
+  fireEvent.click(screen.getByRole("button", { name: "日本語" }));
+  expect(screen.getByLabelText("公式カラー: 色名 1")).toHaveValue("My color");
+  expect(screen.getByLabelText("事務所: 検索キーワード")).toHaveValue("TWICE");
+  expect(screen.getAllByPlaceholderText("例: Solar Gold")[0]).toBeInTheDocument();
+  cleanup();
+  vi.unstubAllGlobals();
 });

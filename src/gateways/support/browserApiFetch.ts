@@ -1,3 +1,5 @@
+import { getBrowserDictionary } from "@/i18n/browserDictionary";
+
 const csrfEndpoint = "/api/identity/auth/csrf-token";
 const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 let csrfInitialization: Promise<void> | undefined;
@@ -21,7 +23,7 @@ const initializeCsrf = async (): Promise<void> => {
       credentials: "same-origin",
       cache: "no-store",
     }).then((response) => {
-      if (!response.ok) throw new Error("CSRF initialization failed.");
+      if (!response.ok) throw new Error(getBrowserDictionary().common.csrfFailed);
     }).finally(() => {
       csrfInitialization = undefined;
     });
@@ -43,7 +45,7 @@ export const browserApiFetch: typeof fetch = async (input, init) => {
 
   if (!readCsrfCookie()) await initializeCsrf();
   const token = readCsrfCookie();
-  if (!token) throw new Error("CSRF cookie is unavailable.");
+  if (!token) throw new Error(getBrowserDictionary().common.csrfFailed);
 
   const sourceHeaders = init?.headers ?? request?.headers;
   const headers = sourceHeaders instanceof Headers || Array.isArray(sourceHeaders)

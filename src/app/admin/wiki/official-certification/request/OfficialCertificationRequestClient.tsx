@@ -1,5 +1,8 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
+import { useI18n } from "@/i18n/I18nProvider";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { type KeyboardEvent, useMemo, useState } from "react";
@@ -39,9 +42,9 @@ type SearchState =
 const chipClassName =
   "inline-flex max-w-full items-center gap-1.5 rounded-full border border-stroke-subtle bg-surface-raised px-2.5 py-1 text-xs font-semibold text-text-strong";
 const statusErrorClassName =
-  "rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800";
+  "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
 const statusSuccessClassName =
-  "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800";
+  "rounded-lg border border-status-success bg-status-success/10 p-3 text-sm font-semibold text-status-success";
 const cardClassName = "rounded-xl border border-stroke-subtle bg-surface-base p-4";
 
 type WikiLike = OfficialCertificationListItem["wikis"][number];
@@ -126,6 +129,7 @@ function OfficialCertificationWikiTitle({
 }
 
 export function OfficialCertificationRequestClient() {
+  const { dictionary } = useI18n();
   const queryClient = useQueryClient();
   const { currentIdentity, locale, t } = useAdmin();
   const { officialCertificationAdapter } = useWikiSection();
@@ -391,7 +395,7 @@ export function OfficialCertificationRequestClient() {
               <p className="mt-3 text-sm text-text-muted">{t.officialCertificationPendingDescription}</p>
             </div>
           ) : (
-            <form
+            <LocalizedForm
               className="grid gap-4"
               onSubmit={(event) => {
                 event.preventDefault();
@@ -404,7 +408,7 @@ export function OfficialCertificationRequestClient() {
                     {t.officialCertificationWikiSearchLabel}
                     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1.5">
                       <input
-                        aria-label={`${t.officialCertificationWikiSearchLabel} keyword`}
+                        aria-label={`${t.officialCertificationWikiSearchLabel}: ${dictionary.wiki.ui.keyword}`}
                         className="h-9 min-w-0 rounded-lg border border-stroke-subtle bg-surface-raised px-2.5 text-sm"
                         disabled={requestMutation.isPending || searchState.status === "loading"}
                         onChange={(event) => {
@@ -433,11 +437,11 @@ export function OfficialCertificationRequestClient() {
                     </div>
                   </label>
                   {state.selectedTranslationSet ? (
-                    <div className="flex min-w-0 max-w-full flex-wrap gap-1.5" aria-label={`${t.officialCertificationWikiSearchLabel} selected`}>
+                    <div className="flex min-w-0 max-w-full flex-wrap gap-1.5" aria-label={`${t.officialCertificationWikiSearchLabel}: ${dictionary.wiki.ui.selected}`}>
                       <span className={chipClassName}>
                         <span className="min-w-0 truncate">{state.selectedTranslationSet.displayWiki.name}</span>
                         <button
-                          aria-label={`${state.selectedTranslationSet.displayWiki.name} を削除`}
+                          aria-label={`${dictionary.wiki.ui.remove}: ${state.selectedTranslationSet.displayWiki.name}`}
                           className="shrink-0 text-text-muted hover:text-status-danger"
                           disabled={requestMutation.isPending}
                           onClick={() => setState((current) => ({ ...current, selectedTranslationSet: null }))}
@@ -483,13 +487,13 @@ export function OfficialCertificationRequestClient() {
                 </div>
               ) : null}
               <button
-                className="w-fit rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-fit rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!canSubmit || requestMutation.isPending}
                 type="submit"
               >
                 {requestMutation.isPending ? t.officialCertificationSubmitting : t.officialCertificationSubmit}
               </button>
-            </form>
+            </LocalizedForm>
           )}
           {primaryCertification ? (
             <div className={cardClassName}>
@@ -499,7 +503,7 @@ export function OfficialCertificationRequestClient() {
                   <p className="text-sm text-text-muted">{t.officialCertificationAdditionalDescription}</p>
                 </div>
                 <button
-                  className="w-fit shrink-0 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-fit shrink-0 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={syncMutation.isPending || candidateWikis.length === 0}
                   onClick={() => syncMutation.mutate()}
                   type="button"

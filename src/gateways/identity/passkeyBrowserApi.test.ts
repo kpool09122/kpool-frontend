@@ -45,7 +45,7 @@ describe("passkeyBrowserApi step-up", () => {
     );
     expect(await passkeyBrowserApi.createStepUpSocialRedirect("line", "withdrawal")).toEqual({
       ok: false,
-      message: "認証処理に失敗しました。時間をおいて再度お試しください。",
+      message: "Authentication failed. Please try again later.",
       status: 0,
     });
   });

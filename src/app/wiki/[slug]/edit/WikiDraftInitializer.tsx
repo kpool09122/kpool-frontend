@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { buildWikiDraftEditPath } from "@kpool/wiki";
 
 import { WikiStatePanel } from "@/components/Wiki";
 import { createWiki } from "@/gateways/wiki/draftWiki";
@@ -10,11 +11,13 @@ import { useI18n } from "@/i18n/I18nProvider";
 type WikiDraftInitializerProps = {
   requestBody: Parameters<typeof createWiki>[0]["requestBody"];
   createAdapter?: typeof createWiki;
+  themeColor?: string;
 };
 
 export function WikiDraftInitializer({
   requestBody,
   createAdapter = createWiki,
+  themeColor,
 }: WikiDraftInitializerProps) {
   const router = useRouter();
   const { dictionary } = useI18n();
@@ -27,8 +30,8 @@ export function WikiDraftInitializer({
     // Reuse the request when Strict Mode runs the effect again.
     creation.current ??= createAdapter({ requestBody, fallbackErrorMessage: t.loadErrorTitle });
     void creation.current
-      .then(() => {
-        if (active) router.refresh();
+      .then((draft) => {
+        if (active) router.replace(buildWikiDraftEditPath(draft.wikiIdentifier, draft.resourceType, themeColor));
       })
       .catch((error: unknown) => {
         if (active) setErrorMessage(error instanceof Error ? error.message : t.loadErrorTitle);
@@ -36,7 +39,7 @@ export function WikiDraftInitializer({
     return () => {
       active = false;
     };
-  }, [createAdapter, requestBody, router, t.loadErrorTitle]);
+  }, [createAdapter, requestBody, router, t.loadErrorTitle, themeColor]);
 
   return (
     <WikiStatePanel

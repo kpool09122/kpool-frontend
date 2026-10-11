@@ -89,7 +89,7 @@ export function WikiLayoutClient({
       <section className="space-y-5">
         <div className="flex justify-end">
           <button
-            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
+            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105"
             onClick={onOpenCreateDraftWiki}
             type="button"
           >
@@ -129,7 +129,7 @@ export function WikiLayoutClient({
         </p>
         <button
           type="button"
-          className="mt-5 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105"
+          className="mt-5 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105"
           onClick={onRetry}
         >
           {t.retryPrincipal}
@@ -151,7 +151,7 @@ export function WikiLayoutClient({
       ) : null}
       <button
         type="button"
-        className="mt-5 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-5 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={!canActivate}
         onClick={onActivate}
       >

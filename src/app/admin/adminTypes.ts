@@ -19,6 +19,8 @@ export type AdminRouteContext = {
   initialPrincipalState: WikiPrincipalState;
 };
 
+export type AdminRouteData = Omit<AdminRouteContext, "initialIdentity">;
+
 export type AdminAccountSettingsState = {
   account: AccountSummary | null;
   accountName: string;

@@ -9,6 +9,7 @@ test("public Wiki views survive client navigation and exclude editing while GTM 
   const url = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
   await page.context().addCookies([
     { name: "kpool-mock-account-status", value: "active", url },
+    { name: "kpool-locale", value: "en", url },
     { name: "kpool-e2e-wiki-principal", value: "basic", url },
   ]);
   await page.goto("/ja/wiki/gr-twice?utm_source=analytics-e2e");
@@ -24,13 +25,13 @@ test("public Wiki views survive client navigation and exclude editing while GTM 
   await expect(page.getByTestId("section-sec-twice-overview")).toHaveAttribute("open", "");
   expect((await wikiEvents(page)).filter((event) => event.event === "wiki_page_view")).toHaveLength(1);
 
-  await page.getByRole("link", { name: "Edit section Overview" }).click();
-  await expect(page).toHaveURL(/\/ja\/wiki\/gr-twice\/edit$/);
+  await page.getByRole("link", { name: "セクションを編集: Overview" }).click();
+  await expect(page).toHaveURL(/\/wiki\/gr-twice\/edit\?resourceType=group$/);
   expect((await wikiEvents(page)).filter((event) => event.event === "wiki_page_view")).toHaveLength(1);
   await page.goBack();
   await expect.poll(async () => (await wikiEvents(page)).filter((event) => event.event === "wiki_page_view").length).toBe(2);
   await page.goForward();
-  await expect(page).toHaveURL(/\/edit$/);
+  await expect(page).toHaveURL(/\/edit\?resourceType=group$/);
   await page.goBack();
   await expect.poll(async () => (await wikiEvents(page)).filter((event) => event.event === "wiki_page_view").length).toBe(3);
 });

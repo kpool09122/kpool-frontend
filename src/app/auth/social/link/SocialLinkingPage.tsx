@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
@@ -147,7 +148,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
                 {sendingStatus.retryUnavailable ? <p>{t.restartRequired}</p> : null}
               </div>
             ) : null}
-            <form onSubmit={verifyEmail} className="space-y-4">
+            <LocalizedForm onSubmit={verifyEmail} className="space-y-4">
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.authCode}</span>
                 <input value={authCode} onChange={(event) => setAuthCode(event.target.value)} required
@@ -156,14 +157,14 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
                   className="min-h-12 w-full rounded-lg border border-stroke-subtle bg-surface-base px-4" />
               </label>
               <button type="submit" disabled={pending !== null || unavailable || !/^[0-9]{6}$/.test(authCode)}
-                className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-white disabled:opacity-60">
+                className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                 {pending === "verify" ? t.verifying : t.verifyCode}
               </button>
-            </form>
+            </LocalizedForm>
           </section>
         ) : null}
         {!complete && displayedError ? (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">
             {t[displayedError]}
           </p>
         ) : null}

@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import {
-  fetchAuthenticatedIdentity,
-} from "@/gateways/identity/authIdentity";
+import { loadAdminIdentity } from "./adminIdentity";
 import {
   isAccountActive,
 } from "@/gateways/identity/identityApi";
@@ -34,9 +32,7 @@ export async function loadAdminRouteContext(
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.toString();
   const target = resolveAdminRouteDataTarget(slug);
-  const authenticatedIdentity = await fetchAuthenticatedIdentity({
-    cookieHeader,
-  });
+  const authenticatedIdentity = await loadAdminIdentity();
 
   if (!authenticatedIdentity) {
     redirect(`/login?returnTo=${encodeURIComponent(loginReturnTo)}`);

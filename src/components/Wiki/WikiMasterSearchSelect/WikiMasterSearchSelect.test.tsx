@@ -45,10 +45,10 @@ describe("WikiMasterSearchSelect", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("関連グループ keyword"), {
+    fireEvent.change(screen.getByLabelText("関連グループ: 検索キーワード"), {
       target: { value: "twice" },
     });
-    fireEvent.keyDown(screen.getByLabelText("関連グループ keyword"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByLabelText("関連グループ: 検索キーワード"), { key: "Enter" });
 
     fireEvent.click(await screen.findByRole("button", { name: /TWICE/ }));
 
@@ -77,13 +77,13 @@ describe("WikiMasterSearchSelect", () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText("関連タレント keyword"), {
+    fireEvent.change(screen.getByLabelText("関連タレント: 検索キーワード"), {
       target: { value: "none" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
-    expect(await screen.findByText("候補が見つかりません")).toBeInTheDocument();
+    expect(await screen.findByText("候補が見つかりません。")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("関連タレント keyword"), {
+    fireEvent.change(screen.getByLabelText("関連タレント: 検索キーワード"), {
       target: { value: "error" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));

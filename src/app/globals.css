@@ -4,6 +4,8 @@
   --background: #fffbf7;
   --foreground: #28456b;
   --brand-primary: #3560a3;
+  --text-on-primary: #ffffff;
+  color-scheme: light;
   --brand-secondary: #f1a81f;
   --brand-highlight: #ffd6c2;
   --surface-base: #fffbf7;
@@ -11,9 +13,9 @@
   --text-strong: #1d2f49;
   --text-muted: #667a95;
   --stroke-subtle: rgba(53, 96, 163, 0.16);
-  --status-success: #5ea66c;
-  --status-warning: #da8420;
-  --status-danger: #cd5650;
+  --status-success: #28783a;
+  --status-warning: #92520d;
+  --status-danger: #af3632;
   --shadow-soft:
     0 24px 60px rgba(29, 47, 73, 0.08),
     0 10px 24px rgba(29, 47, 73, 0.05);
@@ -23,6 +25,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-brand-primary: var(--brand-primary);
+  --color-on-primary: var(--text-on-primary);
   --color-brand-secondary: var(--brand-secondary);
   --color-brand-highlight: var(--brand-highlight);
   --color-surface-base: var(--surface-base);
@@ -42,6 +45,8 @@
   --background: #16223a;
   --foreground: #fff7ef;
   --brand-primary: #9fc0f2;
+  --text-on-primary: #1d2f49;
+  color-scheme: dark;
   --brand-secondary: #ffc85a;
   --brand-highlight: #4a6492;
   --surface-base: #16223a;
@@ -62,6 +67,8 @@
     --background: #16223a;
     --foreground: #fff7ef;
     --brand-primary: #9fc0f2;
+    --text-on-primary: #1d2f49;
+    color-scheme: dark;
     --brand-secondary: #ffc85a;
     --brand-highlight: #4a6492;
     --surface-base: #16223a;
@@ -142,7 +149,7 @@ body {
   --wiki-accent-text: var(--wiki-accent-text-light);
 }
 
-:root[data-theme="dark"] .wiki-theme-scope {
+:root[data-theme="dark"] .wiki-theme-scope:not([data-theme]) {
   --wiki-page-background: var(--wiki-page-background-dark);
   --wiki-header-background: var(--wiki-header-background-dark);
   --wiki-header-text: var(--wiki-header-text-dark);
@@ -156,7 +163,7 @@ body {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .wiki-theme-scope {
+  :root:not([data-theme]) .wiki-theme-scope:not([data-theme]) {
     --wiki-page-background: var(--wiki-page-background-dark);
     --wiki-header-background: var(--wiki-header-background-dark);
     --wiki-header-text: var(--wiki-header-text-dark);
@@ -174,6 +181,8 @@ body {
   --background: #fffbf7;
   --foreground: #28456b;
   --brand-primary: #3560a3;
+  --text-on-primary: #ffffff;
+  color-scheme: light;
   --brand-secondary: #f1a81f;
   --brand-highlight: #ffd6c2;
   --surface-base: #fffbf7;
@@ -181,6 +190,10 @@ body {
   --text-strong: #1d2f49;
   --text-muted: #667a95;
   --stroke-subtle: rgba(53, 96, 163, 0.16);
+  --status-success: #28783a;
+  --status-warning: #92520d;
+  --status-danger: #af3632;
+  --shadow-soft: 0 24px 60px rgba(29, 47, 73, 0.08), 0 10px 24px rgba(29, 47, 73, 0.05);
   --wiki-page-background: var(--wiki-page-background-light);
   --wiki-header-background: var(--wiki-header-background-light);
   --wiki-header-text: var(--wiki-header-text-light);
@@ -197,6 +210,8 @@ body {
   --background: #16223a;
   --foreground: #fff7ef;
   --brand-primary: #9fc0f2;
+  --text-on-primary: #1d2f49;
+  color-scheme: dark;
   --brand-secondary: #ffc85a;
   --brand-highlight: #4a6492;
   --surface-base: #16223a;
@@ -204,6 +219,10 @@ body {
   --text-strong: #fff7ef;
   --text-muted: #d9e3f4;
   --stroke-subtle: rgba(255, 246, 234, 0.12);
+  --status-success: #95db9d;
+  --status-warning: #ffc96f;
+  --status-danger: #f6a098;
+  --shadow-soft: 0 28px 72px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.28);
   --wiki-page-background: var(--wiki-page-background-dark);
   --wiki-header-background: var(--wiki-header-background-dark);
   --wiki-header-text: var(--wiki-header-text-dark);

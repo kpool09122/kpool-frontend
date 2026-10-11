@@ -6,7 +6,7 @@ import { createWikiRequestBodyFromInitialFields, type createWiki } from "@/gatew
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { WikiDraftInitializer } from "./WikiDraftInitializer";
 
-const navigation = vi.hoisted(() => ({ refresh: vi.fn() }));
+const navigation = vi.hoisted(() => ({ refresh: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 
 const requestBody = createWikiRequestBodyFromInitialFields({
@@ -27,9 +27,10 @@ describe("WikiDraftInitializer", () => {
     vi.unstubAllGlobals();
     document.cookie = "XSRF-TOKEN=; Max-Age=0; Path=/";
     navigation.refresh.mockReset();
+    navigation.replace.mockReset();
   });
 
-  it("creates once in Strict Mode and refreshes only after creation succeeds", async () => {
+  it("creates once in Strict Mode and navigates to the returned draft ID only after creation succeeds", async () => {
     let complete!: (value: Awaited<ReturnType<typeof createWiki>>) => void;
     const createAdapter = vi.fn<typeof createWiki>().mockImplementation(() =>
       new Promise((resolve) => { complete = resolve; }),
@@ -39,8 +40,9 @@ describe("WikiDraftInitializer", () => {
     expect(createAdapter).toHaveBeenCalledTimes(1);
     expect(createAdapter).toHaveBeenCalledWith({ requestBody, fallbackErrorMessage: "Unable to load wiki" });
     expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.replace).not.toHaveBeenCalled();
     complete({ wikiIdentifier: "created", resourceType: "talent", language: "ko", name: "Nayeon", status: "pending" });
-    await waitFor(() => expect(navigation.refresh).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/wiki/created/edit?resourceType=talent"));
   });
 
   it("shows creation failures without refreshing or replaying the POST", async () => {
@@ -49,6 +51,7 @@ describe("WikiDraftInitializer", () => {
     expect(await screen.findByText("Please refresh the page and try again.")).toBeInTheDocument();
     expect(createAdapter).toHaveBeenCalledTimes(1);
     expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.replace).not.toHaveBeenCalled();
   });
 
   it.each([true, false])("posts through the BFF with a fresh CSRF token (cookie exists: %s)", async (hasCookie) => {
@@ -70,7 +73,7 @@ describe("WikiDraftInitializer", () => {
         <WikiDraftInitializer requestBody={requestBody} />
       </I18nProvider>,
     );
-    await waitFor(() => expect(navigation.refresh).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/wiki/created/edit?resourceType=talent"));
     expect(fetchMock).toHaveBeenCalledTimes(hasCookie ? 1 : 2);
     if (!hasCookie) {
       expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/identity/auth/csrf-token", {

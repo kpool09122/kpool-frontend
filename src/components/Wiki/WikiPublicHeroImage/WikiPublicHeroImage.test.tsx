@@ -69,6 +69,9 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
+    expect(screen.getAllByText("基本情報").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Basic")).not.toBeInTheDocument();
+
     expect(screen.getByText("Tap anywhere on the card to flip to the basic details.")).toBeInTheDocument();
     expect(screen.queryByText("Flip to reveal the basic profile")).not.toBeInTheDocument();
   });

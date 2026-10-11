@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
@@ -209,7 +210,7 @@ function PasskeyRecoveryPageContent({
               <div>
                 <h2 className="text-xl font-bold">{t.emailTitle}</h2>
               </div>
-              <form className="space-y-4" onSubmit={sendEmail}>
+              <LocalizedForm className="space-y-4" onSubmit={sendEmail}>
                 <label className="block space-y-2 text-sm font-semibold">
                   <span>{t.email}</span>
                   <input
@@ -221,10 +222,10 @@ function PasskeyRecoveryPageContent({
                     onChange={(event) => setEmail(event.target.value)}
                   />
                 </label>
-                <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-white disabled:opacity-60">
+                <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                   {pending ? t.sending : t.sendCode}
                 </button>
-              </form>
+              </LocalizedForm>
             </section>
           </div>
         ) : null}
@@ -243,7 +244,7 @@ function PasskeyRecoveryPageContent({
                 {t.changeEmail}
               </button>
             </div>
-            <form className="space-y-4" onSubmit={verifyEmail}>
+            <LocalizedForm className="space-y-4" onSubmit={verifyEmail}>
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.authCode}</span>
                 <input
@@ -257,10 +258,10 @@ function PasskeyRecoveryPageContent({
                   onChange={(event) => setAuthCode(event.target.value)}
                 />
               </label>
-              <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-white disabled:opacity-60">
+              <button type="submit" disabled={pending} className="min-h-12 w-full rounded-lg bg-brand-primary px-5 font-semibold text-on-primary disabled:opacity-60">
                 {pending ? t.verifying : t.verifyCode}
               </button>
-            </form>
+            </LocalizedForm>
             <div className="space-y-2 text-sm text-text-muted" aria-live="polite">
               {sendingStatus.status ? <p>{t.sendAccepted}</p> : null}
               {sendingStatus.remainingSends !== null ? <p>{t.remainingSends(sendingStatus.remainingSends)}</p> : null}
@@ -280,17 +281,17 @@ function PasskeyRecoveryPageContent({
         ) : null}
 
         {phase === "confirm" ? (
-          <section className="space-y-5 rounded-lg border border-red-300 bg-surface-raised p-6">
+          <section className="space-y-5 rounded-lg border border-status-danger bg-surface-raised p-6">
             <div>
               <h2 className="text-xl font-bold">{t.confirmTitle}</h2>
             </div>
-            <ul className="list-disc space-y-2 pl-5 text-sm font-semibold text-red-700">
+            <ul className="list-disc space-y-2 pl-5 text-sm font-semibold text-status-danger">
               <li>{t.deleteAllPasskeysWarning}</li>
               <li>{t.logoutAllSessionsWarning}</li>
               <li>{t.keepSsoWarning}</li>
               <li>{t.loginAgainWarning}</li>
             </ul>
-            <form className="space-y-4" onSubmit={registerReplacement}>
+            <LocalizedForm className="space-y-4" onSubmit={registerReplacement}>
               <label className="block space-y-2 text-sm font-semibold">
                 <span>{t.passkeyDisplayName}</span>
                 <input
@@ -309,22 +310,22 @@ function PasskeyRecoveryPageContent({
               <button type="submit" disabled={pending || !confirmed} className="min-h-12 w-full rounded-lg bg-red-700 px-5 font-semibold text-white disabled:opacity-60">
                 {pending ? t.recovering : t.recover}
               </button>
-            </form>
+            </LocalizedForm>
           </section>
         ) : null}
 
         {phase === "complete" ? (
-          <section className="space-y-4 rounded-lg border border-emerald-300 bg-surface-raised p-6" role="status">
+          <section className="space-y-4 rounded-lg border border-status-success bg-surface-raised p-6" role="status">
             <h2 className="text-xl font-bold">{t.completeTitle}</h2>
             <p className="text-sm leading-6 text-text-muted">{t.completeDescription}</p>
-            <Link href="/login" className="inline-flex min-h-12 items-center rounded-lg bg-brand-primary px-5 font-semibold text-white">
+            <Link href="/login" className="inline-flex min-h-12 items-center rounded-lg bg-brand-primary px-5 font-semibold text-on-primary">
               {t.loginAgain}
             </Link>
           </section>
         ) : null}
 
         {noticeMessage ? <p role="status" className="rounded-lg border border-stroke-subtle bg-surface-raised px-4 py-3 text-sm">{noticeMessage}</p> : null}
-        {errorMessage ? <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{errorMessage}</p> : null}
+        {errorMessage ? <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">{errorMessage}</p> : null}
 
         {phase !== "complete" ? (
           <Link href="/login" className="inline-flex text-sm font-semibold text-brand-primary underline-offset-4 hover:underline">

@@ -1,10 +1,10 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 import {
-  getWikiResourceLabel,
   type WikiBasic,
   type WikiOfficialColor,
   type WikiMasterSearchItem,
@@ -21,6 +21,7 @@ import {
   wikiZodiacSigns,
 } from "@kpool/wiki";
 import { dictionaries } from "../../../i18n/dictionaries";
+import { useI18n } from "../../../i18n/I18nProvider";
 import { normalizeLocale } from "../../../i18n/locales";
 import { getLines, getString } from "../editing";
 import { EditIcon } from "../icons";
@@ -199,6 +200,8 @@ function OfficialColorsInput({
   label: string;
   values: WikiOfficialColor[] | undefined;
 }) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.ui;
   const [colors, setColors] = useState<WikiOfficialColor[]>(() => (values ?? []).slice(0, 2));
 
   if (!isAlwaysVisible && !values?.length) {
@@ -231,7 +234,7 @@ function OfficialColorsInput({
               key={index}
             >
               <input
-                aria-label={`${label} color ${index + 1}`}
+                aria-label={`${label}: ${t.color} ${index + 1}`}
                 className={`${basicInputClassName} h-10 w-16 p-1`}
                 name="officialColorCode"
                 onChange={(event) => updateColor(index, { ...color, colorCode: event.currentTarget.value })}
@@ -240,17 +243,17 @@ function OfficialColorsInput({
                 value={toFormColorCode(color.colorCode)}
               />
               <input
-                aria-label={`${label} label ${index + 1}`}
+                aria-label={`${label}: ${t.colorLabel} ${index + 1}`}
                 className={basicInputClassName}
                 maxLength={16}
                 name="officialColorLabel"
                 onChange={(event) => updateColor(index, { ...color, label: event.currentTarget.value })}
-                placeholder="例: Solar Gold"
+                placeholder={t.colorPlaceholder}
                 type="text"
                 value={color.label}
               />
               <button
-                aria-label={`${label} color ${index + 1} を削除`}
+                aria-label={`${t.remove}: ${label} ${index + 1}`}
                 className="grid h-8 w-8 place-items-center rounded-full border border-stroke-subtle text-text-muted transition hover:bg-surface-base"
                 onClick={() => removeColor(index)}
                 type="button"
@@ -262,7 +265,7 @@ function OfficialColorsInput({
         </div>
         {colors.length < 2 ? (
           <button
-            aria-label={`${label} を追加`}
+            aria-label={`${t.add}: ${label}`}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-stroke-subtle text-text-strong"
             onClick={addColor}
             style={cardSurfaceMutedStyle}
@@ -365,7 +368,7 @@ export function WikiBasicPanel({
   disabled = false,
   isEditing,
   language = "en",
-  profileLabel = `${getWikiResourceLabel(basic.resourceType as WikiResourceType)} profile`,
+  profileLabel,
   onEdit,
   onCancel,
   onSave,
@@ -375,11 +378,13 @@ export function WikiBasicPanel({
   const isGroup = resourceType === "group";
   const isSong = resourceType === "song";
   const isTalent = resourceType === "talent";
-  const dictionary = dictionaries[normalizeLocale(language) ?? "ja"];
+  const { dictionary: uiDictionary } = useI18n();
+  const dictionary = isEditing ? uiDictionary : dictionaries[normalizeLocale(language) ?? "ja"];
   const enumLabels = dictionary.wiki.enumLabels;
   const heroT = dictionary.wiki.heroCard;
   const fieldLabels = dictionary.wiki.basicFieldLabels;
-  const resolvedProfileLabel = profileLabel === "Basic profile" ? heroT.basicProfile : profileLabel;
+  const resolvedProfileLabel = profileLabel === "Basic profile" ? heroT.basicProfile
+    : profileLabel ?? dictionary.wiki.profileLabel;
   const groupTypeOptions = toSelectOptions(wikiGroupTypes, enumLabels.groupType);
   const statusOptions = isAgency
     ? toSelectOptions(wikiAgencyStatuses, enumLabels.agencyStatus)
@@ -433,7 +438,7 @@ export function WikiBasicPanel({
 
   if (isEditing) {
     return (
-      <form
+      <LocalizedForm
         className="rounded-[1.75rem] border border-stroke-subtle p-6"
         onSubmit={(event) => {
           event.preventDefault();
@@ -494,7 +499,7 @@ export function WikiBasicPanel({
         style={cardSurfaceMutedStyle}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-          Basic
+          {heroT.basic}
         </p>
         <div className="mt-5 grid items-start gap-4 md:grid-cols-2">
           <BasicSelectInput
@@ -698,7 +703,7 @@ export function WikiBasicPanel({
           />
         </div>
         <WikiFormActions onCancel={onCancel} />
-      </form>
+      </LocalizedForm>
     );
   }
 
@@ -714,7 +719,7 @@ export function WikiBasicPanel({
           </p>
         </div>
         <button
-          aria-label={heroT.editBasic}
+          aria-label={uiDictionary.wiki.heroCard.editBasic}
           className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
           disabled={disabled}
           onClick={onEdit}

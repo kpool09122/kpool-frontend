@@ -32,8 +32,8 @@ describe("WikiSectionEditor", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: `Edit section ${wikiStorySection.title}` }));
-    fireEvent.click(screen.getByRole("button", { name: `Delete section ${wikiStorySection.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: `Edit section: ${wikiStorySection.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: `Delete section: ${wikiStorySection.title}` }));
 
     expect(onEdit).toHaveBeenCalledWith(`section:${wikiStorySection.sectionIdentifier}`);
     expect(onDeleteContent).toHaveBeenCalledWith(wikiStorySection.sectionIdentifier);
@@ -59,8 +59,8 @@ describe("WikiSectionEditor", () => {
       />,
     );
 
-    const editButton = screen.getByRole("button", { name: `Edit section ${wikiStorySection.title}` });
-    const deleteButton = screen.getByRole("button", { name: `Delete section ${wikiStorySection.title}` });
+    const editButton = screen.getByRole("button", { name: `Edit section: ${wikiStorySection.title}` });
+    const deleteButton = screen.getByRole("button", { name: `Delete section: ${wikiStorySection.title}` });
 
     expect(editButton).toBeDisabled();
     expect(deleteButton).toBeDisabled();
@@ -118,7 +118,7 @@ describe("WikiSectionEditor", () => {
     const section = screen
       .getByTestId(`wiki-edit-section-${wikiStorySection.sectionIdentifier}`);
     const toggle = screen.getByRole("button", {
-      name: `Toggle section ${wikiStorySection.title}`,
+      name: `Toggle section: ${wikiStorySection.title}`,
     });
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -126,7 +126,7 @@ describe("WikiSectionEditor", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(section).not.toHaveTextContent("Section title");
 
-    fireEvent.click(screen.getByRole("button", { name: `Edit section ${wikiStorySection.title}` }));
+    fireEvent.click(screen.getByRole("button", { name: `Edit section: ${wikiStorySection.title}` }));
 
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByLabelText("Section title")).toBeInTheDocument();

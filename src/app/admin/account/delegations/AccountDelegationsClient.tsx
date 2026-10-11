@@ -24,7 +24,7 @@ const DelegationAffiliationCard = ({ affiliation, currentAccountIdentifier, t }:
       </div>
       {request.isSuccess ? <AccountStatusMessage variant="success">{t.accountDelegations.requestSucceeded}</AccountStatusMessage> : null}
       {request.error ? <AccountStatusMessage variant="error">{request.error}</AccountStatusMessage> : null}
-      <div><button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={request.isPending || request.isSuccess} onClick={() => request.submit(targetAccount.accountIdentifier)} type="button">{request.isPending ? t.accountDelegations.requesting : t.accountDelegations.request}</button></div>
+      <div><button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50" disabled={request.isPending || request.isSuccess} onClick={() => request.submit(targetAccount.accountIdentifier)} type="button">{request.isPending ? t.accountDelegations.requesting : t.accountDelegations.request}</button></div>
     </article>
   );
 };
@@ -77,8 +77,8 @@ export function AccountDelegationsClient() {
         <article className="grid gap-3 rounded-lg border border-stroke-subtle p-4" key={delegation.delegationIdentifier}>
           <DelegationDetails delegation={delegation} t={t} />
           {allowReview ? <div className="flex flex-wrap gap-3">
-            {canApproveDelegations ? <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={lists.isReviewing} onClick={() => lists.submitReview("approve", delegation.delegationIdentifier)} type="button">{lists.isReviewing ? t.accountDelegations.reviewing : t.accountDelegations.approve}</button> : null}
-            {canRejectDelegations ? <button className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-50" disabled={lists.isReviewing} onClick={() => lists.submitReview("reject", delegation.delegationIdentifier)} type="button">{lists.isReviewing ? t.accountDelegations.reviewing : t.accountDelegations.reject}</button> : null}
+            {canApproveDelegations ? <button className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50" disabled={lists.isReviewing} onClick={() => lists.submitReview("approve", delegation.delegationIdentifier)} type="button">{lists.isReviewing ? t.accountDelegations.reviewing : t.accountDelegations.approve}</button> : null}
+            {canRejectDelegations ? <button className="rounded-lg border border-status-danger px-4 py-2 text-sm font-semibold text-status-danger disabled:opacity-50" disabled={lists.isReviewing} onClick={() => lists.submitReview("reject", delegation.delegationIdentifier)} type="button">{lists.isReviewing ? t.accountDelegations.reviewing : t.accountDelegations.reject}</button> : null}
           </div> : null}
         </article>
       ))}

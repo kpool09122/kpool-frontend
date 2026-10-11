@@ -2,14 +2,6 @@
 
 import { usePathname } from "next/navigation";
 
-import { useI18n } from "@/i18n/I18nProvider";
-
-import {
-  isAccountSetupRequired,
-  isAccountStatusUnavailable,
-  isAccountSuspended,
-} from "@/gateways/identity/identityApi";
-
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
 import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
@@ -20,10 +12,8 @@ import { AccountInvitationsClient } from "../account/invitations/AccountInvitati
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
-import { AccountInitialSetupClient } from "../AccountInitialSetupClient";
-import { AdminShellClient } from "../AdminShellClient";
-import { AdminProvider, useAdmin } from "../AdminProvider";
-import type { AdminRouteContext } from "../adminTypes";
+import { AdminRouteProvider } from "../AdminRouteProvider";
+import type { AdminRouteData } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
 import { UserOtherClient } from "../user/other/UserOtherClient";
 import { UserPageClient } from "../user/UserPageClient";
@@ -42,58 +32,17 @@ import { WikiSectionClient } from "../wiki/WikiSectionClient";
 import { WikiPrincipalGroupsClient } from "../wiki/principal-groups/WikiPrincipalGroupsClient";
 
 type AdminAppClientProps = {
-  context: AdminRouteContext;
+  data: AdminRouteData;
   returnTo?: string | null;
 };
 
-export function AdminAppClient({
-  context,
-  returnTo = null,
-}: AdminAppClientProps) {
-  const pathname = usePathname();
-  const { dictionary } = useI18n();
-  const page = resolveAdminClientPage(pathname);
-
-  if (isAccountStatusUnavailable(context.initialIdentity)) {
-    return (
-      <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
-        <section role="alert" className="mx-auto max-w-2xl space-y-3 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
-          <h1 className="text-2xl font-bold">{dictionary.admin.accountStatusErrorTitle}</h1>
-          <p className="text-sm leading-7 text-text-muted">{dictionary.admin.accountStatusErrorMessage}</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (isAccountSetupRequired(context.initialIdentity)) {
-    return (
-      <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
-        <AccountInitialSetupClient returnTo={returnTo} />
-      </main>
-    );
-  }
+export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
+  const page = resolveAdminClientPage(usePathname());
 
   return (
-    <AdminProvider initialContext={context}>
-      <AdminShellClient>
-        {isAccountSuspended(context.initialIdentity) ? (
-          <SuspendedAccountMessage />
-        ) : (
-          <AdminResolvedPage page={page} returnTo={returnTo} />
-        )}
-      </AdminShellClient>
-    </AdminProvider>
-  );
-}
-
-function SuspendedAccountMessage() {
-  const { t } = useAdmin();
-
-  return (
-    <section className="rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
-      <h2 className="text-xl font-bold">{t.suspendedAccountTitle}</h2>
-      <p className="mt-3 text-sm leading-7 text-text-muted">{t.suspendedAccountMessage}</p>
-    </section>
+    <AdminRouteProvider value={data}>
+      <AdminResolvedPage page={page} returnTo={returnTo} />
+    </AdminRouteProvider>
   );
 }
 

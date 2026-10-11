@@ -1,3 +1,4 @@
+import { getBrowserDictionary } from "@/i18n/browserDictionary";
 import {
   parseRedirectUrlResult,
   type IdentitySummary,
@@ -56,7 +57,7 @@ export const identityProviders: IdentityProvider[] = [
     iconClassName: "h-9 w-9",
     iconSize: 36,
     buttonClassName:
-      "border border-stroke-subtle bg-white text-text-strong hover:border-[#4285F4] hover:bg-[#f8fbff]",
+      "border border-stroke-subtle bg-surface-raised text-text-strong hover:border-[#4285F4] hover:bg-brand-highlight/20",
   },
   {
     id: "line",
@@ -113,10 +114,10 @@ export const getAuthErrorMessage = async (response: Response): Promise<string> =
       return (body as { message: string }).message;
     }
   } catch {
-    return "ログインに失敗しました。時間をおいて再度お試しください。";
+    return getBrowserDictionary().login.fallbackError;
   }
 
-  return "ログインに失敗しました。時間をおいて再度お試しください。";
+  return getBrowserDictionary().login.fallbackError;
 };
 
 export const loginWithPasskey: PasskeyLoginAdapter = async ({

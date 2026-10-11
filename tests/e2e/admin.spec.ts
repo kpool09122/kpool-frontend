@@ -71,6 +71,37 @@ test("admin shows the Wiki collaborator activation path", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("admin preserves sidebar state across tabs and sections", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useWikiPrincipal(page, "basic");
+  await page.goto("/admin/wiki/editing");
+
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("main")).toHaveCSS("padding-left", "80px");
+  await page.getByRole("tab", { name: "申請中のWiki" }).click();
+  await expect(page).toHaveURL(/\/admin\/wiki\/submitted$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
+
+  await page.getByRole("button", { name: "管理画面メニューを開く" }).click();
+  await expect(page.getByRole("main")).toHaveCSS("padding-left", "320px");
+  await page.getByRole("tab", { name: "申請中のWiki" }).click();
+  await expect(page).toHaveURL(/\/admin\/wiki\/submitted$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを閉じる" })).toHaveAttribute("aria-expanded", "true");
+
+  await page.getByRole("link", { name: "ユーザー設定", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/user\/profile$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを閉じる" })).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("main")).toHaveCSS("padding-left", "80px");
+  await page.getByRole("tab", { name: "言語", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/user\/language$/);
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
+});
+
 test("admin shows under review draft images for an available Wiki principal", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "image-review");
@@ -193,7 +224,7 @@ test("admin shows under review draft images for an available Wiki principal", as
   );
   await expect(page.getByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
     "href",
-    "/wiki/ja/gr-review-wiki/edit",
+    "/wiki/88888888-8888-8888-8888-888888888888/edit?resourceType=group",
   );
   await page.getByRole("tab", { name: "未承認の画像" }).click();
   await expect(page).toHaveURL(/\/admin\/wiki\/draft-images$/);
@@ -266,7 +297,7 @@ test("admin keeps wiki tabs interactive after browser back", async ({ page }) =>
   await page.goto("/admin");
   await expect(page.getByRole("link", { name: "編集中 Wiki" })).toBeVisible();
   await page.goto("/wiki/ja/gr-review-wiki/edit");
-  await expect(page).toHaveURL(/\/wiki\/ja\/gr-review-wiki\/edit$/);
+  await expect(page).toHaveURL(/\/wiki\/gr-review-wiki\/edit\?resourceType=group$/);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
@@ -732,6 +763,48 @@ test("admin exposes the withdrawal flow from the direct Other route on mobile", 
   await expect(page.getByRole("link", { name: "運営に問い合わせる" })).toHaveAttribute("href", "/contact");
   await expect(page.getByRole("button", { name: "退会手続きへ" })).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("admin keeps profile fields within the panel at mobile and desktop widths", async ({ page }) => {
+  await useJapaneseLocale(page);
+  await useAccountUpdatePolicy(page);
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.route("**/api/account/accounts/22222222-2222-2222-2222-222222222222", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      email: "member@example.com",
+      type: "corporation",
+      name: "Member Account",
+      status: "active",
+      accountCategory: "standard",
+      address: { countryCode: "JP", administrativeAreaCode: "JP-13" },
+    }),
+  }));
+
+  await page.goto("/admin/account/profile");
+  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByLabel("アカウント名")).toHaveValue("Member Account");
+  const panel = page.locator("section").filter({ has: page.getByRole("heading", { name: "プロフィール設定", exact: true }) }).last();
+
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect.poll(() => panel.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const left = bounds.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+      const right = bounds.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight);
+      return Array.from(element.querySelectorAll("input, select")).every((field) => {
+        const fieldBounds = field.getBoundingClientRect();
+        return fieldBounds.width > 0 && fieldBounds.left >= left - 1 && fieldBounds.right <= right + 1;
+      }) && bounds.right <= window.innerWidth;
+    }), { message: `Profile controls fit inside their panel at ${width}px` }).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.getByLabel("アカウント名").fill("モバイルから編集");
+  await expect(page.getByLabel("アカウント名")).toHaveValue("モバイルから編集");
 });
 
 test("admin lets account policy users edit account information", async ({ page }) => {

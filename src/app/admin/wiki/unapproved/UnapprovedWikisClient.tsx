@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { AdminWikiListItem } from "../../useAdminDraftWikis";
 import { useAdmin } from "../../AdminProvider";
+import { useAdminRouteData } from "../../AdminRouteProvider";
 import {
   OfficialCertificationBadge,
   WikiListCard,
@@ -32,7 +33,8 @@ type RejectDraftWikiDialogState = {
 
 export function UnapprovedWikisClient() {
   const tab = "unapprovedWikis";
-  const { currentIdentity, initialDraftWikis, locale, t } = useAdmin();
+  const { currentIdentity, locale, t } = useAdmin();
+  const { initialDraftWikis } = useAdminRouteData();
   const { draftWikiAdapter } = useWikiSection();
   const [rejectDialog, setRejectDialog] = useState<RejectDraftWikiDialogState>({
     isOpen: false,

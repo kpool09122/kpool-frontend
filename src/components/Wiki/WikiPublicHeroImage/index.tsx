@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import type { MouseEventHandler } from "react";
 import { useState } from "react";
 import { WikiImageDeletionRequestDialog } from "../WikiImageDeletionRequestDialog";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
@@ -13,12 +14,15 @@ import {
   transparentFrameStyle,
 } from "../styles";
 import { EditIcon } from "../icons";
+import { dictionaries } from "../../../i18n/dictionaries";
+import { normalizeLocale } from "../../../i18n/locales";
 import { useI18n } from "../../../i18n/I18nProvider";
 
 type WikiPublicHeroImageProps = {
   basic: WikiBasic;
   heroImage: WikiDetail["heroImage"];
   editHref?: string;
+  onEdit?: MouseEventHandler<HTMLAnchorElement>;
   flipCardId: string;
   language?: string;
   profileLabel?: string;
@@ -28,6 +32,7 @@ type WikiPublicHeroImageProps = {
 export function WikiPublicHeroImage({
   basic,
   editHref,
+  onEdit,
   heroImage,
   flipCardId,
   language = "ja",
@@ -35,8 +40,9 @@ export function WikiPublicHeroImage({
   translationSetIdentifier,
 }: WikiPublicHeroImageProps) {
   const { dictionary } = useI18n();
+  const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const t = dictionary.wiki.heroCard;
-  const resolvedProfileLabel = profileLabel ?? t.basicProfile;
+  const resolvedProfileLabel = profileLabel ?? contentDictionary.wiki.heroCard.basicProfile;
   const [isFlipped, setIsFlipped] = useState(false);
   const [isDeletionRequestOpen, setIsDeletionRequestOpen] = useState(false);
   const isHeroImageHidden = heroImage.isHidden === true;
@@ -100,7 +106,7 @@ export function WikiPublicHeroImage({
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                        {t.basic}
+                        {contentDictionary.wiki.heroCard.basic}
                       </p>
                       <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
                         {resolvedProfileLabel}
@@ -111,7 +117,7 @@ export function WikiPublicHeroImage({
                         aria-label={t.editBasic}
                         className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
                         href={editHref}
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
                         style={cardSurfaceStyle}
                       >
                         <EditIcon />
@@ -196,7 +202,7 @@ export function WikiPublicHeroImage({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                Basic
+                {contentDictionary.wiki.heroCard.basic}
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
                 {resolvedProfileLabel}
@@ -207,6 +213,7 @@ export function WikiPublicHeroImage({
                 aria-label={t.editBasic}
                 className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
                 href={editHref}
+                onClick={onEdit}
                 style={cardSurfaceStyle}
               >
                 <EditIcon />

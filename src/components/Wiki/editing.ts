@@ -14,42 +14,30 @@ export const blockTypes: WikiBlockType[] = [
   "profile_card_list",
 ];
 
-export const blockTypeLabels: Record<WikiBlockType, string> = {
-  text: "Text",
-  image: "Image",
-  image_gallery: "Gallery",
-  embed: "Embed",
-  quote: "Quote",
-  list: "List",
-  table: "Table",
-  profile_card_list: "Profiles",
-};
-
 
 export type WikiFontStyleLanguage = "ja" | "ko" | "en";
 
 export type WikiFontStyleOption = {
   value: WikiFontStyle;
   language: WikiFontStyleLanguage;
-  label: string;
 };
 
 export const wikiFontStyleOptions: WikiFontStyleOption[] = [
-  { value: "ja_pop", language: "ja", label: "JP Pop" },
-  { value: "ja_gothic", language: "ja", label: "JP Gothic" },
-  { value: "ja_mincho", language: "ja", label: "JP Mincho" },
-  { value: "ja_artistic", language: "ja", label: "JP Artistic" },
-  { value: "ja_handwritten", language: "ja", label: "JP Handwritten" },
-  { value: "ko_rounded", language: "ko", label: "KR Rounded" },
-  { value: "ko_gothic", language: "ko", label: "KR Gothic" },
-  { value: "ko_myungjo", language: "ko", label: "KR Myungjo" },
-  { value: "ko_modern", language: "ko", label: "KR Modern" },
-  { value: "ko_handwritten", language: "ko", label: "KR Handwritten" },
-  { value: "en_sans", language: "en", label: "EN Sans" },
-  { value: "en_serif", language: "en", label: "EN Serif" },
-  { value: "en_display", language: "en", label: "EN Display" },
-  { value: "en_modern", language: "en", label: "EN Modern" },
-  { value: "en_handwritten", language: "en", label: "EN Handwritten" },
+  { value: "ja_pop", language: "ja" },
+  { value: "ja_gothic", language: "ja" },
+  { value: "ja_mincho", language: "ja" },
+  { value: "ja_artistic", language: "ja" },
+  { value: "ja_handwritten", language: "ja" },
+  { value: "ko_rounded", language: "ko" },
+  { value: "ko_gothic", language: "ko" },
+  { value: "ko_myungjo", language: "ko" },
+  { value: "ko_modern", language: "ko" },
+  { value: "ko_handwritten", language: "ko" },
+  { value: "en_sans", language: "en" },
+  { value: "en_serif", language: "en" },
+  { value: "en_display", language: "en" },
+  { value: "en_modern", language: "en" },
+  { value: "en_handwritten", language: "en" },
 ];
 
 const wikiFontStyleLanguages: WikiFontStyleLanguage[] = ["ja", "ko", "en"];

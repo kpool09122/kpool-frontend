@@ -11,13 +11,15 @@ import {
 import type { useI18n } from "../../../../i18n/I18nProvider";
 import type { Locale } from "../../../../i18n/locales";
 import { useAdmin } from "../../AdminProvider";
+import { useAdminRouteData } from "../../AdminRouteProvider";
 import type { ImageDeletionRequestListState } from "../../useAdminImageDeletionRequestReview";
 import { formatDraftDate } from "../WikiContentClient";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useImageDeletionRequests } from "./useImageDeletionRequests";
 
 export function ImageDeletionRequestsClient() {
-  const { currentIdentity, initialImageDeletionRequests, locale, t } = useAdmin();
+  const { currentIdentity, locale, t } = useAdmin();
+  const { initialImageDeletionRequests } = useAdminRouteData();
   const { draftImageAdapter } = useWikiSection();
   const {
     imageDeletionRequests,
@@ -80,10 +82,10 @@ function ImageDeletionRequestListPanel({
 
   if (state.loadError) {
     return (
-      <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+      <div className="mt-5 rounded-lg border border-status-danger bg-status-danger/10 p-4 text-sm text-status-danger">
         <p role="alert" className="font-semibold">{state.loadError}</p>
         <button
-          className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold transition hover:bg-red-100"
+          className="mt-3 rounded-lg border border-status-danger px-4 py-2 font-semibold transition hover:bg-status-danger/10"
           onClick={onReload}
           type="button"
         >
@@ -119,7 +121,7 @@ function ImageDeletionRequestListPanel({
       ) : null}
       {reviewError ? (
         <p
-          className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+          className="rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger"
           role="alert"
         >
           {reviewError}
@@ -235,7 +237,7 @@ function ImageDeletionRequestCard({
         </dl>
         <div className="flex flex-wrap gap-2">
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isReviewing}
             onClick={() => onReviewImageDeletionRequest(image.imageIdentifier, "approve")}
             type="button"
@@ -287,7 +289,7 @@ function ImageDeletionRequestCard({
                 {t.cancelImageDeletionRequestReview}
               </button>
               <button
-                className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isReviewing || !trimmedRejectReason}
                 onClick={submitDialog}
                 type="button"

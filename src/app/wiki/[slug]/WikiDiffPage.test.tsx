@@ -42,8 +42,8 @@ describe("WikiDiffPage", () => {
       }),
     );
 
-    const publicRegion = screen.getByRole("region", { name: "before" });
-    const draftRegion = screen.getByRole("region", { name: "after" });
+    const publicRegion = screen.getByRole("region", { name: "変更前" });
+    const draftRegion = screen.getByRole("region", { name: "変更後" });
     const regions = screen.getAllByRole("region");
 
     expect(screen.queryByRole("heading", { name: "Wiki差分" })).not.toBeInTheDocument();

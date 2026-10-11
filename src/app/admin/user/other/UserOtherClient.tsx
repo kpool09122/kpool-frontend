@@ -188,7 +188,7 @@ export function UserOtherClient() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
             <p className="text-sm leading-6 text-text-muted">{t.withdrawalVerificationRequired}</p>
             <button
-              className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-60"
               disabled={isProcessing || verificationQuery.isFetching}
               onClick={() => void handleReauthentication()}
               ref={verifyButtonRef}
@@ -202,7 +202,7 @@ export function UserOtherClient() {
         ) : withdrawalUnavailable ? (
           <>
             <p className="text-sm leading-7 text-text-muted">{t.withdrawalNotAllowed}</p>
-            <Link className="inline-flex rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary" href="/contact" ref={contactLinkRef}>
+            <Link className="inline-flex rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary" href="/contact" ref={contactLinkRef}>
               {t.withdrawalContact}
             </Link>
           </>
@@ -222,7 +222,7 @@ export function UserOtherClient() {
           <>
             <p className="text-sm leading-7 text-text-muted">{t.withdrawalDescription}</p>
             <button
-              className="rounded-lg border border-red-300 px-5 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              className="rounded-lg border border-status-danger px-5 py-2.5 text-sm font-semibold text-status-danger transition hover:bg-status-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
               onClick={() => {
                 setError(null);
                 setConfirmationIdentityName("");
@@ -245,7 +245,7 @@ export function UserOtherClient() {
             <h2 className="text-xl font-bold" id="withdrawal-dialog-title">{t.withdrawalDialogTitle}</h2>
             <ul className="list-disc space-y-3 pl-5 text-sm leading-7 text-text-muted">
               <li>{t.withdrawalPersonalNotice}</li>
-              <li className="font-semibold text-red-700">
+              <li className="font-semibold text-status-danger">
                 <p>{t.withdrawalIrreversibleNotice}</p>
                 <p className="mt-1 font-normal">{t.withdrawalIrreversibleDetail}</p>
               </li>

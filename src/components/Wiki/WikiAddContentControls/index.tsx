@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   WIKI_SECTION_MAX_DEPTH,
   type WikiBlockType,
   type WikiSection,
 } from "@kpool/wiki";
 
-import { blockTypeLabels, blockTypes } from "../editing";
+import { blockTypes } from "../editing";
 import { cardSurfaceStyle } from "../styles";
 import { useI18n } from "../../../i18n/I18nProvider";
 
@@ -28,6 +28,20 @@ export function WikiAddContentControls({
   const t = dictionary.wiki.addContentControls;
   const canAddSection = section.depth < WIKI_SECTION_MAX_DEPTH;
   const [isBlockMenuOpen, setIsBlockMenuOpen] = useState(false);
+  const blockMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isBlockMenuOpen) return;
+
+    const closeOnOutsidePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !blockMenuRef.current?.contains(event.target)) {
+        setIsBlockMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointerDown, true);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown, true);
+  }, [isBlockMenuOpen]);
 
   return (
     <div className="rounded-2xl border border-dashed border-stroke-subtle p-4" data-testid={`wiki-edit-add-section-${section.sectionIdentifier}`}>
@@ -41,7 +55,7 @@ export function WikiAddContentControls({
         >
           {t.addSection}
         </button>
-        <div className="relative">
+        <div className="relative" ref={blockMenuRef}>
           <button
             aria-expanded={isBlockMenuOpen}
             className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
@@ -64,7 +78,7 @@ export function WikiAddContentControls({
                   }}
                   type="button"
                 >
-                  {blockTypeLabels[blockType]}
+                  {dictionary.wiki.blockTypes[blockType]}
                 </button>
               ))}
             </div>

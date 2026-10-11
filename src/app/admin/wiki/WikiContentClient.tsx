@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
@@ -13,6 +14,7 @@ import { localeLabels, type Locale } from "../../../i18n/locales";
 import { buildWikiThemeCssVariables } from "../../wiki/[slug]/wikiThemePalette";
 import type { WikiDraftWiki } from "@/gateways/wiki/draftWiki";
 import {
+  buildWikiDraftEditPath,
   type WikiMasterSearchItem,
   type WikiResourceType,
   wikiResourceTypes,
@@ -74,7 +76,7 @@ export function CreateDraftWikiDialog({
       className="fixed inset-0 z-50 grid place-items-center bg-black/45 px-4 py-6"
       role="dialog"
     >
-      <form
+      <LocalizedForm
         className="w-full max-w-md rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft"
         onSubmit={(event) => {
           event.preventDefault();
@@ -200,7 +202,7 @@ export function CreateDraftWikiDialog({
           ) : null}
           {error ? (
             <p
-              className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800"
+              className="rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger"
               role="alert"
             >
               {error}
@@ -217,14 +219,14 @@ export function CreateDraftWikiDialog({
             {t.cancelCreateWiki}
           </button>
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isCreating}
             type="submit"
           >
             {isCreating ? t.creatingWiki : effectiveMode === "auto" ? t.autoCreateWiki : t.createWiki}
           </button>
         </div>
-      </form>
+      </LocalizedForm>
     </div>
   );
 }
@@ -248,7 +250,7 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
       role="dialog"
     >
-      <form
+      <LocalizedForm
         className="mx-auto w-full max-w-[30rem] rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft"
         onSubmit={(event) => {
           event.preventDefault();
@@ -275,7 +277,7 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
           />
         </label>
         {!trimmedReason ? (
-          <p className="mt-2 text-sm font-semibold text-red-700" role="alert">
+          <p className="mt-2 text-sm font-semibold text-status-danger" role="alert">
             {t.rejectDraftWikiReasonRequired}
           </p>
         ) : null}
@@ -292,14 +294,14 @@ export function RejectDraftWikiDialog(props: RejectDraftWikiDialogProps) {
             {t.cancelDraftWikiRejectReason}
           </button>
           <button
-            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting || !trimmedReason}
             type="submit"
           >
             {isSubmitting ? t.draftWikiReviewing : t.submitDraftWikiRejectReason}
           </button>
         </div>
-      </form>
+      </LocalizedForm>
     </section>
   );
 }
@@ -425,7 +427,7 @@ export function DraftWikiRejectionReasonButton({
     <>
       <button
         aria-label={t.showDraftWikiRejectReason}
-        className="grid size-8 place-items-center text-yellow-500 transition hover:text-yellow-600"
+        className="grid size-8 place-items-center text-yellow-500 transition hover:text-status-warning"
         onClick={() => setIsRejectionReasonOpen(true)}
         type="button"
       >
@@ -456,7 +458,7 @@ const isDraftWikiListItem = (wiki: AdminWikiListItem): wiki is WikiDraftWiki =>
 export const getDraftWikiListCardHref = (wiki: AdminWikiListItem, tab: AdminDraftWikiActionTab): string =>
   tab === "untranslatedWikis"
     ? `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}`
-    : `/wiki/${encodeURIComponent(wiki.language)}/${encodeURIComponent(wiki.slug)}/edit`;
+    : buildWikiDraftEditPath(wiki.wikiIdentifier, wiki.resourceType);
 
 export const getDraftWikiListCardMeta = ({
   locale,

@@ -1,5 +1,8 @@
 "use client";
 
+import { LocalizedForm } from "@/components/LocalizedForm";
+import { useI18n } from "@/i18n/I18nProvider";
+
 import { useState } from "react";
 import {
   isWikiBlock,
@@ -47,8 +50,9 @@ function WikiSectionForm({
   onCancel: () => void;
   onSave: (changes: Pick<WikiSection, "title">) => void;
 }) {
+  const { dictionary } = useI18n();
   return (
-    <form
+    <LocalizedForm
       className="grid gap-4"
       onSubmit={(event) => {
         event.preventDefault();
@@ -59,11 +63,11 @@ function WikiSectionForm({
       }}
     >
       <label className="grid gap-2 text-sm font-semibold text-text-strong">
-        Section title
+        {dictionary.wiki.ui.sectionTitle}
         <input className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={section.title} name="title" />
       </label>
       <WikiFormActions onCancel={onCancel} />
-    </form>
+    </LocalizedForm>
   );
 }
 
@@ -81,6 +85,8 @@ export function WikiSectionEditor({
   onAddBlock,
   onDeleteContent,
 }: WikiSectionEditorProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.ui;
   const contents = sortWikiSectionContents(section.contents);
   const sectionEditorId: WikiContentEditorId = `section:${section.sectionIdentifier}`;
   const [isOpen, setIsOpen] = useState(true);
@@ -94,7 +100,7 @@ export function WikiSectionEditor({
       <div className="flex items-center gap-3 p-5 text-left">
         <button
           aria-expanded={isOpen}
-          aria-label={`Toggle section ${section.title}`}
+          aria-label={`${t.toggleSection}: ${section.title}`}
           className="section-accordion__chevron rounded-full border border-stroke-subtle p-2 text-text-muted transition-transform"
           onClick={() => setIsOpen((open) => !open)}
           style={{
@@ -109,7 +115,7 @@ export function WikiSectionEditor({
           <span className="block text-2xl font-semibold tracking-[-0.03em] text-text-strong">{section.title}</span>
         </span>
         <button
-          aria-label={`Edit section ${section.title}`}
+          aria-label={`${t.editSection}: ${section.title}`}
           className="rounded-full border border-stroke-subtle p-3 text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
           disabled={disabled}
           onClick={() => {
@@ -122,7 +128,7 @@ export function WikiSectionEditor({
           <EditIcon />
         </button>
         <button
-          aria-label={`Delete section ${section.title}`}
+          aria-label={`${t.deleteSection}: ${section.title}`}
           className="rounded-full border border-status-danger/30 p-3 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted"
           disabled={disabled}
           onClick={() => onDeleteContent(section.sectionIdentifier)}

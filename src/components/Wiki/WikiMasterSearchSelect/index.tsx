@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/i18n/I18nProvider";
+
 import { type KeyboardEvent, useMemo, useState } from "react";
 import type { WikiResourceType } from "@kpool/wiki";
 
@@ -37,11 +39,13 @@ export function WikiMasterSearchSelect({
   mode = "single",
   name,
   onChange,
-  placeholder = "Wiki名で検索",
+  placeholder,
   resourceType,
   selectedItems,
   showSelectedItems = true,
 }: WikiMasterSearchSelectProps) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.ui;
   const [keyword, setKeyword] = useState(selectedItems[0]?.name ?? "");
   const [isOpen, setIsOpen] = useState(false);
   const [searchState, setSearchState] = useState<SearchState>({ status: "idle" });
@@ -55,7 +59,7 @@ export function WikiMasterSearchSelect({
 
     if (!trimmedKeyword) {
       setIsOpen(true);
-      setSearchState({ status: "error", message: "検索キーワードを入力してください" });
+      setSearchState({ status: "error", message: t.keywordRequired });
       return;
     }
 
@@ -63,7 +67,7 @@ export function WikiMasterSearchSelect({
     setSearchState({ status: "loading" });
 
     void fetchWikiMasterSearch({
-      fallbackErrorMessage: "Wiki候補の検索に失敗しました",
+      fallbackErrorMessage: t.searchFailed,
       keyword: trimmedKeyword,
       language,
       resourceType,
@@ -73,7 +77,7 @@ export function WikiMasterSearchSelect({
       console.error("Failed to search wiki masters", error);
       setSearchState({
         status: "error",
-        message: error instanceof Error ? error.message : "Wiki候補の検索に失敗しました",
+        message: error instanceof Error ? error.message : t.searchFailed,
       });
     });
   };
@@ -104,12 +108,13 @@ export function WikiMasterSearchSelect({
     : selectedItems.map((item) => item.wikiIdentifier).join(",");
 
   return (
-    <div className="grid min-w-0 self-start gap-2 text-sm font-semibold text-text-strong">
+    <div className="grid min-w-0 self-start gap-2 text-sm font-semibold text-text-strong" data-unsaved-value={hiddenValue}>
       <label className="grid min-w-0 gap-2">
         {label}
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1.5">
           <input
-            aria-label={`${label} keyword`}
+            data-unsaved-ignore
+            aria-label={`${label}: ${t.keyword}`}
             className="h-9 min-w-0 rounded-lg border border-stroke-subtle bg-surface-raised px-2.5 text-sm"
             disabled={disabled || searchState.status === "loading"}
             onChange={(event) => {
@@ -126,7 +131,7 @@ export function WikiMasterSearchSelect({
                 search();
               }
             }}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t.searchPlaceholder}
             value={keyword}
           />
           <button
@@ -135,18 +140,18 @@ export function WikiMasterSearchSelect({
             onClick={search}
             type="button"
           >
-            {searchState.status === "loading" ? "検索中" : "検索"}
+            {searchState.status === "loading" ? t.searching : t.search}
           </button>
         </div>
       </label>
       {name ? <input name={name} type="hidden" value={hiddenValue} /> : null}
       {showSelectedItems && selectedItems.length > 0 ? (
-        <div className="flex min-w-0 max-w-full flex-wrap gap-1.5" aria-label={`${label} selected`}>
+        <div className="flex min-w-0 max-w-full flex-wrap gap-1.5" aria-label={`${label}: ${t.selected}`}>
           {selectedItems.map((item) => (
             <span className={chipClassName} key={item.wikiIdentifier}>
               <span className="min-w-0 truncate">{item.name}</span>
               <button
-                aria-label={`${item.name} を削除`}
+                aria-label={`${t.remove}: ${item.name}`}
                 className="shrink-0 text-text-muted hover:text-status-danger"
                 disabled={disabled}
                 onClick={() => removeItem(item.wikiIdentifier)}
@@ -160,7 +165,7 @@ export function WikiMasterSearchSelect({
       ) : null}
       {isOpen && searchState.status === "loading" ? (
         <p className="min-w-0 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-3 text-sm text-text-muted">
-          Wiki候補を検索しています
+          {t.searchLoading}
         </p>
       ) : null}
       {isOpen && searchState.status === "error" ? (
@@ -170,7 +175,7 @@ export function WikiMasterSearchSelect({
       ) : null}
       {isOpen && searchState.status === "success" && searchState.items.length === 0 ? (
         <p className="min-w-0 rounded-xl border border-stroke-subtle bg-surface-base px-3 py-3 text-sm text-text-muted">
-          候補が見つかりません
+          {t.searchEmpty}
         </p>
       ) : null}
       {isOpen && searchState.status === "success" && searchState.items.length > 0 ? (

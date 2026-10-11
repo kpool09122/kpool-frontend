@@ -1,3 +1,7 @@
+"use client";
+
+import { useI18n } from "@/i18n/I18nProvider";
+
 export function EditIcon() {
   return (
     <svg
@@ -72,9 +76,10 @@ export function ChevronIcon() {
 }
 
 export function ImageEditableOverlay() {
+  const { dictionary } = useI18n();
   return (
     <span className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
-      Selected image
+      {dictionary.wiki.ui.selectedImage}
     </span>
   );
 }

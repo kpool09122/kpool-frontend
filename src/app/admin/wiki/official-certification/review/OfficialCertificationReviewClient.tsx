@@ -14,9 +14,9 @@ import { useOfficialCertificationReviews, type OfficialCertificationReviewListSt
 type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
 
 const statusErrorClassName =
-  "rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800";
+  "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
 const statusSuccessClassName =
-  "rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800";
+  "rounded-lg border border-status-success bg-status-success/10 p-3 text-sm font-semibold text-status-success";
 
 const getOfficialCertificationReviewSuccessMessage = (
   t: AdminDictionary,
@@ -99,10 +99,10 @@ function OfficialCertificationReviewListPanel({
 
   if (state.loadError) {
     return (
-      <div className="mt-5 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800">
+      <div className="mt-5 rounded-lg border border-status-danger bg-status-danger/10 p-4 text-sm text-status-danger">
         <p role="alert" className="font-semibold">{state.loadError}</p>
         <button
-          className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold transition hover:bg-red-100"
+          className="mt-3 rounded-lg border border-status-danger px-4 py-2 font-semibold transition hover:bg-status-danger/10"
           onClick={onReload}
           type="button"
         >
@@ -235,7 +235,7 @@ function OfficialCertificationReviewCard({
       </dl>
       <div className="mt-5 flex flex-wrap gap-2">
         <button
-          className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isReviewing}
           onClick={() => onReviewOfficialCertification(certification.certificationIdentifier, "approve")}
           type="button"

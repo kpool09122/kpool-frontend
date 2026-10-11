@@ -19,6 +19,7 @@ import {
 import { siteTitle } from "./metadata";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
+import { themeBootstrapScript } from "./themeMode";
 import { AnalyticsProvider } from "@/components/Analytics/AnalyticsProvider";
 import { resolveGtmContainerId } from "@/gateways/analytics/wikiAnalytics";
 
@@ -51,6 +52,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+      </head>
       <body className="flex min-h-dvh flex-col antialiased">
         <I18nProvider initialLocale={locale}>
           <QueryProvider>

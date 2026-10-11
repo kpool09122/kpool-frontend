@@ -26,7 +26,7 @@ export function UserProfileClient() {
     <UserSettingsPanel
       action={
         <button
-          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={settingsState.isSaving || !currentIdentity}
           onClick={onSave}
           type="button"
@@ -91,7 +91,7 @@ export function UserProfileClient() {
             </label>
             {profileImageSrc ? (
               <button
-                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-status-danger px-4 py-2 text-sm font-semibold text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={settingsState.isSaving || !currentIdentity}
                 onClick={onProfileImageDelete}
                 type="button"

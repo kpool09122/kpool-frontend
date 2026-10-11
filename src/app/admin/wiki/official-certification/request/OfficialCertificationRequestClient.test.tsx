@@ -157,7 +157,7 @@ describe("OfficialCertificationRequestClient", () => {
     renderClient();
 
     await screen.findByRole("button", { name: "公式認証を申請" });
-    fireEvent.change(screen.getByLabelText("Wiki keyword"), {
+    fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), {
       target: { value: "twice" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
@@ -437,7 +437,7 @@ describe("OfficialCertificationRequestClient", () => {
     renderClient();
 
     await screen.findByRole("button", { name: "公式認証を申請" });
-    fireEvent.change(screen.getByLabelText("Wiki keyword"), {
+    fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), {
       target: { value: "twice" },
     });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
@@ -447,6 +447,6 @@ describe("OfficialCertificationRequestClient", () => {
     const alert = await screen.findByRole("alert");
 
     expect(alert).toHaveTextContent("Official certification is temporarily unavailable. Please try again later.");
-    expect(alert).toHaveClass("border-red-300", "bg-red-50", "text-red-800");
+    expect(alert).toHaveClass("border-status-danger", "bg-status-danger/10", "text-status-danger");
   });
 });

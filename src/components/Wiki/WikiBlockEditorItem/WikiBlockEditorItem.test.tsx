@@ -21,8 +21,8 @@ describe("WikiBlockEditorItem", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Edit text block" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Delete text block" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ブロックを編集: テキスト" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ブロックを削除: テキスト" })).toBeInTheDocument();
   });
 
   it("calls edit and delete handlers", () => {
@@ -41,8 +41,8 @@ describe("WikiBlockEditorItem", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit text block" })[0]);
-    fireEvent.click(screen.getAllByRole("button", { name: "Delete text block" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "ブロックを編集: テキスト" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "ブロックを削除: テキスト" })[0]);
 
     expect(onEdit).toHaveBeenCalled();
     expect(onDelete).toHaveBeenCalled();
@@ -65,8 +65,8 @@ describe("WikiBlockEditorItem", () => {
       />,
     );
 
-    const editButton = screen.getAllByRole("button", { name: "Edit text block" })[0];
-    const deleteButton = screen.getAllByRole("button", { name: "Delete text block" })[0];
+    const editButton = screen.getAllByRole("button", { name: "ブロックを編集: テキスト" })[0];
+    const deleteButton = screen.getAllByRole("button", { name: "ブロックを削除: テキスト" })[0];
 
     expect(editButton).toBeDisabled();
     expect(deleteButton).toBeDisabled();

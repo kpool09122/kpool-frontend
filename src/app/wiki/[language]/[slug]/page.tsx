@@ -10,6 +10,7 @@ type WikiDetailRouteProps = {
   }>;
   searchParams: Promise<{
     themeColor?: string | string[];
+    edit?: string | string[];
   }>;
 };
 
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
 
 export default async function Page({ params, searchParams }: WikiDetailRouteProps) {
   const { language, slug } = await params;
-  const { themeColor } = await searchParams;
+  const { themeColor, edit } = await searchParams;
   const wikiState = await loadPublicWikiState(language, slug);
 
   return (
@@ -45,6 +46,7 @@ export default async function Page({ params, searchParams }: WikiDetailRouteProp
       slug={slug}
       themeColor={getThemeColor(themeColor)}
       wikiState={wikiState}
+      resumeEditing={getThemeColor(edit) === "1"}
     />
   );
 }

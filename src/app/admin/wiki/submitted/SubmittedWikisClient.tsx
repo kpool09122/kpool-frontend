@@ -1,6 +1,7 @@
 "use client";
 
 import { useAdmin } from "../../AdminProvider";
+import { useAdminRouteData } from "../../AdminRouteProvider";
 import {
   OfficialCertificationBadge,
   WikiListCard,
@@ -20,7 +21,8 @@ import { useSubmittedDraftWikis } from "./useSubmittedDraftWikis";
 
 export function SubmittedWikisClient() {
   const tab = "submittedWikis";
-  const { currentIdentity, initialDraftWikis, locale, t } = useAdmin();
+  const { currentIdentity, locale, t } = useAdmin();
+  const { initialDraftWikis } = useAdminRouteData();
   const { draftWikiAdapter } = useWikiSection();
   const {
     draftWiki,

@@ -73,15 +73,28 @@ export type WikiEditRequestPayload = {
   imageIdentifier?: string | null;
 };
 
+export type WikiCodeErrorCode =
+  | "invalidMacro"
+  | "imageRequired"
+  | "galleryRequired"
+  | "galleryImageRequired"
+  | "embedRequired"
+  | "headingSkipped"
+  | "headingTitleRequired"
+  | "headingRequired"
+  | "headingDepth";
+
+export type WikiCodeWarningCode = "fileLink" | "extendedTable";
+
 export type WikiCodeParseResult =
   | {
       ok: true;
       sections: WikiSection[];
-      warnings: string[];
+      warnings: WikiCodeWarningCode[];
     }
   | {
       ok: false;
-      message: string;
+      code: WikiCodeErrorCode;
     };
 
 const DISPLAY_ORDER_STEP = 10;
@@ -390,14 +403,14 @@ const trimOverflowCells = (
   return trimmed;
 };
 
-const createParseError = (message: string): WikiCodeParseResult => ({
+const createParseError = (code: WikiCodeErrorCode): WikiCodeParseResult => ({
   ok: false,
-  message,
+  code,
 });
 
 const createParseSuccess = (
   sections: WikiSection[],
-  warnings: string[] = [],
+  warnings: WikiCodeWarningCode[] = [],
 ): WikiCodeParseResult => ({
   ok: true,
   sections,
@@ -489,16 +502,16 @@ type WikiCodeBlocksParseResult =
   | {
       ok: true;
       blocks: WikiBlock[];
-      warnings: string[];
+      warnings: WikiCodeWarningCode[];
     }
   | {
       ok: false;
-      message: string;
+      code: WikiCodeErrorCode;
     };
 
-const createBlockParseError = (message: string): WikiCodeBlocksParseResult => ({
+const createBlockParseError = (code: WikiCodeErrorCode): WikiCodeBlocksParseResult => ({
   ok: false,
-  message,
+  code,
 });
 
 const isSupportedCodeMacro = (name: string): boolean =>
@@ -525,11 +538,11 @@ const isStructuredBlockStart = (line: string): boolean =>
   isListLine(line) ||
   isTableLine(line);
 
-const detectTextFallbackWarnings = (content: string): string[] => {
-  const warnings = new Set<string>();
+const detectTextFallbackWarnings = (content: string): WikiCodeWarningCode[] => {
+  const warnings = new Set<WikiCodeWarningCode>();
 
   if (/\[\[(파일|File):[^[\]]+\]\]/.test(content)) {
-    warnings.add("File link syntax is still preserved as plain text in the GUI editor.");
+    warnings.add("fileLink");
   }
 
   return [...warnings];
@@ -616,7 +629,7 @@ const parseIncludeEmbedBlock = (
 
 const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
   const blocks: WikiBlock[] = [];
-  const warnings = new Set<string>();
+  const warnings = new Set<WikiCodeWarningCode>();
   let cursor = 0;
 
   const addBlock = (block: Record<string, unknown> & { blockType: WikiBlockType }) => {
@@ -696,7 +709,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
           parsedCells.some(({ hasUnsupportedAttributes }) => hasUnsupportedAttributes)
         ) {
           warnings.add(
-            "Extended table syntax was preserved as plain cell text because the GUI table editor cannot model merged cells or attributes yet.",
+            "extendedTable",
           );
         }
 
@@ -732,14 +745,14 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
 
       if (macro?.name === "__invalid__") {
         return createBlockParseError(
-          "Code mode could not parse a structured block. Fix the macro syntax or clear the draft.",
+          "invalidMacro",
         );
       }
 
       if (macro && isSupportedCodeMacro(macro.name)) {
         if (macro.name === "image") {
           if (!macro.fields.id || !macro.fields.src) {
-            return createBlockParseError("Image blocks require both id and src.");
+            return createBlockParseError("imageRequired");
           }
 
           addBlock({
@@ -757,7 +770,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
           const rawImages = macro.fields.images;
 
           if (!rawImages) {
-            return createBlockParseError("Gallery blocks require at least one image entry.");
+            return createBlockParseError("galleryRequired");
           }
 
           const images = splitEscaped(rawImages, ",").map((entry) => {
@@ -776,7 +789,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
 
           if (images.some((image) => image == null)) {
             return createBlockParseError(
-              "Gallery image entries must include both identifier and src.",
+              "galleryImageRequired",
             );
           }
 
@@ -791,7 +804,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
 
         if (macro.name === "embed") {
           if (!macro.fields.provider || !macro.fields.id) {
-            return createBlockParseError("Embed blocks require provider and id.");
+            return createBlockParseError("embedRequired");
           }
 
           addBlock({
@@ -894,7 +907,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
   let sectionStack: WikiSection[] = [];
   let pendingLines: string[] = [];
   let headingBaseDepth: number | null = null;
-  const warnings = new Set<string>();
+  const warnings = new Set<WikiCodeWarningCode>();
 
   const replaceSectionInStack = (nextSection: WikiSection) => {
     const depthIndex = nextSection.depth - 1;
@@ -943,7 +956,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
     const parsedBlocks = parseCodeBlocks(pendingLines);
 
     if (!parsedBlocks.ok) {
-      return createParseError(parsedBlocks.message);
+      return createParseError(parsedBlocks.code);
     }
 
     for (const warning of parsedBlocks.warnings) {
@@ -971,20 +984,20 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
 
       if (normalizedHeadingDepth < 1 || normalizedHeadingDepth > WIKI_SECTION_MAX_DEPTH) {
         return createParseError(
-          `Code mode supports headings up to depth ${WIKI_SECTION_MAX_DEPTH}.`,
+          "headingDepth",
         );
       }
 
       if (normalizedHeadingDepth > sectionStack.length + 1) {
         return createParseError(
-          "Heading depth cannot skip levels. Add the missing parent section first.",
+          "headingSkipped",
         );
       }
 
       const title = getHeadingTitle(trimmedLine);
 
       if (!title) {
-        return createParseError("Section headings must include a title.");
+        return createParseError("headingTitleRequired");
       }
 
       sectionStack = sectionStack.slice(0, normalizedHeadingDepth - 1);
@@ -1015,7 +1028,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
 
     if (!sectionStack.length && trimmedLine) {
       return createParseError(
-        "Add a top-level heading like = Overview = before writing section content.",
+        "headingRequired",
       );
     }
 
