@@ -410,6 +410,7 @@ const PrincipalSummary = z
     isEnabled: z.boolean(),
     accountPrincipalCount: z.number().int().min(1),
     policies: z.array(EffectivePolicySummary),
+    accountPrincipalCount: z.number().int().gte(1),
   })
   .passthrough();
 const CreateRoleRequestBody = z
