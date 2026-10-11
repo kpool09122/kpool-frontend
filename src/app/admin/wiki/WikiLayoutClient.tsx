@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import {
-  canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
@@ -12,6 +11,7 @@ import {
   canReviewWikiImageDeletionRequests,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
+import { canShowWikiPrincipalGroupManagement } from "../principalGroupVisibility";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import {
   adminWikiTabRoutes,
@@ -66,7 +66,7 @@ export function WikiLayoutClient({
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(state.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
-    const canManagePrincipalGroups = canManageWikiPrincipalGroups(state.principal);
+    const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(state.principal);
     const canRequestOfficialCertification = officialCertificationRequestResourceTypes.length > 0;
 
     const tabs: Array<{ id: AdminWikiTab; label: string }> = [

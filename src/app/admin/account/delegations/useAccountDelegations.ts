@@ -23,8 +23,8 @@ export const getDelegationTargetAccount = (
 
 export const useActiveDelegationAffiliations = ({ enabled, t }: { enabled: boolean; t: AdminDictionary }) => useQuery({
   enabled,
-  queryFn: () => fetchAffiliations({ fallbackErrorMessage: t.accountDelegations.loadFailed, status: "active" }),
-  queryKey: adminQueryKeys.account.affiliations({ status: "active" }),
+  queryFn: () => fetchAffiliations({ fallbackErrorMessage: t.accountDelegations.loadFailed, status: "active", excludeOpenDelegations: true }),
+  queryKey: adminQueryKeys.account.affiliations({ status: "active", excludeOpenDelegations: true }),
 });
 
 const getRequestErrorMessage = (error: unknown, t: AdminDictionary): string => {
@@ -51,7 +51,10 @@ export const useRequestDelegation = (t: AdminDictionary) => {
     inFlight.current = true;
     mutation.mutate(targetAccountIdentifier, {
       onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.delegations.all() });
+        void Promise.all([
+          queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.delegations.all() }),
+          queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.affiliations({ status: "active", excludeOpenDelegations: true }) }),
+        ]);
       },
       onSettled: () => { inFlight.current = false; },
     });
@@ -113,6 +116,7 @@ export const useAccountDelegationLists = ({
         queryClient.invalidateQueries({ queryKey: requestedKey }),
         queryClient.invalidateQueries({ queryKey: pendingKey }),
         queryClient.invalidateQueries({ queryKey: approvedKey }),
+        queryClient.invalidateQueries({ queryKey: adminQueryKeys.account.affiliations({ status: "active", excludeOpenDelegations: true }) }),
       ]);
     },
     onError: (caughtError, variables) => {

@@ -107,4 +107,15 @@ describe("/api/account/affiliations route", () => {
     await expect(response.json()).resolves.toEqual({ message: "Invalid account affiliation request." });
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("forwards the open-delegation exclusion filter", async () => {
+    vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
+    const listResponse = { affiliations: [], current_page: 1, last_page: 1, total: 0, per_page: 50 };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(listResponse), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await GET(createGetRequest("https://app.example.test/api/account/affiliations?excludeOpenDelegations=true&status=active"));
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith("https://account.example.test/api/v1/account/affiliations?excludeOpenDelegations=true&status=active", expect.any(Object));
+  });
+
 });

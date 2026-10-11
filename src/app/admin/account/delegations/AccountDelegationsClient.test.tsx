@@ -39,7 +39,7 @@ const renderClient = (permissions: { request?: boolean; approve?: boolean; rejec
 
 const installFetch = (reviewStatus = 200) => {
   const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-    if (url === "/api/account/affiliations?status=active") return Promise.resolve(new Response(JSON.stringify(page("affiliations", [affiliation])), { status: 200 }));
+    if (url === "/api/account/affiliations?excludeOpenDelegations=true&status=active") return Promise.resolve(new Response(JSON.stringify(page("affiliations", [affiliation])), { status: 200 }));
     if (url.includes("/approve")) return Promise.resolve(new Response(JSON.stringify(reviewStatus === 200 ? { ...delegation, status: "approved", approvedAt: "2026-09-13T00:00:00Z" } : { message: "承認エラー" }), { status: reviewStatus }));
     if (url.includes("/reject")) return Promise.resolve(reviewStatus === 204 ? new Response(null, { status: 204 }) : new Response(JSON.stringify({ message: "拒否エラー" }), { status: reviewStatus }));
     if (init?.method === "POST") return Promise.resolve(new Response(JSON.stringify(delegation), { status: 201 }));
@@ -100,4 +100,32 @@ describe("AccountDelegationsClient", () => {
     expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "拒否" })).not.toBeInTheDocument();
   });
+
+  it("requests only affiliations without pending or approved delegations", async () => {
+    const fetchMock = installFetch();
+    renderClient({ request: true });
+    await screen.findByText("Talent Account");
+    expect(fetchMock).toHaveBeenCalledWith("/api/account/affiliations?excludeOpenDelegations=true&status=active", expect.any(Object));
+  });
+
+  it("removes a target from request candidates immediately after a successful request", async () => {
+    let submitted = false;
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url.startsWith("/api/account/affiliations?")) return Promise.resolve(new Response(JSON.stringify(page("affiliations", submitted ? [] : [affiliation])), { status: 200 }));
+      if (init?.method === "POST") {
+        submitted = true;
+        return Promise.resolve(new Response(JSON.stringify(delegation), { status: 201 }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(page("delegations", submitted ? [delegation] : [])), { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderClient({ request: true });
+    await screen.findByText("Talent Account");
+    fireEvent.click(screen.getByRole("button", { name: dictionaries.ja.admin.accountDelegations.request }));
+    await waitFor(() => expect(screen.queryByText("Talent Account")).not.toBeInTheDocument());
+    expect(screen.getByText(dictionaries.ja.admin.accountDelegations.empty)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "申請中" }));
+    await screen.findByText("Talent Account");
+  });
+
 });

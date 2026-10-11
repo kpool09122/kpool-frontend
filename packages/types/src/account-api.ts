@@ -1048,6 +1048,11 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
+        name: "excludeOpenDelegations",
+        type: "Query",
+        schema: z.boolean().optional(),
+      },
+      {
         name: "status",
         type: "Query",
         schema: z.string().nullish(),
