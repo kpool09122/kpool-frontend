@@ -43,6 +43,13 @@ describe("public Wiki edit action", () => {
     expect(window.location.pathname + window.location.search).toBe("/ko/wiki/gr-twice?themeColor=%23fff");
   });
 
+  it("does not resume a consumed edit intent when returning to cached detail data", () => {
+    window.history.replaceState(null, "", "/ko/wiki/gr-twice?themeColor=%23fff");
+    renderHook(() => useWikiEditEntry(source, true));
+    expect(mocks.resolve).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
   it("stays on the detail and allows retry when preparation fails", async () => {
     mocks.resolve.mockRejectedValueOnce(new Error("Creation failed"));
     const { result } = renderHook(() => useWikiEditEntry(source));

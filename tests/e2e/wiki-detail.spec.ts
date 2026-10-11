@@ -93,6 +93,7 @@ test("anonymous edit returns through the public detail before resolving a draft"
   await page.goto(returnTo!);
   await expect(page).toHaveURL(/\/wiki\/ko--gr-twice\/edit\?resourceType=group&themeColor=%234c5cff$/);
   await expect(page.getByRole("heading", { name: "TWICE", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "섹션 편집: Overview", exact: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/ko\/wiki\/gr-twice\?themeColor=%234c5cff$/);
   await expect(page.getByRole("link", { name: "섹션 편집: Overview", exact: true })).toBeVisible();

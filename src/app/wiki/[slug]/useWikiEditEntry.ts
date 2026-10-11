@@ -32,12 +32,11 @@ export function useWikiEditEntry(
   useEffect(() => {
     const source = `${language}:${slug}`;
     if (resumeEditing && resumedSource.current !== source) {
-      resumedSource.current = source;
       const url = new URL(window.location.href);
-      if (url.searchParams.has("edit")) {
-        url.searchParams.delete("edit");
-        window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-      }
+      if (url.searchParams.get("edit") !== "1") return;
+      resumedSource.current = source;
+      url.searchParams.delete("edit");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
       beginEditing();
     }
   }, [resumeEditing, language, slug, beginEditing]);
