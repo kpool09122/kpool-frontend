@@ -16,6 +16,19 @@ const state: SiteManagementPrincipalGroupState = {
 };
 afterEach(cleanup);
 
+it.each(["Views their own inquiries.", null])("shows group descriptions like Wiki, with null accepted: %s", (description) => {
+  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, groups: [{ ...state.groups[0], description }] }} actions={{ updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
+  fireEvent.click(screen.getByRole("button", { name: t.edit }));
+  const checkbox = screen.getByRole("checkbox", { name: "General" });
+  if (description) {
+    expect(screen.getByText(description)).toBeVisible();
+    expect(checkbox).toHaveAccessibleDescription(description);
+  } else {
+    expect(checkbox).not.toHaveAttribute("aria-describedby");
+  }
+});
+
+
 it.each([
   { isSaving: true, isLoading: false },
   { isSaving: false, isLoading: true },

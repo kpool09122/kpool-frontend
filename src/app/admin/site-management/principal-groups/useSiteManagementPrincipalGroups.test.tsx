@@ -6,7 +6,7 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { useSiteManagementPrincipalGroups } from "./useSiteManagementPrincipalGroups";
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), save: vi.fn(), refreshAccess: vi.fn() }));
 vi.mock("@/gateways/site-management/siteManagementPrincipalGroups", async (original) => ({ ...await original<typeof import("@/gateways/site-management/siteManagementPrincipalGroups")>(), fetchSiteManagementPrincipalGroups: mocks.fetch, saveSiteManagementPrincipalGroups: mocks.save }));
-const body = { principalGroups: [{ principalGroupIdentifier: "group", accountIdentifier: "account", name: "Administrator", roleIdentifiers: [], isDefault: false, members: [] }], principals: [{ principalIdentifier: "user", identityIdentifier: "identity", identityName: "User", email: "user@example.test" }] };
+const body = { principalGroups: [{ principalGroupIdentifier: "group", accountIdentifier: "account", name: "Administrator", description: "Manages site management user groups and their memberships.", roleIdentifiers: [], isDefault: false, members: [] }], principals: [{ principalIdentifier: "user", identityIdentifier: "identity", identityName: "User", email: "user@example.test" }] };
 const latest = { ...body, principalGroups: [{ ...body.principalGroups[0], name: "Latest", members: body.principals }] };
 const t = dictionaries.ja.admin.siteManagementPrincipalGroups;
 const props = { accountIdentifier: "account", actorIdentifier: "actor", sessionVersion: 1, canManage: true, t, refreshAccess: mocks.refreshAccess };
@@ -20,6 +20,7 @@ describe("SiteManagement hook", () => {
     expect(mocks.save).toHaveBeenCalledWith({ principalGroups: [{ principalGroupIdentifier: "group", principalIdentifiers: ["user"] }] });
     expect(mocks.refreshAccess).toHaveBeenCalledTimes(1);
     expect(result.current.state.groups[0].name).toBe("Latest");
+    expect(result.current.state.groups[0].description).toBe(body.principalGroups[0].description);
     expect(result.current.state.hasUnsavedChanges).toBe(false);
     expect(result.current.state.success).toBe(t.saved);
   });
