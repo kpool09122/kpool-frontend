@@ -2550,7 +2550,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/principal-groups/members",
     alias: "PrincipalOperations_updatePrincipalGroupMembers",
-    description: `Update members for multiple Wiki principal groups. Groups containing the system Operator role, including mixed-role groups, cannot be updated and return 403 even when specified directly.`,
+    description: `Update members for multiple Wiki principal groups for both individual and corporate accounts. Requires Wiki principal group management permission and at least one remaining Wiki Administrator. Groups containing the system Operator role, including mixed-role groups, cannot be updated and return 403 even when specified directly.`,
     requestFormat: "json",
     parameters: [
       {
