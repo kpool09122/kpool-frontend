@@ -15,15 +15,132 @@ const unload = () => {
   window.dispatchEvent(event);
   return event;
 };
+const navigateTo = (navigation: EventTarget, href: string, navigationType = "push", sameDocument = true) => {
+  const event = new Event("navigate", { cancelable: true });
+  Object.assign(event, {
+    destination: { url: new URL(href, window.location.href).href, sameDocument },
+    hashChange: false,
+    navigationType,
+  });
+  act(() => { navigation.dispatchEvent(event); });
+  return event;
+};
 
 afterEach(() => {
   cleanup();
   document.querySelectorAll("a").forEach((anchor) => anchor.remove());
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe("useUnsavedChangesGuard", () => {
+  it("confirms a delayed admin link navigation only once", () => {
+    vi.useFakeTimers();
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    const anchor = link("/admin");
+    anchor.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(anchor);
+    act(() => { vi.runAllTimers(); });
+    expect(navigateTo(navigation, "/admin").defaultPrevented).toBe(false);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(unload().defaultPrevented).toBe(true);
+    navigateTo(navigation, "/admin");
+    expect(confirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not reuse link approval for a different destination or reload", () => {
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    const anchor = link("/admin");
+    anchor.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(anchor);
+    confirm.mockReturnValue(false);
+    expect(navigateTo(navigation, "/other").defaultPrevented).toBe(true);
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(unload().defaultPrevented).toBe(true);
+
+    confirm.mockReturnValue(true);
+    fireEvent.click(anchor);
+    navigateTo(navigation, window.location.href, "reload", false);
+    expect(unload().defaultPrevented).toBe(true);
+  });
+
+  it.each(["navigatesuccess", "navigateerror"])("restores unload protection after %s", (eventType) => {
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    navigateTo(navigation, "/admin", "push", false);
+    navigation.dispatchEvent(new Event(eventType));
+    expect(unload().defaultPrevented).toBe(true);
+  });
+
+  it("restores protection when a document navigation is aborted", () => {
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    const controller = new AbortController();
+    const event = new Event("navigate", { cancelable: true });
+    Object.assign(event, {
+      destination: { url: new URL("/admin", window.location.href).href, sameDocument: false },
+      navigationType: "push", hashChange: false, signal: controller.signal,
+    });
+    navigation.dispatchEvent(event);
+    controller.abort();
+    expect(unload().defaultPrevented).toBe(true);
+  });
+
+  it("carries approved external navigation through to beforeunload even when it cannot be cancelled", () => {
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    const anchor = link("https://example.com/admin");
+    anchor.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(anchor);
+    const event = new Event("navigate");
+    Object.assign(event, {
+      destination: { url: anchor.href, sameDocument: false },
+      navigationType: "push", hashChange: false,
+    });
+    navigation.dispatchEvent(event);
+    expect(unload().defaultPrevented).toBe(false);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(unload().defaultPrevented).toBe(true);
+  });
+
+  it("clears a pending link approval when departure is explicitly cancelled", () => {
+    const navigation = new EventTarget();
+    vi.stubGlobal("navigation", navigation);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    const anchor = link("/admin");
+    anchor.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(anchor);
+    cancelPageLeave();
+    confirm.mockReturnValue(false);
+    expect(navigateTo(navigation, "/admin").defaultPrevented).toBe(true);
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(unload().defaultPrevented).toBe(true);
+  });
+
+  it("uses link approval once for a document departure without the Navigation API", () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderHook(() => useUnsavedChangesGuard(true, message));
+    const anchor = link("/admin");
+    anchor.addEventListener("click", (event) => event.preventDefault());
+    fireEvent.click(anchor);
+    expect(unload().defaultPrevented).toBe(false);
+    expect(unload().defaultPrevented).toBe(true);
+  });
+
   it("keeps edits when link navigation is cancelled, and removes the guard after saving", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const { rerender, unmount } = renderHook(({ dirty }) => useUnsavedChangesGuard(dirty, message), { initialProps: { dirty: true } });
