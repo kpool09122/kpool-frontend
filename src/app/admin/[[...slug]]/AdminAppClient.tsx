@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { SiteManagementPrincipalGroupsClient } from "../site-management/principal-groups/SiteManagementPrincipalGroupsClient";
+import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
 
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
@@ -168,7 +169,13 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
-  if (page === "siteManagementPrincipalGroups") return <SiteManagementPrincipalGroupsClient />;
+  if (page === "siteManagementPrincipalGroups") {
+    return (
+      <SiteManagementPageClient>
+        <SiteManagementPrincipalGroupsClient />
+      </SiteManagementPageClient>
+    );
+  }
 
   if (page === "accountDelegations") {
     return (

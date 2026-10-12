@@ -17,13 +17,28 @@ const state: SiteManagementPrincipalGroupState = {
 afterEach(cleanup);
 
 it.each([
+  { isSaving: true, isLoading: false },
+  { isSaving: false, isLoading: true },
+  { isSaving: false, isLoading: false },
+])("only shows a permission warning after processing finishes: %j", (processing) => {
+  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, canManage: false, ...processing }} actions={actions} t={t} />);
+  if (processing.isSaving || processing.isLoading) {
+    expect(screen.queryByText(t.readOnly)).not.toBeInTheDocument();
+  } else {
+    expect(screen.getByText(t.readOnly)).toBeInTheDocument();
+  }
+  expect(screen.getByRole("button", { name: processing.isSaving ? t.saving : t.save })).toBeDisabled();
+  expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
+});
+
+it.each([
   { isLoading: true }, { isSaving: true }, { canManage: false }, { loadError: "Load failed" },
 ])("blocks edits and saves for state %j", (override) => {
   const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, hasUnsavedChanges: true, ...override }} actions={actions} t={t} />);
   expect(screen.getByRole("button", { name: override.isSaving ? t.saving : t.save })).toBeDisabled();
   expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
-  expect(screen.getByRole("button", { name: t.reload })).toBeDisabled();
 });
 
 it("blocks an already open dialog after permission loss or processing begins", () => {
@@ -40,15 +55,13 @@ it("blocks an already open dialog after permission loss or processing begins", (
   expect(actions.updateUserGroups).not.toHaveBeenCalled();
 });
 
-it("distinguishes load failure, loading and legitimate empty states and retries only loading", () => {
+it("distinguishes load failure, loading and legitimate empty states", () => {
   const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   const empty = { ...state, users: [], groups: [] };
   const { rerender } = render(<SiteManagementPrincipalGroupManagementPanel state={{ ...empty, loadError: "Load failed" }} actions={actions} t={t} />);
   expect(screen.getByRole("alert")).toHaveTextContent("Load failed");
   expect(screen.queryByText(t.noUsers)).not.toBeInTheDocument();
   expect(screen.queryByText(t.noGroups)).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: t.reload }));
-  expect(actions.load).toHaveBeenCalledOnce();
   expect(actions.save).not.toHaveBeenCalled();
   rerender(<SiteManagementPrincipalGroupManagementPanel state={{ ...empty, isLoading: true }} actions={actions} t={t} />);
   expect(screen.getByText(t.loading)).toBeInTheDocument();
@@ -123,7 +136,6 @@ it("keeps cleared memberships editable on save failure, retries save, and revert
   expect(screen.getByText(t.unsaved)).toBeInTheDocument();
   expect(screen.getByText(t.unassigned)).toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent("Save failed");
-  expect(screen.getByRole("button", { name: t.reload })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: t.retrySave }));
   expect(save).toHaveBeenCalledOnce();
   expect(load).not.toHaveBeenCalled();
@@ -135,15 +147,13 @@ it("keeps cleared memberships editable on save failure, retries save, and revert
   expect(screen.getByRole("button", { name: t.save })).toBeDisabled();
 });
 
-it.each([false, true])("allows GET/auth retry while editing is locked, draft dirty=%s", (hasUnsavedChanges) => {
+it.each([false, true])("keeps editing locked while refresh is unconfirmed, draft dirty=%s", (hasUnsavedChanges) => {
   const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, hasUnsavedChanges, canManage: false, canRetryRefresh: true, success: t.savedRefreshFailed }} actions={actions} t={t} />);
   expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
   expect(screen.getByRole("button", { name: t.save })).toBeDisabled();
-  expect(screen.getByRole("button", { name: t.reload })).toBeEnabled();
   if (hasUnsavedChanges) expect(screen.getByText(t.unsaved)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: t.reload }));
-  expect(actions.load).toHaveBeenCalledOnce(); expect(actions.save).not.toHaveBeenCalled();
+  expect(actions.load).not.toHaveBeenCalled(); expect(actions.save).not.toHaveBeenCalled();
   expect(screen.queryByRole("button", { name: t.retrySave })).not.toBeInTheDocument();
 });
 
