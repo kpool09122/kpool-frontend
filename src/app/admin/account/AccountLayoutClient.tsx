@@ -95,11 +95,11 @@ export function AccountLayoutClient({
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
     ...(accountIdentifier ? [createAccountSettingsTab("accountCategoryChange", t.accountCategoryChange.tab)] : []),
+    ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),
     ...(canShowAffiliations ? [createAccountSettingsTab("accountAffiliations", t.accountAffiliations.tab)] : []),
     ...(canShowDelegations ? [createAccountSettingsTab("accountDelegations", t.accountDelegations.tab)] : []),
     ...(canInvite ? [createAccountSettingsTab("accountInvitations", t.accountInvitationsTab)] : []),
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
-    ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),
   ];
   const activeTabAllowed = tabs.some((tab) => tab.id === activeTab);
   const selectedTab = activeTabAllowed ? activeTab : fallbackTab;
