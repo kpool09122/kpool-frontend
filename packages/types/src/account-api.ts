@@ -1063,6 +1063,11 @@ const endpoints = makeApi([
         schema: z.string().nullish(),
       },
       {
+        name: "onlyWithoutPendingOrApprovedDelegation",
+        type: "Query",
+        schema: z.union([z.literal(0), z.literal(1)]).optional(),
+      },
+      {
         name: "perPage",
         type: "Query",
         schema: z.number().int().nullish(),
