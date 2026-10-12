@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { canManageSiteManagementPrincipalGroups } from "./siteManagementPolicy";
+import { canAccessSiteManagement, canManageSiteManagementPrincipalGroups } from "./siteManagementPolicy";
 
 const identity = { language: "ja", identityIdentifier: "actor", identityName: "admin", email: "a@example.test", accountIdentifier: "account", account: { status: "active" }, siteManagementPrincipalIdentifier: "principal" };
 const statement: { effect: string; actions: string[]; resourceTypes: string[]; condition: string | null } = { effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null };
 const policy = (statements = [statement]) => ({ policyIdentifier: "policy", name: "Administrator", statements });
 describe("SiteManagement authorization", () => {
+  it("separates section permission from principal count and tab availability", () => {
+    expect(canAccessSiteManagement({ ...identity, siteManagementPrincipalCount: 1, siteManagementPolicies: [policy()] })).toBe(true);
+    expect(canAccessSiteManagement(identity)).toBe(false);
+    const contact = { ...statement, actions: ["contact:view"], resourceTypes: ["contact"], condition: "own_contact" };
+    expect(canAccessSiteManagement({ ...identity, siteManagementPolicies: [policy([contact])] })).toBe(true);
+    expect(canAccessSiteManagement({ ...identity, siteManagementPolicies: [policy([contact, { ...contact, effect: "deny" }])] })).toBe(false);
+    expect(canAccessSiteManagement({ ...identity, siteManagementPolicies: [policy([statement, { ...statement, effect: "deny" }])] })).toBe(false);
+    expect(canAccessSiteManagement({ ...identity, siteManagementPolicies: [policy([{ ...statement, actions: ["announcement:create"], resourceTypes: ["announcement"] }])] })).toBe(true);
+    expect(canAccessSiteManagement({ ...identity, siteManagementPolicies: [policy([{ ...statement, actions: ["*"] }])] })).toBe(false);
+  });
   it("allows only an exact applicable allow for an active account", () => {
     expect(canManageSiteManagementPrincipalGroups({ ...identity, siteManagementPolicies: [policy()] })).toBe(true);
     expect(canManageSiteManagementPrincipalGroups(identity)).toBe(false);

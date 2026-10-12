@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
-import { canManageSiteManagementPrincipalGroups } from "@/gateways/site-management/siteManagementPolicy";
+import { canAccessSiteManagement } from "@/gateways/site-management/siteManagementPolicy";
 import { useAdmin } from "./AdminProvider";
 import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
@@ -94,7 +94,7 @@ export function AdminShellClient({
                 isSelected={activeSection === "wiki"}
                 label={t.wikiMenu}
               />
-              {canManageSiteManagementPrincipalGroups(currentIdentity) ? (
+              {canAccessSiteManagement(currentIdentity) ? (
                 <AdminSectionLink href={adminSectionRoutes.siteManagement} isSelected={activeSection === "siteManagement"} label={t.siteManagementMenu} />
               ) : null}
               {canShowAccountSettings ? (

@@ -69,7 +69,7 @@ describe("AccountCategoryChangeClient", () => {
     vi.unstubAllGlobals();
     document.cookie = "XSRF-TOKEN=; Max-Age=0";
   });
-  it("only displays the authoritative current category after approval", async () => {
+  it("displays the current category and explains why another request is unavailable after approval", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -86,6 +86,9 @@ describe("AccountCategoryChangeClient", () => {
     );
     renderClient();
     expect(await screen.findByText("事務所")).toBeInTheDocument();
+    expect(
+      await screen.findByText(t.accountCategoryChange.alreadyChanged),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.queryByRole("radio")).not.toBeInTheDocument(),
     );

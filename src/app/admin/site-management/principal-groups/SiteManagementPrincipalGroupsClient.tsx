@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
-import { canManageSiteManagementPrincipalGroups } from "@/gateways/site-management/siteManagementPolicy";
+import { canShowSiteManagementPrincipalGroupManagement } from "../../principalGroupVisibility";
 import { useAdmin } from "../../AdminProvider";
 import { SiteManagementPrincipalGroupManagementPanel } from "./SiteManagementPrincipalGroupManagementPanel";
 import { useSiteManagementPrincipalGroups } from "./useSiteManagementPrincipalGroups";
@@ -17,7 +17,7 @@ export function SiteManagementPrincipalGroupsClient() {
   const sessionVersion = useAuthStore((state) => state.sessionVersion);
   const mounted = useRef(false);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const canManage = canManageSiteManagementPrincipalGroups(currentIdentity);
+  const canManage = canShowSiteManagementPrincipalGroupManagement(currentIdentity);
   const accountIdentifier = currentIdentity.accountIdentifier ?? null;
   const actorIdentifier = actorOf(currentIdentity);
   const refreshAccess = useCallback(async (status?: number | null) => {
@@ -29,15 +29,14 @@ export function SiteManagementPrincipalGroupsClient() {
     if (!isCurrent()) return null;
     const identity = await refreshIdentity({ preserveOnNull: true });
     if (!identity || !isCurrent() || identity.accountIdentifier !== accountIdentifier || actorOf(identity) !== actorIdentifier) return null;
-    const allowed = canManageSiteManagementPrincipalGroups(identity);
-    if (!allowed || status === 403) router.replace("/admin/user/profile");
-    else if (status === 401) router.replace("/login?returnTo=%2Fadmin%2Fsite-management%2Fprincipal-groups");
+    const allowed = canShowSiteManagementPrincipalGroupManagement(identity);
+    if (status === 401) router.replace("/login?returnTo=%2Fadmin%2Fsite-management%2Fprincipal-groups");
     return allowed;
   }, [accountIdentifier, actorIdentifier, currentIdentity, refreshIdentity, router, sessionVersion]);
   const { state, actions, accessStatus } = useSiteManagementPrincipalGroups({ accountIdentifier, actorIdentifier, sessionVersion, canManage, refreshAccess, t: t.siteManagementPrincipalGroups });
   useEffect(() => {
     if (accessStatus === 401 || accessStatus === 403) void refreshAccess(accessStatus);
   }, [accessStatus, refreshAccess]);
-  if (!canManage) return <p role="alert">{t.siteManagementPrincipalGroups.readOnly}</p>;
+  if (!canManage) return null;
   return <SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t.siteManagementPrincipalGroups} />;
 }

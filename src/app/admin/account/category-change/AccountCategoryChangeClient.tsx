@@ -68,6 +68,11 @@ function AccountCategoryChangePanel() {
             </span>
           </p>
         ) : null}
+        {state.request?.status === "approved" ? (
+          <AccountStatusMessage variant="warning">
+            {t.accountCategoryChange.alreadyChanged}
+          </AccountStatusMessage>
+        ) : null}
         {state.request?.status === "pending" ? (
           <section className="rounded-xl border border-stroke-subtle p-4">
             <h3 className="font-semibold text-text-strong">
@@ -94,24 +99,9 @@ function AccountCategoryChangePanel() {
             </dl>
           </section>
         ) : null}
-        {state.request?.status === "rejected" ? (
-          <AccountStatusMessage variant="warning">
-            {t.accountCategoryChange.statusLabels.rejected}
-            {state.request.rejectionReason ? (
-              <>
-                :{" "}
-                {getCategoryLabel(
-                  t.accountCategoryChangeRequestDetail.rejectionReasonLabels,
-                  state.request.rejectionReason.code,
-                )}{" "}
-                {state.request.rejectionReason.detail}
-              </>
-            ) : null}
-          </AccountStatusMessage>
-        ) : null}
         {state.showForm ? (
           <fieldset className="grid gap-3" disabled={state.isSubmitting}>
-            <legend className="text-sm font-semibold text-text-strong">
+            <legend className="mb-3 text-sm font-semibold text-text-strong">
               {t.accountCategoryChange.requestedCategory}
             </legend>
             {state.categoryOptions.map((option) => (
@@ -136,6 +126,21 @@ function AccountCategoryChangePanel() {
               </label>
             ))}
           </fieldset>
+        ) : null}
+        {state.request?.status === "rejected" ? (
+          <AccountStatusMessage variant="warning">
+            {t.accountCategoryChange.previousRejectionReason}
+            {state.request.rejectionReason ? (
+              <>
+                :{" "}
+                {getCategoryLabel(
+                  t.accountCategoryChangeRequestDetail.rejectionReasonLabels,
+                  state.request.rejectionReason.code,
+                )}{" "}
+                {state.request.rejectionReason.detail}
+              </>
+            ) : null}
+          </AccountStatusMessage>
         ) : null}
         {state.success ? (
           <AccountStatusMessage variant="success">

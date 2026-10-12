@@ -8,6 +8,7 @@ const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySumm
   accountIdentifier: z.string().uuid().nullable(),
   accountPrincipalIdentifier: z.string().uuid().nullable(),
   siteManagementPrincipalIdentifier: z.string().uuid().nullable().optional(),
+  siteManagementPrincipalCount: z.number().int().nonnegative().optional(),
   siteManagementPolicies: z.array(identityApiTypes.schemas.SiteManagementEffectivePolicySummary).optional(),
   accountType: z.string().nullable(),
   accountIdentityCount: z.number().int().nonnegative(),
@@ -35,6 +36,7 @@ export type AuthenticatedIdentitySummary = IdentitySummary & Partial<
     | "originalAccount"
     | "switchableAccounts"
     | "siteManagementPrincipalIdentifier"
+    | "siteManagementPrincipalCount"
     | "siteManagementPolicies"
   >
 > & {

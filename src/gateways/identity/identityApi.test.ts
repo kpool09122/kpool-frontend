@@ -10,7 +10,9 @@ import {
 describe("identity API helpers", () => {
   it("preserves generated SiteManagement policies independently of Account policies", () => {
     const siteManagementPolicies = [{ policyIdentifier: "33333333-3333-4333-8333-333333333333", name: "Administrator", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }];
-    const result = parseAuthenticatedIdentitySummary({ identityIdentifier: "11111111-1111-4111-8111-111111111111", identityName: "admin", email: "admin@example.test", language: "ja", accountIdentifier: null, accountPrincipalIdentifier: null, accountType: null, accountIdentityCount: 0, accountPolicies: [], account: null, originalAccount: null, delegationIdentifier: null, switchableAccounts: [], siteManagementPolicies });
+    const result = parseAuthenticatedIdentitySummary({ identityIdentifier: "11111111-1111-4111-8111-111111111111", identityName: "admin", email: "admin@example.test", language: "ja", accountIdentifier: null, accountPrincipalIdentifier: null, accountType: null, accountIdentityCount: 0, accountPolicies: [], account: null, originalAccount: null, delegationIdentifier: null, switchableAccounts: [], siteManagementPolicies, siteManagementPrincipalCount: 2 });
+    expect(result.siteManagementPrincipalCount).toBe(2);
+    for (const count of [-1, 1.5]) expect(() => parseAuthenticatedIdentitySummary({ ...result, siteManagementPrincipalCount: count })).toThrow();
     expect(result.siteManagementPolicies).toEqual(siteManagementPolicies);
     expect(result.accountPolicies).toEqual([]);
     expect(() => parseAuthenticatedIdentitySummary({ ...result, siteManagementPolicies: [{ ...siteManagementPolicies[0], statements: [{ ...siteManagementPolicies[0].statements[0], condition: { clauses: [] } }] }] })).toThrow();

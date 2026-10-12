@@ -124,7 +124,7 @@ function EditUserGroupsDialog({ user, groups, selected, disabled, confirmDisable
     <h3 id={titleId} className="break-all text-lg font-semibold">{t.dialogTitle(getSiteManagementUserDisplayName(user))}</h3>
     <p id={descriptionId} className="mt-2 text-sm text-text-muted">{t.dialogDescription}</p>
     <fieldset className="mt-5 grid gap-3" disabled={disabled}>
-      <legend className="text-sm font-semibold">{t.checkboxList}</legend>
+      <legend className="mb-3 text-sm font-semibold">{t.checkboxList}</legend>
       {groups.map((group) => <PrincipalGroupMembershipOption key={group.principalGroupIdentifier} name={group.name}
         description={group.description} checked={selected.includes(group.principalGroupIdentifier)} disabled={disabled}
         onChange={() => onToggle(group.principalGroupIdentifier)} />)}
