@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./account-api": "./src/account-api.ts",
     "./identity-api": "./src/identity-api.ts",
+    "./site-management-api": "./src/site-management-api.ts",
     "./monetization-api": "./src/monetization-api.ts",
     "./webhook-api": "./src/webhook-api.ts",
     "./wiki-private-api": "./src/wiki-private-api.ts"

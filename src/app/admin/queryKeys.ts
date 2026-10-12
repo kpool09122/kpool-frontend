@@ -5,6 +5,9 @@ import type { WikiDraftWikiStatus } from "@/gateways/wiki/draftWiki";
 type WikiDraftWikiListScope = "managed" | "my";
 
 export const adminQueryKeys = {
+  siteManagement: {
+    principalGroups: (accountIdentifier: string | null, actorIdentifier: string | null) => ["admin", "siteManagement", "principalGroups", accountIdentifier, actorIdentifier] as const,
+  },
   all: ["admin"] as const,
   account: {
     all: () => [...adminQueryKeys.all, "account"] as const,

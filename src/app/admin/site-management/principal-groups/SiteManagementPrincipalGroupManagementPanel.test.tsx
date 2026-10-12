@@ -135,6 +135,18 @@ it("keeps cleared memberships editable on save failure, retries save, and revert
   expect(screen.getByRole("button", { name: t.save })).toBeDisabled();
 });
 
+it.each([false, true])("allows GET/auth retry while editing is locked, draft dirty=%s", (hasUnsavedChanges) => {
+  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, hasUnsavedChanges, canManage: false, canRetryRefresh: true, success: t.savedRefreshFailed }} actions={actions} t={t} />);
+  expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
+  expect(screen.getByRole("button", { name: t.save })).toBeDisabled();
+  expect(screen.getByRole("button", { name: t.reload })).toBeEnabled();
+  if (hasUnsavedChanges) expect(screen.getByText(t.unsaved)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t.reload }));
+  expect(actions.load).toHaveBeenCalledOnce(); expect(actions.save).not.toHaveBeenCalled();
+  expect(screen.queryByRole("button", { name: t.retrySave })).not.toBeInTheDocument();
+});
+
 it("displays success without changing the controlled draft", () => {
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, success: "Saved" }} actions={{ updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
   expect(screen.getByRole("status")).toHaveTextContent("Saved");

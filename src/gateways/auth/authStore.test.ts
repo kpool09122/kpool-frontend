@@ -27,6 +27,17 @@ describe("auth session boundaries", () => {
     expect(useAuthStore.getState().identity).toEqual(identity);
     expect(useAuthStore.getState().status).toBe("authenticated");
   });
+  it.each(["accountIdentifier", "identityIdentifier"] as const)("ignores stale auth refresh after %s changes in the same session", async (key) => {
+    let resolve!: (value: typeof identity) => void;
+    vi.mocked(fetchCurrentAuthenticatedIdentity).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    useAuthStore.getState().setIdentity(identity);
+    const refresh = useAuthStore.getState().refreshIdentity({ preserveOnNull: true });
+    const switched = { ...identity, [key]: "new" };
+    useAuthStore.getState().setIdentity(switched);
+    resolve(identity);
+    await expect(refresh).resolves.toBeNull();
+    expect(useAuthStore.getState().identity).toEqual(switched);
+  });
   it("does not change the session version for a failed identity refresh before login", async () => {
     vi.mocked(fetchCurrentAuthenticatedIdentity).mockResolvedValue(null);
     await useAuthStore.getState().refreshIdentity();
