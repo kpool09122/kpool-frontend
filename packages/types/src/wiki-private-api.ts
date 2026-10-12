@@ -2508,7 +2508,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/principal-groups",
     alias: "PrincipalOperations_listPrincipalGroups",
-    description: `List Wiki principal groups for management.`,
+    description: `List Wiki principal groups for management. Excludes every group containing the system Operator role, including mixed-role groups.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2550,7 +2550,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/principal-groups/members",
     alias: "PrincipalOperations_updatePrincipalGroupMembers",
-    description: `Update members for multiple Wiki principal groups.`,
+    description: `Update members for multiple Wiki principal groups. Groups containing the system Operator role, including mixed-role groups, cannot be updated and return 403 even when specified directly.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2559,7 +2559,9 @@ const endpoints = makeApi([
         schema: UpdatePrincipalGroupMembersRequestBody,
       },
     ],
-    response: ListPrincipalGroupsResponseBody,
+    response: z
+      .object({ principalGroups: z.array(PrincipalGroupSummary) })
+      .passthrough(),
     errors: [
       {
         status: 401,
