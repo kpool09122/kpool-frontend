@@ -92,6 +92,7 @@ const PrincipalGroup = z
     principalGroupIdentifier: KPool_Common_Uuid.uuid(),
     accountIdentifier: KPool_Common_Uuid.uuid(),
     name: z.string(),
+    description: z.string().nullable(),
     roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
     members: z.array(PrincipalGroupMember),

@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { fetchSiteManagementPrincipalGroups, saveSiteManagementPrincipalGroups, parseSiteManagementPrincipalGroups, siteManagementMembersRequestSchema } from "./siteManagementPrincipalGroups";
 const id = "11111111-1111-4111-8111-111111111111";
 describe("SiteManagement gateway", () => {
+  it.each(["Manages site management user groups and their memberships.", null])("preserves group description: %s", (description) => {
+    const body = { principalGroups: [{ principalGroupIdentifier: id, accountIdentifier: id, name: "Administrator", description, roleIdentifiers: [], isDefault: false, members: [] }], principals: [] };
+    expect(parseSiteManagementPrincipalGroups(body).principalGroups[0].description).toBe(description);
+    expect(() => parseSiteManagementPrincipalGroups({ ...body, principalGroups: [{ ...body.principalGroups[0], description: 123 }] })).toThrow();
+  });
+
   it("preserves unassigned principals and requires the complete list contract", () => {
     const body = { principalGroups: [], principals: [{ principalIdentifier: id, identityIdentifier: id, identityName: "", email: "user@example.test" }] };
     expect(parseSiteManagementPrincipalGroups(body)).toEqual(body);

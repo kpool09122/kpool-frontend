@@ -9,7 +9,7 @@ export type SiteManagementUser = {
 export type SiteManagementGroup = {
   principalGroupIdentifier: string;
   name: string;
-  description?: string;
+  description?: string | null;
   /** Optional known UpperCamelCase role names, NOT API roleIdentifiers (UUIDs).
    * #710 already excludes Operator groups. #448 may omit this metadata when
    * adapting that filtered response; do not invent role names from UUIDs.
