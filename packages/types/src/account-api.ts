@@ -35,7 +35,7 @@ const AccountCategoryChangeRequestListItemSummary = z
     accountIdentifier: KPool_Common_Uuid,
     currentAccountCategory: z.string(),
     requestedAccountCategory: z.string(),
-    status: z.string(),
+    status: z.enum(["pending", "approved", "rejected", "withdrawn"]),
     requestedAt: KPool_Common_Timestamp,
     reviewedBy: KPool_Common_Uuid.nullish(),
     reviewedAt: KPool_Common_Timestamp.nullish(),
@@ -69,7 +69,7 @@ const AccountCategoryChangeRequestSummary = z
     accountIdentifier: KPool_Common_Uuid,
     currentAccountCategory: z.string(),
     requestedAccountCategory: z.string(),
-    status: z.string(),
+    status: z.enum(["pending", "approved", "rejected", "withdrawn"]),
     requestedAt: KPool_Common_Timestamp,
     reviewedBy: KPool_Common_Uuid.nullish(),
     reviewedAt: KPool_Common_Timestamp.nullish(),
@@ -358,7 +358,9 @@ const endpoints = makeApi([
       {
         name: "status",
         type: "Query",
-        schema: z.enum(["pending", "approved", "rejected"]).nullish(),
+        schema: z
+          .enum(["pending", "approved", "rejected", "withdrawn"])
+          .nullish(),
       },
       {
         name: "requestedAccountCategory",
@@ -874,7 +876,7 @@ const endpoints = makeApi([
     path: "/accounts/:accountIdentifier/category-change-requests",
     alias:
       "AccountCategoryChangeRequestOperations_requestAccountCategoryChange",
-    description: `Request account category change.`,
+    description: `Request account category change. Accounts with any approved request history cannot apply again; rejected or withdrawn history permits a new request when the remaining requirements are met.`,
     requestFormat: "json",
     parameters: [
       {
@@ -908,6 +910,119 @@ const endpoints = makeApi([
       {
         status: 419,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/accounts/:accountIdentifier/category-change-requests/:requestId/withdraw",
+    alias:
+      "AccountCategoryChangeRequestOperations_withdrawAccountCategoryChangeRequest",
+    description: `Withdraw a pending request belonging to the authenticated account. Terminal requests cannot be withdrawn. No management permission is required.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountCategoryChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountIdentifier/category-change-requests/latest",
+    alias:
+      "AccountCategoryChangeRequestOperations_getLatestAccountCategoryChangeRequest",
+    description: `Get the authenticated account&#x27;s latest non-withdrawn request, ordered by requestedAt descending and then identifier descending. No management permission is required.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z
+      .object({ request: AccountCategoryChangeRequestSummary.nullable() })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
