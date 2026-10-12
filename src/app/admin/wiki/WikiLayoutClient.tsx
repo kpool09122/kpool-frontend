@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import {
   canPublishWikiDraftWikis,
+  canManageOfficialCertifications,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -33,7 +34,6 @@ type WikiLayoutClientProps = {
   onActivate: () => void;
   onRetry: () => void;
   onOpenCreateDraftWiki: () => void;
-  officialCertificationRequestResourceTypes: Array<"agency" | "talent">;
 };
 
 export function WikiLayoutClient({
@@ -46,7 +46,6 @@ export function WikiLayoutClient({
   onActivate,
   onRetry,
   onOpenCreateDraftWiki,
-  officialCertificationRequestResourceTypes,
 }: WikiLayoutClientProps) {
   const canActivate = isAuthenticated && !isPending;
 
@@ -67,7 +66,7 @@ export function WikiLayoutClient({
     const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
     const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(state.principal);
-    const canRequestOfficialCertification = officialCertificationRequestResourceTypes.length > 0;
+    const canRequestOfficialCertification = canManageOfficialCertifications(state.principal);
 
     const tabs: Array<{ id: AdminWikiTab; label: string }> = [
       createWikiTab("editingWikis", t.editingWikisTab),

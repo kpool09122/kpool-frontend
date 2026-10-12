@@ -57,43 +57,9 @@ const certificationSummary = (status: string) => ({
   translationSetIdentifier,
 });
 
-const authenticatedIdentity = (accountCategory: string) => ({
-  identityIdentifier: "55555555-5555-4555-8555-555555555555",
-  identityName: "member",
-  email: "member@example.com",
-  language: "ja",
-  profileImage: null,
-  accountIdentifier: "33333333-3333-4333-8333-333333333333",
-  accountPrincipalIdentifier: "44444444-4444-4444-8444-444444444444",
-  accountType: "corporation",
-  accountPolicies: [],
-  accountIdentityCount: 1,
-  account: null,
-  originalAccount: null,
-  delegationIdentifier: null,
-  switchableAccounts: [],
-  accountCategory,
-});
-
-const stubOfficialCertificationRequestFetch = ({
-  accountCategory = "agency",
-  backendResponse = jsonResponse(certificationSummary("requested")),
-}: {
-  accountCategory?: string;
-  backendResponse?: Response;
-} = {}) => {
-  const fetchMock = vi.fn((url: string | URL | Request, init?: RequestInit) => {
-    void init;
-    const urlString = typeof url === "string" ? url : url.toString();
-
-    if (urlString.includes("/api/v1/identity/auth/me")) {
-      return Promise.resolve(jsonResponse(authenticatedIdentity(accountCategory), 200));
-    }
-
-    return Promise.resolve(backendResponse);
-  });
+const stubOfficialCertificationRequestFetch = ({ backendResponse = jsonResponse(certificationSummary("requested")) }: { backendResponse?: Response } = {}) => {
+  const fetchMock = vi.fn().mockResolvedValue(backendResponse);
   vi.stubGlobal("fetch", fetchMock);
-
   return fetchMock;
 };
 
@@ -184,90 +150,18 @@ describe("official certification routes", () => {
     delete process.env.KPOOL_IDENTITY_API_BASE_URL;
   });
 
-  it("forwards official certification request body, cookie, and accept-language headers", async () => {
+  it.each(["agency", "talent"])("forwards the requested %s resource without deriving it from account category", async (resourceType) => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
-    process.env.KPOOL_IDENTITY_API_BASE_URL = "https://identity.example.test";
     const fetchMock = stubOfficialCertificationRequestFetch();
-    const body = { resourceType: "talent", translationSetIdentifier, ownerAccountId: "33333333-3333-4333-8333-333333333333", wikiId };
-
-    const response = await requestPOST(
-      createRequest("https://app.example.test/api/wiki/official-certification/request", body, {
-        "accept-language": "ja",
-        cookie: "session=abc",
-      }),
-    );
-
+    const response = await requestPOST(createRequest("https://app.example.test/api/wiki/official-certification/request", {
+      resourceType, translationSetIdentifier, ownerAccountId: "33333333-3333-4333-8333-333333333333", wikiId,
+    }, { "accept-language": "ja", cookie: "session=abc" }));
     expect(response.status).toBe(201);
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      "https://identity.example.test/api/v1/identity/auth/me",
-      expect.objectContaining({
-        cache: "no-store",
-        headers: {
-          Accept: "application/json",
-          Cookie: "session=abc",
-        },
-      }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "https://api.example.test/api/v1/wiki/official-certification/request",
-      expect.objectContaining({
-        body: expect.any(String),
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Accept-Language": "ja",
-          "Content-Type": "application/json",
-          Cookie: "session=abc",
-        },
-      }),
-    );
-    expect(JSON.parse(fetchMock.mock.calls[1]?.[1]?.body as string)).toEqual({
-      resourceType: "agency",
-      translationSetIdentifier,
-    });
-  });
-
-  it("derives talent certification resource type from the authenticated account category", async () => {
-    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
-    process.env.KPOOL_IDENTITY_API_BASE_URL = "https://identity.example.test";
-    const fetchMock = stubOfficialCertificationRequestFetch({ accountCategory: "talent" });
-
-    const response = await requestPOST(
-      createRequest("https://app.example.test/api/wiki/official-certification/request", {
-        resourceType: "agency",
-        translationSetIdentifier,
-      }, {
-        cookie: "session=abc",
-      }),
-    );
-
-    expect(response.status).toBe(201);
-    expect(JSON.parse(fetchMock.mock.calls[1]?.[1]?.body as string)).toEqual({
-      resourceType: "talent",
-      translationSetIdentifier,
-    });
-  });
-
-  it("rejects official certification requests from non requestable account categories", async () => {
-    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
-    process.env.KPOOL_IDENTITY_API_BASE_URL = "https://identity.example.test";
-    const fetchMock = stubOfficialCertificationRequestFetch({ accountCategory: "general" });
-
-    const response = await requestPOST(
-      createRequest("https://app.example.test/api/wiki/official-certification/request", {
-        resourceType: "agency",
-        translationSetIdentifier,
-      }, {
-        cookie: "session=abc",
-      }),
-    );
-    const body = await response.json();
-
-    expect(response.status).toBe(403);
-    expect(body.message).toBe("Official certification request is not allowed for this account category.");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("https://api.example.test/api/v1/wiki/official-certification/request", expect.objectContaining({
+      method: "POST", headers: { Accept: "application/json", "Accept-Language": "ja", "Content-Type": "application/json", Cookie: "session=abc" },
+    }));
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({ resourceType, translationSetIdentifier });
   });
 
   it("forwards approve and reject actions to the backend certification endpoints", async () => {

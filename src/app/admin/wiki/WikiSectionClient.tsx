@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { getAccountCategoryFromIdentity } from "@/gateways/account/accountIdentity";
 import type {
   AdminDraftImageAdapter,
   AdminDraftWikiAdapter,
@@ -45,6 +44,7 @@ import {
 import {
   canAutoCreateWikiDraftWikiResourceType,
   canPublishWikiDraftWikis,
+  canManageOfficialCertifications,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -52,7 +52,6 @@ import {
   createWikiPrincipal,
   draftWikiAutoCreateResourceTypes,
   getCurrentWikiPrincipal,
-  getOfficialCertificationRequestResourceTypesForAccountCategory,
   type WikiPrincipalState,
 } from "@/gateways/wiki/wikiPrincipal";
 import { buildWikiDraftEditPath, normalizeWikiSlugForResourceType, type WikiResourceType } from "@kpool/wiki";
@@ -210,7 +209,8 @@ export function WikiSectionClient({
     const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(principalState.principal);
     const isAllowed =
       activeWikiTab === "editingWikis" ||
-      (activeWikiTab === "submittedWikis" || activeWikiTab === "officialCertificationRequest") ||
+      activeWikiTab === "submittedWikis" ||
+      (activeWikiTab === "officialCertificationRequest" && canManageOfficialCertifications(principalState.principal)) ||
       (activeWikiTab === "unapprovedWikis" && canReviewDraftWikis) ||
       (activeWikiTab === "officialCertificationReview" && canReviewOfficialCertificationRequests) ||
       ((activeWikiTab === "approvedWikis" || activeWikiTab === "untranslatedWikis") && canPublishDraftWikis) ||
@@ -286,9 +286,6 @@ export function WikiSectionClient({
         onActivate={() => void activateWikiPrincipal()}
         onRetry={() => void loadCurrentPrincipal()}
         onOpenCreateDraftWiki={openCreateDialog}
-        officialCertificationRequestResourceTypes={getOfficialCertificationRequestResourceTypesForAccountCategory(
-          getAccountCategoryFromIdentity(currentIdentity),
-        )}
       >
         {(resolvedWikiTab) => (
           <WikiSectionProvider

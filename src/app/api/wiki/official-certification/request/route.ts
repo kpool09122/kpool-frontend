@@ -2,14 +2,11 @@ import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getAccountCategoryFromIdentity } from "@/gateways/account/accountIdentity";
-import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import {
   createOfficialCertificationApiClient,
   officialCertificationUnavailableMessage,
   requestOfficialCertification,
 } from "@/gateways/wiki/officialCertification";
-import { getOfficialCertificationRequestResourceTypeForAccountCategory } from "@/gateways/wiki/wikiPrincipal";
 import {
   wikiDraftReviewCsrfHeaderName,
   wikiDraftReviewCsrfHeaderValue,
@@ -30,20 +27,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const identity = await fetchAuthenticatedIdentity({
-    cookieHeader: request.headers.get("cookie") ?? "",
-  });
-  const resourceType = getOfficialCertificationRequestResourceTypeForAccountCategory(
-    getAccountCategoryFromIdentity(identity),
-  );
-
-  if (!resourceType) {
-    return NextResponse.json(
-      { message: "Official certification request is not allowed for this account category." },
-      { status: 403 },
-    );
-  }
-
   const client = createOfficialCertificationApiClient(
     undefined,
     getForwardedWikiApiHeaders(request.headers),
@@ -58,10 +41,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const requestBody = await request.json();
-    const result = await requestOfficialCertification(client, {
-      ...requestBody,
-      resourceType,
-    });
+    const result = await requestOfficialCertification(client, requestBody);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

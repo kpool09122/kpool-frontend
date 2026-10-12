@@ -10,11 +10,27 @@ const listMyOwnedWikis = vi.fn();
 const listRelatedWikis = vi.fn();
 const requestOfficialCertification = vi.fn();
 const syncOwnedWikiCertifications = vi.fn();
+const certificationPrincipal = {
+  principalIdentifier: "33333333-3333-4333-8333-333333333333",
+  identityIdentifier: "55555555-5555-4555-8555-555555555555",
+  accountPrincipalCount: 1,
+  isDelegatedPrincipal: false,
+  isEnabled: true,
+  policies: [{
+    policyIdentifier: "66666666-6666-4666-8666-666666666666",
+    name: "AGENCY_SCOPE_OFFICIAL_CERTIFICATION_MY_READ",
+    isSystemPolicy: true,
+    statements: [{ effect: "allow", actions: ["official_certification_my_read"], resourceTypes: ["agency"], condition: null }],
+  }],
+};
+const allCertificationActions = ["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list"];
+let permittedActions = allCertificationActions;
+let permittedResourceTypes = ["agency"];
 
 const adminDictionary = {
+  officialCertificationEmpty: "公式認証はありません。",
   officialCertificationRequestTitle: "公式認証管理",
   officialCertificationRequestDescription: "現在の公式認証状態を確認し、必要に応じて公式認証を申請・更新できます。",
-  officialCertificationGeneralAccountMessage: "general アカウントでは公式認証を申請できません。",
   officialCertificationWikiSearchLabel: "Wiki",
   officialCertificationWikiSearchPlaceholder: "公式認証を申請する Wiki 名で検索",
   officialCertificationSubmit: "公式認証を申請",
@@ -66,6 +82,10 @@ vi.mock("../../../AdminProvider", () => ({
 
 vi.mock("../../WikiSectionProvider", () => ({
   useWikiSection: () => ({
+    principalState: { status: "available", principal: {
+      ...certificationPrincipal,
+      policies: permittedActions.length > 0 ? certificationPrincipal.policies.map((policy) => ({ ...policy, statements: policy.statements.map((statement) => ({ ...statement, actions: permittedActions, resourceTypes: permittedResourceTypes })) })) : [],
+    } },
     officialCertificationAdapter: {
       listMyOfficialCertifications,
       listMyOwnedWikis,
@@ -112,6 +132,8 @@ const renderClient = () => {
 
 describe("OfficialCertificationRequestClient", () => {
   afterEach(() => {
+    permittedActions = allCertificationActions;
+    permittedResourceTypes = ["agency"];
     cleanup();
     vi.restoreAllMocks();
     listMyOfficialCertifications.mockReset();
@@ -121,7 +143,70 @@ describe("OfficialCertificationRequestClient", () => {
     syncOwnedWikiCertifications.mockReset();
   });
 
+  it("does not render or fetch certification management without any supported permission", () => {
+    permittedActions = [];
+    renderClient();
+    expect(screen.queryByRole("heading", { name: "公式認証管理" })).not.toBeInTheDocument();
+    expect(listMyOfficialCertifications).not.toHaveBeenCalled();
+    expect(listMyOwnedWikis).not.toHaveBeenCalled();
+    expect(listRelatedWikis).not.toHaveBeenCalled();
+  });
+
+  it("loads certification status with read permission alone without exposing request or sync controls", async () => {
+    permittedActions = ["official_certification_my_read"];
+    listMyOfficialCertifications.mockResolvedValue(emptyCertificationList());
+    listMyOwnedWikis.mockResolvedValue(emptyOwnedWikis());
+    renderClient();
+    await screen.findByText("公式認証はありません。");
+    expect(listMyOfficialCertifications).toHaveBeenCalledTimes(2);
+    expect(listRelatedWikis).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "公式認証を申請" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
+  });
+
+  it("searches the resource selected from request permissions without using account category", async () => {
+    permittedActions = ["official_certification_request"];
+    permittedResourceTypes = ["agency", "talent"];
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ translationSetMasters: [] }, 200));
+    vi.stubGlobal("fetch", fetchMock);
+    renderClient();
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "talent" } });
+    fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), { target: { value: "artist" } });
+    fireEvent.click(screen.getByRole("button", { name: "検索" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("resourceType=talent")));
+    expect(listMyOfficialCertifications).not.toHaveBeenCalled();
+    expect(listMyOwnedWikis).not.toHaveBeenCalled();
+  });
+
+  it.each(["official_certification_owned_wiki_sync", "related_wiki_list"])("uses owned wikis without certification read permission for %s", async (action) => {
+    permittedActions = [action];
+    listMyOwnedWikis.mockResolvedValue({
+      ...emptyOwnedWikis(),
+      primaryOwnedWikis: [{ wikiIdentifier: "primary", translationSetIdentifier: "11111111-1111-4111-8111-111111111111", resourceType: "agency", language: "en", name: "Primary agency", slug: "ag-primary" }],
+      otherOwnedWikis: [{ wikiIdentifier: "additional", translationSetIdentifier: "22222222-2222-4222-8222-222222222222", resourceType: "group", language: "en", name: "Additional group", slug: "gr-additional" }],
+    });
+    listRelatedWikis.mockResolvedValue({ wikis: [] });
+    syncOwnedWikiCertifications.mockResolvedValue({ approved: [], rejected: [], unchanged: [] });
+    renderClient();
+    await screen.findByRole("heading", { name: /Primary agency/ });
+    expect(listMyOfficialCertifications).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "公式認証を申請" })).not.toBeInTheDocument();
+    const checkbox = await screen.findByRole("checkbox", { name: "Additional group" });
+    if (action === "related_wiki_list") {
+      expect(listRelatedWikis).toHaveBeenCalledTimes(1);
+      expect(checkbox).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
+    } else {
+      expect(listRelatedWikis).not.toHaveBeenCalled();
+      expect(checkbox).toBeEnabled();
+      fireEvent.click(checkbox);
+      fireEvent.click(screen.getByRole("button", { name: "保存" }));
+      await waitFor(() => expect(syncOwnedWikiCertifications).toHaveBeenCalledWith(expect.objectContaining({ requestBody: { translationSetIdentifiers: [] } })));
+    }
+  });
+
   it("searches agency translation sets, displays the UI locale wiki, and submits translationSetIdentifier", async () => {
+    permittedActions = ["official_certification_request"];
     listMyOfficialCertifications.mockResolvedValue(emptyCertificationList());
     listMyOwnedWikis.mockResolvedValue(emptyOwnedWikis());
     listRelatedWikis.mockResolvedValue({ wikis: [] });
@@ -157,6 +242,9 @@ describe("OfficialCertificationRequestClient", () => {
     renderClient();
 
     await screen.findByRole("button", { name: "公式認証を申請" });
+    expect(listMyOfficialCertifications).not.toHaveBeenCalled();
+    expect(listMyOwnedWikis).not.toHaveBeenCalled();
+    expect(listRelatedWikis).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), {
       target: { value: "twice" },
     });

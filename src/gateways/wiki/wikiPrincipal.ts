@@ -37,6 +37,10 @@ type WikiPolicyAction =
   | "AUTOMATIC_CREATE"
   | "OFFICIAL_CERTIFICATION_APPROVE"
   | "OFFICIAL_CERTIFICATION_REJECT"
+  | "OFFICIAL_CERTIFICATION_MY_READ"
+  | "OFFICIAL_CERTIFICATION_REQUEST"
+  | "OFFICIAL_CERTIFICATION_OWNED_WIKI_SYNC"
+  | "RELATED_WIKI_LIST"
   | "PRINCIPAL_GROUP_MANAGE"
   | "PUBLISH"
   | "REJECT";
@@ -120,30 +124,6 @@ export const canReviewWikiDraftWikis = (principal: WikiPrincipalSummary): boolea
 
 const officialCertificationResourceTypes = ["agency", "talent"] as const;
 
-export const getOfficialCertificationRequestResourceTypesForAccountCategory = (
-  accountCategory: string | null,
-): OfficialCertificationResourceType[] => {
-  const resourceType = getOfficialCertificationRequestResourceTypeForAccountCategory(accountCategory);
-
-  return resourceType ? [resourceType] : [];
-};
-
-export const getOfficialCertificationRequestResourceTypeForAccountCategory = (
-  accountCategory: string | null,
-): OfficialCertificationResourceType | null => {
-  const normalizedCategory = accountCategory ? normalizePolicyValue(accountCategory) : "";
-
-  if (normalizedCategory === "AGENCY") {
-    return "agency";
-  }
-
-  if (normalizedCategory === "TALENT") {
-    return "talent";
-  }
-
-  return null;
-};
-
 export const canReviewOfficialCertifications = (principal: WikiPrincipalSummary): boolean =>
   officialCertificationResourceTypes.some(
     (resourceType) =>
@@ -158,6 +138,31 @@ export const canReviewOfficialCertifications = (principal: WikiPrincipalSummary)
         normalizePolicyValue(resourceType) as WikiPolicyResourceType,
       ),
   );
+
+export type OfficialCertificationPermissions = {
+  canRead: boolean;
+  requestResourceTypes: OfficialCertificationResourceType[];
+  canSyncOwnedWikis: boolean;
+  relatedResourceTypes: OfficialCertificationResourceType[];
+};
+
+export const getOfficialCertificationPermissions = (principal: WikiPrincipalSummary): OfficialCertificationPermissions => {
+  const allowedResourceTypes = (action: WikiPolicyAction) => officialCertificationResourceTypes.filter(
+    (resourceType) => isAllowedWithoutDeny(principal, action, normalizePolicyValue(resourceType) as WikiPolicyResourceType),
+  );
+  return {
+    canRead: allowedResourceTypes("OFFICIAL_CERTIFICATION_MY_READ").length > 0,
+    requestResourceTypes: allowedResourceTypes("OFFICIAL_CERTIFICATION_REQUEST"),
+    canSyncOwnedWikis: isAllowedWithoutDeny(principal, "OFFICIAL_CERTIFICATION_OWNED_WIKI_SYNC", "AGENCY"),
+    relatedResourceTypes: allowedResourceTypes("RELATED_WIKI_LIST"),
+  };
+};
+
+export const canManageOfficialCertifications = (principal: WikiPrincipalSummary): boolean => {
+  const permissions = getOfficialCertificationPermissions(principal);
+  return permissions.canRead || permissions.requestResourceTypes.length > 0
+    || permissions.canSyncOwnedWikis || permissions.relatedResourceTypes.length > 0;
+};
 
 export const canPublishWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
   draftWikiReviewResourceTypes.some((resourceType) =>

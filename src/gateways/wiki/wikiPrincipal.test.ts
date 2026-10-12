@@ -4,6 +4,8 @@ import {
   canAutoCreateWikiDraftWikis,
   canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
+  canManageOfficialCertifications,
+  getOfficialCertificationPermissions,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
   canReviewWikiDraftWikis,
@@ -60,6 +62,20 @@ const policy = ({
 });
 
 describe("wiki principal helpers", () => {
+  it.each(["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list"])("permits the management tab with %s alone", (action) => {
+    const grant = policy({ actions: [action], resourceTypes: ["agency"] });
+    expect(canManageOfficialCertifications({ ...principal, policies: [grant] })).toBe(true);
+    expect(canManageOfficialCertifications({ ...principal, policies: [grant, policy({ actions: [action], resourceTypes: ["agency"], effect: "deny" })] })).toBe(false);
+    expect(canManageOfficialCertifications(principal)).toBe(false);
+  });
+
+  it("keeps request, read, related-list and sync permissions independent", () => {
+    expect(getOfficialCertificationPermissions({ ...principal, policies: [policy({ actions: ["official_certification_request"], resourceTypes: ["talent"] })] })).toEqual({
+      canRead: false, requestResourceTypes: ["talent"], canSyncOwnedWikis: false, relatedResourceTypes: [],
+    });
+    expect(canManageOfficialCertifications({ ...principal, policies: [policy({ actions: ["official_certification_request"], resourceTypes: ["image"] })] })).toBe(false);
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
