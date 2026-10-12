@@ -4,6 +4,7 @@ import { expect, test } from "./fixtures";
 const identity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111", identityName: "member", email: "member@example.com", language: "ja",
   accountIdentifier: "22222222-2222-2222-2222-222222222222", accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333", siteManagementPrincipalIdentifier: "44444444-4444-4444-4444-444444444444",
+  siteManagementPrincipalCount: 2,
   accountType: "individual", accountIdentityCount: 1, accountPolicies: [], account: { accountIdentifier: "22222222-2222-2222-2222-222222222222", email: "member@example.com", name: "Member Account", status: "active", type: "individual", accountCategory: "general", phone: null, address: null }, originalAccount: null, delegationIdentifier: null, switchableAccounts: [],
   siteManagementPolicies: [{ policyIdentifier: "55555555-5555-4555-8555-555555555555", name: "Administrator", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }],
 };
@@ -39,7 +40,29 @@ test("SiteManagement saves memberships and adopts the authoritative list", async
 test("direct SiteManagement URL denies a Principal without management policies", async ({ page }) => {
   await page.context().addCookies([{ name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" }, { name: "kpool-locale", value: "ja", domain: "127.0.0.1", path: "/" }]);
   await page.goto("/admin/site-management/principal-groups");
-  await expect(page.getByText("ユーザー権限管理の権限がありません。", { exact: true })).toBeVisible();
+  await expect(page.getByText("利用できるサービスがありません。", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "サイト管理" })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "ユーザー権限管理" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "ユーザー権限管理", exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Wiki collaborator を有効化" })).toHaveCount(0);
+});
+test("a single SiteManagement Principal keeps the entry but hides management and API requests", async ({ page }) => {
+  await page.context().addCookies([
+    { name: "kpool-e2e-site-management", value: "administrator", domain: "127.0.0.1", path: "/" },
+    { name: "kpool-e2e-site-management-principal-count", value: "1", domain: "127.0.0.1", path: "/" },
+    { name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" },
+    { name: "kpool-locale", value: "ja", domain: "127.0.0.1", path: "/" },
+  ]);
+  await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: { ...identity, siteManagementPrincipalCount: 1 } }));
+  let managementRequests = 0;
+  await page.route("**/api/site-management/principal-groups**", (route) => {
+    managementRequests += 1;
+    return route.fulfill({ status: 500, json: { message: "Management should not load for one principal" } });
+  });
+  await page.goto("/admin/site-management/principal-groups");
+  await expect(page.getByText("利用できるサービスがありません。", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "サイト管理" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("tab", { name: "ユーザー権限管理" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "ユーザー権限管理", exact: true })).toHaveCount(0);
+  expect(managementRequests).toBe(0);
 });
