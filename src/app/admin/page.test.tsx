@@ -1516,6 +1516,7 @@ describe("admin page clients", () => {
         principalGroupIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
         name: "Managers",
+        description: "Manages account members and their permissions.",
         roleIdentifiers: [],
         isDefault: false,
         members: [],
@@ -1569,6 +1570,7 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("button", { name: "所属グループを編集" }));
     expect(screen.getByLabelText("Default")).toBeChecked();
     expect(screen.getByLabelText("Managers")).not.toBeChecked();
+    expect(screen.getByLabelText("Managers")).toHaveAccessibleDescription("Manages account members and their permissions.");
   });
 
   it("loads account information and saves the full profile", async () => {

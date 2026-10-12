@@ -10,6 +10,7 @@ const groupA = {
   principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
   accountIdentifier: "22222222-2222-4222-8222-222222222222",
   name: "Wiki Editors",
+  description: "Creates and edits Wiki drafts and submits them for review.",
   roleIdentifiers: [],
   isDefault: false,
   members: [],
@@ -75,6 +76,7 @@ describe("WikiPrincipalGroupManagementPanel", () => {
     expect(screen.queryByText(t.wikiPrincipalGroupUnsavedChanges)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: t.wikiPrincipalGroupEditUserGroups }));
+    expect(screen.getByLabelText("Wiki Editors")).toHaveAccessibleDescription(groupA.description);
     fireEvent.click(screen.getByLabelText("Wiki Reviewers"));
     fireEvent.click(screen.getByRole("button", { name: t.wikiPrincipalGroupDialogConfirm }));
 
