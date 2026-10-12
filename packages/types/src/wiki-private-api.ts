@@ -332,13 +332,14 @@ const PolicySummary = z
   })
   .passthrough();
 const CreatePrincipalGroupRequestBody = z
-  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
+  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string(), description: z.string().max(256).nullish() })
   .passthrough();
 const PrincipalGroupSummary = z
   .object({
     principalGroupIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
     name: z.string(),
+    description: z.string().max(256).nullish(),
     isDefault: z.boolean(),
     memberCount: z.number().int(),
     createdAt: z.string(),
@@ -363,6 +364,7 @@ const PrincipalGroupManagementSummary = z
     principalGroupIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
     name: z.string(),
+    description: z.string().max(256).nullish(),
     roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
     members: z.array(PrincipalGroupMemberSummary),

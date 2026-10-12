@@ -709,6 +709,10 @@ const getInitialAdminPathname = ({
     return "/admin/wiki/submitted";
   }
 
+  if (initialWikiTab === "officialCertificationRequest") {
+    return "/admin/wiki/official-certification";
+  }
+
   if (initialWikiTab === "approvedWikis") {
     return "/admin/wiki/approved";
   }
@@ -764,6 +768,34 @@ const loadCropperImage = () => {
 };
 
 describe("admin page clients", () => {
+  it.each(["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list", null])("shows certification management and permits its URL with any supported permission: %s", async (action) => {
+    const hasPermission = action !== null;
+    navigationMocks.replace.mockClear();
+    const certificationPrincipal = {
+      ...principal,
+      policies: hasPermission ? [{
+        policyIdentifier: "77777777-7777-4777-8777-777777777777",
+        name: "AGENCY_SCOPE_OFFICIAL_CERTIFICATION_MY_READ",
+        isSystemPolicy: true,
+        statements: [{ effect: "allow", actions: [action!], resourceTypes: ["agency"], condition: null }],
+      }] : [],
+    };
+    const agencyIdentity = { ...identity, account: { ...identity.account, accountCategory: "general" } };
+    renderWithQueryClient(<AdminClient
+      initialIdentity={agencyIdentity}
+      initialPrincipalState={{ status: "available", principal: certificationPrincipal }}
+      initialWikiTab="officialCertificationRequest"
+      principalAdapter={createAdapter({ getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "available", principal: certificationPrincipal }) })}
+      draftWikiAdapter={createDraftWikiAdapter()}
+    />);
+    expect(Boolean(screen.queryByRole("tab", { name: "公式認証管理" }))).toBe(hasPermission);
+    if (hasPermission) {
+      expect(navigationMocks.replace).not.toHaveBeenCalled();
+    } else {
+      await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith("/admin/wiki/editing"));
+    }
+  });
+
   beforeEach(() => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       drawImage: vi.fn(),
@@ -1484,6 +1516,7 @@ describe("admin page clients", () => {
         principalGroupIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
         accountIdentifier: "22222222-2222-2222-2222-222222222222",
         name: "Managers",
+        description: "Manages account members and their permissions.",
         roleIdentifiers: [],
         isDefault: false,
         members: [],
@@ -1537,6 +1570,7 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("button", { name: "所属グループを編集" }));
     expect(screen.getByLabelText("Default")).toBeChecked();
     expect(screen.getByLabelText("Managers")).not.toBeChecked();
+    expect(screen.getByLabelText("Managers")).toHaveAccessibleDescription("Manages account members and their permissions.");
   });
 
   it("loads account information and saves the full profile", async () => {

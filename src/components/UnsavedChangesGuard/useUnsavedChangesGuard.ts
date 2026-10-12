@@ -3,11 +3,13 @@
 import { useEffect, useRef } from "react";
 
 type NavigateEvent = Event & {
-  destination: { url: string };
+  destination: { url: string; sameDocument: boolean };
   hashChange: boolean;
   navigationType: string;
+  signal?: AbortSignal;
 };
 type NavigationWindow = Window & { navigation?: EventTarget };
+type LeaveApproval = { destination: string; phase: "pending" | "unloading" };
 
 const beforePageLeaveEvent = "kpool:before-page-leave";
 const cancelPageLeaveEvent = "kpool:cancel-page-leave";
@@ -24,17 +26,22 @@ const changesPage = (destination: URL) =>
   || destination.search !== window.location.search;
 
 export function useUnsavedChangesGuard(hasUnsavedChanges: boolean, message: string) {
-  const approvedActionDestination = useRef<string | null>(null);
+  const approval = useRef<LeaveApproval | null>(null);
   useEffect(() => {
     if (!hasUnsavedChanges) {
-      approvedActionDestination.current = null;
+      approval.current = null;
       return;
     }
 
-    let approvedDestination: string | null = null;
-    let approvedUnload = false;
+    const navigation = (window as NavigationWindow).navigation;
+    const clearApproval = () => { approval.current = null; };
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (approvedUnload || approvedActionDestination.current !== null) return;
+      // Without the Navigation API, beforeunload is the departure notification.
+      if (approval.current && (!navigation || approval.current.phase === "unloading")) {
+        clearApproval();
+        return;
+      }
+      clearApproval();
       event.preventDefault();
       event.returnValue = "";
     };
@@ -45,58 +52,67 @@ export function useUnsavedChangesGuard(hasUnsavedChanges: boolean, message: stri
         || (anchor.target && anchor.target !== "_self")) return;
       const destination = new URL(anchor.href);
       if (!["http:", "https:"].includes(destination.protocol) || !changesPage(destination)) return;
+      clearApproval();
       if (!window.confirm(message)) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
       }
-      approvedDestination = destination.href;
-      approvedUnload = true;
-      setTimeout(() => { approvedUnload = false; approvedDestination = null; }, 0);
+      approval.current = { destination: destination.href, phase: "pending" };
     };
     const navigate = (event: Event) => {
       const navigationEvent = event as NavigateEvent;
       const destination = new URL(navigationEvent.destination.url);
-      if (approvedActionDestination.current === destination.href) {
-        approvedUnload = true;
-        return;
-      }
-      if (!event.cancelable || navigationEvent.hashChange || navigationEvent.navigationType === "reload") return;
+      const approved = approval.current?.destination === destination.href;
+      clearApproval();
+      if (navigationEvent.hashChange || navigationEvent.navigationType === "reload") return;
       if (!changesPage(destination)) return;
-      if (approvedDestination === destination.href) {
-        approvedDestination = null;
+      if (event.defaultPrevented) return;
+      if (!event.cancelable && !approved) return;
+      if (!approved && !window.confirm(message)) {
+        event.preventDefault();
         return;
       }
-      if (!window.confirm(message)) event.preventDefault();
-      else {
-        approvedUnload = true;
-        setTimeout(() => { approvedUnload = false; }, 0);
+      // A same-document navigation consumes approval here. Only a document
+      // departure needs to carry it forward to beforeunload.
+      if (!navigationEvent.destination.sameDocument) {
+        const departure: LeaveApproval = { destination: destination.href, phase: "unloading" };
+        approval.current = departure;
+        navigationEvent.signal?.addEventListener("abort", () => {
+          if (approval.current === departure) clearApproval();
+        }, { once: true });
       }
     };
     const beforePageLeave = (event: Event) => {
+      clearApproval();
       if (!window.confirm(message)) {
         event.preventDefault();
         return;
       }
       const { destination } = (event as CustomEvent<{ destination?: string }>).detail;
-      if (destination) approvedActionDestination.current = new URL(destination, window.location.href).href;
+      if (destination) approval.current = {
+        destination: new URL(destination, window.location.href).href,
+        phase: "pending",
+      };
     };
-    const cancelApprovedLeave = () => {
-      approvedActionDestination.current = null;
-      approvedUnload = false;
+    const navigationFinished = () => {
+      if (approval.current?.phase === "unloading") clearApproval();
     };
-    const navigation = (window as NavigationWindow).navigation;
     document.addEventListener("click", click, true);
     window.addEventListener("beforeunload", beforeUnload);
     window.addEventListener(beforePageLeaveEvent, beforePageLeave);
-    window.addEventListener(cancelPageLeaveEvent, cancelApprovedLeave);
+    window.addEventListener(cancelPageLeaveEvent, clearApproval);
     navigation?.addEventListener("navigate", navigate);
+    navigation?.addEventListener("navigatesuccess", navigationFinished);
+    navigation?.addEventListener("navigateerror", navigationFinished);
     return () => {
       document.removeEventListener("click", click, true);
       window.removeEventListener("beforeunload", beforeUnload);
       window.removeEventListener(beforePageLeaveEvent, beforePageLeave);
-      window.removeEventListener(cancelPageLeaveEvent, cancelApprovedLeave);
+      window.removeEventListener(cancelPageLeaveEvent, clearApproval);
       navigation?.removeEventListener("navigate", navigate);
+      navigation?.removeEventListener("navigatesuccess", navigationFinished);
+      navigation?.removeEventListener("navigateerror", navigationFinished);
     };
   }, [hasUnsavedChanges, message]);
 }

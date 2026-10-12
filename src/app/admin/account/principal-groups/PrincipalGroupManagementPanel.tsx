@@ -1,5 +1,7 @@
 "use client";
 
+import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
+
 import { useMemo, useState } from "react";
 
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
@@ -249,19 +251,14 @@ function EditMemberGroupsDialog({
               {t.principalGroupNoGroups}
             </p>
           ) : groups.map((group) => (
-            <label
-              className="flex items-center gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-3 text-sm font-semibold"
+            <PrincipalGroupMembershipOption
               key={group.principalGroupIdentifier}
-            >
-              <input
-                checked={selectedGroupIdentifiers.has(group.principalGroupIdentifier)}
-                className="size-4"
-                disabled={isBusy}
-                onChange={() => toggleGroup(group.principalGroupIdentifier)}
-                type="checkbox"
-              />
-              <span>{group.name}</span>
-            </label>
+              name={group.name}
+              description={group.description}
+              checked={selectedGroupIdentifiers.has(group.principalGroupIdentifier)}
+              disabled={isBusy}
+              onChange={() => toggleGroup(group.principalGroupIdentifier)}
+            />
           ))}
         </fieldset>
         <p className="mt-4 text-sm text-text-muted">

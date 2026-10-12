@@ -236,6 +236,7 @@ const MemberPrincipalGroupSummary = z
   .object({
     principalGroupIdentifier: KPool_Common_Uuid,
     name: z.string(),
+    description: z.string().max(256).nullish(),
     isDefault: z.boolean(),
   })
   .passthrough();
@@ -267,6 +268,7 @@ const PrincipalGroupSummary = z
     principalGroupIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
     name: z.string(),
+    description: z.string().max(256).nullish(),
     roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
     members: z.array(PrincipalGroupMemberSummary).optional(),
@@ -276,7 +278,7 @@ const ListPrincipalGroupsResponseBody = z
   .object({ principalGroups: z.array(PrincipalGroupSummary) })
   .passthrough();
 const CreatePrincipalGroupRequestBody = z
-  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
+  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string(), description: z.string().max(256).nullish() })
   .passthrough();
 const CreatedPrincipalGroupSummary = PrincipalGroupSummary;
 const UpdatePrincipalGroupMembersItem = z
