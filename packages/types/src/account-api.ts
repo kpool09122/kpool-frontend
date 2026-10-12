@@ -278,7 +278,11 @@ const ListPrincipalGroupsResponseBody = z
   .object({ principalGroups: z.array(PrincipalGroupSummary) })
   .passthrough();
 const CreatePrincipalGroupRequestBody = z
-  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string(), description: z.string().max(256).nullish() })
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    description: z.string().max(256).nullish(),
+  })
   .passthrough();
 const CreatedPrincipalGroupSummary = PrincipalGroupSummary;
 const UpdatePrincipalGroupMembersItem = z
@@ -1049,11 +1053,6 @@ const endpoints = makeApi([
     description: `List affiliations related to the authenticated account.`,
     requestFormat: "json",
     parameters: [
-      {
-        name: "onlyWithoutPendingOrApprovedDelegation",
-        type: "Query",
-        schema: z.union([z.literal(0), z.literal(1)]).optional(),
-      },
       {
         name: "status",
         type: "Query",

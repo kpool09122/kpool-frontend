@@ -332,7 +332,11 @@ const PolicySummary = z
   })
   .passthrough();
 const CreatePrincipalGroupRequestBody = z
-  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string(), description: z.string().max(256).nullish() })
+  .object({
+    accountIdentifier: KPool_Common_Uuid,
+    name: z.string(),
+    description: z.string().max(256).nullish(),
+  })
   .passthrough();
 const PrincipalGroupSummary = z
   .object({
