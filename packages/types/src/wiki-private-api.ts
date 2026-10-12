@@ -408,7 +408,6 @@ const PrincipalSummary = z
     identityIdentifier: KPool_Common_Uuid,
     isDelegatedPrincipal: z.boolean(),
     isEnabled: z.boolean(),
-    accountPrincipalCount: z.number().int().min(1),
     policies: z.array(EffectivePolicySummary),
     accountPrincipalCount: z.number().int().gte(1),
   })
