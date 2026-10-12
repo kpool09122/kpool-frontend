@@ -25,14 +25,9 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
   const groups = getSiteManagementEditableGroups(state.groups);
   const busy = state.isLoading || state.isSaving;
   const disabled = busy || !state.canManage || Boolean(state.loadError) || groups.length === 0;
-  const saveDisabled = disabled || !state.hasUnsavedChanges;
+  const saveDisabled = disabled || !(state.hasUnsavedChanges && !state.canRetryRefresh);
   const dialogUser = state.users.find((user) => user.principalIdentifier === dialogDraft?.userIdentifier);
   const save = () => { if (!saveDisabled) actions.save(); };
-  const load = () => {
-    if (busy || !state.canManage || state.hasUnsavedChanges) return;
-    setDialogDraft(null);
-    actions.load();
-  };
   const currentEditableIdentifiers = dialogUser
     ? getSiteManagementUserGroupIdentifiers(state.membershipByGroup, dialogUser.principalIdentifier)
       .filter((identifier) => groups.some((group) => group.principalGroupIdentifier === identifier))
@@ -61,7 +56,7 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
     }>
       <div className="mt-5 grid gap-3">
         {state.isLoading ? <AccountStatusMessage variant="loading">{t.loading}</AccountStatusMessage> : null}
-        {!state.canManage ? <AccountStatusMessage variant="warning">{t.readOnly}</AccountStatusMessage> : null}
+        {!busy && !state.canManage && !state.canRetryRefresh ? <AccountStatusMessage variant="warning">{t.readOnly}</AccountStatusMessage> : null}
         {state.loadError ? <AccountStatusMessage variant="error">{state.loadError}</AccountStatusMessage> : null}
         {!state.isLoading && !state.loadError && groups.length === 0 ? <AccountStatusMessage variant="empty">{t.noGroups}</AccountStatusMessage> : null}
         <div aria-label={t.userList} className="grid gap-3">
@@ -85,7 +80,6 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
           <button className="mt-3 rounded-lg border px-4 py-2 disabled:opacity-60" disabled={saveDisabled} onClick={save} type="button">{t.retrySave}</button>
         }>{state.saveError}</AccountStatusMessage> : null}
         {state.success ? <AccountStatusMessage variant="success">{state.success}</AccountStatusMessage> : null}
-        <button className="justify-self-start rounded-lg border border-stroke-subtle px-4 py-2 disabled:opacity-60" disabled={busy || !state.canManage || state.hasUnsavedChanges} onClick={load} type="button">{t.reload}</button>
       </div>
       {dialogDraft && dialogUser ? <EditUserGroupsDialog
         key={dialogDraft.userIdentifier} user={dialogUser} groups={groups} selected={dialogDraft.selectedGroupIdentifiers}

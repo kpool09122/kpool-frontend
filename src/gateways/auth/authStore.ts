@@ -36,11 +36,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     })),
   refreshIdentity: async ({ preserveOnNull = false } = {}) => {
     const sessionVersion = get().sessionVersion;
-    const hadIdentity = get().identity !== null;
+    const initialIdentity = get().identity;
+    const hadIdentity = initialIdentity !== null;
     set({ status: "loading" });
     const identity = await fetchCurrentAuthenticatedIdentity();
 
-    if (get().sessionVersion !== sessionVersion) return null;
+    if (get().sessionVersion !== sessionVersion || get().identity !== initialIdentity) return null;
 
     if (identity === null && preserveOnNull) {
       set((state) => ({

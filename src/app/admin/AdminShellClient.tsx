@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
+import { canManageSiteManagementPrincipalGroups } from "@/gateways/site-management/siteManagementPolicy";
 import { useAdmin } from "./AdminProvider";
 import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
@@ -29,6 +30,8 @@ export function AdminShellClient({
   const activeSection = resolveActiveSection(pathname);
   const headerTitle = activeSection === "wiki"
     ? t.wikiHeaderTitle
+    : activeSection === "siteManagement"
+      ? t.siteManagementMenu
     : activeSection === "accountSettings"
       ? t.accountSettingsHeaderTitle
       : t.settingsHeaderTitle;
@@ -91,6 +94,9 @@ export function AdminShellClient({
                 isSelected={activeSection === "wiki"}
                 label={t.wikiMenu}
               />
+              {canManageSiteManagementPrincipalGroups(currentIdentity) ? (
+                <AdminSectionLink href={adminSectionRoutes.siteManagement} isSelected={activeSection === "siteManagement"} label={t.siteManagementMenu} />
+              ) : null}
               {canShowAccountSettings ? (
                 <AdminSectionLink
                   href={adminSectionRoutes.accountSettings}
@@ -126,6 +132,7 @@ export function AdminShellClient({
 }
 
 const resolveActiveSection = (pathname: string | null): AdminSection => {
+  if (pathname?.startsWith("/admin/site-management/")) return "siteManagement";
   if (pathname?.startsWith("/admin/account")) {
     return "accountSettings";
   }

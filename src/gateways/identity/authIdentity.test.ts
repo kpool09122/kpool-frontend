@@ -61,6 +61,14 @@ describe("fetchAuthenticatedIdentity", () => {
     );
   });
 
+  it("supplies SiteManagement policies only for the explicit mock admin cookie", async () => {
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
+    const identity = await fetchAuthenticatedIdentity({ cookieHeader: "kpool-mock-account-status=active; kpool-e2e-site-management=administrator" });
+    expect(identity?.siteManagementPolicies?.[0].statements[0]).toMatchObject({ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null });
+    const denied = await fetchAuthenticatedIdentity({ cookieHeader: "kpool-mock-account-status=active" });
+    expect(denied?.siteManagementPolicies ?? []).toEqual([]);
+  });
+
   it("returns null when /auth/me rejects the session", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "http://api.test");
     const fetchAdapter = vi

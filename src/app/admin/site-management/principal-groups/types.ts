@@ -29,6 +29,8 @@ export type SiteManagementPrincipalGroupState = {
   loadError: string | null;
   saveError: string | null;
   success: string | null;
+  /** Saved but authorization/list refresh is unconfirmed; retry must never PATCH. */
+  canRetryRefresh?: boolean;
 };
 export type SiteManagementPrincipalGroupActions = {
   updateUserGroups: (principalIdentifier: string, groupIdentifiers: string[]) => void;

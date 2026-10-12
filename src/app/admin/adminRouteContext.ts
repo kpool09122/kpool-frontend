@@ -23,7 +23,7 @@ import type { AdminWikiTab } from "./adminTypes";
 export const dynamic = "force-dynamic";
 
 type AdminRouteDataTarget =
-  | { section: "account" | "user" }
+  | { section: "account" | "user" | "site-management" }
   | { section: "wiki"; tab: AdminWikiTab };
 
 export async function loadAdminRouteContext(
@@ -89,6 +89,7 @@ export async function loadAdminRouteContext(
 }
 
 const resolveAdminRouteDataTarget = (slug: string[] | undefined): AdminRouteDataTarget => {
+  if (slug?.[0] === "site-management") return { section: "site-management" };
   if (slug?.[0] === "account") {
     return { section: "account" };
   }
