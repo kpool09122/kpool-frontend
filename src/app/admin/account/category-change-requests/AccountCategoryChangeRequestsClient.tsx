@@ -24,6 +24,7 @@ export function AccountCategoryChangeRequestsClient() {
                 <p className="font-semibold text-text-strong">{request.account.name}</p>
                 <p className="break-all text-sm text-text-muted">{request.account.email}</p>
               </div>
+              <p className="mt-2 text-sm text-text-muted">{t.accountCategoryChange.statusLabels[request.status]}</p>
               <dl className="mt-3 grid gap-2 text-sm md:grid-cols-2">
                 <div><dt className="text-text-muted">{t.accountCategoryChangeRequests.categoryTransition}</dt><dd className="text-text-strong">{getCategoryLabel(labels, request.currentAccountCategory)} → {getCategoryLabel(labels, request.requestedAccountCategory)}</dd></div>
                 <div><dt className="text-text-muted">{t.accountCategoryChangeRequests.requestedAt}</dt><dd>{request.requestedAt}</dd></div>

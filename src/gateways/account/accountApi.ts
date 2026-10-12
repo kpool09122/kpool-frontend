@@ -18,6 +18,12 @@ export type AccountCategoryChangeRequestSummary = z.infer<typeof accountApiTypes
 export type ListAccountCategoryChangeRequestsResponse = z.infer<typeof accountApiTypes.schemas.ListAccountCategoryChangeRequestsResponseBody>;
 export type AccountCategoryChangeRequestDetailResponse = z.infer<typeof accountApiTypes.schemas.AccountCategoryChangeRequestDetailResponseBody>;
 export type RejectAccountCategoryChangeRequest = z.infer<typeof accountApiTypes.schemas.RejectAccountCategoryChangeRequestBody>;
+// The generated latest endpoint has an inline nullable wrapper; reuse its summary schema.
+const LatestAccountCategoryChangeRequestSchema = z.object({ request: accountApiTypes.schemas.AccountCategoryChangeRequestSummary.nullable() }).passthrough();
+export type LatestAccountCategoryChangeRequestResponse = z.infer<typeof LatestAccountCategoryChangeRequestSchema>;
+export const parseLatestAccountCategoryChangeRequestResponse = (body: unknown): LatestAccountCategoryChangeRequestResponse =>
+  parseWithSchemaLog("latest account category change request response", LatestAccountCategoryChangeRequestSchema, body);
+
 export type RequestAffiliationRequest = z.infer<typeof accountApiTypes.schemas.RequestAffiliationRequestBody>;
 const AffiliationSummarySchema = accountApiTypes.schemas.AffiliationSummary.extend({
   agencyAccount: accountApiTypes.schemas.AffiliationAccountSummary,

@@ -16,6 +16,7 @@ export const adminQueryKeys = {
       "profile",
       accountIdentifier ?? "unavailable",
     ] as const,
+    latestCategoryChangeRequest: (accountIdentifier: string | null) => [...adminQueryKeys.account.all(), "latestCategoryChangeRequest", accountIdentifier ?? "unavailable"] as const,
     documents: (accountIdentifier: string | null) => [
       ...adminQueryKeys.account.all(),
       "documents",
