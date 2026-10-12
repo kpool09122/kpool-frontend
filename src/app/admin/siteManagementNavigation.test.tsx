@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({ pathname: "/admin/site-management/principal-gr
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname, useSearchParams: () => new URLSearchParams() }));
 vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ canShowAccountSettings: true, currentIdentity: mocks.identity, t: dictionaries.ja.admin }) }));
 afterEach(cleanup);
-const identity = { language: "ja", identityIdentifier: "actor", identityName: "Admin", email: "a@example.test", accountIdentifier: "account", siteManagementPrincipalIdentifier: "principal", account: { status: "active" }, siteManagementPolicies: [{ name: "Administrator", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] };
+const identity = { language: "ja", identityIdentifier: "actor", identityName: "Admin", email: "a@example.test", accountIdentifier: "account", siteManagementPrincipalIdentifier: "principal", siteManagementPrincipalCount: 2, account: { status: "active" }, siteManagementPolicies: [{ name: "Administrator", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] };
 describe("SiteManagement navigation", () => {
   it("orders Wiki → SiteManagement → Account and marks the active section", () => {
     mocks.identity = identity;

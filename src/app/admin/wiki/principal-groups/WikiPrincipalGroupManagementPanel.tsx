@@ -233,7 +233,7 @@ function EditUserGroupsDialog({
           {t.wikiPrincipalGroupDialogDescription}
         </p>
         <fieldset className="mt-5 grid gap-3">
-          <legend className="text-sm font-semibold text-text-strong">
+          <legend className="mb-3 text-sm font-semibold text-text-strong">
             {t.wikiPrincipalGroupCheckboxListLabel}
           </legend>
           {groups.length === 0 ? (

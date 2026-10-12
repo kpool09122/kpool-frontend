@@ -4,6 +4,7 @@ import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 
 import {
+  parseLatestAccountCategoryChangeRequestResponse,
   parseAccountMembersResponse,
   parseAccountSummary,
   parseAccountDelegationSummary,
@@ -486,6 +487,24 @@ export const uploadAccountDocuments = async ({
   return parseUploadAccountDocumentsResponse(body);
 };
 
+
+export const fetchLatestAccountCategoryChangeRequest = async ({ accountIdentifier, fallbackErrorMessage, fetchAdapter = browserApiFetch, locale }: AccountRequestOptions & { locale?: Locale }) => {
+  const response = await fetchAdapter(`/api/account/accounts/${encodeURIComponent(accountIdentifier)}/category-change-requests/latest`, {
+    cache: "no-store", credentials: "include", headers: { Accept: "application/json", ...(locale ? { "Accept-Language": locale } : {}) },
+  });
+  const body = await readResponseBody(response);
+  if (!response.ok) throw createRouteError(response, body, fallbackErrorMessage);
+  return parseLatestAccountCategoryChangeRequestResponse(body);
+};
+
+export const withdrawAccountCategoryChangeRequest = async ({ accountIdentifier, requestId, fallbackErrorMessage, fetchAdapter = browserApiFetch, locale }: AccountRequestOptions & { requestId: string; locale?: Locale }) => {
+  const response = await fetchAdapter(`/api/account/accounts/${encodeURIComponent(accountIdentifier)}/category-change-requests/${encodeURIComponent(requestId)}/withdraw`, {
+    method: "POST", cache: "no-store", credentials: "include", headers: { Accept: "application/json", ...(locale ? { "Accept-Language": locale } : {}) },
+  });
+  const body = await readResponseBody(response);
+  if (!response.ok) throw createRouteError(response, body, fallbackErrorMessage);
+  return parseAccountCategoryChangeRequestSummary(body);
+};
 
 export const requestAccountCategoryChange = async ({
   accountIdentifier,
