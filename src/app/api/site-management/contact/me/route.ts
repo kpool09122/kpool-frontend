@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const baseUrl = getSiteManagementApiBaseUrl();
   if (!baseUrl) return unavailableResponse();
   try {
-    const response = await fetch(`${baseUrl}/contact/me`, { method: "GET", headers: getForwardHeaders(request), cache: "no-store" });
+    const response = await fetch(`${baseUrl}/my/contact`, { method: "GET", headers: getForwardHeaders(request), cache: "no-store" });
     const body = await readResponseBody(response);
     if (!response.ok) return NextResponse.json({ message: getRouteErrorMessage(response.status, body) }, { status: response.status });
     return NextResponse.json(parseMyContactsResponse(body), { status: response.status });

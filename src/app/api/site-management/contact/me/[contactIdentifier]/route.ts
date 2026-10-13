@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   if (!baseUrl) return unavailableResponse();
   const { contactIdentifier } = await context.params;
   try {
-    const response = await fetch(`${baseUrl}/contact/me/${encodeURIComponent(contactIdentifier)}`, { method: "GET", headers: getForwardHeaders(request), cache: "no-store" });
+    const response = await fetch(`${baseUrl}/my/contact/${encodeURIComponent(contactIdentifier)}`, { method: "GET", headers: getForwardHeaders(request), cache: "no-store" });
     const body = await readResponseBody(response);
     if (!response.ok) return NextResponse.json({ message: getRouteErrorMessage(response.status, body) }, { status: response.status });
     return NextResponse.json(parseMyContactDetailResponse(body), { status: response.status });
