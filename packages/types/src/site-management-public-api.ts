@@ -10,6 +10,7 @@ const MyContactSummary = z.object({
   name: z.string(),
   replyIdentifiers: z.array(uuid),
   createdAt: timestamp,
+  content: z.string(),
 }).passthrough();
 
 const ContactReplyDetail = z.object({

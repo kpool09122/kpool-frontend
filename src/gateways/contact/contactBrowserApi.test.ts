@@ -26,6 +26,7 @@ const contact = {
   identityIdentifier,
   name: "Kpool User",
   replyIdentifiers: [replyIdentifier],
+  content: "問い合わせ本文",
 };
 
 describe("contact browser API", () => {
