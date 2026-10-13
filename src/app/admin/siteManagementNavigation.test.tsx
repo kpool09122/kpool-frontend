@@ -26,4 +26,20 @@ describe("SiteManagement navigation", () => {
     expect(screen.queryByRole("link", { name: "サイト管理" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
+  it("shows contacts for own-contact permission without exposing group management", () => {
+    mocks.identity = { ...identity, siteManagementPrincipalCount: 1, siteManagementPolicies: [{ name: "General", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: "own_contact" }] }] };
+    render(<AdminShellClient><SiteManagementPageClient activeTab="contacts"><p>My contacts</p></SiteManagementPageClient></AdminShellClient>);
+    expect(screen.getByRole("link", { name: "サイト管理" })).toHaveAttribute("href", "/admin/site-management/contacts");
+    expect(screen.getByRole("tab", { name: "お問い合わせ" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
+    expect(screen.getByText("My contacts")).toBeInTheDocument();
+  });
+  it("keeps both tabs reachable with group management permission", () => {
+    mocks.identity = identity;
+    render(<SiteManagementPageClient activeTab="contacts"><p>My contacts</p></SiteManagementPageClient>);
+    expect(screen.getByRole("tab", { name: "お問い合わせ" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "ユーザー権限管理" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tab", { name: "ユーザー権限管理" })).toHaveAttribute("href", "/admin/site-management/principal-groups");
+  });
+
 });

@@ -11,6 +11,7 @@ const MyContactSummary = z
     name: z.string(),
     replyIdentifiers: z.array(KPool_Common_Uuid),
     createdAt: KPool_Common_Timestamp,
+    content: z.string(),
   })
   .passthrough();
 const KPool_Common_ProblemDetails = z

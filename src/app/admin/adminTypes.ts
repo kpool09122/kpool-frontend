@@ -63,9 +63,9 @@ export type AdminIdentitySettingsState = {
 };
 
 export const adminSectionRoutes: Record<AdminSection, string> = {
-  siteManagement: "/admin/site-management/principal-groups",
   accountSettings: "/admin/account/profile",
   settings: "/admin/user/profile",
+  siteManagement: "/admin/site-management/contacts",
   wiki: "/admin/wiki/editing",
 };
 

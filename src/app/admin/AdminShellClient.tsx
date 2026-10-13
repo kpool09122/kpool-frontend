@@ -132,13 +132,16 @@ export function AdminShellClient({
 }
 
 const resolveActiveSection = (pathname: string | null): AdminSection => {
-  if (pathname?.startsWith("/admin/site-management/")) return "siteManagement";
   if (pathname?.startsWith("/admin/account")) {
     return "accountSettings";
   }
 
   if (pathname?.startsWith("/admin/user")) {
     return "settings";
+  }
+
+  if (pathname?.startsWith("/admin/site-management")) {
+    return "siteManagement";
   }
 
   return "wiki";
