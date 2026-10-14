@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { canUseAnnouncements } from "@/gateways/site-management/siteManagementPolicy";
+import { canUseAnnouncements, canViewSiteManagementContacts } from "@/gateways/site-management/siteManagementPolicy";
 import { dictionaries } from "@/i18n/dictionaries";
 import type { ReactNode } from "react";
 import { AccountStatusMessage } from "@/components/Account";
@@ -15,6 +15,7 @@ export function SiteManagementPageClient({ children, activeTab = "principalGroup
 }) {
   const { currentIdentity, t, locale } = useAdmin();
   const canShowManagement = canShowSiteManagementPrincipalGroupManagement(currentIdentity);
+  const canViewContacts = canViewSiteManagementContacts(currentIdentity);
 
   if (activeTab === "principalGroups" && !canShowManagement) return (
     <AccountStatusMessage variant="empty">
@@ -32,7 +33,7 @@ export function SiteManagementPageClient({ children, activeTab = "principalGroup
             href="/admin/site-management/contacts"
             role="tab"
           >
-            {t.myContacts.tab}
+            {canViewContacts ? t.siteManagementContacts.tab : t.myContacts.tab}
           </Link>
           {canUseAnnouncements(currentIdentity, "view-draft") ? <Link role="tab" aria-selected={activeTab === "announcements"} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "announcements" ? "border-brand-primary" : "border-transparent"}`} href="/admin/site-management/announcements">{dictionaries[locale].announcements.management}</Link> : null}
           {canShowManagement ? <Link
