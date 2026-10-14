@@ -7,7 +7,8 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
-import { canAccessSiteManagement } from "@/gateways/site-management/siteManagementPolicy";
+import { canAccessSiteManagement, canViewSiteManagementContacts } from "@/gateways/site-management/siteManagementPolicy";
+import { canShowSiteManagementPrincipalGroupManagement } from "./principalGroupVisibility";
 import { useAdmin } from "./AdminProvider";
 import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
@@ -25,6 +26,9 @@ export function AdminShellClient({
   const pathname = usePathname();
   const { canShowAccountSettings, currentIdentity, t } = useAdmin();
   const searchParams = useSearchParams();
+  const siteManagementRoute = canViewSiteManagementContacts(currentIdentity) && !canShowSiteManagementPrincipalGroupManagement(currentIdentity)
+    ? "/admin/site-management/contacts"
+    : adminSectionRoutes.siteManagement;
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
   const activeSection = resolveActiveSection(pathname);
@@ -95,7 +99,7 @@ export function AdminShellClient({
                 label={t.wikiMenu}
               />
               {canAccessSiteManagement(currentIdentity) ? (
-                <AdminSectionLink href={adminSectionRoutes.siteManagement} isSelected={activeSection === "siteManagement"} label={t.siteManagementMenu} />
+                <AdminSectionLink href={siteManagementRoute} isSelected={activeSection === "siteManagement"} label={t.siteManagementMenu} />
               ) : null}
               {canShowAccountSettings ? (
                 <AdminSectionLink

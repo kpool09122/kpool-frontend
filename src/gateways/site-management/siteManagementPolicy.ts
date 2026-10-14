@@ -18,6 +18,12 @@ const hasPermission = (
 export const canManageSiteManagementPrincipalGroups = (identity: AuthenticatedIdentitySummary | null): boolean =>
   hasPermission(identity, "principal-group:manage", "principal_group");
 
+export const canViewSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
+  hasPermission(identity, "contact:view", "contact");
+
+export const canReplyToSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
+  hasPermission(identity, "contact:reply", "contact");
+
 /** Section access depends on permissions, independently of tab visibility and member count. */
 export const canAccessSiteManagement = (identity: AuthenticatedIdentitySummary | null): boolean =>
   canManageSiteManagementPrincipalGroups(identity) ||

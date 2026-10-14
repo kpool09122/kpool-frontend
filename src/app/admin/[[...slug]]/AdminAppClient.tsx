@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { SiteManagementPrincipalGroupsClient } from "../site-management/principal-groups/SiteManagementPrincipalGroupsClient";
 import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
+import { SiteManagementContactsClient } from "../site-management/contacts/SiteManagementContactsClient";
 
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
@@ -49,6 +50,7 @@ export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
 }
 
 type AdminClientPage = "accountAffiliations"
+  | "siteManagementContacts"
   | "siteManagementPrincipalGroups"
   | "accountDelegations"
   | "accountCategoryChange"
@@ -74,6 +76,7 @@ type AdminClientPage = "accountAffiliations"
   | "wikiUntranslated";
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
+  if (pathname === "/admin/site-management/contacts") return "siteManagementContacts";
   if (pathname?.startsWith("/admin/site-management/")) return "siteManagementPrincipalGroups";
   if (pathname?.startsWith("/admin/account")) {
     if (pathname.endsWith("/documents")) {
@@ -169,6 +172,14 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "siteManagementContacts") {
+    return (
+      <SiteManagementPageClient>
+        <SiteManagementContactsClient />
+      </SiteManagementPageClient>
+    );
+  }
+
   if (page === "siteManagementPrincipalGroups") {
     return (
       <SiteManagementPageClient>

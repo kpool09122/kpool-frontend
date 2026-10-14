@@ -26,4 +26,25 @@ describe("SiteManagement navigation", () => {
     expect(screen.queryByRole("link", { name: "サイト管理" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
+  it("shows the contact tab to a contact viewer without requiring principal-group management", () => {
+    mocks.pathname = "/admin/site-management/contacts";
+    mocks.identity = { ...identity, siteManagementPrincipalCount: 1, siteManagementPolicies: [{ name: "Contact viewer", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: null }] }] };
+    render(<AdminShellClient><SiteManagementPageClient><p>contacts</p></SiteManagementPageClient></AdminShellClient>);
+    expect(screen.getByRole("link", { name: "サイト管理" })).toHaveAttribute("href", "/admin/site-management/contacts");
+    expect(screen.getByRole("tab", { name: "お問い合わせ管理" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
+  });
+  it("visually distinguishes the active site-management tab", () => {
+    mocks.pathname = "/admin/site-management/contacts";
+    mocks.identity = {
+      ...identity,
+      siteManagementPolicies: [
+        ...identity.siteManagementPolicies,
+        { name: "Contact viewer", policyIdentifier: "contact-policy", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: null }] },
+      ],
+    };
+    render(<AdminShellClient><SiteManagementPageClient><p>contacts</p></SiteManagementPageClient></AdminShellClient>);
+    expect(screen.getByRole("tab", { name: "お問い合わせ管理" })).toHaveClass("border-brand-primary", "text-text-strong");
+    expect(screen.getByRole("tab", { name: "ユーザー権限管理" })).toHaveClass("border-transparent", "text-text-muted");
+  });
 });
