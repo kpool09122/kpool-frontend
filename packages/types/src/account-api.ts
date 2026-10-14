@@ -141,6 +141,30 @@ const UploadAccountDocumentsRequestBody = z
 const UploadAccountDocumentsResponseBody = z
   .object({ documents: z.array(AccountDocumentSummary) })
   .passthrough();
+const AccountNotificationRecipient = z
+  .object({
+    identityIdentifier: KPool_Common_Uuid.uuid(),
+    channel: z.literal("email"),
+  })
+  .passthrough();
+const AccountNotificationCandidate = z
+  .object({
+    identityIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string(),
+    email: z.string(),
+    language: z.string(),
+  })
+  .passthrough();
+const AccountNotificationSettings = z
+  .object({
+    recipients: z.array(AccountNotificationRecipient),
+    candidates: z.array(AccountNotificationCandidate),
+    maxRecipients: z.number().int().gte(0).lte(5),
+  })
+  .passthrough();
+const UpdateAccountNotificationSettingsBody = z
+  .object({ recipients: z.array(AccountNotificationRecipient).max(5) })
+  .passthrough();
 const AffiliationTermsSummary = z
   .object({
     revenueSharePercentage: z.number().int(),
@@ -320,6 +344,10 @@ export const schemas = {
   AccountDocumentUploadItem,
   UploadAccountDocumentsRequestBody,
   UploadAccountDocumentsResponseBody,
+  AccountNotificationRecipient,
+  AccountNotificationCandidate,
+  AccountNotificationSettings,
+  UpdateAccountNotificationSettingsBody,
   AffiliationTermsSummary,
   AffiliationCommandSummary,
   AffiliationSummary,
@@ -847,6 +875,110 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountId/notification-settings",
+    alias: "AccountNotificationOperations_getNotificationSettings",
+    description: `Requires account:notification-settings:read permission: get current email recipients and candidate Identities. New accounts select their creator by default. Empty recipients disables notifications.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountNotificationSettings,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "put",
+    path: "/accounts/:accountId/notification-settings",
+    alias: "AccountNotificationOperations_updateNotificationSettings",
+    description: `Requires account:notification-settings:update permission: replace all recipients. Accepts 0..min(member count,5) unique current account Identities. Only email is accepted. Empty recipients disables account-authorized email notifications.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdateAccountNotificationSettingsBody,
+      },
+      {
+        name: "accountId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.array(z.string()),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
