@@ -20,6 +20,13 @@ export const canManageSiteManagementPrincipalGroups = (identity: AuthenticatedId
 
 export const canUseAnnouncements = (identity: AuthenticatedIdentitySummary | null, action: "view-draft" | "create" | "update" | "translate" | "publish" | "delete") => hasPermission(identity, `announcement:${action}`, "announcement");
 
+export const canViewSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
+  hasPermission(identity, "contact:view", "contact");
+
+export const canReplyToSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
+  hasPermission(identity, "contact:reply", "contact");
+
+
 /** Section access depends on permissions, independently of tab visibility and member count. */
 export const canAccessSiteManagement = (identity: AuthenticatedIdentitySummary | null): boolean =>
   canManageSiteManagementPrincipalGroups(identity) ||

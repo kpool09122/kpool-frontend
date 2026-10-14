@@ -25,6 +25,7 @@ export function AdminShellClient({
   const pathname = usePathname();
   const { currentIdentity, t, principalState = { status: "idle" } } = useAdmin();
   const searchParams = useSearchParams();
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const isSidebarHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const activeSection = resolveAdminSection(pathname);

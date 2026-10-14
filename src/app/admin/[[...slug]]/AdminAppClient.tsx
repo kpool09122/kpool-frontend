@@ -2,8 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import { SiteManagementAnnouncementsClient } from "../site-management/announcements/SiteManagementAnnouncementsClient";
+import { canViewSiteManagementContacts } from "@/gateways/site-management/siteManagementPolicy";
+import { useAdmin } from "../AdminProvider";
 import { SiteManagementPrincipalGroupsClient } from "../site-management/principal-groups/SiteManagementPrincipalGroupsClient";
 import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
+import { SiteManagementContactsClient } from "../site-management/contacts/SiteManagementContactsClient";
 
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
@@ -16,7 +19,7 @@ import { AccountPrincipalGroupsClient } from "../account/principal-groups/Accoun
 import { AccountNotificationsClient } from "../account/notification-settings/AccountNotificationsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
-import { SiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
+import { SiteManagementContactsClient as MySiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
 import { AdminRouteProvider } from "../AdminRouteProvider";
 import type { AdminRouteData } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
@@ -52,6 +55,7 @@ export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
 }
 
 type AdminClientPage = "accountAffiliations"
+  | "siteManagementContacts"
   | "siteManagementPrincipalGroups"
   | "siteManagementAnnouncements"
   | "accountDelegations"
@@ -63,7 +67,6 @@ type AdminClientPage = "accountAffiliations"
   | "accountInvitations"
   | "accountPrincipalGroups"
   | "accountProfile"
-  | "siteManagementContacts"
   | "userLanguage"
   | "userOther"
   | "userProfile"
@@ -181,7 +184,20 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  const { currentIdentity } = useAdmin();
+
   if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;
+  if (page === "siteManagementContacts") {
+    if (!canViewSiteManagementContacts(currentIdentity)) return <MySiteManagementContactsClient />;
+
+    return (
+      <SiteManagementPageClient activeTab="contacts">
+        <SiteManagementContactsClient />
+      </SiteManagementPageClient>
+    );
+  }
+
+
   if (page === "siteManagementPrincipalGroups") {
     return (
       <SiteManagementPageClient>
@@ -271,8 +287,6 @@ function AdminResolvedPage({
       </UserPageClient>
     );
   }
-
-  if (page === "siteManagementContacts") return <SiteManagementContactsClient />;
 
   if (page === "userProfile") {
     return (
