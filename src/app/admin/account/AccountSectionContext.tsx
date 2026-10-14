@@ -7,6 +7,8 @@ import type { useI18n } from "../../../i18n/I18nProvider";
 export type AccountSectionContextValue = {
   accountIdentifier: string | null;
   accountPrincipalIdentifier: string | null;
+  canReadNotifications?: boolean;
+  canUpdateNotifications?: boolean;
   canEdit: boolean;
   canInvite: boolean;
   canManagePrincipalGroups: boolean;

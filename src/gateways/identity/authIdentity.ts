@@ -10,6 +10,7 @@ type FetchAuthenticatedIdentityOptions = {
 };
 
 export const mockAccountPolicyCookieName = "kpool-mock-account-policy";
+export const mockAccountNotificationPolicyCookieName = "kpool-mock-account-notification-policy";
 export const mockAccountStatusCookieName = "kpool-mock-account-status";
 
 const isMockIdentityEnabled = (): boolean =>
@@ -20,6 +21,8 @@ const hasCookieValue = (cookieHeader: string, name: string, value: string): bool
 
 const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIdentitySummary => {
   const hasAccountUpdatePolicy = hasCookieValue(cookieHeader, mockAccountPolicyCookieName, "update");
+  const notificationUpdate = hasCookieValue(cookieHeader, mockAccountNotificationPolicyCookieName, "update");
+  const notificationRead = notificationUpdate || hasCookieValue(cookieHeader, mockAccountNotificationPolicyCookieName, "read");
   const accountType = hasAccountUpdatePolicy ? "corporation" : "individual";
   const accountStatus = cookieHeader.split(";")
     .map((cookie) => cookie.trim())
@@ -45,7 +48,7 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
     }] : [],
     accountType,
     accountIdentityCount: accountStatus === "missing" ? 0 : 1,
-    accountPolicies: hasAccountUpdatePolicy
+    accountPolicies: [ ...(hasAccountUpdatePolicy
       ? [
           {
             policyIdentifier: "99999999-9999-9999-9999-999999999999",
@@ -60,7 +63,15 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
             ],
           },
         ]
-      : [],
+      : []), ...(notificationRead ? [{
+        policyIdentifier: "88888888-8888-4888-8888-888888888888",
+        name: "CUSTOM_NOTIFICATION",
+        isSystemPolicy: false,
+        statements: [{ effect: "allow", resourceTypes: ["ACCOUNT"], actions: [
+          "account:notification-settings:read",
+          ...(notificationUpdate ? ["account:notification-settings:update"] : []),
+        ] }],
+      }] : []) ],
     account: accountStatus === "missing" ? null : {
       accountIdentifier: "22222222-2222-2222-2222-222222222222",
       email: "member@example.com",

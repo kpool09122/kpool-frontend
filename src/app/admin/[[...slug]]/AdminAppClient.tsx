@@ -12,6 +12,7 @@ import { AccountDocumentsClient } from "../account/documents/AccountDocumentsCli
 import { AccountDelegationsClient } from "../account/delegations/AccountDelegationsClient";
 import { AccountInvitationsClient } from "../account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
+import { AccountNotificationsClient } from "../account/notification-settings/AccountNotificationsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
 import { SiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
@@ -55,6 +56,7 @@ type AdminClientPage = "accountAffiliations"
   | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
   | "accountCategoryChangeRequests"
+  | "accountNotifications"
   | "accountDocuments"
   | "accountInvitations"
   | "accountPrincipalGroups"
@@ -82,6 +84,7 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
       : "siteManagementContacts";
   }
   if (pathname?.startsWith("/admin/account")) {
+    if (pathname.endsWith("/notification-settings")) return "accountNotifications";
     if (pathname.endsWith("/documents")) {
       return "accountDocuments";
     }
@@ -222,6 +225,8 @@ function AdminResolvedPage({
       </AccountPageClient>
     );
   }
+
+  if (page === "accountNotifications") return <AccountPageClient activeTab="accountNotifications"><AccountNotificationsClient /></AccountPageClient>;
 
   if (page === "accountDocuments") {
     return (

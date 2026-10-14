@@ -235,6 +235,13 @@ const hasMatchingStatement = (
 export const hasAccountPolicy = (identity: IdentitySummary | null): boolean =>
   getAccountPolicies(identity).length > 0;
 
+export const canReadAccountNotificationSettings = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:notification-settings:read") &&
+  !hasMatchingStatement(identity, "deny", "account:notification-settings:read");
+export const canUpdateAccountNotificationSettings = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:notification-settings:update") &&
+  !hasMatchingStatement(identity, "deny", "account:notification-settings:update");
+
 export const canUpdateAccount = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:update") &&
   !hasMatchingStatement(identity, "deny", "account:update");
