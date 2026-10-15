@@ -103,39 +103,54 @@ test("custom policy allows limit, save, reload and zero recipients on mobile", a
   ]);
   await page.goto("/admin/account/notification-settings");
   await expect(
-    page.getByRole("checkbox", { name: "メール: member0@example.com" }),
+    page.getByRole("checkbox", { name: "Member 0" }),
   ).toBeChecked();
   await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  const firstRecipient = page.getByRole("checkbox", { name: "Member 0" });
+  await firstRecipient.click({ position: { x: 8, y: 8 } });
+  await expect(firstRecipient).not.toBeChecked();
+  await page.getByRole("radio", { name: "メール: member0@example.com" }).check();
+  await expect(firstRecipient).toBeChecked();
+
   for (let i = 1; i < 5; i++)
     await page
-      .getByRole("checkbox", { name: `メール: member${i}@example.com` })
-      .check();
+      .getByRole("checkbox", { name: `Member ${i}` })
+      .check({ position: { x: 8, y: 8 } });
   await expect(
-    page.getByRole("checkbox", { name: "メール: member5@example.com" }),
+    page.getByRole("checkbox", { name: "Member 5" }),
   ).toBeDisabled();
   await expect(
-    page.getByRole("checkbox", { name: "LINE", exact: true }).first(),
+    page.getByRole("radio", { name: "LINE", exact: true }).first(),
   ).toBeDisabled();
   await expect(
-    page.getByRole("checkbox", { name: "Kakao", exact: true }).first(),
+    page.getByRole("radio", { name: "Kakao", exact: true }).first(),
   ).toBeDisabled();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.getByText("通知設定を保存しました。")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("選択数 / 上限: 5 / 5")).toBeVisible();
+  for (let i = 0; i < 5; i++)
+    await expect(
+      page.getByRole("checkbox", { name: `Member ${i}` }),
+    ).toBeChecked();
   await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
   await page.getByRole("button", { name: "全解除" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
-  await expect(page.getByText("選択数 / 上限: 0 / 5")).toBeVisible();
+  for (let i = 0; i < 6; i++)
+    await expect(
+      page.getByRole("checkbox", { name: `Member ${i}` }),
+    ).not.toBeChecked();
   await expect(page.getByText("通知設定を保存しました。")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("選択数 / 上限: 0 / 5")).toBeVisible();
+  for (let i = 0; i < 6; i++)
+    await expect(
+      page.getByRole("checkbox", { name: `Member ${i}` }),
+    ).not.toBeChecked();
 });
 test("read-only access displays disabled controls", async ({ page }) => {
   await setup(page, ["account:notification-settings:read"]);
   await page.goto("/admin/account/notification-settings");
   await expect(
-    page.getByRole("checkbox", { name: "メール: member0@example.com" }),
+    page.getByRole("checkbox", { name: "Member 0" }),
   ).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "保存", exact: true }),

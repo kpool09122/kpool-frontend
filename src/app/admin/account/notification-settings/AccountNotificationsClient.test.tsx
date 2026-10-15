@@ -64,8 +64,8 @@ const setup = (overrides: Partial<AccountSectionContextValue> = {}) => {
   );
   return { ...render(view({ ...base, ...overrides })), view };
 };
-const email = (index: number) =>
-  screen.getByRole("checkbox", { name: `メール: member${index}@example.com` });
+const recipient = (index: number) =>
+  screen.getByRole("checkbox", { name: `Member ${index}` });
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -80,11 +80,11 @@ describe("notification settings", () => {
         maxRecipients: limit,
       });
       setup();
-      await screen.findByText(`選択数 / 上限: 0 / ${limit}`);
+      await screen.findByRole("button", { name: "保存" });
       expect(screen.getAllByRole("button", { name: "保存" })).toHaveLength(1);
       if (limit) {
-        fireEvent.click(email(0));
-        expect(screen.getByText("選択数 / 上限: 1 / 1")).toBeInTheDocument();
+        fireEvent.click(recipient(0));
+        expect(recipient(0)).toBeChecked();
       } else expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     },
   );
@@ -93,7 +93,7 @@ describe("notification settings", () => {
     async (status) => {
       api.request.mockResolvedValueOnce(settings());
       setup();
-      await screen.findByRole("checkbox", { name: /member0@/ });
+      await screen.findByRole("checkbox", { name: "Member 0" });
       api.request.mockRejectedValueOnce(
         Object.assign(new Error("denied"), { accountRouteStatus: status }),
       );
@@ -114,18 +114,18 @@ describe("notification settings", () => {
     api.request.mockResolvedValue(settings());
     setup({ canUpdateNotifications: false });
     expect(
-      await screen.findByRole("checkbox", { name: /member0@/ }),
+      await screen.findByRole("checkbox", { name: "Member 0" }),
     ).toBeChecked();
-    expect(email(0)).toBeDisabled();
+    expect(recipient(0)).toBeDisabled();
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
     expect(
       screen
-        .getAllByRole("checkbox", { name: "LINE" })
+        .getAllByRole("radio", { name: "LINE" })
         .every((item) => item.hasAttribute("disabled")),
     ).toBe(true);
     expect(
       screen
-        .getAllByRole("checkbox", { name: "Kakao" })
+        .getAllByRole("radio", { name: "Kakao" })
         .every((item) => item.hasAttribute("disabled")),
     ).toBe(true);
     expect(
@@ -137,7 +137,7 @@ describe("notification settings", () => {
     async (count) => {
       api.request.mockResolvedValue(settings(count));
       setup();
-      await screen.findByRole("checkbox", { name: /member0@/ });
+      await screen.findByRole("checkbox", { name: "Member 0" });
       api.request
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(settings(count));
@@ -152,14 +152,14 @@ describe("notification settings", () => {
   it("enforces limit but permits deselection, reselection and clearing", async () => {
     api.request.mockResolvedValue(settings(5));
     setup();
-    await screen.findByRole("checkbox", { name: /member0@/ });
-    expect(email(5)).toBeDisabled();
-    fireEvent.click(email(0));
-    expect(email(5)).not.toBeDisabled();
-    fireEvent.click(email(5));
-    expect(email(0)).toBeDisabled();
+    await screen.findByRole("checkbox", { name: "Member 0" });
+    expect(recipient(5)).toBeDisabled();
+    fireEvent.click(recipient(0));
+    expect(recipient(5)).not.toBeDisabled();
+    fireEvent.click(recipient(5));
+    expect(recipient(0)).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "全解除" }));
-    expect(email(5)).not.toBeChecked();
+    expect(recipient(5)).not.toBeChecked();
     api.request.mockResolvedValueOnce(null).mockResolvedValueOnce(settings(0));
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     await screen.findByText("通知設定を保存しました。");
@@ -167,13 +167,32 @@ describe("notification settings", () => {
       recipients: [],
     });
   });
-  it("allows retry after load and save failures", async () => {
+  it("selects email through the radio without toggling off the recipient", async () => {
+    api.request.mockResolvedValue(settings(0));
+    setup();
+    const emailRadio = await screen.findByRole("radio", {
+      name: "メール: member0@example.com",
+    });
+    fireEvent.click(emailRadio);
+    expect(recipient(0)).toBeChecked();
+    expect(emailRadio).toBeChecked();
+    fireEvent.click(emailRadio);
+    expect(recipient(0)).toBeChecked();
+    fireEvent.click(recipient(0));
+    expect(recipient(0)).not.toBeChecked();
+    expect(emailRadio).not.toBeChecked();
+  });
+  it("displays load failures", async () => {
     api.request.mockRejectedValueOnce(new Error("offline"));
     setup();
-    await screen.findByRole("alert");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      dictionaries.ja.admin.accountNotifications.loadFailed,
+    );
+  });
+  it("allows retry after save failures", async () => {
     api.request.mockResolvedValueOnce(settings());
-    fireEvent.click(screen.getByRole("button", { name: "再読み込み" }));
-    await screen.findByRole("checkbox", { name: /member0@/ });
+    setup();
+    await screen.findByRole("checkbox", { name: "Member 0" });
     api.request.mockRejectedValueOnce(new Error("offline"));
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     await screen.findByText(
@@ -186,7 +205,7 @@ describe("notification settings", () => {
   it("distinguishes committed save from failed refresh and disables stale editing", async () => {
     api.request.mockResolvedValueOnce(settings());
     setup();
-    await screen.findByRole("checkbox", { name: /member0@/ });
+    await screen.findByRole("checkbox", { name: "Member 0" });
     api.request
       .mockResolvedValueOnce(null)
       .mockRejectedValueOnce(new Error("offline"));
@@ -194,9 +213,8 @@ describe("notification settings", () => {
     await screen.findByText(
       dictionaries.ja.admin.accountNotifications.refreshFailed,
     );
-    api.request.mockResolvedValueOnce(settings(0));
-    fireEvent.click(screen.getByRole("button", { name: "再読み込み" }));
-    await waitFor(() => expect(email(0)).not.toBeChecked());
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
   });
   it.each([401, 403])(
     "stops editing and refreshes auth on %i",
@@ -212,7 +230,7 @@ describe("notification settings", () => {
   it("isolates drafts and late save responses when accounts change", async () => {
     api.request.mockResolvedValueOnce(settings());
     const { rerender, view } = setup();
-    await screen.findByRole("checkbox", { name: /member0@/ });
+    await screen.findByRole("checkbox", { name: "Member 0" });
     let finish: (value: null) => void = () => {};
     api.request.mockImplementationOnce(
       () =>
@@ -223,7 +241,7 @@ describe("notification settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     api.request.mockResolvedValueOnce(settings(0));
     rerender(view({ ...base, accountIdentifier: "account-b" }));
-    await waitFor(() => expect(email(0)).not.toBeChecked());
+    await waitFor(() => expect(recipient(0)).not.toBeChecked());
     finish(null);
     await waitFor(() => expect(api.request).toHaveBeenCalledTimes(3));
     expect(
@@ -233,8 +251,8 @@ describe("notification settings", () => {
   it.each(["ja", "en", "ko"] as const)("displays %s copy", async (locale) => {
     api.request.mockResolvedValue(settings());
     setup({ t: dictionaries[locale].admin });
-    await screen.findByText(
-      dictionaries[locale].admin.accountNotifications.count + ": 1 / 5",
-    );
+    await screen.findByRole("button", {
+      name: dictionaries[locale].admin.accountNotifications.save,
+    });
   });
 });

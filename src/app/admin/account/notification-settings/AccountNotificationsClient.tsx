@@ -93,18 +93,6 @@ function NotificationEditor() {
       !refreshRequired &&
       !denied,
   );
-  const reload = async () => {
-    const result = await query.refetch();
-    if (!mounted.current) return;
-    if (result.error) {
-      rejectAuthorization(result.error);
-      setMessage(copy.loadFailed);
-      return;
-    }
-    setDraft(null);
-    setRefreshRequired(false);
-    setMessage(null);
-  };
   const save = async () => {
     if (
       !editable ||
@@ -149,84 +137,82 @@ function NotificationEditor() {
   return (
     <AccountSettingsPanel title={copy.tab} description={copy.unavailable}>
       <div className="mt-4 space-y-4">
-        <p className="text-sm text-text-muted">{copy.empty}</p>
         {!canUpdateNotifications && <p>{copy.readOnly}</p>}
         {query.isPending && <p role="status">{copy.loading}</p>}
         {query.isError && <p role="alert">{copy.loadFailed}</p>}
         {message && <p role="status">{message}</p>}
-        {!denied && (
-          <button
-            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
-            type="button"
-            disabled={saving || query.isFetching}
-            onClick={() => void reload()}
-          >
-            {copy.retry}
-          </button>
-        )}
         {data && !denied && !query.isError && (
           <>
-            <p>
-              {copy.count}: {selected.length} / {data.maxRecipients}
-            </p>
             <div className="space-y-3">
-              {data.candidates.map((candidate) => (
-                <fieldset
-                  key={candidate.identityIdentifier}
-                  className="rounded-lg border border-stroke-subtle p-3"
-                >
-                  <legend>{candidate.name}</legend>
-                  <div className="flex flex-wrap gap-4">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={selected.includes(
-                          candidate.identityIdentifier,
-                        )}
-                        disabled={
-                          !editable ||
-                          (!selected.includes(candidate.identityIdentifier) &&
-                            selected.length >= data.maxRecipients)
-                        }
-                        onChange={(event) => {
-                          setMessage(null);
-                          setDraft(
-                            event.target.checked
-                              ? [
-                                  ...new Set([
-                                    ...selected,
-                                    candidate.identityIdentifier,
-                                  ]),
-                                ]
-                              : selected.filter(
-                                  (id) => id !== candidate.identityIdentifier,
-                                ),
-                          );
-                        }}
-                      />{" "}
-                      {copy.email}: {candidate.email}
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        disabled
-                        checked={false}
-                        readOnly
-                      />{" "}
-                      LINE
-                    </label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        disabled
-                        checked={false}
-                        readOnly
-                      />{" "}
-                      Kakao
-                    </label>
+              {data.candidates.map((candidate) => {
+                const isSelected = selected.includes(candidate.identityIdentifier);
+                const disabled =
+                  !editable ||
+                  (!isSelected && selected.length >= data.maxRecipients);
+                const setRecipientSelected = (checked: boolean) => {
+                  setMessage(null);
+                  setDraft(
+                    checked
+                      ? [...new Set([...selected, candidate.identityIdentifier])]
+                      : selected.filter((id) => id !== candidate.identityIdentifier),
+                  );
+                };
+                return (
+                  <div
+                    key={candidate.identityIdentifier}
+                    role="group"
+                    aria-label={candidate.name}
+                    className={`relative flex flex-wrap items-center gap-4 rounded-lg border p-3 focus-within:outline-2 focus-within:outline-brand-primary ${isSelected ? "border-brand-primary bg-brand-primary/5" : "border-stroke-subtle"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      aria-label={candidate.name}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                      checked={isSelected}
+                      disabled={disabled}
+                      onChange={(event) =>
+                        setRecipientSelected(event.target.checked)
+                      }
+                    />
+                    <p className="pointer-events-none min-w-0 break-words">{candidate.name}</p>
+                    <div className="relative ml-auto flex min-w-0 flex-wrap justify-end gap-4">
+                      <label className="min-w-0 break-words">
+                        <input
+                          type="radio"
+                          name={`notification-channel-${candidate.identityIdentifier}`}
+                          value="email"
+                          checked={isSelected}
+                          disabled={disabled}
+                          onChange={() => setRecipientSelected(true)}
+                        />{" "}
+                        {copy.email}: {candidate.email}
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name={`notification-channel-${candidate.identityIdentifier}`}
+                          value="line"
+                          disabled
+                          checked={false}
+                          readOnly
+                        />{" "}
+                        LINE
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name={`notification-channel-${candidate.identityIdentifier}`}
+                          value="kakao"
+                          disabled
+                          checked={false}
+                          readOnly
+                        />{" "}
+                        Kakao
+                      </label>
+                    </div>
                   </div>
-                </fieldset>
-              ))}
+                );
+              })}
             </div>
             <div className="flex gap-4">
               <button
