@@ -18,12 +18,27 @@ const identity = {
   accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:delegation-request:create"], resourceTypes: ["ACCOUNT"] }] }],
 };
 
-const renderLayout = (activeTab: "accountProfile" | "accountDelegations", currentIdentity = identity) => {
+const renderLayout = (activeTab: "accountProfile" | "accountDelegations" | "accountNotifications", currentIdentity = identity) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={queryClient}><AccountLayoutClient activeTab={activeTab} currentIdentity={currentIdentity} onAuthorizationRejected={vi.fn()} t={dictionaries.ja.admin}><div>delegation page</div></AccountLayoutClient></QueryClientProvider>);
 };
 
 describe("AccountLayoutClient delegation access", () => {
+  it("places notifications between documents and category and uses dedicated read access", () => {
+    const user = { ...identity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:notification-settings:read"], resourceTypes: ["ACCOUNT"] }] }] };
+    renderLayout("accountNotifications", user);
+    const tabs = screen.getAllByRole("tab").map(tab => tab.textContent);
+    expect(tabs.indexOf("通知設定")).toBe(tabs.indexOf("書類アップロード") + 1);
+    expect(tabs.indexOf("カテゴリ変更")).toBe(tabs.indexOf("通知設定") + 1);
+    expect(screen.getByText("delegation page")).toBeInTheDocument();
+  });
+  it("rejects direct notification access with only general account permission", async () => {
+    renderLayout("accountNotifications", { ...identity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }] });
+    await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith("/admin/account/profile"));
+    expect(screen.queryByRole("tab", { name: "通知設定" })).not.toBeInTheDocument();
+    expect(screen.queryByText("delegation page")).not.toBeInTheDocument();
+  });
+
   afterEach(() => { cleanup(); vi.restoreAllMocks(); navigationMocks.replace.mockReset(); });
 
   it("shows the tab to users who can request delegation even without loading affiliations", () => {

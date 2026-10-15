@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import { canShowAccountPrincipalGroupManagement } from "../principalGroupVisibility";
@@ -43,6 +43,8 @@ export function AccountLayoutClient({
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const accountPrincipalIdentifier = getAccountPrincipalIdentifierFromIdentity(currentIdentity);
   const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
+  const canReadNotifications = canReadAccountNotificationSettings(currentIdentity);
+  const canUpdateNotifications = canUpdateAccountNotificationSettings(currentIdentity);
   const canEdit = canUpdateAccount(currentIdentity);
   const canInvite = canInviteAccountMembers(currentIdentity);
   const canManageAccountPrincipalGroups = canShowAccountPrincipalGroupManagement(currentIdentity);
@@ -65,6 +67,8 @@ export function AccountLayoutClient({
       router.replace(adminSectionRoutes.wiki);
       return;
     }
+
+    if (activeTab === "accountNotifications" && !canReadNotifications) { router.replace(fallbackRoute); return; }
 
     if (activeTab === "accountInvitations" && !canInvite) {
       router.replace(fallbackRoute);
@@ -89,11 +93,12 @@ export function AccountLayoutClient({
     if (activeTab === "accountDelegations" && !canShowDelegations) {
       router.replace(fallbackRoute);
     }
-  }, [activeTab, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, fallbackRoute, router]);
+  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, fallbackRoute, router]);
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
+    ...(canReadNotifications ? [createAccountSettingsTab("accountNotifications", t.accountNotifications.tab)] : []),
     ...(accountIdentifier ? [createAccountSettingsTab("accountCategoryChange", t.accountCategoryChange.tab)] : []),
     ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),
     ...(canShowAffiliations ? [createAccountSettingsTab("accountAffiliations", t.accountAffiliations.tab)] : []),
@@ -129,6 +134,8 @@ export function AccountLayoutClient({
         value={{
           accountIdentifier,
           accountPrincipalIdentifier,
+          canReadNotifications,
+          canUpdateNotifications,
           canEdit,
           canInvite,
           canManagePrincipalGroups: canManageAccountPrincipalGroups,
