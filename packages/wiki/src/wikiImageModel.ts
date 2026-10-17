@@ -97,6 +97,12 @@ export const isSafeWikiImageUrl = (value: string): boolean => {
 
   const url = new URL(trimmedValue);
 
+  if (url.hostname === "images.k-pool.app") {
+    return url.protocol === "https:" && url.port === "" && url.username === "" &&
+      url.password === "" && url.pathname.startsWith("/images/") &&
+      url.search === "" && url.hash === "";
+  }
+
   if (url.protocol === "https:" && url.hostname === "upload.wikimedia.org") {
     return true;
   }
