@@ -222,8 +222,8 @@ importers:
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
     devDependencies:
       '@opennextjs/cloudflare':
-        specifier: 1.20.10
-        version: 1.20.10(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)(wrangler@4.149.0(@types/node@25.9.9))
+        specifier: 1.20.11
+        version: 1.20.11(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)(wrangler@4.150.0(@types/node@25.9.9))
       '@playwright/test':
         specifier: ^1.59.1
         version: 1.64.0
@@ -288,8 +288,8 @@ importers:
         specifier: ^4.1.4
         version: 4.1.11(@types/node@25.9.9)(@vitest/coverage-v8@4.1.11)(jsdom@30.1.2(@noble/hashes@1.8.0))(vite@8.0.8(@types/node@25.9.9)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.16.9)(yaml@2.9.1))
       wrangler:
-        specifier: 4.149.0
-        version: 4.149.0(@types/node@25.9.9)
+        specifier: 4.150.0
+        version: 4.150.0(@types/node@25.9.9)
 
   packages/types: {}
 
@@ -1471,14 +1471,14 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@opennextjs/aws@4.1.9':
-    resolution: {integrity: sha512-FUG9mpB9lrFDgwh2zpl9nRHvQtRwYgoc3kdk1r79OgTBhROlW1J7gfchSLu93sAJlohnO6mDVaKgwLg2+AyPFw==}
+  '@opennextjs/aws@4.1.10':
+    resolution: {integrity: sha512-5/86E8ZPH/Va9KY0UPa7J245vceZvT2YH8MZzJj0poX9ELFF6h5/sqYik1MI1K16wAGbQdgiNJ332McRDwPfFA==}
     hasBin: true
     peerDependencies:
       next: '>=15.5.27 <16 || >=16.3.8'
 
-  '@opennextjs/cloudflare@1.20.10':
-    resolution: {integrity: sha512-s3/ettd/AwVjAKI18HZDoZoIF7p1w0Cayp7YMzv4ZBfYmH+ovf4zVbfcxV3IPCebJPc5Gz2DM3MMc5kvAUSXkw==}
+  '@opennextjs/cloudflare@1.20.11':
+    resolution: {integrity: sha512-NVzPivHxaxWuV4mtSUMJOvxpdJVBir9mGjHLlze8em0KojledQR6rGWPnDEuYz1p6yikOLCBr9py1hJHLMftwQ==}
     hasBin: true
     peerDependencies:
       next: '>=15.5.27 <16 || >=16.3.8'
@@ -4099,8 +4099,8 @@ packages:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
     engines: {node: '>=4'}
 
-  miniflare@5.20261006.1-alpha:
-    resolution: {integrity: sha512-6ylv8tamkrspDI2R/cAYfv+YWmfGNdXe76Pi9TauEUWsFVXn3LNF9Yk8oduzf1a+TYsSRYTqlOE7+nGGRsMHdw==}
+  miniflare@5.20261006.2-beta:
+    resolution: {integrity: sha512-agufWI3mXF8xGzry2/sOF8Im8AoYs04DWBCLDWDmd4QtMSGEo9IgrPmYOwsCmQA3K3MbLzsvr01GpWc8x3Duqw==}
     engines: {node: '>=22.0.0'}
 
   minimatch@10.2.6:
@@ -5163,8 +5163,8 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  wrangler@4.149.0:
-    resolution: {integrity: sha512-OzK7xmB5r5iLKb3cIT3783g13fe6T7xyeKu9LEdUyl+DKAM2KP/jkjnE0OUhyw+mB/XJM9ycjgF3MWm8PR9amg==}
+  wrangler@4.150.0:
+    resolution: {integrity: sha512-Mf3MiCoGXszX965MtKcOSe8whSyFBL2qpCp+DiSwH94+0FNYveSPQPVRRlMAMH8lkln8PECcSW1do6hnelwPZA==}
     engines: {node: '>=22.0.0'}
     hasBin: true
     peerDependencies:
@@ -6632,7 +6632,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@opennextjs/aws@4.1.9(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)':
+  '@opennextjs/aws@4.1.10(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)':
     dependencies:
       '@ast-grep/napi': 0.45.3
       '@aws-sdk/client-cloudfront': 3.984.0
@@ -6655,11 +6655,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opennextjs/cloudflare@1.20.10(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)(wrangler@4.149.0(@types/node@25.9.9))':
+  '@opennextjs/cloudflare@1.20.11(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)(wrangler@4.150.0(@types/node@25.9.9))':
     dependencies:
       '@ast-grep/napi': 0.45.3
       '@dotenvx/dotenvx': 2.34.1
-      '@opennextjs/aws': 4.1.9(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)
+      '@opennextjs/aws': 4.1.10(next@16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(supports-color@7.2.0)
       ci-info: 4.4.0
       cloudflare: 4.5.0
       comment-json: 4.6.2
@@ -6667,7 +6667,7 @@ snapshots:
       glob: 13.0.6
       next: 16.4.0(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.0)(@types/node@25.9.9)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       ts-tqdm: 0.8.6
-      wrangler: 4.149.0(@types/node@25.9.9)
+      wrangler: 4.150.0(@types/node@25.9.9)
       yargs: 18.2.0
     transitivePeerDependencies:
       - encoding
@@ -9346,7 +9346,7 @@ snapshots:
 
   min-indent@1.0.1: {}
 
-  miniflare@5.20261006.1-alpha(@types/node@25.9.9):
+  miniflare@5.20261006.2-beta(@types/node@25.9.9):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.5(@types/node@25.9.9)
@@ -10658,13 +10658,13 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20261006.1
       '@cloudflare/workerd-windows-64': 1.20261006.1
 
-  wrangler@4.149.0(@types/node@25.9.9):
+  wrangler@4.150.0(@types/node@25.9.9):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.5.0
       '@cloudflare/unenv-preset': 2.16.2(unenv@2.0.0-rc.24)(workerd@1.20261006.1)
       blake3-wasm: 2.1.5
       esbuild: 0.28.2
-      miniflare: 5.20261006.1-alpha(@types/node@25.9.9)
+      miniflare: 5.20261006.2-beta(@types/node@25.9.9)
       path-to-regexp: 6.3.0
       unenv: 2.0.0-rc.24
       workerd: 1.20261006.1
