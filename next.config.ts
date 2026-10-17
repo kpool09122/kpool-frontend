@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "images.k-pool.app",
+        port: "",
+        pathname: "/images/**",
+        search: "",
+      },
+      {
+        protocol: "https",
         hostname: "upload.wikimedia.org",
       },
       {

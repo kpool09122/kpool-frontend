@@ -86,6 +86,20 @@ describe("wikiImages", () => {
     expect(isSafeWikiImageUrl("data:image/svg+xml,<svg></svg>")).toBe(false);
   });
 
+  it("accepts the production image path and rejects other hosts, paths and credentials", () => {
+    expect(isSafeWikiImageUrl("https://images.k-pool.app/images/wiki/stage.webp")).toBe(true);
+    for (const value of [
+      "http://images.k-pool.app/images/stage.webp",
+      "https://images.k-pool.app.attacker.test/images/stage.webp",
+      "https://images.k-pool.app/verification-documents/document.pdf",
+      "https://user:password@images.k-pool.app/images/stage.webp",
+      "https://images.k-pool.app:8443/images/stage.webp",
+      "https://images.k-pool.app/images/stage.webp?other=1",
+    ]) {
+      expect(isSafeWikiImageUrl(value)).toBe(false);
+    }
+  });
+
   it("removes dangerous source URL schemes from upload requests", () => {
     expect(isSafeWikiSourceUrl("javascript:alert(1)")).toBe(false);
     expect(isSafeWikiSourceUrl("data:text/html;base64,PHNjcmlwdD4=")).toBe(false);
