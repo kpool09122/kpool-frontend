@@ -1,17 +1,26 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
-const KPool_Common_Uuid = z.string();
-const KPool_Common_Timestamp = z.string();
-const MyContactSummary = z
+const KPool_Common_UuidV7 = z.string();
+const KPool_Common_DateString = z.string();
+const PublishedAnnouncementSummary = z
   .object({
-    contactIdentifier: KPool_Common_Uuid,
-    principalIdentifier: KPool_Common_Uuid.nullish(),
-    category: z.number().int(),
-    name: z.string(),
-    replyIdentifiers: z.array(KPool_Common_Uuid),
-    createdAt: KPool_Common_Timestamp,
+    announcement_id: KPool_Common_UuidV7.regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+    ).uuid(),
+    category_name: z.enum(["NEWS", "UPDATES", "MAINTENANCE"]),
+    title: z.string(),
     content: z.string(),
+    published_date: KPool_Common_DateString,
+  })
+  .passthrough();
+const ListAnnouncementsPage = z
+  .object({
+    announcements: z.array(PublishedAnnouncementSummary),
+    current_page: z.number().int().gte(1),
+    last_page: z.number().int().gte(1),
+    total: z.number().int().gte(0),
+    per_page: z.number().int().gte(1).lte(100),
   })
   .passthrough();
 const KPool_Common_ProblemDetails = z
@@ -24,6 +33,19 @@ const KPool_Common_ProblemDetails = z
     code: z.string(),
   })
   .partial()
+  .passthrough();
+const KPool_Common_Uuid = z.string();
+const KPool_Common_Timestamp = z.string();
+const MyContactSummary = z
+  .object({
+    contactIdentifier: KPool_Common_Uuid,
+    principalIdentifier: KPool_Common_Uuid.nullish(),
+    category: z.number().int(),
+    name: z.string(),
+    replyIdentifiers: z.array(KPool_Common_Uuid),
+    createdAt: KPool_Common_Timestamp,
+    content: z.string(),
+  })
   .passthrough();
 const ContactReplyDetail = z
   .object({
@@ -80,6 +102,90 @@ const ListContactsPage = z
 const ReplyContactRequestBody = z
   .object({ content: z.string().min(1) })
   .passthrough();
+const AnnouncementCategory = z.union([
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+]);
+const AnnouncementLocalizedContent = z
+  .object({
+    title: z.string().min(1).max(64),
+    content: z.string().min(1).max(2048),
+  })
+  .passthrough();
+const AnnouncementContents = z
+  .object({
+    ja: AnnouncementLocalizedContent,
+    ko: AnnouncementLocalizedContent,
+    en: AnnouncementLocalizedContent,
+  })
+  .partial()
+  .passthrough();
+const DraftAnnouncement = z
+  .object({
+    announcementIdentifier: KPool_Common_UuidV7.regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+    ).uuid(),
+    sourceLanguage: z.enum(["ja", "ko", "en"]),
+    category: AnnouncementCategory,
+    contents: AnnouncementContents,
+    publishedDate: KPool_Common_DateString,
+  })
+  .passthrough();
+const ListDraftAnnouncementsPage = z
+  .object({
+    announcements: z.array(DraftAnnouncement),
+    current_page: z.number().int().gte(1),
+    last_page: z.number().int().gte(1),
+    total: z.number().int().gte(0),
+    per_page: z.number().int().gte(1).lte(100),
+  })
+  .passthrough();
+const CreateAnnouncementRequestBody = z
+  .object({
+    language: z.enum(["ja", "ko", "en"]),
+    category: AnnouncementCategory,
+    title: z.string().min(1).max(64),
+    content: z.string().min(1).max(2048),
+    publishedDate: KPool_Common_DateString,
+  })
+  .passthrough();
+const UpdateAnnouncementRequestBody = z
+  .object({
+    language: z.enum(["ja", "ko", "en"]),
+    category: AnnouncementCategory,
+    title: z.string().min(1).max(64),
+    content: z.string().min(1).max(2048),
+    publishedDate: KPool_Common_DateString,
+  })
+  .passthrough();
+const DeleteAnnouncementResponse = z
+  .object({ announcements: z.array(DraftAnnouncement).max(1) })
+  .passthrough();
+const PublishedAnnouncementContents = z
+  .object({
+    ja: AnnouncementLocalizedContent,
+    ko: AnnouncementLocalizedContent,
+    en: AnnouncementLocalizedContent,
+  })
+  .passthrough();
+const PublishedAnnouncement = z
+  .object({
+    announcementIdentifier: KPool_Common_UuidV7.regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+    ).uuid(),
+    sourceLanguage: z.enum(["ja", "ko", "en"]),
+    category: AnnouncementCategory,
+    contents: PublishedAnnouncementContents,
+    publishedDate: KPool_Common_DateString,
+  })
+  .passthrough();
+const PublishAnnouncementResponse = z
+  .object({ announcements: z.array(PublishedAnnouncement).min(1).max(1) })
+  .passthrough();
+const TranslateAnnouncementResponse = z
+  .object({ announcements: z.array(DraftAnnouncement).min(1).max(1) })
+  .passthrough();
 const PrincipalGroupMember = z
   .object({
     principalIdentifier: KPool_Common_Uuid.uuid(),
@@ -127,13 +233,16 @@ const UpdatedPrincipalGroup = z
 const UpdatePrincipalGroupMembersResponse = z
   .object({ principalGroups: z.array(UpdatedPrincipalGroup) })
   .passthrough();
-const KPool_Common_UuidV7 = z.string();
 
 export const schemas = {
+  KPool_Common_UuidV7,
+  KPool_Common_DateString,
+  PublishedAnnouncementSummary,
+  ListAnnouncementsPage,
+  KPool_Common_ProblemDetails,
   KPool_Common_Uuid,
   KPool_Common_Timestamp,
   MyContactSummary,
-  KPool_Common_ProblemDetails,
   ContactReplyDetail,
   ContactDetail,
   ContactCategory,
@@ -142,6 +251,18 @@ export const schemas = {
   principalIdentifier,
   ListContactsPage,
   ReplyContactRequestBody,
+  AnnouncementCategory,
+  AnnouncementLocalizedContent,
+  AnnouncementContents,
+  DraftAnnouncement,
+  ListDraftAnnouncementsPage,
+  CreateAnnouncementRequestBody,
+  UpdateAnnouncementRequestBody,
+  DeleteAnnouncementResponse,
+  PublishedAnnouncementContents,
+  PublishedAnnouncement,
+  PublishAnnouncementResponse,
+  TranslateAnnouncementResponse,
   PrincipalGroupMember,
   PrincipalGroup,
   PrincipalGroupList,
@@ -149,10 +270,133 @@ export const schemas = {
   UpdatePrincipalGroupMembersRequestBody,
   UpdatedPrincipalGroup,
   UpdatePrincipalGroupMembersResponse,
-  KPool_Common_UuidV7,
 };
 
 const endpoints = makeApi([
+  {
+    method: "get",
+    path: "/announcements",
+    alias: "AnnouncementOperations_listAnnouncements",
+    description: `List published announcements without authentication. Filter by the requested language before pagination; drafts and unavailable translations are excluded. When language is omitted or null, resolve ja/ko/en from Accept-Language, falling back to English. Laravel resolves the page query automatically.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Query",
+        schema: z.enum(["ja", "ko", "en"]).nullish(),
+      },
+      {
+        name: "Accept-Language",
+        type: "Header",
+        schema: z.string().optional(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(100).nullish(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).nullish(),
+      },
+      {
+        name: "order",
+        type: "Query",
+        schema: z.enum(["asc", "desc"]).nullish(),
+      },
+      {
+        name: "sort",
+        type: "Query",
+        schema: z.enum(["published_date", "title"]).nullish(),
+      },
+      {
+        name: "searchWords",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+    ],
+    response: ListAnnouncementsPage,
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/announcements/:announcementIdentifier",
+    alias: "AnnouncementOperations_getAnnouncement",
+    description: `Get a published announcement without authentication in the selected language. When language is omitted or null, resolve Accept-Language with an English fallback. A missing announcement, a draft-only identifier or an unavailable translation returns 404.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "announcementIdentifier",
+        type: "Path",
+        schema: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+          )
+          .uuid(),
+      },
+      {
+        name: "language",
+        type: "Query",
+        schema: z.enum(["ja", "ko", "en"]).nullish(),
+      },
+      {
+        name: "Accept-Language",
+        type: "Header",
+        schema: z.string().optional(),
+      },
+    ],
+    response: PublishedAnnouncementSummary,
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
   {
     method: "get",
     path: "/contact/principals/:principalIdentifier",
@@ -415,6 +659,430 @@ const endpoints = makeApi([
   },
   {
     method: "get",
+    path: "/draft-announcements",
+    alias: "DraftAnnouncementOperations_listDraftAnnouncements",
+    description: `List draft announcements, including untranslated drafts, with all available language contents. Requires announcement:view-draft on announcement, granted to the system Operator role. General and Administrator alone are denied. The acting principal is resolved from the session; no principal or Account identifier is accepted as a selector. Search matches titles and bodies across available languages. Laravel resolves the page query automatically. Matching drafts are ordered by the selected field and then by identifier for stable pagination.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(100).nullish(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).nullish(),
+      },
+      {
+        name: "order",
+        type: "Query",
+        schema: z.enum(["asc", "desc"]).nullish(),
+      },
+      {
+        name: "sort",
+        type: "Query",
+        schema: z.enum(["published_date", "created_at"]).nullish(),
+      },
+      {
+        name: "searchWords",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+    ],
+    response: ListDraftAnnouncementsPage,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/draft-announcements",
+    alias: "DraftAnnouncementCommandOperations_createAnnouncement",
+    description: `Create a draft. Requires announcement:create on announcement. Acting principal is resolved from the session. Returns one draft with its generated identifier.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CreateAnnouncementRequestBody,
+      },
+    ],
+    response: DraftAnnouncement,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/draft-announcements/:announcementIdentifier",
+    alias: "DraftAnnouncementOperations_getDraftAnnouncement",
+    description: `Get a draft announcement with all available language contents. Requires announcement:view-draft on announcement, granted to the system Operator role. Authorization is checked before reading the draft. A missing or deleted draft, including an identifier that exists only as a published announcement, returns 404. Invalid identifiers return 422.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "announcementIdentifier",
+        type: "Path",
+        schema: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+          )
+          .uuid(),
+      },
+    ],
+    response: DraftAnnouncement,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "put",
+    path: "/draft-announcements/:announcementIdentifier",
+    alias: "DraftAnnouncementCommandOperations_updateAnnouncement",
+    description: `Update an existing draft&#x27;s common metadata and selected language content. Requires announcement:update on announcement. A missing draft returns 404.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdateAnnouncementRequestBody,
+      },
+      {
+        name: "announcementIdentifier",
+        type: "Path",
+        schema: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+          )
+          .uuid(),
+      },
+    ],
+    response: DraftAnnouncement,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/draft-announcements/:announcementIdentifier",
+    alias: "DraftAnnouncementCommandOperations_deleteAnnouncement",
+    description: `Delete only the draft and all its language contents. Requires announcement:delete on announcement. Published contents are never deleted. Missing drafts succeed with an empty announcements array.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "announcementIdentifier",
+        type: "Path",
+        schema: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+          )
+          .uuid(),
+      },
+    ],
+    response: DeleteAnnouncementResponse,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/draft-announcements/:announcementIdentifier/publish",
+    alias: "DraftAnnouncementCommandOperations_publishAnnouncement",
+    description: `Publish a draft under the same identifier. Requires announcement:publish on announcement. Non-blank titles and bodies in all ja/ko/en languages are required; incomplete contents return 422. A missing draft returns 404. Saving the published contents and deleting the draft occur in one transaction. Existing published contents are updated under the same identifier.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "announcementIdentifier",
+        type: "Path",
+        schema: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+          )
+          .uuid(),
+      },
+    ],
+    response: PublishAnnouncementResponse,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/draft-announcements/:announcementIdentifier/translate",
+    alias: "DraftAnnouncementCommandOperations_translateAnnouncement",
+    description: `Fill only missing ja/ko/en contents from the draft&#x27;s source language. Requires announcement:translate on announcement. Retains the same identifier, existing translations and manual edits. Saves only after all requested translations succeed. Translation-provider failure returns 500 and leaves the draft unchanged.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "announcementIdentifier",
+        type: "Path",
+        schema: z
+          .string()
+          .regex(
+            /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
+          )
+          .uuid(),
+      },
+    ],
+    response: TranslateAnnouncementResponse,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/my/contact",
     alias: "MyContactOperations_listMyContacts",
     description: `List contact inquiries associated with the signed-in principal, newest first.`,
@@ -584,7 +1252,7 @@ const endpoints = makeApi([
   },
 ]);
 
-export const api = new Zodios(endpoints);
+export const siteManagementApi = new Zodios(endpoints);
 
 export function createApiClient(baseUrl: string, options?: ZodiosOptions) {
   return new Zodios(baseUrl, endpoints, options);
