@@ -26,6 +26,7 @@ const certificationPrincipal = {
 const allCertificationActions = ["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list"];
 let permittedActions = allCertificationActions;
 let permittedResourceTypes = ["agency"];
+let accountCategory: string | null = "agency";
 
 const adminDictionary = {
   officialCertificationEmpty: "公式認証はありません。",
@@ -72,7 +73,7 @@ vi.mock("../../../AdminProvider", () => ({
       identityIdentifier: "55555555-5555-4555-8555-555555555555",
       account: {
         accountIdentifier: "44444444-4444-4444-8444-444444444444",
-        accountCategory: "agency",
+        accountCategory,
       },
     },
     locale: "en",
@@ -134,6 +135,7 @@ describe("OfficialCertificationRequestClient", () => {
   afterEach(() => {
     permittedActions = allCertificationActions;
     permittedResourceTypes = ["agency"];
+    accountCategory = "agency";
     cleanup();
     vi.restoreAllMocks();
     listMyOfficialCertifications.mockReset();
@@ -164,18 +166,36 @@ describe("OfficialCertificationRequestClient", () => {
     expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
   });
 
-  it("searches the resource selected from request permissions without using account category", async () => {
+  it.each(["agency", "talent"])("searches %s from the account category when both resource types are permitted", async (category) => {
+    accountCategory = category;
     permittedActions = ["official_certification_request"];
     permittedResourceTypes = ["agency", "talent"];
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ translationSetMasters: [] }, 200));
     vi.stubGlobal("fetch", fetchMock);
     renderClient();
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "talent" } });
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Wiki: 検索キーワード"), { target: { value: "artist" } });
     fireEvent.click(screen.getByRole("button", { name: "検索" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("resourceType=talent")));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(`resourceType=${category}`)));
     expect(listMyOfficialCertifications).not.toHaveBeenCalled();
     expect(listMyOwnedWikis).not.toHaveBeenCalled();
+  });
+
+  it.each(["general", null])("does not expose a request form for account category %s", (category) => {
+    accountCategory = category;
+    permittedActions = ["official_certification_request"];
+    permittedResourceTypes = ["agency", "talent"];
+    renderClient();
+    expect(screen.queryByLabelText("Wiki: 検索キーワード")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "公式認証を申請" })).not.toBeInTheDocument();
+  });
+
+  it("does not fall back to talent when an agency account lacks agency request permission", () => {
+    permittedActions = ["official_certification_request"];
+    permittedResourceTypes = ["talent"];
+    renderClient();
+    expect(screen.queryByLabelText("Wiki: 検索キーワード")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "公式認証を申請" })).not.toBeInTheDocument();
   });
 
   it.each(["official_certification_owned_wiki_sync", "related_wiki_list"])("uses owned wikis without certification read permission for %s", async (action) => {
@@ -205,8 +225,10 @@ describe("OfficialCertificationRequestClient", () => {
     }
   });
 
-  it("searches agency translation sets, displays the UI locale wiki, and submits translationSetIdentifier", async () => {
+  it.each(["agency", "talent"])("submits the selected %s translation set using the account category", async (category) => {
+    accountCategory = category;
     permittedActions = ["official_certification_request"];
+    permittedResourceTypes = ["agency", "talent"];
     listMyOfficialCertifications.mockResolvedValue(emptyCertificationList());
     listMyOwnedWikis.mockResolvedValue(emptyOwnedWikis());
     listRelatedWikis.mockResolvedValue({ wikis: [] });
@@ -217,7 +239,7 @@ describe("OfficialCertificationRequestClient", () => {
           translationSetMasters: [
             {
               translationSetIdentifier: "11111111-1111-4111-8111-111111111111",
-              resourceType: "agency",
+              resourceType: category,
               wikis: [
                 {
                   wikiIdentifier: "22222222-2222-4222-8222-222222222222",
@@ -256,7 +278,7 @@ describe("OfficialCertificationRequestClient", () => {
       expect(requestOfficialCertification).toHaveBeenCalledWith({
         fallbackErrorMessage: "公式認証を申請できませんでした。",
         requestBody: {
-          resourceType: "agency",
+          resourceType: category,
           translationSetIdentifier: "11111111-1111-4111-8111-111111111111",
         },
       });

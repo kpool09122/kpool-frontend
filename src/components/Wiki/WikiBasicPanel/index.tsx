@@ -2,7 +2,7 @@
 
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   type WikiBasic,
@@ -436,15 +436,42 @@ export function WikiBasicPanel({
     (basic.talents ?? []).map((talent) => ({ ...toSearchItem(talent), resourceType: "talent" })),
   );
 
+  const initialFormData = useRef<FormData | null>(null);
+  const captureForm = useCallback((form: HTMLFormElement | null) => {
+    initialFormData.current = form ? new FormData(form) : null;
+  }, []);
+
   if (isEditing) {
     return (
       <LocalizedForm
+        ref={captureForm}
         className="rounded-[1.75rem] border border-stroke-subtle p-6"
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
+          const fieldNames = new Set([...formData.keys(), ...(initialFormData.current?.keys() ?? [])]);
+          const changedFields = new Set([...fieldNames].filter((name) =>
+            JSON.stringify(formData.getAll(name)) !== JSON.stringify(initialFormData.current?.getAll(name) ?? []),
+          ));
+          if (changedFields.has("officialColorCode") || changedFields.has("officialColorLabel")) {
+            changedFields.add("officialColors");
+          }
+          const initialAgencyIds = basic.agency
+            ? [basic.agency.wikiIdentifier]
+            : basic.agencyName ? [basic.agencyIdentifier ?? ""] : [];
+          if (JSON.stringify(selectedAgency.map((item) => item.wikiIdentifier)) !== JSON.stringify(initialAgencyIds)) {
+            for (const field of ["agency", "agencyIdentifier", "agencyName"]) changedFields.add(field);
+          }
+          if (JSON.stringify(selectedGroups.map((item) => item.wikiIdentifier)) !== JSON.stringify((basic.groups ?? []).map((item) => item.wikiIdentifier))) {
+            changedFields.add("groups");
+            changedFields.add("groupIdentifiers");
+          }
+          if (JSON.stringify(selectedTalents.map((item) => item.wikiIdentifier)) !== JSON.stringify((basic.talents ?? []).map((item) => item.wikiIdentifier))) {
+            changedFields.add("talents");
+            changedFields.add("talentIdentifiers");
+          }
 
-          onSave({
+          const updatedBasic: WikiBasic = {
             ...basic,
             name: basic.name,
             agency: selectedAgency[0]
@@ -494,6 +521,10 @@ export function WikiBasicPanel({
             songType: getOptionalStringUpdate(formData, "songType", basic.songType),
             status: getOptionalStringUpdate(formData, "status", basic.status),
             zodiacSign: getOptionalStringUpdate(formData, "zodiacSign", basic.zodiacSign),
+          };
+          onSave({
+            ...basic,
+            ...Object.fromEntries(Object.entries(updatedBasic).filter(([field]) => changedFields.has(field))),
           });
         }}
         style={cardSurfaceMutedStyle}

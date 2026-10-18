@@ -32,6 +32,7 @@ export function usePendingFormChanges(scope: string | null) {
     if (!root || scope === null) return;
     const baselines = new Map(Array.from(root.querySelectorAll("form")).map((form) => [form, snapshotForm(form)]));
     let active = true;
+    let comparisonTimer: ReturnType<typeof setTimeout> | undefined;
     const compare = () => {
       if (!active) return;
       let changed = false;
@@ -42,17 +43,22 @@ export function usePendingFormChanges(scope: string | null) {
       }
       setPending((previous) => previous.scope === scope && previous.changed === changed ? previous : { scope, changed });
     };
-    // Compare after controlled fields and relation selections have rendered their changes.
+    // Let the input event finish before comparing. Updating state during capture
+    // can restore a controlled field before React processes its onChange.
     const scheduleComparison = () => {
-      compare();
-      queueMicrotask(compare);
+      if (comparisonTimer !== undefined) return;
+      comparisonTimer = setTimeout(() => {
+        comparisonTimer = undefined;
+        compare();
+      }, 0);
     };
-    const observer = new MutationObserver(compare);
+    const observer = new MutationObserver(scheduleComparison);
     observer.observe(root, { childList: true, subtree: true, attributes: true, characterData: true });
     root.addEventListener("input", scheduleComparison, true);
     root.addEventListener("change", scheduleComparison, true);
     return () => {
       active = false;
+      clearTimeout(comparisonTimer);
       observer.disconnect();
       root.removeEventListener("input", scheduleComparison, true);
       root.removeEventListener("change", scheduleComparison, true);
