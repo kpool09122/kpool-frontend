@@ -717,3 +717,74 @@ for (const viewport of [{ name: "desktop", width: 1280, height: 900 }, { name: "
     expect(messages[0]).toContain("Leaving without saving will lose your edits");
   });
 }
+
+for (const width of [1280, 390]) {
+  test(`official colors remain editable after saving at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
+    await page.getByRole("button", { name: "Collapse editor sidebar", exact: true }).click();
+    if (width < 1024) {
+      await page.getByTestId("wiki-edit-flip-front-toggle").click();
+    }
+
+    await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+    const colorName = page.locator('input[name="officialColorLabel"]:visible').first();
+    const color = page.locator('input[name="officialColorCode"]:visible').first();
+    const originalName = await colorName.inputValue();
+    const originalColor = await color.inputValue();
+    await colorName.fill("First color");
+    await expect(colorName).toHaveValue("First color");
+    await color.fill("#112233");
+    await expect(color).toHaveValue("#112233");
+    await page.getByRole("button", { name: "Save", exact: true }).filter({ visible: true }).click();
+
+    await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+    await expect(colorName).toHaveValue("First color");
+    await expect(color).toHaveValue("#112233");
+    await colorName.fill("Second color");
+    await expect(colorName).toHaveValue("Second color");
+    await color.fill("#abcdef");
+    await expect(color).toHaveValue("#abcdef");
+    await page.getByRole("button", { name: "Save", exact: true }).filter({ visible: true }).click();
+
+    await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+    await expect(colorName).toHaveValue("Second color");
+    await expect(color).toHaveValue("#abcdef");
+    await colorName.fill("Unsaved color");
+    await expect(colorName).toHaveValue("Unsaved color");
+    const leaveDialog = page.waitForEvent("dialog");
+    const leaveClick = page.getByRole("banner").locator("a[href]").first().click();
+    const dialog = await leaveDialog;
+    expect(dialog.type()).toBe("confirm");
+    await dialog.dismiss();
+    await leaveClick;
+    await expect(colorName).toHaveValue("Unsaved color");
+
+    await colorName.fill(originalName);
+    await color.fill(originalColor);
+    await page.getByRole("button", { name: "Save", exact: true }).filter({ visible: true }).click();
+    await expect(page.getByTestId("wiki-edit-save-state")).toHaveCount(0);
+    const hasLeaveWarning = () => page.evaluate(() => {
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    });
+    await expect.poll(hasLeaveWarning).toBe(false);
+
+    await page.getByRole("button", { name: "Edit basic", exact: true }).click();
+    await colorName.fill("Saved color");
+    await page.getByRole("button", { name: "Save", exact: true }).filter({ visible: true }).click();
+    await expect.poll(hasLeaveWarning).toBe(true);
+    await page.route("**/api/wiki/drafts/*", (route) => route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify({
+        language: "ja", name: "Aurora Echo", resourceType: "group", status: "pending",
+        wikiIdentifier: "88888888-8888-4888-8888-888888888888",
+      }),
+    }));
+    await page.getByRole("button", { name: "Expand editor sidebar", exact: true }).click();
+    await page.getByRole("button", { name: "Save wiki changes", exact: true }).click();
+    await expect.poll(hasLeaveWarning).toBe(false);
+  });
+}

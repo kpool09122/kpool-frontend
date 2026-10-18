@@ -101,6 +101,30 @@ describe("WikiBasicPanel", () => {
     );
   });
 
+  it("preserves the original basic data when official color edits are restored", () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBasicPanel basic={wikiStoryBasic} isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    const color = screen.getByLabelText("Official Colors: Color 1");
+    const label = screen.getByLabelText("Official Colors: Color label 1");
+    fireEvent.change(color, { target: { value: "#112233" } });
+    fireEvent.change(label, { target: { value: "Changed" } });
+    fireEvent.change(color, { target: { value: wikiStoryBasic.officialColors?.[0].colorCode } });
+    fireEvent.change(label, { target: { value: wikiStoryBasic.officialColors?.[0].label } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith(wikiStoryBasic);
+  });
+
+  it("changes only official colors without filling untouched basic fields", () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBasicPanel basic={wikiStoryBasic} isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("Official Colors: Color label 1"), { target: { value: "Changed" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({
+      ...wikiStoryBasic,
+      officialColors: wikiStoryBasic.officialColors?.map((color, index) => index === 0 ? { ...color, label: "Changed" } : color),
+    });
+  });
+
   it("uses date inputs for group, song, and talent date fields", () => {
     const { rerender } = renderWithI18n(
       <WikiBasicPanel

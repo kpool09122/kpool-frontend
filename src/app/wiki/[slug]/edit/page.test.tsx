@@ -1406,7 +1406,7 @@ describe("WikiEditPage", () => {
   });
 });
 
-it("warns for unfinished form input and stops warning after cancelling that form", () => {
+it("warns for unfinished form input and stops warning after cancelling that form", async () => {
   const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
   renderPage();
   const anchor = document.createElement("a");
@@ -1415,6 +1415,11 @@ it("warns for unfinished form input and stops warning after cancelling that form
   document.body.append(anchor);
   fireEvent.click(screen.getAllByRole("button", { name: "Edit basic" })[0]);
   fireEvent.change(screen.getAllByRole("textbox", { name: "Fandom Name" })[0], { target: { value: "Unsaved fandom" } });
+  await waitFor(() => {
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  });
   fireEvent.click(anchor);
   expect(confirm).toHaveBeenCalledWith("You have unsaved changes. Leaving without saving will lose your edits. Leave this page?");
   confirm.mockClear();
@@ -1426,7 +1431,7 @@ it("warns for unfinished form input and stops warning after cancelling that form
   vi.restoreAllMocks();
 });
 
-it("removes the leave warning when a basic form value is restored", () => {
+it("removes the leave warning when a basic form value is restored", async () => {
   renderPage();
   fireEvent.click(screen.getAllByRole("button", { name: "Edit basic" })[0]);
   const input = screen.getAllByRole("textbox", { name: "Fandom Name" })[0] as HTMLInputElement;
@@ -1437,8 +1442,8 @@ it("removes the leave warning when a basic form value is restored", () => {
     return event.defaultPrevented;
   };
   fireEvent.change(input, { target: { value: "Edited fandom" } });
-  expect(beforeUnload()).toBe(true);
+  await waitFor(() => expect(beforeUnload()).toBe(true));
   fireEvent.change(input, { target: { value: originalValue } });
-  expect(beforeUnload()).toBe(false);
+  await waitFor(() => expect(beforeUnload()).toBe(false));
   cleanup();
 });
