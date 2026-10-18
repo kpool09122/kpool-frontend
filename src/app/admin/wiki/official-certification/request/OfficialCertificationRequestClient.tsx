@@ -9,6 +9,7 @@ import { type KeyboardEvent, useMemo, useRef, useState } from "react";
 
 import { buildWikiPath } from "@kpool/wiki";
 import {
+  getAccountCategoryFromIdentity,
   getAccountIdentifierFromIdentity,
 } from "@/gateways/account/accountIdentity";
 import {
@@ -128,13 +129,22 @@ function OfficialCertificationWikiTitle({
 }
 
 export function OfficialCertificationRequestClient() {
+  const { currentIdentity } = useAdmin();
+  const accountCategory = getAccountCategoryFromIdentity(currentIdentity);
   const { principalState } = useWikiSection();
   if (principalState.status !== "available" || !canManageOfficialCertifications(principalState.principal)) return null;
 
-  return <OfficialCertificationManagementContent permissions={getOfficialCertificationPermissions(principalState.principal)} />;
+  return <OfficialCertificationManagementContent
+    accountCategory={accountCategory}
+    key={accountCategory}
+    permissions={getOfficialCertificationPermissions(principalState.principal)}
+  />;
 }
 
-function OfficialCertificationManagementContent({ permissions }: { permissions: OfficialCertificationPermissions }) {
+function OfficialCertificationManagementContent({ accountCategory, permissions }: {
+  accountCategory: string | null;
+  permissions: OfficialCertificationPermissions;
+}) {
   const { dictionary } = useI18n();
   const queryClient = useQueryClient();
   const { currentIdentity, locale, t } = useAdmin();
@@ -153,8 +163,8 @@ function OfficialCertificationManagementContent({ permissions }: { permissions: 
     selectedTranslationSet: null,
     success: null,
   });
-  const [selectedResourceType, setSelectedResourceType] = useState(requestResourceTypes[0]);
-  const resourceType = selectedResourceType && requestResourceTypes.includes(selectedResourceType) ? selectedResourceType : requestResourceTypes[0];
+  const resourceType = (accountCategory === "agency" || accountCategory === "talent")
+    && requestResourceTypes.includes(accountCategory) ? accountCategory : null;
   const selectedTranslationSetId = state.selectedTranslationSet?.translationSetIdentifier ?? null;
   const canSubmit = Boolean(ownerAccountId) && Boolean(resourceType) && Boolean(selectedTranslationSetId);
   const selectedIds = useMemo(
@@ -410,7 +420,7 @@ function OfficialCertificationManagementContent({ permissions }: { permissions: 
               <h3 className="mt-2 text-lg font-semibold text-text-strong">{pendingCertifications[0]?.wikis[0]?.name ?? state.selectedTranslationSet?.displayWiki.name ?? "Wiki"}</h3>
               <p className="mt-3 text-sm text-text-muted">{t.officialCertificationPendingDescription}</p>
             </div>
-          ) : requestResourceTypes.length > 0 ? (
+          ) : resourceType ? (
             <LocalizedForm
               className="grid gap-4"
               onSubmit={(event) => {
@@ -418,23 +428,6 @@ function OfficialCertificationManagementContent({ permissions }: { permissions: 
                 submitRequest();
               }}
             >
-              {requestResourceTypes.length > 1 ? (
-                <select
-                  aria-label={dictionary.wiki.editSidebar.resourceType}
-                  className="h-9 w-fit rounded-lg border border-stroke-subtle bg-surface-base px-2.5 text-sm text-text-strong"
-                  disabled={requestMutation.isPending}
-                  value={resourceType}
-                  onChange={(event) => {
-                    searchVersion.current += 1;
-                    setSelectedResourceType(event.target.value as "agency" | "talent");
-                    setState((current) => ({ ...current, selectedTranslationSet: null }));
-                    setSearchState({ status: "idle" });
-                    setIsOpen(false);
-                  }}
-                >
-                  {requestResourceTypes.map((type) => <option key={type} value={type}>{t.draftWikiResourceLabels[type]}</option>)}
-                </select>
-              ) : null}
               {resourceType ? (
                 <div className="grid min-w-0 self-start gap-2 text-sm font-semibold text-text-strong">
                   <label className="grid min-w-0 gap-2">
