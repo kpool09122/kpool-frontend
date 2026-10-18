@@ -54,6 +54,7 @@ const DraftWikiStatus = z.enum([
   "rejected",
   "under_review",
 ]);
+const WikiHexColor = z.string();
 const WikiFontStyle = z.enum([
   "ja_pop",
   "ja_gothic",
@@ -83,7 +84,7 @@ const DraftWikiListItem = z
     slug: z.string(),
     language: z.string(),
     resourceType: z.string(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -235,7 +236,7 @@ const WikiListItem = z
     language: z.string(),
     resourceType: z.string(),
     version: z.number().int(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -501,7 +502,7 @@ const AgencyDraftWikiDetail = z
     resourceType: z.string(),
     status: z.string(),
     rejectionReason: DraftWikiRejectionReasonText.nullable(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -550,7 +551,7 @@ const WikiAgencySummary = z
   })
   .passthrough();
 const OfficialColor = z
-  .object({ colorCode: z.string(), label: z.string().max(16) })
+  .object({ colorCode: WikiHexColor, label: z.string().max(16) })
   .passthrough();
 const GroupDraftWikiBasic = z
   .object({
@@ -578,7 +579,7 @@ const DraftWikiDetail = z
     resourceType: z.string(),
     status: z.string(),
     rejectionReason: DraftWikiRejectionReasonText.nullable(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -658,7 +659,7 @@ const SongDraftWikiDetail = z
     resourceType: z.string(),
     status: z.string(),
     rejectionReason: DraftWikiRejectionReasonText.nullable(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -717,7 +718,7 @@ const TalentDraftWikiDetail = z
     resourceType: z.string(),
     status: z.string(),
     rejectionReason: DraftWikiRejectionReasonText.nullable(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -744,7 +745,7 @@ const AgencyWikiDetail = z
     resourceType: z.string(),
     version: z.number().int(),
     isOfficial: z.boolean(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -763,7 +764,7 @@ const WikiDetail = z
     resourceType: z.string(),
     version: z.number().int(),
     isOfficial: z.boolean(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -782,7 +783,7 @@ const SongWikiDetail = z
     resourceType: z.string(),
     version: z.number().int(),
     isOfficial: z.boolean(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -801,7 +802,7 @@ const TalentWikiDetail = z
     resourceType: z.string(),
     version: z.number().int(),
     isOfficial: z.boolean(),
-    themeColor: z.string().nullable(),
+    themeColor: WikiHexColor.nullable(),
     fontStyle: WikiFontStyle.nullable(),
     title: SeoTitleText.nullable(),
     metaDescription: MetaDescriptionText.nullable(),
@@ -882,6 +883,7 @@ export const schemas = {
   ListDraftImagesResponseBody,
   KPool_Common_ProblemDetails,
   DraftWikiStatus,
+  WikiHexColor,
   WikiFontStyle,
   SeoTitleText,
   MetaDescriptionText,
