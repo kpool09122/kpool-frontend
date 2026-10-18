@@ -5,8 +5,6 @@ import { DELETE, POST } from "./route";
 
 const wikiId = "44444444-4444-4444-4444-444444444444";
 const internalBackendMessage = "Internal backend path /var/app";
-const wikiDraftUnavailableMessage =
-  "Wiki drafts are temporarily unavailable. Please try again later.";
 
 const createRequest = (
   body: unknown,
@@ -92,7 +90,7 @@ describe("wiki draft save route", () => {
     );
   });
 
-  it("does not expose backend messages from save errors", async () => {
+  it("preserves backend messages from save errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -111,9 +109,9 @@ describe("wiki draft save route", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(wikiDraftUnavailableMessage);
-    expect(body.message).not.toContain("/var/app");
+    expect(response.status).toBe(503);
+    expect(body.message).toBe(internalBackendMessage);
+
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to save wiki draft.",
       { wikiId, status: 503 },
@@ -154,7 +152,7 @@ describe("wiki draft save route", () => {
     );
   });
 
-  it("does not expose backend messages from delete errors", async () => {
+  it("preserves backend messages from delete errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -170,9 +168,9 @@ describe("wiki draft save route", () => {
     const response = await DELETE(createDeleteRequest(), createContext());
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(wikiDraftUnavailableMessage);
-    expect(body.message).not.toContain("/var/app");
+    expect(response.status).toBe(403);
+    expect(body.message).toBe(internalBackendMessage);
+
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to delete wiki draft.",
       { wikiId, status: 403 },

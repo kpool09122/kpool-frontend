@@ -346,7 +346,7 @@ describe("UserOtherClient", () => {
     fireEvent.click(confirm);
     expect(mocks.withdraw).toHaveBeenCalledOnce();
     resolveWithdrawal?.({ ok: false, status: 500, message: "failed" });
-    expect(await screen.findByRole("alert")).toHaveTextContent("退会処理を完了できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("failed");
   });
 
   it("does not auto-retry after recent authentication is required", async () => {
@@ -364,7 +364,7 @@ describe("UserOtherClient", () => {
     openDialog();
 
     fireEvent.click(screen.getByRole("button", { name: "退会する" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("直近の本人確認が必要です");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Recent authentication required");
     expect(mocks.withdraw).toHaveBeenCalledOnce();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
@@ -418,7 +418,7 @@ describe("UserOtherClient", () => {
     [419, "csrf_token_mismatch", "安全確認の有効期限が切れました"],
     [500, undefined, "退会処理を完了できませんでした"],
   ])("shows a non-success error for status %s", async (status, code, message) => {
-    mocks.withdraw.mockResolvedValue({ ok: false, status, code, message: "upstream" });
+    mocks.withdraw.mockResolvedValue({ ok: false, status, code, message });
     mocks.refreshIdentity.mockResolvedValue(null);
     await renderVerifiedPage();
     openDialog();

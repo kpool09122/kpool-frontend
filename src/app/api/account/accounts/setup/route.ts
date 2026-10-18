@@ -7,16 +7,10 @@ import {
 } from "@/gateways/account/accountApi";
 import {
   accountApiUnavailableResponse,
-  getAccountRouteErrorMessage,
+  getAccountRouteErrorBody,
   getForwardHeaders,
   readResponseBody,
 } from "../../routeSupport";
-
-const getProblemCode = (body: unknown): string | undefined =>
-  typeof body === "object" && body !== null && "code" in body &&
-  typeof (body as { code: unknown }).code === "string"
-    ? (body as { code: string }).code
-    : undefined;
 
 export async function POST(request: NextRequest) {
   const baseUrl = getAccountApiBaseUrl();
@@ -42,13 +36,9 @@ export async function POST(request: NextRequest) {
     }
 
     const responseBody = await readResponseBody(apiResponse);
-    const code = getProblemCode(responseBody);
 
     return NextResponse.json(
-      {
-        message: getAccountRouteErrorMessage(apiResponse.status, responseBody),
-        ...(code ? { code } : {}),
-      },
+      getAccountRouteErrorBody(apiResponse.status, responseBody),
       { status: apiResponse.status },
     );
   } catch {

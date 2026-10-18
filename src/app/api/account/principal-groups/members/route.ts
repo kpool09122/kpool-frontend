@@ -8,7 +8,7 @@ import {
 } from "@/gateways/account/accountApi";
 import {
   accountApiUnavailableResponse,
-  getAccountRouteErrorMessage,
+  getAccountRouteErrorBody,
   getForwardHeaders,
   readResponseBody,
 } from "../../routeSupport";
@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getAccountRouteErrorMessage(apiResponse.status, body) },
+        getAccountRouteErrorBody(apiResponse.status, body),
         { status: apiResponse.status },
       );
     }
@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!principalGroupsResponse.ok) {
       return NextResponse.json(
-        { message: getAccountRouteErrorMessage(principalGroupsResponse.status, principalGroupsBody) },
+        getAccountRouteErrorBody(principalGroupsResponse.status, principalGroupsBody),
         { status: principalGroupsResponse.status },
       );
     }

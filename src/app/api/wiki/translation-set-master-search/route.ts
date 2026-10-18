@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { message: translationSetMasterSearchUnavailableMessage },
+        getApiErrorBody(body, translationSetMasterSearchUnavailableMessage),
         { status: apiResponse.status },
       );
     }

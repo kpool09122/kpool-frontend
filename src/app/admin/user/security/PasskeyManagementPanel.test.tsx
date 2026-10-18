@@ -197,7 +197,7 @@ describe("PasskeyManagementPanel", () => {
     renderPanel({ api: { delete: vi.fn().mockResolvedValue({ ok: false, status: 409, message: "Conflict" }) } });
     await screen.findByText("MacBook");
     fireEvent.click(screen.getByRole("button", { name: "削除" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("最後の認証手段は削除できません");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Conflict");
   });
 
   it("shows a verification prompt instead of an API error and unlocks management with a passkey", async () => {

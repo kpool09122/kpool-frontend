@@ -47,7 +47,7 @@ describe("readJsonResponseBody", () => {
     ).rejects.toThrow("Wiki API response body is not valid JSON.");
   });
 
-  it("throws when a backend error response contains malformed JSON", async () => {
+  it("allows a fallback while retaining the backend status for malformed error JSON", async () => {
     await expect(
       readJsonResponseBody(
         new Response("{broken", {
@@ -55,7 +55,7 @@ describe("readJsonResponseBody", () => {
           headers: { "Content-Type": "application/json" },
         }),
       ),
-    ).rejects.toThrow("Wiki API response body is not valid JSON.");
+    ).resolves.toBeNull();
   });
 });
 

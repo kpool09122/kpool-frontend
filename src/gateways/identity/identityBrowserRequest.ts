@@ -1,5 +1,6 @@
 import { getBrowserDictionary } from "@/i18n/browserDictionary";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
+import { getApiErrorMessage, getBackendErrorResponse } from "@/gateways/support/apiError";
 
 export type IdentityBrowserApiResult<T> =
   | { ok: true; data: T }
@@ -25,18 +26,8 @@ const readBody = async (response: Response): Promise<unknown> => {
   }
 };
 
-const getMessage = (body: unknown, language?: string): string => {
-  if (
-    typeof body === "object" &&
-    body !== null &&
-    "message" in body &&
-    typeof (body as { message: unknown }).message === "string"
-  ) {
-    return (body as { message: string }).message;
-  }
-
-  return getBrowserDictionary(language).common.authenticationFailed;
-};
+const getMessage = (body: unknown, language?: string): string =>
+  getApiErrorMessage(body, getBrowserDictionary(language).common.authenticationFailed);
 
 const getCode = (body: unknown): string | undefined =>
   typeof body === "object" && body !== null && "code" in body
@@ -73,7 +64,17 @@ export const requestIdentity = async <T>(
     }
 
     return { ok: true, data: parseResponse(responseBody) };
-  } catch {
+  } catch (error) {
+    const response = getBackendErrorResponse(error);
+    if (response) {
+      return {
+        ok: false,
+        code: getCode(response.data),
+        message: getMessage(response.data, language),
+        status: response.status,
+      };
+    }
+
     return {
       ok: false,
       message: getBrowserDictionary(language).common.authenticationFailed,

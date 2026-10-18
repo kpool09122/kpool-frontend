@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { getAccountApiBaseUrl, parseAffiliationCommandSummary, parseListAffiliationsResponse, parseRequestAffiliationRequest } from "@/gateways/account/accountApi";
-import { accountApiUnavailableResponse, getAccountRouteErrorMessage, getForwardHeaders, readResponseBody } from "../routeSupport";
+import { accountApiUnavailableResponse, getAccountRouteErrorBody, getForwardHeaders, readResponseBody } from "../routeSupport";
 
 export async function GET(request: NextRequest) {
   const baseUrl = getAccountApiBaseUrl();
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
     const responseBody = await readResponseBody(apiResponse);
-    if (!apiResponse.ok) return NextResponse.json({ message: getAccountRouteErrorMessage(apiResponse.status, responseBody) }, { status: apiResponse.status });
+    if (!apiResponse.ok) return NextResponse.json(getAccountRouteErrorBody(apiResponse.status, responseBody), { status: apiResponse.status });
     return NextResponse.json(parseListAffiliationsResponse(responseBody), { status: apiResponse.status });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ message: "Invalid account affiliations response." }, { status: 502 });
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       cache: "no-store",
     });
     const responseBody = await readResponseBody(apiResponse);
-    if (!apiResponse.ok) return NextResponse.json({ message: getAccountRouteErrorMessage(apiResponse.status, responseBody) }, { status: apiResponse.status });
+    if (!apiResponse.ok) return NextResponse.json(getAccountRouteErrorBody(apiResponse.status, responseBody), { status: apiResponse.status });
     return NextResponse.json(parseAffiliationCommandSummary(responseBody), { status: apiResponse.status });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ message: "Invalid account affiliation request." }, { status: 422 });

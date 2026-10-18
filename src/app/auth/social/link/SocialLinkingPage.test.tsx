@@ -11,7 +11,7 @@ const apiMock = () => ({
   sendEmail: vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 60 } }),
   verifyEmail: vi.fn().mockResolvedValue({ ok: true, data: { redirectUrl: "/wiki/ja/example?tab=edit" } }),
 });
-const failure = { ok: false, status: 422, message: "private backend details" };
+const failure = { ok: false, status: 422, message: "確認コードまたは連携セッションを確認してください。" };
 const originalRefresh = useAuthStore.getState().refreshIdentity;
 const submitCode = () => {
   fireEvent.change(screen.getByLabelText("確認コード"), { target: { value: "012345" } });
@@ -82,8 +82,8 @@ describe("SocialLinkingPage", () => {
     render(<SocialLinkingPage api={api} navigate={navigate} />);
     await screen.findByLabelText("確認コード");
     submitCode();
-    expect(await screen.findByRole("alert")).toHaveTextContent("コードを確認して再度お試しください");
-    expect(screen.queryByText(failure.message)).not.toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(failure.message);
+    expect(screen.getByText(failure.message)).toBeInTheDocument();
     expect(navigate).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole("button", { name: "確認して連携・ログイン" })).toBeEnabled());
     submitCode();
@@ -97,7 +97,7 @@ describe("SocialLinkingPage", () => {
     render(<SocialLinkingPage api={api} />);
     await screen.findByLabelText("確認コード");
     submitCode();
-    expect(await screen.findByRole("alert")).toHaveTextContent("SSOログインをやり直してください");
+    expect(await screen.findByRole("alert")).toHaveTextContent(failure.message);
     expect(screen.getByRole("button", { name: "確認コードを送信" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "ログインへ戻る" })).toHaveAttribute("href", "/login");
   });
@@ -106,7 +106,7 @@ describe("SocialLinkingPage", () => {
     const api = apiMock();
     api.get.mockResolvedValue(failure);
     render(<SocialLinkingPage api={api} />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("SSOログインをやり直してください");
+    expect(await screen.findByRole("alert")).toHaveTextContent(failure.message);
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(api.sendEmail).not.toHaveBeenCalled();
   });

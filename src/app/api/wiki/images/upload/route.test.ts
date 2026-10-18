@@ -177,9 +177,7 @@ describe("wiki image upload route", () => {
     const responseBody = await response.json();
 
     expect(response.status).toBe(503);
-    expect(responseBody.message).toBe(
-      "Wiki images are temporarily unavailable. Please try again later.",
-    );
+    expect(responseBody.message).toBe("Internal backend path /var/app");
     expect(consoleError).toHaveBeenCalledWith(
       "Wiki image upload backend request failed",
       { status: 503 },

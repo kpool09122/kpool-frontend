@@ -126,7 +126,7 @@ export function Header({
     void Promise.resolve().then(logoutAdapter).then((result) => {
       if (!result.ok) {
         cancelPageLeave();
-        setLogoutError(t.logoutFailed);
+        setLogoutError(result.message || t.logoutFailed);
         return;
       }
       clearIdentity();
@@ -196,7 +196,7 @@ export function Header({
           router.refresh();
         }
       })
-      .catch(() => setSwitchAccountError(t.switchAccountFailed))
+      .catch((error: unknown) => setSwitchAccountError(error instanceof Error ? error.message : t.switchAccountFailed))
       .finally(() => setIsSwitchingAccount(false));
   };
   const mobileRowClassName = "flex w-full items-center justify-between px-1 py-3 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/20 focus:bg-brand-highlight/20 focus:outline-none active:bg-brand-highlight/30";

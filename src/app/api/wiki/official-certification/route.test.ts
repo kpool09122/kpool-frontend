@@ -5,7 +5,6 @@ import {
   wikiDraftReviewCsrfHeaderName,
   wikiDraftReviewCsrfHeaderValue,
 } from "@/gateways/wiki/draftWiki";
-import { officialCertificationUnavailableMessage } from "@/gateways/wiki/officialCertification";
 import { POST as approvePOST } from "./approve/route";
 import { POST as rejectPOST } from "./reject/route";
 import { GET as listGET } from "./route";
@@ -119,7 +118,7 @@ describe("official certification routes", () => {
     );
   });
 
-  it("does not expose backend messages from list errors", async () => {
+  it("preserves backend messages from list errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -135,9 +134,9 @@ describe("official certification routes", () => {
     const response = await listGET(createGetRequest("https://app.example.test/api/wiki/official-certification"));
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(officialCertificationUnavailableMessage);
-    expect(body.message).not.toContain("/var/app");
+    expect(response.status).toBe(503);
+    expect(body.message).toBe(internalBackendMessage);
+
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to list official certifications.",
       { status: 503 },
@@ -207,7 +206,7 @@ describe("official certification routes", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not expose backend messages from request errors", async () => {
+  it("preserves backend messages from request errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     process.env.KPOOL_IDENTITY_API_BASE_URL = "https://identity.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -228,9 +227,9 @@ describe("official certification routes", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(officialCertificationUnavailableMessage);
-    expect(body.message).not.toContain("/var/app");
+    expect(response.status).toBe(503);
+    expect(body.message).toBe(internalBackendMessage);
+
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to request official certification.",
       { status: 503 },
@@ -342,7 +341,7 @@ describe("official certification routes", () => {
     );
   });
 
-  it("does not expose backend messages from review errors", async () => {
+  it("preserves backend messages from review errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -362,9 +361,9 @@ describe("official certification routes", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(officialCertificationUnavailableMessage);
-    expect(body.message).not.toContain("/var/app");
+    expect(response.status).toBe(503);
+    expect(body.message).toBe(internalBackendMessage);
+
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to approve official certification.",
       { status: 503 },

@@ -1,3 +1,4 @@
+import { getApiErrorBody, readApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { siteManagementApiTypes } from "@kpool/types";
 import { getSiteManagementApiBaseUrl } from "@/gateways/contact/contactApi";
@@ -11,7 +12,7 @@ export async function PATCH(request: NextRequest) {
     for (const cookie of cookies) response.headers.append("Set-Cookie", cookie);
     return response;
   };
-  const failedRefresh = (kind: "http" | "network" | "schema", status: number) => respond({ committed: true, refresh: { ok: false, kind, status, message: siteManagementUnavailableMessage } });
+  const failedRefresh = (kind: "http" | "network" | "schema", status: number, body?: unknown) => respond({ committed: true, refresh: { ...getApiErrorBody(body, siteManagementUnavailableMessage), ok: false, kind, status } });
   const baseUrl = getSiteManagementApiBaseUrl();
   if (!baseUrl) return respond({ message: siteManagementUnavailableMessage }, 503);
   let payload;
@@ -28,7 +29,7 @@ export async function PATCH(request: NextRequest) {
     upstream = await fetch(`${baseUrl}/principal-groups/members`, { method: "PATCH", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(payload.data), cache: "no-store" });
   } catch { return respond({ message: siteManagementUnavailableMessage }, 502); }
   cookies.push(...upstream.headers.getSetCookie());
-  if (!upstream.ok) return respond({ message: siteManagementUnavailableMessage }, upstream.status);
+  if (!upstream.ok) return respond(getApiErrorBody(await readApiErrorBody(upstream), siteManagementUnavailableMessage), upstream.status);
   // A successful mutation is committed even when its response/refresh is invalid.
   try {
     if (!siteManagementApiTypes.schemas.UpdatePrincipalGroupMembersResponse.safeParse(await upstream.json()).success) return failedRefresh("schema", 502);
@@ -41,7 +42,7 @@ export async function PATCH(request: NextRequest) {
   try { refreshed = await fetch(`${baseUrl}/principal-groups`, { method: "GET", headers, cache: "no-store" }); }
   catch { return failedRefresh("network", 502); }
   cookies.push(...refreshed.headers.getSetCookie());
-  if (!refreshed.ok) return failedRefresh("http", refreshed.status);
+  if (!refreshed.ok) return failedRefresh("http", refreshed.status, await readApiErrorBody(refreshed));
   try {
     const parsed = siteManagementApiTypes.schemas.PrincipalGroupList.safeParse(await refreshed.json());
     if (!parsed.success) return failedRefresh("schema", 502);

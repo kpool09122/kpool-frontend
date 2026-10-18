@@ -71,7 +71,7 @@ describe("/api/wiki/principal/create route", () => {
     expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual(requestBody);
   });
 
-  it("does not expose upstream 500 details to the client", async () => {
+  it("preserves upstream 500 messages", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://wiki.example.test");
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(
@@ -85,8 +85,8 @@ describe("/api/wiki/principal/create route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe(wikiPrincipalUnavailableMessage);
-    expect(body.message).not.toContain("internal.wiki.example.test");
+    expect(body.message).toBe("stack trace from internal.wiki.example.test");
+
   });
 
   it.each([

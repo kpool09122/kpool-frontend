@@ -78,7 +78,7 @@ describe("wiki draft wiki auto-create route", () => {
     );
   });
 
-  it("does not expose backend auto-create error bodies", async () => {
+  it("preserves backend auto-create messages and status", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -101,10 +101,8 @@ describe("wiki draft wiki auto-create route", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(
-      "Wiki drafts are temporarily unavailable. Please try again later.",
-    );
+    expect(response.status).toBe(500);
+    expect(body.message).toBe("internal provider key leaked");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("provider key");
   });
 });

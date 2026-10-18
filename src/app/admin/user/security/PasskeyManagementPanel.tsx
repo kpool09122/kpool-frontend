@@ -228,7 +228,7 @@ export function PasskeyManagementPanel({
       await passkeyQuery.refetch();
     } else {
       if (result.status === 409) {
-        setError(t.passkeyLastMethodError);
+        setError(result.message || t.passkeyLastMethodError);
       } else if (!handleAuthorizationFailure(result.status)) {
         setError(result.message);
       }

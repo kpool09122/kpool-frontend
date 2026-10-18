@@ -168,7 +168,7 @@ describe("wiki principal helpers", () => {
     });
   });
 
-  it("does not expose upstream server error details from the browser route response", async () => {
+  it("preserves upstream server error details from the browser route response", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -179,7 +179,7 @@ describe("wiki principal helpers", () => {
 
     await expect(getCurrentWikiPrincipal({ fetchAdapter })).resolves.toEqual({
       status: "error",
-      message: wikiPrincipalUnavailableMessage,
+      message: "database failed at internal.wiki.example.test",
     });
   });
 
@@ -194,7 +194,7 @@ describe("wiki principal helpers", () => {
     });
   });
 
-  it("does not expose upstream server error details from the private API request", async () => {
+  it("preserves upstream server error details from the private API request", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -211,7 +211,9 @@ describe("wiki principal helpers", () => {
       }),
     ).resolves.toEqual({
       status: "error",
-      message: wikiPrincipalUnavailableMessage,
+      httpStatus: 500,
+      body: { detail: "stack trace from internal.wiki.example.test" },
+      message: "stack trace from internal.wiki.example.test",
     });
   });
 

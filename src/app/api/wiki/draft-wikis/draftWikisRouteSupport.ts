@@ -1,3 +1,5 @@
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
@@ -74,7 +76,7 @@ export const createDraftWikiListRouteGetHandler = (
       });
 
       return NextResponse.json(
-        { message: wikiDraftUnavailableMessage },
+        getApiErrorBody(body, wikiDraftUnavailableMessage),
         { status: apiResponse.status },
       );
     }
@@ -89,9 +91,6 @@ export const createDraftWikiListRouteGetHandler = (
   } catch (error) {
     console.error(`${routeLogName} route failed`, error);
 
-    return NextResponse.json(
-      { message: wikiDraftUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, wikiDraftUnavailableMessage);
   }
 };

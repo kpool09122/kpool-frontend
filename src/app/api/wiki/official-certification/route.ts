@@ -1,3 +1,4 @@
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
@@ -41,9 +42,6 @@ export async function GET(request: NextRequest) {
       status: getWikiRouteErrorStatus(error),
     });
 
-    return NextResponse.json(
-      { message: officialCertificationUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, officialCertificationUnavailableMessage);
   }
 }

@@ -34,7 +34,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
   const [authCode, setAuthCode] = useState("");
   const [pending, setPending] = useState<"send" | "verify" | null>(null);
   const [complete, setComplete] = useState(false);
-  const [error, setError] = useState<"invalidSession" | "loadFailed" | "sendFailed" | "verifyFailed" | null>(null);
+  const [error, setError] = useState<{ message: string; invalidSession?: boolean } | null>(null);
   const [now, setNow] = useState(Date.now);
   const sendingStatus = useEmailSendingStatus(
     "kpool.social-linking.email-sending-status",
@@ -51,15 +51,15 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
         setError(null);
       } else {
         setSession(null);
-        setError(result.status === 422 ? "invalidSession" : "loadFailed");
+        setError({ message: result.message || t.loadFailed, invalidSession: result.status === 422 });
       }
     }).catch(() => {
-      if (active) setError("loadFailed");
+      if (active) setError({ message: t.loadFailed });
     }).finally(() => {
       if (active) setLoading(false);
     });
     return () => { active = false; };
-  }, [api, locale]);
+  }, [api, locale, t.loadFailed]);
 
   useEffect(() => {
     if (!session || complete) return;
@@ -68,8 +68,8 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
   }, [session, complete]);
 
   const expired = session !== null && new Date(session.expiresAt).getTime() <= now;
-  const displayedError = expired ? "invalidSession" : error;
-  const unavailable = !session || expired || error === "invalidSession";
+  const displayedError = expired ? t.invalidSession : error?.message;
+  const unavailable = !session || expired || error?.invalidSession;
   const secondsUntilResend = sendingStatus.secondsUntilRetry ?? 0;
   const requested = sendingStatus.status !== null;
   const provider = identityProviders.find((item) => item.id === session?.provider)?.label ?? session?.provider;
@@ -86,9 +86,9 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
       if (result.ok && result.data.accepted) {
         sendingStatus.update(result.data);
       } else {
-        setError(!result.ok && result.status === 422 ? "invalidSession" : "sendFailed");
+        setError({ message: !result.ok ? result.message || t.sendFailed : t.sendFailed, invalidSession: !result.ok && result.status === 422 });
       }
-    }).catch(() => setError("sendFailed")).finally(() => {
+    }).catch(() => setError({ message: t.sendFailed })).finally(() => {
       busy.current = false;
       setPending(null);
     });
@@ -110,10 +110,10 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
         return;
       }
       // A wrong code is retryable; expiry, exhausted attempts, and consumed operations are not.
-      const current = await api.get(locale);
-      setError(!current.ok && current.status === 422 ? "invalidSession" : "verifyFailed");
-      if (current.ok) setSession(current.data);
-    }).catch(() => setError("verifyFailed")).finally(() => {
+      const current = await api.get(locale).catch(() => null);
+      setError({ message: current !== null && !current.ok && current.status === 422 ? current.message || t.invalidSession : result.message || t.verifyFailed, invalidSession: current !== null && !current.ok && current.status === 422 });
+      if (current?.ok) setSession(current.data);
+    }).catch(() => setError({ message: t.verifyFailed })).finally(() => {
       busy.current = false;
       setPending(null);
     });
@@ -165,7 +165,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
         ) : null}
         {!complete && displayedError ? (
           <p role="alert" className="rounded-lg border border-status-danger bg-status-danger/10 px-4 py-3 text-sm font-semibold text-status-danger">
-            {t[displayedError]}
+            {displayedError}
           </p>
         ) : null}
         <Link href="/login" className="inline-flex text-sm font-semibold text-brand-primary underline-offset-4 hover:underline">{t.backToLogin}</Link>

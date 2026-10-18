@@ -1,3 +1,4 @@
+import { getApiErrorMessage, readApiErrorBody } from "./apiError";
 import { getBrowserDictionary } from "@/i18n/browserDictionary";
 
 const csrfEndpoint = "/api/identity/auth/csrf-token";
@@ -22,8 +23,13 @@ const initializeCsrf = async (): Promise<void> => {
     csrfInitialization = fetch(csrfEndpoint, {
       credentials: "same-origin",
       cache: "no-store",
-    }).then((response) => {
-      if (!response.ok) throw new Error(getBrowserDictionary().common.csrfFailed);
+    }).then(async (response) => {
+      if (!response.ok) {
+        const body = await readApiErrorBody(response);
+        throw Object.assign(new Error(getApiErrorMessage(body, getBrowserDictionary().common.csrfFailed)), {
+          response: { status: response.status, data: body },
+        });
+      }
     }).finally(() => {
       csrfInitialization = undefined;
     });

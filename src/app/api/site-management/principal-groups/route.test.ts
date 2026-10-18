@@ -15,10 +15,10 @@ describe("SiteManagement BFF", () => {
     expect(response.headers.get("set-cookie")).toContain("session=new");
     expect(fetchMock).toHaveBeenCalledWith("http://backend.test/api/v1/site-management/principal-groups", expect.objectContaining({ cache: "no-store", headers: expect.objectContaining({ Cookie: "session=test", "Accept-Language": "ko", "X-XSRF-TOKEN": "csrf" }) }));
   });
-  it.each([401,403,404,422,503])("preserves %s without leaking details", async (status) => {
+  it.each([401,403,404,422,503])("preserves %s with backend details", async (status) => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ detail: "secret database" }, { status })));
-    const response = await GET(request()); expect(response.status).toBe(status); expect(JSON.stringify(await response.json())).not.toContain("secret");
+    const response = await GET(request()); expect(response.status).toBe(status); expect(await response.json()).toEqual({ detail: "secret database", message: "secret database" });
   });
   it.each([{}, { principalGroups: [] }, null])("rejects invalid schema %j", async (body) => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
@@ -62,9 +62,9 @@ describe("SiteManagement BFF", () => {
     vi.stubGlobal("fetch", mock);
     expect(await (await PATCH(patchRequest())).json()).toMatchObject({ committed: true, refresh: { ok: false, kind } });
   });
-  it("preserves PATCH422 without attempting GET or leaking details", async () => {
+  it("preserves PATCH422 without attempting GET and preserves details", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
     const mock = vi.fn().mockResolvedValue(Response.json({ detail: "secret" }, { status: 422 })); vi.stubGlobal("fetch", mock);
-    const response = await PATCH(patchRequest()); expect(response.status).toBe(422); expect(mock).toHaveBeenCalledTimes(1); expect(JSON.stringify(await response.json())).not.toContain("secret");
+    const response = await PATCH(patchRequest()); expect(response.status).toBe(422); expect(mock).toHaveBeenCalledTimes(1); expect(await response.json()).toEqual({ detail: "secret", message: "secret" });
   });
 });

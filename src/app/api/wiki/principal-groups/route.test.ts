@@ -54,7 +54,7 @@ describe("/api/wiki/principal-groups route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not expose upstream server details", async () => {
+  it("preserves upstream server details", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://wiki.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ detail: "database at internal host failed" }), { status: 500 })));
 
@@ -62,6 +62,6 @@ describe("/api/wiki/principal-groups route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe("Wiki principal groups are temporarily unavailable. Please try again later.");
+    expect(body.message).toBe("database at internal host failed");
   });
 });

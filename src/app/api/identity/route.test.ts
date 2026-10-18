@@ -153,7 +153,7 @@ describe("/api/identity route", () => {
     expect(response.headers.get("set-cookie")).toContain("laravel_session=refreshed");
   });
 
-  it("does not expose upstream 5xx details", async () => {
+  it("preserves upstream 5xx messages", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
     vi.stubGlobal(
       "fetch",
@@ -167,8 +167,8 @@ describe("/api/identity route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe("Identity API is temporarily unavailable.");
-    expect(body.message).not.toContain("internal.identity.example.test");
+    expect(body.message).toBe("database failed at internal.identity.example.test");
+
   });
 
   it("does not expose internal fetch errors or base64EncodedImage in logs", async () => {

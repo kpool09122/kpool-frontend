@@ -64,7 +64,7 @@ describe("wiki image deletion request reject route", () => {
     );
   });
 
-  it("hides backend error details", async () => {
+  it("preserves backend error details", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ message: "Internal /var/app" }, 403)));
@@ -75,7 +75,7 @@ describe("wiki image deletion request reject route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(403);
-    expect(body.message).toBe("Wiki images are temporarily unavailable. Please try again later.");
+    expect(body.message).toBe("Internal /var/app");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
   });
 

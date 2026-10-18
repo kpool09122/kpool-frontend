@@ -76,7 +76,7 @@ function PasskeyRecoveryPageContent({
         return;
       }
 
-      setErrorMessage(t.ssoFailed);
+      setErrorMessage(result.message || t.ssoFailed);
     }).catch(() => {
       setErrorMessage(t.ssoFailed);
     }).finally(() => {
@@ -99,7 +99,7 @@ function PasskeyRecoveryPageContent({
         writeRecoveryEmail(recoveryProgressStorageKey, email);
         setPhase("verification");
       } else {
-        setErrorMessage(t.emailSendFailed);
+        setErrorMessage(result.message || t.emailSendFailed);
       }
     }).catch(() => {
       setErrorMessage(t.emailSendFailed);
@@ -124,7 +124,7 @@ function PasskeyRecoveryPageContent({
         setRecoveryKey(result.data.recoveryKey);
         setPhase("confirm");
       } else {
-        setErrorMessage(t.verificationFailed);
+        setErrorMessage(result.message || t.verificationFailed);
       }
     }).catch(() => {
       setErrorMessage(t.verificationFailed);
@@ -167,7 +167,7 @@ function PasskeyRecoveryPageContent({
       } else if (result.reason === "unsupported") {
         setErrorMessage(t.passkeyUnsupported);
       } else {
-        setErrorMessage(t.passkeyFailed);
+        setErrorMessage(result.message || t.passkeyFailed);
       }
     }).catch(() => {
       setErrorMessage(t.passkeyFailed);

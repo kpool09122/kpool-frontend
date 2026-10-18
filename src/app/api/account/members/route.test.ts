@@ -40,13 +40,13 @@ describe("/api/account/members route", () => {
     await expect(response.json()).resolves.toEqual(membersResponse);
   });
 
-  it("masks upstream 500 details", async () => {
+  it("preserves upstream 500 messages", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: "internal host" }), { status: 500 })));
 
     const response = await GET(createRequest());
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ message: "Account API is temporarily unavailable." });
+    await expect(response.json()).resolves.toEqual({ message: "internal host" });
   });
 });

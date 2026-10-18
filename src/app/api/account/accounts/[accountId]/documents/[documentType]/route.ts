@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getAccountApiBaseUrl } from "@/gateways/account/accountApi";
-import { accountApiUnavailableResponse, getAccountRouteErrorMessage, getForwardHeaders, readResponseBody } from "../../../../routeSupport";
+import { accountApiUnavailableResponse, getAccountRouteErrorBody, getForwardHeaders, readResponseBody } from "../../../../routeSupport";
 
 type RouteContext = { params: Promise<{ accountId: string; documentType: string }> };
 const responseHeaderNames = ["cache-control", "content-disposition", "content-length", "content-type"] as const;
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const apiResponse = await fetch(`${baseUrl}/accounts/${encodeURIComponent(accountId)}/documents/${encodeURIComponent(documentType)}`, { method: "GET", headers: getForwardHeaders(request, false), cache: "no-store" });
     if (!apiResponse.ok) {
       const body = await readResponseBody(apiResponse);
-      return NextResponse.json({ message: getAccountRouteErrorMessage(apiResponse.status, body) }, { status: apiResponse.status });
+      return NextResponse.json(getAccountRouteErrorBody(apiResponse.status, body), { status: apiResponse.status });
     }
     const headers = getDocumentResponseHeaders(apiResponse);
     if (new URL(request.url).searchParams.get("download") === "1") headers.set("content-disposition", getAttachmentDisposition(headers.get("content-disposition")));

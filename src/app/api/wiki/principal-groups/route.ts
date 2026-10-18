@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -14,22 +15,6 @@ import {
 } from "../wikiRouteSupport";
 
 const accountIdentifierSchema = z.string().uuid();
-
-const getWikiPrincipalGroupRouteErrorMessage = (status: number, body: unknown): string => {
-  if (status >= 500) {
-    return wikiPrincipalGroupsUnavailableMessage;
-  }
-
-  if (typeof body === "object" && body !== null && "message" in body && typeof (body as { message: unknown }).message === "string") {
-    return (body as { message: string }).message;
-  }
-
-  if (typeof body === "object" && body !== null && "detail" in body && typeof (body as { detail: unknown }).detail === "string") {
-    return (body as { detail: string }).detail;
-  }
-
-  return `Wiki principal groups request failed with status ${status}.`;
-};
 
 export async function GET(request: NextRequest) {
   const baseUrl = getWikiPrivateApiBaseUrl();
@@ -63,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getWikiPrincipalGroupRouteErrorMessage(apiResponse.status, body) },
+        getApiErrorBody(body, wikiPrincipalGroupsUnavailableMessage),
         { status: apiResponse.status },
       );
     }

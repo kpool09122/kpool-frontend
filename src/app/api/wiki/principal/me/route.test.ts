@@ -75,7 +75,7 @@ describe("/api/wiki/principal/me route", () => {
     expect(body.message).toBe("Wiki principal was not found.");
   });
 
-  it("does not expose upstream 500 details to the client", async () => {
+  it("preserves upstream 500 messages", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://wiki.example.test");
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(
@@ -89,8 +89,8 @@ describe("/api/wiki/principal/me route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe(wikiPrincipalUnavailableMessage);
-    expect(body.message).not.toContain("internal.wiki.example.test");
+    expect(body.message).toBe("database failed at internal.wiki.example.test");
+
   });
 
   it("does not expose internal fetch errors to the client", async () => {

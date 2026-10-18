@@ -78,7 +78,7 @@ describe("translation set master search route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not expose backend messages from errors", async () => {
+  it("preserves backend messages from errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -92,7 +92,7 @@ describe("translation set master search route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(503);
-    expect(body.message).toBe("Translation set master search is temporarily unavailable. Please try again later.");
+    expect(body.message).toBe("internal stack /var/app");
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain("/var/app");
   });
 });

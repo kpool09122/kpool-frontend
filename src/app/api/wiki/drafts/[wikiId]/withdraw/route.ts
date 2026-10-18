@@ -1,3 +1,4 @@
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
 import { getWikiVisitorLocationSigner } from "../../../visitorLocation";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -43,9 +44,6 @@ export async function POST(request: NextRequest, context: WikiDraftWithdrawRoute
       status: getWikiRouteErrorStatus(error),
     });
 
-    return NextResponse.json(
-      { message: wikiDraftUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, wikiDraftUnavailableMessage);
   }
 }

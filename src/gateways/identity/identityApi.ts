@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/gateways/support/apiError";
 import { identityApiTypes } from "@kpool/types";
 import { z } from "zod";
 
@@ -103,18 +104,6 @@ const trimTrailingSlashes = (value: string): string => {
   return trimmedValue;
 };
 
-const hasMessage = (value: unknown): value is { message: string } =>
-  typeof value === "object" &&
-  value !== null &&
-  "message" in value &&
-  typeof (value as { message: unknown }).message === "string";
-
-const hasDetail = (value: unknown): value is { detail: string } =>
-  typeof value === "object" &&
-  value !== null &&
-  "detail" in value &&
-  typeof (value as { detail: unknown }).detail === "string";
-
 export const withIdentityApiPrefix = (baseUrl: string): string => {
   const trimmedBaseUrl = trimTrailingSlashes(baseUrl);
   const prefix = "/api/v1/identity";
@@ -157,26 +146,8 @@ export const normalizeIdentityImageRequest = <
   };
 };
 
-export const getIdentityRouteErrorMessage = ({
-  status,
-  data,
-}: ProblemResponse): string => {
-  if (status && status >= 500) {
-    return "Identity API is temporarily unavailable.";
-  }
-
-  if (hasMessage(data)) {
-    return data.message;
-  }
-
-  if (hasDetail(data)) {
-    return data.detail;
-  }
-
-  return status
-    ? `Identity API request failed with status ${status}.`
-    : "Identity API is temporarily unavailable.";
-};
+export const getIdentityRouteErrorMessage = ({ data }: ProblemResponse): string =>
+  getApiErrorMessage(data, "Identity API is temporarily unavailable.");
 
 export const parseIdentitySummary = (body: unknown): IdentitySummary =>
   parseWithSchemaLog("identity summary", identityApiTypes.schemas.IdentitySummary, body);

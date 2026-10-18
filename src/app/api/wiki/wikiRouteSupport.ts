@@ -35,6 +35,8 @@ export const readJsonResponseBody = async (response: Response): Promise<unknown>
   try {
     return JSON.parse(text) as unknown;
   } catch (error) {
+    if (!response.ok) return null;
+
     throw new Error("Wiki API response body is not valid JSON.", { cause: error });
   }
 };

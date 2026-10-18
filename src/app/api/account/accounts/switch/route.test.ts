@@ -87,7 +87,7 @@ describe("POST /api/account/accounts/switch", () => {
     await expect(response.json()).resolves.toEqual({ message: "switch denied" });
   });
 
-  it("hides upstream 5xx details", async () => {
+  it("preserves upstream 5xx messages", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ message: "database failure" }), { status: 500 }),
@@ -97,7 +97,7 @@ describe("POST /api/account/accounts/switch", () => {
 
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({
-      message: "Account API is temporarily unavailable.",
+      message: "database failure",
     });
   });
 

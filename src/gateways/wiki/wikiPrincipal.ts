@@ -29,7 +29,7 @@ export type WikiPrincipalState =
   | { status: "loading" }
   | { status: "available"; principal: WikiPrincipalSummary }
   | { status: "missing" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; httpStatus?: number; body?: unknown };
 
 type WikiPolicyStatement = WikiPrincipalSummary["policies"][number]["statements"][number];
 type WikiPolicyAction =
@@ -205,8 +205,6 @@ const toWikiPrincipalMessage = (error: unknown): string =>
 
 export const getWikiPrincipalErrorMessage = toWikiPrincipalMessage;
 
-const isServerErrorStatus = (status: number): boolean => status >= 500;
-
 export const getWikiPrincipalResponseErrorMessage = ({
   data,
   status,
@@ -214,9 +212,7 @@ export const getWikiPrincipalResponseErrorMessage = ({
   data: unknown;
   status: number;
 }): string =>
-  isServerErrorStatus(status)
-    ? wikiPrincipalUnavailableMessage
-    : toWikiPrincipalMessage({ response: { status, data } });
+  toWikiPrincipalMessage({ response: { status, data } });
 
 const getWikiPrincipalBoundaryErrorMessage = (error: unknown): string =>
   error instanceof z.ZodError ? toWikiPrincipalMessage(error) : wikiPrincipalUnavailableMessage;
@@ -298,6 +294,8 @@ export const getCurrentWikiPrincipalForRequest = async ({
     if (!response.ok) {
       return {
         status: "error",
+        httpStatus: response.status,
+        body,
         message: getWikiPrincipalResponseErrorMessage({
           status: response.status,
           data: body,

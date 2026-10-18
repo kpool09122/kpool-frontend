@@ -72,7 +72,7 @@ describe("identity API helpers", () => {
         status: 500,
         data: { message: "database failed at internal.identity.example.test" },
       }),
-    ).toBe("Identity API is temporarily unavailable.");
+    ).toBe("database failed at internal.identity.example.test");
   });
 
   it("parses account switching context from the authenticated identity", () => {
