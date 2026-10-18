@@ -48,12 +48,12 @@ describe("Wiki edit entry", () => {
     const response = await POST(request());
     expect(response.status).toBe(status === "empty" ? 404 : 502);
     expect(mocks.create).not.toHaveBeenCalled();
-    expect(JSON.stringify(await response.json())).not.toContain("Private backend failure");
+    expect(await response.json()).toEqual({ message: status === "empty" ? "Wiki not found." : "Private backend failure" });
   });
 
   it("preserves CSRF rejection without returning an editor destination", async () => {
     mocks.load.mockResolvedValue({ status: "needs-creation", requestBody: {} });
-    mocks.create.mockRejectedValue({ response: { status: 419 } });
+    mocks.create.mockRejectedValue({ response: { status: 419, data: { code: "csrf_token_mismatch", detail: "ページを更新してください。" } } });
     const response = await POST(request());
     expect(response.status).toBe(419);
     expect(await response.json()).toMatchObject({ code: "csrf_token_mismatch" });

@@ -12,8 +12,6 @@ import { POST as translatePOST } from "./translate/route";
 
 const wikiId = "44444444-4444-4444-4444-444444444444";
 const internalBackendMessage = "Internal backend path /var/app";
-const wikiDraftUnavailableMessage =
-  "Wiki drafts are temporarily unavailable. Please try again later.";
 
 const createRequest = (body: unknown, headers: Record<string, string> = {}): NextRequest =>
   new Request(`https://app.example.test/api/wiki/drafts/${wikiId}/approve`, {
@@ -214,7 +212,7 @@ describe("wiki draft review route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not expose backend messages from review errors", async () => {
+  it("preserves backend messages from review errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -233,9 +231,9 @@ describe("wiki draft review route", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(502);
-    expect(body.message).toBe(wikiDraftUnavailableMessage);
-    expect(body.message).not.toContain("/var/app");
+    expect(response.status).toBe(503);
+    expect(body.message).toBe(internalBackendMessage);
+
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to approve wiki draft.",
       { wikiId, status: 503 },

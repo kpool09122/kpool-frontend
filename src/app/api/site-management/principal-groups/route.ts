@@ -1,3 +1,4 @@
+import { getApiErrorBody, readApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSiteManagementApiBaseUrl } from "@/gateways/contact/contactApi";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     cookies.push(...upstream.headers.getSetCookie());
     return upstream.ok
       ? respond(parseSiteManagementPrincipalGroups(await upstream.json()), 200)
-      : unavailable(upstream.status);
+      : respond(getApiErrorBody(await readApiErrorBody(upstream), siteManagementUnavailableMessage), upstream.status);
   } catch {
     return unavailable(502);
   }

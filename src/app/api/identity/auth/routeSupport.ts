@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -51,12 +52,6 @@ export const getAcceptLanguageForwardHeaders = (
 
   return acceptLanguage ? { "Accept-Language": acceptLanguage } : {};
 };
-
-const getProblemCode = (body: unknown): string | undefined =>
-  typeof body === "object" && body !== null && "code" in body
-    && typeof (body as { code: unknown }).code === "string"
-    ? (body as { code: string }).code
-    : undefined;
 
 const getSetCookieHeaders = (headers: Headers): string[] => {
   const headersWithSetCookie = headers as Headers & {
@@ -127,10 +122,7 @@ export const forwardIdentityRoute = async (
     if (!apiResponse.ok) {
       return withIdentitySetCookie(
         NextResponse.json(
-          {
-            ...(getProblemCode(body) ? { code: getProblemCode(body) } : {}),
-            message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }),
-          },
+          getApiErrorBody(body, getIdentityRouteErrorMessage({ status: apiResponse.status, data: body })),
           { status: apiResponse.status },
         ),
         apiResponse,

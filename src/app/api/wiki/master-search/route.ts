@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { message: wikiMasterSearchUnavailableMessage },
+        getApiErrorBody(body, wikiMasterSearchUnavailableMessage),
         { status: apiResponse.status },
       );
     }

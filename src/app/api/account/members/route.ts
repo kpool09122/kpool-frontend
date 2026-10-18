@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getAccountApiBaseUrl, parseAccountMembersResponse } from "@/gateways/account/accountApi";
 import {
   accountApiUnavailableResponse,
-  getAccountRouteErrorMessage,
+  getAccountRouteErrorBody,
   getForwardHeaders,
   readResponseBody,
 } from "../routeSupport";
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getAccountRouteErrorMessage(apiResponse.status, body) },
+        getAccountRouteErrorBody(apiResponse.status, body),
         { status: apiResponse.status },
       );
     }

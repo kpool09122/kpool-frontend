@@ -18,9 +18,9 @@ describe("SiteManagement gateway", () => {
     await fetchSiteManagementPrincipalGroups({ fetchAdapter });
     expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/principal-groups", expect.objectContaining({ cache: "no-store", credentials: "include" }));
   });
-  it.each([401,403,404,422,503])("preserves status %s with safe messages", async (status) => {
+  it.each([401,403,404,422,503])("preserves status %s with backend messages", async (status) => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ detail: "private database" }, { status }));
-    await expect(fetchSiteManagementPrincipalGroups({ fetchAdapter })).rejects.toMatchObject({ status, message: "SiteManagement principal groups are unavailable." });
+    await expect(fetchSiteManagementPrincipalGroups({ fetchAdapter })).rejects.toMatchObject({ status, message: "private database" });
   });
   it("sends PATCH and accepts the committed refresh envelope", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ committed: true, refresh: { ok: true, data: { principalGroups: [], principals: [] } } }));

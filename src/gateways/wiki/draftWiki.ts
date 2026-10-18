@@ -1,3 +1,4 @@
+import { getBackendErrorResponse } from "@/gateways/support/apiError";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import { createMockWikiDetail, type WikiDetailState, type WikiDraftDetail } from "@kpool/wiki";
@@ -192,7 +193,7 @@ const isInitialDraftWikiListTab = (
 export type DraftWikiState =
   | { status: "success"; data: WikiDraftDetail }
   | { status: "empty" }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; httpStatus?: number; body?: unknown };
 
 export type DraftWikiEditState = DraftWikiState
   | { status: "needs-creation"; requestBody: CreateWikiRequestBody };
@@ -1468,6 +1469,8 @@ export const loadDraftWikiState = async (
     return {
       status: "error",
       message: getDraftWikiErrorMessage(error),
+      httpStatus: getBackendErrorResponse(error)?.status,
+      body: getBackendErrorResponse(error)?.data,
     };
   }
 };

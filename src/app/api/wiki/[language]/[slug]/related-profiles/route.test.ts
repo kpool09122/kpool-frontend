@@ -111,7 +111,7 @@ describe("wiki related profiles route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns a generic related profile load failure for backend errors", async () => {
+  it("preserves related profile backend error messages", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -132,9 +132,7 @@ describe("wiki related profiles route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(422);
-    expect(body.message).toBe(
-      "Related profiles are temporarily unavailable. Please try again later.",
-    );
+    expect(body.message).toBe(internalBackendMessage);
     expect(consoleError).toHaveBeenCalledWith(
       "Wiki related profiles backend request failed",
       expect.objectContaining({ status: 422 }),

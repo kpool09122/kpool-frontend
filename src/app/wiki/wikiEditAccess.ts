@@ -14,7 +14,7 @@ export const loadWikiEditAccess = async (returnPath: string) => {
 
   const principal = await getCurrentWikiPrincipalForRequest({ cookieHeader });
   if (principal.status === "missing") return { status: "redirect" as const, href: `/admin?returnTo=${destination}` };
-  if (principal.status === "error") return { status: "error" as const, message: principal.message };
+  if (principal.status === "error") return { status: "error" as const, message: principal.message, httpStatus: principal.httpStatus, body: principal.body };
 
   return { status: "available" as const, headers: cookieHeader ? { Cookie: cookieHeader } : undefined };
 };

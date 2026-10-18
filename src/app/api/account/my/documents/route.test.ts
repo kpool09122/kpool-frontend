@@ -48,7 +48,7 @@ describe("/api/account/my/documents route", () => {
     await expect(response.json()).resolves.toEqual(documentsResponse);
   });
 
-  it("does not expose upstream 500 details to the client", async () => {
+  it("preserves upstream 500 messages", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ message: "failed at internal.account.example.test" }), { status: 500 }),
@@ -58,8 +58,8 @@ describe("/api/account/my/documents route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe("Account API is temporarily unavailable.");
-    expect(body.message).not.toContain("internal.account.example.test");
+    expect(body.message).toBe("failed at internal.account.example.test");
+
   });
 
   it("returns 502 when upstream response schema is invalid", async () => {

@@ -157,11 +157,11 @@ export function UserOtherClient() {
       setReauthenticationRequired(true);
       setIsDialogOpen(false);
       setConfirmationIdentityName("");
-      setError(t.withdrawalReauthRequired);
+      setError(result.message || t.withdrawalReauthRequired);
       router.replace("/admin/user/other");
       requestAnimationFrame(() => verifyButtonRef.current?.focus());
     } else if (result.status === 422 && result.code === "identity_name_confirmation_mismatch") {
-      setError(t.withdrawalNameMismatch);
+      setError(result.message || t.withdrawalNameMismatch);
       setConfirmationIdentityName("");
       await refreshIdentity();
     } else if (result.status === 403 && result.code === "identity_withdrawal_not_allowed") {
@@ -170,9 +170,9 @@ export function UserOtherClient() {
       setConfirmationIdentityName("");
       requestAnimationFrame(() => contactLinkRef.current?.focus());
     } else if (result.status === 419 && result.code === "csrf_token_mismatch") {
-      setError(t.withdrawalCsrfError);
+      setError(result.message || t.withdrawalCsrfError);
     } else {
-      setError(t.withdrawalFailed);
+      setError(result.message || t.withdrawalFailed);
       await refreshIdentity();
     }
     processingRef.current = false;

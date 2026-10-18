@@ -118,8 +118,8 @@ describe("wiki draft image review route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(403);
-    expect(body.message).toBe("Wiki images are temporarily unavailable. Please try again later.");
-    expect(body.message).not.toContain("/var/app");
+    expect(body.message).toBe("Internal backend path /var/app");
+
     expect(consoleError).toHaveBeenCalledWith(
       "Wiki draft image approve backend request failed",
       { status: 403 },

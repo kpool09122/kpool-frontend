@@ -38,13 +38,13 @@ describe("wiki draft wikis route", () => {
 
   it("preserves a CSRF rejection from the client-backed mutation", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ code: "csrf_token_mismatch" }, 419));
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ code: "csrf_token_mismatch", detail: "ページを更新してください。" }, 419));
     const response = await POST(createPostRequest("https://app.example.test/api/wiki/draft-wikis", {
       language: "ja", resourceType: "group", basic: { name: "New Wiki" }, sections: [],
     }, { Cookie: "laravel_session=session", "X-XSRF-TOKEN": "invalid" }));
     expect(fetchMock).toHaveBeenCalled();
     expect(response.status).toBe(419);
-    expect(await response.json()).toEqual({ message: "Please refresh the page and try again.", code: "csrf_token_mismatch" });
+    expect(await response.json()).toEqual({ detail: "ページを更新してください。", message: "ページを更新してください。", code: "csrf_token_mismatch" });
   });
 
   it("logs backend failure status without exposing the backend error body", async () => {
@@ -63,9 +63,7 @@ describe("wiki draft wikis route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(503);
-    expect(body.message).toBe(
-      "Wiki drafts are temporarily unavailable. Please try again later.",
-    );
+    expect(body.message).toBe("Internal backend path /var/app");
     expect(consoleError).toHaveBeenCalledWith(
       "Wiki draft wikis backend request failed",
       { status: 503 },

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getAccountApiBaseUrl } from "@/gateways/account/accountApi";
 import {
   accountApiUnavailableResponse,
-  getAccountRouteErrorMessage,
+  getAccountRouteErrorBody,
   getForwardHeaders,
   readResponseBody,
 } from "../../../routeSupport";
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const body = await readResponseBody(apiResponse);
 
       return NextResponse.json(
-        { message: getAccountRouteErrorMessage(apiResponse.status, body) },
+        getAccountRouteErrorBody(apiResponse.status, body),
         { status: apiResponse.status },
       );
     }

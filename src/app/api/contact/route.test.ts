@@ -32,10 +32,10 @@ const createRequest = (
 describe("/api/contact route", () => {
   it("preserves CSRF rejection instead of treating it as an upstream outage", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "https://backend.example.test");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "csrf_token_mismatch" }), { status: 419 })));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "csrf_token_mismatch", detail: "ページを更新してください。" }), { status: 419 })));
     const response = await POST(createRequest());
     expect(response.status).toBe(419);
-    expect(await response.json()).toEqual({ message: "Please refresh the page and try again.", code: "csrf_token_mismatch" });
+    expect(await response.json()).toEqual({ detail: "ページを更新してください。", message: "ページを更新してください。", code: "csrf_token_mismatch" });
   });
 
   afterEach(() => {
@@ -111,7 +111,7 @@ describe("/api/contact route", () => {
     );
   });
 
-  it("does not expose backend validation details", async () => {
+  it("preserves backend validation details", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "https://site.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: "internal validation rule details" }), {
@@ -123,11 +123,10 @@ describe("/api/contact route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(422);
-    expect(body).toEqual({ message: "Contact request is invalid." });
-    expect(body.message).not.toContain("internal validation rule details");
+    expect(body).toEqual({ detail: "internal validation rule details", message: "internal validation rule details" });
   });
 
-  it("does not expose backend 500 details", async () => {
+  it("preserves backend 500 details", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "https://site.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ detail: "database host is internal-db" }), {
@@ -139,8 +138,7 @@ describe("/api/contact route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body).toEqual({ message: "Contact API is temporarily unavailable." });
-    expect(body.message).not.toContain("internal-db");
+    expect(body).toEqual({ detail: "database host is internal-db", message: "database host is internal-db" });
   });
 
   it("returns a safe error when the backend response schema is invalid", async () => {

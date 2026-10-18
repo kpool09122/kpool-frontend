@@ -1,12 +1,11 @@
-import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
-
-import { getWikiRouteErrorStatus } from "@/app/api/wiki/wikiRouteSupport";
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
 
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createDraftWikiApiClient } from "@/gateways/wiki/draftWiki";
 import {
   getForwardedWikiApiHeaders,
+  getWikiRouteErrorStatus,
   jsonErrorResponse,
   wikiDraftUnavailableMessage,
 } from "../../wikiRouteSupport";
@@ -29,20 +28,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
+    console.error("Wiki draft wiki auto-create route failed", {
+      status: getWikiRouteErrorStatus(error),
+    });
 
-    const status = typeof error === "object" &&
-      error !== null &&
-      "response" in error &&
-      typeof (error as { response?: { status?: unknown } }).response?.status === "number"
-      ? (error as { response: { status: number } }).response.status
-      : undefined;
-
-    console.error("Wiki draft wiki auto-create route failed", { status });
-
-    return NextResponse.json(
-      { message: wikiDraftUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, wikiDraftUnavailableMessage);
   }
 }

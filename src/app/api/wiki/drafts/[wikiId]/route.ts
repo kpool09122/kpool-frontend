@@ -1,4 +1,4 @@
-import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
 
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -43,17 +43,12 @@ export async function POST(request: NextRequest, context: WikiDraftSaveRouteCont
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
-
     console.error("Failed to save wiki draft.", {
       wikiId,
       status: getWikiRouteErrorStatus(error),
     });
 
-    return NextResponse.json(
-      { message: wikiDraftUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, wikiDraftUnavailableMessage);
   }
 }
 
@@ -75,16 +70,11 @@ export async function DELETE(request: NextRequest, context: WikiDraftSaveRouteCo
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
-
     console.error("Failed to delete wiki draft.", {
       wikiId,
       status: getWikiRouteErrorStatus(error),
     });
 
-    return NextResponse.json(
-      { message: wikiDraftUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, wikiDraftUnavailableMessage);
   }
 }

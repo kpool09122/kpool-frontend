@@ -1,4 +1,4 @@
-import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
 
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -47,15 +47,10 @@ export const createOfficialCertificationReviewRoute =
 
       return NextResponse.json(result, { status: 201 });
     } catch (error) {
-      if (getWikiRouteErrorStatus(error) === 419) return csrfTokenMismatchResponse();
-
       console.error(`Failed to ${action} official certification.`, {
         status: getWikiRouteErrorStatus(error),
       });
 
-      return NextResponse.json(
-        { message: officialCertificationUnavailableMessage },
-        { status: 502 },
-      );
+      return backendErrorResponse(error, officialCertificationUnavailableMessage);
     }
   };

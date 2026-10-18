@@ -37,14 +37,13 @@ describe("PasskeyRecoveryPage", () => {
     expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth");
   });
 
-  it("masks SSO cancellation or linkage failures", async () => {
+  it("displays the backend SSO linkage failure", async () => {
     const createRecoverySocialRedirect = vi.fn().mockResolvedValue({ ok: false, status: 422, message: "Provider is not linked" });
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, createRecoverySocialRedirect }} />);
 
     fireEvent.click(screen.getByRole("button", { name: "LINEで本人確認" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("SSOによる本人確認を開始できませんでした");
-    expect(screen.queryByText("Provider is not linked")).not.toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Provider is not linked");
   });
 
   it.each(["registered@example.com", "missing@example.com"])(
@@ -98,9 +97,9 @@ describe("PasskeyRecoveryPage", () => {
     expect(screen.queryByLabelText("確認コード")).not.toBeInTheDocument();
   });
 
-  it("shows expiry safely and resends only to the locked email address", async () => {
+  it("displays backend expiry and resends only to the locked email address", async () => {
     const sendRecoveryEmail = vi.fn().mockResolvedValue({ ok: true, data: { accepted: true, remainingSends: 4, retryAfterSeconds: 0 } });
-    const verifyRecoveryEmail = vi.fn().mockResolvedValue({ ok: false, status: 422, message: "Recovery session expired for identity 123" });
+    const verifyRecoveryEmail = vi.fn().mockResolvedValue({ ok: false, status: 422, message: "確認コードの有効期限が切れています。" });
     render(<PasskeyRecoveryPage api={{ ...passkeyBrowserApi, sendRecoveryEmail, verifyRecoveryEmail }} />);
 
     fireEvent.change(screen.getByLabelText("登録済みメールアドレス"), { target: { value: "member@example.com" } });
@@ -109,8 +108,7 @@ describe("PasskeyRecoveryPage", () => {
     fireEvent.change(screen.getByLabelText("確認コード"), { target: { value: "123456" } });
     fireEvent.click(screen.getByRole("button", { name: "確認する" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("正しくないか、有効期限が切れています");
-    expect(screen.queryByText(/identity 123/)).not.toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("確認コードの有効期限が切れています。");
     fireEvent.click(screen.getByRole("button", { name: "同じメールアドレスへ確認コードを再送" }));
     await waitFor(() => expect(sendRecoveryEmail).toHaveBeenCalledTimes(2));
     expect(sendRecoveryEmail).toHaveBeenLastCalledWith({ email: "member@example.com" }, "ja");

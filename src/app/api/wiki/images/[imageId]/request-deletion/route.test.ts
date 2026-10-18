@@ -73,7 +73,7 @@ describe("wiki image deletion request route", () => {
     );
   });
 
-  it("returns backend errors without exposing the backend body", async () => {
+  it("preserves backend error messages and status", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -87,8 +87,8 @@ describe("wiki image deletion request route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(409);
-    expect(body.message).toBe("Wiki images are temporarily unavailable. Please try again later.");
-    expect(body.message).not.toContain("/var/app");
+    expect(body.message).toBe("Internal backend path /var/app");
+
     expect(consoleError).toHaveBeenCalledWith(
       "Wiki image deletion request backend request failed",
       { status: 409 },

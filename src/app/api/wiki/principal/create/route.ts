@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -6,7 +7,6 @@ import {
   createWikiPrincipalCreateUrl,
   getWikiPrincipalApiBaseUrl,
   getWikiPrincipalErrorMessage,
-  getWikiPrincipalResponseErrorMessage,
   wikiPrincipalUnavailableMessage,
   wikiPrincipalCreateRequestSchema,
   wikiPrincipalCreatedSummarySchema,
@@ -39,12 +39,7 @@ export async function POST(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        {
-          message: getWikiPrincipalResponseErrorMessage({
-            status: apiResponse.status,
-            data: responseBody,
-          }),
-        },
+        getApiErrorBody(responseBody, wikiPrincipalUnavailableMessage),
         { status: apiResponse.status },
       );
     }

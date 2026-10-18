@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -72,9 +73,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json(
-        {
-          message: wikiImageUnavailableMessage,
-        },
+        getApiErrorBody(responseBody, wikiImageUnavailableMessage),
         { status: apiResponse.status },
       );
     }

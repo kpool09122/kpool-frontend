@@ -111,7 +111,7 @@ describe("/api/account/delegations", () => {
     await expect(response.json()).resolves.toEqual({ message: "Account API is temporarily unavailable." });
   });
 
-  it("preserves authorization and conflict statuses while hiding server errors", async () => {
+  it("preserves authorization and conflict statuses and server error messages", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ message: "forbidden" }), { status: 403 }))
@@ -126,8 +126,8 @@ describe("/api/account/delegations", () => {
     expect(forbidden.status).toBe(403);
     await expect(forbidden.json()).resolves.toEqual({ message: "forbidden" });
     expect(conflict.status).toBe(409);
-    await expect(conflict.json()).resolves.toEqual({ message: "already requested" });
+    await expect(conflict.json()).resolves.toEqual({ detail: "already requested", message: "already requested" });
     expect(serverError.status).toBe(500);
-    await expect(serverError.json()).resolves.toEqual({ message: "Account API is temporarily unavailable." });
+    await expect(serverError.json()).resolves.toEqual({ message: "database failure" });
   });
 });

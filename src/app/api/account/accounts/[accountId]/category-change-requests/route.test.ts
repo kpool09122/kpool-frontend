@@ -17,7 +17,7 @@ describe("category change request error forwarding", () => {
     }) as NextRequest;
     const response = await POST(request, { params: Promise.resolve({ accountId: "account-1" }) });
     expect(response.status).toBe(422);
-    expect(await response.json()).toEqual({ message });
+    expect(await response.json()).toEqual({ detail: message, message });
     expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ headers: expect.objectContaining({ "Accept-Language": locale, Cookie: "session=abc" }) }));
   });
 });

@@ -1,4 +1,4 @@
-import { csrfTokenMismatchResponse } from "@/app/api/csrfResponse";
+import { getApiErrorBody } from "@/gateways/support/apiError";
 
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
 
@@ -69,17 +69,11 @@ export async function POST(request: NextRequest) {
     });
     const responseBody = await readResponseBody(apiResponse);
 
-    if (apiResponse.status === 419) return csrfTokenMismatchResponse();
-
     if (!apiResponse.ok) {
-      if (apiResponse.status === 422) {
-        return NextResponse.json(
-          { message: "Contact request is invalid." },
-          { status: 422 },
-        );
-      }
-
-      return unavailableResponse(apiResponse.status >= 500 ? apiResponse.status : 502);
+      return NextResponse.json(
+        getApiErrorBody(responseBody, "Contact API is temporarily unavailable."),
+        { status: apiResponse.status, headers: { "Cache-Control": "no-store" } },
+      );
     }
 
     return NextResponse.json(parseSubmitContactResponse(responseBody), { status: 201 });

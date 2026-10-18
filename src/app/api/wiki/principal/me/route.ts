@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -5,7 +6,6 @@ import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
   createWikiCurrentPrincipalUrl,
   getWikiPrincipalApiBaseUrl,
-  getWikiPrincipalResponseErrorMessage,
   getWikiPrincipalErrorMessage,
   wikiPrincipalUnavailableMessage,
   wikiPrincipalSummarySchema,
@@ -33,12 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        {
-          message: getWikiPrincipalResponseErrorMessage({
-            status: apiResponse.status,
-            data: body,
-          }),
-        },
+        getApiErrorBody(body, wikiPrincipalUnavailableMessage),
         { status: apiResponse.status },
       );
     }

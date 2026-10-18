@@ -111,7 +111,7 @@ describe("/api/identity/auth/me route", () => {
     expect(body.message).toBe("Session expired.");
   });
 
-  it("does not expose upstream 500 details to the client", async () => {
+  it("preserves upstream 500 messages", async () => {
     vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(
@@ -125,8 +125,8 @@ describe("/api/identity/auth/me route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe("Identity API is temporarily unavailable.");
-    expect(body.message).not.toContain("internal.identity.example.test");
+    expect(body.message).toBe("database failed at internal.identity.example.test");
+
   });
 
   it("returns 502 when the upstream identity payload does not match the schema", async () => {

@@ -106,7 +106,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     );
   });
 
-  it("does not expose upstream 500 details to the client", async () => {
+  it("preserves upstream 500 messages", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ message: "database failed at internal.account.example.test" }), { status: 500 }),
@@ -116,7 +116,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.message).toBe("Account API is temporarily unavailable.");
-    expect(body.message).not.toContain("internal.account.example.test");
+    expect(body.message).toBe("database failed at internal.account.example.test");
+
   });
 });

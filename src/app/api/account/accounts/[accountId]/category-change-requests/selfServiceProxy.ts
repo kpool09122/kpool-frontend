@@ -8,7 +8,7 @@ import {
 } from "@/gateways/account/accountApi";
 import {
   accountApiUnavailableResponse,
-  getAccountRouteErrorMessage,
+  getAccountRouteErrorBody,
   getForwardHeaders,
   readResponseBody,
 } from "../../../routeSupport";
@@ -47,7 +47,7 @@ export const proxySelfServiceCategoryChange = async (
     const body = await readResponseBody(upstream);
     if (!upstream.ok)
       return respond(
-        { message: getAccountRouteErrorMessage(upstream.status, body) },
+        getAccountRouteErrorBody(upstream.status, body),
         upstream.status,
       );
     return respond(

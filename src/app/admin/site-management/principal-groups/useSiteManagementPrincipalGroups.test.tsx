@@ -47,11 +47,11 @@ describe("SiteManagement hook", () => {
     expect(result.current.state.canManage).toBe(true); expect(mocks.save).toHaveBeenCalledTimes(1);
   });
   it("retains draft and last-administrator error on PATCH422", async () => {
-    mocks.save.mockRejectedValue({ status: 422 });
+    mocks.save.mockRejectedValue(Object.assign(new Error("管理者を少なくとも1人残してください。"), { status: 422 }));
     const { result } = renderHook(() => useSiteManagementPrincipalGroups(props), { wrapper: Wrapper }); await edit(result);
     await act(async () => { await result.current.actions.save(); });
     expect(result.current.state.membershipByGroup.group).toEqual(["user"]); expect(result.current.state.hasUnsavedChanges).toBe(true);
-    expect(result.current.state.saveError).toBe(t.lastAdministrator); expect(mocks.refreshAccess).not.toHaveBeenCalled();
+    expect(result.current.state.saveError).toBe("管理者を少なくとも1人残してください。"); expect(mocks.refreshAccess).not.toHaveBeenCalled();
   });
   it.each(["accountIdentifier", "actorIdentifier", "sessionVersion"] as const)("ignores save results after %s changes", async (key) => {
     let resolve!: (value: unknown) => void; mocks.save.mockReturnValue(new Promise((done) => { resolve = done; }));
@@ -89,7 +89,7 @@ describe("SiteManagement hook", () => {
     if (kind === "get") mocks.fetch.mockRejectedValueOnce(new Error("offline"));
     else mocks.refreshAccess.mockResolvedValueOnce(null);
     await act(async () => { await result.current.actions.load(); });
-    expect(result.current.state.loadError).toBe(t.loadFailed);
+    expect(result.current.state.loadError).toBe(kind === "get" ? "offline" : t.loadFailed);
     expect(result.current.state.canManage).toBe(false);
     await act(async () => { await result.current.actions.load(); });
     expect(result.current.state.loadError).toBeNull(); expect(result.current.state.canManage).toBe(true); expect(mocks.save).not.toHaveBeenCalled();
@@ -134,6 +134,6 @@ describe("SiteManagement hook", () => {
   it("does not show fetch errors as an empty successful list", async () => {
     mocks.fetch.mockRejectedValue(new Error("offline"));
     const { result } = renderHook(() => useSiteManagementPrincipalGroups(props), { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.state.loadError).toBe(t.loadFailed));
+    await waitFor(() => expect(result.current.state.loadError).toBe("offline"));
   });
 });

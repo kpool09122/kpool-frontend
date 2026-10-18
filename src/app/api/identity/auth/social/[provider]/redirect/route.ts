@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { identityApiTypes } from "@kpool/types";
 import { z } from "zod";
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
     if (!apiResponse.ok) {
       return withIdentitySetCookie(
         NextResponse.json(
-          { message: getIdentityRouteErrorMessage({ status: apiResponse.status, data: body }) },
+          getApiErrorBody(body, getIdentityRouteErrorMessage({ status: apiResponse.status, data: body })),
           { status: apiResponse.status },
         ),
         apiResponse,

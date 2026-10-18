@@ -192,7 +192,7 @@ describe("Header", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Aurora Agency" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "アカウントの切り替えに失敗しました。",
+      "forbidden",
     );
     expect(screen.getByRole("button", { name: "member" })).toBeInTheDocument();
   });
@@ -381,7 +381,7 @@ describe("Header", () => {
     }
     render(<GuardedHeader />);
     fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("ログアウトに失敗しました");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Failed");
     expect(navigate).not.toHaveBeenCalled();
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);
@@ -422,7 +422,7 @@ describe("Header", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("ログアウトに失敗しました。再度お試しください。");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Authentication failed. Please try again later.");
     expect(useAuthStore.getState().identity).toEqual(switchableIdentity);
     expect(useAuthStore.getState().status).toBe("authenticated");
     expect(navigate).not.toHaveBeenCalled();

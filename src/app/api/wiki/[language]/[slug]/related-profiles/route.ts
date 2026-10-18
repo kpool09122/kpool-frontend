@@ -1,3 +1,4 @@
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -60,9 +61,7 @@ export async function GET(
       });
 
       return NextResponse.json(
-        {
-          message: wikiRelatedProfilesUnavailableMessage,
-        },
+        getApiErrorBody(body, wikiRelatedProfilesUnavailableMessage),
         { status: apiResponse.status },
       );
     }

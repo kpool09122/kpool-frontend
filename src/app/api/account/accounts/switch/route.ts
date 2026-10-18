@@ -9,7 +9,7 @@ import {
 } from "@/gateways/account/accountApi";
 import {
   accountApiUnavailableResponse,
-  getAccountRouteErrorMessage,
+  getAccountRouteErrorBody,
   getForwardHeaders,
   readResponseBody,
 } from "../../routeSupport";
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getAccountRouteErrorMessage(apiResponse.status, responseBody) },
+        getAccountRouteErrorBody(apiResponse.status, responseBody),
         { status: apiResponse.status },
       );
     }

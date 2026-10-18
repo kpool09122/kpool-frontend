@@ -1,3 +1,4 @@
+import { getAccountRouteErrorBody } from "@/app/api/account/routeSupport";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -19,34 +20,6 @@ const readResponseBody = async (response: Response): Promise<unknown> => {
   } catch {
     return {};
   }
-};
-
-const hasMessage = (value: unknown): value is { message: string } =>
-  typeof value === "object" &&
-  value !== null &&
-  "message" in value &&
-  typeof (value as { message: unknown }).message === "string";
-
-const hasDetail = (value: unknown): value is { detail: string } =>
-  typeof value === "object" &&
-  value !== null &&
-  "detail" in value &&
-  typeof (value as { detail: unknown }).detail === "string";
-
-const getAccountRouteErrorMessage = (status: number, body: unknown): string => {
-  if (status >= 500) {
-    return "Account API is temporarily unavailable.";
-  }
-
-  if (hasMessage(body)) {
-    return body.message;
-  }
-
-  if (hasDetail(body)) {
-    return body.detail;
-  }
-
-  return `Account API request failed with status ${status}.`;
 };
 
 const getForwardHeaders = (request: NextRequest, hasBody: boolean): HeadersInit => {
@@ -91,7 +64,7 @@ const forwardAccountRequest = async (
 
     if (!apiResponse.ok) {
       return NextResponse.json(
-        { message: getAccountRouteErrorMessage(apiResponse.status, responseBody) },
+        getAccountRouteErrorBody(apiResponse.status, responseBody),
         { status: apiResponse.status },
       );
     }

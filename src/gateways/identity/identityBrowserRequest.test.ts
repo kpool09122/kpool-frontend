@@ -1,8 +1,35 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { requestIdentity } from "./identityBrowserRequest";
 import { localeCookieName } from "@/i18n/locales";
 
-afterEach(() => { vi.unstubAllGlobals(); document.cookie = `${localeCookieName}=; Path=/; Max-Age=0`; });
+const clearToken = () => { document.cookie = "XSRF-TOKEN=; Max-Age=0; Path=/"; };
+
+afterEach(() => { clearToken(); vi.unstubAllGlobals(); document.cookie = `${localeCookieName}=; Path=/; Max-Age=0`; });
+
+describe("identity error display", () => {
+  it("preserves backend errors from CSRF initialization without sending the mutation", async () => {
+    clearToken();
+    const detail = "サービスを一時的に利用できません。";
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ detail, code: "service_unavailable" }, { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await requestIdentity("/api/identity/auth/logout", () => undefined)).toEqual({
+      ok: false, status: 503, code: "service_unavailable", message: detail,
+    });
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/api/identity/auth/csrf-token", expect.any(Object));
+  });
+
+  it("displays a backend translation from the operation response", async () => {
+    document.cookie = "XSRF-TOKEN=token; Path=/";
+    const detail = "서버 오류가 발생했습니다.";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ detail }, { status: 500 })));
+
+    expect(await requestIdentity("/api/identity/auth/logout", () => undefined)).toMatchObject({
+      ok: false, status: 500, message: detail,
+    });
+  });
+});
 
 describe("identity request messages", () => {
   it("preserves backend messages regardless of the UI language", async () => {

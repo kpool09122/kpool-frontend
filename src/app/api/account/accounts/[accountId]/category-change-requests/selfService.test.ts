@@ -67,7 +67,7 @@ describe.each(["latest", "withdraw"] as const)(
       expect(response.headers.get("cache-control")).toBe("no-store");
     });
     it.each([401, 403, 404, 419, 422, 500])(
-      "forwards status %s without leaking server details and keeps cookie updates",
+      "forwards status %s with backend details and keeps cookie updates",
       async (status) => {
         vi.stubEnv(
           "KPOOL_ACCOUNT_API_BASE_URL",
@@ -87,10 +87,8 @@ describe.each(["latest", "withdraw"] as const)(
         const response = await call();
         expect(response.status).toBe(status);
         expect(await response.json()).toEqual({
-          message:
-            status >= 500
-              ? "Account API is temporarily unavailable."
-              : "upstream detail",
+          detail: "upstream detail",
+          message: "upstream detail",
         });
         expect(response.headers.getSetCookie()).toHaveLength(1);
       },

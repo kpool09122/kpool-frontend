@@ -1,3 +1,5 @@
+import { backendErrorResponse } from "@/app/api/backendErrorResponse";
+import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { message: wikiDraftUnavailableMessage },
+        getApiErrorBody(body, wikiDraftUnavailableMessage),
         { status: apiResponse.status },
       );
     }
@@ -81,9 +83,6 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Wiki version inconsistent route failed", error);
 
-    return NextResponse.json(
-      { message: wikiDraftUnavailableMessage },
-      { status: 502 },
-    );
+    return backendErrorResponse(error, wikiDraftUnavailableMessage);
   }
 }

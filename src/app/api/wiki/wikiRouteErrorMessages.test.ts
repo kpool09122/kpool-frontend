@@ -8,14 +8,10 @@ import { GET as getMyDraftWikis } from "./my/draft-wikis/route";
 import { POST as uploadImage } from "./images/upload/route";
 import { GET as getVersionInconsistentWikis } from "./version-inconsistent-wikis/route";
 
-const internalBackendMessage = "SQL failed at /var/app/wiki/internal";
-const wikiImageUnavailableMessage =
-  "Wiki images are temporarily unavailable. Please try again later.";
-const wikiDraftUnavailableMessage =
-  "Wiki drafts are temporarily unavailable. Please try again later.";
+const backendMessage = "サーバーエラーが発生しました。";
 
 const jsonResponse = (status: number): Response =>
-  new Response(JSON.stringify({ message: internalBackendMessage }), {
+  new Response(JSON.stringify({ detail: backendMessage, code: "operation_failed", errors: { name: ["名前を入力してください。"] } }), {
     status,
     headers: { "Content-Type": "application/json" },
   });
@@ -38,13 +34,14 @@ const createUploadBody = () => ({
 describe("wiki API route error messages", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     delete process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
   });
 
-  it("does not expose backend messages from image routes", async () => {
+  it.each([403, 409, 422, 500, 503])("preserves backend messages and status %s from image routes", async (status) => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(500))));
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(status))));
     const uploadBody = createUploadBody();
     const uploadBodyText = JSON.stringify(uploadBody);
 
@@ -72,18 +69,17 @@ describe("wiki API route error messages", () => {
     for (const response of responses) {
       const body = await response.json();
 
-      expect(response.status).toBe(500);
-      expect(body.message).toBe(wikiImageUnavailableMessage);
-      expect(body.message).not.toContain("/var/app");
+      expect(response.status).toBe(status);
+      expect(body).toEqual({ detail: backendMessage, message: backendMessage, code: "operation_failed", errors: { name: ["名前を入力してください。"] } });
     }
 
-    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(internalBackendMessage);
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(backendMessage);
   });
 
-  it("does not expose backend messages from draft wiki list routes", async () => {
+  it.each([401, 403, 422, 500, 503])("preserves backend messages and status %s from draft wiki list routes", async (status) => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(503))));
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(status))));
 
     const responses = await Promise.all([
       getDraftWikis(
@@ -100,11 +96,10 @@ describe("wiki API route error messages", () => {
     for (const response of responses) {
       const body = await response.json();
 
-      expect(response.status).toBe(503);
-      expect(body.message).toBe(wikiDraftUnavailableMessage);
-      expect(body.message).not.toContain("/var/app");
+      expect(response.status).toBe(status);
+      expect(body).toEqual({ detail: backendMessage, message: backendMessage, code: "operation_failed", errors: { name: ["名前を入力してください。"] } });
     }
 
-    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(internalBackendMessage);
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(backendMessage);
   });
 });
