@@ -356,8 +356,14 @@ const MutatePrincipalGroupMemberRequestBody = z
 const AttachRoleToPrincipalGroupRequestBody = z
   .object({ roleIdentifier: KPool_Common_Uuid })
   .passthrough();
+const KPool_Common_PrincipalStatus = z.enum([
+  "active",
+  "suspended",
+  "forced_stop",
+]);
 const PrincipalGroupMemberSummary = z
   .object({
+    status: KPool_Common_PrincipalStatus,
     principalIdentifier: KPool_Common_Uuid,
     identityIdentifier: KPool_Common_Uuid,
     identityName: z.string(),
@@ -384,9 +390,19 @@ const UpdatePrincipalGroupMembersItem = z
     principalIdentifiers: z.array(KPool_Common_Uuid),
   })
   .passthrough();
-const UpdatePrincipalGroupMembersRequestBody = z
-  .object({ principalGroups: z.array(UpdatePrincipalGroupMembersItem) })
+const KPool_Common_PrincipalStatusUpdate = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid.uuid(),
+    status: KPool_Common_PrincipalStatus,
+  })
   .passthrough();
+const UpdatePrincipalGroupMembersRequestBody = z
+  .object({
+    principalGroups: z.array(UpdatePrincipalGroupMembersItem),
+    principalStatuses: z.array(KPool_Common_PrincipalStatusUpdate).optional(),
+  })
+  .passthrough();
+const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 const CreatePrincipalRequestBody = z
   .object({
     identityIdentifier: KPool_Common_Uuid,
@@ -398,7 +414,7 @@ const CreatedPrincipalSummary = z
     principalIdentifier: KPool_Common_Uuid,
     identityIdentifier: KPool_Common_Uuid,
     isDelegatedPrincipal: z.boolean(),
-    isEnabled: z.boolean(),
+    status: KPool_Common_PrincipalStatus,
   })
   .passthrough();
 const EffectivePolicySummary = z
@@ -414,7 +430,7 @@ const PrincipalSummary = z
     principalIdentifier: KPool_Common_Uuid,
     identityIdentifier: KPool_Common_Uuid,
     isDelegatedPrincipal: z.boolean(),
-    isEnabled: z.boolean(),
+    status: KPool_Common_PrincipalStatus,
     policies: z.array(EffectivePolicySummary),
     accountPrincipalCount: z.number().int().gte(1),
   })
@@ -920,11 +936,14 @@ export const schemas = {
   PrincipalGroupSummary,
   MutatePrincipalGroupMemberRequestBody,
   AttachRoleToPrincipalGroupRequestBody,
+  KPool_Common_PrincipalStatus,
   PrincipalGroupMemberSummary,
   PrincipalGroupManagementSummary,
   ListPrincipalGroupsResponseBody,
   UpdatePrincipalGroupMembersItem,
+  KPool_Common_PrincipalStatusUpdate,
   UpdatePrincipalGroupMembersRequestBody,
+  KPool_Common_PrincipalStatusConflictProblem,
   CreatePrincipalRequestBody,
   CreatedPrincipalSummary,
   EffectivePolicySummary,
@@ -2552,7 +2571,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/principal-groups/members",
     alias: "PrincipalOperations_updatePrincipalGroupMembers",
-    description: `Update members for multiple Wiki principal groups for both individual and corporate accounts. Requires Wiki principal group management permission and at least one remaining Wiki Administrator. Groups containing the system Operator role, including mixed-role groups, cannot be updated and return 403 even when specified directly.`,
+    description: `Atomically save specified group memberships and Principal statuses while preserving omitted groups and statuses. The final combined state must retain a reachable active permission manager; an active replacement and suspension of the old manager can be saved together. Duplicate status identifiers return 422; missing or out-of-scope Principals return 404; insufficient permission or protected Operator groups return 403. An unchanged forced_stop is accepted. A forbidden status change returns 409 code principal_status_change_forbidden; losing the last active manager returns 409 code last_active_manager. Both roll back the entire save. Success returns only the submitted groups and Principal statuses; clients refetch management lists separately. Status restrictions take effect on the next request even for logged-in cached sessions.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2562,7 +2581,10 @@ const endpoints = makeApi([
       },
     ],
     response: z
-      .object({ principalGroups: z.array(PrincipalGroupSummary) })
+      .object({
+        principalGroups: z.array(PrincipalGroupSummary),
+        principalStatuses: z.array(KPool_Common_PrincipalStatusUpdate),
+      })
       .passthrough(),
     errors: [
       {
@@ -2579,6 +2601,11 @@ const endpoints = makeApi([
         status: 404,
         description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_PrincipalStatusConflictProblem,
       },
       {
         status: 419,
