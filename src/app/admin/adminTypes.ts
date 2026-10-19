@@ -18,6 +18,7 @@ export type AdminRouteContext = {
   initialIdentity: AuthenticatedIdentitySummary;
   initialImageDeletionRequests: ImageDeletionRequestListState;
   initialPrincipalState: WikiPrincipalState;
+  principalStateUpdatedAt?: number;
 };
 
 export type AdminRouteData = Omit<AdminRouteContext, "initialIdentity">;

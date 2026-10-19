@@ -47,6 +47,7 @@ vi.mock("./[[...slug]]/AdminAppClient", () => ({
 }));
 
 import Admin from "./[[...slug]]/page";
+beforeEach(() => mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "missing" }));
 
 describe("Admin server route", () => {
   afterEach(() => cleanup());
@@ -79,8 +80,8 @@ describe("Admin server route", () => {
 
   it("redirects /admin without returnTo to the default Wiki editing route", async () => {
     await expect(Admin()).rejects.toThrow("redirect:/admin/wiki/editing");
-    expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalledTimes(1);
-    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalled();
+    expect(mocks.getInitialWikiPrincipalForRequest).toHaveBeenCalled();
   });
 
   it("redirects unauthenticated returnTo activation requests to login with the admin return destination", async () => {
@@ -170,14 +171,14 @@ describe("Admin server route", () => {
       }),
     );
 
-    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.getInitialWikiPrincipalForRequest).toHaveBeenCalled();
     expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
   });
 
   it("loads only the requested Wiki draft list for Wiki pages", async () => {
     mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({
       status: "available",
-      principal: {},
+      principal: { status: "active" },
     });
 
     render(
@@ -271,12 +272,13 @@ describe("first visible admin section", () => {
   ])("skips hidden Wiki for entry and saved Wiki routes: %j", async (permissions, destination) => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue({
       identityIdentifier: "identity-1", account: { status: "active" }, accountIdentifier: "account",
-      accountPrincipalStatus: "active", wikiPrincipalStatus: "suspended", ...permissions,
+      accountPrincipalStatus: "active", ...permissions,
     });
+    mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "available", principal: { status: "suspended" } });
     for (const slug of [undefined, ["wiki", "editing"]]) {
       await expect(Admin({ params: Promise.resolve({ slug }) })).rejects.toThrow(`redirect:${destination}`);
     }
-    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.getInitialWikiPrincipalForRequest).toHaveBeenCalled();
     expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
   });
 });

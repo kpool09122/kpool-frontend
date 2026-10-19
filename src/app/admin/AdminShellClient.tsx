@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
-import { getAdminNavigation, getAdminInitialRoute, resolveAdminSection } from "./adminNavigation";
+import { getAdminNavigation, resolveAdminSection } from "./adminNavigation";
 import { useAdmin } from "./AdminProvider";
 import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
@@ -23,19 +23,18 @@ export function AdminShellClient({
 }: AdminShellClientProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentIdentity, t } = useAdmin();
+  const { currentIdentity, t, principalState = { status: "idle" } } = useAdmin();
   const searchParams = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
   const activeSection = resolveAdminSection(pathname);
   const isUserSettings = activeSection === "settings";
-  const navigation = getAdminNavigation(currentIdentity);
-  const fallbackRoute = getAdminInitialRoute(currentIdentity);
+  const navigation = getAdminNavigation(currentIdentity, principalState);
   const hiddenSection = !navigation.some((item) => item.section === activeSection);
   const shouldRedirect = hiddenSection && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
   const accountSuspended = isAccountSuspended(currentIdentity);
   const accountPrincipalStopped = currentIdentity.accountPrincipalStatus === "suspended" || currentIdentity.accountPrincipalStatus === "forced_stop";
-  const wikiPrincipalStopped = currentIdentity.wikiPrincipalStatus === "suspended" || currentIdentity.wikiPrincipalStatus === "forced_stop";
+  const wikiPrincipalStopped = principalState.status === "available" && principalState.principal.status !== "active";
   const sitePrincipalStopped = currentIdentity.siteManagementPrincipalStatus === "suspended" || currentIdentity.siteManagementPrincipalStatus === "forced_stop";
   const principalStopped = !isUserSettings && (accountPrincipalStopped || (activeSection === "wiki" && wikiPrincipalStopped) || (activeSection === "siteManagement" && sitePrincipalStopped));
   const headerTitle = activeSection === "wiki"
@@ -53,8 +52,8 @@ export function AdminShellClient({
   }, []);
 
   useEffect(() => {
-    if (shouldRedirect) router.replace(fallbackRoute);
-  }, [shouldRedirect, fallbackRoute, router]);
+    if (shouldRedirect) router.refresh();
+  }, [shouldRedirect, router]);
 
   if (!isUserSettings && isAccountStatusUnavailable(currentIdentity)) {
     return (

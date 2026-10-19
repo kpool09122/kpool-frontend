@@ -634,7 +634,7 @@ function AdminClient({
 
   return (
     <div onClickCapture={handleRouteClick}>
-      <AdminProvider initialIdentity={initialIdentity}>
+      <AdminProvider initialIdentity={initialIdentity} initialPrincipalState={initialPrincipalState}>
         <AdminShellClient>
           <AdminRouteProvider key={activePathname} value={context}>{activeContent}</AdminRouteProvider>
         </AdminShellClient>

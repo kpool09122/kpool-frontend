@@ -1,18 +1,27 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 
-const mocks = vi.hoisted(() => ({ loadAdminIdentity: vi.fn(), pathname: "/admin/wiki/editing", replace: vi.fn() }));
+const mocks = vi.hoisted(() => ({ loadAdminIdentity: vi.fn(), loadAdminWikiPrincipalSnapshot: vi.fn(), pathname: "/admin/wiki/editing", replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({
   usePathname: () => mocks.pathname,
-  useRouter: () => ({ push: vi.fn(), replace: mocks.replace, refresh: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: mocks.replace, refresh: mocks.refresh }),
   useSearchParams: () => new URLSearchParams(),
 }));
+vi.mock("./adminWikiPrincipal", () => ({ loadAdminWikiPrincipalSnapshot: mocks.loadAdminWikiPrincipalSnapshot }));
 vi.mock("./adminIdentity", () => ({ loadAdminIdentity: mocks.loadAdminIdentity }));
 
 import AdminLayout from "./layout";
+import { useQueryClient } from "@tanstack/react-query";
+import { adminQueryKeys } from "./queryKeys";
+import type { WikiPrincipalSummary } from "@/gateways/wiki/wikiPrincipal";
+const wikiState = (status: WikiPrincipalSummary["status"]) => ({ status: "available" as const, principal: { principalIdentifier: "wiki-user", identityIdentifier: "user", status, policies: [], accountPrincipalCount: 1, isDelegatedPrincipal: false } });
+function PrincipalControls() {
+  const client = useQueryClient();
+  return <>{(["active", "suspended", "forced_stop"] as const).map((status) => <button key={status} onClick={() => client.setQueryData(adminQueryKeys.principal.current(identity.identityIdentifier, identity.accountIdentifier ?? null), wikiState(status))}>{status}</button>)}</>;
+}
 
 const identity: AuthenticatedIdentitySummary = {
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
@@ -36,8 +45,10 @@ const identity: AuthenticatedIdentitySummary = {
 beforeEach(() => {
   mocks.pathname = "/admin/wiki/editing";
   mocks.replace.mockClear();
+  mocks.refresh.mockClear();
   useAuthStore.setState({ identity: null, status: "loading" });
   mocks.loadAdminIdentity.mockResolvedValue(identity);
+  mocks.loadAdminWikiPrincipalSnapshot.mockResolvedValue({ state: wikiState("active"), updatedAt: Date.now() });
 });
 afterEach(() => {
   cleanup();
@@ -106,7 +117,7 @@ it.each(["pending", "unknown"])("keeps Identity settings independent of account 
 it.each(["suspended", "forced_stop"] as const)("redirects to user settings after an account principal becomes %s", async (status) => {
   render(await AdminLayout({ children: <div>保護された内容</div> }));
   act(() => useAuthStore.setState({ identity: { ...identity, accountPrincipalStatus: status }, status: "authenticated" }));
-  expect(mocks.replace).toHaveBeenCalledWith("/admin/user/profile");
+  expect(mocks.refresh).toHaveBeenCalled();
   expect(screen.queryByText("保護された内容")).not.toBeInTheDocument();
 });
 
@@ -115,29 +126,28 @@ it.each(["suspended", "forced_stop"] as const)("hides only the Wiki menu when Wi
   mocks.pathname = "/admin/user/profile";
   const activeIdentity = {
     ...identity,
-    wikiPrincipalStatus: "active" as const,
     accountPolicies: [{ policyIdentifier: "policy-1", name: "ACCOUNT_ADMIN", isSystemPolicy: true, statements: [{ effect: "allow" as const, actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }],
     siteManagementPrincipalIdentifier: "site-principal",
     siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Administrator", statements: [{ effect: "allow" as const, actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }],
   };
   mocks.loadAdminIdentity.mockResolvedValue(activeIdentity);
-  render(await AdminLayout({ children: <div>ユーザー設定の内容</div> }));
+  render(await AdminLayout({ children: <PrincipalControls /> }));
   expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible();
-  act(() => useAuthStore.setState({ identity: { ...activeIdentity, wikiPrincipalStatus }, status: "authenticated" }));
-  expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: wikiPrincipalStatus }));
+  await waitFor(() => expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument());
   expect(screen.getByRole("link", { name: "サイト管理" })).toBeVisible();
   expect(screen.getByRole("link", { name: "アカウント設定" })).toBeVisible();
   expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeVisible();
-  act(() => useAuthStore.setState({ identity: activeIdentity }));
-  expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "active" }));
+  await waitFor(() => expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible());
 });
 
 
 it.each(["suspended", "forced_stop"] as const)("blocks a direct Wiki page when Wiki access is %s", async (wikiPrincipalStatus) => {
-  mocks.loadAdminIdentity.mockResolvedValue({ ...identity, wikiPrincipalStatus });
+  mocks.loadAdminWikiPrincipalSnapshot.mockResolvedValue({ state: wikiState(wikiPrincipalStatus), updatedAt: Date.now() });
   render(await AdminLayout({ children: <div>Wikiの管理機能</div> }));
   expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
   expect(screen.queryByText("Wikiの管理機能")).not.toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent("利用権限が停止されているため");
-  expect(mocks.replace).toHaveBeenCalledWith("/admin/user/profile");
+  expect(mocks.refresh).toHaveBeenCalled();
 });

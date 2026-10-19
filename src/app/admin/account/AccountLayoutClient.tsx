@@ -8,6 +8,7 @@ import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIden
 import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import { getAdminInitialRoute } from "../adminNavigation";
 import { canShowAccountPrincipalGroupManagement } from "../principalGroupVisibility";
 import { AccountSectionProvider } from "./AccountSectionContext";
@@ -28,6 +29,7 @@ type AccountLayoutClientProps = {
   activeTab: AdminAccountSettingsTab;
   children: ReactNode;
   currentIdentity: AuthenticatedIdentitySummary | null;
+  principalState?: WikiPrincipalState;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
   onAuthorizationRejected: () => void;
 };
@@ -36,10 +38,12 @@ export function AccountLayoutClient({
   activeTab,
   children,
   currentIdentity,
+  principalState = { status: "idle" },
   t,
   onAuthorizationRejected,
 }: AccountLayoutClientProps) {
   const router = useRouter();
+  const defaultAdminRoute = currentIdentity ? getAdminInitialRoute(currentIdentity, principalState) : "/admin";
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const accountPrincipalIdentifier = getAccountPrincipalIdentifierFromIdentity(currentIdentity);
   const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
@@ -64,7 +68,7 @@ export function AccountLayoutClient({
 
   useEffect(() => {
     if (!canShowAccountSettings) {
-      router.replace(currentIdentity ? getAdminInitialRoute(currentIdentity) : "/admin");
+      router.replace(defaultAdminRoute);
       return;
     }
 
@@ -93,7 +97,7 @@ export function AccountLayoutClient({
     if (activeTab === "accountDelegations" && !canShowDelegations) {
       router.replace(fallbackRoute);
     }
-  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, currentIdentity, fallbackRoute, router]);
+  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, defaultAdminRoute, fallbackRoute, router]);
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),

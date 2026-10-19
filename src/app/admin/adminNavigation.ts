@@ -2,6 +2,7 @@ import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIden
 import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { isAccountActive, type AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { canAccessSiteManagement } from "@/gateways/site-management/siteManagementPolicy";
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
 
 export type AdminNavigationItem = {
@@ -11,11 +12,11 @@ export type AdminNavigationItem = {
 };
 
 /** The sidebar order also determines the default landing page. */
-export function getAdminNavigation(identity: AuthenticatedIdentitySummary): AdminNavigationItem[] {
+export function getAdminNavigation(identity: AuthenticatedIdentitySummary, principalState: WikiPrincipalState): AdminNavigationItem[] {
   const accountAvailable = isAccountActive(identity)
     && identity.accountPrincipalStatus !== "suspended"
     && identity.accountPrincipalStatus !== "forced_stop";
-  const wikiStopped = identity.wikiPrincipalStatus === "suspended" || identity.wikiPrincipalStatus === "forced_stop";
+  const wikiStopped = principalState.status === "available" && principalState.principal.status !== "active";
   return [
     ...(accountAvailable && !wikiStopped ? [{ section: "wiki" as const, href: adminSectionRoutes.wiki, labelKey: "wikiMenu" as const }] : []),
     ...(canAccessSiteManagement(identity) ? [{ section: "siteManagement" as const, href: adminSectionRoutes.siteManagement, labelKey: "siteManagementMenu" as const }] : []),
@@ -24,8 +25,8 @@ export function getAdminNavigation(identity: AuthenticatedIdentitySummary): Admi
   ];
 }
 
-export function getAdminInitialRoute(identity: AuthenticatedIdentitySummary): string {
-  return getAdminNavigation(identity)[0].href;
+export function getAdminInitialRoute(identity: AuthenticatedIdentitySummary, principalState: WikiPrincipalState): string {
+  return getAdminNavigation(identity, principalState)[0].href;
 }
 
 export function resolveAdminSection(pathname: string | null): AdminSection {
@@ -36,11 +37,11 @@ export function resolveAdminSection(pathname: string | null): AdminSection {
 }
 
 /** Preserve return destinations unless they point to a hidden admin section. */
-export function resolveAdminDestination(identity: AuthenticatedIdentitySummary, destination: string): string {
+export function resolveAdminDestination(identity: AuthenticatedIdentitySummary, destination: string, principalState: WikiPrincipalState): string {
   const pathname = destination.split(/[?#]/, 1)[0];
   if (pathname !== "/admin" && !pathname.startsWith("/admin/")) return destination;
-  if (pathname === "/admin") return destination === pathname ? getAdminInitialRoute(identity) : destination;
-  return getAdminNavigation(identity).some((item) => item.section === resolveAdminSection(pathname))
+  if (pathname === "/admin") return destination === pathname ? getAdminInitialRoute(identity, principalState) : destination;
+  return getAdminNavigation(identity, principalState).some((item) => item.section === resolveAdminSection(pathname))
     ? destination
-    : getAdminInitialRoute(identity);
+    : getAdminInitialRoute(identity, principalState);
 }

@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { QueryProvider } from "../QueryProvider";
-import { AdminProvider } from "./AdminProvider";
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
+import { useAdminWikiPrincipal } from "./useAdminWikiPrincipal";
+import { AdminProvider, useAdmin } from "./AdminProvider";
 import { AdminRouteProvider } from "./AdminRouteProvider";
 import { getAdminAccountScope } from "./accountScope";
 import type { AdminRouteData } from "./adminTypes";
@@ -30,9 +32,10 @@ const routeData = (identity: AuthenticatedIdentitySummary): AdminRouteData => ({
 });
 const emptyWikis = { wikis: [], isInitialLoading: false, isLoadingMore: false, loadError: null, pageInfo: null };
 
+beforeEach(() => useAuthStore.setState({ ...useAuthStore.getInitialState(), identity: original, status: "authenticated" }, true));
+afterEach(() => { cleanup(); useAuthStore.setState(useAuthStore.getInitialState(), true); });
+
 describe("admin account switching", () => {
-  beforeEach(() => useAuthStore.setState({ ...useAuthStore.getInitialState(), identity: original, status: "authenticated" }, true));
-  afterEach(() => { cleanup(); useAuthStore.setState(useAuthStore.getInitialState(), true); });
 
   it("waits for the server snapshot and resets cached data and draft state in both directions", async () => {
     const view = render(<AdminProvider initialIdentity={original}><CachedScreen snapshot="original permissions" /></AdminProvider>);
@@ -124,4 +127,59 @@ describe("admin account switching", () => {
     expect(screen.queryByText("old session cache")).not.toBeInTheDocument();
   });
 
+});
+
+
+const principalSnapshot = (status: "active" | "suspended"): WikiPrincipalState => ({
+  status: "available", principal: { principalIdentifier: "wiki-user", identityIdentifier: "actor", status, policies: [], accountPrincipalCount: 1, isDelegatedPrincipal: false },
+});
+function SharedPrincipalView() {
+  const { principalState } = useAdmin();
+  return <p data-testid="shared-principal">{principalState.status === "available" ? principalState.principal.status : principalState.status}</p>;
+}
+
+it("hydrates newer route snapshots into the shared cache and ignores older snapshots", async () => {
+  const initial = principalSnapshot("active");
+  const data = { ...routeData(original), initialPrincipalState: initial, principalStateUpdatedAt: 200 };
+  const view = render(<AdminProvider initialIdentity={original} initialPrincipalState={initial} principalStateUpdatedAt={100}>
+    <AdminRouteProvider value={data}><SharedPrincipalView /></AdminRouteProvider>
+  </AdminProvider>);
+  expect(screen.getByTestId("shared-principal")).toHaveTextContent("active");
+  view.rerender(<AdminProvider initialIdentity={original} initialPrincipalState={initial} principalStateUpdatedAt={100}>
+    <AdminRouteProvider value={{ ...data, initialPrincipalState: principalSnapshot("suspended"), principalStateUpdatedAt: 300 }}><SharedPrincipalView /></AdminRouteProvider>
+  </AdminProvider>);
+  await waitFor(() => expect(screen.getByTestId("shared-principal")).toHaveTextContent("suspended"));
+  view.rerender(<AdminProvider initialIdentity={original} initialPrincipalState={initial} principalStateUpdatedAt={100}>
+    <AdminRouteProvider value={{ ...data, principalStateUpdatedAt: 250 }}><SharedPrincipalView /></AdminRouteProvider>
+  </AdminProvider>);
+  expect(screen.getByTestId("shared-principal")).toHaveTextContent("suspended");
+});
+
+
+it("shares the initial Wiki snapshot and one explicit refresh with the Wiki screen", async () => {
+  const getCurrentPrincipal = vi.fn().mockResolvedValue(principalSnapshot("suspended"));
+  const createPrincipal = vi.fn();
+  function WikiScreen() {
+    const { principalState, loadCurrentPrincipal } = useAdminWikiPrincipal({
+      adapter: { getCurrentPrincipal, createPrincipal }, initialIdentity: original,
+      initialPrincipalState: { status: "idle" }, messages: { accountUnavailableMessage: "account", identityUnavailableMessage: "identity" },
+      onPrincipalReady: vi.fn(), refreshIdentity: vi.fn(),
+    });
+    return <><p data-testid="wiki-principal">{principalState.status === "available" ? principalState.principal.status : principalState.status}</p><button onClick={() => void loadCurrentPrincipal()}>refresh Wiki</button></>;
+  }
+  function Screens() {
+    const [wikiOpen, setWikiOpen] = useState(false);
+    return <><SharedPrincipalView /><button onClick={() => setWikiOpen(true)}>open Wiki</button>{wikiOpen ? <WikiScreen /> : null}</>;
+  }
+  render(<AdminProvider initialIdentity={original} initialPrincipalState={principalSnapshot("active")}><Screens /></AdminProvider>);
+  expect(screen.getByTestId("shared-principal")).toHaveTextContent("active");
+  fireEvent.click(screen.getByRole("button", { name: "open Wiki" }));
+  expect(screen.getByTestId("wiki-principal")).toHaveTextContent("active");
+  expect(getCurrentPrincipal).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "refresh Wiki" }));
+  await waitFor(() => {
+    expect(screen.getByTestId("shared-principal")).toHaveTextContent("suspended");
+    expect(screen.getByTestId("wiki-principal")).toHaveTextContent("suspended");
+  });
+  expect(getCurrentPrincipal).toHaveBeenCalledTimes(1);
 });

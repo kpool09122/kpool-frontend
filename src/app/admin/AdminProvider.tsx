@@ -6,11 +6,14 @@ import { useAuthStore, type AuthIdentityRefresh } from "@/gateways/auth/authStor
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
+import { useWikiPrincipalState } from "./useWikiPrincipalState";
 import { QueryProvider } from "../QueryProvider";
 import { PrincipalAccessMonitor } from "./PrincipalAccessMonitor";
 import { getAdminAccountScope } from "./accountScope";
 
 type AdminContextValue = {
+  principalState: WikiPrincipalState;
   currentIdentity: AuthenticatedIdentitySummary;
   locale: Locale;
   refreshIdentity: AuthIdentityRefresh;
@@ -22,9 +25,13 @@ const AdminContext = createContext<AdminContextValue | null>(null);
 export function AdminProvider({
   children,
   initialIdentity,
+  initialPrincipalState = { status: "idle" },
+  principalStateUpdatedAt,
 }: {
   children: ReactNode;
   initialIdentity: AuthenticatedIdentitySummary;
+  initialPrincipalState?: WikiPrincipalState;
+  principalStateUpdatedAt?: number;
 }) {
   const authIdentity = useAuthStore((state) => state.identity);
   const authStatus = useAuthStore((state) => state.status);
@@ -51,15 +58,26 @@ export function AdminProvider({
   }
 
   return (
-    <AdminContext.Provider
-      value={{
-        currentIdentity,
-        locale,
-        refreshIdentity,
-        t: dictionary.admin,
-      }}
-    >
-      <QueryProvider key={`${sessionVersion}:${currentScope}`}><PrincipalAccessMonitor identity={currentIdentity} refreshIdentity={refreshIdentity} t={dictionary.admin}>{children}</PrincipalAccessMonitor></QueryProvider>
+    <QueryProvider key={`${sessionVersion}:${currentScope}`}>
+      <AdminSession principalStateUpdatedAt={principalStateUpdatedAt} initialPrincipalState={initialPrincipalState} value={{ currentIdentity, locale, refreshIdentity, t: dictionary.admin }}>
+        {children}
+      </AdminSession>
+    </QueryProvider>
+  );
+}
+
+function AdminSession({ children, initialPrincipalState, principalStateUpdatedAt, value }: {
+  children: ReactNode;
+  initialPrincipalState: WikiPrincipalState;
+  principalStateUpdatedAt?: number;
+  value: Omit<AdminContextValue, "principalState">;
+}) {
+  const principalState = useWikiPrincipalState(value.currentIdentity, initialPrincipalState, principalStateUpdatedAt);
+  return (
+    <AdminContext.Provider value={{ ...value, principalState }}>
+      <PrincipalAccessMonitor identity={value.currentIdentity} refreshIdentity={value.refreshIdentity} t={value.t}>
+        {children}
+      </PrincipalAccessMonitor>
     </AdminContext.Provider>
   );
 }

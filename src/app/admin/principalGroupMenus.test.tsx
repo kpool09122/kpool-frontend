@@ -6,7 +6,7 @@ import { WikiLayoutClient } from "./wiki/WikiLayoutClient";
 import { SiteManagementPageClient } from "./site-management/SiteManagementPageClient";
 import { AdminShellClient } from "./AdminShellClient";
 
-const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation, usePathname: () => "/admin/site-management/principal-groups", useSearchParams: () => new URLSearchParams() }));
 const siteAdmin = vi.hoisted(() => ({ currentIdentity: {} }));
 vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: siteAdmin.currentIdentity, t: dictionaries.ja.admin }) }));

@@ -75,22 +75,16 @@ describe("LoginPage", () => {
     const navigate = vi.fn();
     render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} returnTo="/admin/wiki/editing" webAuthnSupported />);
     fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin/user/profile"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin?authReturnTo=%2Fadmin%2Fwiki%2Fediting"));
   });
 
-  it.each([
-    [{ siteManagementPrincipalStatus: "active", siteManagementPrincipalIdentifier: "site-user", siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Site", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] }, "/admin/site-management/contacts"],
-    [{ accountPolicies: [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }] }, "/admin/account/profile"],
-    [{}, "/admin/user/profile"],
-  ])("logs in to the first visible section when Wiki is hidden: %j", async (permissions, destination) => {
+  it("delegates the default destination to the shared admin navigation", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({ ok: true, returnTo: "/admin" });
-    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue({
-      account: { status: "active" }, accountIdentifier: "account", accountPrincipalStatus: "active", wikiPrincipalStatus: "suspended", ...permissions,
-    }) });
+    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue({ account: { status: "active" } }) });
     const navigate = vi.fn();
     render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} webAuthnSupported />);
     fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith(destination));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin"));
   });
 
   it("does not enter the service when identity refresh fails", async () => {

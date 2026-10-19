@@ -17,7 +17,7 @@ import {
   loadInitialWikiDraftImagesForRequest,
   loadInitialWikiImageDeletionRequestsForRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
-import { getInitialWikiPrincipalForRequest } from "@/gateways/wiki/wikiPrincipal";
+import { loadAdminWikiPrincipalSnapshot } from "./adminWikiPrincipal";
 import type { DraftImageListState } from "./useAdminDraftImageReview";
 import type { ImageDeletionRequestListState } from "./useAdminImageDeletionRequestReview";
 import type { AdminWikiTab } from "./adminTypes";
@@ -43,7 +43,9 @@ export async function loadAdminRouteContext(
   }
 
   const pathname = slug?.length ? `/admin/${slug.join("/")}` : "/admin/wiki/editing";
-  const destination = resolveAdminDestination(authenticatedIdentity, pathname);
+  const snapshot = await loadAdminWikiPrincipalSnapshot();
+  const principalState = snapshot.state;
+  const destination = resolveAdminDestination(authenticatedIdentity, pathname, principalState);
   if (destination !== pathname && !isAccountSetupRequired(authenticatedIdentity) && !isAccountStatusUnavailable(authenticatedIdentity)) {
     redirect(destination);
   }
@@ -54,16 +56,11 @@ export async function loadAdminRouteContext(
       initialDraftImages: createInitialDraftImageListState(),
       initialDraftWikis: createInitialDraftWikis(),
       initialImageDeletionRequests: createInitialImageDeletionRequestListState(),
-      initialPrincipalState: { status: "idle" as const },
+      initialPrincipalState: principalState,
+      principalStateUpdatedAt: snapshot.updatedAt,
     };
   }
 
-  const principalState = target.section === "wiki"
-    ? await getInitialWikiPrincipalForRequest({
-        cookieHeader,
-        hasAuthenticatedIdentity: true,
-      })
-    : { status: "idle" as const };
   const initialDraftWikis = createInitialDraftWikis();
   let initialDraftImages = createInitialDraftImageListState();
   let initialImageDeletionRequests = createInitialImageDeletionRequestListState();
@@ -92,6 +89,7 @@ export async function loadAdminRouteContext(
     initialDraftWikis,
     initialImageDeletionRequests,
     initialPrincipalState: principalState,
+    principalStateUpdatedAt: snapshot.updatedAt,
   };
 }
 

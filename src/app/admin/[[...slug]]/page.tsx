@@ -5,6 +5,7 @@ import { getAuthenticatedAccountStatus, isAccountSetupRequired } from "@/gateway
 
 import { AdminAppClient } from "./AdminAppClient";
 import { loadAdminRouteContext } from "../adminRouteContext";
+import { loadAdminWikiPrincipal } from "../adminWikiPrincipal";
 import { loadAdminIdentity } from "../adminIdentity";
 import { getAdminInitialRoute, resolveAdminDestination } from "../adminNavigation";
 
@@ -46,10 +47,10 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
   if (authReturnTo || !resolvedParams.slug?.length) {
     const identity = await loadAdminIdentity();
     if (identity && authReturnTo && getAuthenticatedAccountStatus(identity) === "active") {
-      redirect(resolveAdminDestination(identity, authReturnTo));
+      redirect(resolveAdminDestination(identity, authReturnTo, await loadAdminWikiPrincipal()));
     }
     if (identity && !returnTo && !authReturnTo && !isAccountSetupRequired(identity)) {
-      redirect(getAdminInitialRoute(identity));
+      redirect(getAdminInitialRoute(identity, await loadAdminWikiPrincipal()));
     }
   }
 
