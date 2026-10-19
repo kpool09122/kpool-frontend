@@ -117,7 +117,7 @@ it.each(["pending", "unknown"])("keeps Identity settings independent of account 
 it.each(["suspended", "forced_stop"] as const)("redirects to user settings after an account principal becomes %s", async (status) => {
   render(await AdminLayout({ children: <div>保護された内容</div> }));
   act(() => useAuthStore.setState({ identity: { ...identity, accountPrincipalStatus: status }, status: "authenticated" }));
-  expect(mocks.refresh).toHaveBeenCalled();
+  expect(mocks.replace).toHaveBeenCalledWith("/admin/user/profile");
   expect(screen.queryByText("保護された内容")).not.toBeInTheDocument();
 });
 
@@ -149,5 +149,30 @@ it.each(["suspended", "forced_stop"] as const)("blocks a direct Wiki page when W
   expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
   expect(screen.queryByText("Wikiの管理機能")).not.toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent("利用権限が停止されているため");
-  expect(mocks.refresh).toHaveBeenCalled();
+  expect(mocks.replace).toHaveBeenCalledWith("/admin/user/profile");
+});
+
+it.each([
+  ["site", "/admin/site-management/contacts"],
+  ["account", "/admin/account/profile"],
+  ["user", "/admin/user/profile"],
+])("leaves a stopped Wiki for the first visible %s section", async (permissions, destination) => {
+  const accountPolicies = [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }];
+  mocks.loadAdminIdentity.mockResolvedValue({
+    ...identity,
+    accountPolicies: permissions === "user" ? [] : accountPolicies,
+    ...(permissions === "site" ? {
+      siteManagementPrincipalIdentifier: "site-principal",
+      siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Administrator", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }],
+    } : {}),
+  });
+  const view = render(await AdminLayout({ children: <PrincipalControls /> }));
+  expect(mocks.replace).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "suspended" }));
+  await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith(destination));
+  expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
+  mocks.pathname = destination;
+  view.rerender(await AdminLayout({ children: <div>移動先の内容</div> }));
+  expect(screen.getByText("移動先の内容")).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });

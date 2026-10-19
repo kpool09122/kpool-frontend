@@ -30,6 +30,7 @@ export function AdminShellClient({
   const activeSection = resolveAdminSection(pathname);
   const isUserSettings = activeSection === "settings";
   const navigation = getAdminNavigation(currentIdentity, principalState);
+  const fallbackRoute = navigation[0].href;
   const hiddenSection = !navigation.some((item) => item.section === activeSection);
   const shouldRedirect = hiddenSection && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
   const accountSuspended = isAccountSuspended(currentIdentity);
@@ -52,8 +53,8 @@ export function AdminShellClient({
   }, []);
 
   useEffect(() => {
-    if (shouldRedirect) router.refresh();
-  }, [shouldRedirect, router]);
+    if (shouldRedirect) router.replace(fallbackRoute);
+  }, [shouldRedirect, fallbackRoute, router]);
 
   if (!isUserSettings && isAccountStatusUnavailable(currentIdentity)) {
     return (
