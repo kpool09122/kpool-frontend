@@ -205,6 +205,7 @@ const SettlementResultSummary = z
     transferStatus: TransferStatus,
   })
   .passthrough();
+const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -239,6 +240,7 @@ export const schemas = {
   SettlementStatus,
   TransferStatus,
   SettlementResultSummary,
+  KPool_Common_PrincipalStatusConflictProblem,
 };
 
 const endpoints = makeApi([

@@ -296,6 +296,12 @@ const AuthenticationMethodsSummary = z
     linkedSocialProviders: z.array(z.string()),
   })
   .passthrough();
+const KPool_Common_PrincipalStatus = z.enum([
+  "active",
+  "suspended",
+  "forced_stop",
+]);
+const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 const SiteManagementPolicyStatement = z
   .object({
     effect: z.string(),
@@ -374,6 +380,8 @@ export const schemas = {
   AuthenticatedAccountReferenceSummary,
   AuthenticatedAccountSummary,
   AuthenticationMethodsSummary,
+  KPool_Common_PrincipalStatus,
+  KPool_Common_PrincipalStatusConflictProblem,
   SiteManagementPolicyStatement,
   SiteManagementEffectivePolicySummary,
   SwitchableAccountSummary,
