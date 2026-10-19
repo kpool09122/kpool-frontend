@@ -39,14 +39,14 @@ test("SiteManagement saves memberships and adopts the authoritative list", async
   await expect(page.getByRole("button", { name: "変更を保存", exact: true })).toBeDisabled();
   expect(mutations).toBe(1);
 });
-test("direct SiteManagement URL denies a Principal without management policies", async ({ page }) => {
+test("direct SiteManagement URL skips the hidden section without management policies", async ({ page }) => {
   await page.context().addCookies([{ name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" }, { name: "kpool-locale", value: "ja", domain: "127.0.0.1", path: "/" }]);
   await page.goto("/admin/site-management/principal-groups");
-  await expect(page.getByText("利用できるサービスがありません。", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
   await expect(page.getByRole("link", { name: "サイト管理" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "ユーザー権限管理" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "ユーザー権限管理", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Wiki collaborator を有効化" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Wiki", exact: true })).toHaveAttribute("aria-current", "page");
 });
 test("a single SiteManagement Principal keeps the entry but hides management and API requests", async ({ page }) => {
   await page.context().addCookies([

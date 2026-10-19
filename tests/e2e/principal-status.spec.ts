@@ -211,22 +211,15 @@ for (const context of ["account", "wiki", "site-management"] as const) {
     await expect(page.getByText("Principal 2", { exact: true })).toBeVisible();
     const forced = page.getByRole("article").filter({ hasText: "Principal 2" });
     await expect(forced.getByText("強制停止", { exact: true })).toBeVisible();
-    await forced.getByRole("button").click();
-    await expect(
-      page.getByRole("combobox", { name: "ステータス", exact: true }),
-    ).toBeDisabled();
-    await expect(
-      page.getByRole("combobox", { name: "ステータス", exact: true }),
-    ).toHaveValue("forced_stop");
-    await page.getByRole("button", { name: "キャンセル", exact: true }).click();
-    await page
-      .getByRole("article")
-      .filter({ hasText: "Principal 1" })
-      .getByRole("button")
-      .click();
-    await page
-      .getByRole("combobox", { name: "ステータス", exact: true })
-      .selectOption("active");
+    await expect(forced.getByRole("switch", { name: "ステータス", exact: true })).toBeDisabled();
+    await expect(forced.getByRole("switch", { name: "ステータス", exact: true })).not.toBeChecked();
+    const resumed = page.getByRole("article").filter({ hasText: "Principal 1" });
+    const statusToggle = resumed.getByRole("switch", { name: "ステータス", exact: true });
+    await expect(statusToggle).not.toBeChecked();
+    await statusToggle.click();
+    await expect(statusToggle).toBeChecked();
+    expect(writes).toBe(0);
+    await resumed.getByRole("button", { name: "所属グループを編集", exact: true }).click();
     await page.getByRole("checkbox", { name: "Managers", exact: true }).check();
     await page.getByRole("button", { name: "確定", exact: true }).click();
     expect(writes).toBe(0);
@@ -237,7 +230,7 @@ for (const context of ["account", "wiki", "site-management"] as const) {
     await expect(
       page.getByRole("button", { name: "変更を保存", exact: true }),
     ).toBeDisabled();
-    expect(writes).toBe(1);
+    await expect.poll(() => writes).toBe(1);
     await expect(
       page
         .getByRole("article")
@@ -249,7 +242,7 @@ for (const context of ["account", "wiki", "site-management"] as const) {
 }
 for (const status of ["suspended", "forced_stop"])
   for (const context of ["account", "wiki", "site-management"]) {
-    test(`${context}: direct stopped ${status} access retains settings navigation`, async ({
+    test(`${context}: direct stopped ${status} access redirects to the first visible section`, async ({
       page,
     }) => {
       const cookies = [
@@ -277,17 +270,16 @@ for (const status of ["suspended", "forced_stop"])
         })),
       );
       await page.goto(`/admin/${context}/principal-groups`);
-      await expect(
-        page.getByRole("alert").filter({ hasText: "Principalが停止中" }),
-      ).toContainText("Principalが停止中");
-      await expect(
-        page.getByRole("button", { name: "変更を保存", exact: true }),
-      ).toHaveCount(0);
-      await page
-        .getByRole("alert")
-        .filter({ hasText: "Principalが停止中" })
-        .getByRole("link", { name: "ユーザー設定", exact: true })
-        .click();
-      await expect(page).toHaveURL(/\/admin\/user\/profile/);
+      const destination = context === "account"
+        ? "/admin/user/profile"
+        : context === "wiki" ? "/admin/site-management/contacts" : "/admin/wiki/editing";
+      await expect(page).toHaveURL(new RegExp(`${destination}$`));
+      const sidebar = page.getByRole("complementary", { name: "管理画面メニュー" });
+      const stoppedMenu = context === "account" ? "アカウント設定" : context === "wiki" ? "Wiki" : "サイト管理";
+      await expect(sidebar.getByRole("link", { name: stoppedMenu, exact: true })).toHaveCount(0);
+      await expect(sidebar.getByRole("link", { name: "ユーザー設定", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "変更を保存", exact: true })).toHaveCount(0);
+      await sidebar.getByRole("link", { name: "ユーザー設定", exact: true }).click();
+      await expect(page).toHaveURL(/\/admin\/user\/profile$/);
     });
   }
