@@ -203,3 +203,18 @@ it("shows an independently supplied unassigned user and applies only a dialog dr
   fireEvent.click(screen.getByRole("button", { name: t.cancel }));
   expect(actions.updateUserGroups).toHaveBeenCalledOnce();
 });
+
+it("stages status from the user row without saving or opening the group dialog", () => {
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const { rerender } = render(<SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t} />);
+  const toggle = screen.getByRole("switch", { name: t.principalStatus.label });
+  fireEvent.click(toggle);
+  expect(actions.updateUserStatus).toHaveBeenCalledWith("u", "suspended");
+  expect(actions.save).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t.edit }));
+  expect(within(screen.getByRole("dialog")).queryByRole("combobox")).not.toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).queryByRole("switch")).not.toBeInTheDocument();
+  rerender(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, canManage: false }} actions={actions} t={t} />);
+  expect(toggle).toBeDisabled();
+});

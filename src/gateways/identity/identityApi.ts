@@ -10,6 +10,7 @@ const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySumm
   accountPrincipalIdentifier: z.string().uuid().nullable(),
   accountPrincipalStatus: identityApiTypes.schemas.KPool_Common_PrincipalStatus.nullable(),
   siteManagementPrincipalStatus: identityApiTypes.schemas.KPool_Common_PrincipalStatus.nullable(),
+  wikiPrincipalStatus: identityApiTypes.schemas.KPool_Common_PrincipalStatus.nullable().optional(),
   siteManagementPrincipalIdentifier: z.string().uuid().nullable().optional(),
   siteManagementPrincipalCount: z.number().int().nonnegative().optional(),
   siteManagementPolicies: z.array(identityApiTypes.schemas.SiteManagementEffectivePolicySummary).optional(),
@@ -34,6 +35,7 @@ export type AuthenticatedIdentitySummary = IdentitySummary & Partial<
     | "accountPrincipalIdentifier"
     | "accountPrincipalStatus"
     | "siteManagementPrincipalStatus"
+    | "wikiPrincipalStatus"
     | "accountType"
     | "accountIdentityCount"
     | "authenticationMethods"

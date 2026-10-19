@@ -62,6 +62,8 @@ describe("Admin server route", () => {
       email: "member@example.com",
       language: "ja",
       account: { status: "active", type: "individual" },
+      accountIdentifier: "account", accountPrincipalStatus: "active",
+      accountPolicies: [{ statements: [], policyIdentifier: "policy", name: "admin" }],
     });
     mocks.getInitialWikiPrincipalForRequest.mockResolvedValue({ status: "missing" });
     mocks.loadInitialDraftWikiListForRequest.mockResolvedValue({
@@ -77,7 +79,7 @@ describe("Admin server route", () => {
 
   it("redirects /admin without returnTo to the default Wiki editing route", async () => {
     await expect(Admin()).rejects.toThrow("redirect:/admin/wiki/editing");
-    expect(mocks.fetchAuthenticatedIdentity).not.toHaveBeenCalled();
+    expect(mocks.fetchAuthenticatedIdentity).toHaveBeenCalledTimes(1);
     expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
   });
 
@@ -149,7 +151,7 @@ describe("Admin server route", () => {
     },
   );
 
-  it.each([null, undefined, { status: "unknown" }, { status: "suspended" }])(
+  it.each([null, undefined, { status: "unknown" }])(
     "does not load service data for an unavailable account %j",
     async (account) => {
       mocks.fetchAuthenticatedIdentity.mockResolvedValue({ identityIdentifier: "identity-1", account });
@@ -190,5 +192,91 @@ describe("Admin server route", () => {
     );
     expect(mocks.loadInitialWikiDraftImagesForRequest).not.toHaveBeenCalled();
     expect(mocks.loadInitialWikiImageDeletionRequestsForRequest).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("suspended account entry", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.cookies.mockResolvedValue({ toString: () => "session=abc" });
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "identity-1", account: { status: "suspended" },
+    });
+  });
+
+  it.each([{}, { returnTo: "/admin/wiki/editing" }, { authReturnTo: "/wiki/ja/example" }])(
+    "redirects the admin entry to user settings for %j", async (searchParams) => {
+      await expect(Admin({ searchParams: Promise.resolve(searchParams) }))
+        .rejects.toThrow("redirect:/admin/user/profile");
+      expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["profile", "language", "security", "other"])("allows a direct user %s settings request", async (page) => {
+    await expect(Admin({ params: Promise.resolve({ slug: ["user", page] }) })).resolves.toBeDefined();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+  });
+});
+
+
+const stoppedAccountContexts = [
+  { account: { status: "suspended" }, accountPrincipalStatus: "active" },
+  { account: { status: "active" }, accountPrincipalStatus: "suspended" },
+  { account: { status: "active" }, accountPrincipalStatus: "forced_stop" },
+];
+
+describe.each(stoppedAccountContexts)("stopped account access %j", (context) => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.cookies.mockResolvedValue({ toString: () => "session=abc" });
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({ identityIdentifier: "identity-1", ...context });
+  });
+
+  it.each([undefined, ["wiki", "editing"], ["account", "profile"], ["site-management", "contacts"]])(
+    "redirects entry and protected route %j to user settings before loading service data", async (slug) => {
+      await expect(Admin({ params: Promise.resolve({ slug }) }))
+        .rejects.toThrow("redirect:/admin/user/profile");
+      expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+      expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
+    },
+  );
+
+  it("prioritizes user settings over an authentication return destination", async () => {
+    await expect(Admin({ searchParams: Promise.resolve({ authReturnTo: "/admin/wiki/editing" }) }))
+      .rejects.toThrow("redirect:/admin/user/profile");
+  });
+
+  it("allows user settings without redirecting back to the authentication return destination", async () => {
+    await expect(Admin({
+      params: Promise.resolve({ slug: ["user", "profile"] }),
+    })).resolves.toBeDefined();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("first visible admin section", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.cookies.mockResolvedValue({ toString: () => "session=abc" });
+  });
+
+  it.each([
+    [{ siteManagementPrincipalStatus: "active", siteManagementPrincipalIdentifier: "site-user", siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Site", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] }, "/admin/site-management/contacts"],
+    [{ accountPolicies: [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }] }, "/admin/account/profile"],
+    [{}, "/admin/user/profile"],
+  ])("skips hidden Wiki for entry and saved Wiki routes: %j", async (permissions, destination) => {
+    mocks.fetchAuthenticatedIdentity.mockResolvedValue({
+      identityIdentifier: "identity-1", account: { status: "active" }, accountIdentifier: "account",
+      accountPrincipalStatus: "active", wikiPrincipalStatus: "suspended", ...permissions,
+    });
+    for (const slug of [undefined, ["wiki", "editing"]]) {
+      await expect(Admin({ params: Promise.resolve({ slug }) })).rejects.toThrow(`redirect:${destination}`);
+    }
+    expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();
+    expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
   });
 });

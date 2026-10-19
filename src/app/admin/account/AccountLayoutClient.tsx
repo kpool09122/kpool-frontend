@@ -8,10 +8,10 @@ import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIden
 import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
+import { getAdminInitialRoute } from "../adminNavigation";
 import { canShowAccountPrincipalGroupManagement } from "../principalGroupVisibility";
 import { AccountSectionProvider } from "./AccountSectionContext";
 import {
-  adminSectionRoutes,
   adminAccountTabRoutes,
   type AdminAccountSettingsTab,
 } from "../adminTypes";
@@ -64,7 +64,7 @@ export function AccountLayoutClient({
 
   useEffect(() => {
     if (!canShowAccountSettings) {
-      router.replace(adminSectionRoutes.wiki);
+      router.replace(currentIdentity ? getAdminInitialRoute(currentIdentity) : "/admin");
       return;
     }
 
@@ -93,7 +93,7 @@ export function AccountLayoutClient({
     if (activeTab === "accountDelegations" && !canShowDelegations) {
       router.replace(fallbackRoute);
     }
-  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, fallbackRoute, router]);
+  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, currentIdentity, fallbackRoute, router]);
 
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),

@@ -2,12 +2,11 @@
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 
-import { adminSectionRoutes, type AdminSection } from "./adminTypes";
-import { canAccessSiteManagement } from "@/gateways/site-management/siteManagementPolicy";
+import { getAdminNavigation, getAdminInitialRoute, resolveAdminSection } from "./adminNavigation";
 import { useAdmin } from "./AdminProvider";
 import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
@@ -23,14 +22,22 @@ export function AdminShellClient({
   children,
 }: AdminShellClientProps) {
   const pathname = usePathname();
-  const { canShowAccountSettings, currentIdentity, t } = useAdmin();
+  const router = useRouter();
+  const { currentIdentity, t } = useAdmin();
   const searchParams = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
-  const activeSection = resolveActiveSection(pathname);
+  const activeSection = resolveAdminSection(pathname);
+  const isUserSettings = activeSection === "settings";
+  const navigation = getAdminNavigation(currentIdentity);
+  const fallbackRoute = getAdminInitialRoute(currentIdentity);
+  const hiddenSection = !navigation.some((item) => item.section === activeSection);
+  const shouldRedirect = hiddenSection && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
+  const accountSuspended = isAccountSuspended(currentIdentity);
   const accountPrincipalStopped = currentIdentity.accountPrincipalStatus === "suspended" || currentIdentity.accountPrincipalStatus === "forced_stop";
+  const wikiPrincipalStopped = currentIdentity.wikiPrincipalStatus === "suspended" || currentIdentity.wikiPrincipalStatus === "forced_stop";
   const sitePrincipalStopped = currentIdentity.siteManagementPrincipalStatus === "suspended" || currentIdentity.siteManagementPrincipalStatus === "forced_stop";
-  const principalStopped = activeSection !== "settings" && (accountPrincipalStopped || (activeSection === "siteManagement" && sitePrincipalStopped));
+  const principalStopped = !isUserSettings && (accountPrincipalStopped || (activeSection === "wiki" && wikiPrincipalStopped) || (activeSection === "siteManagement" && sitePrincipalStopped));
   const headerTitle = activeSection === "wiki"
     ? t.wikiHeaderTitle
     : activeSection === "siteManagement"
@@ -45,7 +52,11 @@ export function AdminShellClient({
     setIsSidebarHydrated(true);
   }, []);
 
-  if (isAccountStatusUnavailable(currentIdentity)) {
+  useEffect(() => {
+    if (shouldRedirect) router.replace(fallbackRoute);
+  }, [shouldRedirect, fallbackRoute, router]);
+
+  if (!isUserSettings && isAccountStatusUnavailable(currentIdentity)) {
     return (
       <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
         <section role="alert" className="mx-auto max-w-2xl space-y-3 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
@@ -56,7 +67,7 @@ export function AdminShellClient({
     );
   }
 
-  if (isAccountSetupRequired(currentIdentity)) {
+  if (!isUserSettings && isAccountSetupRequired(currentIdentity)) {
     const returnTo = searchParams.get("authReturnTo") || searchParams.get("returnTo");
     return (
       <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10">
@@ -92,26 +103,9 @@ export function AdminShellClient({
         <div className="relative h-full overflow-y-auto border border-l-0 border-stroke-subtle bg-surface-raised p-4 shadow-soft">
           <div className={isSidebarOpen ? "block" : "pointer-events-none invisible"}>
             <nav className="grid gap-2">
-              {!accountPrincipalStopped ? <AdminSectionLink
-                href={adminSectionRoutes.wiki}
-                isSelected={activeSection === "wiki"}
-                label={t.wikiMenu}
-              /> : null}
-              {canAccessSiteManagement(currentIdentity) ? (
-                <AdminSectionLink href={adminSectionRoutes.siteManagement} isSelected={activeSection === "siteManagement"} label={t.siteManagementMenu} />
-              ) : null}
-              {canShowAccountSettings ? (
-                <AdminSectionLink
-                  href={adminSectionRoutes.accountSettings}
-                  isSelected={activeSection === "accountSettings"}
-                  label={t.accountSettingsMenu}
-                />
-              ) : null}
-              <AdminSectionLink
-                href={adminSectionRoutes.settings}
-                isSelected={activeSection === "settings"}
-                label={t.settingsMenu}
-              />
+              {navigation.map((item) => (
+                <AdminSectionLink href={item.href} isSelected={activeSection === item.section} label={t[item.labelKey]} key={item.section} />
+              ))}
             </nav>
           </div>
         </div>
@@ -122,33 +116,17 @@ export function AdminShellClient({
           <header className="space-y-3">
             <h1 className="text-3xl font-bold">{headerTitle}</h1>
           </header>
-          {isAccountSuspended(currentIdentity) ? (
+          {accountSuspended && !isUserSettings ? (
             <section className="rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft">
               <h2 className="text-xl font-bold">{t.suspendedAccountTitle}</h2>
               <p className="mt-3 text-sm leading-7 text-text-muted">{t.suspendedAccountMessage}</p>
             </section>
-          ) : principalStopped ? <section role="alert" className="rounded-xl border p-6"><p>{t.principalStatus.inactive}</p><Link className="mt-4 block underline" href="/admin/user/profile">{t.settingsMenu}</Link></section> : children}
+          ) : principalStopped ? <section role="alert" className="rounded-xl border p-6"><p>{t.principalStatus.inactive}</p></section> : children}
         </section>
       </div>
     </main>
   );
 }
-
-const resolveActiveSection = (pathname: string | null): AdminSection => {
-  if (pathname?.startsWith("/admin/account")) {
-    return "accountSettings";
-  }
-
-  if (pathname?.startsWith("/admin/user")) {
-    return "settings";
-  }
-
-  if (pathname?.startsWith("/admin/site-management")) {
-    return "siteManagement";
-  }
-
-  return "wiki";
-};
 
 function AdminSectionLink({
   href,

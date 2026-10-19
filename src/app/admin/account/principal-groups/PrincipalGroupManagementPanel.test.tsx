@@ -1,10 +1,11 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { dictionaries } from "../../../../i18n/dictionaries";
 import { PrincipalGroupManagementPanel } from "./PrincipalGroupManagementPanel";
 
 const t = dictionaries.ja.admin;
+afterEach(cleanup);
 
 const groupA = {
   principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -66,9 +67,6 @@ const createPrincipalGroups = ({
 });
 
 describe("PrincipalGroupManagementPanel", () => {
-  afterEach(() => {
-    cleanup();
-  });
 
   it("shows current groups and applies multiple selections to the on-screen draft", () => {
     const updateUserGroups = vi.fn();
@@ -117,4 +115,20 @@ describe("PrincipalGroupManagementPanel", () => {
     expect(screen.getByRole("button", { name: t.principalGroupSave })).toBeEnabled();
     expect(screen.getByText(t.principalGroupUnsavedChanges)).toBeInTheDocument();
   });
+});
+
+
+it("stages status from the user row without saving or opening the group dialog", () => {
+  const principalGroups = createPrincipalGroups();
+  const { rerender } = render(<PrincipalGroupManagementPanel canManage principalGroups={principalGroups} t={t} />);
+  const toggle = screen.getByRole("switch", { name: t.principalStatus.label });
+  fireEvent.click(toggle);
+  expect(principalGroups.updateUserStatus).toHaveBeenCalledWith(member.principalIdentifier, "suspended");
+  expect(principalGroups.save).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t.principalGroupEditUserGroups }));
+  expect(within(screen.getByRole("dialog")).queryByRole("combobox")).not.toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).queryByRole("switch")).not.toBeInTheDocument();
+  rerender(<PrincipalGroupManagementPanel canManage={false} principalGroups={principalGroups} t={t} />);
+  expect(toggle).toBeDisabled();
 });

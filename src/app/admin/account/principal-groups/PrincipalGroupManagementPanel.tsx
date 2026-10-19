@@ -1,7 +1,6 @@
 "use client";
 
-import type { PrincipalStatus } from "@/gateways/identity/principalStatus";
-import { PrincipalStatusField } from "@/components/PrincipalStatusField";
+import { PrincipalStatusToggle } from "@/components/PrincipalStatusToggle";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 
 import { useMemo, useState } from "react";
@@ -20,7 +19,6 @@ type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
 type EditableMemberDialogState = {
   member: AccountMemberSummary;
   selectedGroupIdentifiers: string[];
-  status: PrincipalStatus;
 } | null;
 
 export function PrincipalGroupManagementPanel({
@@ -45,7 +43,6 @@ export function PrincipalGroupManagementPanel({
 
   const openMemberDialog = (member: AccountMemberSummary) => {
     setDialogState({
-      status: member.status,
       member,
       selectedGroupIdentifiers: getUserGroupIdentifiers(
         state.membershipByGroup,
@@ -63,7 +60,6 @@ export function PrincipalGroupManagementPanel({
       dialogState.member.principalIdentifier,
       dialogState.selectedGroupIdentifiers,
     );
-    if (dialogState.status !== "forced_stop") updateUserStatus(dialogState.member.principalIdentifier, dialogState.status);
     setDialogState(null);
   };
 
@@ -110,6 +106,7 @@ export function PrincipalGroupManagementPanel({
             key={member.principalIdentifier}
             member={member}
             membershipByGroup={state.membershipByGroup}
+            onStatusChange={(status) => updateUserStatus(member.principalIdentifier, status)}
             onEdit={() => openMemberDialog(member)}
             t={t}
           />
@@ -161,6 +158,7 @@ function PrincipalMemberRow({
   member,
   membershipByGroup,
   onEdit,
+  onStatusChange,
   t,
 }: {
   disabled: boolean;
@@ -168,6 +166,7 @@ function PrincipalMemberRow({
   member: AccountMemberSummary;
   membershipByGroup: Readonly<Record<string, readonly string[]>>;
   onEdit: () => void;
+  onStatusChange: (status: "active" | "suspended") => void;
   t: AdminDictionary;
 }) {
   const groupNames = useMemo(() => {
@@ -186,17 +185,19 @@ function PrincipalMemberRow({
         <div>
           <h3 className="font-semibold text-text-strong">{getMemberDisplayName(member)}</h3>
           <p className="mt-1 break-all text-xs text-text-muted">{member.email}</p>
-          <p className="mt-2 text-sm">{t.principalStatus[member.status]}</p>
           {member.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}
         </div>
-        <button
-          className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={disabled}
-          onClick={onEdit}
-          type="button"
-        >
-          {t.principalGroupEditUserGroups}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <PrincipalStatusToggle value={member.status} disabled={disabled} onChange={onStatusChange} t={t.principalStatus} />
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
+            onClick={onEdit}
+            type="button"
+          >
+            {t.principalGroupEditUserGroups}
+          </button>
+        </div>
       </div>
       <p className="mt-3 text-sm text-text-muted">
         <span className="font-semibold text-text-strong">{t.principalGroupUserGroupsLabel}</span>{" "}
@@ -250,7 +251,6 @@ function EditMemberGroupsDialog({
         <p className="mt-2 text-sm leading-7 text-text-muted">
           {t.principalGroupDialogDescription}
         </p>
-        <PrincipalStatusField value={dialogState.status} disabled={isBusy} t={t.principalStatus} onChange={(status) => setDialogState({ ...dialogState, status })} />
         <fieldset className="mt-5 grid gap-3">
           <legend className="mb-3 text-sm font-semibold text-text-strong">
             {t.principalGroupCheckboxListLabel}

@@ -1,7 +1,6 @@
 "use client";
 
-import type { PrincipalStatus } from "@/gateways/identity/principalStatus";
-import { PrincipalStatusField } from "@/components/PrincipalStatusField";
+import { PrincipalStatusToggle } from "@/components/PrincipalStatusToggle";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 
 import { useMemo, useState } from "react";
@@ -19,7 +18,6 @@ type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
 
 type EditableUserDialogState = {
   selectedGroupIdentifiers: string[];
-  status: PrincipalStatus;
   user: WikiPrincipalGroupMemberSummary;
 } | null;
 
@@ -45,7 +43,6 @@ export function WikiPrincipalGroupManagementPanel({
 
   const openUserDialog = (user: WikiPrincipalGroupMemberSummary) => {
     setDialogState({
-      status: user.status,
       selectedGroupIdentifiers: getUserGroupIdentifiers(state.membershipByGroup, user.principalIdentifier),
       user,
     });
@@ -57,7 +54,6 @@ export function WikiPrincipalGroupManagementPanel({
     }
 
     updateUserGroups(dialogState.user.principalIdentifier, dialogState.selectedGroupIdentifiers);
-    if (dialogState.status !== "forced_stop") updateUserStatus(dialogState.user.principalIdentifier, dialogState.status);
     setDialogState(null);
   };
 
@@ -103,6 +99,7 @@ export function WikiPrincipalGroupManagementPanel({
             groups={state.groups}
             key={user.principalIdentifier}
             membershipByGroup={state.membershipByGroup}
+            onStatusChange={(status) => updateUserStatus(user.principalIdentifier, status)}
             onEdit={() => openUserDialog(user)}
             t={t}
             user={user}
@@ -154,6 +151,7 @@ function WikiPrincipalUserRow({
   groups,
   membershipByGroup,
   onEdit,
+  onStatusChange,
   t,
   user,
 }: {
@@ -161,6 +159,7 @@ function WikiPrincipalUserRow({
   groups: WikiPrincipalGroupSummary[];
   membershipByGroup: Readonly<Record<string, readonly string[]>>;
   onEdit: () => void;
+  onStatusChange: (status: "active" | "suspended") => void;
   t: AdminDictionary;
   user: WikiPrincipalGroupMemberSummary;
 }) {
@@ -180,17 +179,19 @@ function WikiPrincipalUserRow({
         <div>
           <h3 className="font-semibold text-text-strong">{getUserDisplayName(user)}</h3>
           <p className="mt-1 break-all text-xs text-text-muted">{user.email}</p>
-          <p className="mt-2 text-sm">{t.principalStatus[user.status]}</p>
           {user.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}
         </div>
-        <button
-          className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={disabled}
-          onClick={onEdit}
-          type="button"
-        >
-          {t.wikiPrincipalGroupEditUserGroups}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <PrincipalStatusToggle value={user.status} disabled={disabled} onChange={onStatusChange} t={t.principalStatus} />
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
+            onClick={onEdit}
+            type="button"
+          >
+            {t.wikiPrincipalGroupEditUserGroups}
+          </button>
+        </div>
       </div>
       <p className="mt-3 text-sm text-text-muted">
         <span className="font-semibold text-text-strong">{t.wikiPrincipalGroupUserGroupsLabel}</span>{" "}
@@ -240,7 +241,6 @@ function EditUserGroupsDialog({
         <p className="mt-2 text-sm leading-7 text-text-muted">
           {t.wikiPrincipalGroupDialogDescription}
         </p>
-        <PrincipalStatusField value={dialogState.status} disabled={isBusy} t={t.principalStatus} onChange={(status) => setDialogState({ ...dialogState, status })} />
         <fieldset className="mt-5 grid gap-3">
           <legend className="mb-3 text-sm font-semibold text-text-strong">
             {t.wikiPrincipalGroupCheckboxListLabel}

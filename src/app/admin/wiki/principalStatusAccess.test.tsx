@@ -32,6 +32,8 @@ describe("stopped Wiki URL access", () => {
         </WikiLayoutClient>,
       );
       expect(screen.getByText(t.principalStatus.inactive)).toBeInTheDocument();
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
       expect(screen.queryByText("private tool")).not.toBeInTheDocument();
       expect(screen.queryByText(t.createWiki)).not.toBeInTheDocument();
     },

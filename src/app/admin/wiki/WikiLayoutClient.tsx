@@ -63,8 +63,6 @@ export function WikiLayoutClient({
   if (state.status === "available" && state.principal.status !== "active") {
     return <section role="alert" className="rounded-xl border border-stroke-subtle bg-surface-raised p-6">
       <p>{t.principalStatus.inactive}</p>
-      <Link className="mt-4 block underline" href="/admin/user/profile">{t.settingsMenu}</Link>
-      <button type="button" className="mt-4 rounded-lg border p-2" onClick={onRetry}>{t.retryPrincipal}</button>
     </section>;
   }
 

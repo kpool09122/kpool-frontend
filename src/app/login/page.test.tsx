@@ -65,6 +65,34 @@ describe("LoginPage", () => {
     ));
   });
 
+  it.each([
+    { account: { status: "suspended" }, accountPrincipalStatus: "active" },
+    { account: { status: "active" }, accountPrincipalStatus: "suspended" },
+    { account: { status: "active" }, accountPrincipalStatus: "forced_stop" },
+  ])("routes stopped account access directly to user settings: %j", async (identity) => {
+    const loginAdapter = vi.fn().mockResolvedValue({ ok: true, returnTo: "/admin/wiki/editing" });
+    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue(identity) });
+    const navigate = vi.fn();
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} returnTo="/admin/wiki/editing" webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin/user/profile"));
+  });
+
+  it.each([
+    [{ siteManagementPrincipalStatus: "active", siteManagementPrincipalIdentifier: "site-user", siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Site", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] }, "/admin/site-management/contacts"],
+    [{ accountPolicies: [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }] }, "/admin/account/profile"],
+    [{}, "/admin/user/profile"],
+  ])("logs in to the first visible section when Wiki is hidden: %j", async (permissions, destination) => {
+    const loginAdapter = vi.fn().mockResolvedValue({ ok: true, returnTo: "/admin" });
+    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue({
+      account: { status: "active" }, accountIdentifier: "account", accountPrincipalStatus: "active", wikiPrincipalStatus: "suspended", ...permissions,
+    }) });
+    const navigate = vi.fn();
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith(destination));
+  });
+
   it("does not enter the service when identity refresh fails", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({
       ok: true,

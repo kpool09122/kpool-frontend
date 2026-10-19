@@ -8,6 +8,13 @@ import {
 } from "./identityApi";
 
 describe("identity API helpers", () => {
+  it.each(["active", "suspended", "forced_stop", null] as const)("preserves Wiki principal status %s", (wikiPrincipalStatus) => {
+    const result = parseAuthenticatedIdentitySummary({ identityIdentifier: "11111111-1111-4111-8111-111111111111", identityName: "user", email: "user@example.test", language: "ja", accountIdentifier: null, accountPrincipalIdentifier: null, accountPrincipalStatus: "active", siteManagementPrincipalStatus: "active", wikiPrincipalStatus, accountType: null, accountIdentityCount: 0, accountPolicies: [], account: null, originalAccount: null, delegationIdentifier: null, switchableAccounts: [] });
+    expect(result.wikiPrincipalStatus).toBe(wikiPrincipalStatus);
+    expect(result.accountPrincipalStatus).toBe("active");
+    expect(result.siteManagementPrincipalStatus).toBe("active");
+  });
+
   it("preserves generated SiteManagement policies independently of Account policies", () => {
     const siteManagementPolicies = [{ policyIdentifier: "33333333-3333-4333-8333-333333333333", name: "Administrator", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }];
     const result = parseAuthenticatedIdentitySummary({ identityIdentifier: "11111111-1111-4111-8111-111111111111", identityName: "admin", email: "admin@example.test", language: "ja", accountIdentifier: null, accountPrincipalIdentifier: null, accountPrincipalStatus: null, siteManagementPrincipalStatus: null, accountType: null, accountIdentityCount: 0, accountPolicies: [], account: null, originalAccount: null, delegationIdentifier: null, switchableAccounts: [], siteManagementPolicies, siteManagementPrincipalCount: 2 });

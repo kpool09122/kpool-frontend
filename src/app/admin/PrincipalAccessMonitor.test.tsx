@@ -64,7 +64,7 @@ it("locks stale tools immediately and refreshes both auth and Wiki principal cac
   const { client } = mount(refresh);
   act(signal);
   expect(screen.queryByText("protected children")).not.toBeInTheDocument();
-  expect(screen.getByRole("alert")).toHaveTextContent("Principalが停止中");
+  expect(screen.getByRole("alert")).toHaveTextContent(dictionaries.ja.admin.principalStatus.inactive);
   await act(async () => resolve(identity));
   expect(refresh).toHaveBeenCalledWith({ preserveOnNull: true });
   expect(api.principal).toHaveBeenCalledTimes(1);
@@ -72,15 +72,13 @@ it("locks stale tools immediately and refreshes both auth and Wiki principal cac
     client.getQueryData(adminQueryKeys.principal.current("actor", "account")),
   ).toMatchObject({ principal: { status: "suspended" } });
 });
-it("keeps stale tools locked when identity cannot be confirmed and allows settings navigation", async () => {
+it("keeps stale tools locked with only a message when identity cannot be confirmed", async () => {
   mount(vi.fn().mockResolvedValue(null));
   act(signal);
   await waitFor(() => expect(screen.getByRole("alert")).toBeVisible());
   expect(screen.queryByText("protected children")).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "ユーザー設定" })).toHaveAttribute(
-    "href",
-    "/admin/user/profile",
-  );
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(api.principal).not.toHaveBeenCalled();
 });
 it("does not overwrite principal cache with an old-session response", async () => {

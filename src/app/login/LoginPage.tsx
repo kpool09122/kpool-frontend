@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 import { getAuthenticatedAccountStatus, isAccountStatusUnavailable } from "@/gateways/identity/identityApi";
+import { resolveAdminDestination } from "../admin/adminNavigation";
 import { useI18n } from "../../i18n/I18nProvider";
 
 type LoginPageProps = {
@@ -102,9 +103,7 @@ export function LoginPage({
       const accountStatus = getAuthenticatedAccountStatus(identity);
       const nextDestination = accountStatus === "pending"
         ? buildPostSocialAuthReturnTo(destination)
-        : accountStatus === "suspended"
-          ? "/admin"
-          : result.returnTo;
+        : resolveAdminDestination(identity, result.returnTo);
 
       if (navigate) {
         navigate(nextDestination);

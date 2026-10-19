@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
-import { getAuthenticatedAccountStatus } from "@/gateways/identity/identityApi";
+import { getAuthenticatedAccountStatus, isAccountSetupRequired } from "@/gateways/identity/identityApi";
 
 import { AdminAppClient } from "./AdminAppClient";
 import { loadAdminRouteContext } from "../adminRouteContext";
+import { loadAdminIdentity } from "../adminIdentity";
+import { getAdminInitialRoute, resolveAdminDestination } from "../adminNavigation";
 
 export const dynamic = "force-dynamic";
 
@@ -41,18 +43,20 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
     redirect("/admin/site-management/contacts");
   }
 
-  if (!returnTo && !authReturnTo && (!resolvedParams.slug || resolvedParams.slug.length === 0)) {
-    redirect("/admin/wiki/editing");
+  if (authReturnTo || !resolvedParams.slug?.length) {
+    const identity = await loadAdminIdentity();
+    if (identity && authReturnTo && getAuthenticatedAccountStatus(identity) === "active") {
+      redirect(resolveAdminDestination(identity, authReturnTo));
+    }
+    if (identity && !returnTo && !authReturnTo && !isAccountSetupRequired(identity)) {
+      redirect(getAdminInitialRoute(identity));
+    }
   }
 
-  const { initialIdentity, ...data } = await loadAdminRouteContext(
+  const data = await loadAdminRouteContext(
     buildLoginReturnTo(resolvedParams.slug),
     resolvedParams.slug,
   );
-
-  if (authReturnTo && getAuthenticatedAccountStatus(initialIdentity) === "active") {
-    redirect(authReturnTo);
-  }
 
   return <AdminAppClient data={data} returnTo={authReturnTo ?? returnTo} />;
 }

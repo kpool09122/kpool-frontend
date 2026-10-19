@@ -4,7 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 
-const mocks = vi.hoisted(() => ({ loadAdminIdentity: vi.fn() }));
+const mocks = vi.hoisted(() => ({ loadAdminIdentity: vi.fn(), pathname: "/admin/wiki/editing", replace: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => mocks.pathname,
+  useRouter: () => ({ push: vi.fn(), replace: mocks.replace, refresh: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock("./adminIdentity", () => ({ loadAdminIdentity: mocks.loadAdminIdentity }));
 
 import AdminLayout from "./layout";
@@ -29,6 +34,8 @@ const identity: AuthenticatedIdentitySummary = {
 };
 
 beforeEach(() => {
+  mocks.pathname = "/admin/wiki/editing";
+  mocks.replace.mockClear();
   useAuthStore.setState({ identity: null, status: "loading" });
   mocks.loadAdminIdentity.mockResolvedValue(identity);
 });
@@ -71,4 +78,66 @@ describe("AdminLayout", () => {
     expect(screen.getByRole("heading", { name: "このアカウントは現在利用できません" })).toBeInTheDocument();
     expect(screen.queryByText("保護された内容")).not.toBeInTheDocument();
   });
+});
+
+
+it.each(["profile", "language", "security", "other"])("allows user %s settings for a suspended account", async (page) => {
+  mocks.pathname = `/admin/user/${page}`;
+  mocks.loadAdminIdentity.mockResolvedValue({ ...identity, account: { ...identity.account, status: "suspended" } });
+  render(await AdminLayout({ children: <div>ユーザー設定の内容</div> }));
+  expect(screen.getByText("ユーザー設定の内容")).toBeVisible();
+  expect(screen.queryByText("このアカウントは現在利用できません")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "アカウント設定" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "サイト管理" })).not.toBeInTheDocument();
+});
+
+
+it.each(["pending", "unknown"])("keeps Identity settings independent of account status %s", async (status) => {
+  mocks.pathname = "/admin/user/profile";
+  mocks.loadAdminIdentity.mockResolvedValue({ ...identity, account: { ...identity.account, status } });
+  render(await AdminLayout({ children: <div>ユーザー設定の内容</div> }));
+  expect(screen.getByText("ユーザー設定の内容")).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
+});
+
+
+it.each(["suspended", "forced_stop"] as const)("redirects to user settings after an account principal becomes %s", async (status) => {
+  render(await AdminLayout({ children: <div>保護された内容</div> }));
+  act(() => useAuthStore.setState({ identity: { ...identity, accountPrincipalStatus: status }, status: "authenticated" }));
+  expect(mocks.replace).toHaveBeenCalledWith("/admin/user/profile");
+  expect(screen.queryByText("保護された内容")).not.toBeInTheDocument();
+});
+
+
+it.each(["suspended", "forced_stop"] as const)("hides only the Wiki menu when Wiki access is %s", async (wikiPrincipalStatus) => {
+  mocks.pathname = "/admin/user/profile";
+  const activeIdentity = {
+    ...identity,
+    wikiPrincipalStatus: "active" as const,
+    accountPolicies: [{ policyIdentifier: "policy-1", name: "ACCOUNT_ADMIN", isSystemPolicy: true, statements: [{ effect: "allow" as const, actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }],
+    siteManagementPrincipalIdentifier: "site-principal",
+    siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Administrator", statements: [{ effect: "allow" as const, actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }],
+  };
+  mocks.loadAdminIdentity.mockResolvedValue(activeIdentity);
+  render(await AdminLayout({ children: <div>ユーザー設定の内容</div> }));
+  expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible();
+  act(() => useAuthStore.setState({ identity: { ...activeIdentity, wikiPrincipalStatus }, status: "authenticated" }));
+  expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "サイト管理" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "アカウント設定" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeVisible();
+  act(() => useAuthStore.setState({ identity: activeIdentity }));
+  expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible();
+});
+
+
+it.each(["suspended", "forced_stop"] as const)("blocks a direct Wiki page when Wiki access is %s", async (wikiPrincipalStatus) => {
+  mocks.loadAdminIdentity.mockResolvedValue({ ...identity, wikiPrincipalStatus });
+  render(await AdminLayout({ children: <div>Wikiの管理機能</div> }));
+  expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Wikiの管理機能")).not.toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("利用権限が停止されているため");
+  expect(mocks.replace).toHaveBeenCalledWith("/admin/user/profile");
 });

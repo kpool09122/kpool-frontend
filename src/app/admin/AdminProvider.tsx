@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 
-import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { useAuthStore, type AuthIdentityRefresh } from "@/gateways/auth/authStore";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
@@ -13,7 +11,6 @@ import { PrincipalAccessMonitor } from "./PrincipalAccessMonitor";
 import { getAdminAccountScope } from "./accountScope";
 
 type AdminContextValue = {
-  canShowAccountSettings: boolean;
   currentIdentity: AuthenticatedIdentitySummary;
   locale: Locale;
   refreshIdentity: AuthIdentityRefresh;
@@ -21,12 +18,6 @@ type AdminContextValue = {
 };
 
 const AdminContext = createContext<AdminContextValue | null>(null);
-
-const canShowAccountSettingsForIdentity = (currentIdentity: AuthenticatedIdentitySummary) => {
-  const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
-
-  return Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
-};
 
 export function AdminProvider({
   children,
@@ -62,7 +53,6 @@ export function AdminProvider({
   return (
     <AdminContext.Provider
       value={{
-        canShowAccountSettings: canShowAccountSettingsForIdentity(currentIdentity),
         currentIdentity,
         locale,
         refreshIdentity,

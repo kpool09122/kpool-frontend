@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,7 +26,6 @@ export function PrincipalAccessMonitor({
   const client = useQueryClient();
   const pathname = usePathname();
   const [blocked, setBlocked] = useState(false);
-  const [wikiRefresh, setWikiRefresh] = useState(false);
   useEffect(() => {
     let valid = true;
     let busy = false;
@@ -40,7 +38,6 @@ export function PrincipalAccessMonitor({
         event instanceof CustomEvent &&
         typeof event.detail?.path === "string" &&
         event.detail.path.startsWith("/api/wiki/");
-      setWikiRefresh(wiki);
       const latest = await refreshIdentity({ preserveOnNull: true }).catch(
         () => null,
       );
@@ -83,24 +80,6 @@ export function PrincipalAccessMonitor({
     return (
       <section role="alert" className="p-6">
         <p>{t.principalStatus.inactive}</p>
-        <Link className="mt-4 block underline" href="/admin/user/profile">
-          {t.settingsMenu}
-        </Link>
-        <button
-          type="button"
-          className="mt-4 rounded-lg border p-2"
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent("kpool:principal-inactive", {
-                detail: {
-                  path: wikiRefresh ? "/api/wiki/retry" : "/api/account/retry",
-                },
-              }),
-            )
-          }
-        >
-          {t.retryPrincipal}
-        </button>
       </section>
     );
   return children;

@@ -41,6 +41,7 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
     accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
     accountPrincipalStatus: principalStatus("kpool-e2e-account-principal-status"),
     siteManagementPrincipalStatus: principalStatus("kpool-e2e-site-principal-status"),
+    wikiPrincipalStatus: principalStatus("kpool-e2e-wiki-principal-status"),
     siteManagementPrincipalIdentifier: "44444444-4444-4444-4444-444444444444",
     siteManagementPrincipalCount: accountStatus === "missing" ? 0 :
       hasCookieValue(cookieHeader, "kpool-e2e-site-management", "administrator") &&
