@@ -40,6 +40,17 @@ function NotificationEditor() {
   const [message, setMessage] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [refreshRequired, setRefreshRequired] = useState(false);
+  const rejectAuthorization = (error: unknown) => {
+    if (
+      isAccountBrowserApiError(error) &&
+      [401, 403].includes(error.accountRouteStatus)
+    ) {
+      if (rejectedError.current === error) return;
+      rejectedError.current = error;
+      setBlocked(true);
+      onAuthorizationRejected();
+    }
+  };
   const query = useQuery({
     queryKey: [
       "account-notification-settings",
@@ -47,32 +58,15 @@ function NotificationEditor() {
       accountPrincipalIdentifier,
     ],
     queryFn: () =>
-      requestAccountNotificationSettings(accountIdentifier ?? "", locale),
+      requestAccountNotificationSettings(accountIdentifier ?? "", locale).catch((error: unknown) => {
+        if (mounted.current) rejectAuthorization(error);
+        return Promise.reject(error);
+      }),
     enabled: Boolean(accountIdentifier && canReadNotifications && !blocked),
     retry: false,
     gcTime: 0,
     staleTime: 0,
   });
-  const rejectAuthorization = (error: unknown) => {
-    if (
-      isAccountBrowserApiError(error) &&
-      [401, 403].includes(error.accountRouteStatus)
-    ) {
-      rejectedError.current = error;
-      setBlocked(true);
-      onAuthorizationRejected();
-    }
-  };
-  useEffect(() => {
-    if (
-      query.error !== rejectedError.current &&
-      isAccountBrowserApiError(query.error) &&
-      [401, 403].includes(query.error.accountRouteStatus)
-    ) {
-      rejectedError.current = query.error;
-      onAuthorizationRejected();
-    }
-  }, [query.error, onAuthorizationRejected]);
   const data = query.data;
   const selected =
     draft ??

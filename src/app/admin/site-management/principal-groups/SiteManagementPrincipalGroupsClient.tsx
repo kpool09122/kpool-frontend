@@ -35,15 +35,7 @@ export function SiteManagementPrincipalGroupsClient() {
     if (status === 401) router.replace("/login?returnTo=%2Fadmin%2Fsite-management%2Fprincipal-groups");
     return allowed;
   }, [accountIdentifier, actorIdentifier, currentIdentity, refreshIdentity, router, sessionVersion]);
-  const { state, actions, accessStatus } = useSiteManagementPrincipalGroups({ accountIdentifier, actorIdentifier, sessionVersion, canManage, refreshAccess, t: t.siteManagementPrincipalGroups });
-  const refreshedError = useRef<string | null>(null);
-  const errorScope = JSON.stringify([accountIdentifier, actorIdentifier, sessionVersion, accessStatus]);
-  useEffect(() => {
-    if (accessStatus !== 401 && accessStatus !== 403) { refreshedError.current = null; return; }
-    if (refreshedError.current === errorScope) return;
-    refreshedError.current = errorScope;
-    void refreshAccess(accessStatus);
-  }, [accessStatus, errorScope, refreshAccess]);
+  const { state, actions } = useSiteManagementPrincipalGroups({ accountIdentifier, actorIdentifier, sessionVersion, canManage, refreshAccess, t: t.siteManagementPrincipalGroups });
   if (!canManage) return null;
   return <SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t.siteManagementPrincipalGroups} />;
 }

@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useRef } from "react";
 import { usePrincipalAccess } from "../../principal-groups/usePrincipalAccess";
 
 import { useAccountSection } from "../AccountSectionContext";
@@ -18,15 +17,6 @@ export function AccountPrincipalGroupsClient() {
     t,
   });
 
-  const { refreshAccess } = access;
-  const refreshedError = useRef<string | null>(null);
-  const errorScope = JSON.stringify([access.accountIdentifier, access.actorIdentifier, access.sessionVersion, principalGroups.accessStatus]);
-  useEffect(() => {
-    if (principalGroups.accessStatus !== 401 && principalGroups.accessStatus !== 403) { refreshedError.current = null; return; }
-    if (refreshedError.current === errorScope) return;
-    refreshedError.current = errorScope;
-    void refreshAccess();
-  }, [errorScope, principalGroups.accessStatus, refreshAccess]);
 
   return (
     <PrincipalGroupManagementPanel

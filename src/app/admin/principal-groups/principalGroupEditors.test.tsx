@@ -142,6 +142,24 @@ beforeEach(() => {
 });
 for (const [context, useEditor] of Object.entries(hooks))
   describe(`${context} atomic principal editor`, () => {
+    it("does not refresh access for a failed request after the editor has unmounted", async () => {
+      let reject!: (error: unknown) => void;
+      api.groups.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
+      const hook = renderHook(() => useEditor(1), { wrapper: Wrapper });
+      await waitFor(() => expect(api.groups).toHaveBeenCalled());
+      hook.unmount();
+      await act(async () => reject({ status: 403 }));
+      expect(api.access).not.toHaveBeenCalled();
+    });
+
+    it.each([401, 403, 500])("refreshes access only for an authorization failure while loading: %s", async (status) => {
+      api.groups.mockRejectedValue({ status });
+      const hook = renderHook(() => useEditor(1), { wrapper: Wrapper });
+      await waitFor(() => expect(hook.result.current.state.loadError).toBeTruthy());
+      if (status === 500) expect(api.access).not.toHaveBeenCalled();
+      else expect(api.access).toHaveBeenCalledExactlyOnceWith(status);
+    });
+
     const ready = async () => {
       const hook = renderHook(({ version }) => useEditor(version), {
         wrapper: Wrapper,

@@ -101,7 +101,16 @@ export function usePrincipalGroupEditor<G extends Group, U extends User>({
   }
   const query = useQuery({
     queryKey,
-    queryFn: fetchList,
+    queryFn: () => {
+      const token = active.current;
+      return fetchList().catch((error: unknown) => {
+        const status = principalErrorStatus(error);
+        if (token?.valid && active.current === token && (status === 401 || status === 403)) {
+          void refreshAccess(status).catch(() => null);
+        }
+        return Promise.reject(error);
+      });
+    },
     enabled,
     retry: false,
     staleTime: Infinity,
