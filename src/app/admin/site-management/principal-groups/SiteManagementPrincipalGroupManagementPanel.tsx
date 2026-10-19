@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
+import { PrincipalStatusToggle } from "@/components/PrincipalStatusToggle";
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 import {
@@ -66,10 +67,13 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
             const names = state.groups.filter((group) => selected.has(group.principalGroupIdentifier)).map((group) => group.name);
             return <article className="rounded-xl border border-stroke-subtle bg-surface-raised p-4" key={user.principalIdentifier}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><h3 className="break-all font-semibold">{getSiteManagementUserDisplayName(user)}</h3><p className="break-all text-xs text-text-muted">{user.email}</p></div>
-                <button className="rounded-lg border border-stroke-subtle px-4 py-2 disabled:opacity-60" disabled={disabled} onClick={() => {
-                  if (!disabled) setDialogDraft({ userIdentifier: user.principalIdentifier, selectedGroupIdentifiers: groups.filter((group) => selected.has(group.principalGroupIdentifier)).map((group) => group.principalGroupIdentifier) });
-                }} type="button">{t.edit}</button>
+                <div><h3 className="break-all font-semibold">{getSiteManagementUserDisplayName(user)}</h3><p className="break-all text-xs text-text-muted">{user.email}</p>{user.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <PrincipalStatusToggle value={user.status} disabled={disabled} onChange={(status) => actions.updateUserStatus(user.principalIdentifier, status)} t={t.principalStatus} />
+                  <button className="rounded-lg border border-stroke-subtle px-4 py-2 disabled:opacity-60" disabled={disabled} onClick={() => {
+                    if (!disabled) setDialogDraft({ userIdentifier: user.principalIdentifier, selectedGroupIdentifiers: groups.filter((group) => selected.has(group.principalGroupIdentifier)).map((group) => group.principalGroupIdentifier) });
+                  }} type="button">{t.edit}</button>
+                </div>
               </div>
               <p className="mt-3 text-sm text-text-muted"><span className="font-semibold">{t.userGroups}</span> <span>{names.length ? names.join(", ") : t.unassigned}</span></p>
             </article>;
@@ -106,19 +110,9 @@ function EditUserGroupsDialog({ user, groups, selected, disabled, confirmDisable
   onConfirm: () => void;
   onToggle: (identifier: string) => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
-  useEffect(() => {
-    const dialog = ref.current;
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    if (dialog && !dialog.open) {
-      if (typeof dialog.showModal === "function") dialog.showModal();
-      else dialog.setAttribute("open", "");
-    }
-    return () => { dialog?.close?.(); opener?.focus(); };
-  }, []);
-  return <dialog ref={ref} aria-labelledby={titleId} aria-describedby={descriptionId} aria-modal="true"
+  return <dialog ref={openUserGroupsDialog} aria-labelledby={titleId} aria-describedby={descriptionId} aria-modal="true"
     onCancel={(event) => { event.preventDefault(); onCancel(); }}
     className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-2xl bg-surface-raised p-6 text-text-strong shadow-xl backdrop:bg-black/40">
     <h3 id={titleId} className="break-all text-lg font-semibold">{t.dialogTitle(getSiteManagementUserDisplayName(user))}</h3>
@@ -135,3 +129,13 @@ function EditUserGroupsDialog({ user, groups, selected, disabled, confirmDisable
     </div>
   </dialog>;
 }
+
+const openUserGroupsDialog = (dialog: HTMLDialogElement | null) => {
+  if (!dialog) return;
+  const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  if (!dialog.open) {
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+  }
+  return () => { dialog.close?.(); opener?.focus(); };
+};

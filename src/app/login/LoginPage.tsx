@@ -102,8 +102,8 @@ export function LoginPage({
       const accountStatus = getAuthenticatedAccountStatus(identity);
       const nextDestination = accountStatus === "pending"
         ? buildPostSocialAuthReturnTo(destination)
-        : accountStatus === "suspended"
-          ? "/admin"
+        : result.returnTo === "/admin" || result.returnTo.startsWith("/admin/")
+          ? buildPostSocialAuthReturnTo(result.returnTo)
           : result.returnTo;
 
       if (navigate) {

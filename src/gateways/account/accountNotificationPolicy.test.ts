@@ -3,7 +3,7 @@ import {
   canReadAccountNotificationSettings as read,
   canUpdateAccountNotificationSettings as update,
 } from "./accountPolicy";
-const identity = {
+const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
   identityName: "member",
   email: "member@example.com",

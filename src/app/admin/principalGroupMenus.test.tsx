@@ -6,11 +6,11 @@ import { WikiLayoutClient } from "./wiki/WikiLayoutClient";
 import { SiteManagementPageClient } from "./site-management/SiteManagementPageClient";
 import { AdminShellClient } from "./AdminShellClient";
 
-const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => navigation, usePathname: () => "/admin/site-management/principal-groups", useSearchParams: () => new URLSearchParams() }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); }, useRouter: () => navigation, usePathname: () => "/admin/site-management/principal-groups", useSearchParams: () => new URLSearchParams() }));
 const siteAdmin = vi.hoisted(() => ({ currentIdentity: {} }));
 vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: siteAdmin.currentIdentity, t: dictionaries.ja.admin }) }));
-const identity = {
+const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
   identityName: "member",
   email: "member@example.com",
@@ -23,7 +23,7 @@ const principal = {
   principalIdentifier: "33333333-3333-4333-8333-333333333333",
   identityIdentifier: identity.identityIdentifier,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [{ policyIdentifier: "policy-2", name: "MANAGER", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["principal-group-manage"], resourceTypes: ["principal_group"], condition: null }] }],
 };
 
@@ -31,7 +31,7 @@ describe("principal group menu tabs", () => {
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
   it.each([{ statements: [] }, { statements: [{ effect: "deny", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }])("hides the site sidebar entry without effective permissions: %j", ({ statements }) => {
     siteAdmin.currentIdentity = { ...identity, account: { status: "active" }, siteManagementPrincipalIdentifier: principal.principalIdentifier, siteManagementPrincipalCount: 2, siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Administrator", statements }] };
-    render(<AdminShellClient><SiteManagementPageClient><p>Site management content</p></SiteManagementPageClient></AdminShellClient>);
+    expect(() => render(<AdminShellClient><SiteManagementPageClient><p>Site management content</p></SiteManagementPageClient></AdminShellClient>)).toThrow("redirect:/admin/wiki/editing");
     expect(screen.queryByRole("link", { name: dictionaries.ja.admin.siteManagementMenu })).not.toBeInTheDocument();
     expect(screen.queryByText("Site management content")).not.toBeInTheDocument();
   });

@@ -50,6 +50,8 @@ const setup = async (page: Page, actions: string[]) => {
         profileImage: null,
         accountIdentifier: accountId,
         accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+        accountPrincipalStatus: "active" as const,
+        siteManagementPrincipalStatus: "active" as const,
         accountType: "corporation",
         accountPolicies: [
           {

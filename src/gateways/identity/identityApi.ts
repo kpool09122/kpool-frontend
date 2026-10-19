@@ -8,6 +8,8 @@ export type IdentitySummary = z.infer<typeof identityApiTypes.schemas.IdentitySu
 const AuthenticatedIdentitySummarySchema = identityApiTypes.schemas.IdentitySummary.extend({
   accountIdentifier: z.string().uuid().nullable(),
   accountPrincipalIdentifier: z.string().uuid().nullable(),
+  accountPrincipalStatus: identityApiTypes.schemas.KPool_Common_PrincipalStatus.nullable(),
+  siteManagementPrincipalStatus: identityApiTypes.schemas.KPool_Common_PrincipalStatus.nullable(),
   siteManagementPrincipalIdentifier: z.string().uuid().nullable().optional(),
   siteManagementPrincipalCount: z.number().int().nonnegative().optional(),
   siteManagementPolicies: z.array(identityApiTypes.schemas.SiteManagementEffectivePolicySummary).optional(),
@@ -30,6 +32,8 @@ export type AuthenticatedIdentitySummary = IdentitySummary & Partial<
     | "accountIdentifier"
     | "accountPolicies"
     | "accountPrincipalIdentifier"
+    | "accountPrincipalStatus"
+    | "siteManagementPrincipalStatus"
     | "accountType"
     | "accountIdentityCount"
     | "authenticationMethods"

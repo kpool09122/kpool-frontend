@@ -10,6 +10,8 @@ const identityResponse = {
   language: "ja",
   accountIdentifier: "22222222-2222-2222-2222-222222222222",
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  accountPrincipalStatus: "active" as const,
+  siteManagementPrincipalStatus: "active" as const,
   siteManagementPrincipalIdentifier: "55555555-5555-4555-8555-555555555555",
   accountType: "corporation",
   accountIdentityCount: 0,

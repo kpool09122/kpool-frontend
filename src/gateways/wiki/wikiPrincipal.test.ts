@@ -26,7 +26,7 @@ const principal = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [],
 };
 
@@ -34,7 +34,7 @@ const createdPrincipal = {
   principalIdentifier: principal.principalIdentifier,
   identityIdentifier: principal.identityIdentifier,
   isDelegatedPrincipal: principal.isDelegatedPrincipal,
-  isEnabled: principal.isEnabled,
+  status: principal.status,
 };
 
 const policy = ({
@@ -258,7 +258,6 @@ describe("wiki principal helpers", () => {
       }),
     ).resolves.toEqual({
       status: "available",
-      ...createdPrincipal,
     });
     expect(fetchAdapter).toHaveBeenCalledWith("/api/wiki/principal/create", {
       method: "POST",

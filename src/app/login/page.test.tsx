@@ -65,6 +65,28 @@ describe("LoginPage", () => {
     ));
   });
 
+  it.each([
+    { account: { status: "suspended" }, accountPrincipalStatus: "active" },
+    { account: { status: "active" }, accountPrincipalStatus: "suspended" },
+    { account: { status: "active" }, accountPrincipalStatus: "forced_stop" },
+  ])("routes stopped account access directly to user settings: %j", async (identity) => {
+    const loginAdapter = vi.fn().mockResolvedValue({ ok: true, returnTo: "/admin/wiki/editing" });
+    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue(identity) });
+    const navigate = vi.fn();
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} returnTo="/admin/wiki/editing" webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin?authReturnTo=%2Fadmin%2Fwiki%2Fediting"));
+  });
+
+  it("delegates the default destination to the shared admin navigation", async () => {
+    const loginAdapter = vi.fn().mockResolvedValue({ ok: true, returnTo: "/admin" });
+    useAuthStore.setState({ refreshIdentity: vi.fn().mockResolvedValue({ account: { status: "active" } }) });
+    const navigate = vi.fn();
+    render(<LoginPage loginAdapter={loginAdapter} navigate={navigate} webAuthnSupported />);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーでログイン" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/admin"));
+  });
+
   it("does not enter the service when identity refresh fails", async () => {
     const loginAdapter = vi.fn().mockResolvedValue({
       ok: true,

@@ -101,7 +101,7 @@ const createMockPrincipal = (
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies,
 });
 
@@ -110,6 +110,9 @@ const mockPrincipalStateByMode: Record<
   Extract<WikiPrincipalState, { status: "available" | "missing" }>
 > = {
   missing: { status: "missing" },
+  "principal-manager": { status: "available", principal: { ...createMockPrincipal([createMockPolicy("GROUP_MANAGEMENT", ["principal-group:manage"], ["principal_group"])]), accountPrincipalCount: 3 } },
+  suspended: { status: "available", principal: { ...createMockPrincipal([]), status: "suspended" } },
+  forced_stop: { status: "available", principal: { ...createMockPrincipal([]), status: "forced_stop" } },
   basic: {
     status: "available",
     principal: createMockPrincipal([

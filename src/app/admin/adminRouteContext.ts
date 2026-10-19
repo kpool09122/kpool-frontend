@@ -5,6 +5,8 @@ import { loadAdminIdentity } from "./adminIdentity";
 import { getAdminAccountScope } from "./accountScope";
 import {
   isAccountActive,
+  isAccountSetupRequired,
+  isAccountStatusUnavailable,
 } from "@/gateways/identity/identityApi";
 import {
   createInitialDraftWikis,
@@ -15,10 +17,11 @@ import {
   loadInitialWikiDraftImagesForRequest,
   loadInitialWikiImageDeletionRequestsForRequest,
 } from "@/gateways/wiki/wikiImageBrowserApi";
-import { getInitialWikiPrincipalForRequest } from "@/gateways/wiki/wikiPrincipal";
+import { loadAdminWikiPrincipalSnapshot } from "./adminWikiPrincipal";
 import type { DraftImageListState } from "./useAdminDraftImageReview";
 import type { ImageDeletionRequestListState } from "./useAdminImageDeletionRequestReview";
 import type { AdminWikiTab } from "./adminTypes";
+import { resolveAdminDestination } from "./adminNavigation";
 
 export const dynamic = "force-dynamic";
 
@@ -39,23 +42,25 @@ export async function loadAdminRouteContext(
     redirect(`/login?returnTo=${encodeURIComponent(loginReturnTo)}`);
   }
 
+  const pathname = slug?.length ? `/admin/${slug.join("/")}` : "/admin/wiki/editing";
+  const snapshot = await loadAdminWikiPrincipalSnapshot();
+  const principalState = snapshot.state;
+  const destination = resolveAdminDestination(authenticatedIdentity, pathname, principalState);
+  if (destination !== pathname && !isAccountSetupRequired(authenticatedIdentity) && !isAccountStatusUnavailable(authenticatedIdentity)) {
+    redirect(destination);
+  }
+
   if (!isAccountActive(authenticatedIdentity)) {
     return {
       accountScope: getAdminAccountScope(authenticatedIdentity),
       initialDraftImages: createInitialDraftImageListState(),
       initialDraftWikis: createInitialDraftWikis(),
-      initialIdentity: authenticatedIdentity,
       initialImageDeletionRequests: createInitialImageDeletionRequestListState(),
-      initialPrincipalState: { status: "idle" as const },
+      initialPrincipalState: principalState,
+      principalStateUpdatedAt: snapshot.updatedAt,
     };
   }
 
-  const principalState = target.section === "wiki"
-    ? await getInitialWikiPrincipalForRequest({
-        cookieHeader,
-        hasAuthenticatedIdentity: true,
-      })
-    : { status: "idle" as const };
   const initialDraftWikis = createInitialDraftWikis();
   let initialDraftImages = createInitialDraftImageListState();
   let initialImageDeletionRequests = createInitialImageDeletionRequestListState();
@@ -82,9 +87,9 @@ export async function loadAdminRouteContext(
     accountScope: getAdminAccountScope(authenticatedIdentity),
     initialDraftImages,
     initialDraftWikis,
-    initialIdentity: authenticatedIdentity,
     initialImageDeletionRequests,
     initialPrincipalState: principalState,
+    principalStateUpdatedAt: snapshot.updatedAt,
   };
 }
 

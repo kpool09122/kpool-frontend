@@ -1,9 +1,15 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as renderUI, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { SocialLinkingPage } from "./SocialLinkingPage";
+
+const render = (children: ReactNode) => renderUI(
+  <QueryClientProvider client={new QueryClient()}>{children}</QueryClientProvider>,
+);
 
 const session = () => ({ provider: "google", email: "member@example.com", expiresAt: new Date(Date.now() + 600_000).toISOString() });
 const apiMock = () => ({
@@ -115,13 +121,13 @@ describe("SocialLinkingPage", () => {
     vi.useFakeTimers();
     const api = apiMock();
     render(<SocialLinkingPage api={api} />);
-    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
-    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(screen.getByRole("button", { name: /再送まであと/ })).toBeDisabled();
     await act(async () => { vi.advanceTimersByTime(60_000); });
     fireEvent.click(screen.getByRole("button", { name: "確認コードを再送" }));
-    await act(async () => {});
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(api.sendEmail).toHaveBeenCalledTimes(2);
     await act(async () => { vi.advanceTimersByTime(540_000); });
     expect(screen.getByRole("alert")).toHaveTextContent("SSOログインをやり直してください");

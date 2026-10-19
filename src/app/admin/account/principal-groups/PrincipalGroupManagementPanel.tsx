@@ -1,5 +1,6 @@
 "use client";
 
+import { PrincipalStatusToggle } from "@/components/PrincipalStatusToggle";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 
 import { useMemo, useState } from "react";
@@ -36,6 +37,7 @@ export function PrincipalGroupManagementPanel({
     load,
     save,
     updateUserGroups,
+    updateUserStatus,
   } = principalGroups;
   const [dialogState, setDialogState] = useState<EditableMemberDialogState>(null);
 
@@ -104,6 +106,7 @@ export function PrincipalGroupManagementPanel({
             key={member.principalIdentifier}
             member={member}
             membershipByGroup={state.membershipByGroup}
+            onStatusChange={(status) => updateUserStatus(member.principalIdentifier, status)}
             onEdit={() => openMemberDialog(member)}
             t={t}
           />
@@ -115,12 +118,12 @@ export function PrincipalGroupManagementPanel({
             {t.principalGroupUnsavedChanges}
           </AccountStatusMessage>
         ) : null}
-        {state.error ? (
+        {state.error || state.canRetryRefresh ? (
           <AccountStatusMessage
             action={
               <button
                 className="mt-3 rounded-lg border border-status-danger px-4 py-2 transition hover:bg-status-danger/10"
-                onClick={load}
+                onClick={state.canRetryRefresh || state.loadError ? load : save}
                 type="button"
               >
                 {t.principalGroupRetry}
@@ -128,7 +131,7 @@ export function PrincipalGroupManagementPanel({
             }
             variant="error"
           >
-            {state.error}
+            {state.error ?? t.principalStatus.savedRefreshFailed}
           </AccountStatusMessage>
         ) : null}
         {state.success ? (
@@ -140,7 +143,7 @@ export function PrincipalGroupManagementPanel({
       <EditMemberGroupsDialog
         dialogState={dialogState}
         groups={state.groups}
-        isBusy={isBusy}
+        isBusy={isBusy || !canManage}
         onConfirm={confirmMemberDialog}
         setDialogState={setDialogState}
         t={t}
@@ -155,13 +158,15 @@ function PrincipalMemberRow({
   member,
   membershipByGroup,
   onEdit,
+  onStatusChange,
   t,
 }: {
   disabled: boolean;
   groups: PrincipalGroupSummary[];
   member: AccountMemberSummary;
-  membershipByGroup: Record<string, string[]>;
+  membershipByGroup: Readonly<Record<string, readonly string[]>>;
   onEdit: () => void;
+  onStatusChange: (status: "active" | "suspended") => void;
   t: AdminDictionary;
 }) {
   const groupNames = useMemo(() => {
@@ -180,15 +185,19 @@ function PrincipalMemberRow({
         <div>
           <h3 className="font-semibold text-text-strong">{getMemberDisplayName(member)}</h3>
           <p className="mt-1 break-all text-xs text-text-muted">{member.email}</p>
+          {member.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}
         </div>
-        <button
-          className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={disabled}
-          onClick={onEdit}
-          type="button"
-        >
-          {t.principalGroupEditUserGroups}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <PrincipalStatusToggle value={member.status} disabled={disabled} onChange={onStatusChange} t={t.principalStatus} />
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
+            onClick={onEdit}
+            type="button"
+          >
+            {t.principalGroupEditUserGroups}
+          </button>
+        </div>
       </div>
       <p className="mt-3 text-sm text-text-muted">
         <span className="font-semibold text-text-strong">{t.principalGroupUserGroupsLabel}</span>{" "}

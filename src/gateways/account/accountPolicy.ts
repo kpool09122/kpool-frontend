@@ -220,6 +220,7 @@ const hasMatchingStatement = (
   effect: "allow" | "deny",
   action: string,
 ): boolean =>
+  identity?.accountPrincipalStatus === "active" &&
   getAccountPolicies(identity).some((policy) =>
     Array.isArray(policy.statements) &&
     policy.statements
@@ -233,7 +234,7 @@ const hasMatchingStatement = (
   );
 
 export const hasAccountPolicy = (identity: IdentitySummary | null): boolean =>
-  getAccountPolicies(identity).length > 0;
+  identity?.accountPrincipalStatus === "active" && getAccountPolicies(identity).length > 0;
 
 export const canReadAccountNotificationSettings = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:notification-settings:read") &&

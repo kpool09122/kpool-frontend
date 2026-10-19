@@ -72,19 +72,18 @@ function ScopedAnnouncements({ scope }: { scope: string }) {
       announcementRequest(
         `draft-announcements?page=${page}`,
         schemas.ListDraftAnnouncementsPage,
-      ),
+      ).catch((failure: unknown) => {
+        const status = statusOf(failure);
+        if (alive.current && (status === 401 || status === 403)) {
+          void refreshIdentity({ preserveOnNull: true });
+          if (status === 401) router.replace("/login?returnTo=%2Fadmin%2Fsite-management%2Fannouncements");
+        }
+        return Promise.reject(failure);
+      }),
     enabled: allowed("view-draft"),
     retry: false,
   });
   const accessError = statusOf(query.error);
-  useEffect(() => {
-    if (accessError !== 401 && accessError !== 403) return;
-    void refreshIdentity({ preserveOnNull: true });
-    if (accessError === 401)
-      router.replace(
-        "/login?returnTo=%2Fadmin%2Fsite-management%2Fannouncements",
-      );
-  }, [accessError, refreshIdentity, router]);
   const handleError = (failure: unknown) => {
     if (!alive.current) return;
     setError(statusOf(failure) === 404 ? t.notFound : t.failed);

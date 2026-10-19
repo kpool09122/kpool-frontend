@@ -114,7 +114,7 @@ test("admin shows under review draft images for an available Wiki principal", as
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [
           {
             policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -261,7 +261,7 @@ test("admin keeps wiki tabs interactive after browser back", async ({ page }) =>
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [
           {
             policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -330,7 +330,7 @@ test("admin shows unapproved draft wikis only for reviewer principals", async ({
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [
           {
             policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -427,7 +427,7 @@ test("admin publishes approved draft wikis only for publisher principals", async
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [
           {
             policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -530,7 +530,7 @@ test("admin translates untranslated wikis for publisher principals", async ({ pa
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [
           {
             policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -645,7 +645,7 @@ test("admin hides draft image review for principals without image policies", asy
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [
           {
             policyIdentifier: "77777777-7777-7777-7777-777777777777",
@@ -849,7 +849,7 @@ test("admin lets account policy users edit account information", async ({ page }
         principalIdentifier: "33333333-3333-3333-3333-333333333333",
         identityIdentifier: "11111111-1111-1111-1111-111111111111",
         isDelegatedPrincipal: false,
-        isEnabled: true,
+        status: "active" as const,
         policies: [],
       }),
     });

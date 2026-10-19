@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
+import { getAdminInitialRoute } from "../adminNavigation";
 import { canShowAccountPrincipalGroupManagement } from "../principalGroupVisibility";
 import { AccountSectionProvider } from "./AccountSectionContext";
 import {
-  adminSectionRoutes,
   adminAccountTabRoutes,
   type AdminAccountSettingsTab,
 } from "../adminTypes";
@@ -28,6 +29,7 @@ type AccountLayoutClientProps = {
   activeTab: AdminAccountSettingsTab;
   children: ReactNode;
   currentIdentity: AuthenticatedIdentitySummary | null;
+  principalState?: WikiPrincipalState;
   t: ReturnType<typeof useI18n>["dictionary"]["admin"];
   onAuthorizationRejected: () => void;
 };
@@ -36,10 +38,11 @@ export function AccountLayoutClient({
   activeTab,
   children,
   currentIdentity,
+  principalState = { status: "idle" },
   t,
   onAuthorizationRejected,
 }: AccountLayoutClientProps) {
-  const router = useRouter();
+  const defaultAdminRoute = currentIdentity ? getAdminInitialRoute(currentIdentity, principalState) : "/admin";
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const accountPrincipalIdentifier = getAccountPrincipalIdentifierFromIdentity(currentIdentity);
   const canShowAccountSettings = Boolean(accountIdentifier) && hasAccountPolicy(currentIdentity);
@@ -62,39 +65,6 @@ export function AccountLayoutClient({
   const fallbackTab: AdminAccountSettingsTab = "accountProfile";
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
-  useEffect(() => {
-    if (!canShowAccountSettings) {
-      router.replace(adminSectionRoutes.wiki);
-      return;
-    }
-
-    if (activeTab === "accountNotifications" && !canReadNotifications) { router.replace(fallbackRoute); return; }
-
-    if (activeTab === "accountInvitations" && !canInvite) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "principalGroupManagement" && !canManageAccountPrincipalGroups) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "unapprovedAccountCategoryChangeRequests" && !canManageCategoryChangeRequests) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "accountAffiliations" && !canShowAffiliations) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "accountDelegations" && !canShowDelegations) {
-      router.replace(fallbackRoute);
-    }
-  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, fallbackRoute, router]);
-
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
@@ -107,7 +77,8 @@ export function AccountLayoutClient({
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
   ];
   const activeTabAllowed = tabs.some((tab) => tab.id === activeTab);
-  const selectedTab = activeTabAllowed ? activeTab : fallbackTab;
+  if (!canShowAccountSettings) redirect(defaultAdminRoute);
+  if (!activeTabAllowed) redirect(fallbackRoute);
 
   return (
     <section className="space-y-5">
@@ -115,9 +86,9 @@ export function AccountLayoutClient({
         <div aria-label={t.accountSettingsTabsLabel} className="-mb-px flex gap-1" role="tablist">
           {tabs.map((tab) => (
             <Link
-              aria-selected={selectedTab === tab.id}
+              aria-selected={activeTab === tab.id}
               className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                selectedTab === tab.id
+                activeTab === tab.id
                   ? "border-brand-primary text-text-strong"
                   : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
               }`}
@@ -151,7 +122,7 @@ export function AccountLayoutClient({
           onAuthorizationRejected,
         }}
       >
-        {activeTabAllowed ? children : null}
+        {children}
       </AccountSectionProvider>
     </section>
   );

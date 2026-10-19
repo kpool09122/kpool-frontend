@@ -2,7 +2,9 @@
 
 import { LocalizedForm } from "@/components/LocalizedForm";
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDeadlineTime } from "@/components/useDeadlineTime";
+import { useRef, useState, type FormEvent } from "react";
 
 import { useEmailSendingStatus } from "@/components/auth/useEmailSendingStatus";
 import { identityProviders } from "@/gateways/auth/authFlow";
@@ -10,7 +12,6 @@ import { useAuthStore } from "@/gateways/auth/authStore";
 import {
   socialLinkingBrowserApi,
   type SocialLinkingBrowserApi,
-  type SocialLinkingSession,
 } from "@/gateways/identity/socialLinkingBrowserApi";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -29,47 +30,37 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
   const { locale, dictionary } = useI18n();
   const t = dictionary.socialLinking;
   const refreshIdentity = useAuthStore((state) => state.refreshIdentity);
-  const [session, setSession] = useState<SocialLinkingSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const sessionQueryKey = ["social-linking-session", locale];
+  const sessionQuery = useQuery({
+    queryKey: sessionQueryKey,
+    queryFn: () => api.get(locale).catch(() => ({ ok: false as const, status: 0, message: t.loadFailed })),
+    retry: false,
+    gcTime: 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const session = sessionQuery.data?.ok ? sessionQuery.data.data : null;
+  const sessionError = sessionQuery.data?.ok === false
+    ? { message: sessionQuery.data.message || t.loadFailed, invalidSession: sessionQuery.data.status === 422 }
+    : null;
+  const loading = sessionQuery.isPending;
   const [authCode, setAuthCode] = useState("");
   const [pending, setPending] = useState<"send" | "verify" | null>(null);
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState<{ message: string; invalidSession?: boolean } | null>(null);
-  const [now, setNow] = useState(Date.now);
   const sendingStatus = useEmailSendingStatus(
     "kpool.social-linking.email-sending-status",
     session?.expiresAt ?? null,
   );
   const busy = useRef(false);
 
-  useEffect(() => {
-    let active = true;
-    api.get(locale).then((result) => {
-      if (!active) return;
-      if (result.ok) {
-        setSession(result.data);
-        setError(null);
-      } else {
-        setSession(null);
-        setError({ message: result.message || t.loadFailed, invalidSession: result.status === 422 });
-      }
-    }).catch(() => {
-      if (active) setError({ message: t.loadFailed });
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, [api, locale, t.loadFailed]);
-
-  useEffect(() => {
-    if (!session || complete) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [session, complete]);
+  const now = useDeadlineTime(session && !complete ? new Date(session.expiresAt).getTime() : null);
 
   const expired = session !== null && new Date(session.expiresAt).getTime() <= now;
-  const displayedError = expired ? t.invalidSession : error?.message;
-  const unavailable = !session || expired || error?.invalidSession;
+  const displayedError = expired ? t.invalidSession : (error ?? sessionError)?.message;
+  const unavailable = !session || expired || (error ?? sessionError)?.invalidSession;
   const secondsUntilResend = sendingStatus.secondsUntilRetry ?? 0;
   const requested = sendingStatus.status !== null;
   const provider = identityProviders.find((item) => item.id === session?.provider)?.label ?? session?.provider;
@@ -112,7 +103,7 @@ export function SocialLinkingPage({ api = socialLinkingBrowserApi, navigate = de
       // A wrong code is retryable; expiry, exhausted attempts, and consumed operations are not.
       const current = await api.get(locale).catch(() => null);
       setError({ message: current !== null && !current.ok && current.status === 422 ? current.message || t.invalidSession : result.message || t.verifyFailed, invalidSession: current !== null && !current.ok && current.status === 422 });
-      if (current?.ok) setSession(current.data);
+      if (current?.ok) queryClient.setQueryData(sessionQueryKey, current);
     }).catch(() => setError({ message: t.verifyFailed })).finally(() => {
       busy.current = false;
       setPending(null);

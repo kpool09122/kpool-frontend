@@ -5,7 +5,7 @@ import {
   updateWikiPrincipalGroupMembers,
 } from "./wikiPrincipalGroups";
 
-const listResponse = {
+const listResponse = { principals: [],
   principalGroups: [
     {
       principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -15,6 +15,7 @@ const listResponse = {
       isDefault: false,
       members: [
         {
+          status: "active" as const,
           principalIdentifier: "11111111-1111-4111-8111-111111111111",
           identityIdentifier: "44444444-4444-4444-8444-444444444444",
           identityName: "編集者",
@@ -49,13 +50,13 @@ describe("wiki principal group browser API", () => {
     );
   });
 
-  it("updates members only through the batch principalGroups payload", async () => {
+  it("updates members and statuses in the atomic batch payload", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: vi.fn().mockResolvedValue(listResponse),
+      json: vi.fn().mockResolvedValue({ committed: true, refresh: { ok: true, data: listResponse } }),
     });
-    const requestBody = {
+    const requestBody = { principalStatuses: [],
       principalGroups: [
         {
           principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -68,7 +69,7 @@ describe("wiki principal group browser API", () => {
       fallbackErrorMessage: "failed",
       fetchAdapter,
       requestBody,
-    })).resolves.toEqual(listResponse);
+    })).resolves.toEqual({ committed: true, refresh: { ok: true, data: listResponse } });
 
     expect(fetchAdapter).toHaveBeenCalledWith("/api/wiki/principal-groups/members", {
       method: "PATCH",

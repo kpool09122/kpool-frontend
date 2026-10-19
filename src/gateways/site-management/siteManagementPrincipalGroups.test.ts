@@ -9,7 +9,7 @@ describe("SiteManagement gateway", () => {
   });
 
   it("preserves unassigned principals and requires the complete list contract", () => {
-    const body = { principalGroups: [], principals: [{ principalIdentifier: id, identityIdentifier: id, identityName: "", email: "user@example.test" }] };
+    const body = { principalGroups: [], principals: [{ status: "active", principalIdentifier: id, identityIdentifier: id, identityName: "", email: "user@example.test" }] };
     expect(parseSiteManagementPrincipalGroups(body)).toEqual(body);
     expect(() => parseSiteManagementPrincipalGroups({ principalGroups: [] })).toThrow();
   });

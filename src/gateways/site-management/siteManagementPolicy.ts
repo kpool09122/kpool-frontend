@@ -6,7 +6,7 @@ const hasPermission = (
   resourceType: string,
   ownContact = false,
 ): boolean => {
-  if (!identity || !isAccountActive(identity) || !identity.accountIdentifier || !identity.siteManagementPrincipalIdentifier) return false;
+  if (!identity || identity.accountPrincipalStatus !== "active" || identity.siteManagementPrincipalStatus !== "active" || !isAccountActive(identity) || !identity.accountIdentifier || !identity.siteManagementPrincipalIdentifier) return false;
   const applicable = (identity.siteManagementPolicies ?? []).flatMap((policy) => policy.statements).filter((statement) =>
     statement.actions.includes(action) && statement.resourceTypes.includes(resourceType) &&
     (statement.condition === null || (statement.condition === "own_contact" && resourceType === "contact" && ownContact)),

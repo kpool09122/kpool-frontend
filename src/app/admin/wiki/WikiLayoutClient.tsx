@@ -60,6 +60,12 @@ export function WikiLayoutClient({
     );
   }
 
+  if (state.status === "available" && state.principal.status !== "active") {
+    return <section role="alert" className="rounded-xl border border-stroke-subtle bg-surface-raised p-6">
+      <p>{t.principalStatus.inactive}</p>
+    </section>;
+  }
+
   if (state.status === "available") {
     const canReviewDraftImages = canReviewWikiDraftImages(state.principal);
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(state.principal);

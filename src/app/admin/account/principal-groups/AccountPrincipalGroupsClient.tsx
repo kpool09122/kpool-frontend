@@ -1,20 +1,22 @@
 "use client";
+import { usePrincipalAccess } from "../../principal-groups/usePrincipalAccess";
 
 import { useAccountSection } from "../AccountSectionContext";
 import { PrincipalGroupManagementPanel } from "./PrincipalGroupManagementPanel";
 import { useAccountPrincipalGroups } from "./useAccountPrincipalGroups";
 
 export function AccountPrincipalGroupsClient() {
+  const access = usePrincipalAccess("account");
   const {
     canManagePrincipalGroups,
     t,
-    onAuthorizationRejected,
   } = useAccountSection();
   const principalGroups = useAccountPrincipalGroups({
     canManage: canManagePrincipalGroups,
-    onAuthorizationRejected,
+    ...access,
     t,
   });
+
 
   return (
     <PrincipalGroupManagementPanel

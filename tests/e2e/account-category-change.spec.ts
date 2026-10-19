@@ -30,6 +30,8 @@ const identity = {
   profileImage: null,
   accountIdentifier,
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  accountPrincipalStatus: "active" as const,
+  siteManagementPrincipalStatus: "active" as const,
   accountType: "corporation",
   // Normal account settings access, but no operations category-change management policy.
   accountPolicies: [

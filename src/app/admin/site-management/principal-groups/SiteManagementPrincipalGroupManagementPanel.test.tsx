@@ -7,7 +7,7 @@ import { SiteManagementPrincipalGroupManagementPanel } from "./SiteManagementPri
 import type { SiteManagementMemberships, SiteManagementPrincipalGroupState } from "./types";
 
 const t = dictionaries.ja.admin.siteManagementPrincipalGroups;
-const user = { principalIdentifier: "u", identityName: "User", email: "user@example.com" };
+const user = { status: "active" as const, principalIdentifier: "u", identityName: "User", email: "user@example.com" };
 const state: SiteManagementPrincipalGroupState = {
   users: [user],
   groups: [{ principalGroupIdentifier: "g", name: "General", roles: ["General"] }],
@@ -17,7 +17,7 @@ const state: SiteManagementPrincipalGroupState = {
 afterEach(cleanup);
 
 it.each(["Views their own inquiries.", null])("shows group descriptions like Wiki, with null accepted: %s", (description) => {
-  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, groups: [{ ...state.groups[0], description }] }} actions={{ updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
+  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, groups: [{ ...state.groups[0], description }] }} actions={{ updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
   fireEvent.click(screen.getByRole("button", { name: t.edit }));
   const checkbox = screen.getByRole("checkbox", { name: "General" });
   if (description) {
@@ -34,7 +34,7 @@ it.each([
   { isSaving: false, isLoading: true },
   { isSaving: false, isLoading: false },
 ])("only shows a permission warning after processing finishes: %j", (processing) => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, canManage: false, ...processing }} actions={actions} t={t} />);
   if (processing.isSaving || processing.isLoading) {
     expect(screen.queryByText(t.readOnly)).not.toBeInTheDocument();
@@ -48,14 +48,14 @@ it.each([
 it.each([
   { isLoading: true }, { isSaving: true }, { canManage: false }, { loadError: "Load failed" },
 ])("blocks edits and saves for state %j", (override) => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, hasUnsavedChanges: true, ...override }} actions={actions} t={t} />);
   expect(screen.getByRole("button", { name: override.isSaving ? t.saving : t.save })).toBeDisabled();
   expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
 });
 
 it("blocks an already open dialog after permission loss or processing begins", () => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   const { rerender } = render(<SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t} />);
   fireEvent.click(screen.getByRole("button", { name: t.edit }));
   fireEvent.click(screen.getByLabelText("General"));
@@ -69,7 +69,7 @@ it("blocks an already open dialog after permission loss or processing begins", (
 });
 
 it("distinguishes load failure, loading and legitimate empty states", () => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   const empty = { ...state, users: [], groups: [] };
   const { rerender } = render(<SiteManagementPrincipalGroupManagementPanel state={{ ...empty, loadError: "Load failed" }} actions={actions} t={t} />);
   expect(screen.getByRole("alert")).toHaveTextContent("Load failed");
@@ -85,7 +85,7 @@ it("distinguishes load failure, loading and legitimate empty states", () => {
 });
 
 it("filters mixed Operator groups without excluding General or Administrator", () => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, groups: [
     ...state.groups,
     { principalGroupIdentifier: "a", name: "Administrators", roles: ["Administrator"] },
@@ -101,7 +101,7 @@ it("filters mixed Operator groups without excluding General or Administrator", (
 });
 
 it("disables editing when only Operator groups exist", () => {
-  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, groups: [{ principalGroupIdentifier: "o", name: "Operators", roles: ["Operator"] }] }} actions={{ updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
+  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, groups: [{ principalGroupIdentifier: "o", name: "Operators", roles: ["Operator"] }] }} actions={{ updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
   expect(screen.getByText(t.noGroups)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
 });
@@ -110,16 +110,16 @@ it.each(["ja", "en", "ko"] as const)("renders dedicated %s copy and display name
   const copy = dictionaries[locale].admin.siteManagementPrincipalGroups;
   expect(Object.keys(copy).sort()).toEqual(Object.keys(t).sort());
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, users: [
-    { principalIdentifier: "email", identityName: " ", email: "fallback@example.com" },
-    { principalIdentifier: "identifier", identityName: "", email: "" },
-  ] }} actions={{ updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={copy} />);
+    { status: "active" as const, principalIdentifier: "email", identityName: " ", email: "fallback@example.com" },
+    { status: "active" as const, principalIdentifier: "identifier", identityName: "", email: "" },
+  ] }} actions={{ updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={copy} />);
   expect(screen.getByRole("heading", { name: copy.title })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "fallback@example.com" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "identifier" })).toBeInTheDocument();
 });
 
 it("Escape cancels dialog changes and restores focus", () => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t} />);
   const opener = screen.getByRole("button", { name: t.edit });
   opener.focus();
@@ -140,7 +140,7 @@ it("keeps cleared memberships editable on save failure, retries save, and revert
     const [draft, setDraft] = useState<SiteManagementMemberships>(saved);
     return <SiteManagementPrincipalGroupManagementPanel state={{ ...state, membershipByGroup: draft,
       hasUnsavedChanges: !areSiteManagementMembershipsEqual(saved, draft), saveError: "Save failed" }}
-      actions={{ load, save, updateUserGroups: (identifier, groups) => setDraft(updateSiteManagementUserGroups(draft, state.groups, identifier, groups)) }} t={t} />;
+      actions={{ updateUserStatus: vi.fn(), load, save, updateUserGroups: (identifier, groups) => setDraft(updateSiteManagementUserGroups(draft, state.groups, identifier, groups)) }} t={t} />;
   }
   render(<Harness />);
   fireEvent.click(screen.getByRole("button", { name: t.edit }));
@@ -161,7 +161,7 @@ it("keeps cleared memberships editable on save failure, retries save, and revert
 });
 
 it.each([false, true])("keeps editing locked while refresh is unconfirmed, draft dirty=%s", (hasUnsavedChanges) => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, hasUnsavedChanges, canManage: false, canRetryRefresh: true, success: t.savedRefreshFailed }} actions={actions} t={t} />);
   expect(screen.getByRole("button", { name: t.edit })).toBeDisabled();
   expect(screen.getByRole("button", { name: t.save })).toBeDisabled();
@@ -171,20 +171,20 @@ it.each([false, true])("keeps editing locked while refresh is unconfirmed, draft
 });
 
 it("displays success without changing the controlled draft", () => {
-  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, success: "Saved" }} actions={{ updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
+  render(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, success: "Saved" }} actions={{ updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() }} t={t} />);
   expect(screen.getByRole("status")).toHaveTextContent("Saved");
 });
 
 
 it("does not allow confirming an unchanged dialog", () => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   render(<SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t} />);
   fireEvent.click(screen.getByRole("button", { name: t.edit }));
   expect(screen.getByRole("button", { name: t.confirm })).toBeDisabled();
 });
 
 it("shows an independently supplied unassigned user and applies only a dialog draft before saving", () => {
-  const actions = { updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
   const { rerender } = render(<SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t} />);
   expect(screen.getByText(user.email)).toBeInTheDocument();
   expect(screen.getByText(t.unassigned)).toBeInTheDocument();
@@ -202,4 +202,19 @@ it("shows an independently supplied unassigned user and applies only a dialog dr
   fireEvent.click(screen.getByLabelText("General"));
   fireEvent.click(screen.getByRole("button", { name: t.cancel }));
   expect(actions.updateUserGroups).toHaveBeenCalledOnce();
+});
+
+it("stages status from the user row without saving or opening the group dialog", () => {
+  const actions = { updateUserStatus: vi.fn(), updateUserGroups: vi.fn(), save: vi.fn(), load: vi.fn() };
+  const { rerender } = render(<SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t} />);
+  const toggle = screen.getByRole("switch", { name: t.principalStatus.label });
+  fireEvent.click(toggle);
+  expect(actions.updateUserStatus).toHaveBeenCalledWith("u", "suspended");
+  expect(actions.save).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t.edit }));
+  expect(within(screen.getByRole("dialog")).queryByRole("combobox")).not.toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).queryByRole("switch")).not.toBeInTheDocument();
+  rerender(<SiteManagementPrincipalGroupManagementPanel state={{ ...state, canManage: false }} actions={actions} t={t} />);
+  expect(toggle).toBeDisabled();
 });

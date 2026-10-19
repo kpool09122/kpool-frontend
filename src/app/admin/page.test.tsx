@@ -50,6 +50,7 @@ const passkeyMocks = vi.hoisted(() => ({
   list: vi.fn(),
 }));
 const navigationMocks = vi.hoisted(() => ({
+  redirect: vi.fn((path: string) => { throw new Error(`redirect:${path}`); }),
   push: vi.fn(),
   replace: vi.fn(),
   usePathname: vi.fn(() => window.location.pathname),
@@ -73,6 +74,7 @@ vi.mock("@/gateways/identity/passkeyBrowserApi", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  redirect: navigationMocks.redirect,
   usePathname: navigationMocks.usePathname,
   useSearchParams: () => new URLSearchParams(window.location.search),
   useRouter: () => ({
@@ -88,6 +90,8 @@ const identity = {
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  accountPrincipalStatus: "active" as const,
+  siteManagementPrincipalStatus: "active" as const,
   accountType: "corporation",
   account: { status: "active" },
   accountEffectivePolicies: [
@@ -178,7 +182,7 @@ const principal = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [
     {
       policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -351,7 +355,6 @@ const createAdapter = (
     identityIdentifier: principal.identityIdentifier,
     accountPrincipalCount: 1,
     isDelegatedPrincipal: principal.isDelegatedPrincipal,
-    isEnabled: principal.isEnabled,
   }),
   ...overrides,
 });
@@ -633,7 +636,7 @@ function AdminClient({
 
   return (
     <div onClickCapture={handleRouteClick}>
-      <AdminProvider initialIdentity={initialIdentity}>
+      <AdminProvider initialIdentity={initialIdentity} initialPrincipalState={initialPrincipalState}>
         <AdminShellClient>
           <AdminRouteProvider key={activePathname} value={context}>{activeContent}</AdminRouteProvider>
         </AdminShellClient>
@@ -770,7 +773,7 @@ const loadCropperImage = () => {
 describe("admin page clients", () => {
   it.each(["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list", null])("shows certification management and permits its URL with any supported permission: %s", async (action) => {
     const hasPermission = action !== null;
-    navigationMocks.replace.mockClear();
+    navigationMocks.redirect.mockClear();
     const certificationPrincipal = {
       ...principal,
       policies: hasPermission ? [{
@@ -781,18 +784,20 @@ describe("admin page clients", () => {
       }] : [],
     };
     const agencyIdentity = { ...identity, account: { ...identity.account, accountCategory: "general" } };
-    renderWithQueryClient(<AdminClient
+    const renderPage = () => renderWithQueryClient(<AdminClient
       initialIdentity={agencyIdentity}
       initialPrincipalState={{ status: "available", principal: certificationPrincipal }}
       initialWikiTab="officialCertificationRequest"
       principalAdapter={createAdapter({ getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "available", principal: certificationPrincipal }) })}
       draftWikiAdapter={createDraftWikiAdapter()}
     />);
-    expect(Boolean(screen.queryByRole("tab", { name: "公式認証管理" }))).toBe(hasPermission);
     if (hasPermission) {
-      expect(navigationMocks.replace).not.toHaveBeenCalled();
+      renderPage();
+      expect(screen.getByRole("tab", { name: "公式認証管理" })).toBeInTheDocument();
+      expect(navigationMocks.redirect).not.toHaveBeenCalled();
     } else {
-      await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith("/admin/wiki/editing"));
+      expect(renderPage).toThrow("redirect:/admin/wiki/editing");
+      expect(screen.queryByRole("tab", { name: "公式認証管理" })).not.toBeInTheDocument();
     }
   });
 
@@ -1499,6 +1504,7 @@ describe("admin page clients", () => {
 
   it("shows account members with editable multiple principal group memberships", async () => {
     const member = {
+      status: "active",
       principalIdentifier: "33333333-3333-3333-3333-333333333333",
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
       identityName: "member",
@@ -1561,7 +1567,7 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "ユーザー権限管理" }));
     expect(await screen.findByRole("heading", { name: "ユーザー権限管理" })).toBeInTheDocument();
-    expect(screen.getByText("ユーザーごとの所属権限グループを編集し、最後に一括保存します。")).toBeInTheDocument();
+    expect(screen.getByText("ユーザーごとのステータスと所属権限グループを編集し、最後に一括保存します。")).toBeInTheDocument();
     expect(screen.queryByText("デフォルトグループ")).not.toBeInTheDocument();
     expect(screen.queryByText("カスタムグループ")).not.toBeInTheDocument();
     expect(await screen.findByText("Default")).toBeInTheDocument();

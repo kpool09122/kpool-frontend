@@ -6,6 +6,7 @@ import {
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 const identity = (action: string, effect = "allow") =>
   ({
+    accountPrincipalStatus: "active", siteManagementPrincipalStatus: "active",
     account: { status: "active" },
     accountIdentifier: "account",
     siteManagementPrincipalIdentifier: "actor",

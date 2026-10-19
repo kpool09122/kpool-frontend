@@ -1,5 +1,6 @@
 "use client";
 
+import { PrincipalStatusToggle } from "@/components/PrincipalStatusToggle";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 
 import { useMemo, useState } from "react";
@@ -36,6 +37,7 @@ export function WikiPrincipalGroupManagementPanel({
     load,
     save,
     updateUserGroups,
+    updateUserStatus,
   } = principalGroups;
   const [dialogState, setDialogState] = useState<EditableUserDialogState>(null);
 
@@ -97,6 +99,7 @@ export function WikiPrincipalGroupManagementPanel({
             groups={state.groups}
             key={user.principalIdentifier}
             membershipByGroup={state.membershipByGroup}
+            onStatusChange={(status) => updateUserStatus(user.principalIdentifier, status)}
             onEdit={() => openUserDialog(user)}
             t={t}
             user={user}
@@ -109,12 +112,12 @@ export function WikiPrincipalGroupManagementPanel({
             {t.wikiPrincipalGroupUnsavedChanges}
           </AccountStatusMessage>
         ) : null}
-        {state.error ? (
+        {state.error || state.canRetryRefresh ? (
           <AccountStatusMessage
             action={
               <button
                 className="mt-3 rounded-lg border border-status-danger px-4 py-2 transition hover:bg-status-danger/10"
-                onClick={load}
+                onClick={state.canRetryRefresh || state.loadError ? load : save}
                 type="button"
               >
                 {t.wikiPrincipalGroupRetry}
@@ -122,7 +125,7 @@ export function WikiPrincipalGroupManagementPanel({
             }
             variant="error"
           >
-            {state.error}
+            {state.error ?? t.principalStatus.savedRefreshFailed}
           </AccountStatusMessage>
         ) : null}
         {state.success ? (
@@ -134,7 +137,7 @@ export function WikiPrincipalGroupManagementPanel({
       <EditUserGroupsDialog
         dialogState={dialogState}
         groups={state.groups}
-        isBusy={isBusy}
+        isBusy={isBusy || !canManage}
         setDialogState={setDialogState}
         t={t}
         onConfirm={confirmUserDialog}
@@ -148,13 +151,15 @@ function WikiPrincipalUserRow({
   groups,
   membershipByGroup,
   onEdit,
+  onStatusChange,
   t,
   user,
 }: {
   disabled: boolean;
   groups: WikiPrincipalGroupSummary[];
-  membershipByGroup: Record<string, string[]>;
+  membershipByGroup: Readonly<Record<string, readonly string[]>>;
   onEdit: () => void;
+  onStatusChange: (status: "active" | "suspended") => void;
   t: AdminDictionary;
   user: WikiPrincipalGroupMemberSummary;
 }) {
@@ -174,15 +179,19 @@ function WikiPrincipalUserRow({
         <div>
           <h3 className="font-semibold text-text-strong">{getUserDisplayName(user)}</h3>
           <p className="mt-1 break-all text-xs text-text-muted">{user.email}</p>
+          {user.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}
         </div>
-        <button
-          className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={disabled}
-          onClick={onEdit}
-          type="button"
-        >
-          {t.wikiPrincipalGroupEditUserGroups}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <PrincipalStatusToggle value={user.status} disabled={disabled} onChange={onStatusChange} t={t.principalStatus} />
+          <button
+            className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={disabled}
+            onClick={onEdit}
+            type="button"
+          >
+            {t.wikiPrincipalGroupEditUserGroups}
+          </button>
+        </div>
       </div>
       <p className="mt-3 text-sm text-text-muted">
         <span className="font-semibold text-text-strong">{t.wikiPrincipalGroupUserGroupsLabel}</span>{" "}

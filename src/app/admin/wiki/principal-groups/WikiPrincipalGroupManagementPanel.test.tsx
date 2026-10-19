@@ -1,10 +1,11 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { dictionaries } from "../../../../i18n/dictionaries";
 import { WikiPrincipalGroupManagementPanel } from "./WikiPrincipalGroupManagementPanel";
 
 const t = dictionaries.ja.admin;
+afterEach(cleanup);
 
 const groupA = {
   principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -26,6 +27,7 @@ const groupB = {
 };
 
 const user = {
+  status: "active" as const,
   principalIdentifier: "11111111-1111-4111-8111-111111111111",
   identityIdentifier: "55555555-5555-4555-8555-555555555555",
   identityName: "編集者ユーザー",
@@ -38,12 +40,15 @@ const createPrincipalGroups = ({
 } = {}) => ({
   hasUnsavedChanges,
   isBusy: false,
+  accessStatus: null,
+  updateUserStatus: vi.fn(),
   load: vi.fn(),
   save: vi.fn(),
   updateUserGroups,
   userByIdentifier: new Map([[user.principalIdentifier, user]]),
   state: {
     error: null,
+    canManage: true, hasUnsavedChanges, canRetryRefresh: false, loadError: null, saveError: null,
     groups: [groupA, groupB],
     isLoading: false,
     isSaving: false,
@@ -57,9 +62,6 @@ const createPrincipalGroups = ({
 });
 
 describe("WikiPrincipalGroupManagementPanel", () => {
-  afterEach(() => {
-    cleanup();
-  });
 
   it("updates only the on-screen draft when the user group dialog is confirmed", () => {
     const updateUserGroups = vi.fn();
@@ -108,4 +110,20 @@ describe("WikiPrincipalGroupManagementPanel", () => {
     expect(screen.getByRole("button", { name: t.wikiPrincipalGroupSave })).toBeEnabled();
     expect(screen.getByText(t.wikiPrincipalGroupUnsavedChanges)).toBeInTheDocument();
   });
+});
+
+
+it("stages status from the user row without saving or opening the group dialog", () => {
+  const principalGroups = createPrincipalGroups();
+  const { rerender } = render(<WikiPrincipalGroupManagementPanel canManage principalGroups={principalGroups} t={t} />);
+  const toggle = screen.getByRole("switch", { name: t.principalStatus.label });
+  fireEvent.click(toggle);
+  expect(principalGroups.updateUserStatus).toHaveBeenCalledWith(user.principalIdentifier, "suspended");
+  expect(principalGroups.save).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t.wikiPrincipalGroupEditUserGroups }));
+  expect(within(screen.getByRole("dialog")).queryByRole("combobox")).not.toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).queryByRole("switch")).not.toBeInTheDocument();
+  rerender(<WikiPrincipalGroupManagementPanel canManage={false} principalGroups={principalGroups} t={t} />);
+  expect(toggle).toBeDisabled();
 });

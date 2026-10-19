@@ -1,8 +1,10 @@
+import type { PrincipalStatus } from "@/gateways/identity/principalStatus";
 import type { dictionaries } from "@/i18n/dictionaries";
 
 /** View models, not API types. #448 adapts the independent principals list. */
 export type SiteManagementUser = {
   principalIdentifier: string;
+  status: PrincipalStatus;
   identityName: string;
   email: string;
 };
@@ -33,6 +35,7 @@ export type SiteManagementPrincipalGroupState = {
   canRetryRefresh?: boolean;
 };
 export type SiteManagementPrincipalGroupActions = {
+  updateUserStatus: (principalIdentifier: string, status: "active" | "suspended") => void;
   updateUserGroups: (principalIdentifier: string, groupIdentifiers: string[]) => void;
   save: () => void;
   /** The hook decides how to reconcile drafts on refresh; UI never discards them. */
