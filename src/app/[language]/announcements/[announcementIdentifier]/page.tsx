@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AnnouncementCategoryBadge } from "@/components/Announcement/AnnouncementCategoryBadge";
+import { AnnouncementMarkdown } from "@/components/Announcement/AnnouncementMarkdown";
 import { notFound } from "next/navigation";
 import { isSupportedLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
@@ -27,7 +29,7 @@ export default async function AnnouncementDetail({
   };
   return (
     <main className="mx-auto w-[90%] max-w-4xl space-y-6 py-8 text-text-strong">
-      <Link className="underline" href={`/${language}/announcements`}>
+      <Link className="block w-fit underline" href={`/${language}/announcements`}>
         {t.title}
       </Link>
       {!item ? (
@@ -41,13 +43,17 @@ export default async function AnnouncementDetail({
           </Link>
         </div>
       ) : (
-        <article className="space-y-4">
+        <article className="space-y-6">
           <h1 className="text-2xl font-bold break-words">{item.title}</h1>
-          <p>
-            {categories[item.category_name]} ·{" "}
-            <time dateTime={item.published_date}>{item.published_date}</time>
+          <p className="flex flex-wrap items-center gap-3">
+            <AnnouncementCategoryBadge
+              label={categories[item.category_name]}
+            />
+            <time className="text-sm text-text-muted" dateTime={item.published_date}>
+              {item.published_date}
+            </time>
           </p>
-          <p className="whitespace-pre-wrap break-words">{item.content}</p>
+          <AnnouncementMarkdown content={item.content} />
         </article>
       )}
     </main>

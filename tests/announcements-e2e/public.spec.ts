@@ -20,9 +20,10 @@ for (const [language, title, next] of [
     await expect(
       page.getByRole("heading", { name: title, exact: true }),
     ).toBeVisible();
-    await expect(page.locator("article p.whitespace-pre-wrap")).toContainText(
+    await expect(page.locator("article")).toContainText(
       "<script>alert(1)</script>",
     );
+    await expect(page.locator("article script")).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

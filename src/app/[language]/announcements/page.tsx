@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnnouncementCategoryBadge } from "@/components/Announcement/AnnouncementCategoryBadge";
 import { notFound } from "next/navigation";
 import { isSupportedLocale } from "@/i18n/locales";
 import { dictionaries } from "@/i18n/dictionaries";
@@ -46,16 +47,18 @@ export default async function AnnouncementList({
           ) : (
             <ul className="divide-y divide-stroke-subtle">
               {list.announcements.map((item) => (
-                <li key={item.announcement_id} className="space-y-2 py-4">
+                <li key={item.announcement_id} className="flex flex-col items-start gap-4 py-5">
                   <Link
                     className="text-lg font-semibold underline break-words"
                     href={`/${language}/announcements/${item.announcement_id}`}
                   >
                     {item.title}
                   </Link>
-                  <p>
-                    {categories[item.category_name]} ·{" "}
-                    <time dateTime={item.published_date}>
+                  <p className="flex flex-wrap items-center gap-3">
+                    <AnnouncementCategoryBadge
+                      label={categories[item.category_name]}
+                    />
+                    <time className="text-sm text-text-muted" dateTime={item.published_date}>
                       {item.published_date}
                     </time>
                   </p>

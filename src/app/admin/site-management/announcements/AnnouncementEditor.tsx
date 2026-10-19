@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   announcementInputSchema,
   isAnnouncementPublishable,
@@ -8,36 +8,40 @@ import {
 } from "@/gateways/site-management/announcements";
 import { localeLabels, supportedLocales, type Locale } from "@/i18n/locales";
 import type { I18nDictionary } from "@/i18n/dictionaries";
+import { AnnouncementBodyEditor } from "./AnnouncementBodyEditor";
 
 export type AnnouncementAction = "save" | "translate" | "publish" | "delete";
 export function AnnouncementEditor({
   draft,
+  locale,
   allowed,
   busy,
   onAction,
   onClose,
+  feedback,
   t,
 }: {
   draft: DraftAnnouncement | null;
+  locale: Locale;
   allowed: (
     action: "create" | "update" | "translate" | "publish" | "delete",
   ) => boolean;
   busy: boolean;
   onAction: (action: AnnouncementAction, inputs?: AnnouncementInput[]) => void;
   onClose: () => void;
+  feedback?: ReactNode;
   t: I18nDictionary["announcements"];
 }) {
-  const [language, setLanguage] = useState<Locale>(
-    draft?.sourceLanguage ?? "ja",
+  const [editingLanguage, setEditingLanguage] = useState<Locale>(
+    draft?.sourceLanguage ?? locale,
   );
+  const language = draft ? editingLanguage : locale;
   const [category, setCategory] = useState<1 | 2 | 3>(draft?.category ?? 1);
-  const [date, setDate] = useState(draft?.publishedDate ?? "");
   const [contents, setContents] = useState(draft?.contents ?? {});
   const current = contents[language] ?? { title: "", content: "" };
   const dirty =
     !draft ||
     category !== draft.category ||
-    date !== draft.publishedDate ||
     JSON.stringify(contents) !== JSON.stringify(draft.contents);
   const inputs = (draft ? supportedLocales : [language])
     .filter((locale) => {
@@ -45,14 +49,12 @@ export function AnnouncementEditor({
       return (
         value &&
         (category !== draft?.category ||
-          date !== draft?.publishedDate ||
           JSON.stringify(value) !== JSON.stringify(draft?.contents[locale]))
       );
     })
     .map((locale) => ({
       language: locale,
       category,
-      publishedDate: date,
       ...contents[locale]!,
     }));
   const valid =
@@ -64,32 +66,34 @@ export function AnnouncementEditor({
   return (
     <form
       noValidate
-      className="space-y-4 rounded-lg border border-stroke-subtle p-4"
+      className="space-y-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (!busy && editable && dirty && valid) onAction("save", inputs);
       }}
     >
-      <fieldset disabled={busy} className="space-y-4 min-w-0">
-        <label className="block">
-          {draft ? t.language : t.sourceLanguage}
-          <select
-            aria-label={draft ? t.language : t.sourceLanguage}
-            className="block w-full border p-2"
-            value={language}
-            onChange={(event) => setLanguage(event.target.value as Locale)}
-          >
-            {supportedLocales.map((locale) => (
-              <option key={locale} value={locale}>
-                {localeLabels[locale]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
+      <fieldset disabled={busy} className="min-w-0 space-y-5">
+        {draft ? (
+          <label className="grid gap-2 text-sm font-medium text-text-strong">
+            {t.language}
+            <select
+              aria-label={t.language}
+              className="w-full min-w-0 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong disabled:opacity-60"
+              value={language}
+              onChange={(event) => setEditingLanguage(event.target.value as Locale)}
+            >
+              {supportedLocales.map((locale) => (
+                <option key={locale} value={locale}>
+                  {localeLabels[locale]}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label className="grid gap-2 text-sm font-medium text-text-strong">
           {t.category}
           <select
-            className="block w-full border p-2"
+            className="w-full min-w-0 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong disabled:opacity-60"
             disabled={!editable}
             value={category}
             onChange={(event) =>
@@ -101,21 +105,10 @@ export function AnnouncementEditor({
             <option value={3}>{t.maintenance}</option>
           </select>
         </label>
-        <label className="block">
-          {t.date}
-          <input
-            className="block w-full border p-2"
-            disabled={!editable}
-            required
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-          />
-        </label>
-        <label className="block">
+        <label className="grid gap-2 text-sm font-medium text-text-strong">
           {t.headline}
           <input
-            className="block w-full border p-2"
+            className="w-full min-w-0 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong disabled:opacity-60"
             disabled={!editable}
             required
             maxLength={64}
@@ -123,25 +116,15 @@ export function AnnouncementEditor({
             onChange={(event) => change("title", event.target.value)}
           />
         </label>
-        <label className="block">
-          {t.content}
-          <textarea
-            className="block w-full border p-2"
-            disabled={!editable}
-            required
-            rows={10}
-            maxLength={2048}
-            value={current.content}
-            onChange={(event) => change("content", event.target.value)}
-          />
-        </label>
-        {dirty ? <p role="status">{t.unsaved}</p> : null}
-        {draft && !isAnnouncementPublishable(draft) ? (
-          <p>{t.incomplete}</p>
-        ) : null}
-        <div className="flex flex-wrap gap-4 [&_button]:rounded [&_button]:border [&_button]:px-4 [&_button]:py-2 [&_button:disabled]:opacity-40">
+        <AnnouncementBodyEditor
+          content={current.content}
+          disabled={!editable}
+          onChange={(value) => change("content", value)}
+          t={t}
+        />
+        <div className="flex flex-wrap gap-3 border-t border-stroke-subtle pt-5 [&_button]:rounded-lg [&_button]:border [&_button]:border-stroke-subtle [&_button]:px-5 [&_button]:py-2.5 [&_button]:text-sm [&_button]:font-semibold [&_button]:transition [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-40">
           {editable ? (
-            <button disabled={!dirty || !valid} type="submit">
+            <button className="bg-brand-primary text-on-primary hover:brightness-105" disabled={!dirty || !valid} type="submit">
               {draft ? t.save : t.create}
             </button>
           ) : null}
@@ -185,6 +168,7 @@ export function AnnouncementEditor({
           </button>
         </div>
       </fieldset>
+      {feedback}
     </form>
   );
 }

@@ -58,7 +58,6 @@ const draft = {
   announcementIdentifier: "019b0000-0000-7000-8000-000000000001",
   sourceLanguage: "ja",
   category: 1,
-  publishedDate: "2026-10-19",
   contents: { ja: { title: "タイトル", content: "本文" } },
 };
 const list = {
@@ -146,7 +145,7 @@ it("discards pending old-actor draft reads after an account switch", async () =>
   expect(screen.queryByLabelText("タイトル")).not.toBeInTheDocument();
   mocks.identity.accountIdentifier = before;
 });
-it("loads authoritative draft, preserves editing on translation failure, then saves", async () => {
+it("loads authoritative draft, preserves editing on translation failure, then clears feedback on close", async () => {
   mocks.request.mockImplementation(
     (path: string, _schema: unknown, method: string) =>
       path === "draft-announcements?page=1"
@@ -188,4 +187,7 @@ it("loads authoritative draft, preserves editing on translation failure, then sa
     ),
   );
   expect(await screen.findByText("保存しました。")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+  expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
+  expect(screen.queryByText("保存しました。")).not.toBeInTheDocument();
 });

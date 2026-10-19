@@ -129,7 +129,6 @@ const DraftAnnouncement = z
     sourceLanguage: z.enum(["ja", "ko", "en"]),
     category: AnnouncementCategory,
     contents: AnnouncementContents,
-    publishedDate: KPool_Common_DateString,
   })
   .passthrough();
 const ListDraftAnnouncementsPage = z
@@ -147,7 +146,6 @@ const CreateAnnouncementRequestBody = z
     category: AnnouncementCategory,
     title: z.string().min(1).max(64),
     content: z.string().min(1).max(2048),
-    publishedDate: KPool_Common_DateString,
   })
   .passthrough();
 const UpdateAnnouncementRequestBody = z
@@ -156,7 +154,6 @@ const UpdateAnnouncementRequestBody = z
     category: AnnouncementCategory,
     title: z.string().min(1).max(64),
     content: z.string().min(1).max(2048),
-    publishedDate: KPool_Common_DateString,
   })
   .passthrough();
 const DeleteAnnouncementResponse = z
@@ -682,7 +679,7 @@ const endpoints = makeApi([
       {
         name: "sort",
         type: "Query",
-        schema: z.enum(["published_date", "created_at"]).nullish(),
+        schema: z.literal("created_at").nullish(),
       },
       {
         name: "searchWords",

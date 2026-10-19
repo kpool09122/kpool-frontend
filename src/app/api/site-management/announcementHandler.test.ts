@@ -7,13 +7,11 @@ const draft = {
   announcementIdentifier: id,
   sourceLanguage: "ja",
   category: 1,
-  publishedDate: "2026-10-19",
   contents: { ja: { title: "タイトル", content: "本文" } },
 };
 const body = {
   language: "ja",
   category: 1,
-  publishedDate: "2026-10-19",
   title: "タイトル",
   content: "本文",
 };
@@ -66,7 +64,7 @@ describe("announcement BFF", () => {
         "KPOOL_SITE_MANAGEMENT_API_BASE_URL",
         "https://backend.example",
       );
-      const complete = { ...draft, contents: { ja: body, en: body, ko: body } };
+      const complete = { ...draft, publishedDate: "2026-10-19", contents: { ja: body, en: body, ko: body } };
       const payload =
         operation === "translate" || operation === "DELETE"
           ? { announcements: [draft] }

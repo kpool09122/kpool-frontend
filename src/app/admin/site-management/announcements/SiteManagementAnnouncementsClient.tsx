@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import {
   announcementRequest,
   announcementSchemas as schemas,
@@ -194,84 +195,123 @@ function ScopedAnnouncements({ scope }: { scope: string }) {
       });
   };
   if (!allowed("view-draft") || accessError === 401 || accessError === 403)
-    return <p role="alert">{t.denied}</p>;
+    return (
+      <AccountStatusMessage variant="error">{t.denied}</AccountStatusMessage>
+    );
+  const feedback = (
+    <div className="min-h-14 space-y-2">
+      {error ? (
+        <AccountStatusMessage variant="error">{error}</AccountStatusMessage>
+      ) : null}
+      {message ? (
+        <AccountStatusMessage variant="success">{message}</AccountStatusMessage>
+      ) : null}
+    </div>
+  );
   return (
-    <section className="space-y-4">
-      <h1 className="text-xl font-semibold">{t.management}</h1>
-      {error ? <p role="alert">{error}</p> : null}
-      {message ? <p role="status">{message}</p> : null}
-      {editor ? (
-        <AnnouncementEditor
-          key={`${editor.draft?.announcementIdentifier ?? "new"}:${editor.revision}`}
-          draft={editor.draft}
-          allowed={allowed}
-          busy={busy}
-          onAction={act}
-          onClose={() => setEditor(null)}
-          t={t}
-        />
-      ) : (
-        <>
-          {allowed("create") ? (
-            <button
-              className="rounded border px-4 py-2"
-              disabled={busy}
-              onClick={() => {
-                setEditor({ draft: null, revision: 0 });
-                setMessage(null);
-              }}
-            >
-              {t.create}
-            </button>
-          ) : null}
-          {query.isPending || busy ? <p role="status">{t.loading}</p> : null}
-          {query.isError ? (
-            <div role="alert">
-              {t.failed}
-              <button onClick={() => void query.refetch()}>{t.retry}</button>
-            </div>
-          ) : null}
-          {!query.isError && query.data ? (
-            <>
-              <ul className="divide-y divide-stroke-subtle">
-                {query.data.announcements.map((draft) => (
-                  <li key={draft.announcementIdentifier} className="py-3">
-                    <button
-                      disabled={busy}
-                      className="text-start underline break-words"
-                      onClick={() => open(draft.announcementIdentifier)}
-                    >
-                      {draft.contents[locale]?.title ??
-                        draft.contents[draft.sourceLanguage]?.title}
-                    </button>
-                    <p>{draft.publishedDate}</p>
-                  </li>
-                ))}
-              </ul>
-              {query.data.announcements.length === 0 ? <p>{t.empty}</p> : null}
-              <nav className="flex gap-4">
-                <button
-                  disabled={busy || query.isFetching || page <= 1}
-                  onClick={() => setPage(page - 1)}
+    <AccountSettingsPanel
+      title={t.management}
+      action={
+        !editor && allowed("create") ? (
+          <button
+            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={busy}
+            type="button"
+            onClick={() => {
+              setEditor({ draft: null, revision: 0 });
+              setMessage(null);
+            }}
+          >
+            {t.create}
+          </button>
+        ) : null
+      }
+    >
+      <div className="mt-5 space-y-4">
+        {editor ? (
+          <AnnouncementEditor
+            key={`${editor.draft?.announcementIdentifier ?? "new"}:${editor.revision}`}
+            draft={editor.draft}
+            locale={locale}
+            allowed={allowed}
+            busy={busy}
+            feedback={feedback}
+            onAction={act}
+            onClose={() => {
+              setEditor(null);
+              setMessage(null);
+              setError(null);
+            }}
+            t={t}
+          />
+        ) : (
+          <>
+            {query.isPending || busy ? (
+              <p role="status" className="text-sm text-text-muted">{t.loading}</p>
+            ) : null}
+            {query.isError ? (
+              <AccountStatusMessage
+                variant="error"
+                action={
+                  <button
+                    className="mt-2 underline underline-offset-4"
+                    type="button"
+                    onClick={() => void query.refetch()}
+                  >
+                    {t.retry}
+                  </button>
+                }
+              >
+                {t.failed}
+              </AccountStatusMessage>
+            ) : null}
+            {!query.isError && query.data ? (
+              <>
+                <ul className="divide-y divide-stroke-subtle">
+                  {query.data.announcements.map((draft) => (
+                    <li key={draft.announcementIdentifier} className="space-y-2 py-4">
+                      <button
+                        disabled={busy}
+                        className="text-start font-semibold text-text-strong underline underline-offset-4 break-words disabled:opacity-60"
+                        onClick={() => open(draft.announcementIdentifier)}
+                      >
+                        {draft.contents[locale]?.title ??
+                          draft.contents[draft.sourceLanguage]?.title}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {query.data.announcements.length === 0 ? (
+                  <AccountStatusMessage variant="empty">{t.draftEmpty}</AccountStatusMessage>
+                ) : null}
+                <nav
+                  aria-label={t.management}
+                  className="flex flex-wrap items-center justify-end gap-4 border-t border-stroke-subtle pt-4 text-sm [&_button]:rounded-lg [&_button]:border [&_button]:border-stroke-subtle [&_button]:px-4 [&_button]:py-2 [&_button]:font-semibold [&_button]:transition [&_button:hover]:bg-surface-base [&_button:disabled]:cursor-not-allowed [&_button:disabled]:opacity-40"
                 >
-                  {t.previous}
-                </button>
-                <span>
-                  {page} / {query.data.last_page}
-                </span>
-                <button
-                  disabled={
-                    busy || query.isFetching || page >= query.data.last_page
-                  }
-                  onClick={() => setPage(page + 1)}
-                >
-                  {t.next}
-                </button>
-              </nav>
-            </>
-          ) : null}
-        </>
-      )}
-    </section>
+                  <button
+                    disabled={busy || query.isFetching || page <= 1}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    {t.previous}
+                  </button>
+                  <span>
+                    {page} / {query.data.last_page}
+                  </span>
+                  <button
+                    disabled={
+                      busy || query.isFetching || page >= query.data.last_page
+                    }
+                    onClick={() => setPage(page + 1)}
+                  >
+                    {t.next}
+                  </button>
+                </nav>
+              </>
+            ) : null}
+            {feedback}
+          </>
+        )}
+      </div>
+    </AccountSettingsPanel>
   );
 }

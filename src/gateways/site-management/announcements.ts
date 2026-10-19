@@ -20,7 +20,6 @@ export const announcementInputSchema =
       .string()
       .max(2048)
       .refine((value) => value.trim().length > 0),
-    publishedDate: z.string().date(),
   });
 export const announcementIdentifierSchema =
   announcementSchemas.DraftAnnouncement.shape.announcementIdentifier;
