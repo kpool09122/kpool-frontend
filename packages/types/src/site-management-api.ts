@@ -958,7 +958,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/draft-announcements/:announcementIdentifier/publish",
     alias: "DraftAnnouncementCommandOperations_publishAnnouncement",
-    description: `Publish a draft under the same identifier. Requires announcement:publish on announcement. Non-blank titles and bodies in all ja/ko/en languages are required; incomplete contents return 422. A missing draft returns 404. Saving the published contents and deleting the draft occur in one transaction. Existing published contents are updated under the same identifier.`,
+    description: `Publish a draft under the same identifier. The server assigns the current date and time as the publication date on each publication. Requires announcement:publish on announcement. Non-blank titles and bodies in all ja/ko/en languages are required; incomplete contents return 422. A missing draft returns 404. Saving the published contents and deleting the draft occur in one transaction. Existing published contents are updated under the same identifier.`,
     requestFormat: "json",
     parameters: [
       {
