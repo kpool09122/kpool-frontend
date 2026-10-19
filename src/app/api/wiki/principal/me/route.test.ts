@@ -9,7 +9,7 @@ const principal = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [],
 };
 

@@ -9,6 +9,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { Locale } from "../../i18n/locales";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { QueryProvider } from "../QueryProvider";
+import { PrincipalAccessMonitor } from "./PrincipalAccessMonitor";
 import { getAdminAccountScope } from "./accountScope";
 
 type AdminContextValue = {
@@ -68,7 +69,7 @@ export function AdminProvider({
         t: dictionary.admin,
       }}
     >
-      <QueryProvider key={`${sessionVersion}:${currentScope}`}>{children}</QueryProvider>
+      <QueryProvider key={`${sessionVersion}:${currentScope}`}><PrincipalAccessMonitor identity={currentIdentity} refreshIdentity={refreshIdentity} t={dictionary.admin}>{children}</PrincipalAccessMonitor></QueryProvider>
     </AdminContext.Provider>
   );
 }

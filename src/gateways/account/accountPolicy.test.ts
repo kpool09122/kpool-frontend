@@ -18,7 +18,7 @@ import {
   isCorporationAccount,
 } from "./accountPolicy";
 
-const baseIdentity = {
+const baseIdentity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   identityName: "member",
   email: "member@example.com",

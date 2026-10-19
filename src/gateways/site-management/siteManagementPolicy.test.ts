@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canAccessSiteManagement, canManageSiteManagementPrincipalGroups } from "./siteManagementPolicy";
 
-const identity = { language: "ja", identityIdentifier: "actor", identityName: "admin", email: "a@example.test", accountIdentifier: "account", account: { status: "active" }, siteManagementPrincipalIdentifier: "principal" };
+const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const, language: "ja", identityIdentifier: "actor", identityName: "admin", email: "a@example.test", accountIdentifier: "account", account: { status: "active" }, siteManagementPrincipalIdentifier: "principal" };
 const statement: { effect: string; actions: string[]; resourceTypes: string[]; condition: string | null } = { effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null };
 const policy = (statements = [statement]) => ({ policyIdentifier: "policy", name: "Administrator", statements });
 describe("SiteManagement authorization", () => {

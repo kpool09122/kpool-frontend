@@ -10,7 +10,7 @@ const navigation = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => navigation, usePathname: () => "/admin/site-management/principal-groups", useSearchParams: () => new URLSearchParams() }));
 const siteAdmin = vi.hoisted(() => ({ currentIdentity: {} }));
 vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: siteAdmin.currentIdentity, t: dictionaries.ja.admin }) }));
-const identity = {
+const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
   identityName: "member",
   email: "member@example.com",
@@ -23,7 +23,7 @@ const principal = {
   principalIdentifier: "33333333-3333-4333-8333-333333333333",
   identityIdentifier: identity.identityIdentifier,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [{ policyIdentifier: "policy-2", name: "MANAGER", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["principal-group-manage"], resourceTypes: ["principal_group"], condition: null }] }],
 };
 

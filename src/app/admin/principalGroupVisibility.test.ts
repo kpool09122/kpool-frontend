@@ -3,7 +3,7 @@ import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityA
 import type { WikiPrincipalSummary } from "@/gateways/wiki/wikiPrincipal";
 import { canShowAccountPrincipalGroupManagement, canShowWikiPrincipalGroupManagement, canShowSiteManagementPrincipalGroupManagement } from "./principalGroupVisibility";
 
-const identity: AuthenticatedIdentitySummary = {
+const identity: AuthenticatedIdentitySummary = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
   identityName: "member",
   email: "member@example.com",
@@ -20,7 +20,7 @@ const identity: AuthenticatedIdentitySummary = {
 const principal: WikiPrincipalSummary = {
   principalIdentifier: "33333333-3333-4333-8333-333333333333",
   identityIdentifier: identity.identityIdentifier,
-  isEnabled: true,
+  status: "active" as const,
   isDelegatedPrincipal: false,
   accountPrincipalCount: 2,
   policies: [{

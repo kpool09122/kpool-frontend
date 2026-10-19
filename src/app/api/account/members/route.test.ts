@@ -6,6 +6,7 @@ import { GET } from "./route";
 const membersResponse = {
   members: [
     {
+      status: "active" as const,
       principalIdentifier: "11111111-1111-4111-8111-111111111111",
       identityIdentifier: "22222222-2222-4222-8222-222222222222",
       identityName: "member",

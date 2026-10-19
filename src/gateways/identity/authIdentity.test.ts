@@ -26,6 +26,8 @@ describe("fetchAuthenticatedIdentity", () => {
           language: "ja",
           accountIdentifier: null,
           accountPrincipalIdentifier: null,
+          accountPrincipalStatus: null,
+          siteManagementPrincipalStatus: "active" as const,
           siteManagementPrincipalIdentifier: "55555555-5555-4555-8555-555555555555",
           accountType: null,
           accountIdentityCount: 0,

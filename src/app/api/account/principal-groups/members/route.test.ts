@@ -42,10 +42,10 @@ describe("/api/account/principal-groups/members route", () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (url === "https://account.example.test/api/v1/account/principal-groups/members") {
-        return Promise.resolve(new Response(null, { status: 204 }));
+        return Promise.resolve(Response.json({ principalGroups: [], principalStatuses: [] }));
       }
 
-      return Promise.resolve(new Response(JSON.stringify(updateResponse), { status: 200 }));
+      return Promise.resolve(Response.json(url.endsWith("/members") ? { members: [] } : updateResponse));
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -61,7 +61,8 @@ describe("/api/account/principal-groups/members route", () => {
       headers: { Accept: "application/json", "Accept-Language": "ko", Cookie: "session=abc" },
       cache: "no-store",
     });
-    await expect(response.json()).resolves.toEqual(updateResponse);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await expect(response.json()).resolves.toEqual({ committed: true, refresh: { ok: true, data: { ...updateResponse, members: [] } } });
   });
 
   it("rejects invalid request bodies without calling upstream", async () => {

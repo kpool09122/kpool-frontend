@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { PrincipalStatusField } from "@/components/PrincipalStatusField";
+import type { PrincipalStatus } from "@/gateways/identity/principalStatus";
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 import {
@@ -13,7 +15,7 @@ import type {
   SiteManagementPrincipalGroupState, SiteManagementUser,
 } from "./types";
 
-type UserDialogDraft = { userIdentifier: string; selectedGroupIdentifiers: string[] };
+type UserDialogDraft = { userIdentifier: string; selectedGroupIdentifiers: string[]; status: PrincipalStatus };
 
 /** Controlled page draft + local dialog draft. Connect callbacks from a client hook (#448). */
 export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t }: {
@@ -33,6 +35,7 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
       .filter((identifier) => groups.some((group) => group.principalGroupIdentifier === identifier))
     : [];
   const dialogHasChanges = Boolean(dialogDraft && (
+    dialogDraft.status !== dialogUser?.status ||
     dialogDraft.selectedGroupIdentifiers.length !== currentEditableIdentifiers.length ||
     dialogDraft.selectedGroupIdentifiers.some((identifier) => !currentEditableIdentifiers.includes(identifier))
   ));
@@ -45,6 +48,7 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
     if (selected.length !== previous.length || selected.some((identifier) => !previous.includes(identifier))) {
       actions.updateUserGroups(dialogUser.principalIdentifier, selected);
     }
+    if (dialogDraft.status !== "forced_stop" && dialogDraft.status !== dialogUser.status) actions.updateUserStatus(dialogUser.principalIdentifier, dialogDraft.status);
     setDialogDraft(null);
   };
 
@@ -66,9 +70,9 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
             const names = state.groups.filter((group) => selected.has(group.principalGroupIdentifier)).map((group) => group.name);
             return <article className="rounded-xl border border-stroke-subtle bg-surface-raised p-4" key={user.principalIdentifier}>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><h3 className="break-all font-semibold">{getSiteManagementUserDisplayName(user)}</h3><p className="break-all text-xs text-text-muted">{user.email}</p></div>
+                <div><h3 className="break-all font-semibold">{getSiteManagementUserDisplayName(user)}</h3><p className="break-all text-xs text-text-muted">{user.email}</p><p className="mt-2 text-sm">{t.principalStatus[user.status]}</p>{user.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}</div>
                 <button className="rounded-lg border border-stroke-subtle px-4 py-2 disabled:opacity-60" disabled={disabled} onClick={() => {
-                  if (!disabled) setDialogDraft({ userIdentifier: user.principalIdentifier, selectedGroupIdentifiers: groups.filter((group) => selected.has(group.principalGroupIdentifier)).map((group) => group.principalGroupIdentifier) });
+                  if (!disabled) setDialogDraft({ status: user.status, userIdentifier: user.principalIdentifier, selectedGroupIdentifiers: groups.filter((group) => selected.has(group.principalGroupIdentifier)).map((group) => group.principalGroupIdentifier) });
                 }} type="button">{t.edit}</button>
               </div>
               <p className="mt-3 text-sm text-text-muted"><span className="font-semibold">{t.userGroups}</span> <span>{names.length ? names.join(", ") : t.unassigned}</span></p>
@@ -83,6 +87,7 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
       </div>
       {dialogDraft && dialogUser ? <EditUserGroupsDialog
         key={dialogDraft.userIdentifier} user={dialogUser} groups={groups} selected={dialogDraft.selectedGroupIdentifiers}
+        status={dialogDraft.status} onStatus={(status) => setDialogDraft({ ...dialogDraft, status })}
         disabled={disabled} confirmDisabled={disabled || !dialogHasChanges} t={t} onCancel={() => setDialogDraft(null)} onConfirm={confirm}
         onToggle={(identifier) => {
           if (disabled) return;
@@ -95,7 +100,9 @@ export function SiteManagementPrincipalGroupManagementPanel({ state, actions, t 
   );
 }
 
-function EditUserGroupsDialog({ user, groups, selected, disabled, confirmDisabled, t, onCancel, onConfirm, onToggle }: {
+function EditUserGroupsDialog({ status, onStatus, user, groups, selected, disabled, confirmDisabled, t, onCancel, onConfirm, onToggle }: {
+  status: PrincipalStatus;
+  onStatus: (status: "active" | "suspended") => void;
   user: SiteManagementUser;
   groups: readonly SiteManagementGroup[];
   selected: string[];
@@ -123,6 +130,7 @@ function EditUserGroupsDialog({ user, groups, selected, disabled, confirmDisable
     className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-lg overflow-y-auto rounded-2xl bg-surface-raised p-6 text-text-strong shadow-xl backdrop:bg-black/40">
     <h3 id={titleId} className="break-all text-lg font-semibold">{t.dialogTitle(getSiteManagementUserDisplayName(user))}</h3>
     <p id={descriptionId} className="mt-2 text-sm text-text-muted">{t.dialogDescription}</p>
+    <PrincipalStatusField value={status} disabled={disabled} onChange={onStatus} t={t.principalStatus} />
     <fieldset className="mt-5 grid gap-3" disabled={disabled}>
       <legend className="mb-3 text-sm font-semibold">{t.checkboxList}</legend>
       {groups.map((group) => <PrincipalGroupMembershipOption key={group.principalGroupIdentifier} name={group.name}

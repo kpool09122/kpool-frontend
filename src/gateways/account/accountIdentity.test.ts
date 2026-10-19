@@ -26,6 +26,8 @@ describe("account identity helpers", () => {
         email: "member@example.com",
         language: "ja",
         accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+        accountPrincipalStatus: "active" as const,
+        siteManagementPrincipalStatus: "active" as const,
       }),
     ).toBe("33333333-3333-3333-3333-333333333333");
   });
@@ -39,6 +41,8 @@ describe("account identity helpers", () => {
         language: "ja",
         account: {
           accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+          accountPrincipalStatus: "active" as const,
+          siteManagementPrincipalStatus: "active" as const,
         },
       }),
     ).toBe("33333333-3333-3333-3333-333333333333");

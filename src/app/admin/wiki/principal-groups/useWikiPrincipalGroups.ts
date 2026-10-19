@@ -1,255 +1,127 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-
 import {
   fetchWikiPrincipalGroups,
-  isWikiPrincipalGroupBrowserApiError,
   updateWikiPrincipalGroupMembers,
-  type WikiPrincipalGroupMemberSummary,
   type WikiPrincipalGroupSummary,
+  type WikiPrincipalGroupMemberSummary,
 } from "@/gateways/wiki/wikiPrincipalGroups";
+import type { PrincipalAccessRefresh } from "@/gateways/support/principalGroupSave";
+import type { useI18n } from "@/i18n/I18nProvider";
 import { adminQueryKeys } from "../../queryKeys";
-import type { useI18n } from "../../../../i18n/I18nProvider";
-
-export type WikiPrincipalGroupManagementState = {
-  error: string | null;
-  groups: WikiPrincipalGroupSummary[];
-  isLoading: boolean;
-  isSaving: boolean;
-  membershipByGroup: Record<string, string[]>;
-  success: string | null;
-  users: WikiPrincipalGroupMemberSummary[];
-};
-
+import { usePrincipalGroupEditor } from "../../principal-groups/usePrincipalGroupEditor";
+type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
 type WikiPrincipalGroupQueryState = {
   groups: WikiPrincipalGroupSummary[];
-  membershipByGroup: Record<string, string[]>;
   users: WikiPrincipalGroupMemberSummary[];
+  membershipByGroup: Readonly<Record<string, readonly string[]>>;
 };
-
-type MembershipDraft = {
-  isDirty: boolean;
-  membershipByGroup: Record<string, string[]>;
-};
-
-type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
-
-const emptyWikiPrincipalGroupQueryState: WikiPrincipalGroupQueryState = {
-  groups: [],
-  membershipByGroup: {},
-  users: [],
-};
-
-const sortPrincipalGroups = (
-  groups: WikiPrincipalGroupSummary[],
-): WikiPrincipalGroupSummary[] =>
-  [...groups].sort((left, right) =>
-    Number(right.isDefault) - Number(left.isDefault) || left.name.localeCompare(right.name),
+const sortUsers = (users: WikiPrincipalGroupMemberSummary[]) =>
+  [...users].sort((a, b) =>
+    getUserDisplayName(a).localeCompare(getUserDisplayName(b)),
   );
+export const getUserDisplayName = (
+  user: WikiPrincipalGroupMemberSummary,
+): string => user.identityName.trim() || user.email || user.principalIdentifier;
 
-const sortUsers = (
-  users: WikiPrincipalGroupMemberSummary[],
-): WikiPrincipalGroupMemberSummary[] =>
-  [...users].sort((left, right) =>
-    getUserDisplayName(left).localeCompare(getUserDisplayName(right)),
-  );
-
-export const getUserDisplayName = (user: WikiPrincipalGroupMemberSummary): string =>
-  user.identityName.trim() || user.email || user.principalIdentifier;
-
-const getErrorMessage = (error: unknown, fallback: string): string =>
-  error instanceof Error ? error.message : fallback;
-
+// Wiki returns members under groups (unlike SiteManagement's top-level principals).
 const getQueryStateFromGroups = (
   groups: WikiPrincipalGroupSummary[],
 ): WikiPrincipalGroupQueryState => {
-  const usersByIdentifier = new Map<string, WikiPrincipalGroupMemberSummary>();
-  const membershipByGroup: Record<string, string[]> = {};
-
-  groups.forEach((group) => {
-    membershipByGroup[group.principalGroupIdentifier] = group.members.map((member) => {
-      usersByIdentifier.set(member.principalIdentifier, member);
-      return member.principalIdentifier;
-    });
-  });
-
+  const users = new Map<string, WikiPrincipalGroupMemberSummary>();
+  groups.forEach((group) =>
+    group.members.forEach((member) =>
+      users.set(member.principalIdentifier, member),
+    ),
+  );
   return {
     groups,
-    membershipByGroup,
-    users: sortUsers(Array.from(usersByIdentifier.values())),
+    users: sortUsers([...users.values()]),
+    membershipByGroup: Object.fromEntries(
+      groups.map((group) => [
+        group.principalGroupIdentifier,
+        group.members.map((member) => member.principalIdentifier),
+      ]),
+    ),
   };
-};
-
-const createUpdatePayload = (membershipByGroup: Record<string, string[]>) => ({
-  principalGroups: Object.entries(membershipByGroup).map(([principalGroupIdentifier, principalIdentifiers]) => ({
-    principalGroupIdentifier,
-    principalIdentifiers,
-  })),
-});
-
-const areArraysEqual = (left: string[], right: string[]): boolean => {
-  const sortedLeft = [...left].sort();
-  const sortedRight = [...right].sort();
-
-  return sortedLeft.length === sortedRight.length &&
-    sortedLeft.every((value, index) => value === sortedRight[index]);
-};
-
-const areMembershipsEqual = (
-  left: Record<string, string[]>,
-  right: Record<string, string[]>,
-): boolean => {
-  const leftKeys = Object.keys(left).sort();
-  const rightKeys = Object.keys(right).sort();
-
-  return leftKeys.length === rightKeys.length &&
-    leftKeys.every((key, index) =>
-      key === rightKeys[index] && areArraysEqual(left[key], right[key]),
-    );
 };
 
 export const getUserGroupIdentifiers = (
-  membershipByGroup: Record<string, string[]>,
+  membershipByGroup: Readonly<Record<string, readonly string[]>>,
   principalIdentifier: string,
 ): string[] =>
   Object.entries(membershipByGroup)
-    .filter(([, principalIdentifiers]) => principalIdentifiers.includes(principalIdentifier))
+    .filter(([, principalIdentifiers]) =>
+      principalIdentifiers.includes(principalIdentifier),
+    )
     .map(([groupIdentifier]) => groupIdentifier);
 
-export const useWikiPrincipalGroups = ({
-  accountIdentifier,
+export function useWikiPrincipalGroups({
   canManage,
-  onAuthorizationRejected,
+  accountIdentifier,
+  actorIdentifier,
+  sessionVersion,
+  refreshAccess,
   t,
 }: {
-  accountIdentifier: string | null;
   canManage: boolean;
-  onAuthorizationRejected: () => void;
+  accountIdentifier: string | null;
+  actorIdentifier: string;
+  sessionVersion: number;
+  refreshAccess: PrincipalAccessRefresh;
   t: AdminDictionary;
-}) => {
-  const queryClient = useQueryClient();
-  const queryKey = adminQueryKeys.principalGroupManagement.current(accountIdentifier);
-  const [membershipDraft, setMembershipDraft] = useState<MembershipDraft>({
-    isDirty: false,
-    membershipByGroup: {},
-  });
-  const [formError, setFormError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const principalGroupsQuery = useQuery<WikiPrincipalGroupQueryState, Error>({
-    enabled: Boolean(accountIdentifier) && canManage,
-    queryFn: async () => {
-      if (!accountIdentifier) {
-        return emptyWikiPrincipalGroupQueryState;
-      }
-
-      const response = await fetchWikiPrincipalGroups({
-        accountIdentifier,
-        fallbackErrorMessage: t.wikiPrincipalGroupListLoadFailed,
+}) {
+  const editor = usePrincipalGroupEditor({
+    scope: JSON.stringify([
+      accountIdentifier,
+      actorIdentifier,
+      sessionVersion,
+      canManage,
+    ]),
+    queryKey: [
+      ...adminQueryKeys.principalGroupManagement.current(accountIdentifier),
+      actorIdentifier,
+      sessionVersion,
+    ],
+    enabled: canManage && Boolean(accountIdentifier),
+    fetchList: async () => {
+      const data = await fetchWikiPrincipalGroups({
+        accountIdentifier: accountIdentifier!,
+        fallbackErrorMessage: t.wikiPrincipalGroupLoadFailed,
       });
-      return getQueryStateFromGroups(sortPrincipalGroups(response.principalGroups));
+      return getQueryStateFromGroups(data.principalGroups);
     },
-    queryKey,
-    retry: false,
-  });
-  const queryState = principalGroupsQuery.data ?? emptyWikiPrincipalGroupQueryState;
-  const membershipByGroup = membershipDraft.isDirty
-    ? membershipDraft.membershipByGroup
-    : queryState.membershipByGroup;
-  const userByIdentifier = useMemo(
-    () => new Map(queryState.users.map((user) => [user.principalIdentifier, user])),
-    [queryState.users],
-  );
-  const hasUnsavedChanges = !areMembershipsEqual(membershipByGroup, queryState.membershipByGroup);
-
-  const saveMutation = useMutation<WikiPrincipalGroupQueryState, Error, Record<string, string[]>>({
-    mutationFn: async (nextMembershipByGroup) => {
-      const response = await updateWikiPrincipalGroupMembers({
+    saveList: async (payload) => {
+      const result = await updateWikiPrincipalGroupMembers({
+        requestBody: payload,
         fallbackErrorMessage: t.wikiPrincipalGroupSaveFailed,
-        requestBody: createUpdatePayload(nextMembershipByGroup),
       });
-
-      return getQueryStateFromGroups(sortPrincipalGroups(response.principalGroups));
+      return {
+        ...result,
+        refresh: result.refresh.ok
+          ? {
+              ok: true as const,
+              data: getQueryStateFromGroups(
+                result.refresh.data.principalGroups,
+              ),
+            }
+          : result.refresh,
+      };
     },
-    onMutate: () => {
-      setFormError(null);
-      setSuccess(null);
-    },
-    onSuccess: (nextQueryState) => {
-      queryClient.setQueryData(queryKey, nextQueryState);
-      setMembershipDraft({
-        isDirty: false,
-        membershipByGroup: nextQueryState.membershipByGroup,
-      });
-      setSuccess(t.wikiPrincipalGroupSaved);
-    },
-    onError: (error) => {
-      if (isWikiPrincipalGroupBrowserApiError(error) && error.wikiPrincipalGroupRouteStatus === 403) {
-        onAuthorizationRejected();
-      }
-
-      setFormError(getErrorMessage(error, t.wikiPrincipalGroupSaveFailed));
+    refreshAccess,
+    t: {
+      ...t.principalStatus,
+      loadFailed: t.wikiPrincipalGroupLoadFailed,
+      saveFailed: t.wikiPrincipalGroupSaveFailed,
+      saved: t.wikiPrincipalGroupSaved,
     },
   });
-
-  const updateUserGroups = (principalIdentifier: string, nextGroupIdentifiers: string[]) => {
-    setMembershipDraft((current) => {
-      const currentMembershipByGroup = current.isDirty
-        ? current.membershipByGroup
-        : queryState.membershipByGroup;
-      const selectedGroups = new Set(nextGroupIdentifiers);
-
-      return {
-        isDirty: true,
-        membershipByGroup: Object.fromEntries(
-          Object.entries(currentMembershipByGroup).map(([groupIdentifier, principalIdentifiers]) => [
-            groupIdentifier,
-            selectedGroups.has(groupIdentifier)
-              ? Array.from(new Set([...principalIdentifiers, principalIdentifier]))
-              : principalIdentifiers.filter((candidate) => candidate !== principalIdentifier),
-          ]),
-        ),
-      };
-    });
-    setFormError(null);
-    setSuccess(null);
-  };
-
-  const load = () => {
-    setFormError(null);
-    setSuccess(null);
-    void principalGroupsQuery.refetch();
-  };
-
-  const save = () => {
-    if (!canManage) {
-      setFormError(t.wikiPrincipalGroupReadOnly);
-      setSuccess(null);
-      return;
-    }
-
-    saveMutation.mutate(membershipByGroup);
-  };
-
-  const state: WikiPrincipalGroupManagementState = {
-    error: formError ?? (principalGroupsQuery.error
-      ? getErrorMessage(principalGroupsQuery.error, t.wikiPrincipalGroupLoadFailed)
-      : null),
-    groups: queryState.groups,
-    isLoading: principalGroupsQuery.isFetching && !principalGroupsQuery.data,
-    isSaving: saveMutation.isPending,
-    membershipByGroup,
-    success,
-    users: queryState.users,
-  };
-
   return {
-    hasUnsavedChanges,
-    isBusy: state.isLoading || state.isSaving,
-    state,
-    userByIdentifier,
-    load,
-    save,
-    updateUserGroups,
+    ...editor.actions,
+    hasUnsavedChanges: editor.state.hasUnsavedChanges,
+    isBusy: !editor.state.canManage,
+    state: {
+      ...editor.state,
+      error: editor.state.saveError ?? editor.state.loadError,
+    },
+    accessStatus: editor.accessStatus,
   };
-};
+}

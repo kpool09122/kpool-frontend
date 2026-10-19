@@ -1,3 +1,4 @@
+import { savePrincipalGroupRequest } from "@/gateways/support/principalGroupSave";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import { wikiPrivateApiTypes } from "@kpool/types";
@@ -47,7 +48,7 @@ const createRouteError = (
   fallbackErrorMessage: string,
 ): WikiPrincipalGroupBrowserApiError =>
   Object.assign(new Error(getRouteErrorMessage(body, fallbackErrorMessage)), {
-    wikiPrincipalGroupRouteStatus: response.status,
+    wikiPrincipalGroupRouteStatus: response.status, status: response.status,
   });
 
 export const parseWikiPrincipalGroupsResponse = (body: unknown): WikiPrincipalGroupListResponse =>
@@ -105,30 +106,6 @@ export const fetchWikiPrincipalGroups = async ({
   return parseWikiPrincipalGroupsResponse(body);
 };
 
-export const updateWikiPrincipalGroupMembers = async ({
-  fallbackErrorMessage,
-  fetchAdapter = browserApiFetch,
-  requestBody,
-}: {
-  fallbackErrorMessage: string;
-  fetchAdapter?: typeof fetch;
-  requestBody: WikiPrincipalGroupMembersUpdateRequest;
-}): Promise<WikiPrincipalGroupListResponse> => {
-  const response = await fetchAdapter("/api/wiki/principal-groups/members", {
-    method: "PATCH",
-    cache: "no-store",
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
-  const body = await readResponseBody(response);
-
-  if (!response.ok) {
-    throw createRouteError(response, body, fallbackErrorMessage);
-  }
-
-  return parseWikiPrincipalGroupsResponse(body);
-};
+export const updateWikiPrincipalGroupMembers = ({ requestBody, fallbackErrorMessage, fetchAdapter }: {
+  requestBody: WikiPrincipalGroupMembersUpdateRequest; fallbackErrorMessage: string; fetchAdapter?: typeof fetch;
+}) => savePrincipalGroupRequest({ url: "/api/wiki/principal-groups/members", body: requestBody, dataSchema: wikiPrincipalGroupListResponseSchema, fallback: fallbackErrorMessage, fetchAdapter });

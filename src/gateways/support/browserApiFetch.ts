@@ -47,7 +47,17 @@ export const browserApiFetch: typeof fetch = async (input, init) => {
     throw new Error("Browser API requests must target the same-origin API.");
   }
 
-  if (safeMethods.has(method)) return init === undefined ? fetch(input) : fetch(input, init);
+  const inspect = async (response: Response) => {
+    // Permission editors synchronously handle their own recovery, avoiding competing refreshes.
+    if (response.status === 403 && !url.pathname.includes("principal-groups")) {
+      const body = await readApiErrorBody(response.clone());
+      if (body && typeof body === "object" && "code" in body && body.code === "principal_inactive") {
+        window.dispatchEvent(new CustomEvent("kpool:principal-inactive", { detail: { path: url.pathname } }));
+      }
+    }
+    return response;
+  };
+  if (safeMethods.has(method)) return inspect(await (init === undefined ? fetch(input) : fetch(input, init)));
 
   if (!readCsrfCookie()) await initializeCsrf();
   const token = readCsrfCookie();
@@ -62,8 +72,8 @@ export const browserApiFetch: typeof fetch = async (input, init) => {
     if (name.toLowerCase() === "x-xsrf-token") delete headers[name];
   }
 
-  return fetch(input, {
+  return inspect(await fetch(input, {
     ...init,
     headers: { ...headers, "X-XSRF-TOKEN": token },
-  });
+  }));
 };

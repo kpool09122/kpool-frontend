@@ -28,6 +28,9 @@ export function AdminShellClient({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
   const activeSection = resolveActiveSection(pathname);
+  const accountPrincipalStopped = currentIdentity.accountPrincipalStatus === "suspended" || currentIdentity.accountPrincipalStatus === "forced_stop";
+  const sitePrincipalStopped = currentIdentity.siteManagementPrincipalStatus === "suspended" || currentIdentity.siteManagementPrincipalStatus === "forced_stop";
+  const principalStopped = activeSection !== "settings" && (accountPrincipalStopped || (activeSection === "siteManagement" && sitePrincipalStopped));
   const headerTitle = activeSection === "wiki"
     ? t.wikiHeaderTitle
     : activeSection === "siteManagement"
@@ -89,11 +92,11 @@ export function AdminShellClient({
         <div className="relative h-full overflow-y-auto border border-l-0 border-stroke-subtle bg-surface-raised p-4 shadow-soft">
           <div className={isSidebarOpen ? "block" : "pointer-events-none invisible"}>
             <nav className="grid gap-2">
-              <AdminSectionLink
+              {!accountPrincipalStopped ? <AdminSectionLink
                 href={adminSectionRoutes.wiki}
                 isSelected={activeSection === "wiki"}
                 label={t.wikiMenu}
-              />
+              /> : null}
               {canAccessSiteManagement(currentIdentity) ? (
                 <AdminSectionLink href={adminSectionRoutes.siteManagement} isSelected={activeSection === "siteManagement"} label={t.siteManagementMenu} />
               ) : null}
@@ -124,7 +127,7 @@ export function AdminShellClient({
               <h2 className="text-xl font-bold">{t.suspendedAccountTitle}</h2>
               <p className="mt-3 text-sm leading-7 text-text-muted">{t.suspendedAccountMessage}</p>
             </section>
-          ) : children}
+          ) : principalStopped ? <section role="alert" className="rounded-xl border p-6"><p>{t.principalStatus.inactive}</p><Link className="mt-4 block underline" href="/admin/user/profile">{t.settingsMenu}</Link></section> : children}
         </section>
       </div>
     </main>

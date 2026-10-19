@@ -1,5 +1,7 @@
 "use client";
 
+import type { PrincipalStatus } from "@/gateways/identity/principalStatus";
+import { PrincipalStatusField } from "@/components/PrincipalStatusField";
 import { PrincipalGroupMembershipOption } from "@/components/PrincipalGroupMembershipOption";
 
 import { useMemo, useState } from "react";
@@ -17,6 +19,7 @@ type AdminDictionary = ReturnType<typeof useI18n>["dictionary"]["admin"];
 
 type EditableUserDialogState = {
   selectedGroupIdentifiers: string[];
+  status: PrincipalStatus;
   user: WikiPrincipalGroupMemberSummary;
 } | null;
 
@@ -36,11 +39,13 @@ export function WikiPrincipalGroupManagementPanel({
     load,
     save,
     updateUserGroups,
+    updateUserStatus,
   } = principalGroups;
   const [dialogState, setDialogState] = useState<EditableUserDialogState>(null);
 
   const openUserDialog = (user: WikiPrincipalGroupMemberSummary) => {
     setDialogState({
+      status: user.status,
       selectedGroupIdentifiers: getUserGroupIdentifiers(state.membershipByGroup, user.principalIdentifier),
       user,
     });
@@ -52,6 +57,7 @@ export function WikiPrincipalGroupManagementPanel({
     }
 
     updateUserGroups(dialogState.user.principalIdentifier, dialogState.selectedGroupIdentifiers);
+    if (dialogState.status !== "forced_stop") updateUserStatus(dialogState.user.principalIdentifier, dialogState.status);
     setDialogState(null);
   };
 
@@ -109,12 +115,12 @@ export function WikiPrincipalGroupManagementPanel({
             {t.wikiPrincipalGroupUnsavedChanges}
           </AccountStatusMessage>
         ) : null}
-        {state.error ? (
+        {state.error || state.canRetryRefresh ? (
           <AccountStatusMessage
             action={
               <button
                 className="mt-3 rounded-lg border border-status-danger px-4 py-2 transition hover:bg-status-danger/10"
-                onClick={load}
+                onClick={state.canRetryRefresh || state.loadError ? load : save}
                 type="button"
               >
                 {t.wikiPrincipalGroupRetry}
@@ -122,7 +128,7 @@ export function WikiPrincipalGroupManagementPanel({
             }
             variant="error"
           >
-            {state.error}
+            {state.error ?? t.principalStatus.savedRefreshFailed}
           </AccountStatusMessage>
         ) : null}
         {state.success ? (
@@ -134,7 +140,7 @@ export function WikiPrincipalGroupManagementPanel({
       <EditUserGroupsDialog
         dialogState={dialogState}
         groups={state.groups}
-        isBusy={isBusy}
+        isBusy={isBusy || !canManage}
         setDialogState={setDialogState}
         t={t}
         onConfirm={confirmUserDialog}
@@ -153,7 +159,7 @@ function WikiPrincipalUserRow({
 }: {
   disabled: boolean;
   groups: WikiPrincipalGroupSummary[];
-  membershipByGroup: Record<string, string[]>;
+  membershipByGroup: Readonly<Record<string, readonly string[]>>;
   onEdit: () => void;
   t: AdminDictionary;
   user: WikiPrincipalGroupMemberSummary;
@@ -174,6 +180,8 @@ function WikiPrincipalUserRow({
         <div>
           <h3 className="font-semibold text-text-strong">{getUserDisplayName(user)}</h3>
           <p className="mt-1 break-all text-xs text-text-muted">{user.email}</p>
+          <p className="mt-2 text-sm">{t.principalStatus[user.status]}</p>
+          {user.status === "forced_stop" ? <p className="text-sm text-text-muted">{t.principalStatus.forcedReason}</p> : null}
         </div>
         <button
           className="rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-60"
@@ -232,6 +240,7 @@ function EditUserGroupsDialog({
         <p className="mt-2 text-sm leading-7 text-text-muted">
           {t.wikiPrincipalGroupDialogDescription}
         </p>
+        <PrincipalStatusField value={dialogState.status} disabled={isBusy} t={t.principalStatus} onChange={(status) => setDialogState({ ...dialogState, status })} />
         <fieldset className="mt-5 grid gap-3">
           <legend className="mb-3 text-sm font-semibold text-text-strong">
             {t.wikiPrincipalGroupCheckboxListLabel}

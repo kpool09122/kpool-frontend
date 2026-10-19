@@ -35,7 +35,7 @@ describe("SiteManagement BFF", () => {
   });
   const id = "11111111-1111-4111-8111-111111111111";
   const patchRequest = () => new NextRequest("http://localhost/api/site-management/principal-groups/members", { method: "PATCH", headers: request().headers, body: JSON.stringify({ principalGroups: [{ principalGroupIdentifier: id, principalIdentifiers: [] }] }) });
-  const summary = { principalGroups: [{ principalGroupIdentifier: id, accountIdentifier: id, name: "Admin", description: null, isDefault: false, memberCount: 0 }] };
+  const summary = { principalStatuses: [], principalGroups: [{ principalGroupIdentifier: id, accountIdentifier: id, name: "Admin", description: null, isDefault: false, memberCount: 0 }] };
   it("accepts backend summaries then returns authoritative GET without account query", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
     const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(summary, { headers: { "Set-Cookie": "session=rotated; HttpOnly" } })).mockResolvedValueOnce(Response.json({ principalGroups: [], principals: [] }, { headers: { "Set-Cookie": "session=latest; HttpOnly" } }));

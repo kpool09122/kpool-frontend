@@ -11,6 +11,8 @@ const identity = {
   profileImage: null,
   accountIdentifier: "22222222-2222-2222-2222-222222222222",
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  accountPrincipalStatus: "active" as const,
+  siteManagementPrincipalStatus: "active" as const,
   accountType: "individual",
   accountPolicies: [],
   accountIdentityCount: 1,

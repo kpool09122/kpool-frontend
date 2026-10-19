@@ -11,7 +11,7 @@ import { SiteManagementAnnouncementsClient } from "./SiteManagementAnnouncements
 const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   refresh: vi.fn(),
-  identity: {
+  identity: { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
     identityIdentifier: "identity",
     accountIdentifier: "account",
     account: { status: "active" },

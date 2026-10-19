@@ -21,10 +21,12 @@ export function SiteManagementPrincipalGroupsClient() {
   const accountIdentifier = currentIdentity.accountIdentifier ?? null;
   const actorIdentifier = actorOf(currentIdentity);
   const refreshAccess = useCallback(async (status?: number | null) => {
+    const initial = useAuthStore.getState();
+    const bootstrapping = sessionVersion === 0 && initial.identity === null && initial.status === "loading";
     const isCurrent = () => {
       const store = useAuthStore.getState();
       const identity = store.identity ?? (store.status === "loading" && store.sessionVersion === 0 ? currentIdentity : null);
-      return mounted.current && store.sessionVersion === sessionVersion && identity?.accountIdentifier === accountIdentifier && actorOf(identity) === actorIdentifier;
+      return mounted.current && (store.sessionVersion === sessionVersion || (bootstrapping && store.sessionVersion === 1)) && identity?.accountIdentifier === accountIdentifier && actorOf(identity) === actorIdentifier;
     };
     if (!isCurrent()) return null;
     const identity = await refreshIdentity({ preserveOnNull: true });
@@ -34,9 +36,14 @@ export function SiteManagementPrincipalGroupsClient() {
     return allowed;
   }, [accountIdentifier, actorIdentifier, currentIdentity, refreshIdentity, router, sessionVersion]);
   const { state, actions, accessStatus } = useSiteManagementPrincipalGroups({ accountIdentifier, actorIdentifier, sessionVersion, canManage, refreshAccess, t: t.siteManagementPrincipalGroups });
+  const refreshedError = useRef<string | null>(null);
+  const errorScope = JSON.stringify([accountIdentifier, actorIdentifier, sessionVersion, accessStatus]);
   useEffect(() => {
-    if (accessStatus === 401 || accessStatus === 403) void refreshAccess(accessStatus);
-  }, [accessStatus, refreshAccess]);
+    if (accessStatus !== 401 && accessStatus !== 403) { refreshedError.current = null; return; }
+    if (refreshedError.current === errorScope) return;
+    refreshedError.current = errorScope;
+    void refreshAccess(accessStatus);
+  }, [accessStatus, errorScope, refreshAccess]);
   if (!canManage) return null;
   return <SiteManagementPrincipalGroupManagementPanel state={state} actions={actions} t={t.siteManagementPrincipalGroups} />;
 }

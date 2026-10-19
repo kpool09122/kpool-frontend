@@ -12,7 +12,7 @@ const updateRequest = {
   ],
 };
 
-const updateResponseBody = {
+const updateResponseBody = { principalStatuses: [],
   principalGroups: [
     {
       principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -25,7 +25,7 @@ const updateResponseBody = {
   ],
 };
 
-const principalGroupsResponseBody = {
+const principalGroupsResponseBody = { principals: [],
   principalGroups: [
     {
       principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -77,7 +77,7 @@ describe("/api/wiki/principal-groups/members route", () => {
       },
     );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(principalGroupsResponseBody);
+    await expect(response.json()).resolves.toEqual({ committed: true, refresh: { ok: true, data: principalGroupsResponseBody } });
   });
 
   it("rejects invalid request bodies without calling upstream", async () => {

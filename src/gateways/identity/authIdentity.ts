@@ -21,6 +21,8 @@ const hasCookieValue = (cookieHeader: string, name: string, value: string): bool
 
 const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIdentitySummary => {
   const hasAccountUpdatePolicy = hasCookieValue(cookieHeader, mockAccountPolicyCookieName, "update");
+  const principalManager = hasCookieValue(cookieHeader, "kpool-e2e-principal-management", "1");
+  const principalStatus = (name: string) => hasCookieValue(cookieHeader, name, "suspended") ? "suspended" : hasCookieValue(cookieHeader, name, "forced_stop") ? "forced_stop" : "active";
   const notificationUpdate = hasCookieValue(cookieHeader, mockAccountNotificationPolicyCookieName, "update");
   const notificationRead = notificationUpdate || hasCookieValue(cookieHeader, mockAccountNotificationPolicyCookieName, "read");
   const accountType = hasAccountUpdatePolicy ? "corporation" : "individual";
@@ -37,6 +39,8 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
     profileImage: null,
     accountIdentifier: "22222222-2222-2222-2222-222222222222",
     accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+    accountPrincipalStatus: principalStatus("kpool-e2e-account-principal-status"),
+    siteManagementPrincipalStatus: principalStatus("kpool-e2e-site-principal-status"),
     siteManagementPrincipalIdentifier: "44444444-4444-4444-4444-444444444444",
     siteManagementPrincipalCount: accountStatus === "missing" ? 0 :
       hasCookieValue(cookieHeader, "kpool-e2e-site-management", "administrator") &&
@@ -50,8 +54,8 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
       statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }],
     }] : [],
     accountType,
-    accountIdentityCount: accountStatus === "missing" ? 0 : 1,
-    accountPolicies: [ ...(hasAccountUpdatePolicy
+    accountIdentityCount: accountStatus === "missing" ? 0 : principalManager ? 3 : 1,
+    accountPolicies: [ ...(principalManager ? [{ policyIdentifier: "99999999-9999-4999-8999-999999999996", name: "PRINCIPAL_MANAGER", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["account:principal-group:manage"], resourceTypes: ["ACCOUNT"], condition: null }] }] : []), ...(hasAccountUpdatePolicy
       ? [
           {
             policyIdentifier: "99999999-9999-9999-9999-999999999999",

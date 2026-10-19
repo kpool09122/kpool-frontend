@@ -15,7 +15,7 @@ const certificationPrincipal = {
   identityIdentifier: "55555555-5555-4555-8555-555555555555",
   accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [{
     policyIdentifier: "66666666-6666-4666-8666-666666666666",
     name: "AGENCY_SCOPE_OFFICIAL_CERTIFICATION_MY_READ",

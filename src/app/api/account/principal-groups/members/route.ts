@@ -1,84 +1,45 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
+import { accountApiTypes } from "@kpool/types";
 import { z } from "zod";
-
 import {
   getAccountApiBaseUrl,
   parsePrincipalGroupsResponse,
-  parseUpdatePrincipalGroupMembersRequest,
+  parseAccountMembersResponse,
 } from "@/gateways/account/accountApi";
-import {
-  accountApiUnavailableResponse,
-  getAccountRouteErrorBody,
-  getForwardHeaders,
-  readResponseBody,
-} from "../../routeSupport";
-
+import { savePrincipalGroups } from "../../../principalGroupSave";
 export async function PATCH(request: NextRequest) {
   const baseUrl = getAccountApiBaseUrl();
-
-  if (!baseUrl) {
-    return accountApiUnavailableResponse();
-  }
-
-  let updateRequest;
-
-  try {
-    updateRequest = parseUpdatePrincipalGroupMembersRequest(await request.json());
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: "Invalid principal group members update request." },
-        { status: 422 },
-      );
-    }
-
-    return NextResponse.json(
-      { message: "Invalid principal group members update request." },
-      { status: 400 },
-    );
-  }
-
-  try {
-    const apiResponse = await fetch(`${baseUrl}/principal-groups/members`, {
-      method: "PATCH",
-      headers: getForwardHeaders(request, true),
-      body: JSON.stringify(updateRequest),
-      cache: "no-store",
-    });
-    const body = await readResponseBody(apiResponse);
-
-    if (!apiResponse.ok) {
-      return NextResponse.json(
-        getAccountRouteErrorBody(apiResponse.status, body),
-        { status: apiResponse.status },
-      );
-    }
-
-    const principalGroupsResponse = await fetch(`${baseUrl}/principal-groups`, {
-      headers: getForwardHeaders(request, false),
-      cache: "no-store",
-    });
-    const principalGroupsBody = await readResponseBody(principalGroupsResponse);
-
-    if (!principalGroupsResponse.ok) {
-      return NextResponse.json(
-        getAccountRouteErrorBody(principalGroupsResponse.status, principalGroupsBody),
-        { status: principalGroupsResponse.status },
-      );
-    }
-
-    return NextResponse.json(parsePrincipalGroupsResponse(principalGroupsBody), { status: principalGroupsResponse.status });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { message: "Account API response did not match the expected schema." },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json(
-      { message: "Account API is temporarily unavailable." },
-      { status: 502 },
-    );
-  }
+  return savePrincipalGroups(request, {
+    baseUrl,
+    requestSchema:
+      accountApiTypes.schemas.UpdatePrincipalGroupMembersRequestBody,
+    responseSchema: z.object({
+      principalGroups: z.array(
+        accountApiTypes.schemas.UpdatedPrincipalGroupSummary,
+      ),
+      principalStatuses: z.array(
+        accountApiTypes.schemas.KPool_Common_PrincipalStatusUpdate,
+      ),
+    }),
+    unavailable: "Account API is temporarily unavailable.",
+    refresh: async (_body, headers, capture) => {
+      const groups = await fetch(`${baseUrl}/principal-groups`, {
+        headers: { ...headers },
+        cache: "no-store",
+      });
+      capture(groups);
+      if (!groups.ok) throw groups;
+      const parsedGroups = parsePrincipalGroupsResponse(await groups.json());
+      const members = await fetch(`${baseUrl}/members`, {
+        headers: { ...headers },
+        cache: "no-store",
+      });
+      capture(members);
+      if (!members.ok) throw members;
+      return {
+        ...parsedGroups,
+        ...parseAccountMembersResponse(await members.json()),
+      };
+    },
+  });
 }

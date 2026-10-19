@@ -26,6 +26,7 @@ const groupB = {
 };
 
 const user = {
+  status: "active" as const,
   principalIdentifier: "11111111-1111-4111-8111-111111111111",
   identityIdentifier: "55555555-5555-4555-8555-555555555555",
   identityName: "編集者ユーザー",
@@ -38,12 +39,15 @@ const createPrincipalGroups = ({
 } = {}) => ({
   hasUnsavedChanges,
   isBusy: false,
+  accessStatus: null,
+  updateUserStatus: vi.fn(),
   load: vi.fn(),
   save: vi.fn(),
   updateUserGroups,
   userByIdentifier: new Map([[user.principalIdentifier, user]]),
   state: {
     error: null,
+    canManage: true, hasUnsavedChanges, canRetryRefresh: false, loadError: null, saveError: null,
     groups: [groupA, groupB],
     isLoading: false,
     isSaving: false,

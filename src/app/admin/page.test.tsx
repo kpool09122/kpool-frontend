@@ -88,6 +88,8 @@ const identity = {
   language: "ja",
   accountId: "22222222-2222-2222-2222-222222222222",
   accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+  accountPrincipalStatus: "active" as const,
+  siteManagementPrincipalStatus: "active" as const,
   accountType: "corporation",
   account: { status: "active" },
   accountEffectivePolicies: [
@@ -178,7 +180,7 @@ const principal = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   accountPrincipalCount: 1,
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
   policies: [
     {
       policyIdentifier: "66666666-6666-6666-6666-666666666666",
@@ -351,7 +353,6 @@ const createAdapter = (
     identityIdentifier: principal.identityIdentifier,
     accountPrincipalCount: 1,
     isDelegatedPrincipal: principal.isDelegatedPrincipal,
-    isEnabled: principal.isEnabled,
   }),
   ...overrides,
 });
@@ -1499,6 +1500,7 @@ describe("admin page clients", () => {
 
   it("shows account members with editable multiple principal group memberships", async () => {
     const member = {
+      status: "active",
       principalIdentifier: "33333333-3333-3333-3333-333333333333",
       identityIdentifier: "11111111-1111-1111-1111-111111111111",
       identityName: "member",
@@ -1561,7 +1563,7 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "アカウント設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "ユーザー権限管理" }));
     expect(await screen.findByRole("heading", { name: "ユーザー権限管理" })).toBeInTheDocument();
-    expect(screen.getByText("ユーザーごとの所属権限グループを編集し、最後に一括保存します。")).toBeInTheDocument();
+    expect(screen.getByText("ユーザーごとのステータスと所属権限グループを編集し、最後に一括保存します。")).toBeInTheDocument();
     expect(screen.queryByText("デフォルトグループ")).not.toBeInTheDocument();
     expect(screen.queryByText("カスタムグループ")).not.toBeInTheDocument();
     expect(await screen.findByText("Default")).toBeInTheDocument();

@@ -8,7 +8,7 @@ const principal = {
   principalIdentifier: "33333333-3333-3333-3333-333333333333",
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   isDelegatedPrincipal: false,
-  isEnabled: true,
+  status: "active" as const,
 };
 
 const requestBody = {

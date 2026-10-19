@@ -6,7 +6,7 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { useSiteManagementPrincipalGroups } from "./useSiteManagementPrincipalGroups";
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), save: vi.fn(), refreshAccess: vi.fn() }));
 vi.mock("@/gateways/site-management/siteManagementPrincipalGroups", async (original) => ({ ...await original<typeof import("@/gateways/site-management/siteManagementPrincipalGroups")>(), fetchSiteManagementPrincipalGroups: mocks.fetch, saveSiteManagementPrincipalGroups: mocks.save }));
-const body = { principalGroups: [{ principalGroupIdentifier: "group", accountIdentifier: "account", name: "Administrator", description: "Manages site management user groups and their memberships.", roleIdentifiers: [], isDefault: false, members: [] }], principals: [{ principalIdentifier: "user", identityIdentifier: "identity", identityName: "User", email: "user@example.test" }] };
+const body = { principalGroups: [{ principalGroupIdentifier: "group", accountIdentifier: "account", name: "Administrator", description: "Manages site management user groups and their memberships.", roleIdentifiers: [], isDefault: false, members: [] }], principals: [{ principalIdentifier: "user", identityIdentifier: "identity", identityName: "User", email: "user@example.test", status: "active" as const }] };
 const latest = { ...body, principalGroups: [{ ...body.principalGroups[0], name: "Latest", members: body.principals }] };
 const t = dictionaries.ja.admin.siteManagementPrincipalGroups;
 const props = { accountIdentifier: "account", actorIdentifier: "actor", sessionVersion: 1, canManage: true, t, refreshAccess: mocks.refreshAccess };
@@ -14,10 +14,22 @@ function Wrapper({ children }: { children: ReactNode }) { const [client] = useSt
 beforeEach(() => { mocks.fetch.mockReset().mockResolvedValue(body); mocks.save.mockReset().mockResolvedValue({ committed: true, refresh: { ok: true, data: latest } }); mocks.refreshAccess.mockReset().mockResolvedValue(true); });
 const edit = async (result: { current: ReturnType<typeof useSiteManagementPrincipalGroups> }) => { await waitFor(() => expect(result.current.state.users).toHaveLength(1)); act(() => result.current.actions.updateUserGroups("user", ["group"])); };
 describe("SiteManagement hook", () => {
+  it("holds status changes locally and atomically saves unchanged forced-stop and memberships", async () => {
+    const forced = { ...body.principals[0], principalIdentifier: "forced", status: "forced_stop" as const };
+    mocks.fetch.mockResolvedValue({ ...body, principals: [...body.principals, forced] });
+    const { result } = renderHook(() => useSiteManagementPrincipalGroups(props), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.state.users).toHaveLength(2));
+    act(() => result.current.actions.updateUserStatus("user", "suspended"));
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(result.current.state.hasUnsavedChanges).toBe(true);
+    act(() => result.current.actions.updateUserStatus("forced", "active"));
+    await act(async () => { await result.current.actions.save(); });
+    expect(mocks.save).toHaveBeenCalledWith({ principalGroups: [{ principalGroupIdentifier: "group", principalIdentifiers: [] }], principalStatuses: [{ principalIdentifier: "user", status: "suspended" }, { principalIdentifier: "forced", status: "forced_stop" }] });
+  });
   it("saves memberships, adopts authoritative list, and refreshes authorization", async () => {
     const { result } = renderHook(() => useSiteManagementPrincipalGroups(props), { wrapper: Wrapper });
     await edit(result); await act(async () => { await result.current.actions.save(); });
-    expect(mocks.save).toHaveBeenCalledWith({ principalGroups: [{ principalGroupIdentifier: "group", principalIdentifiers: ["user"] }] });
+    expect(mocks.save).toHaveBeenCalledWith({ principalGroups: [{ principalGroupIdentifier: "group", principalIdentifiers: ["user"] }], principalStatuses: [{ principalIdentifier: "user", status: "active" }] });
     expect(mocks.refreshAccess).toHaveBeenCalledTimes(1);
     expect(result.current.state.groups[0].name).toBe("Latest");
     expect(result.current.state.groups[0].description).toBe(body.principalGroups[0].description);
@@ -81,7 +93,7 @@ describe("SiteManagement hook", () => {
     mocks.fetch.mockResolvedValue({ ...body, principalGroups: [...body.principalGroups, { ...oldOther, members: [newMember] }, { ...oldOther, principalGroupIdentifier: "new-group", members: [newMember] }] });
     await act(async () => { await result.current.actions.load(); });
     await act(async () => { await result.current.actions.save(); });
-    expect(mocks.save.mock.calls[1][0]).toEqual({ principalGroups: [{ principalGroupIdentifier: "group", principalIdentifiers: ["user"] }, { principalGroupIdentifier: "other", principalIdentifiers: ["new-other"] }, { principalGroupIdentifier: "new-group", principalIdentifiers: ["new-other"] }] });
+    expect(mocks.save.mock.calls[1][0]).toEqual({ principalGroups: [{ principalGroupIdentifier: "group", principalIdentifiers: ["user"] }, { principalGroupIdentifier: "other", principalIdentifiers: ["new-other"] }, { principalGroupIdentifier: "new-group", principalIdentifiers: ["new-other"] }], principalStatuses: [{ principalIdentifier: "user", status: "active" }] });
   });
   it.each(["get", "identity"])("reports manual %s refresh failure and recovers without PATCH", async (kind) => {
     const { result } = renderHook(() => useSiteManagementPrincipalGroups(props), { wrapper: Wrapper });

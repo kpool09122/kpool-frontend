@@ -100,6 +100,7 @@ const isAllowedWithoutDeny = (
   action: WikiPolicyAction,
   resourceType: WikiPolicyResourceType,
 ): boolean =>
+  principal.status === "active" &&
   hasMatchingStatement(principal, "ALLOW", action, resourceType) &&
   !hasMatchingStatement(principal, "DENY", action, resourceType);
 
@@ -362,10 +363,8 @@ export const createWikiPrincipal = async ({
       };
     }
 
-    return {
-      status: "available",
-      ...parseWithSchemaLog("wiki principal create response", wikiPrincipalCreatedSummarySchema, responseBody),
-    };
+    parseWithSchemaLog("wiki principal create response", wikiPrincipalCreatedSummarySchema, responseBody);
+    return { status: "available" };
   } catch (error) {
     return {
       status: "error",
