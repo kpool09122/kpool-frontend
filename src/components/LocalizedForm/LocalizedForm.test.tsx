@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { createRef } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { I18nProvider, useI18n } from "@/i18n/I18nProvider";
 import { LocalizedForm } from "./index";
 
@@ -12,6 +13,19 @@ function Form() {
 }
 
 describe("LocalizedForm", () => {
+  it("forwards object refs and honors callback ref cleanup", () => {
+    const objectRef = createRef<HTMLFormElement>();
+    const view = render(<LocalizedForm ref={objectRef} />);
+    expect(objectRef.current?.tagName).toBe("FORM");
+    const release = vi.fn();
+    const callbackRef = vi.fn(() => release);
+    view.rerender(<LocalizedForm ref={callbackRef} />);
+    expect(objectRef.current).toBeNull();
+    expect(callbackRef.mock.calls).toHaveLength(1);
+    view.unmount();
+    expect(release).toHaveBeenCalledOnce();
+  });
+
   it("localizes native validation, changes existing errors with the UI locale, and clears errors on input", () => {
     render(<I18nProvider initialLocale="ja"><Form /></I18nProvider>);
     const input = screen.getByLabelText<HTMLInputElement>("Email");

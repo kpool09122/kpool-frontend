@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import { performRecentAuthentication } from "@/gateways/auth/recentAuthentication";
@@ -52,7 +52,6 @@ export function UserOtherClient() {
     : null;
   const [error, setError] = useState<string | null>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const processingRef = useRef(false);
   const startButtonRef = useRef<HTMLButtonElement>(null);
   const contactLinkRef = useRef<HTMLAnchorElement>(null);
@@ -63,8 +62,8 @@ export function UserOtherClient() {
     requestAnimationFrame(() => startButtonRef.current?.focus());
   };
 
-  useEffect(() => {
-    if (!isDialogOpen) return;
+  const attachDialog = useCallback((dialog: HTMLDivElement | null) => {
+    if (!dialog) return;
 
     cancelButtonRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -76,7 +75,7 @@ export function UserOtherClient() {
 
       if (event.key !== "Tab") return;
       const focusable = Array.from(
-        dialogRef.current?.querySelectorAll<HTMLElement>("button:not(:disabled), a[href], input:not(:disabled)") ?? [],
+        dialog.querySelectorAll<HTMLElement>("button:not(:disabled), a[href], input:not(:disabled)") ?? [],
       );
       const first = focusable[0];
       const last = focusable.at(-1);
@@ -91,7 +90,7 @@ export function UserOtherClient() {
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isDialogOpen]);
+  }, []);
 
   const handleReauthentication = async () => {
     if (processingRef.current || !authenticatedIdentity) return;
@@ -240,7 +239,7 @@ export function UserOtherClient() {
       </div>
 
       {isDialogOpen && !withdrawalUnavailable && !needsReauthentication ? (
-        <div aria-labelledby="withdrawal-dialog-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" ref={dialogRef} role="dialog">
+        <div aria-labelledby="withdrawal-dialog-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" ref={attachDialog} role="dialog">
           <div className="w-full max-w-xl space-y-5 rounded-xl bg-surface-raised p-6 text-text-strong shadow-xl">
             <h2 className="text-xl font-bold" id="withdrawal-dialog-title">{t.withdrawalDialogTitle}</h2>
             <ul className="list-disc space-y-3 pl-5 text-sm leading-7 text-text-muted">

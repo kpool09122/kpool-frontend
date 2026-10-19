@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ComponentProps } from "react";
+import { useCallback, useRef, type ComponentProps } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import type { I18nDictionary } from "@/i18n/dictionaries";
 
@@ -21,19 +21,27 @@ const localizeValidity = (field: FormField, t: I18nDictionary["common"]["validat
   field.setCustomValidity(message);
 };
 
-export function LocalizedForm({ onInvalidCapture, onInputCapture, ...props }: ComponentProps<"form">) {
+export function LocalizedForm({ onInvalidCapture, onInputCapture, ref, ...props }: ComponentProps<"form">) {
   const { dictionary } = useI18n();
   const t = dictionary.common.validation;
   const invalidFields = useRef(new Set<FormField>());
 
-  useEffect(() => {
+  const attachForm = useCallback((form: HTMLFormElement | null) => {
+    if (!form) return;
     for (const field of invalidFields.current) {
       if (field.isConnected) localizeValidity(field, t);
       else invalidFields.current.delete(field);
     }
-  }, [t]);
+    const cleanup = typeof ref === "function" ? ref(form) : undefined;
+    if (ref && typeof ref !== "function") ref.current = form;
+    return () => {
+      if (typeof cleanup === "function") cleanup();
+      else if (typeof ref === "function") ref(null);
+      if (ref && typeof ref !== "function") ref.current = null;
+    };
+  }, [ref, t]);
 
-  return <form {...props}
+  return <form {...props} ref={attachForm}
     onInvalidCapture={(event) => {
       if (isFormField(event.target)) {
         localizeValidity(event.target, t);
