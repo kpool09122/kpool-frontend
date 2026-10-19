@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 
 import {
   clearSessionStorageValue,
@@ -8,6 +8,7 @@ import {
   writeEmailSendingStatusStorage,
   type StoredEmailSendingStatus,
 } from "@/gateways/auth/emailSendingStateStorage";
+import { useDeadlineTime } from "../useDeadlineTime";
 import type { EmailSendingStatus } from "@/gateways/identity/identityApi";
 
 const subscribeToHydration = () => () => undefined;
@@ -21,7 +22,6 @@ export const useHydrated = (): boolean => useSyncExternalStore(
 export const useEmailSendingStatus = (storageKey: string, context: string | null) => {
   const [currentStatus, setCurrentStatus] = useState<StoredEmailSendingStatus | null>(null);
   const [invalidatedStatusIdentity, setInvalidatedStatusIdentity] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now);
   const statusIdentity = context ? `${storageKey}:${context}` : null;
   const storedStatus = useMemo(
     () => context ? readEmailSendingStatusStorage(storageKey, context) : null,
@@ -31,11 +31,7 @@ export const useEmailSendingStatus = (storageKey: string, context: string | null
     ? currentStatus
     : invalidatedStatusIdentity === statusIdentity ? null : storedStatus;
 
-  useEffect(() => {
-    if (!status || status.retryAt === null || status.retryAt <= now) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [now, status]);
+  const now = useDeadlineTime(status?.retryAt ?? null);
 
   const update = useCallback((result: EmailSendingStatus) => {
     if (!context) return;
@@ -48,7 +44,6 @@ export const useEmailSendingStatus = (storageKey: string, context: string | null
     };
     setInvalidatedStatusIdentity(null);
     setCurrentStatus(nextStatus);
-    setNow(Date.now());
     writeEmailSendingStatusStorage(storageKey, nextStatus);
   }, [context, storageKey]);
 

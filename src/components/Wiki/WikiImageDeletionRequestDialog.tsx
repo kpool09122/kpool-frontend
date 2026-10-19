@@ -2,7 +2,8 @@
 
 import { LocalizedForm } from "@/components/LocalizedForm";
 import Image from "next/image";
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
 import {
   createWikiImageDeletionRequest,
@@ -21,6 +22,8 @@ type WikiImageDeletionRequestDialogProps = {
   onClose: () => void;
 };
 
+const focusCloseButton = (button: HTMLButtonElement | null) => { button?.focus(); };
+
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 type RequestStep = "selectImage" | "requestForm";
 
@@ -30,20 +33,39 @@ const findInitialSelectedImage = (
 ): WikiUploadedImage | null =>
   images.find((image) => image.imageIdentifier === imageIdentifier) ?? null;
 
-export function WikiImageDeletionRequestDialog({
+export function WikiImageDeletionRequestDialog(props: WikiImageDeletionRequestDialogProps) {
+  return <WikiImageDeletionRequestDialogContent key={`${props.translationSetIdentifier}:${props.heroImage.imageIdentifier}`} {...props} />;
+}
+
+function WikiImageDeletionRequestDialogContent({
   heroImage,
   onClose,
   translationSetIdentifier,
 }: WikiImageDeletionRequestDialogProps) {
-  const { dictionary } = useI18n();
+  const { dictionary, locale } = useI18n();
   const t = dictionary.wiki.imageDeletionRequest;
-  const [images, setImages] = useState<WikiUploadedImage[]>([]);
-  const [selectedImage, setSelectedImage] = useState<WikiUploadedImage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [canLoadMore, setCanLoadMore] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const imageQuery = useInfiniteQuery({
+    queryKey: ["wiki-image-deletion-images", translationSetIdentifier, locale],
+    queryFn: ({ pageParam }) => fetchWikiImages({
+      fallbackErrorMessage: t.listLoadFailed,
+      page: pageParam,
+      perPage: defaultWikiImagePerPage,
+      translationSetIdentifier,
+    }),
+    initialPageParam: 1,
+    getNextPageParam: (page) => page.current_page < page.last_page ? page.current_page + 1 : undefined,
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const images = imageQuery.data?.pages.flatMap((page) => page.images) ?? [];
+  const [chosenImage, setSelectedImage] = useState<WikiUploadedImage | null>(null);
+  const selectedImage = chosenImage ?? findInitialSelectedImage(imageQuery.data?.pages[0]?.images ?? [], heroImage.imageIdentifier ?? "");
+  const isLoading = imageQuery.isPending;
+  const isLoadingMore = imageQuery.isFetchingNextPage;
+  const canLoadMore = imageQuery.hasNextPage;
+  const loadError = imageQuery.isError ? t.listLoadFailed : null;
   const [requesterName, setRequesterName] = useState("");
   const [requesterEmail, setRequesterEmail] = useState("");
   const [reason, setReason] = useState("");
@@ -51,33 +73,6 @@ export function WikiImageDeletionRequestDialog({
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    fetchWikiImages({
-      fallbackErrorMessage: t.listLoadFailed,
-      page: 1,
-      perPage: defaultWikiImagePerPage,
-      translationSetIdentifier,
-    })
-      .then((response) => {
-        setImages(response.images);
-        setCurrentPage(response.current_page);
-        setCanLoadMore(response.current_page < response.last_page);
-        setSelectedImage(findInitialSelectedImage(response.images, heroImage.imageIdentifier ?? ""));
-      })
-      .catch(() => {
-        setImages([]);
-        setCanLoadMore(false);
-        setSelectedImage(null);
-        setLoadError(t.listLoadFailed);
-      })
-      .finally(() => setIsLoading(false));
-  }, [heroImage.imageIdentifier, t.listLoadFailed, translationSetIdentifier]);
-
-  useEffect(() => {
-    closeButtonRef.current?.focus();
-  }, []);
 
   const canSubmit =
     selectedImage !== null &&
@@ -119,27 +114,7 @@ export function WikiImageDeletionRequestDialog({
   };
 
   const handleLoadMore = () => {
-    if (!canLoadMore || isLoadingMore) {
-      return;
-    }
-
-    const nextPage = currentPage + 1;
-    setIsLoadingMore(true);
-    setLoadError(null);
-
-    fetchWikiImages({
-      fallbackErrorMessage: t.listLoadFailed,
-      page: nextPage,
-      perPage: defaultWikiImagePerPage,
-      translationSetIdentifier,
-    })
-      .then((response) => {
-        setImages((currentImages) => [...currentImages, ...response.images]);
-        setCurrentPage(response.current_page);
-        setCanLoadMore(response.current_page < response.last_page);
-      })
-      .catch(() => setLoadError(t.listLoadFailed))
-      .finally(() => setIsLoadingMore(false));
+    if (canLoadMore && !isLoadingMore) void imageQuery.fetchNextPage();
   };
 
   const handleSelectImage = (image: WikiUploadedImage) => {
@@ -196,7 +171,7 @@ export function WikiImageDeletionRequestDialog({
           <button
             className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold transition hover:bg-brand-highlight/30"
             onClick={onClose}
-            ref={closeButtonRef}
+            ref={focusCloseButton}
             type="button"
           >
             {t.close}
