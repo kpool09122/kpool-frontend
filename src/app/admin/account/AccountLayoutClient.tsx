@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
@@ -42,7 +42,6 @@ export function AccountLayoutClient({
   t,
   onAuthorizationRejected,
 }: AccountLayoutClientProps) {
-  const router = useRouter();
   const defaultAdminRoute = currentIdentity ? getAdminInitialRoute(currentIdentity, principalState) : "/admin";
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const accountPrincipalIdentifier = getAccountPrincipalIdentifierFromIdentity(currentIdentity);
@@ -66,39 +65,6 @@ export function AccountLayoutClient({
   const fallbackTab: AdminAccountSettingsTab = "accountProfile";
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
-  useEffect(() => {
-    if (!canShowAccountSettings) {
-      router.replace(defaultAdminRoute);
-      return;
-    }
-
-    if (activeTab === "accountNotifications" && !canReadNotifications) { router.replace(fallbackRoute); return; }
-
-    if (activeTab === "accountInvitations" && !canInvite) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "principalGroupManagement" && !canManageAccountPrincipalGroups) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "unapprovedAccountCategoryChangeRequests" && !canManageCategoryChangeRequests) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "accountAffiliations" && !canShowAffiliations) {
-      router.replace(fallbackRoute);
-      return;
-    }
-
-    if (activeTab === "accountDelegations" && !canShowDelegations) {
-      router.replace(fallbackRoute);
-    }
-  }, [activeTab, canReadNotifications, canInvite, canManageAccountPrincipalGroups, canManageCategoryChangeRequests, canShowAccountSettings, canShowAffiliations, canShowDelegations, defaultAdminRoute, fallbackRoute, router]);
-
   const tabs = [
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
@@ -111,7 +77,8 @@ export function AccountLayoutClient({
     ...(canManageAccountPrincipalGroups ? [createAccountSettingsTab("principalGroupManagement", t.principalGroupManagementTab)] : []),
   ];
   const activeTabAllowed = tabs.some((tab) => tab.id === activeTab);
-  const selectedTab = activeTabAllowed ? activeTab : fallbackTab;
+  if (!canShowAccountSettings) redirect(defaultAdminRoute);
+  if (!activeTabAllowed) redirect(fallbackRoute);
 
   return (
     <section className="space-y-5">
@@ -119,9 +86,9 @@ export function AccountLayoutClient({
         <div aria-label={t.accountSettingsTabsLabel} className="-mb-px flex gap-1" role="tablist">
           {tabs.map((tab) => (
             <Link
-              aria-selected={selectedTab === tab.id}
+              aria-selected={activeTab === tab.id}
               className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                selectedTab === tab.id
+                activeTab === tab.id
                   ? "border-brand-primary text-text-strong"
                   : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
               }`}
@@ -155,7 +122,7 @@ export function AccountLayoutClient({
           onAuthorizationRejected,
         }}
       >
-        {activeTabAllowed ? children : null}
+        {children}
       </AccountSectionProvider>
     </section>
   );

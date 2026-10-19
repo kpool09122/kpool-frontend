@@ -7,7 +7,7 @@ import { SiteManagementPageClient } from "./site-management/SiteManagementPageCl
 import { AdminShellClient } from "./AdminShellClient";
 
 const navigation = vi.hoisted(() => ({ replace: vi.fn(), refresh: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => navigation, usePathname: () => "/admin/site-management/principal-groups", useSearchParams: () => new URLSearchParams() }));
+vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); }, useRouter: () => navigation, usePathname: () => "/admin/site-management/principal-groups", useSearchParams: () => new URLSearchParams() }));
 const siteAdmin = vi.hoisted(() => ({ currentIdentity: {} }));
 vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: siteAdmin.currentIdentity, t: dictionaries.ja.admin }) }));
 const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const,
@@ -31,7 +31,7 @@ describe("principal group menu tabs", () => {
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
   it.each([{ statements: [] }, { statements: [{ effect: "deny", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }])("hides the site sidebar entry without effective permissions: %j", ({ statements }) => {
     siteAdmin.currentIdentity = { ...identity, account: { status: "active" }, siteManagementPrincipalIdentifier: principal.principalIdentifier, siteManagementPrincipalCount: 2, siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Administrator", statements }] };
-    render(<AdminShellClient><SiteManagementPageClient><p>Site management content</p></SiteManagementPageClient></AdminShellClient>);
+    expect(() => render(<AdminShellClient><SiteManagementPageClient><p>Site management content</p></SiteManagementPageClient></AdminShellClient>)).toThrow("redirect:/admin/wiki/editing");
     expect(screen.queryByRole("link", { name: dictionaries.ja.admin.siteManagementMenu })).not.toBeInTheDocument();
     expect(screen.queryByText("Site management content")).not.toBeInTheDocument();
   });

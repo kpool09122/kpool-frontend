@@ -50,6 +50,7 @@ const passkeyMocks = vi.hoisted(() => ({
   list: vi.fn(),
 }));
 const navigationMocks = vi.hoisted(() => ({
+  redirect: vi.fn((path: string) => { throw new Error(`redirect:${path}`); }),
   push: vi.fn(),
   replace: vi.fn(),
   usePathname: vi.fn(() => window.location.pathname),
@@ -73,6 +74,7 @@ vi.mock("@/gateways/identity/passkeyBrowserApi", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  redirect: navigationMocks.redirect,
   usePathname: navigationMocks.usePathname,
   useSearchParams: () => new URLSearchParams(window.location.search),
   useRouter: () => ({
@@ -771,7 +773,7 @@ const loadCropperImage = () => {
 describe("admin page clients", () => {
   it.each(["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list", null])("shows certification management and permits its URL with any supported permission: %s", async (action) => {
     const hasPermission = action !== null;
-    navigationMocks.replace.mockClear();
+    navigationMocks.redirect.mockClear();
     const certificationPrincipal = {
       ...principal,
       policies: hasPermission ? [{
@@ -782,18 +784,20 @@ describe("admin page clients", () => {
       }] : [],
     };
     const agencyIdentity = { ...identity, account: { ...identity.account, accountCategory: "general" } };
-    renderWithQueryClient(<AdminClient
+    const renderPage = () => renderWithQueryClient(<AdminClient
       initialIdentity={agencyIdentity}
       initialPrincipalState={{ status: "available", principal: certificationPrincipal }}
       initialWikiTab="officialCertificationRequest"
       principalAdapter={createAdapter({ getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "available", principal: certificationPrincipal }) })}
       draftWikiAdapter={createDraftWikiAdapter()}
     />);
-    expect(Boolean(screen.queryByRole("tab", { name: "公式認証管理" }))).toBe(hasPermission);
     if (hasPermission) {
-      expect(navigationMocks.replace).not.toHaveBeenCalled();
+      renderPage();
+      expect(screen.getByRole("tab", { name: "公式認証管理" })).toBeInTheDocument();
+      expect(navigationMocks.redirect).not.toHaveBeenCalled();
     } else {
-      await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith("/admin/wiki/editing"));
+      expect(renderPage).toThrow("redirect:/admin/wiki/editing");
+      expect(screen.queryByRole("tab", { name: "公式認証管理" })).not.toBeInTheDocument();
     }
   });
 

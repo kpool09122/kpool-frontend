@@ -2,9 +2,9 @@
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { redirect, usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { getAdminNavigation, resolveAdminSection } from "./adminNavigation";
 import { useAdmin } from "./AdminProvider";
@@ -13,6 +13,7 @@ import { normalizeReturnTo } from "@/gateways/auth/authFlow";
 import { isAccountSetupRequired, isAccountStatusUnavailable, isAccountSuspended } from "@/gateways/identity/identityApi";
 
 const selectedSectionClass = "bg-brand-highlight/70 text-text-strong";
+const subscribeToHydration = () => () => {};
 
 type AdminShellClientProps = {
   children: ReactNode;
@@ -22,11 +23,10 @@ export function AdminShellClient({
   children,
 }: AdminShellClientProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { currentIdentity, t, principalState = { status: "idle" } } = useAdmin();
   const searchParams = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isSidebarHydrated, setIsSidebarHydrated] = useState(false);
+  const isSidebarHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const activeSection = resolveAdminSection(pathname);
   const isUserSettings = activeSection === "settings";
   const navigation = getAdminNavigation(currentIdentity, principalState);
@@ -46,15 +46,7 @@ export function AdminShellClient({
       ? t.accountSettingsHeaderTitle
       : t.settingsHeaderTitle;
 
-  useEffect(() => {
-    // The sidebar toggle is disabled until hydration so pre-hydration clicks are not lost.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsSidebarHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (shouldRedirect) router.replace(fallbackRoute);
-  }, [shouldRedirect, fallbackRoute, router]);
+  if (shouldRedirect) redirect(fallbackRoute);
 
   if (!isUserSettings && isAccountStatusUnavailable(currentIdentity)) {
     return (

@@ -1,12 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { dictionaries } from "../../../i18n/dictionaries";
 import { AccountLayoutClient } from "./AccountLayoutClient";
 
-const navigationMocks = vi.hoisted(() => ({ replace: vi.fn() }));
-vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: navigationMocks.replace }) }));
+const navigationMocks = vi.hoisted(() => ({ redirect: vi.fn((path: string) => { throw new Error(`redirect:${path}`); }) }));
+vi.mock("next/navigation", () => ({ redirect: navigationMocks.redirect }));
 
 const identity = {
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
@@ -35,13 +35,13 @@ describe("AccountLayoutClient delegation access", () => {
     expect(screen.getByText("delegation page")).toBeInTheDocument();
   });
   it("rejects direct notification access with only general account permission", async () => {
-    renderLayout("accountNotifications", { ...identity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }] });
-    await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith("/admin/account/profile"));
+    expect(() => renderLayout("accountNotifications", { ...identity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }] })).toThrow("redirect:/admin/account/profile");
+    expect(navigationMocks.redirect).toHaveBeenCalledWith("/admin/account/profile");
     expect(screen.queryByRole("tab", { name: "通知設定" })).not.toBeInTheDocument();
     expect(screen.queryByText("delegation page")).not.toBeInTheDocument();
   });
 
-  afterEach(() => { cleanup(); vi.restoreAllMocks(); navigationMocks.replace.mockReset(); });
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); navigationMocks.redirect.mockClear(); });
 
   it("shows the tab to users who can request delegation even without loading affiliations", () => {
     const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock); renderLayout("accountProfile");
@@ -66,8 +66,8 @@ describe("AccountLayoutClient delegation access", () => {
 
   it("redirects direct navigation when no delegation permission exists", async () => {
     const unrelatedIdentity = { ...identity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }] };
-    renderLayout("accountDelegations", unrelatedIdentity);
-    await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith("/admin/account/profile"));
+    expect(() => renderLayout("accountDelegations", unrelatedIdentity)).toThrow("redirect:/admin/account/profile");
+    expect(navigationMocks.redirect).toHaveBeenCalledWith("/admin/account/profile");
     expect(screen.queryByText("delegation page")).not.toBeInTheDocument();
   });
 });

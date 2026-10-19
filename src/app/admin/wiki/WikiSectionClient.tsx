@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { redirect, usePathname, useRouter } from "next/navigation";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
 import type {
   AdminDraftImageAdapter,
@@ -196,11 +196,7 @@ export function WikiSectionClient({
           isOpen: false,
         });
   };
-  useEffect(() => {
-    if (principalState.status !== "available") {
-      return;
-    }
-
+  if (principalState.status === "available") {
     const canReviewDraftImages = canReviewWikiDraftImages(principalState.principal);
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(principalState.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(principalState.principal);
@@ -219,9 +215,9 @@ export function WikiSectionClient({
       (activeWikiTab === "principalGroupManagement" && canManagePrincipalGroups);
 
     if (!isAllowed) {
-      router.replace(adminWikiTabRoutes.editingWikis);
+      redirect(adminWikiTabRoutes.editingWikis);
     }
-  }, [activeWikiTab, principalState, router]);
+  }
 
   const submitCreateDialog = (input: {
     agencyIdentifier: string | null;
