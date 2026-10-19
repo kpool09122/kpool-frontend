@@ -52,7 +52,8 @@ export const buildLocaleChangePath = ({
     hasLanguagePrefix &&
     (segments[2] === "terms" || segments[2] === "privacy");
 
-  if (!isLanguageTopPath && !isLanguageWikiPath && !isLanguageLegalPath) {
+  const isLanguageAnnouncementPath = hasLanguagePrefix && segments[2] === "announcements" && (segments.length === 3 || segments.length === 4);
+  if (!isLanguageTopPath && !isLanguageWikiPath && !isLanguageLegalPath && !isLanguageAnnouncementPath) {
     return null;
   }
 

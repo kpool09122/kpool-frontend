@@ -68,3 +68,53 @@ test("a single SiteManagement Principal keeps the entry but hides management and
   await expect(page.getByRole("heading", { name: "ユーザー権限管理", exact: true })).toHaveCount(0);
   expect(managementRequests).toBe(0);
 });
+
+
+test("announcement draft create, edit, translate, publish and delete", async ({ page }) => {
+ const actions = ["view-draft", "create", "update", "translate", "publish", "delete"].map((action) => `announcement:${action}`);
+ const operator = { ...identity, siteManagementPolicies: [{ ...identity.siteManagementPolicies[0], name: "Operator", statements: [{ effect: "allow", actions, resourceTypes: ["announcement"], condition: null }] }] };
+ await page.context().addCookies([{ name: "kpool-e2e-site-management", value: "operator", domain: "127.0.0.1", path: "/" }, { name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" }, { name: "kpool-locale", value: "ja", domain: "127.0.0.1", path: "/" }]);
+ await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: operator }));
+ const id = "019b0000-0000-7000-8000-000000000001";
+ type Draft = { announcementIdentifier: string; sourceLanguage: string; category: number; publishedDate: string; contents: Record<string, { title: string; content: string }> };
+ let draft: Draft | null = null;
+ let writes = 0;
+ await page.route("**/api/site-management/draft-announcements**", (route) => {
+  const url = new URL(route.request().url()); const method = route.request().method();
+  if (method === "GET") return route.fulfill({ json: url.pathname.endsWith("draft-announcements") ? { announcements: draft ? [draft] : [], current_page: 1, last_page: 1, per_page: 20, total: draft ? 1 : 0 } : draft });
+  writes += 1;
+  if (url.pathname.endsWith("/translate")) { draft!.contents.en = { title: "English", content: "English body" }; draft!.contents.ko = { title: "한국어", content: "본문" }; return route.fulfill({ json: { announcements: [draft] } }); }
+  if (url.pathname.endsWith("/publish") || method === "DELETE") { const removed = draft; draft = null; return route.fulfill({ json: { announcements: [removed] } }); }
+  const input = route.request().postDataJSON();
+  draft = { announcementIdentifier: id, sourceLanguage: draft?.sourceLanguage ?? input.language, category: input.category, publishedDate: input.publishedDate, contents: { ...draft?.contents, [input.language]: { title: input.title, content: input.content } } };
+  return route.fulfill({ json: draft });
+ });
+ await page.goto("/admin/site-management/announcements");
+ await expect(page.getByRole("tab", { name: "お知らせ管理" })).toBeVisible();
+ await page.getByRole("button", { name: "新規作成", exact: true }).click();
+ await page.getByLabel("公開日", { exact: true }).fill("2026-10-19");
+ await page.getByLabel("タイトル", { exact: true }).fill("新しいお知らせ");
+ await page.getByLabel("本文", { exact: true }).fill("お知らせの本文");
+ await page.getByRole("button", { name: "新規作成", exact: true }).click();
+ await expect(page.getByText("保存しました。", { exact: true })).toBeVisible();
+ await page.getByLabel("タイトル", { exact: true }).fill("手動編集");
+ await expect(page.getByRole("button", { name: "翻訳", exact: true })).toBeDisabled();
+ await page.getByRole("button", { name: "保存", exact: true }).click();
+ await expect(page.getByRole("button", { name: "翻訳", exact: true })).toBeEnabled();
+ await page.getByRole("button", { name: "翻訳", exact: true }).click();
+ await expect(page.getByText("未翻訳の言語を補完しました。", { exact: true })).toBeVisible();
+ await expect(page.getByLabel("タイトル", { exact: true })).toHaveValue("手動編集");
+ await page.getByLabel("表示言語", { exact: true }).selectOption("en");
+ await expect(page.getByLabel("タイトル", { exact: true })).toHaveValue("English");
+ page.on("dialog", (dialog) => dialog.accept());
+ await page.getByRole("button", { name: "公開", exact: true }).click();
+ await expect(page.getByText("公開しました。", { exact: true })).toBeVisible();
+ await expect(page.getByText("お知らせはありません。", { exact: true })).toBeVisible();
+ // Reopen a separate draft and verify deletion confirmation + authoritative removal.
+ draft = { announcementIdentifier: id, sourceLanguage: "ja", category: 1, publishedDate: "2026-10-19", contents: { ja: { title: "削除する下書き", content: "本文" } } };
+ await page.reload();
+ await page.getByRole("button", { name: "削除する下書き", exact: true }).click();
+ await page.getByRole("button", { name: "削除", exact: true }).click();
+ await expect(page.getByText("削除しました。", { exact: true })).toBeVisible();
+ expect(writes).toBe(5);
+});

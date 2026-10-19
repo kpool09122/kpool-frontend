@@ -61,6 +61,11 @@ describe("fetchAuthenticatedIdentity", () => {
     );
   });
 
+  it("supplies announcement policies only for the explicit mock operator cookie", async () => {
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
+    const identity = await fetchAuthenticatedIdentity({ cookieHeader: "kpool-mock-account-status=active; kpool-e2e-site-management=operator" });
+    expect(identity?.siteManagementPolicies?.[0].statements[0].actions).toContain("announcement:view-draft");
+  });
   it("supplies SiteManagement policies only for the explicit mock admin cookie", async () => {
     vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
     const identity = await fetchAuthenticatedIdentity({ cookieHeader: "kpool-mock-account-status=active; kpool-e2e-site-management=administrator" });
