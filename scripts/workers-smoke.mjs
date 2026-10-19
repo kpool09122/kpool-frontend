@@ -115,7 +115,8 @@ try {
           "x-kpool-visitor-signature": "forged", "x-kpool-visitor-timestamp": "1234567890" },
         body: JSON.stringify({ resourceType: "group", wikiId: "fixture-id", rejectionReason: "fixture" }),
       });
-      assert.equal(response.status, 502, "fixture backend returns 401; existing route error handling remains intact");
+      assert.equal(response.status, 401, "Wiki routes must preserve the backend authentication status");
+      assert.equal(response.headers.get("cache-control"), "no-store");
       const forwarded = requests.filter((item) => item.url.endsWith(`/fixture-id/${action}`)).at(-1);
       assert.ok(forwarded, `${action} must reach backend`);
       assert.equal(forwarded.headers.cookie, headers.cookie);
