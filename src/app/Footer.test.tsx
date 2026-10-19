@@ -29,6 +29,8 @@ describe("Footer", () => {
       "href",
       "/ja/privacy",
     );
+    expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual(["利用規約", "プライバシーポリシー", "お知らせ", "お問い合わせ", "Instagram"]);
+    expect(screen.getByRole("link", { name: "お知らせ" })).toHaveAttribute("href", "/ja/announcements");
     expect(screen.getByRole("link", { name: "お問い合わせ" })).toHaveAttribute(
       "href",
       "/contact",

@@ -6,6 +6,7 @@ type WikiDraftWikiListScope = "managed" | "my";
 
 export const adminQueryKeys = {
   siteManagement: {
+    announcements: (scope: string) => ["admin", "siteManagement", "announcements", scope] as const,
     principalGroups: (accountIdentifier: string | null, actorIdentifier: string | null) => ["admin", "siteManagement", "principalGroups", accountIdentifier, actorIdentifier] as const,
   },
   all: ["admin"] as const,

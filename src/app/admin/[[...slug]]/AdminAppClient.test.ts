@@ -8,6 +8,7 @@ describe("resolveAdminClientPage", () => {
   });
   it("resolves contacts without using the principal group management page", () => {
     expect(resolveAdminClientPage("/admin/site-management/contacts")).toBe("siteManagementContacts");
+    expect(resolveAdminClientPage("/admin/site-management/announcements")).toBe("siteManagementAnnouncements");
     expect(resolveAdminClientPage("/admin/site-management")).toBe("siteManagementContacts");
   });
   it("resolves the direct other settings route", () => {

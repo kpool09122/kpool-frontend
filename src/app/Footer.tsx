@@ -27,6 +27,12 @@ export function Footer() {
           </Link>
           <Link
             className="w-fit rounded-md text-sm font-semibold text-text-muted underline-offset-4 transition hover:text-brand-primary hover:underline focus:outline-none focus:ring-2 focus:ring-brand-highlight"
+            href={`/${locale}/announcements`}
+          >
+            {t.announcements}
+          </Link>
+          <Link
+            className="w-fit rounded-md text-sm font-semibold text-text-muted underline-offset-4 transition hover:text-brand-primary hover:underline focus:outline-none focus:ring-2 focus:ring-brand-highlight"
             href="/contact"
           >
             {t.contact}

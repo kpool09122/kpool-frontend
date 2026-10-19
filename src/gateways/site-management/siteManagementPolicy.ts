@@ -18,10 +18,12 @@ const hasPermission = (
 export const canManageSiteManagementPrincipalGroups = (identity: AuthenticatedIdentitySummary | null): boolean =>
   hasPermission(identity, "principal-group:manage", "principal_group");
 
+export const canUseAnnouncements = (identity: AuthenticatedIdentitySummary | null, action: "view-draft" | "create" | "update" | "translate" | "publish" | "delete") => hasPermission(identity, `announcement:${action}`, "announcement");
+
 /** Section access depends on permissions, independently of tab visibility and member count. */
 export const canAccessSiteManagement = (identity: AuthenticatedIdentitySummary | null): boolean =>
   canManageSiteManagementPrincipalGroups(identity) ||
-  ["announcement:create", "announcement:update", "announcement:publish", "announcement:translate", "announcement:delete"]
+  ["announcement:view-draft", "announcement:create", "announcement:update", "announcement:publish", "announcement:translate", "announcement:delete"]
     .some((action) => hasPermission(identity, action, "announcement")) ||
   ["contact:view", "contact:reply"].some((action) =>
     hasPermission(identity, action, "contact") || hasPermission(identity, action, "contact", true),

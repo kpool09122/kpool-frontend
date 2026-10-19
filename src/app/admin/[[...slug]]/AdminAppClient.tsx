@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { SiteManagementAnnouncementsClient } from "../site-management/announcements/SiteManagementAnnouncementsClient";
 import { SiteManagementPrincipalGroupsClient } from "../site-management/principal-groups/SiteManagementPrincipalGroupsClient";
 import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
 
@@ -52,6 +53,7 @@ export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
 
 type AdminClientPage = "accountAffiliations"
   | "siteManagementPrincipalGroups"
+  | "siteManagementAnnouncements"
   | "accountDelegations"
   | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
@@ -79,6 +81,7 @@ type AdminClientPage = "accountAffiliations"
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   if (pathname?.startsWith("/admin/site-management")) {
+    if (pathname.endsWith("/announcements")) return "siteManagementAnnouncements";
     return pathname.endsWith("/principal-groups")
       ? "siteManagementPrincipalGroups"
       : "siteManagementContacts";
@@ -178,6 +181,7 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;
   if (page === "siteManagementPrincipalGroups") {
     return (
       <SiteManagementPageClient>

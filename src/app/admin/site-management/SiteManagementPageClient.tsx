@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { canUseAnnouncements } from "@/gateways/site-management/siteManagementPolicy";
+import { dictionaries } from "@/i18n/dictionaries";
 import type { ReactNode } from "react";
 import { AccountStatusMessage } from "@/components/Account";
 
@@ -9,9 +11,9 @@ import { useAdmin } from "../AdminProvider";
 
 export function SiteManagementPageClient({ children, activeTab = "principalGroups" }: {
   children: ReactNode;
-  activeTab?: "contacts" | "principalGroups";
+  activeTab?: "contacts" | "principalGroups" | "announcements";
 }) {
-  const { currentIdentity, t } = useAdmin();
+  const { currentIdentity, t, locale } = useAdmin();
   const canShowManagement = canShowSiteManagementPrincipalGroupManagement(currentIdentity);
 
   if (activeTab === "principalGroups" && !canShowManagement) return (
@@ -32,6 +34,7 @@ export function SiteManagementPageClient({ children, activeTab = "principalGroup
           >
             {t.myContacts.tab}
           </Link>
+          {canUseAnnouncements(currentIdentity, "view-draft") ? <Link role="tab" aria-selected={activeTab === "announcements"} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "announcements" ? "border-brand-primary" : "border-transparent"}`} href="/admin/site-management/announcements">{dictionaries[locale].announcements.management}</Link> : null}
           {canShowManagement ? <Link
             aria-selected={activeTab === "principalGroups"}
             className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "principalGroups" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}

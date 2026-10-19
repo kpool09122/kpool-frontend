@@ -41,7 +41,10 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
     siteManagementPrincipalCount: accountStatus === "missing" ? 0 :
       hasCookieValue(cookieHeader, "kpool-e2e-site-management", "administrator") &&
       !hasCookieValue(cookieHeader, "kpool-e2e-site-management-principal-count", "1") ? 2 : 1,
-    siteManagementPolicies: hasCookieValue(cookieHeader, "kpool-e2e-site-management", "administrator") ? [{
+    siteManagementPolicies: hasCookieValue(cookieHeader, "kpool-e2e-site-management", "operator") ? [{
+      policyIdentifier: "55555555-5555-4555-8555-555555555555", name: "Operator",
+      statements: [{ effect: "allow", actions: ["announcement:view-draft", "announcement:create", "announcement:update", "announcement:translate", "announcement:publish", "announcement:delete"], resourceTypes: ["announcement"], condition: null }],
+    }] : hasCookieValue(cookieHeader, "kpool-e2e-site-management", "administrator") ? [{
       policyIdentifier: "55555555-5555-4555-8555-555555555555",
       name: "Administrator",
       statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }],

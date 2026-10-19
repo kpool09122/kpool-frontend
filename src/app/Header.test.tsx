@@ -7,6 +7,9 @@ import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsa
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { buildLocaleChangePath, Header } from "./Header";
 import { applyThemeMode } from "./themeMode";
+it.each(["/ja/announcements", "/ja/announcements/019b0000-0000-7000-8000-000000000001"])("changes announcement route language for %s", (pathname) => {
+ expect(buildLocaleChangePath({ nextLocale: "ko", pathname, searchParams: new URLSearchParams("page=2") })).toBe(pathname.replace("/ja/", "/ko/") + "?page=2");
+});
 
 const switchableIdentity = {
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
