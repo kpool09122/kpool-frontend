@@ -462,7 +462,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/contact/principals/:principalIdentifier/:contactIdentifier",
     alias: "ContactOperations_getContactDetail",
-    description: `Get the specified contact inquiry for an principal. Requires a site-management Operator.`,
+    description: `Get the specified contact inquiry for a principal. Uses the same contact:reply policy checks as replying: evaluate without an owner before lookup, then against the persisted owner. No Operator role is required independently of this policy; General contact:view permission alone does not grant access, even to the caller&#x27;s own inquiry. An ownerless denial returns 403 before lookup; a missing inquiry or principal mismatch returns 404 after that check succeeds.`,
     requestFormat: "json",
     parameters: [
       {
@@ -590,6 +590,58 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/contacts/:contactIdentifier",
+    alias: "ContactListOperations_getContactDetailByIdentifier",
+    description: `Get a contact inquiry by identifier, including anonymous submissions. Uses the same contact:reply policy checks as replying: evaluate without an owner before lookup, then against the persisted nullable owner. No Operator role is required independently of this policy. An ownerless denial returns 403 before lookup; a missing inquiry returns 404 after that check succeeds. Returns the existing detail without an email address.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "contactIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: ContactDetail,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
