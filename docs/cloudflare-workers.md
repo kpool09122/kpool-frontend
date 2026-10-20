@@ -71,7 +71,7 @@ KPOOL_WORKERS_DEPLOY_CONFIG=wrangler.deploy.json pnpm workers:deploy
 
 runtime `ApiUrl` を管理者/Pipelineが解決し、各base URLへ渡す。originまたは対応prefix付きURLを既存gatewayが扱う。URLにtoken/userinfo/query/fragmentを含めない。4変数は `NEXT_PUBLIC_*` や next.config.env にせずブラウザへの埋め込みを避ける。
 
-- build: shell環境 / Next .env.production 等で注入可能。ただし現行全ページはdynamicで、4変数未設定でもbuild成功。今回の証跡は未設定buildに別のruntime値を注入して検証した。将来SSGへ変更する場合はbuild時にも同値が必要。
+- build: コミット済みの `.env.production` をNext.jsが自動で読み込む。API URLと `NEXT_PUBLIC_ANALYTICS_ENABLED` / `NEXT_PUBLIC_GTM_ID` はこのファイルで設定し、公開変数の変更時は再buildする。shell環境での明示指定はファイルより優先される。本番のAPI URLは承認済みWrangler configの設定と揃える。
 - runtime: 承認済みWrangler configの `vars` に4値を設定する。OpenNextがWorkers envをprocess.envへ初期化し、既存gatewayを使う。値変更で再buildは不要だが、古いcacheの扱いを確認し、origin切替と配備を明示管理する。
 - local: `.dev.vars` / .env ファイルはgit対象外。通常の `next dev` は既存 .env を使用。Cloudflare bindingをnext dev中に直接扱うアプリコードはないためinitOpenNextCloudflareForDevを追加しない。smokeは非秘密のlocal fixture URLだけを一時configへ書き、finallyで削除する。
 
