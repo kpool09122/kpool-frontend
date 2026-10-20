@@ -10,7 +10,7 @@ Next.js 16.3.8 / React 19.3.0 を変更せず、`@opennextjs/cloudflare` 1.20.8 
 
 ## コマンド・固定成果物
 
-Node 26.10.0 / pnpm 12.4.2 を使用する。
+Node 26.12.0 / pnpm 12.4.2 を使用する。
 
 ```sh
 pnpm install --frozen-lockfile

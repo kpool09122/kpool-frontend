@@ -4,7 +4,7 @@ This project is managed with `pnpm`.
 
 ## Requirements
 
-- Node.js `26.10.0`
+- Node.js `26.12.0`
 - `pnpm` `12.4.2`
 - `task` `3.x`
 
