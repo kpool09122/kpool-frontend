@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockWikiDetail, type WikiDraftDetail } from "@kpool/wiki";
 
 import { WikiEditPage } from "./WikiEditPage";
+import { useAuthStore } from "@/gateways/auth/authStore";
+import * as principalApi from "@/gateways/wiki/wikiPrincipal";
+import * as materialApi from "@/gateways/wiki/wikiMaterialSearch";
 import { wikiImageMaxBase64Length, wikiImageMaxFileSizeBytes } from "@kpool/wiki";
 import * as WikiImageLibraryModule from "../../../../components/Wiki/WikiImageLibrary";
 import { I18nProvider } from "../../../../i18n/I18nProvider";
@@ -67,6 +70,54 @@ const loadCropperImage = () => {
 };
 
 describe("WikiEditPage", () => {
+  it("reads unfinished title input when the dialog opens", async () => {
+    useAuthStore.setState({ identity: { identityIdentifier: "user", identityName: "User", email: "u@test", language: "en" } });
+    vi.spyOn(principalApi, "getCurrentWikiPrincipal").mockResolvedValue({ status: "available", principal: { principalIdentifier: "p", identityIdentifier: "user", status: "active", accountPrincipalCount: 1, isDelegatedPrincipal: false, policies: [{ policyIdentifier: "policy", name: "Search", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["search_free_materials"], resourceTypes: ["image"], condition: null }] }] } });
+    const search = vi.spyOn(materialApi, "searchWikiFreeMaterials").mockResolvedValue({ sites: [] });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ images: [], current_page: 1, last_page: 1, total: 0, per_page: 24 })));
+    renderPage({ status: "success", data: { ...successState.data, title: null, basic: { ...successState.data.basic, agency: null, agencyIdentifier: null, talents: [], talentIdentifiers: [] } } });
+    fireEvent.click(screen.getByRole("button", { name: "Edit wiki title" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Title" }), { target: { value: "Unfinished name" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI material search" }));
+    expect(screen.getByText("Unfinished name")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Search materials" }));
+    await waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({ title: "Unfinished name" }), expect.any(String)));
+  });
+
+  it("searches with user language, retains results across tabs/close/save, and uses a single leave guard", async () => {
+    useAuthStore.setState({ identity: { identityIdentifier: "user", identityName: "User", email: "user@example.test", language: "ko" } });
+    vi.spyOn(principalApi, "getCurrentWikiPrincipal").mockResolvedValue({ status: "available", principal: { principalIdentifier: "principal", identityIdentifier: "user", status: "active", accountPrincipalCount: 1, isDelegatedPrincipal: false, policies: [{ policyIdentifier: "policy", name: "Search", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["search_free_materials"], resourceTypes: ["image"], condition: null }] }] } });
+    const search = vi.spyOn(materialApi, "searchWikiFreeMaterials").mockResolvedValue({ sites: [{ siteName: "Commons", pageUrl: "https://commons.wikimedia.org/wiki/File:A", reason: "Target image", usageEvidence: "CC BY", usageEvidenceUrl: "https://commons.wikimedia.org/wiki/License" }] });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ images: [], current_page: 1, last_page: 1, total: 0, per_page: 24 })));
+    renderPage({ status: "success", data: { ...successState.data, title: "Edited title", basic: { ...successState.data.basic, agency: null, agencyIdentifier: null, groups: [], talents: [], groupIdentifiers: [], talentIdentifiers: [] } } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI material search" }));
+    expect(screen.getByText("Edited title")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Search materials" }));
+    expect(await screen.findByText("Target image")).toBeInTheDocument();
+    expect(search).toHaveBeenCalledWith(expect.objectContaining({ title: "Edited title", language: "ko", relatedWikis: [] }), expect.any(String));
+    fireEvent.click(screen.getByRole("button", { name: "Use source for upload request" }));
+    expect(screen.getByRole("textbox", { name: "Source URL" })).toHaveValue("https://commons.wikimedia.org/wiki/File:A");
+    expect(screen.getByRole("textbox", { name: "Source site name" })).toHaveValue("Commons");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI material search" }));
+    expect(screen.getByText("Target image")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Font style" }), { target: { value: "en_serif" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save wiki changes" }));
+    await screen.findByText("Saved");
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const link = document.createElement("a"); link.href = "/en"; document.body.append(link);
+    fireEvent.click(link);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(confirm.mock.calls[0][0]).toContain("search results");
+    const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    link.remove();
+  });
+
   beforeEach(() => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       drawImage: vi.fn(),
@@ -76,6 +127,7 @@ describe("WikiEditPage", () => {
 
   afterEach(() => {
     cleanup();
+    useAuthStore.setState(useAuthStore.getInitialState(), true);
     navigationMocks.refresh.mockReset();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

@@ -1355,6 +1355,7 @@ const ja = {
     },
     imageLibrary: {
       label: "Wiki画像ライブラリ",
+      materialSearch: {"tab": "AI素材検索", "search": "素材を検索", "searching": "素材を検索中…", "idle": "編集内容を確認し、検索してください。", "empty": "根拠を確認できる素材は見つかりませんでした。", "failed": "検索に失敗しました。再度お試しください。", "titleRequired": "タイトルまたは基本情報の表示名を入力してください。", "contextFailed": "関連Wikiの表示名を取得できません。関連の選択を確認して再検索してください。", "context": "検索対象", "previousContext": "結果の検索対象", "noRelations": "関連Wikiなし", "evidence": "利用条件の根拠", "useSource": "アップロード申請の出典に使う", "notice": "AIの提案です。掲載元と利用条件を確認し、既存の画像利用申請から申請してください。結果は保存されません。", "leave": "未保存の編集内容と保持中の素材検索結果は、この画面を離れると失われます。移動しますか？"},
       title: "画像ライブラリ",
       close: "閉じる",
       tabsLabel: "Wiki画像ライブラリのタブ",
@@ -2725,6 +2726,7 @@ const en: typeof ja = {
     },
     imageLibrary: {
       label: "Wiki image library",
+      materialSearch: {"tab": "AI material search", "search": "Search materials", "searching": "Searching materials…", "idle": "Review the current context, then search.", "empty": "No materials with verified evidence found.", "failed": "Search failed. Please try again.", "titleRequired": "Enter a title or a basic display name.", "contextFailed": "Related Wiki names could not be loaded. Check your selections and retry.", "context": "Search context", "previousContext": "Context used for these results", "noRelations": "No related Wikis", "evidence": "Usage evidence", "useSource": "Use source for upload request", "notice": "AI suggestions only. Check the source and usage conditions before submitting an image usage request. Results are not saved.", "leave": "Unsaved edits and retained material search results will be lost when you leave this page. Leave?"},
       title: "Image library",
       close: "Close",
       tabsLabel: "Wiki image library tabs",
@@ -4092,6 +4094,7 @@ const ko: typeof ja = {
     },
     imageLibrary: {
       label: "Wiki 이미지 라이브러리",
+      materialSearch: {"tab": "AI 소재 검색", "search": "소재 검색", "searching": "소재 검색 중…", "idle": "현재 편집 내용을 확인한 후 검색하세요.", "empty": "근거를 확인한 소재가 없습니다.", "failed": "검색에 실패했습니다. 다시 시도하세요.", "titleRequired": "제목 또는 기본 정보의 표시 이름을 입력하세요.", "contextFailed": "관련 Wiki 이름을 불러오지 못했습니다. 선택을 확인하고 다시 시도하세요.", "context": "검색 대상", "previousContext": "결과 검색 대상", "noRelations": "관련 Wiki 없음", "evidence": "이용 조건 근거", "useSource": "업로드 신청 출처로 사용", "notice": "AI 제안입니다. 출처와 이용 조건을 확인한 후 기존 이미지 이용 신청을 이용하세요. 결과는 저장되지 않습니다.", "leave": "페이지를 나가면 저장하지 않은 편집 내용과 소재 검색 결과가 사라집니다. 이동할까요?"},
       title: "이미지 라이브러리",
       close: "닫기",
       tabsLabel: "Wiki 이미지 라이브러리 탭",

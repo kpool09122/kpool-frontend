@@ -2,7 +2,7 @@
 
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useImperativeHandle, useRef, useState, type Ref } from "react";
 
 import {
   type WikiBasic,
@@ -32,6 +32,7 @@ import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
 
 type WikiBasicPanelProps = {
   basic: WikiBasic;
+  searchContextRef?: Ref<{ getBasic: () => WikiBasic }>;
   disabled?: boolean;
   isEditing: boolean;
   language?: string;
@@ -365,6 +366,7 @@ const toSelectOptions = <T extends string>(
 
 export function WikiBasicPanel({
   basic,
+  searchContextRef,
   disabled = false,
   isEditing,
   language = "en",
@@ -436,6 +438,12 @@ export function WikiBasicPanel({
     (basic.talents ?? []).map((talent) => ({ ...toSearchItem(talent), resourceType: "talent" })),
   );
 
+  useImperativeHandle(searchContextRef, () => ({ getBasic: () => !isEditing ? basic : ({
+    ...basic,
+    ...(showsAgencySearch ? { agency: selectedAgency[0] ? toBasicRelation(selectedAgency[0]) : null, agencyIdentifier: selectedAgency[0]?.wikiIdentifier ?? null, agencyName: selectedAgency[0]?.name ?? null } : {}),
+    ...(showsGroupsSearch ? { groups: selectedGroups.map(toBasicRelation), groupIdentifiers: selectedGroups.map((item) => item.wikiIdentifier) } : {}),
+    ...(showsTalentsSearch ? { talents: selectedTalents.map(toBasicRelation), talentIdentifiers: selectedTalents.map((item) => item.wikiIdentifier) } : {}),
+  }) }));
   const initialFormData = useRef<FormData | null>(null);
   const captureForm = useCallback((form: HTMLFormElement | null) => {
     initialFormData.current = form ? new FormData(form) : null;

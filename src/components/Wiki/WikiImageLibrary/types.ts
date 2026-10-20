@@ -3,10 +3,20 @@ import { type Dispatch, type RefObject, type SetStateAction } from "react";
 import {
   type WikiImageListResponse,
   type WikiUploadedImage,
+  type WikiMaterialSearchContext,
+  type WikiMaterialSearchSite,
 } from "@kpool/wiki";
 import { type useI18n } from "../../../i18n/I18nProvider";
 
-export type WikiImageLibraryTab = "images" | "request";
+export type WikiImageLibraryTab = "images" | "request" | "search";
+
+export type WikiMaterialSearchController = {
+  context: WikiMaterialSearchContext;
+  result: { context: WikiMaterialSearchContext; sites: WikiMaterialSearchSite[] } | null;
+  isSearching: boolean;
+  error: string | null;
+  onSearch: () => unknown;
+};
 
 export type WikiImageUsageRequestInput = {
   file: File;
@@ -32,6 +42,7 @@ export type WikiImageCropState = {
 export type WikiImageLibraryDictionary = ReturnType<typeof useI18n>["dictionary"]["wiki"]["imageLibrary"];
 
 export type WikiImageLibraryProps = {
+  materialSearch?: WikiMaterialSearchController;
   images: WikiUploadedImage[];
   isInitialLoading: boolean;
   isLoadingMore: boolean;

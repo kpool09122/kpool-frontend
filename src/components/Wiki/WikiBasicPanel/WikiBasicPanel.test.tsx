@@ -19,6 +19,22 @@ const renderWithI18n = (ui: React.ReactElement) =>
   };
 
 describe("WikiBasicPanel", () => {
+  it("exposes unsaved relation additions and removals without submitting the Basic form", async () => {
+    const searchContextRef = React.createRef<{ getBasic: () => typeof wikiStoryBasic }>();
+    const onSave = vi.fn();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ wikis: [{
+      id: "11111111-1111-4111-8111-111111111111", slug: "ag-jyp", language: "ko",
+      name: "JYP Entertainment", normalizedName: "jyp", resourceType: "agency", imageUrl: null, imageAltText: null,
+    }] })));
+    renderWithI18n(<WikiBasicPanel basic={{ ...wikiStoryBasic, agency: null, agencyIdentifier: null, agencyName: null }} searchContextRef={searchContextRef} isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("Agency: Search keyword"), { target: { value: "JYP" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    fireEvent.click(await screen.findByRole("button", { name: /JYP Entertainment/ }));
+    expect(searchContextRef.current?.getBasic().agency).toMatchObject({ wikiIdentifier: "11111111-1111-4111-8111-111111111111", name: "JYP Entertainment" });
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Remove: JYP Entertainment" }));
+    expect(searchContextRef.current?.getBasic()).toMatchObject({ agency: null, agencyIdentifier: null, agencyName: null });
+  });
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
