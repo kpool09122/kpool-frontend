@@ -26,7 +26,7 @@ const site = {
 afterEach(cleanup);
 describe("material search panel", () => {
   it.each(["ja", "en", "ko"] as const)(
-    "localizes context labels and states in %s",
+    "localizes search controls and notice in %s",
     (locale) => {
       const t = dictionaries[locale].wiki.imageLibrary;
       render(
@@ -44,17 +44,10 @@ describe("material search panel", () => {
           />
         </I18nProvider>,
       );
-      expect(screen.getByText(t.materialSearch.idle)).toBeInTheDocument();
+      expect(screen.getByText(t.materialSearch.notice)).toBeInTheDocument();
       expect(
-        screen.getByText(
-          `${dictionaries[locale].home.resourceLabels.group} · ko`,
-        ),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          new RegExp(dictionaries[locale].home.resourceLabels.agency),
-        ),
-      ).toBeInTheDocument();
+        screen.getByRole("button", { name: t.materialSearch.search }),
+      ).toBeEnabled();
     },
   );
   it("renders up to three sites with citations and passes siteName/pageUrl only to the upload flow", () => {

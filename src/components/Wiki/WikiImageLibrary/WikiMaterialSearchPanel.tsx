@@ -1,9 +1,4 @@
-import { useI18n } from "@/i18n/I18nProvider";
-import {
-  isWikiResourceType,
-  isSafeMaterialSearchUrl,
-  type WikiMaterialSearchContext,
-} from "@kpool/wiki";
+import { isSafeMaterialSearchUrl } from "@kpool/wiki";
 import type {
   WikiImageLibraryDictionary,
   WikiMaterialSearchController,
@@ -19,33 +14,6 @@ export function WikiMaterialSearchPanel({
   onUseSource: (siteName: string, pageUrl: string) => void;
 }) {
   const words = t.materialSearch;
-  const { dictionary } = useI18n();
-  const resourceLabel = (value: string) =>
-    isWikiResourceType(value) ? dictionary.home.resourceLabels[value] : value;
-  const relationLabels: Record<string, string> = {
-    agency: dictionary.wiki.basicFieldLabels.agency,
-    groups: dictionary.wiki.basicFieldLabels.groups,
-    talents: dictionary.wiki.basicFieldLabels.talents,
-  };
-  const describe = (context: WikiMaterialSearchContext) => (
-    <>
-      <p className="break-words font-semibold">
-        {context.title || context.displayName || words.titleRequired}
-      </p>
-      <p>
-        {resourceLabel(context.resourceType)} · {context.language}
-      </p>
-      <ul className="list-inside list-disc">
-        {context.relatedWikis.map((wiki) => (
-          <li key={`${wiki.relationType}:${wiki.identifier}`}>
-            {wiki.title || wiki.identifier} · {resourceLabel(wiki.resourceType)}{" "}
-            · {relationLabels[wiki.relationType ?? ""] ?? wiki.relationType}
-          </li>
-        ))}
-      </ul>
-      {context.relatedWikis.length === 0 ? <p>{words.noRelations}</p> : null}
-    </>
-  );
   return (
     <section
       aria-labelledby="wiki-image-library-search-tab"
@@ -53,33 +21,24 @@ export function WikiMaterialSearchPanel({
       role="tabpanel"
       className="grid gap-5"
     >
-      <p>{words.notice}</p>
-      <div
-        aria-label={words.context}
-        className="rounded-xl border border-stroke-subtle p-4"
-      >
-        {describe(controller.context)}
+      <div className="flex items-start gap-4">
+        <p className="min-w-0 flex-1">{words.notice}</p>
+        <button
+          type="button"
+          disabled={controller.isSearching}
+          onClick={() => controller.onSearch()}
+          className="shrink-0 whitespace-nowrap rounded-full border border-brand-primary bg-brand-primary px-5 py-3 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {controller.isSearching ? words.searching : words.search}
+        </button>
       </div>
-      <button
-        type="button"
-        disabled={controller.isSearching}
-        onClick={() => controller.onSearch()}
-        className="rounded-xl border border-stroke-subtle px-4 py-3 font-semibold disabled:opacity-50"
-      >
-        {controller.isSearching ? words.searching : words.search}
-      </button>
       {controller.error ? <p role="alert">{controller.error}</p> : null}
       <div aria-live="polite" aria-busy={controller.isSearching}>
         {controller.isSearching ? (
           <p role="status">{words.searching}</p>
-        ) : !controller.result && !controller.error ? (
-          <p>{words.idle}</p>
         ) : null}
         {controller.result ? (
           <div className="grid gap-4">
-            <div aria-label={words.previousContext}>
-              {describe(controller.result.context)}
-            </div>
             {controller.result.sites.length === 0 ? (
               <p>{words.empty}</p>
             ) : (

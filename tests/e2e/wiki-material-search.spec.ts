@@ -98,7 +98,7 @@ for (const viewport of [
       .click();
     await page.getByRole("tab", { name: "AI material search" }).click();
     await expect(
-      page.getByText("Review the current context, then search."),
+      page.getByRole("button", { name: "Search materials", exact: true }),
     ).toBeVisible();
     await page
       .getByRole("button", { name: "Search materials", exact: true })
@@ -164,7 +164,7 @@ for (const viewport of [
     await page.getByRole("tab", { name: "AI material search" }).click();
     await expect(page.getByText(site.reason)).toHaveCount(0);
     await expect(
-      page.getByText("Review the current context, then search."),
+      page.getByRole("button", { name: "Search materials", exact: true }),
     ).toBeVisible();
   });
 }
