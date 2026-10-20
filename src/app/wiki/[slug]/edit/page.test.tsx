@@ -70,7 +70,7 @@ const loadCropperImage = () => {
 };
 
 describe("WikiEditPage", () => {
-  it("reads unfinished title input when the dialog opens", async () => {
+  it("searches with unfinished title input only after clicking search", async () => {
     useAuthStore.setState({ identity: { identityIdentifier: "user", identityName: "User", email: "u@test", language: "en" } });
     vi.spyOn(principalApi, "getCurrentWikiPrincipal").mockResolvedValue({ status: "available", principal: { principalIdentifier: "p", identityIdentifier: "user", status: "active", accountPrincipalCount: 1, isDelegatedPrincipal: false, policies: [{ policyIdentifier: "policy", name: "Search", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["search_free_materials"], resourceTypes: ["image"], condition: null }] }] } });
     const search = vi.spyOn(materialApi, "searchWikiFreeMaterials").mockResolvedValue({ sites: [] });
@@ -80,7 +80,7 @@ describe("WikiEditPage", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), { target: { value: "Unfinished name" } });
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     fireEvent.click(await screen.findByRole("tab", { name: "AI material search" }));
-    expect(screen.getByText("Unfinished name")).toBeInTheDocument();
+    expect(search).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Search materials" }));
     await waitFor(() => expect(search).toHaveBeenCalledWith(expect.objectContaining({ title: "Unfinished name" }), expect.any(String)));
   });
@@ -93,7 +93,7 @@ describe("WikiEditPage", () => {
     renderPage({ status: "success", data: { ...successState.data, title: "Edited title", basic: { ...successState.data.basic, agency: null, agencyIdentifier: null, groups: [], talents: [], groupIdentifiers: [], talentIdentifiers: [] } } });
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     fireEvent.click(await screen.findByRole("tab", { name: "AI material search" }));
-    expect(screen.getByText("Edited title")).toBeInTheDocument();
+    expect(search).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Search materials" }));
     expect(await screen.findByText("Target image")).toBeInTheDocument();
     expect(search).toHaveBeenCalledWith(expect.objectContaining({ title: "Edited title", language: "ko", relatedWikis: [] }), expect.any(String));
