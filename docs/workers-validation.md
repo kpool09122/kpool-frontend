@@ -5,7 +5,7 @@
 - 実装source SHA: `46340f9406fd5aae5d5ab68acaf5d6cc8a540efd`
 - base main SHA: `8822097`（取得済み origin/main）
 - 直接参照したbackend checkout SHA: `44697fc66217ae017efe05a85cd3da2d43d6c5b2`
-- Node 26.10.0 / pnpm 12.4.2 / Next 16.3.8 / React 19.3.0
+- Node 26.12.0 / pnpm 12.4.2 / Next 16.3.8 / React 19.3.0
 - OpenNext Cloudflare 1.20.8 / OpenNext AWS 4.1.7（アダプター内部依存。AWS操作は未実施）/ Wrangler 4.147.0
 - workerd 1.20261001.1 / compatibility_date 2026-08-20
 - buildとsmokeの前後でgit statusがcleanであることを確認。後続commitはこの検証記録のみ。
@@ -74,7 +74,7 @@ project-local `.codex/skills/{qa-review,test-review,security-review,architecture
 
 ## Wiki接続元情報 (#440) の検証
 
-base: origin/main `0f155a6`（Next 16.4.0 / OpenNext 1.20.9 / Wrangler 4.148.0）。Node 26.10.0 / pnpm 12.4.2。backend #700 / merged PR #701の `VisitorLocationVerifier` / `VisitorLocation` / `config/wiki.php` をGitHubから直接確認し、HMAC契約を合わせた。配備・秘密鍵変更は実施していない。
+base: origin/main `0f155a6`（Next 16.4.0 / OpenNext 1.20.9 / Wrangler 4.148.0）。Node 26.12.0 / pnpm 12.4.2。backend #700 / merged PR #701の `VisitorLocationVerifier` / `VisitorLocation` / `config/wiki.php` をGitHubから直接確認し、HMAC契約を合わせた。配備・秘密鍵変更は実施していない。
 
 | コマンド | 実結果 |
 | --- | --- |
