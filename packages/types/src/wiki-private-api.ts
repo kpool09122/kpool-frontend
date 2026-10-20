@@ -218,6 +218,36 @@ const ListUploadedImagesResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const MaterialSearchWikiType = z.enum(["agency", "group", "talent", "song"]);
+const MaterialSearchRelatedWiki = z
+  .object({
+    identifier: KPool_Common_Uuid.uuid(),
+    title: z.string().min(1).max(255),
+    resourceType: MaterialSearchWikiType,
+    relationType: z.string().min(1).max(100),
+  })
+  .passthrough();
+const SearchFreeMaterialsRequestBody = z
+  .object({
+    title: z.string().max(255).nullish(),
+    displayName: z.string().max(255).nullish(),
+    resourceType: MaterialSearchWikiType,
+    language: z.enum(["ja", "en", "ko"]),
+    relatedWikis: z.array(MaterialSearchRelatedWiki).max(100),
+  })
+  .passthrough();
+const FreeMaterialSite = z
+  .object({
+    siteName: z.string().min(1).max(4096),
+    pageUrl: z.string().url(),
+    reason: z.string().min(1).max(4096),
+    usageEvidence: z.string().min(1).max(4096),
+    usageEvidenceUrl: z.string().url(),
+  })
+  .passthrough();
+const SearchFreeMaterialsResponseBody = z
+  .object({ sites: z.array(FreeMaterialSite).max(3) })
+  .passthrough();
 const OfficialCertificationOwnerAccount = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -919,6 +949,11 @@ export const schemas = {
   ImageDeletionRequestSummary,
   UploadedImageListItem,
   ListUploadedImagesResponseBody,
+  MaterialSearchWikiType,
+  MaterialSearchRelatedWiki,
+  SearchFreeMaterialsRequestBody,
+  FreeMaterialSite,
+  SearchFreeMaterialsResponseBody,
   OfficialCertificationOwnerAccount,
   WikiListItem,
   OfficialCertificationListItem,
@@ -1627,6 +1662,58 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/images/search-free-materials",
+    alias: "FreeMaterialSearchOperations_searchFreeMaterials",
+    description: `Search free image materials for an unsaved Wiki. Operator and SeniorCollaborator only. Does not store input/results or download images. Provider configuration, transport and parsing failures return 503.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: SearchFreeMaterialsRequestBody,
+      },
+    ],
+    response: SearchFreeMaterialsResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
