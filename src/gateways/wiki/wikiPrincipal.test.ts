@@ -8,6 +8,7 @@ import {
   getOfficialCertificationPermissions,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
+  canSearchWikiFreeMaterials,
   canReviewWikiDraftWikis,
   createWikiPrincipal,
   getAccountIdentifierFromIdentity,
@@ -62,6 +63,20 @@ const policy = ({
 });
 
 describe("wiki principal helpers", () => {
+  it("uses image search policy, deny precedence and empty IMAGE resource conditions", () => {
+    const grant = policy({ actions: ["search_free_materials"], resourceTypes: ["image"] });
+    expect(canSearchWikiFreeMaterials(principal)).toBe(false);
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [grant] })).toBe(true);
+    expect(canSearchWikiFreeMaterials({ ...principal, status: "suspended", policies: [grant] })).toBe(false);
+    const deny = policy({ actions: ["search_free_materials"], resourceTypes: ["image"], effect: "deny" });
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [grant, deny] })).toBe(false);
+    const conditional = (field: string, operator: string, value: string | boolean) => ({ ...grant, statements: [{ ...grant.statements[0], condition: { clauses: [{ field, operator, value }] } }] });
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [conditional("resource:isOfficial", "eq", false)] })).toBe(true);
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [conditional("resource:isOfficial", "in", false)] })).toBe(true);
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [conditional("resource:isOfficial", "eq", true)] })).toBe(false);
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [conditional("unknown", "eq", true)] })).toBe(false);
+    expect(canSearchWikiFreeMaterials({ ...principal, policies: [grant, { ...conditional("resource:isOfficial", "eq", true), statements: [{ ...conditional("resource:isOfficial", "eq", true).statements[0], effect: "deny" }] }] })).toBe(true);
+  });
   it.each(["official_certification_my_read", "official_certification_request", "official_certification_owned_wiki_sync", "related_wiki_list"])("permits the management tab with %s alone", (action) => {
     const grant = policy({ actions: [action], resourceTypes: ["agency"] });
     expect(canManageOfficialCertifications({ ...principal, policies: [grant] })).toBe(true);

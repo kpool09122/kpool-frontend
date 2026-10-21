@@ -3,6 +3,7 @@ import { type KeyboardEvent, type Ref, type RefObject } from "react";
 import { cardSurfaceStyle } from "../styles";
 import { getFocusableElements } from "./focus";
 import { WikiImageListPanel } from "./WikiImageListPanel";
+import { WikiMaterialSearchPanel } from "./WikiMaterialSearchPanel";
 import { WikiImageRequestForm } from "./WikiImageRequestForm";
 import {
   type WikiImageLibraryDictionary,
@@ -17,6 +18,7 @@ export function WikiImageLibraryDialog({
   closeButtonRefCallback,
   dialogRef,
   imageProps,
+  materialSearch,
   isBusy,
   requestController,
   t,
@@ -24,6 +26,7 @@ export function WikiImageLibraryDialog({
   onTabChange,
 }: {
   activeTab: WikiImageLibraryTab;
+  materialSearch?: WikiImageLibraryProps["materialSearch"];
   canLoadMore: boolean;
   closeButtonRefCallback: Ref<HTMLButtonElement>;
   dialogRef: RefObject<HTMLDivElement | null>;
@@ -34,6 +37,15 @@ export function WikiImageLibraryDialog({
   onClose: () => void;
   onTabChange: (tab: WikiImageLibraryTab) => void;
 }) {
+  const tabs: WikiImageLibraryTab[] = materialSearch ? ["images", "request", "search"] : ["images", "request"];
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = tabs.indexOf(activeTab);
+    const index = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    onTabChange(tabs[index]);
+    dialogRef.current?.querySelector<HTMLButtonElement>(`#wiki-image-library-${tabs[index]}-tab`)?.focus();
+  };
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -95,37 +107,18 @@ export function WikiImageLibraryDialog({
         </div>
 
         <div className="overflow-x-auto border-b border-stroke-subtle px-5">
-          <div aria-label={t.tabsLabel} className="-mb-px flex gap-1" role="tablist">
-            <button
-              aria-controls="wiki-image-library-images-panel"
-              aria-selected={activeTab === "images"}
-              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                activeTab === "images"
-                  ? "border-brand-primary text-text-strong"
-                  : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
-              }`}
-              id="wiki-image-library-images-tab"
-              onClick={() => onTabChange("images")}
+          <div aria-label={t.tabsLabel} className="-mb-px flex gap-1" role="tablist" onKeyDown={handleTabKeyDown}>
+            {tabs.map((tab) => <button
+              key={tab}
+              aria-controls={`wiki-image-library-${tab}-panel`}
+              aria-selected={activeTab === tab}
+              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === tab ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"}`}
+              id={`wiki-image-library-${tab}-tab`}
+              onClick={() => onTabChange(tab)}
               role="tab"
+              tabIndex={activeTab === tab ? 0 : -1}
               type="button"
-            >
-              {t.imagesTab}
-            </button>
-            <button
-              aria-controls="wiki-image-library-request-panel"
-              aria-selected={activeTab === "request"}
-              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                activeTab === "request"
-                  ? "border-brand-primary text-text-strong"
-                  : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
-              }`}
-              id="wiki-image-library-request-tab"
-              onClick={() => onTabChange("request")}
-              role="tab"
-              type="button"
-            >
-              {t.requestTab}
-            </button>
+            >{tab === "images" ? t.imagesTab : tab === "request" ? t.requestTab : t.materialSearch.tab}</button>)}
           </div>
         </div>
 
@@ -142,6 +135,11 @@ export function WikiImageLibraryDialog({
               onSelectImage={imageProps.onSelectImage}
               t={t}
             />
+          ) : activeTab === "search" && materialSearch ? (
+            <WikiMaterialSearchPanel controller={materialSearch} t={t} onUseSource={(siteName, pageUrl) => {
+              requestController.setRequestForm((state) => ({ ...state, sourceName: siteName, sourceUrl: pageUrl, rightsConfirmed: false }));
+              onTabChange("request");
+            }} />
           ) : (
             <WikiImageRequestForm
               controller={requestController}

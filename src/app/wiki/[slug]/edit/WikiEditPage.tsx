@@ -3,9 +3,9 @@
 import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
 import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
 import { LocalizedForm } from "@/components/LocalizedForm";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { type WikiDraftDetail } from "@kpool/wiki";
+import { type WikiBasic, type WikiDraftDetail } from "@kpool/wiki";
 
 import {
   type WikiEditorMode,
@@ -41,9 +41,13 @@ import {
 import { fetchWikiImages, uploadWikiImageRequest } from "@/gateways/wiki/wikiImageBrowserApi";
 import { saveWikiDraft, submitWikiDraft } from "@/gateways/wiki/edit/saveWikiDraft";
 import { useWikiEditDraft } from "./useWikiEditDraft";
+import { useWikiMaterialSearch } from "./useWikiMaterialSearch";
+import { useAuthStore } from "@/gateways/auth/authStore";
+import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { WikiDraftInitializer } from "./WikiDraftInitializer";
 
 type WikiEditPageProps = {
+  initialIdentity?: AuthenticatedIdentitySummary | null;
   language: string;
   slug: string;
   themeColor?: string;
@@ -76,11 +80,13 @@ const initialImageLibraryState: ImageLibraryState = {
 
 export function WikiEditContent({
   data,
+  initialIdentity,
   language,
   saveAdapter,
   submitAdapter,
 }: {
   data: WikiDraftDetail;
+  initialIdentity?: AuthenticatedIdentitySummary | null;
   language: string;
   saveAdapter: (draft: WikiDraftDetail) => unknown;
   submitAdapter: (draft: WikiDraftDetail) => unknown;
@@ -132,7 +138,17 @@ export function WikiEditContent({
     submitAdapter,
   });
   const { rootRef, hasPendingChanges } = usePendingFormChanges(editingId);
-  useUnsavedChangesGuard(hasUnsavedChanges || hasPendingChanges, t.leaveUnsavedChanges);
+  const mobileBasicRef = useRef<{ getBasic: () => WikiBasic }>(null);
+  const desktopBasicRef = useRef<{ getBasic: () => WikiBasic }>(null);
+  const basicSource = useRef<"mobile" | "desktop">("desktop");
+  const readSearchDraft = () => {
+    const basic = (basicSource.current === "mobile" ? mobileBasicRef : desktopBasicRef).current?.getBasic() ?? draft.basic;
+    const titleInput = editingId === "title" ? rootRef.current?.querySelector<HTMLInputElement>('input[name="title"]') : null;
+    return { ...draft, basic: titleInput ? { ...basic, name: titleInput.value } : basic };
+  };
+  const materialSearch = useWikiMaterialSearch(draft, imageLibrary.isOpen, readSearchDraft, initialIdentity);
+  useUnsavedChangesGuard(hasUnsavedChanges || hasPendingChanges || materialSearch.hasRetainedResults,
+    materialSearch.hasRetainedResults ? t.imageLibrary.materialSearch.leave : t.leaveUnsavedChanges);
   const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
   const sourceWiki = {
     language,
@@ -209,11 +225,13 @@ export function WikiEditContent({
       }));
     });
   };
-  const openImageLibrary = () => {
+  const openImageLibrary = (source: "mobile" | "desktop") => {
     if (isEditLocked) {
       return;
     }
 
+    basicSource.current = source;
+    materialSearch.prepareContext();
     void loadImageLibraryPage(1);
   };
   const selectImageFromLibrary = (image: WikiUploadedImage) => {
@@ -367,7 +385,8 @@ export function WikiEditContent({
                 onCancel={closeEditor}
                 onEditBasic={editBasic}
                 onFlipChange={setIsBasicFlipped}
-                onOpenImageLibrary={openImageLibrary}
+                searchContextRef={mobileBasicRef}
+                onOpenImageLibrary={() => openImageLibrary("mobile")}
                 onSaveBasic={(basic) => {
                   updateBasic(basic);
                   closeEditor();
@@ -377,9 +396,10 @@ export function WikiEditContent({
               <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
                 <WikiHeroPanel
                   heroImage={draft.heroImage}
-                  onOpenImageLibrary={isEditLocked ? undefined : openImageLibrary}
+                  onOpenImageLibrary={isEditLocked ? undefined : () => openImageLibrary("desktop")}
                 />
                 <WikiBasicPanel
+                  searchContextRef={desktopBasicRef}
                   basic={draft.basic}
                   disabled={isEditLocked}
                   isEditing={editingId === "basic"}
@@ -453,6 +473,7 @@ export function WikiEditContent({
           </div>
 
           <WikiImageLibrary
+            materialSearch={materialSearch.controller}
             images={imageLibrary.images}
             isInitialLoading={imageLibrary.isInitialLoading}
             isLoadingMore={imageLibrary.isLoadingMore}
@@ -517,6 +538,7 @@ export function WikiEditContent({
 }
 
 export function WikiEditPage({
+  initialIdentity,
   language,
   themeColor,
   wikiState,
@@ -525,6 +547,10 @@ export function WikiEditPage({
 }: WikiEditPageProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki;
+  const storedIdentity = useAuthStore((state) => state.identity);
+  const authStatus = useAuthStore((state) => state.status);
+  const sessionVersion = useAuthStore((state) => state.sessionVersion);
+  const identity = storedIdentity ?? (authStatus === "loading" && sessionVersion === 0 ? initialIdentity : null);
   const editData = useMemo(() => wikiState.status === "success" ? {
     ...wikiState.data,
     themeColor: themeColor ?? wikiState.data.themeColor,
@@ -555,7 +581,9 @@ export function WikiEditPage({
 
   return (
     <WikiEditContent
+      key={`${editData.wikiIdentifier}:${editData.language}:${identity?.identityIdentifier}:${identity?.accountIdentifier}:${sessionVersion}`}
       data={editData}
+      initialIdentity={initialIdentity}
       language={language}
       saveAdapter={saveAdapter}
       submitAdapter={submitAdapter}

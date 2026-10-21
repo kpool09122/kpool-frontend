@@ -36,6 +36,7 @@ export default async function Page({ params, searchParams }: WikiDraftEditRouteP
 
   return (
     <WikiEditPage
+      initialIdentity={access.status === "available" ? access.identity : null}
       language={wikiState.status === "success" ? wikiState.data.language : ""}
       slug={wikiState.status === "success" ? wikiState.data.slug : ""}
       themeColor={themeColor}

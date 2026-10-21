@@ -15,6 +15,7 @@ export type { WikiImageUsageRequestInput };
 
 export function WikiImageLibrary({
   images,
+  materialSearch,
   isInitialLoading,
   isLoadingMore,
   isOpen,
@@ -81,7 +82,8 @@ export function WikiImageLibrary({
 
   return (
     <WikiImageLibraryDialog
-      activeTab={activeTab}
+      activeTab={activeTab === "search" && !materialSearch ? "images" : activeTab}
+      materialSearch={materialSearch}
       canLoadMore={canLoadMore}
       closeButtonRefCallback={setCloseButtonRef}
       dialogRef={dialogRef}

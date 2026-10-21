@@ -1,5 +1,6 @@
 "use client";
 
+import { type Ref } from "react";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
@@ -14,6 +15,7 @@ import { useI18n } from "../../../i18n/I18nProvider";
 type WikiHeroBasicFlipCardProps = {
   heroImage: WikiDetail["heroImage"];
   basic: WikiBasic;
+  searchContextRef?: Ref<{ getBasic: () => WikiBasic }>;
   disabled?: boolean;
   isFlipped: boolean;
   flipCardId: string;
@@ -30,6 +32,7 @@ type WikiHeroBasicFlipCardProps = {
 export function WikiHeroBasicFlipCard({
   heroImage,
   basic,
+  searchContextRef,
   disabled = false,
   isFlipped,
   flipCardId,
@@ -102,6 +105,7 @@ export function WikiHeroBasicFlipCard({
                   onClick={(event) => event.stopPropagation()}
                 >
                   <WikiBasicPanel
+                    searchContextRef={searchContextRef}
                     basic={basic}
                     disabled={disabled}
                     isEditing={isBasicEditing}

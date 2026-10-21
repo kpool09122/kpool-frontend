@@ -104,6 +104,38 @@ const isAllowedWithoutDeny = (
   hasMatchingStatement(principal, "ALLOW", action, resourceType) &&
   !hasMatchingStatement(principal, "DENY", action, resourceType);
 
+// Material search authorizes a new empty IMAGE resource, not the edited Wiki.
+// Unknown/dynamic conditions cannot grant access client-side; the API remains authoritative.
+const materialSearchConditionMatches = (statement: WikiPolicyStatement): boolean | null => {
+  const clauses = statement.condition?.clauses ?? [];
+  const values: Record<string, string | string[] | boolean | null> = {
+    "resource:agencyId": null, "resource:groupId": [], "resource:talentId": [],
+    "resource:isOfficial": false, "resource:editorId": null,
+    "resource:ownerAccountCategory": null, "resource:requesterAccountCategory": null,
+  };
+  const matches = clauses.map(({ field, operator, value }) => {
+    if (!(field in values) || !["eq", "ne", "in", "not_in"].includes(operator)) return null;
+    const actual = values[field];
+    if ((typeof value === "string" && value.includes("${")) || (Array.isArray(value) && value.some((part) => part.includes("${")))) return null;
+    const equals = actual !== null && (Array.isArray(actual)
+      ? actual.some((item) => Array.isArray(value) ? value.includes(item) : item === value)
+      : Array.isArray(value) ? value.some((item) => item === actual) : actual === value);
+    const candidates = Array.isArray(value) ? value : [value];
+    const contained = actual !== null && (Array.isArray(actual)
+      ? actual.some((item) => candidates.includes(item)) : candidates.some((item) => item === actual));
+    return operator === "eq" ? equals : operator === "ne" ? !equals : operator === "in" ? contained : !contained;
+  });
+  return matches.includes(false) ? false : matches.includes(null) ? null : true;
+};
+
+export const canSearchWikiFreeMaterials = (principal: WikiPrincipalSummary): boolean => {
+  const statements = principal.policies.flatMap((policy) => policy.statements).filter((statement) =>
+    valueMatches(statement.actions, "search_free_materials") && valueMatches(statement.resourceTypes, "image"));
+  return principal.status === "active"
+    && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY" && materialSearchConditionMatches(statement) !== false)
+    && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && materialSearchConditionMatches(statement) === true);
+};
+
 export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
   isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
