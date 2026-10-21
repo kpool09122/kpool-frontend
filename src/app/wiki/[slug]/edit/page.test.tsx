@@ -462,7 +462,10 @@ describe("WikiEditPage", () => {
     expect(uploadInput).toHaveAttribute("tabindex", "-1");
   });
 
-  it("switches tabs and submits an image usage request with source metadata", async () => {
+  it.each([
+    ["png", "image/png"],
+    ["svg", "image/svg+xml"],
+  ])("switches tabs and submits a %s image usage request with source metadata", async (extension, mimeType) => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(
@@ -535,7 +538,7 @@ describe("WikiEditPage", () => {
     ).toBeInTheDocument();
     fireEvent.change(screen.getByTestId("wiki-image-upload-input"), {
       target: {
-        files: [new File(["image"], "upload.png", { type: "image/png" })],
+        files: [new File(["image"], `upload.${extension}`, { type: mimeType })],
       },
     });
 
@@ -545,7 +548,7 @@ describe("WikiEditPage", () => {
     loadCropperImage();
     fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
 
-    expect(await screen.findByText("選択中: upload.png")).toBeInTheDocument();
+    expect(await screen.findByText(`選択中: upload.${extension}`)).toBeInTheDocument();
     expect(screen.queryByText("画像を選択またはここにドロップ")).not.toBeInTheDocument();
     expect(screen.getByAltText("選択中の画像プレビュー")).toHaveAttribute(
       "src",
@@ -691,7 +694,7 @@ describe("WikiEditPage", () => {
     });
 
     expect(
-      await screen.findByText("jpg、jpeg、png、webp の画像のみアップロードできます。"),
+      await screen.findByText("jpg、jpeg、png、webp、svg の画像のみアップロードできます。"),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

@@ -7,14 +7,19 @@ describe("cropImageToDataUrl", () => {
     vi.restoreAllMocks();
   });
 
-  it("maps the selected rendered crop area to the source image pixels", () => {
+  it.each([
+    ["image/jpeg", "image/jpeg"],
+    ["image/png", "image/png"],
+    ["image/webp", "image/webp"],
+    ["image/svg+xml", "image/png"],
+  ])("crops %s to %s using the source image pixels", (sourceMimeType, outputMimeType) => {
     const drawImage = vi.fn();
 
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       drawImage,
     } as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(
-      "data:image/jpeg;base64,CROPPED",
+      `data:${outputMimeType};base64,CROPPED`,
     );
 
     const image = document.createElement("img");
@@ -46,10 +51,11 @@ describe("cropImageToDataUrl", () => {
         height: 50,
       },
       image,
-      sourceDataUrl: "data:image/jpeg;base64,SOURCE",
+      sourceDataUrl: `data:${sourceMimeType};base64,SOURCE`,
     });
 
-    expect(result).toEqual({ ok: true, dataUrl: "data:image/jpeg;base64,CROPPED" });
+    expect(result).toEqual({ ok: true, dataUrl: `data:${outputMimeType};base64,CROPPED` });
+    expect(HTMLCanvasElement.prototype.toDataURL).toHaveBeenCalledWith(outputMimeType);
     expect(drawImage).toHaveBeenCalledWith(
       image,
       100,

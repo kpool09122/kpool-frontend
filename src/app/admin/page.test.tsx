@@ -1896,7 +1896,10 @@ describe("admin page clients", () => {
     });
   });
 
-  it("sends selected profile image as base64EncodedImage when saving profile settings", async () => {
+  it.each([
+    ["png", "image/png"],
+    ["svg", "image/svg+xml"],
+  ])("sends selected %s profile image as base64EncodedImage when saving profile settings", async (extension, mimeType) => {
     function MockFileReader(this: {
       onload: (() => void) | null;
       onerror: (() => void) | null;
@@ -1907,7 +1910,7 @@ describe("admin page clients", () => {
       this.onerror = null;
       this.result = null;
       this.readAsDataURL = () => {
-        this.result = "data:image/png;base64,PROFILE_IMAGE";
+        this.result = `data:${mimeType};base64,PROFILE_IMAGE`;
         this.onload?.();
       };
     }
@@ -1936,7 +1939,7 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     fireEvent.change(screen.getByLabelText("画像を選択"), {
-      target: { files: [new File(["image"], "profile.png", { type: "image/png" })] },
+      target: { files: [new File(["image"], `profile.${extension}`, { type: mimeType })] },
     });
     await screen.findByText("プロフィール画像を切り取る");
     loadCropperImage();
