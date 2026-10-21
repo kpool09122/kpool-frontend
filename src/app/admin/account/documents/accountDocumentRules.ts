@@ -1,5 +1,3 @@
-import type { UploadAccountDocumentsRequest } from "@/gateways/account/accountApi";
-
 export type AccountDocumentType =
   | "business_registration"
   | "corporate_registry"
@@ -85,26 +83,3 @@ export const isAcceptedAccountDocumentFile = (file: File): boolean => {
 
 export const isAccountDocumentFileSizeAllowed = (file: File): boolean =>
   file.size <= maxAccountDocumentFileSizeBytes;
-
-export const hasRequiredAccountDocuments = (
-  accountType: string | null | undefined,
-  documents: UploadAccountDocumentsRequest["documents"],
-): boolean => {
-  const selectedTypes = new Set(documents.map((document) => document.documentType));
-
-  if (selectedTypes.size !== documents.length) {
-    return false;
-  }
-
-  if (accountType === "corporation") {
-    return selectedTypes.has("representative_id") &&
-      ["business_registration", "corporate_registry", "incorporation_document"].some((type) => selectedTypes.has(type));
-  }
-
-  if (accountType === "individual") {
-    return selectedTypes.has("selfie") &&
-      ["resident_registration", "passport", "driver_license"].some((type) => selectedTypes.has(type));
-  }
-
-  return false;
-};

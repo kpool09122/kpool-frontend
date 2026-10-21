@@ -90,11 +90,11 @@ export function AccountDocumentsClient() {
       action={accountType === "corporation" || accountType === "individual" ? (
         <button
           className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={state.isUploading}
+          disabled={state.isSaving || !state.canSave}
           onClick={state.submit}
           type="button"
         >
-          {state.isUploading ? t.accountDocuments.uploading : t.accountDocuments.upload}
+          {state.isSaving ? t.accountDocuments.saving : t.accountDocuments.save}
         </button>
       ) : null}
       title={t.accountDocuments.title}
@@ -107,7 +107,7 @@ export function AccountDocumentsClient() {
         <div className="mt-5 grid gap-4">
           {accountType === "individual" ? (
             <p className="text-sm text-text-muted">
-              {t.accountDocuments.individualRequiredHint}
+              {t.accountDocuments.individualDocumentHint}
             </p>
           ) : null}
           {accountType === "corporation" ? (
@@ -115,7 +115,7 @@ export function AccountDocumentsClient() {
               <span className="font-medium text-text-strong">{t.accountDocuments.corporationDocumentCountryLabel}</span>
               <select
                 className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong"
-                disabled={state.isUploading}
+                disabled={state.isSaving}
                 onChange={(event) => {
                   state.updateCorporationDocumentCountry(event.currentTarget.value as CorporationDocumentCountry);
                 }}
@@ -134,7 +134,7 @@ export function AccountDocumentsClient() {
               <span className="font-medium text-text-strong">{t.accountDocuments.individualDocumentCountryLabel}</span>
               <select
                 className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-text-strong"
-                disabled={state.isUploading}
+                disabled={state.isSaving}
                 onChange={(event) => {
                   state.updateIndividualDocumentCountry(event.currentTarget.value as IndividualDocumentCountry);
                 }}
@@ -207,7 +207,7 @@ export function AccountDocumentsClient() {
                             <button
                               aria-label={t.accountDocuments.removeUploadedDocument(documentLabel)}
                               className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-stroke-subtle text-text-muted transition hover:bg-surface-base hover:text-text-strong"
-                              disabled={state.isUploading}
+                              disabled={state.isSaving}
                               onClick={() => {
                                 state.dismissUploadedDocument(option.documentType);
                               }}
@@ -228,7 +228,7 @@ export function AccountDocumentsClient() {
                         <input
                           accept={accountDocumentAccept}
                           className="block w-full text-sm"
-                          disabled={state.isUploading}
+                          disabled={state.isSaving}
                           onChange={(event) => {
                             state.updateSelectedFile(option.documentType, event.currentTarget.files?.[0] ?? null);
                           }}
@@ -245,11 +245,6 @@ export function AccountDocumentsClient() {
         </div>
       )}
       <div className="mt-5 grid gap-3">
-        {state.warning ? (
-          <AccountStatusMessage variant="warning">
-            {state.warning}
-          </AccountStatusMessage>
-        ) : null}
         {state.error ? (
           <AccountStatusMessage variant="error">
             {state.error}

@@ -14,7 +14,6 @@ import {
   defaultCorporationDocumentCountry,
   defaultIndividualDocumentCountry,
   getDocumentOptionsForAccountType,
-  hasRequiredAccountDocuments,
   isAcceptedAccountDocumentFile,
   isAccountDocumentFileSizeAllowed,
   type AccountDocumentType,
@@ -46,7 +45,7 @@ const readFileAsBase64 = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-const createUploadRequest = async (
+const createSaveRequest = async (
   selectedDocuments: SelectedDocument[],
   retainedDocuments: ListAccountDocumentsResponse["documents"],
   fallbackErrorMessage: string,
@@ -71,7 +70,6 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
   const [selectedDocuments, setSelectedDocuments] = useState<SelectedDocument[]>([]);
   const [dismissedUploadedDocumentTypes, setDismissedUploadedDocumentTypes] = useState<AccountDocumentType[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
-  const [formWarning, setFormWarning] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [corporationDocumentCountry, setCorporationDocumentCountry] =
     useState<CorporationDocumentCountry>(defaultCorporationDocumentCountry);
@@ -109,26 +107,25 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
   const retainedDocuments = (documentsQuery.data?.documents ?? []).filter((document) =>
     !dismissedUploadedDocumentTypes.includes(document.documentType as AccountDocumentType) &&
     !selectedDocumentTypes.has(document.documentType as AccountDocumentType));
-  const uploadMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async () => {
       if (!accountIdentifier) {
         return Promise.reject(new Error(t.accountSettingsUnavailable));
       }
 
-      const requestBody = await createUploadRequest(
+      const requestBody = await createSaveRequest(
         selectedDocuments,
         retainedDocuments,
-        t.accountDocuments.uploadFailed,
+        t.accountDocuments.saveFailed,
       );
       return uploadAccountDocuments({
         accountIdentifier,
-        fallbackErrorMessage: t.accountDocuments.uploadFailed,
+        fallbackErrorMessage: t.accountDocuments.saveFailed,
         requestBody,
       });
     },
     onMutate: () => {
       setFormError(null);
-      setFormWarning(null);
       setSuccess(null);
     },
     onSuccess: (response) => {
@@ -136,17 +133,16 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
       setSelectedDocuments([]);
       setDismissedUploadedDocumentTypes([]);
-      setSuccess(t.accountDocuments.uploadSucceeded);
+      setSuccess(t.accountDocuments.saveSucceeded);
     },
     onError: (error) => {
-      setFormError(getErrorMessage(error, t.accountDocuments.uploadFailed));
+      setFormError(getErrorMessage(error, t.accountDocuments.saveFailed));
     },
   });
 
   const updateSelectedFile = (documentType: AccountDocumentType, file: File | null) => {
     setSuccess(null);
     setFormError(null);
-    setFormWarning(null);
 
     if (!file) {
       setSelectedDocuments((current) => current.filter((document) => document.documentType !== documentType));
@@ -172,7 +168,6 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
   const dismissUploadedDocument = (documentType: AccountDocumentType) => {
     setSuccess(null);
     setFormError(null);
-    setFormWarning(null);
     setDismissedUploadedDocumentTypes((current) =>
       current.includes(documentType) ? current : [...current, documentType]);
     setSelectedDocuments((current) => current.filter((document) => document.documentType !== documentType));
@@ -182,7 +177,6 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
     setCorporationDocumentCountry(country);
     setSuccess(null);
     setFormError(null);
-    setFormWarning(null);
 
     const allowedDocumentTypes = new Set(
       getDocumentOptionsForAccountType("corporation", country).map((option) => option.documentType),
@@ -197,7 +191,6 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
     setIndividualDocumentCountry(country);
     setSuccess(null);
     setFormError(null);
-    setFormWarning(null);
 
     const allowedDocumentTypes = new Set(
       getDocumentOptionsForAccountType("individual", corporationDocumentCountry, country)
@@ -209,30 +202,16 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
       current.filter((documentType) => allowedDocumentTypes.has(documentType)));
   };
 
+  const canSave = accountQuery.isSuccess && documentsQuery.isSuccess;
   const submit = () => {
-    const requestDocuments = [
-      ...retainedDocuments.map(({ documentType }) => ({
-        documentType,
-        fileContents: "retained",
-      })),
-      ...selectedDocuments.map(({ documentType }) => ({
-        documentType,
-        fileContents: "selected",
-      })),
-    ];
-
-    if (selectedDocuments.length === 0 || !hasRequiredAccountDocuments(accountType, requestDocuments)) {
-      setFormWarning(t.accountDocuments.requiredMissing);
-      setFormError(null);
-      setSuccess(null);
-      return;
+    if (canSave) {
+      saveMutation.mutate();
     }
-
-    uploadMutation.mutate();
   };
 
   return {
     account: accountQuery.data ?? null,
+    canSave,
     corporationDocumentCountry,
     dismissedUploadedDocumentTypes,
     dismissUploadedDocument,
@@ -245,13 +224,12 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
         ? getErrorMessage(documentsQuery.error, t.accountDocuments.listLoadFailed)
         : null),
     isLoading: (accountQuery.isFetching && !accountQuery.data) || (documentsQuery.isFetching && !documentsQuery.data),
-    isUploading: uploadMutation.isPending,
+    isSaving: saveMutation.isPending,
     selectedDocuments,
     success,
     submit,
     updateCorporationDocumentCountry,
     updateIndividualDocumentCountry,
     updateSelectedFile,
-    warning: formWarning,
   };
 };
