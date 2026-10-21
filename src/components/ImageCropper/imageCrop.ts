@@ -22,8 +22,11 @@ export const readFileAsDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-const resolveMimeType = (sourceDataUrl: string, fallback = "image/png") =>
-  sourceDataUrl.match(dataUrlMimePattern)?.[1] ?? fallback;
+const resolveMimeType = (sourceDataUrl: string) => {
+  const mimeType = sourceDataUrl.match(dataUrlMimePattern)?.[1];
+
+  return mimeType === "image/jpeg" || mimeType === "image/webp" ? mimeType : "image/png";
+};
 
 const getRenderedImageSize = (image: HTMLImageElement) => {
   const rect = image.getBoundingClientRect();

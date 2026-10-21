@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getAccountApiBaseUrl } from "@/gateways/account/accountApi";
 import { accountApiUnavailableResponse, getAccountRouteErrorBody, getForwardHeaders, readResponseBody } from "../../../../routeSupport";
 
-type RouteContext = { params: Promise<{ accountId: string; documentType: string }> };
+type RouteContext = { params: Promise<{ requestId: string; documentType: string }> };
 const responseHeaderNames = ["cache-control", "content-disposition", "content-length", "content-type"] as const;
 const getDocumentResponseHeaders = (apiResponse: Response): Headers => {
   const headers = new Headers();
@@ -18,9 +18,9 @@ const getAttachmentDisposition = (contentDisposition: string | null): string => 
 export async function GET(request: NextRequest, context: RouteContext) {
   const baseUrl = getAccountApiBaseUrl();
   if (!baseUrl) return accountApiUnavailableResponse();
-  const { accountId, documentType } = await context.params;
+  const { requestId, documentType } = await context.params;
   try {
-    const apiResponse = await fetch(`${baseUrl}/accounts/${encodeURIComponent(accountId)}/documents/${encodeURIComponent(documentType)}`, { method: "GET", headers: getForwardHeaders(request, false), cache: "no-store" });
+    const apiResponse = await fetch(`${baseUrl}/account-category-change-requests/${encodeURIComponent(requestId)}/documents/${encodeURIComponent(documentType)}`, { method: "GET", headers: getForwardHeaders(request, false), cache: "no-store" });
     if (!apiResponse.ok) {
       const body = await readResponseBody(apiResponse);
       return NextResponse.json(getAccountRouteErrorBody(apiResponse.status, body), { status: apiResponse.status });

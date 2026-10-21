@@ -62,9 +62,10 @@ export const wikiImageAcceptedMimeTypes = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/svg+xml",
 ] as const;
 
-const acceptedExtensions = [".jpg", ".jpeg", ".png", ".webp"] as const;
+const acceptedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".svg"] as const;
 
 export const wikiImageAcceptAttribute = [
   ...wikiImageAcceptedMimeTypes,

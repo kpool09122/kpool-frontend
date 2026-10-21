@@ -76,9 +76,6 @@ const AccountCategoryChangeRequestSummary = z
     rejectionReason: VerificationRejectionReasonSummary.nullish(),
   })
   .passthrough();
-const AccountCategoryChangeRequestIdentitySummary = z
-  .object({ name: z.string(), email: z.string() })
-  .passthrough();
 const AccountDocumentSummary = z
   .object({
     documentType: z.string(),
@@ -90,7 +87,6 @@ const AccountCategoryChangeRequestDetailResponseBody = z
   .object({
     request: AccountCategoryChangeRequestSummary,
     account: AccountSummary,
-    identities: z.array(AccountCategoryChangeRequestIdentitySummary),
     documents: z.array(AccountDocumentSummary),
   })
   .passthrough();
@@ -359,7 +355,6 @@ export const schemas = {
   ListAccountCategoryChangeRequestsResponseBody,
   KPool_Common_ProblemDetails,
   AccountCategoryChangeRequestSummary,
-  AccountCategoryChangeRequestIdentitySummary,
   AccountDocumentSummary,
   AccountCategoryChangeRequestDetailResponseBody,
   RejectAccountCategoryChangeRequestBody,
@@ -558,6 +553,64 @@ const endpoints = makeApi([
       {
         status: 419,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/account-category-change-requests/:requestId/documents/:documentType",
+    alias:
+      "AccountCategoryChangeRequestOperations_viewAccountCategoryChangeRequestDocument",
+    description: `View an independently stored application document snapshot. Requires category request management permission.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "documentType",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -815,7 +868,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/accounts/:accountId/documents",
     alias: "AccountOperations_uploadDocuments",
-    description: `Upload required documents for an account.`,
+    description: `Save the complete document set for an account, including an empty set to remove all documents.`,
     requestFormat: "json",
     parameters: [
       {
@@ -849,63 +902,6 @@ const endpoints = makeApi([
       {
         status: 419,
         description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 429,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 503,
-        description: `Service unavailable.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "get",
-    path: "/accounts/:accountId/documents/:documentType",
-    alias: "AccountOperations_viewAccountDocument",
-    description: `View a saved document file for the specified account as an operator.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "accountId",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-      {
-        name: "documentType",
-        type: "Path",
-        schema: z.string(),
-      },
-    ],
-    response: z.void(),
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 403,
-        description: `Access is forbidden.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1039,7 +1035,7 @@ const endpoints = makeApi([
     path: "/accounts/:accountIdentifier/category-change-requests",
     alias:
       "AccountCategoryChangeRequestOperations_requestAccountCategoryChange",
-    description: `Request account category change. Accounts with any approved request history cannot apply again; rejected or withdrawn history permits a new request when the remaining requirements are met.`,
+    description: `Request account category change. Requires saved phone, address country, postal code, and address line 1, plus administrative area code where applicable. Accounts with any approved request history cannot apply again; rejected or withdrawn history permits a new request when the remaining requirements are met.`,
     requestFormat: "json",
     parameters: [
       {

@@ -1003,8 +1003,14 @@ describe("admin page clients", () => {
     expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeInTheDocument();
   });
 
-  it("shows missing required account documents as a status warning", async () => {
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
+  it("saves an empty document set without requiring documents", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        }));
+      }
       if (url === "/api/account/my/documents") {
         return Promise.resolve(new Response(JSON.stringify({ documents: [] }), {
           status: 200,
@@ -1052,12 +1058,43 @@ describe("admin page clients", () => {
     expect(screen.getByText("定款")).toBeInTheDocument();
     expect(screen.queryByText("営業許可証")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "アップロード" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("必須書類を選択してください。"),
+      expect(screen.getByRole("status")).toHaveTextContent("書類を保存しました。"),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/account/accounts/22222222-2222-2222-2222-222222222222/documents",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ documents: [] }) }),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("does not allow saving an empty document set when the saved documents could not be loaded", async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.reject(new Error("document-list-unavailable"));
+      }
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222", email: "member@example.com",
+        type: "corporation", name: "Member Account", status: "active", accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByText("document-list-unavailable")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
   });
 
   it("filters individual account documents by residence country", async () => {
@@ -1169,11 +1206,75 @@ describe("admin page clients", () => {
     expect(screen.getByAltText("代表者本人確認書類")).toBeInTheDocument();
   });
 
-  it("resends retained uploaded documents when adding another document", async () => {
+  it.each([false, true])("persists removed account documents without selecting new files, remove all: %s", async (removeAll) => {
+    let documents = [
+      { documentType: "corporate_registry", documentPath: "accounts/documents/corporate_registry.pdf", uploadedAt: "2026-08-10T10:00:00Z" },
+      { documentType: "representative_id", documentPath: "accounts/documents/representative_id.jpg", uploadedAt: "2026-08-10T10:01:00Z" },
+    ];
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === "/api/account/my/documents") {
+        return Promise.resolve(new Response(JSON.stringify({ documents }), {
+          status: 200, headers: { "Content-Type": "application/json" },
+        }));
+      }
+      if (url === "/api/account/my/documents/representative_id") {
+        return Promise.resolve(new Response("retained", {
+          status: 200, headers: { "Content-Type": "image/jpeg" },
+        }));
+      }
+      if (init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as { documents: { documentType: string; fileContents: string }[] };
+        documents = documents.filter((document) => body.documents.some((item) => item.documentType === document.documentType));
+        return Promise.resolve(new Response(JSON.stringify({ documents }), {
+          status: 201, headers: { "Content-Type": "application/json" },
+        }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({
+        accountIdentifier: "22222222-2222-2222-2222-222222222222", email: "member@example.com",
+        type: "corporation", name: "Member Account", status: "active", accountCategory: "standard",
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialAccountSettingsTab="accountDocuments"
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        initialSection="accountSettings"
+        principalAdapter={createAdapter()}
+      />,
+    );
+
+    expect(await screen.findByText("corporate_registry.pdf")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "法人登記簿を削除" }));
+    if (removeAll) {
+      fireEvent.click(screen.getByRole("button", { name: "代表者本人確認書類を削除" }));
+    }
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(await screen.findByText("書類を保存しました。")).toBeInTheDocument();
+    const saveCall = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
+    expect(JSON.parse(String(saveCall?.[1]?.body))).toEqual({
+      documents: removeAll ? [] : [{ documentType: "representative_id", fileContents: "cmV0YWluZWQ=" }],
+    });
+    await waitFor(() => expect(screen.queryByText("corporate_registry.pdf")).not.toBeInTheDocument());
+    if (removeAll) {
+      expect(screen.queryByAltText("代表者本人確認書類")).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByAltText("代表者本人確認書類")).toBeInTheDocument();
+    }
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/account/my/documents/corporate_registry")).toBe(false);
+    expect(documents).toHaveLength(removeAll ? 0 : 1);
+  });
+
+  it.each([true, false])("saves a new document with retained documents: %s", async (retainExisting) => {
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
       if (url === "/api/account/my/documents") {
         return Promise.resolve(new Response(JSON.stringify({
-          documents: [
+          documents: retainExisting ? [
             {
               documentType: "passport",
               documentPath: "accounts/documents/passport.jpg",
@@ -1184,7 +1285,7 @@ describe("admin page clients", () => {
               documentPath: "accounts/documents/selfie.jpg",
               uploadedAt: "2026-08-10T10:01:00Z",
             },
-          ],
+          ] : [],
         }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -1253,13 +1354,17 @@ describe("admin page clients", () => {
       />,
     );
 
-    expect(await screen.findByAltText("パスポート")).toBeInTheDocument();
+    if (retainExisting) {
+      expect(await screen.findByAltText("パスポート")).toBeInTheDocument();
+    } else {
+      expect(await screen.findByLabelText("運転免許証")).toBeInTheDocument();
+    }
     fireEvent.change(screen.getByLabelText("運転免許証"), {
       target: {
         files: [new File(["driver-new"], "driver_license.jpg", { type: "image/jpeg" })],
       },
     });
-    fireEvent.click(screen.getByRole("button", { name: "アップロード" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -1272,13 +1377,16 @@ describe("admin page clients", () => {
       init?.method === "POST");
     const requestBody = JSON.parse(String(uploadCall?.[1]?.body));
 
-    expect(requestBody.documents.map((document: { documentType: string }) => document.documentType)).toEqual([
+    expect(requestBody.documents.map((document: { documentType: string }) => document.documentType)).toEqual(retainExisting ? [
       "passport",
       "selfie",
       "driver_license",
-    ]);
-    expect(requestBody.documents[0].fileContents).toBe("cGFzc3BvcnQtZXhpc3Rpbmc=");
-    expect(requestBody.documents[1].fileContents).toBe("c2VsZmllLWV4aXN0aW5n");
+    ] : ["driver_license"]);
+    if (retainExisting) {
+      expect(requestBody.documents[0].fileContents).toBe("cGFzc3BvcnQtZXhpc3Rpbmc=");
+      expect(requestBody.documents[1].fileContents).toBe("c2VsZmllLWV4aXN0aW5n");
+    }
+    expect(await screen.findByText("書類を保存しました。")).toBeInTheDocument();
   });
 
   it("shows invitation tab only for account:member:invite policy and sends a batched invitation", async () => {
@@ -1835,7 +1943,7 @@ describe("admin page clients", () => {
       />,
     );
 
-    expect(await screen.findByRole("button", { name: "アップロード" })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: "保存" })).toBeEnabled();
     expect(screen.getByLabelText("居住国")).toBeEnabled();
     expect(screen.getByLabelText("パスポート")).toBeEnabled();
   });
@@ -1896,7 +2004,10 @@ describe("admin page clients", () => {
     });
   });
 
-  it("sends selected profile image as base64EncodedImage when saving profile settings", async () => {
+  it.each([
+    ["png", "image/png"],
+    ["svg", "image/svg+xml"],
+  ])("sends selected %s profile image as base64EncodedImage when saving profile settings", async (extension, mimeType) => {
     function MockFileReader(this: {
       onload: (() => void) | null;
       onerror: (() => void) | null;
@@ -1907,7 +2018,7 @@ describe("admin page clients", () => {
       this.onerror = null;
       this.result = null;
       this.readAsDataURL = () => {
-        this.result = "data:image/png;base64,PROFILE_IMAGE";
+        this.result = `data:${mimeType};base64,PROFILE_IMAGE`;
         this.onload?.();
       };
     }
@@ -1936,7 +2047,7 @@ describe("admin page clients", () => {
     fireEvent.click(screen.getByRole("link", { name: "ユーザー設定" }));
     fireEvent.click(await screen.findByRole("tab", { name: "プロフィール" }));
     fireEvent.change(screen.getByLabelText("画像を選択"), {
-      target: { files: [new File(["image"], "profile.png", { type: "image/png" })] },
+      target: { files: [new File(["image"], `profile.${extension}`, { type: mimeType })] },
     });
     await screen.findByText("プロフィール画像を切り取る");
     loadCropperImage();

@@ -32,6 +32,10 @@ describe("wikiImages", () => {
     expect(isAcceptedWikiImageFile({ name: "cover.jpeg", type: "image/jpeg" })).toBe(true);
     expect(isAcceptedWikiImageFile({ name: "cover.png", type: "image/png" })).toBe(true);
     expect(isAcceptedWikiImageFile({ name: "cover.webp", type: "image/webp" })).toBe(true);
+    expect(isAcceptedWikiImageFile({ name: "cover.svg", type: "image/svg+xml" })).toBe(true);
+    expect(isAcceptedWikiImageFile({ name: "COVER.SVG", type: "image/svg+xml" })).toBe(true);
+    expect(isAcceptedWikiImageFile({ name: "cover.svg", type: "text/plain" })).toBe(false);
+    expect(isAcceptedWikiImageFile({ name: "cover.html", type: "image/svg+xml" })).toBe(false);
     expect(isAcceptedWikiImageFile({ name: "cover.gif", type: "image/gif" })).toBe(false);
     expect(isAcceptedWikiImageFile({ name: "cover.jpg", type: "text/plain" })).toBe(false);
   });
