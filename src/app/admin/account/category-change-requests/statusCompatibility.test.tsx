@@ -30,15 +30,22 @@ vi.mock("./[requestId]/useAccountCategoryChangeRequestDetail", () => ({
   useAccountCategoryChangeRequestDetail: () => ({
     data: {
       request: data.request,
-      account: { ...data.request.account, accountCategory: "general" },
-      identities: [],
-      documents: [],
+      account: { ...data.request.account, accountCategory: "general", phone: "+81-90-1234-5678", address: { countryCode: "JP", administrativeAreaCode: "13", postalCode: "100-0001", locality: "千代田区", addressLine1: "千代田1-1", addressLine2: "1F" } },
+      documents: [{ documentType: "passport", documentPath: "snapshots/passport.pdf", uploadedAt: "today" }],
     },
   }),
   rejectionReasonCodes: [],
 }));
 describe("withdrawn operations display", () => {
   afterEach(cleanup);
+  it("shows submitted contact information and links to the request document snapshot", () => {
+    render(<AccountCategoryChangeRequestDetailClient />);
+    for (const value of ["+81-90-1234-5678", "JP", "13", "100-0001", "千代田区", "千代田1-1", "1F"]) {
+      expect(screen.getByText(value)).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: /passport.pdf/ })).toHaveAttribute("href", "/api/account/category-change-requests/request/documents/passport?download=1");
+    expect(screen.queryByText("所属ユーザー一覧")).not.toBeInTheDocument();
+  });
   it.each([
     AccountCategoryChangeRequestsClient,
     AccountCategoryChangeRequestDetailClient,

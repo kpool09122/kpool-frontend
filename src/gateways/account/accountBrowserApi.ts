@@ -57,7 +57,6 @@ type UploadAccountDocumentsOptions = AccountRequestOptions & {
 };
 
 type FetchAccountDocumentFileOptions = {
-  accountIdentifier?: string;
   documentType: string;
   fallbackErrorMessage: string;
   fetchAdapter?: typeof fetch;
@@ -442,14 +441,11 @@ export const fetchAccountDocuments = async ({
 };
 
 export const fetchAccountDocumentFileContents = async ({
-  accountIdentifier,
   documentType,
   fallbackErrorMessage,
   fetchAdapter = browserApiFetch,
 }: FetchAccountDocumentFileOptions): Promise<string> => {
-  const documentPath = accountIdentifier
-    ? `/api/account/accounts/${accountIdentifier}/documents/${encodeURIComponent(documentType)}`
-    : `/api/account/my/documents/${encodeURIComponent(documentType)}`;
+  const documentPath = `/api/account/my/documents/${encodeURIComponent(documentType)}`;
   const response = await fetchAdapter(documentPath, {
     cache: "no-store",
     credentials: "include",
