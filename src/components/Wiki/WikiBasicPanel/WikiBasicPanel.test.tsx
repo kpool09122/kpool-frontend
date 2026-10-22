@@ -40,6 +40,32 @@ describe("WikiBasicPanel", () => {
     vi.unstubAllGlobals();
   });
 
+  it("adds, edits and removes individual social URLs and saves an empty list after clearing", () => {
+    const onSave = vi.fn();
+    renderWithI18n(
+      <WikiBasicPanel
+        basic={{ ...wikiStoryBasic, resourceType: "agency", socialLinks: ["https://x.com/old"] }}
+        isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Social Links 1"), {
+      target: { value: "https://www.instagram.com/example" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add: Social Links" }));
+    fireEvent.change(screen.getByLabelText("Social Links 2"), {
+      target: { value: "https://youtu.be/example" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({
+      socialLinks: ["https://www.instagram.com/example", "https://youtu.be/example"],
+    }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove: Social Links 1" }));
+    expect(screen.getByLabelText("Social Links 1")).toHaveValue("https://youtu.be/example");
+    fireEvent.click(screen.getByRole("button", { name: "Remove: Social Links 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ socialLinks: [] }));
+  });
+
   it("renders the view mode panel", () => {
     renderWithI18n(
       <WikiBasicPanel

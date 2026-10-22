@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSocialLinkInfo, SocialLinkIcon } from "../socialLinks";
 import {
   getWikiBasicFields,
   type WikiBasic,
@@ -148,7 +149,27 @@ export function WikiBasicFieldsList({
             {formatFieldLabel(field.label)}
           </dt>
           <dd className={`${basicFieldTextWrapClassName} mt-1 text-sm leading-6 text-text-strong`}>
-            {field.colors ? (
+            {field.label === "Social Links" ? (
+              <span className="flex flex-wrap gap-2">
+                {basic.socialLinks?.map((url, index) => {
+                  const info = getSocialLinkInfo(url);
+                  return info ? (
+                    <a
+                      className="inline-flex min-w-0 items-center gap-2 font-semibold text-brand-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-brand-primary"
+                      aria-label={info.label}
+                      href={info.href}
+                      key={`${url}-${index}`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      title={`${info.label}: ${url}`}
+                    >
+                      <SocialLinkIcon url={url} />
+                      {info.platform ? null : <span className={basicFieldTextWrapClassName}>{info.label}</span>}
+                    </a>
+                  ) : <span className={basicFieldTextWrapClassName} key={`${url}-${index}`}>{url}</span>;
+                })}
+              </span>
+            ) : field.colors ? (
               <span className="flex flex-wrap gap-x-4 gap-y-2">
                 {field.colors.map((color, index) => (
                   <span

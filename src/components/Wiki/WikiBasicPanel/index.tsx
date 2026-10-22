@@ -23,7 +23,8 @@ import {
 import { dictionaries } from "../../../i18n/dictionaries";
 import { useI18n } from "../../../i18n/I18nProvider";
 import { normalizeLocale } from "../../../i18n/locales";
-import { getLines, getString } from "../editing";
+import { getString } from "../editing";
+import { SocialLinkIcon } from "../socialLinks";
 import { EditIcon } from "../icons";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import { WikiFormActions } from "../WikiFormActions";
@@ -44,8 +45,6 @@ type WikiBasicPanelProps = {
 
 const basicInputClassName =
   "min-w-0 break-words rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2 [overflow-wrap:anywhere] [word-break:break-word]";
-const basicTextareaClassName =
-  "min-h-24 min-w-0 whitespace-pre-wrap break-words rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2 [overflow-wrap:anywhere] [word-break:break-word]";
 const basicLabelClassName = "grid min-w-0 gap-2 text-sm font-semibold text-text-strong";
 
 const getOptionalString = (formData: FormData, name: string): string | undefined =>
@@ -57,13 +56,6 @@ const getOptionalStringUpdate = (
   currentValue: string | undefined,
 ): string | undefined =>
   formData.has(name) ? getOptionalString(formData, name) : currentValue;
-
-const getLinesUpdate = (
-  formData: FormData,
-  name: string,
-  currentValue: string[] | undefined,
-): string[] | undefined =>
-  formData.has(name) ? getLines(formData, name) : currentValue;
 
 const colorCodePattern = /^#[0-9a-fA-F]{6}$/;
 
@@ -165,30 +157,68 @@ function BasicTextInput({
   );
 }
 
-function BasicLinesInput({
+function SocialLinksInput({
   isAlwaysVisible = false,
   label,
-  name,
   values,
+  disabled,
 }: {
   isAlwaysVisible?: boolean;
   label: string;
-  name: string;
   values: string[] | undefined;
+  disabled: boolean;
 }) {
-  if (!isAlwaysVisible && !values?.length) {
-    return null;
-  }
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.ui;
+  const nextId = useRef(values?.length || 1);
+  const [links, setLinks] = useState(() =>
+    (values?.length ? values : [""]).map((url, id) => ({ id, url })),
+  );
+
+  if (!isAlwaysVisible && !values?.length) return null;
 
   return (
-    <label className={`${basicLabelClassName} md:col-span-2`}>
-      {label}
-      <textarea
-        className={basicTextareaClassName}
-        defaultValue={(values ?? []).join("\n")}
-        name={name}
-      />
-    </label>
+    <fieldset className={`${basicLabelClassName} md:col-span-2`} disabled={disabled}>
+      <legend>{label}</legend>
+      <input name="socialLinks" type="hidden" value="" />
+      <div className="mt-2 grid min-w-0 gap-2">
+        {links.map((link, index) => (
+          <div className="flex min-w-0 items-center overflow-hidden rounded-xl border border-stroke-subtle bg-surface-raised" key={link.id}>
+            <span className="pl-3 text-text-muted"><SocialLinkIcon url={link.url} /></span>
+            <input
+              aria-label={`${label} ${index + 1}`}
+              className="min-w-0 flex-1 bg-transparent px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary"
+              name="socialLinks"
+              onChange={(event) => {
+                const url = event.currentTarget.value;
+                setLinks(links.map((current) => current.id === link.id ? { ...current, url } : current));
+              }}
+              pattern="https?://.+"
+              placeholder="https://www.instagram.com/..."
+              type="url"
+              value={link.url}
+            />
+            <button
+              aria-label={`${t.remove}: ${label} ${index + 1}`}
+              className="grid h-9 w-9 shrink-0 place-items-center text-text-muted disabled:cursor-not-allowed"
+              onClick={() => setLinks(links.filter((current) => current.id !== link.id))}
+              type="button"
+            >
+              <Cross2Icon />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        aria-label={`${t.add}: ${label}`}
+        className="flex h-9 w-9 items-center justify-center rounded-full border border-stroke-subtle text-text-strong disabled:cursor-not-allowed"
+        onClick={() => setLinks([...links, { id: nextId.current++, url: "" }])}
+        style={cardSurfaceMutedStyle}
+        type="button"
+      >
+        <PlusIcon />
+      </button>
+    </fieldset>
   );
 }
 
@@ -525,7 +555,11 @@ export function WikiBasicPanel({
               "representativeSymbol",
               basic.representativeSymbol,
             ),
-            socialLinks: getLinesUpdate(formData, "socialLinks", basic.socialLinks),
+            socialLinks: formData.has("socialLinks")
+              ? formData.getAll("socialLinks").flatMap((value) =>
+                  typeof value === "string" && value.trim() ? [value.trim()] : [],
+                )
+              : basic.socialLinks,
             songType: getOptionalStringUpdate(formData, "songType", basic.songType),
             status: getOptionalStringUpdate(formData, "status", basic.status),
             zodiacSign: getOptionalStringUpdate(formData, "zodiacSign", basic.zodiacSign),
@@ -595,10 +629,10 @@ export function WikiBasicPanel({
             name="officialWebsite"
             value={basic.officialWebsite}
           />
-          <BasicLinesInput
+          <SocialLinksInput
+            disabled={disabled}
             isAlwaysVisible={isAgency}
             label={fieldLabels.socialLinks}
-            name="socialLinks"
             values={basic.socialLinks}
           />
           <BasicSelectInput

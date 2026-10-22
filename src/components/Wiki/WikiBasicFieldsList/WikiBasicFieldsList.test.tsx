@@ -155,7 +155,7 @@ describe("WikiBasicFieldsList", () => {
     );
   });
 
-  it("applies wrapping classes to long social link values", () => {
+  it("renders recognized social URLs as accessible icon-only links", () => {
     render(
       <WikiBasicFieldsList
         basic={{
@@ -169,7 +169,12 @@ describe("WikiBasicFieldsList", () => {
       />,
     );
 
-    expectWrappedText(screen.getByText(longSocialUrl));
+    const link = screen.getByRole("link", { name: "YouTube" });
+    expect(link).toHaveAttribute("href", longSocialUrl);
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(link.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("YouTube")).not.toBeInTheDocument();
+    expect(link).toHaveAttribute("title", `YouTube: ${longSocialUrl}`);
   });
 
   it("applies wrapping classes to basic relation links", () => {
