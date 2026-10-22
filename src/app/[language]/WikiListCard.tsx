@@ -39,16 +39,16 @@ const buildWikiCardStyle = (
   item: PublicWikiListItem,
 ): CSSProperties | undefined => {
   const imageSrc = getWikiCardImageSrc(item);
+  const themeVariables = buildWikiThemeCssVariables(item.themeColor);
 
   if (imageSrc) {
     return {
+      ...themeVariables,
       backgroundColor: "#15243b",
       backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${imageSrc.replaceAll("\"", "%22")}")`,
       borderColor: "rgba(255, 255, 255, 0.22)",
     };
   }
-
-  const themeVariables = buildWikiThemeCssVariables(item.themeColor);
 
   if (!themeVariables) {
     return undefined;
@@ -86,14 +86,14 @@ export const PublicWikiCard = ({
             className="rounded-full bg-brand-highlight/60 px-3 py-1 text-xs font-semibold text-text-strong"
             style={{
               backgroundColor: hasHeroImage
-                ? "rgba(255, 255, 255, 0.86)"
+                ? "var(--wiki-card-background-muted-light, rgba(255, 255, 255, 0.86))"
                 : item.themeColor
-                  ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
+                  ? "var(--wiki-card-background-muted, var(--surface-base))"
                   : undefined,
               color: hasHeroImage
-                ? "#15243b"
+                ? "var(--wiki-title-text-light, #15243b)"
                 : item.themeColor
-                  ? "var(--wiki-accent-text)"
+                  ? "var(--wiki-title-text, var(--text-strong))"
                   : undefined,
             }}
           >
@@ -101,9 +101,9 @@ export const PublicWikiCard = ({
           </span>
         </div>
         <Heading
-          className="mt-4 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-semibold text-text-strong"
+          className="wiki-title mt-4 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-2xl font-semibold"
           style={{
-            color: hasHeroImage ? "#fffaf4" : undefined,
+            color: hasHeroImage ? "var(--wiki-title-text-dark, #fffaf4)" : undefined,
           }}
         >
           <span>{item.name}</span>

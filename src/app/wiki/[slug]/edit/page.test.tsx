@@ -355,6 +355,9 @@ describe("WikiEditPage", () => {
 
     expect(screen.queryByTestId("wiki-image-library")).not.toBeInTheDocument();
     expect(screen.getAllByAltText("Stage image")).toHaveLength(2);
+    const sourceLinks = screen.getAllByRole("link", { name: "stage.webp" });
+    expect(sourceLinks).toHaveLength(2);
+    expect(sourceLinks[0]).toHaveAttribute("href", "https://source.example.test/image-2");
     expect(screen.getAllByAltText("Stage image")[0]).toHaveAttribute(
       "src",
       "https://images.example.test/image-2.webp",

@@ -75,12 +75,20 @@ test("Wiki preview isolates all four global/local combinations and preserves pal
       expect(await page.evaluate(() => localStorage.getItem("kpool-theme"))).toBe(storageBefore);
       const palette = await preview.evaluate((element, mode) => {
         const style = getComputedStyle(element);
-        return { actual: style.getPropertyValue("--wiki-card-background").trim(), expected: style.getPropertyValue(`--wiki-card-background-${mode}`).trim(), surface: style.getPropertyValue("--surface-base").trim() };
+        return {
+          actual: style.getPropertyValue("--wiki-card-background").trim(),
+          expected: style.getPropertyValue(`--wiki-card-background-${mode}`).trim(),
+          surface: style.getPropertyValue("--surface-base").trim(),
+          title: style.getPropertyValue(`--wiki-title-text-${mode}`).trim(),
+        };
       }, localMode);
       expect(palette.actual).toBe(palette.expected);
       expect(palette.surface).toBe(localMode === "dark" ? "#16223a" : "#fffbf7");
       const title = page.getByRole("heading", { name: "Aurora Echo", exact: true });
-      await expect(title).toHaveCSS("color", localMode === "dark" ? "rgb(255, 247, 239)" : "rgb(29, 47, 73)");
+      expect(palette.title).toMatch(/^#[0-9a-f]{6}$/i);
+      const titleColor = `rgb(${[1, 3, 5].map((offset) => Number.parseInt(palette.title.slice(offset, offset + 2), 16)).join(", ")})`;
+      await expect(title).toHaveCSS("color", titleColor);
+      await expect(preview).toHaveCSS("color", titleColor);
       const titleInput = preview.getByRole("textbox", { name: "Title", exact: true });
       await preview.getByRole("button", { name: "Edit wiki title", exact: true }).click();
       await expect(titleInput).toHaveCSS("background-color", localMode === "dark" ? "rgb(33, 48, 75)" : "rgb(255, 255, 255)");

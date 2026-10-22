@@ -7,6 +7,7 @@ import { useState } from "react";
 import { WikiImageDeletionRequestDialog } from "../WikiImageDeletionRequestDialog";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
+import { WikiImageSourceLink } from "../WikiImageSourceLink";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import {
   cardSurfaceMutedStyle,
@@ -108,7 +109,7 @@ export function WikiPublicHeroImage({
                       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
                         {contentDictionary.wiki.heroCard.basic}
                       </p>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+                      <p className="wiki-title mt-2 text-2xl font-semibold tracking-[-0.03em]">
                         {resolvedProfileLabel}
                       </p>
                     </div>
@@ -140,6 +141,8 @@ export function WikiPublicHeroImage({
               </div>
             </div>
           </div>
+
+          <WikiImageSourceLink image={heroImage} />
 
           <p className="text-center text-sm text-text-muted">
             <span className={isFlipped ? "hidden" : ""}>
@@ -182,6 +185,8 @@ export function WikiPublicHeroImage({
             </div>
           </div>
 
+          <div className="mt-3"><WikiImageSourceLink image={heroImage} /></div>
+
           {canRequestDeletion && translationSetIdentifier ? (
             <div className="mt-3 text-center">
               <button
@@ -204,7 +209,7 @@ export function WikiPublicHeroImage({
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
                 {contentDictionary.wiki.heroCard.basic}
               </p>
-              <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+              <p className="wiki-title mt-2 text-2xl font-semibold tracking-[-0.03em]">
                 {resolvedProfileLabel}
               </p>
             </div>

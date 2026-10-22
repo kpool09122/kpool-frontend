@@ -94,7 +94,7 @@ export function WikiDiffPage({
         <div className="grid flex-1 gap-0 xl:grid-cols-2 xl:items-start">
           <section
             aria-labelledby="wiki-diff-public-heading"
-            className="wiki-theme-scope min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
+            className="wiki-theme-scope wiki-page-theme min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
             data-testid="wiki-diff-public-theme-root"
             style={publicThemeStyles}
           >
@@ -112,7 +112,7 @@ export function WikiDiffPage({
 
           <section
             aria-labelledby="wiki-diff-draft-heading"
-            className="wiki-theme-scope min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
+            className="wiki-theme-scope wiki-page-theme min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:px-8"
             data-testid="wiki-diff-draft-theme-root"
             style={draftThemeStyles}
           >

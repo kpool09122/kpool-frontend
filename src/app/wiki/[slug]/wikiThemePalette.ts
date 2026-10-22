@@ -85,6 +85,7 @@ type ThemeBase = {
   surfaceBase: string;
   surfaceRaised: string;
   textStrong: string;
+  textMuted: string;
   headerBase: string;
   highlight: string;
 };
@@ -93,6 +94,9 @@ export type WikiThemePalette = {
   pageBackground: string;
   headerBackground: string;
   headerText: string;
+  titleText: string;
+  mutedText: string;
+  linkText: string;
   heroOverlay: string;
   heroAccent: string;
   cardBackground: string;
@@ -107,6 +111,7 @@ const themeBases: Record<ThemeMode, ThemeBase> = {
     surfaceBase: "#fffbf7",
     surfaceRaised: "#ffffff",
     textStrong: "#1d2f49",
+    textMuted: "#667a95",
     headerBase: "#3560a3",
     highlight: "#ffd6c2",
   },
@@ -114,6 +119,7 @@ const themeBases: Record<ThemeMode, ThemeBase> = {
     surfaceBase: "#16223a",
     surfaceRaised: "#21304b",
     textStrong: "#fff7ef",
+    textMuted: "#d9e3f4",
     headerBase: "#9fc0f2",
     highlight: "#4a6492",
   },
@@ -285,6 +291,23 @@ const getBalancedThemeColor = (themeColor: string, mode: ThemeMode): string => {
   );
 };
 
+const getReadableThemeTextColor = (
+  themeColor: string,
+  mode: ThemeMode,
+  backgrounds: string[],
+  originalColor = themeBases[mode].textStrong,
+): string => {
+  const foreground = themeBases[mode].textStrong;
+  const themedColor = mixColors(originalColor, themeColor, 0.2);
+  for (let step = 0; step <= 10; step++) {
+    const color = mixColors(themedColor, foreground, step * 0.1);
+    if (backgrounds.every((background) => getContrastRatio(color, background) >= 4.5)) {
+      return color;
+    }
+  }
+  return foreground;
+};
+
 export const createWikiThemePalette = (
   themeColor: string,
   mode: ThemeMode,
@@ -298,11 +321,15 @@ export const createWikiThemePalette = (
   const accentBackground = mixColors(base.highlight, balancedThemeColor, mode === "light" ? 0.42 : 0.56);
   const pageStart = mixColors(base.surfaceBase, balancedThemeColor, mode === "light" ? 0.06 : 0.14);
   const pageEnd = mixColors(base.surfaceRaised, balancedThemeColor, mode === "light" ? 0.12 : 0.18);
+  const textBackgrounds = [cardBackground, cardBackgroundMuted, pageStart, pageEnd];
 
   return {
     pageBackground: `radial-gradient(circle at top, ${rgbToRgba(hexToRgb(glowColor), mode === "light" ? 0.82 : 0.58)}, transparent 40%), linear-gradient(180deg, ${pageStart} 0%, ${pageEnd} 100%)`,
     headerBackground,
     headerText: pickReadableText(headerBackground, "#15243b", "#fffaf4"),
+    titleText: getReadableThemeTextColor(balancedThemeColor, mode, textBackgrounds),
+    mutedText: getReadableThemeTextColor(balancedThemeColor, mode, textBackgrounds, base.textMuted),
+    linkText: getReadableThemeTextColor(balancedThemeColor, mode, textBackgrounds, base.headerBase),
     heroOverlay: `linear-gradient(180deg, ${rgbToRgba(hexToRgb(mixColors("#15243b", balancedThemeColor, 0.2)), mode === "light" ? 0.08 : 0.14)} 0%, ${rgbToRgba(hexToRgb(mixColors("#15243b", balancedThemeColor, 0.56)), mode === "light" ? 0.72 : 0.88)} 100%)`,
     heroAccent: pickReadableText(accentBackground, "#15243b", "#fffaf4"),
     cardBackground,
@@ -335,6 +362,12 @@ export const buildWikiThemeCssVariables = (
     "--wiki-header-background-dark": darkPalette.headerBackground,
     "--wiki-header-text-light": lightPalette.headerText,
     "--wiki-header-text-dark": darkPalette.headerText,
+    "--wiki-title-text-light": lightPalette.titleText,
+    "--wiki-title-text-dark": darkPalette.titleText,
+    "--wiki-muted-text-light": lightPalette.mutedText,
+    "--wiki-muted-text-dark": darkPalette.mutedText,
+    "--wiki-link-text-light": lightPalette.linkText,
+    "--wiki-link-text-dark": darkPalette.linkText,
     "--wiki-hero-overlay-light": lightPalette.heroOverlay,
     "--wiki-hero-overlay-dark": darkPalette.heroOverlay,
     "--wiki-hero-accent-light": lightPalette.heroAccent,

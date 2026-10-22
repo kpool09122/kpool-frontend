@@ -1022,7 +1022,6 @@ const ja = {
       play: "再生",
       thumbnailUnavailable: "サムネイルを表示できません",
       openYouTube: "YouTubeで開く",
-      fallbackHint: "再生できない場合はYouTubeでご覧ください。",
       unavailable: "この動画は再生できません。",
     },
     contentWikiTab: "Wiki",
@@ -1173,6 +1172,7 @@ const ja = {
       publicCoverHint: "カードの任意の場所をタップして基本情報へ切り替えます。",
       publicBasicHint: "もう一度カードをタップしてカバー画像へ戻ります。",
       requestImageDeletion: "画像の削除を申請",
+      imageSource: "出典",
     },
     basicFieldLabels: {
       groupType: "グループ種別",
@@ -2403,7 +2403,6 @@ const en: typeof ja = {
       play: "Play",
       thumbnailUnavailable: "Thumbnail unavailable",
       openYouTube: "Open on YouTube",
-      fallbackHint: "If playback is unavailable, watch on YouTube.",
       unavailable: "This video is unavailable.",
     },
     contentWikiTab: "Wiki",
@@ -2554,6 +2553,7 @@ const en: typeof ja = {
       publicCoverHint: "Tap anywhere on the card to flip to the basic details.",
       publicBasicHint: "Tap the card again to return to the cover image.",
       requestImageDeletion: "Request image deletion",
+      imageSource: "Source",
     },
     basicFieldLabels: {
       groupType: "Group Type",
@@ -3781,7 +3781,6 @@ const ko: typeof ja = {
       play: "재생",
       thumbnailUnavailable: "썸네일을 표시할 수 없습니다",
       openYouTube: "YouTube에서 보기",
-      fallbackHint: "재생할 수 없는 경우 YouTube에서 시청하세요.",
       unavailable: "재생할 수 없는 동영상입니다.",
     },
     contentWikiTab: "Wiki",
@@ -3932,6 +3931,7 @@ const ko: typeof ja = {
       publicCoverHint: "카드 아무 곳이나 탭해 기본 정보로 전환합니다.",
       publicBasicHint: "카드를 다시 탭해 커버 이미지로 돌아갑니다.",
       requestImageDeletion: "이미지 삭제 요청",
+      imageSource: "출처",
     },
     basicFieldLabels: {
       groupType: "그룹 유형",

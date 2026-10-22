@@ -42,9 +42,9 @@ export function WikiListCard({
           <div className="min-w-0">
             <h3 className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 break-words text-base font-semibold">
               <a
-                className="text-brand-primary underline underline-offset-4"
+                className="wiki-title underline underline-offset-4"
                 href={href}
-                style={{ color: isOnImage ? "#fffaf4" : undefined }}
+                style={{ color: isOnImage ? "var(--wiki-title-text-dark, #fffaf4)" : undefined }}
               >
                 {title}
               </a>
@@ -63,14 +63,14 @@ export function WikiListCard({
               className="rounded-full border border-stroke-subtle px-2.5 py-1 text-xs font-semibold text-text-muted"
               style={{
                 backgroundColor: isOnImage
-                  ? "rgba(255, 255, 255, 0.86)"
+                  ? "var(--wiki-card-background-muted-light, rgba(255, 255, 255, 0.86))"
                   : hasTheme
-                    ? "var(--wiki-accent-background, rgba(255, 214, 194, 0.6))"
+                    ? "var(--wiki-card-background-muted, var(--surface-base))"
                     : undefined,
                 color: isOnImage
-                  ? "#15243b"
+                  ? "var(--wiki-title-text-light, #15243b)"
                   : hasTheme
-                    ? "var(--wiki-accent-text)"
+                    ? "var(--wiki-title-text, var(--text-strong))"
                     : undefined,
               }}
             >

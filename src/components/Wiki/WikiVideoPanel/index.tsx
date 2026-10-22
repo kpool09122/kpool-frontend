@@ -67,7 +67,6 @@ function VideoCard({ video }: { video: WikiVideo }) {
           ) : null}
         </button>
       )}
-      <p className="text-sm text-text-muted">{t.fallbackHint}</p>
       {videoId ? (
         <a
           className="inline-block underline"

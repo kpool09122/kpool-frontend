@@ -112,7 +112,7 @@ export function WikiSectionEditor({
           <ChevronIcon />
         </button>
         <span className="min-w-0 flex-1">
-          <span className="block text-2xl font-semibold tracking-[-0.03em] text-text-strong">{section.title}</span>
+          <span className="wiki-title block text-2xl font-semibold tracking-[-0.03em]">{section.title}</span>
         </span>
         <button
           aria-label={`${t.editSection}: ${section.title}`}

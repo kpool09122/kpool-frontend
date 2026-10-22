@@ -39,6 +39,33 @@ describe("wikiThemePalette", () => {
     expect(darkPalette.pageBackground).toContain("linear-gradient");
   });
 
+  it.each(["#ff0055", "#00ff66", "#0055ff", "#ffff00", "#ffffff", "#000000"])(
+    "keeps themed body, muted and link text readable in both modes (%s)", (themeColor) => {
+      for (const mode of ["light", "dark"] as const) {
+        const palette = createWikiThemePalette(themeColor, mode);
+        for (const background of [palette.cardBackground, palette.cardBackgroundMuted]) {
+          for (const textColor of [palette.titleText, palette.mutedText, palette.linkText]) {
+            expect(wikiThemeTestHelpers.getContrastRatio(textColor, background)).toBeGreaterThanOrEqual(4.5);
+          }
+        }
+      }
+    },
+  );
+
+  it("derives different title colors from each Wiki theme", () => {
+    for (const mode of ["light", "dark"] as const) {
+      const red = createWikiThemePalette("#ff0055", mode).titleText;
+      const blue = createWikiThemePalette("#0055ff", mode).titleText;
+      expect(red).not.toBe(blue);
+      const redPalette = createWikiThemePalette("#ff0055", mode);
+      const bluePalette = createWikiThemePalette("#0055ff", mode);
+      expect(redPalette.mutedText).not.toBe(bluePalette.mutedText);
+      expect(redPalette.linkText).not.toBe(bluePalette.linkText);
+      const variables = buildWikiThemeCssVariables("#ff0055");
+      expect(variables).toHaveProperty(`--wiki-title-text-${mode}`, red);
+    }
+  });
+
   it("softens extreme colors into derived surfaces instead of flat fills", () => {
     const palette = createWikiThemePalette("#00ff00", "light");
 

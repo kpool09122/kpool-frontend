@@ -77,6 +77,19 @@ describe("WikiPublicHeroImage", () => {
     expect(screen.queryByText("Flip to reveal the basic profile")).not.toBeInTheDocument();
   });
 
+  it("renders source links below the mobile and desktop profile images", () => {
+    renderWithI18n(
+      <WikiPublicHeroImage basic={wikiStoryBasic} flipCardId="source-card" heroImage={{
+        ...wikiStoryHeroImage,
+        sourceUrl: "https://commons.wikimedia.org/wiki/File:Hero.png",
+        sourceName: "Wikimedia Commons",
+      }} />,
+    );
+    const links = screen.getAllByRole("link", { name: "Wikimedia Commons" });
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute("href", "https://commons.wikimedia.org/wiki/File:Hero.png");
+  });
+
   it("toggles the mobile helper copy when flipped", () => {
     renderWithI18n(
       <WikiPublicHeroImage

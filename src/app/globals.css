@@ -161,6 +161,10 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-light);
   --wiki-header-background: var(--wiki-header-background-light);
   --wiki-header-text: var(--wiki-header-text-light);
+  --wiki-title-text: var(--wiki-title-text-light);
+  --wiki-body-text: var(--wiki-title-text-light, #1d2f49);
+  --wiki-muted-text: var(--wiki-muted-text-light, #667a95);
+  --wiki-link-text: var(--wiki-link-text-light, #3560a3);
   --wiki-hero-overlay: var(--wiki-hero-overlay-light);
   --wiki-hero-accent: var(--wiki-hero-accent-light);
   --wiki-card-background: var(--wiki-card-background-light);
@@ -174,6 +178,10 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-dark);
   --wiki-header-background: var(--wiki-header-background-dark);
   --wiki-header-text: var(--wiki-header-text-dark);
+  --wiki-title-text: var(--wiki-title-text-dark);
+  --wiki-body-text: var(--wiki-title-text-dark, #fff7ef);
+  --wiki-muted-text: var(--wiki-muted-text-dark, #d9e3f4);
+  --wiki-link-text: var(--wiki-link-text-dark, #9fc0f2);
   --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
   --wiki-hero-accent: var(--wiki-hero-accent-dark);
   --wiki-card-background: var(--wiki-card-background-dark);
@@ -188,6 +196,10 @@ select:not([multiple]):not([size]) {
     --wiki-page-background: var(--wiki-page-background-dark);
     --wiki-header-background: var(--wiki-header-background-dark);
     --wiki-header-text: var(--wiki-header-text-dark);
+    --wiki-title-text: var(--wiki-title-text-dark);
+    --wiki-body-text: var(--wiki-title-text-dark, #fff7ef);
+    --wiki-muted-text: var(--wiki-muted-text-dark, #d9e3f4);
+    --wiki-link-text: var(--wiki-link-text-dark, #9fc0f2);
     --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
     --wiki-hero-accent: var(--wiki-hero-accent-dark);
     --wiki-card-background: var(--wiki-card-background-dark);
@@ -218,6 +230,10 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-light);
   --wiki-header-background: var(--wiki-header-background-light);
   --wiki-header-text: var(--wiki-header-text-light);
+  --wiki-title-text: var(--wiki-title-text-light);
+  --wiki-body-text: var(--wiki-title-text-light, #1d2f49);
+  --wiki-muted-text: var(--wiki-muted-text-light, #667a95);
+  --wiki-link-text: var(--wiki-link-text-light, #3560a3);
   --wiki-hero-overlay: var(--wiki-hero-overlay-light);
   --wiki-hero-accent: var(--wiki-hero-accent-light);
   --wiki-card-background: var(--wiki-card-background-light);
@@ -247,6 +263,10 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-dark);
   --wiki-header-background: var(--wiki-header-background-dark);
   --wiki-header-text: var(--wiki-header-text-dark);
+  --wiki-title-text: var(--wiki-title-text-dark);
+  --wiki-body-text: var(--wiki-title-text-dark, #fff7ef);
+  --wiki-muted-text: var(--wiki-muted-text-dark, #d9e3f4);
+  --wiki-link-text: var(--wiki-link-text-dark, #9fc0f2);
   --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
   --wiki-hero-accent: var(--wiki-hero-accent-dark);
   --wiki-card-background: var(--wiki-card-background-dark);
@@ -258,4 +278,18 @@ select:not([multiple]):not([size]) {
 
 .section-accordion[open] > summary .section-accordion__chevron {
   transform: rotate(180deg);
+}
+
+.wiki-title {
+  color: var(--wiki-title-text, var(--text-strong));
+}
+
+.wiki-theme-scope.wiki-page-theme {
+  --text-strong: var(--wiki-body-text);
+  --text-muted: var(--wiki-muted-text);
+  --foreground: var(--wiki-body-text);
+}
+
+.wiki-page-theme .text-brand-primary {
+  color: var(--wiki-link-text);
 }

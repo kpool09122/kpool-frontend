@@ -142,6 +142,8 @@ describe("draftWiki", () => {
         imageIdentifier: "hero-image-1",
         src: "https://cdn.example.test/wiki/hero-image-1.webp",
         alt: "Aurora Echo official hero",
+        sourceUrl: "https://example.com/original",
+        sourceName: "Original source",
       },
       language: "ja",
       resourceType: "group",
@@ -157,6 +159,8 @@ describe("draftWiki", () => {
       imageIdentifier: "hero-image-1",
       src: "https://cdn.example.test/wiki/hero-image-1.webp",
       alt: "Aurora Echo official hero",
+      sourceUrl: "https://example.com/original",
+      sourceName: "Original source",
     });
   });
 
