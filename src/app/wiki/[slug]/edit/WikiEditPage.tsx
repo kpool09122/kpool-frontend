@@ -2,6 +2,7 @@
 
 import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
 import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
+import { WikiImageSourceLink } from "@/components/Wiki/WikiImageSourceLink";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -243,6 +244,8 @@ export function WikiEditContent({
       imageIdentifier: image.imageIdentifier,
       alt: image.altText || image.sourceName || image.imageIdentifier,
       src: image.url,
+      sourceUrl: image.sourceUrl,
+      sourceName: image.sourceName,
     });
     setImageLibrary((state) => ({ ...state, isOpen: false }));
   };
@@ -294,7 +297,7 @@ export function WikiEditContent({
   return (
     <main className="flex flex-1 flex-col" data-testid="wiki-edit-root" ref={rootRef}>
       <div
-        className="wiki-theme-scope flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+        className="wiki-theme-scope wiki-page-theme flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
         data-theme={previewMode}
         data-testid="wiki-edit-preview"
         style={{ ...themeStyles, ...mainBackgroundStyle }}
@@ -394,10 +397,15 @@ export function WikiEditContent({
                 profileLabel={contentDictionary.wiki.profileLabel}
               />
               <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-                <WikiHeroPanel
-                  heroImage={draft.heroImage}
-                  onOpenImageLibrary={isEditLocked ? undefined : () => openImageLibrary("desktop")}
-                />
+                <div className="flex min-w-0 flex-col gap-3">
+                  <div className="flex-1">
+                    <WikiHeroPanel
+                      heroImage={draft.heroImage}
+                      onOpenImageLibrary={isEditLocked ? undefined : () => openImageLibrary("desktop")}
+                    />
+                  </div>
+                  <WikiImageSourceLink image={draft.heroImage} />
+                </div>
                 <WikiBasicPanel
                   searchContextRef={desktopBasicRef}
                   basic={draft.basic}

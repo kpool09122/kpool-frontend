@@ -70,6 +70,12 @@ describe("wikiApiModel SEO metadata", () => {
 });
 
 describe("wikiApiModel hero images", () => {
+  it("retains source attribution for published and draft hero images", () => {
+    const heroImage = { ...baseApiResponse.heroImage, sourceUrl: "https://example.com/original", sourceName: "Original source" };
+    expect(adaptWikiApiResponse({ ...baseApiResponse, heroImage, version: 1 }).heroImage).toMatchObject(heroImage);
+    expect(adaptDraftWikiApiResponse({ ...baseApiResponse, heroImage, status: "editing" }).heroImage).toMatchObject(heroImage);
+  });
+
   it("uses the placeholder hero image for hidden draft hero images", () => {
     const wiki = adaptDraftWikiApiResponse({
       ...baseApiResponse,

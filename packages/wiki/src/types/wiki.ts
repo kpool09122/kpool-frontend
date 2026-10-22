@@ -415,6 +415,8 @@ const wikiDetailBaseSchema = z.object({
     imageIdentifier: z.string().nullable().optional(),
     src: z.string(),
     alt: z.string(),
+    sourceUrl: z.string().nullable().optional(),
+    sourceName: z.string().nullable().optional(),
     isHidden: z.boolean().optional(),
   }),
   isOfficial: z.boolean().optional(),

@@ -5,6 +5,7 @@ import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import { WikiBasicPanel } from "../WikiBasicPanel";
+import { WikiImageSourceLink } from "../WikiImageSourceLink";
 import { WikiHeroPanel } from "../WikiHeroPanel";
 import { EditIcon } from "../icons";
 import { cardSurfaceStyle } from "../styles";
@@ -165,6 +166,7 @@ export function WikiHeroBasicFlipCard({
           {t.editBasicHint}
         </span>
       </p>
+      <WikiImageSourceLink image={heroImage} />
     </div>
   );
 }

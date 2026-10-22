@@ -523,6 +523,8 @@ const DraftWikiHeroImage = z
     imageIdentifier: KPool_Common_Uuid.nullable(),
     src: z.string().nullable(),
     alt: z.string().nullable(),
+    sourceUrl: z.string().nullish(),
+    sourceName: z.string().nullish(),
     isHidden: z.boolean().nullable(),
   })
   .passthrough();
@@ -779,6 +781,8 @@ const WikiHeroImage = z
     imageIdentifier: KPool_Common_Uuid.nullable(),
     src: z.string().nullable(),
     alt: z.string().nullable(),
+    sourceUrl: z.string().nullish(),
+    sourceName: z.string().nullish(),
     isHidden: z.boolean().nullable(),
   })
   .passthrough();

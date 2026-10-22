@@ -128,6 +128,8 @@ type WikiApiResponseBase = {
     imageIdentifier?: string | null;
     src?: string | null;
     alt?: string | null;
+    sourceUrl?: string | null;
+    sourceName?: string | null;
     isHidden?: boolean | null;
     is_hidden?: boolean | null;
   } | null;
@@ -576,6 +578,8 @@ const getHeroImage = (response: WikiApiResponseBase): WikiDraftDetail["heroImage
       alt: response.heroImage.alt ?? `${name} hero image`,
       ...hiddenFlag,
       src: response.heroImage.src,
+      sourceUrl: response.heroImage.sourceUrl ?? null,
+      sourceName: response.heroImage.sourceName ?? null,
     };
   }
 

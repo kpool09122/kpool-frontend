@@ -7,6 +7,7 @@ import { useState } from "react";
 import { WikiImageDeletionRequestDialog } from "../WikiImageDeletionRequestDialog";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
+import { WikiImageSourceLink } from "../WikiImageSourceLink";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import {
   cardSurfaceMutedStyle,
@@ -141,6 +142,8 @@ export function WikiPublicHeroImage({
             </div>
           </div>
 
+          <WikiImageSourceLink image={heroImage} />
+
           <p className="text-center text-sm text-text-muted">
             <span className={isFlipped ? "hidden" : ""}>
               {t.publicCoverHint}
@@ -181,6 +184,8 @@ export function WikiPublicHeroImage({
               />
             </div>
           </div>
+
+          <div className="mt-3"><WikiImageSourceLink image={heroImage} /></div>
 
           {canRequestDeletion && translationSetIdentifier ? (
             <div className="mt-3 text-center">
