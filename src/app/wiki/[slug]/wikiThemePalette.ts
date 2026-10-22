@@ -298,7 +298,7 @@ const getReadableThemeTextColor = (
   originalColor = themeBases[mode].textStrong,
 ): string => {
   const foreground = themeBases[mode].textStrong;
-  const themedColor = mixColors(originalColor, themeColor, 0.3);
+  const themedColor = mixColors(originalColor, themeColor, 0.2);
   for (let step = 0; step <= 10; step++) {
     const color = mixColors(themedColor, foreground, step * 0.1);
     if (backgrounds.every((background) => getContrastRatio(color, background) >= 4.5)) {
