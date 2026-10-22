@@ -161,6 +161,7 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-light);
   --wiki-header-background: var(--wiki-header-background-light);
   --wiki-header-text: var(--wiki-header-text-light);
+  --wiki-title-text: var(--wiki-title-text-light);
   --wiki-hero-overlay: var(--wiki-hero-overlay-light);
   --wiki-hero-accent: var(--wiki-hero-accent-light);
   --wiki-card-background: var(--wiki-card-background-light);
@@ -174,6 +175,7 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-dark);
   --wiki-header-background: var(--wiki-header-background-dark);
   --wiki-header-text: var(--wiki-header-text-dark);
+  --wiki-title-text: var(--wiki-title-text-dark);
   --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
   --wiki-hero-accent: var(--wiki-hero-accent-dark);
   --wiki-card-background: var(--wiki-card-background-dark);
@@ -188,6 +190,7 @@ select:not([multiple]):not([size]) {
     --wiki-page-background: var(--wiki-page-background-dark);
     --wiki-header-background: var(--wiki-header-background-dark);
     --wiki-header-text: var(--wiki-header-text-dark);
+    --wiki-title-text: var(--wiki-title-text-dark);
     --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
     --wiki-hero-accent: var(--wiki-hero-accent-dark);
     --wiki-card-background: var(--wiki-card-background-dark);
@@ -218,6 +221,7 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-light);
   --wiki-header-background: var(--wiki-header-background-light);
   --wiki-header-text: var(--wiki-header-text-light);
+  --wiki-title-text: var(--wiki-title-text-light);
   --wiki-hero-overlay: var(--wiki-hero-overlay-light);
   --wiki-hero-accent: var(--wiki-hero-accent-light);
   --wiki-card-background: var(--wiki-card-background-light);
@@ -247,6 +251,7 @@ select:not([multiple]):not([size]) {
   --wiki-page-background: var(--wiki-page-background-dark);
   --wiki-header-background: var(--wiki-header-background-dark);
   --wiki-header-text: var(--wiki-header-text-dark);
+  --wiki-title-text: var(--wiki-title-text-dark);
   --wiki-hero-overlay: var(--wiki-hero-overlay-dark);
   --wiki-hero-accent: var(--wiki-hero-accent-dark);
   --wiki-card-background: var(--wiki-card-background-dark);
@@ -258,4 +263,8 @@ select:not([multiple]):not([size]) {
 
 .section-accordion[open] > summary .section-accordion__chevron {
   transform: rotate(180deg);
+}
+
+.wiki-title {
+  color: var(--wiki-title-text, var(--text-strong));
 }

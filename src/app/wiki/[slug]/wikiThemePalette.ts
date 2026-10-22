@@ -93,6 +93,7 @@ export type WikiThemePalette = {
   pageBackground: string;
   headerBackground: string;
   headerText: string;
+  titleText: string;
   heroOverlay: string;
   heroAccent: string;
   cardBackground: string;
@@ -285,6 +286,21 @@ const getBalancedThemeColor = (themeColor: string, mode: ThemeMode): string => {
   );
 };
 
+const getReadableTitleColor = (
+  themeColor: string,
+  mode: ThemeMode,
+  backgrounds: string[],
+): string => {
+  const foreground = themeBases[mode].textStrong;
+  for (let step = 0; step <= 10; step++) {
+    const color = mixColors(themeColor, foreground, 0.7 + step * 0.03);
+    if (backgrounds.every((background) => getContrastRatio(color, background) >= 4.5)) {
+      return color;
+    }
+  }
+  return foreground;
+};
+
 export const createWikiThemePalette = (
   themeColor: string,
   mode: ThemeMode,
@@ -303,6 +319,7 @@ export const createWikiThemePalette = (
     pageBackground: `radial-gradient(circle at top, ${rgbToRgba(hexToRgb(glowColor), mode === "light" ? 0.82 : 0.58)}, transparent 40%), linear-gradient(180deg, ${pageStart} 0%, ${pageEnd} 100%)`,
     headerBackground,
     headerText: pickReadableText(headerBackground, "#15243b", "#fffaf4"),
+    titleText: getReadableTitleColor(balancedThemeColor, mode, [cardBackground, cardBackgroundMuted, pageStart, pageEnd]),
     heroOverlay: `linear-gradient(180deg, ${rgbToRgba(hexToRgb(mixColors("#15243b", balancedThemeColor, 0.2)), mode === "light" ? 0.08 : 0.14)} 0%, ${rgbToRgba(hexToRgb(mixColors("#15243b", balancedThemeColor, 0.56)), mode === "light" ? 0.72 : 0.88)} 100%)`,
     heroAccent: pickReadableText(accentBackground, "#15243b", "#fffaf4"),
     cardBackground,
@@ -335,6 +352,8 @@ export const buildWikiThemeCssVariables = (
     "--wiki-header-background-dark": darkPalette.headerBackground,
     "--wiki-header-text-light": lightPalette.headerText,
     "--wiki-header-text-dark": darkPalette.headerText,
+    "--wiki-title-text-light": lightPalette.titleText,
+    "--wiki-title-text-dark": darkPalette.titleText,
     "--wiki-hero-overlay-light": lightPalette.heroOverlay,
     "--wiki-hero-overlay-dark": darkPalette.heroOverlay,
     "--wiki-hero-accent-light": lightPalette.heroAccent,

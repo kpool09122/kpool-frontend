@@ -346,7 +346,7 @@ export function WikiEditContent({
                 </LocalizedForm>
               ) : (
                 <div className="flex items-start gap-3">
-                  <h1 className="min-w-0 text-4xl font-semibold text-text-strong lg:text-5xl">
+                  <h1 className="wiki-title min-w-0 text-4xl font-semibold lg:text-5xl">
                     {draft.basic.name}
                   </h1>
                   <button

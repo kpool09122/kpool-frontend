@@ -495,15 +495,16 @@ export const getDraftWikiListCardMeta = ({
 };
 
 export const buildDraftWikiListCardStyle = (wiki: AdminWikiListItem): CSSProperties | undefined => {
+  const themeVariables = buildWikiThemeCssVariables(wiki.themeColor);
+
   if (wiki.isHidden !== true && wiki.imageUrl) {
     return {
+      ...themeVariables,
       backgroundColor: "#15243b",
       backgroundImage: `linear-gradient(180deg, rgba(21, 36, 59, 0.78) 0%, rgba(21, 36, 59, 0.68) 48%, rgba(21, 36, 59, 0.9) 100%), url("${wiki.imageUrl.replaceAll("\"", "%22")}")`,
       borderColor: "rgba(255, 255, 255, 0.22)",
     };
   }
-
-  const themeVariables = buildWikiThemeCssVariables(wiki.themeColor);
 
   if (!themeVariables) {
     return undefined;

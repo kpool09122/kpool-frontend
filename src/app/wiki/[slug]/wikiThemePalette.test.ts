@@ -39,6 +39,27 @@ describe("wikiThemePalette", () => {
     expect(darkPalette.pageBackground).toContain("linear-gradient");
   });
 
+  it.each(["#ff0055", "#00ff66", "#0055ff", "#ffff00", "#ffffff", "#000000"])(
+    "keeps themed titles readable on cards in both modes (%s)", (themeColor) => {
+      for (const mode of ["light", "dark"] as const) {
+        const palette = createWikiThemePalette(themeColor, mode);
+        for (const background of [palette.cardBackground, palette.cardBackgroundMuted]) {
+          expect(wikiThemeTestHelpers.getContrastRatio(palette.titleText, background)).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    },
+  );
+
+  it("derives different title colors from each Wiki theme", () => {
+    for (const mode of ["light", "dark"] as const) {
+      const red = createWikiThemePalette("#ff0055", mode).titleText;
+      const blue = createWikiThemePalette("#0055ff", mode).titleText;
+      expect(red).not.toBe(blue);
+      const variables = buildWikiThemeCssVariables("#ff0055");
+      expect(variables).toHaveProperty(`--wiki-title-text-${mode}`, red);
+    }
+  });
+
   it("softens extreme colors into derived surfaces instead of flat fills", () => {
     const palette = createWikiThemePalette("#00ff00", "light");
 

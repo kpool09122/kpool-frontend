@@ -787,7 +787,7 @@ export function WikiBasicPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
             {heroT.basic}
           </p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+          <p className="wiki-title mt-2 text-2xl font-semibold tracking-[-0.03em]">
             {resolvedProfileLabel}
           </p>
         </div>
