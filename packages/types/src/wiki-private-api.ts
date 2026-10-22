@@ -858,6 +858,21 @@ const TalentWikiDetail = z
     sections: z.array(z.unknown()),
   })
   .passthrough();
+const Video = z
+  .object({
+    videoLinkIdentifier: KPool_Common_Uuid.uuid(),
+    url: z.string(),
+    title: z.string(),
+    thumbnailUrl: z.string().nullable(),
+    publishedAt: z.string().nullable(),
+    displayOrder: z.number().int(),
+    videoUsage: z.enum([
+      "youtube_auto_view_count",
+      "youtube_auto_like_count",
+      "youtube_auto_recent_popular",
+    ]),
+  })
+  .passthrough();
 const RelatedProfileItem = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -1014,6 +1029,7 @@ export const schemas = {
   WikiDetail,
   SongWikiDetail,
   TalentWikiDetail,
+  Video,
   RelatedProfileItem,
   ListRelatedProfilesResponseBody,
   ListRelatedWikisResponseBody,
@@ -3066,6 +3082,58 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/:language/:resourceType/:slug/videos",
+    alias: "PublicVideoLinkOperations_listVideos",
+    description: `Public, unauthenticated list of videos for the exact published wiki. Currently, only automatically collected videos are included. Ordered by displayOrder ascending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Collection targets are group/song/talent; agency returns an empty list. Viewing never calls YouTube or dispatches collection jobs.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "language",
+        type: "Path",
+        schema: z.enum(["ja", "ko", "en"]),
+      },
+      {
+        name: "resourceType",
+        type: "Path",
+        schema: z.enum(["agency", "group", "song", "talent"]),
+      },
+      {
+        name: "slug",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.object({ videos: z.array(Video) }).passthrough(),
+    errors: [
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
