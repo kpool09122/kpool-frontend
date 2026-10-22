@@ -4,7 +4,7 @@ import {
   normalizeWikiSectionContents,
   sortWikiSections,
 } from "@kpool/wiki";
-import { useId, type MouseEventHandler } from "react";
+import { useId, type ReactNode, type MouseEventHandler } from "react";
 
 import { WikiPublicHeroImage } from "../WikiPublicHeroImage/index";
 import { OfficialCertificationBadge } from "../OfficialCertificationBadge/index";
@@ -20,6 +20,7 @@ type WikiDetailContentProps = {
   editHref?: string;
   onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
+  videoPanel?: ReactNode;
 };
 
 export function WikiDetailContent({
@@ -27,6 +28,7 @@ export function WikiDetailContent({
   editHref,
   onEdit,
   language,
+  videoPanel,
 }: WikiDetailContentProps) {
   const { dictionary } = useI18n();
   const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
@@ -78,6 +80,9 @@ export function WikiDetailContent({
               </div>
             ),
           },
+          ...(videoPanel
+            ? [{ id: "video", label: t.contentVideoTab, panel: videoPanel }]
+            : []),
         ]}
       />
     </div>

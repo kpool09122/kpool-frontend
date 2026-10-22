@@ -12,6 +12,7 @@ import {
 import { useI18n } from "../../../i18n/I18nProvider";
 import { buildWikiEditEntryPath } from "@kpool/wiki";
 import { buildWikiThemeCssVariables } from "./wikiThemePalette";
+import { WikiVideoPanel } from "@/components/Wiki/WikiVideoPanel";
 import { PublicWikiAnalytics } from "@/components/Analytics/PublicWikiAnalytics";
 
 import { useWikiEditEntry } from "./useWikiEditEntry";
@@ -82,7 +83,15 @@ export function WikiDetailPage({
         {editEntry.error ? <p className="mb-4 text-status-danger" role="alert">{editEntry.error}</p> : null}
         <PublicWikiAnalytics wiki={data}>
           <WikiDetailContent
+            key={`${data.language}:${data.resourceType}:${data.slug}`}
             data={data}
+            videoPanel={
+              <WikiVideoPanel
+                language={data.language}
+                resourceType={data.resourceType}
+                slug={data.slug}
+              />
+            }
             editHref={editHref}
             onEdit={editEntry.startEditing}
             language={language}

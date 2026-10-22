@@ -458,6 +458,12 @@ export function WikiEditContent({
                       </div>
                     ),
                   },
+                  {
+                    id: "video",
+                    label: t.contentVideoTab,
+                    disabled: true,
+                    panel: null,
+                  },
                 ]}
               />
             ) : (
