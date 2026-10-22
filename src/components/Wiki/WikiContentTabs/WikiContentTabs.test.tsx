@@ -21,8 +21,13 @@ describe("WikiContentTabs", () => {
       />,
     );
 
-    expect(screen.getByRole("tablist", { name: "Wiki content tabs" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute("aria-selected", "true");
+    expect(
+      screen.getByRole("tablist", { name: "Wiki content tabs" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(screen.getByRole("tabpanel")).toHaveTextContent("Wiki body");
   });
 
@@ -47,10 +52,44 @@ describe("WikiContentTabs", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Video" }));
 
-    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute("aria-selected", "false");
-    expect(screen.getByRole("tab", { name: "Video" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+    expect(screen.getByRole("tab", { name: "Video" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(screen.getByRole("tabpanel")).toHaveTextContent("Video body");
     expect(screen.queryByText("Wiki body")).not.toBeInTheDocument();
+  });
+
+  it("keeps disabled tabs unselectable and moves focus between enabled tabs", () => {
+    render(
+      <WikiContentTabs
+        ariaLabel="tabs"
+        tabs={[
+          { id: "wiki", label: "Wiki", panel: <p>Body</p> },
+          {
+            id: "video",
+            label: "Video",
+            disabled: true,
+            panel: <p>Video body</p>,
+          },
+          { id: "other", label: "Other", panel: <p>Other body</p> },
+        ]}
+      />,
+    );
+    const wiki = screen.getByRole("tab", { name: "Wiki" });
+    const video = screen.getByRole("tab", { name: "Video" });
+    expect(video).toBeDisabled();
+    fireEvent.click(video);
+    fireEvent.keyDown(video, { key: "ArrowRight" });
+    expect(wiki).toHaveAttribute("aria-selected", "true");
+    wiki.focus();
+    fireEvent.keyDown(wiki, { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: "Other" })).toHaveFocus();
+    expect(screen.queryByText("Video body")).not.toBeInTheDocument();
   });
 
   it("supports arrow-key tab navigation", () => {
@@ -72,10 +111,20 @@ describe("WikiContentTabs", () => {
       />,
     );
 
-    fireEvent.keyDown(screen.getByRole("tab", { name: "Wiki" }), { key: "ArrowRight" });
-    expect(screen.getByRole("tab", { name: "Video" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Wiki" }), {
+      key: "ArrowRight",
+    });
+    expect(screen.getByRole("tab", { name: "Video" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
 
-    fireEvent.keyDown(screen.getByRole("tab", { name: "Video" }), { key: "ArrowLeft" });
-    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Video" }), {
+      key: "ArrowLeft",
+    });
+    expect(screen.getByRole("tab", { name: "Wiki" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
   });
 });

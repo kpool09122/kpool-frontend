@@ -6,6 +6,7 @@ export type WikiContentTab = {
   id: string;
   label: string;
   panel: ReactNode;
+  disabled?: boolean;
 };
 
 type WikiContentTabsProps = {
@@ -16,21 +17,35 @@ type WikiContentTabsProps = {
 export function WikiContentTabs({ ariaLabel, tabs }: WikiContentTabsProps) {
   const instanceId = useId();
   const [activeTabId, setActiveTabId] = useState(() => tabs[0]?.id ?? "");
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+  const activeTab =
+    tabs.find((tab) => tab.id === activeTabId && !tab.disabled) ??
+    tabs.find((tab) => !tab.disabled);
 
   if (!activeTab) {
     return null;
   }
 
   const selectAdjacentTab = (currentIndex: number, direction: 1 | -1) => {
-    const nextTab = tabs.at((currentIndex + direction + tabs.length) % tabs.length);
+    const enabledTabs = tabs.filter((tab) => !tab.disabled);
+    const enabledIndex = enabledTabs.findIndex(
+      (tab) => tab.id === tabs[currentIndex]?.id,
+    );
+    const nextTab = enabledTabs.at(
+      (enabledIndex + direction + enabledTabs.length) % enabledTabs.length,
+    );
 
     if (nextTab) {
       setActiveTabId(nextTab.id);
+      document.getElementById(`${instanceId}-${nextTab.id}-tab`)?.focus();
     }
   };
 
-  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) => {
+    if (tabs[currentIndex]?.disabled) return;
+
     if (event.key === "ArrowRight") {
       event.preventDefault();
       selectAdjacentTab(currentIndex, 1);
@@ -59,15 +74,19 @@ export function WikiContentTabs({ ariaLabel, tabs }: WikiContentTabsProps) {
             return (
               <button
                 aria-controls={panelId}
+                aria-disabled={tab.disabled || undefined}
+                disabled={tab.disabled}
                 aria-selected={isSelected}
-                className={`whitespace-nowrap border-b-2 px-6 py-4 text-base font-semibold transition sm:px-8 sm:text-lg ${
+                className={`disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap border-b-2 px-6 py-4 text-base font-semibold transition sm:px-8 sm:text-lg ${
                   isSelected
                     ? "border-brand-primary text-text-strong"
                     : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
                 }`}
                 id={tabId}
                 key={tab.id}
-                onClick={() => setActiveTabId(tab.id)}
+                onClick={() => {
+                  if (!tab.disabled) setActiveTabId(tab.id);
+                }}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
                 role="tab"
                 tabIndex={isSelected ? 0 : -1}
