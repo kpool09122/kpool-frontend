@@ -483,21 +483,26 @@ const RoleSummary = z
 const AttachPolicyToRoleRequestBody = z
   .object({ policyIdentifier: KPool_Common_Uuid })
   .passthrough();
-const VideoLinkInput = z
+const CreateVideoLinkRequestBody = z
   .object({
+    resourceType: z.enum(["agency", "group", "song", "talent"]),
+    wikiIdentifier: KPool_Common_Uuid.uuid(),
     url: z.string(),
-    videoUsage: z.string(),
-    title: z.string().optional(),
-    displayOrder: z.number().int(),
-    thumbnailUrl: z.string().optional(),
-    publishedAt: z.string().optional(),
-  })
-  .passthrough();
-const SaveVideoLinksRequestBody = z
-  .object({
-    resourceType: z.string(),
-    wikiIdentifier: KPool_Common_Uuid,
-    videoLinks: z.array(VideoLinkInput),
+    videoUsage: z.enum([
+      "music_video",
+      "live",
+      "interview",
+      "behind_the_scenes",
+      "cover",
+      "collaboration",
+      "short",
+      "other",
+    ]),
+    title: z.string().max(255),
+    displayOrder: z.number().int().gte(0),
+    durationSeconds: z.number().int().gte(0),
+    thumbnailUrl: z.string().nullish(),
+    publishedAt: z.string().nullish(),
   })
   .passthrough();
 const TranslationSetMasterSearchWikiItem = z
@@ -1005,8 +1010,7 @@ export const schemas = {
   CreateRoleRequestBody,
   RoleSummary,
   AttachPolicyToRoleRequestBody,
-  VideoLinkInput,
-  SaveVideoLinksRequestBody,
+  CreateVideoLinkRequestBody,
   TranslationSetMasterSearchWikiItem,
   TranslationSetMasterSearchItem,
   SearchTranslationSetMasterWikisResponseBody,
@@ -3018,19 +3022,39 @@ const endpoints = makeApi([
   },
   {
     method: "post",
-    path: "/video-link/save",
-    alias: "VideoLinkOperations_saveVideoLinks",
-    description: `Save video links for a wiki.`,
+    path: "/video-link/create",
+    alias: "VideoLinkOperations_createVideoLink",
+    description: `Create one manual video without replacing existing videos. Requires an authenticated Wiki collaborator. durationSeconds is a non-negative integer obtained by the frontend player; zero is allowed. The creator principal identifier is determined on the server. Duplicate URLs within the wiki return 409.`,
     requestFormat: "json",
     parameters: [
       {
         name: "body",
         type: "Body",
-        schema: SaveVideoLinksRequestBody,
+        schema: CreateVideoLinkRequestBody,
       },
     ],
     response: z.void(),
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 419,
         description: `Client error`,
