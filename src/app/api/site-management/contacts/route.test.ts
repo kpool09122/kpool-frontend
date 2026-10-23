@@ -49,14 +49,14 @@ describe("site-management contacts list BFF", () => {
     expect(new URL(url).searchParams.get("principalIdentifier")).toBe(sender);
     expect(new URL(url).searchParams.get("hasReply")).toBe("0");
     expect(init.headers.Cookie).toBeUndefined();
-    expect(JSON.stringify(await response.json())).not.toContain("private authorization context");
+    expect(await response.json()).toEqual({ detail: "private authorization context", message: "private authorization context" });
   });
 
-  it("does not leak upstream details on errors", async () => {
+  it("preserves upstream error details using the existing contact error format", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ detail: "private database" }, { status: 403 })));
     const response = await GET(new NextRequest("http://localhost/api/site-management/contacts"));
     expect(response.status).toBe(403);
-    expect(JSON.stringify(await response.json())).not.toContain("private");
+    expect(await response.json()).toEqual({ detail: "private database", message: "private database" });
   });
 });

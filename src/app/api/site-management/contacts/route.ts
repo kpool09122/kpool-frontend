@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getRouteErrorBody, readResponseBody } from "../contact/routeSupport";
 
 import { getSiteManagementApiBaseUrl } from "@/gateways/contact/contactApi";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     cookies.push(...upstream.headers.getSetCookie());
     return upstream.ok
       ? respond(parseSiteManagementContactsPage(await upstream.json()), 200)
-      : unavailable(upstream.status);
+      : respond(getRouteErrorBody(upstream.status, await readResponseBody(upstream)), upstream.status);
   } catch {
     return unavailable(502);
   }

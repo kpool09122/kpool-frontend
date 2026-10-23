@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
+import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import { GET as list } from "./route";
 import { GET as detail } from "./[contactIdentifier]/route";
@@ -22,9 +23,10 @@ describe.each(cases)("contacts $name BFF failures", ({ method, path, handler }) 
     ...(method === "POST" ? { body: JSON.stringify({ content: "Reply" }) } : {}),
   });
 
-  it.each([401, 403, 404, 419, 422, 429, 500])("preserves status %s and session cookies without caching or leaking upstream errors", async (status) => {
+  it.each([401, 403, 404, 419, 422, 429, 500])("preserves Problem Details, status %s and session cookies without caching", async (status) => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ detail: "private upstream error" }, {
+    const problem = { type: "https://example.test/problems/contact", title: "Request rejected", status, detail: "お問い合わせを処理できません。", code: "contact_rejected" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(problem, {
       status,
       headers: { "Set-Cookie": "session=renewed; HttpOnly" },
     })));
@@ -32,7 +34,36 @@ describe.each(cases)("contacts $name BFF failures", ({ method, path, handler }) 
     expect(response.status).toBe(status);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Set-Cookie")).toBe("session=renewed; HttpOnly");
-    expect(JSON.stringify(await response.json())).not.toContain("private upstream error");
+    expect(await response.json()).toEqual({ ...problem, message: problem.detail });
+  });
+
+  it("preserves principal_inactive for the browser's shared access monitor", async () => {
+    vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
+    const problem = { type: "https://example.test/problems/principal-inactive", title: "Forbidden", status: 403, detail: "利用権限が停止されています。", code: "principal_inactive" };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(problem, { status: 403 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await handler(request(), context);
+    fetchMock.mockResolvedValue(response);
+    const events: Event[] = [];
+    const onInactive = (event: Event) => { events.push(event); };
+    window.addEventListener("kpool:principal-inactive", onInactive);
+    try {
+      await browserApiFetch(path);
+      expect(events).toHaveLength(1);
+      expect((events[0] as CustomEvent).detail).toEqual({ path });
+    } finally {
+      window.removeEventListener("kpool:principal-inactive", onInactive);
+    }
+  });
+
+  it("keeps malformed upstream error bodies safe while preserving status and cookies", async () => {
+    vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("private invalid JSON", { status: 403, headers: { "Set-Cookie": "session=renewed; HttpOnly" } })));
+    const response = await handler(request(), context);
+    expect(response.status).toBe(403);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Set-Cookie")).toBe("session=renewed; HttpOnly");
+    expect(await response.json()).toEqual({ message: "Contact API request failed with status 403." });
   });
 
   it("does not cache an unavailable backend configuration", async () => {

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getRouteErrorBody, readResponseBody } from "../../../contact/routeSupport";
 
 import { getSiteManagementApiBaseUrl } from "@/gateways/contact/contactApi";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
     const response = upstream.ok
       ? new NextResponse(null, { status: upstream.status, headers: { "Cache-Control": "no-store" } })
-      : NextResponse.json({ message: siteManagementContactsUnavailableMessage }, { status: upstream.status, headers: { "Cache-Control": "no-store" } });
+      : NextResponse.json(getRouteErrorBody(upstream.status, await readResponseBody(upstream)), { status: upstream.status, headers: { "Cache-Control": "no-store" } });
     for (const value of upstream.headers.getSetCookie()) response.headers.append("Set-Cookie", value);
     return response;
   } catch {
