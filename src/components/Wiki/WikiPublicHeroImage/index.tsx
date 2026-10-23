@@ -171,7 +171,7 @@ export function WikiPublicHeroImage({
         <div className="flex h-full flex-col">
           <div
             className="min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
-            style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
+            style={cardSurfaceStyle}
           >
             <div className="relative h-full min-h-[30rem]">
               <Image
