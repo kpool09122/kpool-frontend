@@ -87,6 +87,7 @@ export function WikiDetailPage({
             data={data}
             videoPanel={
               <WikiVideoPanel
+                wikiIdentifier={data.wikiIdentifier}
                 language={data.language}
                 resourceType={data.resourceType}
                 slug={data.slug}

@@ -27,6 +27,11 @@ export const getYouTubeVideoId = (value: string): string | null => {
   return id && videoIdPattern.test(id) ? id : null;
 };
 
+export const normalizeYouTubeVideoUrl = (value: string): string | null => {
+  const id = getYouTubeVideoId(value.trim());
+  return id ? `https://www.youtube.com/watch?v=${id}` : null;
+};
+
 export const getYouTubeThumbnailUrl = (value: string | null): string | null => {
   if (!value || !URL.canParse(value)) return null;
   const url = new URL(value);

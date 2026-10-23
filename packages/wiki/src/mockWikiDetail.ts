@@ -356,7 +356,9 @@ export const createMockWikiDetail = (
   const twiceMember = twiceMemberProfiles.find((member) => member.slug === normalizedSlug);
 
   const detail = {
-    wikiIdentifier: normalizedSlug,
+    // A contract-valid write fixture; preserve the legacy read/edit fixture identities.
+    wikiIdentifier: normalizedSlug === "gr-video-create"
+      ? "11111111-1111-4111-8111-111111111111" : normalizedSlug,
     translationSetIdentifier: `translation-set-${normalizedSlug}`,
     slug: normalizedSlug,
     language: "ja",

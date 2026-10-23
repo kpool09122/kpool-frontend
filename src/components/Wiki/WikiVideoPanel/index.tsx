@@ -11,6 +11,7 @@ import {
 } from "@/gateways/wiki/wikiVideos";
 import { useI18n } from "@/i18n/I18nProvider";
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
+import { WikiVideoCreateEntry } from "../WikiVideoCreateForm/WikiVideoCreateEntry";
 
 function VideoCard({ video }: { video: WikiVideo }) {
   const { dictionary } = useI18n();
@@ -83,7 +84,25 @@ function VideoCard({ video }: { video: WikiVideo }) {
   );
 }
 
-export function WikiVideoPanel(identity: WikiVideoIdentity) {
+export function WikiVideoPanel({
+  wikiIdentifier,
+  ...identity
+}: WikiVideoIdentity & { wikiIdentifier?: string }) {
+  return (
+    <>
+      {wikiIdentifier ? (
+        <WikiVideoCreateEntry
+          key={`${wikiIdentifier}:${identity.resourceType}`}
+          wikiIdentifier={wikiIdentifier}
+          resourceType={identity.resourceType}
+        />
+      ) : null}
+      <VideoList {...identity} />
+    </>
+  );
+}
+
+function VideoList(identity: WikiVideoIdentity) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
   const query = useQuery({
