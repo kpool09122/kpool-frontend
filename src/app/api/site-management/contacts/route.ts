@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getSiteManagementApiBaseUrl } from "@/gateways/contact/contactApi";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
-import { parseSiteManagementContactsPage, siteManagementContactsUnavailableMessage } from "@/gateways/site-management/siteManagementContacts";
+import { parseSiteManagementContactsPage, siteManagementContactsUnavailableMessage, siteManagementContactSenderFilterSchema } from "@/gateways/site-management/siteManagementContacts";
 
 export async function GET(request: NextRequest) {
   const baseUrl = getSiteManagementApiBaseUrl();
@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
   if (!baseUrl) return unavailable(503);
 
   const input = request.nextUrl.searchParams;
+  if (!siteManagementContactSenderFilterSchema.safeParse(input.getAll("principalIdentifier")).success) return unavailable(422);
   const params = new URLSearchParams();
-  for (const key of ["hasReply", "page", "perPage"]) {
+  for (const key of ["hasReply", "page", "perPage", "principalIdentifier"]) {
     const value = input.get(key);
     if (value !== null) params.set(key, value);
   }

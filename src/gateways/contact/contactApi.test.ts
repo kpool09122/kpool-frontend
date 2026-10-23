@@ -22,6 +22,15 @@ const contact = {
 };
 
 describe("contact API helpers", () => {
+  it("preserves conversation types and nullable delivery dates without exposing authors", () => {
+    const replies = ["operator", "submitter"].map((replyType) => ({
+      replyIdentifier, content: "返信", replyType, createdAt: contact.createdAt,
+      sentAt: replyType === "submitter" ? null : contact.createdAt,
+    }));
+    const parsed = parseMyContactDetailResponse({ ...contact, replies: replies.map((reply) => ({ ...reply, name: "private", principalIdentifier: identityIdentifier })) });
+    expect(parsed.replies).toEqual(replies);
+    expect(() => parseMyContactDetailResponse({ ...contact, replies: [{ ...replies[0], replyType: "unknown" }] })).toThrow();
+  });
   it("adds the site management API prefix when the base URL omits it", () => {
     expect(withSiteManagementApiPrefix("http://127.0.0.1:8080")).toBe(
       "http://127.0.0.1:8080/api/v1/site-management",
@@ -59,5 +68,19 @@ describe("contact API helpers", () => {
 
   it("rejects malformed contact responses", () => {
     expect(() => parseMyContactsResponse([{ ...contact, category: "request" }])).toThrow();
+  });
+  it("keeps the public identity-owned array contract and requires content", () => {
+    expect(parseMyContactsResponse([contact])).toEqual([contact]);
+    expect(() => parseMyContactsResponse({ contacts: [contact] })).toThrow();
+    expect(() => parseMyContactsResponse([{ ...contact, content: undefined }])).toThrow();
+    expect(() => parseMyContactsResponse([{ ...contact, identityIdentifier: "not-a-uuid" }])).toThrow();
+  });
+  it("exposes only the public reply fields, never operator identity", () => {
+    const reply = { replyIdentifier, content: "確認いたしました。", sentAt: contact.createdAt };
+    const parsed = parseMyContactDetailResponse({ ...contact, principalIdentifier: identityIdentifier, replies: [{ ...reply, name: "private operator", principalIdentifier: identityIdentifier }] });
+    expect(parsed.replies).toEqual([reply]);
+    expect(parsed.identityIdentifier).toBe(identityIdentifier);
+    expect(parsed).not.toHaveProperty("principalIdentifier");
+    expect(() => parseMyContactDetailResponse({ ...contact, replies: [{ ...reply, sentAt: undefined }] })).toThrow();
   });
 });

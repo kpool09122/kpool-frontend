@@ -22,5 +22,11 @@ export const getForwardHeaders = (request: NextRequest): HeadersInit => {
 export const getRouteErrorBody = (status: number, body: unknown) =>
   getApiErrorBody(body, `Contact API request failed with status ${status}.`);
 
+export const contactResponse = (body: unknown, status: number, cookies: string[] = []) => {
+  const response = NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
+  for (const cookie of cookies) response.headers.append("Set-Cookie", cookie);
+  return response;
+};
+
 export const unavailableResponse = () =>
-  NextResponse.json({ message: "Contact API is not configured." }, { status: 500 });
+  contactResponse({ message: "Contact API is not configured." }, 500);

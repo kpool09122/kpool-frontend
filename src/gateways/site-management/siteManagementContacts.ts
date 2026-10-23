@@ -4,8 +4,9 @@ import { z } from "zod";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
-export type SiteManagementContactDetail = z.infer<typeof siteManagementApiTypes.schemas.ContactDetail>;
+export type SiteManagementContactDetail = z.infer<typeof siteManagementApiTypes.schemas.OperatorContactDetail>;
 export type SiteManagementContactsPage = z.infer<typeof siteManagementApiTypes.schemas.ListContactsPage>;
+export const siteManagementContactSenderFilterSchema = z.array(z.string().uuid()).max(1);
 
 export const siteManagementContactsUnavailableMessage = "SiteManagement contacts are unavailable.";
 
@@ -16,18 +17,29 @@ export const parseSiteManagementContactsPage = (body: unknown): SiteManagementCo
   parseWithSchemaLog("site management contacts", siteManagementApiTypes.schemas.ListContactsPage, body);
 
 export const parseSiteManagementContactDetail = (body: unknown): SiteManagementContactDetail =>
-  parseWithSchemaLog("site management contact detail", siteManagementApiTypes.schemas.ContactDetail, body);
+  parseWithSchemaLog("site management contact detail", siteManagementApiTypes.schemas.OperatorContactDetail, body);
 
 export const fetchSiteManagementContacts = async ({
   page,
+  hasReply,
+  principalIdentifier,
   perPage = 50,
   fetchAdapter = browserApiFetch,
 }: {
   page: number;
+  hasReply?: "0" | "1";
+  principalIdentifier?: string;
   perPage?: number;
   fetchAdapter?: typeof fetch;
 }): Promise<SiteManagementContactsPage> => {
-  const response = await fetchAdapter(`/api/site-management/contacts?hasReply=0&page=${page}&perPage=${perPage}`, {
+  const senderFilter = siteManagementContactSenderFilterSchema.safeParse(principalIdentifier === undefined ? [] : [principalIdentifier]);
+  if (!senderFilter.success) throw contactError(422);
+  const params = new URLSearchParams();
+  if (hasReply !== undefined) params.set("hasReply", hasReply);
+  params.set("page", String(page));
+  params.set("perPage", String(perPage));
+  if (principalIdentifier !== undefined) params.set("principalIdentifier", principalIdentifier);
+  const response = await fetchAdapter(`/api/site-management/contacts?${params.toString()}`, {
     cache: "no-store",
     credentials: "include",
     headers: { Accept: "application/json" },

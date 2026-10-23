@@ -1,57 +1,54 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { ContactCard, ContactDetail, ContactDialog } from "@/components/Contact";
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import { fetchMyContactDetail, fetchMyContacts } from "@/gateways/contact/contactBrowserApi";
+import { canViewOwnSiteManagementContacts } from "@/gateways/site-management/siteManagementPolicy";
 import { useI18n } from "../../../../i18n/I18nProvider";
 import { useAdmin } from "../../AdminProvider";
 
 type StatusFilter = "all" | "replied" | "awaitingReply";
 
-const formatContactDate = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-  }).formatToParts(date);
-  const valueFor = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((part) => part.type === type)?.value ?? "";
-
-  return `${valueFor("year")}-${valueFor("month")}-${valueFor("day")} ${valueFor("hour")}:${valueFor("minute")}`;
-};
-
 export function MyContactsClient() {
-  const { dictionary } = useI18n();
+  const { currentIdentity } = useAdmin();
+  if (!canViewOwnSiteManagementContacts(currentIdentity)) return null;
+  const scope = JSON.stringify([currentIdentity.identityIdentifier, currentIdentity.accountIdentifier, currentIdentity.siteManagementPrincipalIdentifier]);
+  return <MyContactsContent key={scope} />;
+}
+
+function MyContactsContent() {
+  const { dictionary, locale } = useI18n();
   const { currentIdentity } = useAdmin();
   const t = dictionary.admin.myContacts;
-  const identityIdentifier = currentIdentity.identityIdentifier;
+  const common = dictionary.admin.siteManagementContacts;
+  const filterRef = useRef<HTMLSelectElement>(null);
+  const { identityIdentifier, accountIdentifier, siteManagementPrincipalIdentifier } = currentIdentity;
+  const queryScope = ["myContacts", identityIdentifier, accountIdentifier, siteManagementPrincipalIdentifier];
   const [status, setStatus] = useState<StatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = useQuery({
-    queryKey: ["myContacts", identityIdentifier],
+    queryKey: queryScope,
     queryFn: () => fetchMyContacts({ fallbackErrorMessage: t.loadFailed }),
   });
   const detail = useQuery({
-    enabled: selectedId !== null,
-    queryKey: ["myContacts", identityIdentifier, selectedId],
+    enabled: selectedId !== null && !list.isError,
+    queryKey: [...queryScope, selectedId],
     queryFn: () => fetchMyContactDetail({
       contactIdentifier: selectedId!,
       fallbackErrorMessage: t.detailLoadFailed,
     }),
   });
-  const contacts = (list.data ?? []).filter((contact) =>
+  const contacts = (list.isError ? [] : list.data ?? []).filter((contact) =>
     status === "all" || (status === "replied"
       ? contact.replyIdentifiers.length > 0
       : contact.replyIdentifiers.length === 0));
+  // Losing list access or membership must not resurrect a cached selection later.
+  if (selectedId && (list.isError || (list.data && !contacts.some((contact) => contact.contactIdentifier === selectedId)))) {
+    setSelectedId(null);
+  }
 
   return (
     <UserSettingsPanel description={t.description} title={t.title}>
@@ -59,9 +56,10 @@ export function MyContactsClient() {
         <label className="grid gap-2 text-sm font-semibold">
           {t.filter}
           <select
+            ref={filterRef}
             className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
             value={status}
-            onChange={(event) => setStatus(event.currentTarget.value as StatusFilter)}
+            onChange={(event) => { setStatus(event.currentTarget.value as StatusFilter); setSelectedId(null); }}
           >
             <option value="all">{t.all}</option>
             <option value="awaitingReply">{t.awaitingReply}</option>
@@ -73,59 +71,26 @@ export function MyContactsClient() {
         {!list.isLoading && !list.error && contacts.length === 0 ? (
           <UserStatusMessage variant="warning">{t.empty}</UserStatusMessage>
         ) : null}
-        {contacts.map((contact) => {
-          const isSelected = selectedId === contact.contactIdentifier;
-
-          return (
-            <article className="overflow-hidden rounded-xl border border-stroke-subtle bg-surface-raised" key={contact.contactIdentifier}>
-              <button
-                aria-expanded={isSelected}
-                className="w-full p-4 text-left transition hover:border-brand-primary hover:bg-brand-highlight/10"
-                onClick={() => setSelectedId(isSelected ? null : contact.contactIdentifier)}
-                type="button"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                    <span className="w-full shrink-0 text-sm text-text-muted sm:w-auto">{formatContactDate(contact.createdAt)}</span>
-                    <span className="shrink-0 rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
-                      {t.category(contact.category)}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-text-muted">
-                      {contact.content}
-                    </span>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${
-                    contact.replyIdentifiers.length
-                      ? "bg-emerald-100 text-emerald-900"
-                      : "bg-amber-100 text-amber-900"
-                  }`}>
-                    {contact.replyIdentifiers.length ? t.replied : t.awaitingReply}
-                  </span>
-                </div>
-              </button>
-              {isSelected ? (
-                <section className="border-t border-stroke-subtle bg-white p-4">
-                  {detail.isLoading ? <p>{t.detailLoading}</p> : null}
-                  {detail.error ? <UserStatusMessage variant="error">{detail.error.message}</UserStatusMessage> : null}
-                  {detail.data ? (
-                    <div className="grid gap-4">
-                      <p className="whitespace-pre-wrap">{detail.data.content}</p>
-                      <div className="relative ml-3 grid gap-3 pl-5">
-                        <span aria-hidden="true" className="absolute left-0 top-0 h-5 w-3 border-b border-l border-stroke-subtle" />
-                        {detail.data.replies.length ? detail.data.replies.map((reply) => (
-                          <article className="relative border-l-4 border-brand-highlight bg-surface-raised py-3 pl-4 pr-3" key={reply.replyIdentifier}>
-                            <p className="whitespace-pre-wrap">{reply.content}</p>
-                            <p className="mt-2 text-xs text-text-muted">{formatContactDate(reply.sentAt)}</p>
-                          </article>
-                        )) : <p className="text-sm text-text-muted">{t.noReplies}</p>}
-                      </div>
-                    </div>
-                  ) : null}
-                </section>
-              ) : null}
-            </article>
-          );
-        })}
+        {contacts.map((contact) => <ContactCard
+          key={contact.contactIdentifier}
+          contact={contact}
+          categoryLabel={t.category(contact.category)}
+          replyCountLabel={t.replyCount}
+          locale={locale}
+          onOpen={setSelectedId}
+        />)}
+        {!list.isError && selectedId ? <ContactDialog
+          title={t.title}
+          savedName={!detail.isLoading && !detail.isError && detail.data ? common.savedName(detail.data.name) : undefined}
+          closeLabel={t.close}
+          viewKey={selectedId}
+          fallbackFocusRef={filterRef}
+          onClose={() => setSelectedId(null)}
+        >
+          {detail.isLoading ? <UserStatusMessage variant="warning">{t.detailLoading}</UserStatusMessage> : null}
+          {detail.error ? <UserStatusMessage variant="error">{detail.error.message}</UserStatusMessage> : null}
+          {!detail.isError && detail.data ? <ContactDetail contact={detail.data} categoryLabel={t.category(detail.data.category)} locale={locale} historyTitle={common.previousReplies} emptyHistory={t.noReplies} /> : null}
+        </ContactDialog> : null}
       </div>
     </UserSettingsPanel>
   );

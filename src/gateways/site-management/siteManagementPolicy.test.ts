@@ -1,10 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { canAccessSiteManagement, canManageSiteManagementPrincipalGroups, canReplyToSiteManagementContacts, canViewSiteManagementContacts } from "./siteManagementPolicy";
+import { canAccessSiteManagement, canManageSiteManagementPrincipalGroups, canReplyToSiteManagementContacts, canViewOwnSiteManagementContacts, canViewSiteManagementContacts } from "./siteManagementPolicy";
 
 const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const, language: "ja", identityIdentifier: "actor", identityName: "admin", email: "a@example.test", accountIdentifier: "account", account: { status: "active" }, siteManagementPrincipalIdentifier: "principal" };
 const statement: { effect: string; actions: string[]; resourceTypes: string[]; condition: string | null } = { effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null };
 const policy = (statements = [statement]) => ({ policyIdentifier: "policy", name: "Administrator", statements });
 describe("SiteManagement authorization", () => {
+  it("evaluates own_contact independently of unrestricted viewing with applicable deny first", () => {
+    const own = { ...statement, actions: ["contact:view"], resourceTypes: ["contact"], condition: "own_contact" };
+    const unrestricted = { ...own, condition: null };
+    const actor = { ...identity, siteManagementPolicies: [policy([own])] };
+    expect(canViewOwnSiteManagementContacts(actor)).toBe(true);
+    expect(canViewSiteManagementContacts(actor)).toBe(false);
+    expect(canViewOwnSiteManagementContacts({ ...actor, siteManagementPolicies: [policy([unrestricted])] })).toBe(true);
+    for (const deny of [{ ...own, effect: "deny" }, { ...unrestricted, effect: "deny" }]) {
+      expect(canViewOwnSiteManagementContacts({ ...actor, siteManagementPolicies: [policy([own, deny])] })).toBe(false);
+    }
+    expect(canViewOwnSiteManagementContacts({ ...actor, siteManagementPolicies: [policy([{ ...own, condition: "unknown" }])] })).toBe(false);
+    expect(canViewOwnSiteManagementContacts({ ...actor, siteManagementPolicies: [policy([{ ...own, actions: ["*"] }])] })).toBe(false);
+    expect(canViewOwnSiteManagementContacts(null)).toBe(false);
+    for (const status of ["pending", "suspended", "unknown"]) expect(canViewOwnSiteManagementContacts({ ...actor, account: { status } })).toBe(false);
+    expect(canViewOwnSiteManagementContacts({ ...actor, accountIdentifier: null })).toBe(false);
+    expect(canViewOwnSiteManagementContacts({ ...actor, siteManagementPrincipalIdentifier: null })).toBe(false);
+  });
   it.each([
     ["contact:view", canViewSiteManagementContacts],
     ["contact:reply", canReplyToSiteManagementContacts],

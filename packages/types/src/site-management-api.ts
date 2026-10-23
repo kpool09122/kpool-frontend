@@ -51,7 +51,10 @@ const ContactReplyDetail = z
   .object({
     replyIdentifier: KPool_Common_Uuid.uuid(),
     content: z.string(),
-    sentAt: KPool_Common_Timestamp,
+    sentAt: KPool_Common_Timestamp.nullable(),
+    // Optional only for compatibility with responses predating conversation entries.
+    replyType: z.enum(["operator", "submitter"]).optional(),
+    createdAt: KPool_Common_Timestamp.optional(),
   })
   .passthrough();
 const ContactDetail = z
@@ -65,6 +68,16 @@ const ContactDetail = z
     replies: z.array(ContactReplyDetail),
   })
   .passthrough();
+// OperatorContactReplyDetail in the backend TypeSpec/OpenAPI. Author fields are
+// null when unavailable; optional here for compatibility with older API responses.
+const OperatorContactReplyDetail = ContactReplyDetail.extend({
+  principalIdentifier: KPool_Common_Uuid.uuid().nullish(),
+  // Current Identity.identity_name of the stored Principal, not a name snapshot.
+  name: z.string().nullish(),
+});
+const OperatorContactDetail = ContactDetail.extend({
+  replies: z.array(OperatorContactReplyDetail),
+});
 const ContactCategory = z.union([
   z.literal(1),
   z.literal(2),
@@ -261,6 +274,8 @@ export const schemas = {
   MyContactSummary,
   ContactReplyDetail,
   ContactDetail,
+  OperatorContactReplyDetail,
+  OperatorContactDetail,
   ContactCategory,
   SubmitContactRequestBody,
   ContactSummary,

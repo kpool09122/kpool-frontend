@@ -16,7 +16,10 @@ const MyContactSummary = z.object({
 const ContactReplyDetail = z.object({
   replyIdentifier: uuid,
   content: z.string(),
-  sentAt: timestamp,
+  sentAt: timestamp.nullable(),
+  // Optional only for compatibility with responses predating conversation entries.
+  replyType: z.enum(["operator", "submitter"]).optional(),
+  createdAt: timestamp.optional(),
 }).passthrough();
 
 const ContactDetail = z.object({

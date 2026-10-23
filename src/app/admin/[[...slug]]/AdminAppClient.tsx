@@ -2,8 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import { SiteManagementAnnouncementsClient } from "../site-management/announcements/SiteManagementAnnouncementsClient";
-import { canViewSiteManagementContacts } from "@/gateways/site-management/siteManagementPolicy";
-import { useAdmin } from "../AdminProvider";
 import { SiteManagementPrincipalGroupsClient } from "../site-management/principal-groups/SiteManagementPrincipalGroupsClient";
 import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
 import { SiteManagementContactsClient } from "../site-management/contacts/SiteManagementContactsClient";
@@ -19,7 +17,6 @@ import { AccountPrincipalGroupsClient } from "../account/principal-groups/Accoun
 import { AccountNotificationsClient } from "../account/notification-settings/AccountNotificationsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
-import { SiteManagementContactsClient as MySiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
 import { AdminRouteProvider } from "../AdminRouteProvider";
 import type { AdminRouteData } from "../adminTypes";
 import { UserLanguageClient } from "../user/language/UserLanguageClient";
@@ -83,12 +80,10 @@ type AdminClientPage = "accountAffiliations"
   | "wikiUntranslated";
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
-  if (pathname?.startsWith("/admin/site-management")) {
-    if (pathname.endsWith("/announcements")) return "siteManagementAnnouncements";
-    return pathname.endsWith("/principal-groups")
-      ? "siteManagementPrincipalGroups"
-      : "siteManagementContacts";
-  }
+  if (pathname === "/admin/site-management/announcements") return "siteManagementAnnouncements";
+  if (pathname === "/admin/site-management" || pathname === "/admin/site-management/") return "siteManagementContacts";
+  if (pathname === "/admin/site-management/contacts" || pathname === "/admin/site-management/contacts/manage" || pathname === "/admin/site-management/contacts/unanswered") return "siteManagementContacts";
+  if (pathname?.startsWith("/admin/site-management/")) return "siteManagementPrincipalGroups";
   if (pathname?.startsWith("/admin/account")) {
     if (pathname.endsWith("/notification-settings")) return "accountNotifications";
     if (pathname.endsWith("/documents")) {
@@ -184,14 +179,10 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
-  const { currentIdentity } = useAdmin();
-
   if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;
   if (page === "siteManagementContacts") {
-    if (!canViewSiteManagementContacts(currentIdentity)) return <MySiteManagementContactsClient />;
-
     return (
-      <SiteManagementPageClient activeTab="contacts">
+      <SiteManagementPageClient>
         <SiteManagementContactsClient />
       </SiteManagementPageClient>
     );

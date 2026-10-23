@@ -23,6 +23,9 @@ export const canUseAnnouncements = (identity: AuthenticatedIdentitySummary | nul
 export const canViewSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
   hasPermission(identity, "contact:view", "contact");
 
+export const canViewOwnSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
+  hasPermission(identity, "contact:view", "contact", true);
+
 export const canReplyToSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
   hasPermission(identity, "contact:reply", "contact");
 
