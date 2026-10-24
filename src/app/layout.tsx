@@ -22,6 +22,7 @@ import { ThemeInitializer } from "./ThemeInitializer";
 import { themeBootstrapScript } from "./themeMode";
 import { AnalyticsProvider } from "@/components/Analytics/AnalyticsProvider";
 import { resolveGtmContainerId } from "@/gateways/analytics/wikiAnalytics";
+import { YouTubePlaybackProvider } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
 
 export const metadata: Metadata = {
   title: siteTitle,
@@ -57,20 +58,22 @@ export default async function RootLayout({
       </head>
       <body className="flex min-h-dvh flex-col antialiased">
         <I18nProvider initialLocale={locale}>
-          <QueryProvider>
-            <AnalyticsProvider containerId={resolveGtmContainerId(
-              process.env.NEXT_PUBLIC_ANALYTICS_ENABLED,
-              process.env.NEXT_PUBLIC_GTM_ID,
-            )}>
-              <ThemeInitializer />
-              <Header
-                initialIdentity={authenticatedIdentity}
-                initialIsAuthenticated={authenticatedIdentity !== null}
-              />
-              <div className="flex flex-1 flex-col">{children}</div>
-              <Footer />
-            </AnalyticsProvider>
-          </QueryProvider>
+          <YouTubePlaybackProvider>
+            <QueryProvider>
+              <AnalyticsProvider containerId={resolveGtmContainerId(
+                process.env.NEXT_PUBLIC_ANALYTICS_ENABLED,
+                process.env.NEXT_PUBLIC_GTM_ID,
+              )}>
+                <ThemeInitializer />
+                <Header
+                  initialIdentity={authenticatedIdentity}
+                  initialIsAuthenticated={authenticatedIdentity !== null}
+                />
+                <div className="flex flex-1 flex-col">{children}</div>
+                <Footer />
+              </AnalyticsProvider>
+            </QueryProvider>
+          </YouTubePlaybackProvider>
         </I18nProvider>
       </body>
     </html>

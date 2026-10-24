@@ -71,6 +71,59 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("WikiVideoPanel", () => {
+  it("starts displayed videos in order, advances on end and stops after the last", async () => {
+    const players: {
+      options: {
+        videoId: string;
+        events: {
+          onReady: () => void;
+          onStateChange: (event: { data: number }) => void;
+        };
+      };
+      destroy: ReturnType<typeof vi.fn>;
+      playVideo: ReturnType<typeof vi.fn>;
+    }[] = [];
+    vi.stubGlobal("YT", {
+      Player: vi.fn(function (_node, options) {
+        const player = { options, destroy: vi.fn(), playVideo: vi.fn() };
+        players.push(player);
+        return player;
+      }),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({
+            videos: [
+              video,
+              {
+                ...video,
+                videoLinkIdentifier: "00000000-0000-4000-8000-000000000002",
+                url: "https://youtu.be/lmnopqrstuv",
+                title: "Second video",
+              },
+            ],
+          }),
+        ),
+    );
+    render(wrap(client()));
+    fireEvent.click(await screen.findByRole("button", { name: "Play all" }));
+    await waitFor(() => expect(players).toHaveLength(1));
+    expect(players[0].options.videoId).toBe("abcdefghijk");
+    act(() => players[0].options.events.onReady());
+    expect(players[0].playVideo).toHaveBeenCalledOnce();
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    expect(players[0].destroy).toHaveBeenCalledOnce();
+    expect(players[1].options.videoId).toBe("lmnopqrstuv");
+    act(() => players[1].options.events.onStateChange({ data: 0 }));
+    expect(players[1].destroy).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole("button", { name: "Stop playback" }),
+    ).not.toBeInTheDocument();
+  });
   it("ignores a late access grant after logout", async () => {
     useAuthStore.setState({ status: "authenticated" });
     let finish!: (response: Response) => void;
@@ -548,10 +601,8 @@ describe("WikiVideoPanel", () => {
     fireEvent.click(
       screen.getByRole("button", { name: `Play: ${video.title}` }),
     );
-    expect(screen.getByTitle(`YouTube embed: ${video.title}`)).toHaveAttribute(
-      "src",
-      "https://www.youtube-nocookie.com/embed/abcdefghijk",
-    );
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(video.title);
+    expect(screen.getByRole("button", { name: "Continue in mini player" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open on YouTube" }),
     ).toHaveAttribute("href", "https://www.youtube.com/watch?v=abcdefghijk");

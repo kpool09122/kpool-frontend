@@ -1,6 +1,8 @@
 "use client";
 
-import type { WikiEmbedBlock } from "@kpool/wiki";
+import { getYouTubeVideoId, type WikiEmbedBlock } from "@kpool/wiki";
+import { useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
+import { SharedYouTubeEmbed } from "@/components/YouTubePlayback/SharedYouTubeEmbed";
 
 const frameSurfaceStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
@@ -105,11 +107,15 @@ function getEmbedFrame(block: WikiEmbedBlock): {
 }
 
 export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
+  const playback = useYouTubePlayback();
   const frame = getEmbedFrame(block);
+  const videoId = block.provider === "youtube" ? getYouTubeVideoId(getYoutubeVideoId(block.embedId)) : null;
 
   return (
     <figure className="overflow-hidden rounded-2xl border border-stroke-subtle" style={frameSurfaceStyle}>
-      <div className="aspect-video w-full bg-surface-base">
+      {playback && videoId ? (
+        <SharedYouTubeEmbed videoId={videoId} title={block.caption || "YouTube"} identifier={block.blockIdentifier} />
+      ) : <div className="aspect-video w-full bg-surface-base">
         <iframe
           allow={frame.allow}
           allowFullScreen
@@ -119,7 +125,7 @@ export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
           src={frame.src}
           title={frame.title}
         />
-      </div>
+      </div>}
       {block.caption ? (
         <figcaption className="border-t border-stroke-subtle px-4 py-3 text-base text-text-muted">
           {block.caption}

@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { installYouTubePlayerMock } from "./youtube-player";
 
 const e2eBaseUrl = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
 
@@ -321,6 +322,7 @@ test("wiki edit page supports inline edits and nested content controls", async (
 test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async ({
   page,
 }) => {
+  await installYouTubePlayerMock(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/gr-twice/edit?resourceType=group");
 
@@ -334,10 +336,14 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   await expect(page.locator('a[href="/ja/wiki/tl-nayeon-twice"]')).toHaveCount(0);
   await expect(page.getByLabel("Footnote: 오디션 프로그램 SIXTEEN을 통해 결성되었다.")).toBeVisible();
   await expect(page.getByText("Included from 틀:TWICE/음반")).toBeVisible();
-  await expect(page.getByTitle("YouTube embed: TWICE \"CHEER UP\" M/V")).toHaveAttribute(
+  const youtube = page.locator('iframe[src*="youtube-nocookie.com"]');
+  await expect(youtube).toHaveCount(0);
+  await page.getByRole("button", { name: 'Play: TWICE "CHEER UP" M/V', exact: true }).click();
+  await expect(youtube).toHaveAttribute(
     "src",
     "https://www.youtube-nocookie.com/embed/c7rCyll5AeY",
   );
+  await expect(youtube).toHaveAttribute("title", 'TWICE "CHEER UP" M/V');
   await expect(page.locator('a[href="/ja/wiki/tl-momo-twice"]')).toHaveCount(0);
   await expect(page.getByText("No related profiles.")).toBeVisible();
 });
@@ -555,6 +561,7 @@ test("identifier-only profile cards do not open mock member wiki pages", async (
 test("wiki edit page converts supported media includes into embeds", async ({
   page,
 }) => {
+  await installYouTubePlayerMock(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
 
@@ -568,10 +575,14 @@ test("wiki edit page converts supported media includes into embeds", async ({
   );
   await page.getByRole("button", { name: "gui" }).click();
 
-  await expect(page.getByTitle("YouTube embed")).toHaveAttribute(
+  const youtube = page.locator('iframe[src*="youtube-nocookie.com"]');
+  await expect(youtube).toHaveCount(0);
+  await page.getByRole("button", { name: "Play: YouTube", exact: true }).click();
+  await expect(youtube).toHaveAttribute(
     "src",
     "https://www.youtube-nocookie.com/embed/jNQXAC9IVRw",
   );
+  await expect(youtube).toHaveAttribute("title", "YouTube");
 });
 
 test("editor UI language changes preserve basic input and local validation messages", async ({ page }) => {
