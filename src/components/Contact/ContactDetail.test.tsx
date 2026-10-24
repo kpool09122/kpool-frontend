@@ -31,7 +31,7 @@ describe("ContactDetail presentation without API, role or providers", () => {
       { ...reply, replyIdentifier: "failed", replyType: "submitter" as const, createdAt, sentAt: null },
     ];
     render(<ContactDetail contact={{ ...contact, replies }} {...labels} />);
-    const format = (value: string) => new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+    const format = (value: string) => new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(value));
     expect(screen.getAllByRole("article").map((article) => article.lastElementChild?.textContent)).toEqual([
       format(reply.sentAt), format(createdAt), format(createdAt),
     ]);
@@ -41,7 +41,7 @@ describe("ContactDetail presentation without API, role or providers", () => {
     const article = screen.getByRole("article");
     expect(Array.from(article.querySelectorAll("p")).map((p) => p.textContent)).toEqual([
       reply.content,
-      new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(reply.sentAt)),
+      new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(reply.sentAt)),
     ]);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();

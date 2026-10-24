@@ -34,7 +34,7 @@ describe("MyContactsClient", () => {
     const articles = screen.getAllByRole("article");
     expect(articles[0].parentElement).toHaveClass("border-brand-primary");
     expect(articles[1].parentElement).toHaveClass("border-brand-secondary");
-    const format = (value: string) => new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+    const format = (value: string) => new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(value));
     expect(articles[0]).toHaveTextContent(format(reply.sentAt));
     expect(articles[1]).toHaveTextContent(format(createdAt));
     expect(screen.queryByText(/秘密の/)).not.toBeInTheDocument();
@@ -65,7 +65,7 @@ describe("MyContactsClient", () => {
     vi.stubGlobal("fetch", fetchMock);
     mount();
     await screen.findByText(contacts[0].name);
-    const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(contact.createdAt));
+    const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(contact.createdAt));
     const cards = contacts.map((item) => {
       const card = screen.getByText(item.name).closest("button")!;
       const topRow = card.firstElementChild!;

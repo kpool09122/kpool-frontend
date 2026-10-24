@@ -67,7 +67,7 @@ describe("ContactCard without API or providers", () => {
       }
       expect(card).toHaveClass("w-full", "min-w-0", "p-4");
       expect(card.className).not.toMatch(/absolute|overflow-visible/);
-      const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(contact.createdAt));
+      const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(contact.createdAt));
       expect(metadata).toHaveClass("flex", "flex-wrap", "min-w-0");
       expect(Array.from(metadata.children).map((child) => child.textContent)).toEqual([labels.category(contact.category), contact.name, date]);
       expect(within(card).getByText(date)).toHaveClass("ml-auto", "text-right", "min-w-0", "max-w-full", "[overflow-wrap:anywhere]");

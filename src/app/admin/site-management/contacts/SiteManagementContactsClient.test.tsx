@@ -47,7 +47,7 @@ const detailUrl = `/api/site-management/contacts/${identifier}`;
 const replyUrl = `${detailUrl}/replies`;
 const page = (contacts = [contact]) => ({ contacts, current_page: 1, last_page: 1, total: contacts.length, per_page: 50 });
 const cardName = (name = contact.name, category = contact.category, locale = mocks.locale, replyCount = 0) =>
-  `${dictionaries[locale].admin.siteManagementContacts.category(category)} ${name} ${new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(contact.createdAt))}${replyCount > 0 ? ` ${dictionaries[locale].admin.myContacts.replyCount(replyCount)}` : ""} ${contact.content}`;
+  `${dictionaries[locale].admin.siteManagementContacts.category(category)} ${name} ${new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(contact.createdAt))}${replyCount > 0 ? ` ${dictionaries[locale].admin.myContacts.replyCount(replyCount)}` : ""} ${contact.content}`;
 
 function renderContacts(staleTime = 0, strict = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime }, mutations: { retry: false } } });
@@ -95,7 +95,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     expect(articles[1].parentElement).toHaveClass("border-brand-secondary");
     expect(articles[0]).toHaveTextContent(text.unknownReplyAuthor);
     expect(articles[1]).toHaveTextContent(text.replyAuthor("閲覧中の管理者"));
-    const format = (value: string) => new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+    const format = (value: string) => new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(value));
     expect(articles[0]).toHaveTextContent(format(sentAt));
     expect(articles[1]).toHaveTextContent(format(createdAt));
     client.clear();
@@ -261,7 +261,7 @@ describe("site-management contacts anonymous inquiry path", () => {
       expect(article.firstElementChild).toHaveClass("whitespace-pre-wrap", "[overflow-wrap:anywhere]");
       expect(article.firstElementChild).toHaveTextContent(replies[index].content);
       expect(within(article).getByText(text.replyAuthor(replies[index].name))).toBeInTheDocument();
-      expect(within(article).getByText(new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(replies[index].sentAt)))).toBeInTheDocument();
+      expect(within(article).getByText(new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(replies[index].sentAt)))).toBeInTheDocument();
     });
     expect(body.closest("section")?.nextElementSibling).toContainElement(within(dialog).getByRole("heading", { name: text.previousReplies }));
     client.clear();
@@ -311,7 +311,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     articles.forEach((article, index) => {
       const name = authors[index].name;
       expect(within(article).getByText(name?.trim() ? `${prefix}${name}` : unknown)).toBeInTheDocument();
-      expect(within(article).getByText(new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(replies[index].sentAt)))).toBeInTheDocument();
+      expect(within(article).getByText(new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(replies[index].sentAt)))).toBeInTheDocument();
       expect(article).toHaveTextContent(replies[index].content);
       expect(article).not.toHaveTextContent(contact.name);
       expect(article).not.toHaveTextContent("閲覧中の管理者");
@@ -351,7 +351,7 @@ describe("site-management contacts anonymous inquiry path", () => {
         expect(metadata.firstElementChild).toHaveClass("flex", "flex-wrap", "items-center", "min-w-0");
         expect(Array.from(metadata.firstElementChild!.children).map((child) => child.textContent)).toEqual([
           text.category(contact.category), contact.name,
-          new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(contact.createdAt)),
+          new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(contact.createdAt)),
         ]);
         expect(preview.textContent).toBe(expected);
         expect(preview).toHaveClass("min-w-0", "whitespace-pre-wrap", "[overflow-wrap:anywhere]");
@@ -388,7 +388,7 @@ describe("site-management contacts anonymous inquiry path", () => {
       ? { ...detail, name, principalIdentifier: "019a1234-5678-7000-8000-333333333333" }
       : page([{ ...contact, name }]))));
     const { client } = renderContacts(Infinity);
-    const date = new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(contact.createdAt));
+    const date = new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(contact.createdAt));
     const cardName = `${text.category(contact.category)} ${name} ${date} ${contact.content}`;
     const assertCard = (card: HTMLElement) => {
       expect(card.tagName).toBe("BUTTON");
@@ -467,7 +467,7 @@ describe("site-management contacts anonymous inquiry path", () => {
         const selected = contacts.find((item) => path === `/api/site-management/contacts/${item.contactIdentifier}`);
         return Response.json(selected ? { ...detail, ...selected, content: detail.content, principalIdentifier: "019a1234-5678-7000-8000-333333333333" } : page(contacts));
       }));
-      const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(contact.createdAt));
+      const date = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(contact.createdAt));
       const assertBadge = (scope: HTMLElement, index: number) => {
         const label = localized.category(categories[index]);
         const badge = within(scope).getByText(label, { exact: true });
@@ -525,7 +525,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     expect(header.firstElementChild).toBe(heading.parentElement);
     expect(header.lastElementChild).toContainElement(within(dialog).getByRole("button", { name: text.close }));
     const body = within(dialog).getByText(detail.content);
-    const metadata = `${text.category(detail.category)} · ${new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }).format(new Date(detail.createdAt))}`;
+    const metadata = `${text.category(detail.category)} · ${new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Tokyo" }).format(new Date(detail.createdAt))}`;
     expect(body.previousElementSibling).toHaveTextContent(metadata);
     expect(body.previousElementSibling).toHaveClass("font-semibold", "text-text-strong");
     expect(body.parentElement).not.toContainElement(senderName);
