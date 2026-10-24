@@ -927,6 +927,13 @@ describe("site-management contacts anonymous inquiry path", () => {
       fireEvent.click(within(dialog).getByRole("button", { name }));
     }
     fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    fireEvent(dialog, new Event("cancel", { cancelable: false }));
+    // jsdom has no native dialog.close(): simulate its state change and queued event.
+    dialog.removeAttribute("open");
+    fireEvent(dialog, new Event("close"));
+    expect(dialog).toHaveAttribute("open");
+    expect(document.body.style.position).toBe("fixed");
+    expect(within(dialog).getByRole("button", { name: text.replying })).toBeDisabled();
     expect(within(dialog).getByRole("textbox")).toHaveValue(sentReply.content);
     expect(screen.getByRole("dialog")).toBe(dialog);
     resolve(new Response(null, { status: 204 }));
