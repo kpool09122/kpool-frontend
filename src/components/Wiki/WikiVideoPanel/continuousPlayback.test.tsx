@@ -45,6 +45,8 @@ const players: {
   options: QueuePlayerOptions;
   playVideo: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
+  getVideoUrl: ReturnType<typeof vi.fn>;
+  getPlayerState: ReturnType<typeof vi.fn>;
 }[] = [];
 const key = ["public-wiki-videos", "ja", "group", "gr-test", {}];
 function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
@@ -66,6 +68,18 @@ const start = async () => {
   fireEvent.click(screen.getByRole("button", { name: "Play all" }));
   await waitFor(() => expect(players.length).toBeGreaterThan(0));
 };
+function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
+  expect(players.at(-1)?.options.videoId).toBe(
+    new URL(video.url).pathname.slice(1),
+  );
+  expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
+    `Now playing: ${video.title} (${position}/${total})`,
+  );
+  expect(
+    screen.getByRole("heading", { name: video.title }).closest("li"),
+  ).toHaveAttribute("aria-current", "true");
+  expect(document.querySelectorAll('li[aria-current="true"]')).toHaveLength(1);
+}
 beforeEach(() => {
   players.length = 0;
   useAuthStore.setState({ status: "guest", identity: null });
@@ -74,7 +88,13 @@ beforeEach(() => {
       _element: HTMLElement,
       options: QueuePlayerOptions,
     ) {
-      const player = { options, playVideo: vi.fn(), destroy: vi.fn() };
+      const player = {
+        options,
+        playVideo: vi.fn(),
+        destroy: vi.fn(),
+        getVideoUrl: vi.fn(() => `https://www.youtube.com/watch?v=${options.videoId}`),
+        getPlayerState: vi.fn(() => 1),
+      };
       players.push(player);
       return player;
     }),
@@ -82,6 +102,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   document
@@ -90,6 +111,198 @@ afterEach(() => {
 });
 
 describe("continuous playback", () => {
+  it.each([false, true])("updates the title and queue position without an ended event (random: %s)", async (random) => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    mount();
+    if (random) fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
+    await start();
+    const target = random ? first : second;
+    players[0].getVideoUrl.mockReturnValue(target.url);
+    act(() => players[0].options.events.onStateChange({ data: 1 }));
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
+      `Now playing: ${target.title} (2/2)`,
+    );
+    expect(players[0].destroy).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: target.title }).closest("li"))
+      .toHaveAttribute("aria-current", "true");
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+    expect(players).toHaveLength(1);
+  });
+  it.each(["ended", "changed video"])(
+    "reconciles player state after seeking near the end without a notification: %s",
+    async (scenario) => {
+      vi.useFakeTimers();
+      mount();
+      fireEvent.click(screen.getByRole("button", { name: "Play all" }));
+      await act(async () => {});
+      expect(players).toHaveLength(1);
+      act(() => players[0].options.events.onReady());
+      if (scenario === "ended") players[0].getPlayerState.mockReturnValue(0);
+      else players[0].getVideoUrl.mockReturnValue(second.url);
+      await act(async () => vi.advanceTimersByTimeAsync(501));
+      expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
+        "Now playing: Second video (2/2)",
+      );
+      if (scenario === "ended") {
+        expect(players).toHaveLength(2);
+        expect(players[0].destroy).toHaveBeenCalledOnce();
+        // A delayed ended notification must not advance the new player again.
+        act(() => players[0].options.events.onStateChange({ data: 0 }));
+        expect(players).toHaveLength(2);
+      } else {
+        expect(players).toHaveLength(1);
+        expect(players[0].destroy).not.toHaveBeenCalled();
+      }
+      fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+      await act(async () => vi.advanceTimersByTimeAsync(2_000));
+      expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+    },
+  );
+  it("clears the previous title if the player switches outside the queue", async () => {
+    mount();
+    await start();
+    players[0].getVideoUrl.mockReturnValue("https://youtu.be/12345678901");
+    act(() => players[0].options.events.onStateChange({ data: 1 }));
+    expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+    expect(screen.getByText(/outside this list/)).toBeInTheDocument();
+    expect(players[0].destroy).toHaveBeenCalledOnce();
+  });
+  it("toggles playback options with pressed state and allows changes during playback", async () => {
+    mount();
+    const loop = screen.getByRole("button", { name: "Loop playback" });
+    const random = screen.getByRole("button", { name: "Random playback" });
+    expect(loop).toHaveAttribute("aria-pressed", "false");
+    expect(random).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(loop);
+    fireEvent.click(random);
+    expect(loop).toHaveAttribute("aria-pressed", "true");
+    expect(random).toHaveAttribute("aria-pressed", "true");
+    await start();
+    fireEvent.click(loop);
+    fireEvent.click(random);
+    expect(loop).toHaveAttribute("aria-pressed", "false");
+    expect(random).toHaveAttribute("aria-pressed", "false");
+    expect(players).toHaveLength(1);
+    expect(players[0].destroy).not.toHaveBeenCalled();
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    act(() => players[1].options.events.onStateChange({ data: 0 }));
+    expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+  });
+  it("shuffles only upcoming videos when enabled during playback", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const third = { ...invalid, url: "https://youtu.be/12345678901" };
+    mount([first, second, third]);
+    await start();
+    expectCurrentVideo(first, 1, 3);
+    const random = screen.getByRole("button", { name: "Random playback" });
+    fireEvent.click(random);
+    expect(players[0].destroy).not.toHaveBeenCalled();
+    expectCurrentVideo(first, 1, 3);
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    expect(players[1].options.videoId).toBe("12345678901");
+    expectCurrentVideo(third, 2, 3);
+    fireEvent.click(random);
+    expectCurrentVideo(third, 2, 3);
+    act(() => players[1].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(3));
+    expect(players[2].options.videoId).toBe("lmnopqrstuv");
+    expectCurrentVideo(second, 3, 3);
+  });
+  it("loops the list and stops when requested", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    await start();
+    for (let i = 0; i < 2; i++) {
+      act(() => players[i].options.events.onStateChange({ data: 0 }));
+      await waitFor(() => expect(players).toHaveLength(i + 2));
+    }
+    expect(players.map((player) => player.options.videoId)).toEqual([
+      "abcdefghijk", "lmnopqrstuv", "abcdefghijk",
+    ]);
+    expect(screen.getByText("Now playing: First video (1/2)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    act(() => players[2].options.events.onStateChange({ data: 0 }));
+    expect(players).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "Loop playback" })).toBeEnabled();
+  });
+  it("recreates the player to loop a single video", async () => {
+    mount([first]);
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    await start();
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    expect(players[0].destroy).toHaveBeenCalledOnce();
+    expect(players[1].options.videoId).toBe("abcdefghijk");
+  });
+  it.each([false, true])("shuffles without repeats within a pass (loop: %s)", async (loop) => {
+    const third = { ...invalid, url: "https://youtu.be/12345678901" };
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    mount([first, second, third]);
+    fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
+    if (loop) fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    await start();
+    expect(screen.getByRole("button", { name: "Random playback" })).toBeEnabled();
+    expectCurrentVideo(second, 1, 3);
+    for (let i = 0; i < 2; i++) {
+      act(() => players[i].options.events.onStateChange({ data: 0 }));
+      await waitFor(() => expect(players).toHaveLength(i + 2));
+      expectCurrentVideo([third, first][i], i + 2, 3);
+    }
+    expect(players.map((player) => player.options.videoId)).toEqual([
+      "lmnopqrstuv", "12345678901", "abcdefghijk",
+    ]);
+    act(() => players[2].options.events.onStateChange({ data: 0 }));
+    if (loop) {
+      await waitFor(() => expect(players).toHaveLength(4));
+      expect(players[3].options.videoId).not.toBe(players[2].options.videoId);
+      expectCurrentVideo(second, 1, 3);
+    } else {
+      expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+      expect(players).toHaveLength(3);
+    }
+  });
+  it("excludes failed videos from later loops and stops when all have failed", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    await start();
+    act(() => players[0].options.events.onError());
+    await waitFor(() => expect(players).toHaveLength(2));
+    act(() => players[1].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(3));
+    expect(players[2].options.videoId).toBe("lmnopqrstuv");
+    expect(screen.getByText("Now playing: Second video (1/1)")).toBeInTheDocument();
+    act(() => players[2].options.events.onError());
+    expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+    expect(players).toHaveLength(3);
+  });
+  it("avoids repeating the last video when the next shuffled pass starts with it", async () => {
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.99).mockReturnValue(0);
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
+    await start();
+    for (let i = 0; i < 2; i++) {
+      act(() => players[i].options.events.onStateChange({ data: 0 }));
+      await waitFor(() => expect(players).toHaveLength(i + 2));
+    }
+    expect(players.map((player) => player.options.videoId)).toEqual([
+      "abcdefghijk", "lmnopqrstuv", "abcdefghijk",
+    ]);
+  });
+  it("stops after a full pass of errors even with loop and random enabled", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
+    await start();
+    act(() => players[0].options.events.onError());
+    await waitFor(() => expect(players).toHaveLength(2));
+    act(() => players[1].options.events.onError());
+    expect(screen.queryByRole("button", { name: "Stop playback" })).not.toBeInTheDocument();
+    expect(players).toHaveLength(2);
+  });
   it("excludes invalid URLs, preserves display order and marks the current card", async () => {
     mount([second, invalid, first]);
     await start();
@@ -268,12 +481,14 @@ describe("continuous playback", () => {
     ).toBeInTheDocument();
   });
   it.each([
-    ["ja", "連続再生", "再生を停止", "再生中"],
-    ["ko", "연속 재생", "재생 중지", "재생 중"],
+    ["ja", "連続再生", "再生を停止", "再生中", "ループ再生", "ランダム再生"],
+    ["ko", "연속 재생", "재생 중지", "재생 중", "반복 재생", "무작위 재생"],
   ] as const)(
     "localizes playback in %s",
-    async (locale, startLabel, stopLabel, currentLabel) => {
+    async (locale, startLabel, stopLabel, currentLabel, loopLabel, randomLabel) => {
       mount([first], locale);
+      expect(screen.getByRole("button", { name: loopLabel })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: randomLabel })).toBeInTheDocument();
       fireEvent.click(screen.getByRole("button", { name: startLabel }));
       await screen.findByRole("region", { name: currentLabel });
       expect(

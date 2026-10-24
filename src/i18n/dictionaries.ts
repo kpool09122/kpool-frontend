@@ -1017,6 +1017,9 @@ const ja = {
     videos: {
       continuous: {
         start: "連続再生",
+        loop: "ループ再生",
+        random: "ランダム再生",
+        outsideQueue: "一覧外の動画に切り替わったため、連続再生を終了しました。",
         stop: "再生を停止",
         nowPlaying: "再生中",
         skipped: "この動画を再生できないためスキップしました",
@@ -2442,6 +2445,9 @@ const en: typeof ja = {
     videos: {
       continuous: {
         start: "Play all",
+        loop: "Loop playback",
+        random: "Random playback",
+        outsideQueue: "Playback stopped because the player switched to a video outside this list.",
         stop: "Stop playback",
         nowPlaying: "Now playing",
         skipped: "Skipped an unavailable video",
@@ -3864,6 +3870,9 @@ const ko: typeof ja = {
     videos: {
       continuous: {
         start: "연속 재생",
+        loop: "반복 재생",
+        random: "무작위 재생",
+        outsideQueue: "목록에 없는 동영상으로 전환되어 연속 재생을 종료했습니다.",
         stop: "재생 중지",
         nowPlaying: "재생 중",
         skipped: "재생할 수 없는 동영상을 건너뛰었습니다",

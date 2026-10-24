@@ -49,7 +49,13 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
       };
     };
     const state = {
-      players: [] as { options: Options; destroyed: boolean; plays: number }[],
+      players: [] as {
+        options: Options;
+        destroyed: boolean;
+        plays: number;
+        videoId: string;
+        playerState: number;
+      }[],
     };
     Object.assign(window, {
       queueTest: state,
@@ -60,10 +66,15 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
           frame.style.cssText = "width:100%;height:100%;border:0";
           frame.srcdoc = "<p>YouTube API test double</p>";
           element.replaceWith(frame);
-          const item = { options, destroyed: false, plays: 0 };
+          const item = {
+            options, destroyed: false, plays: 0,
+            videoId: options.videoId, playerState: 1,
+          };
           state.players.push(item);
           setTimeout(() => options.events.onReady(), 0);
           return {
+            getVideoUrl: () => `https://www.youtube.com/watch?v=${item.videoId}`,
+            getPlayerState: () => item.playerState,
             playVideo: () => {
               item.plays += 1;
             },
@@ -95,6 +106,33 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
     }),
   );
   await page.goto("/wiki/ja/gr-aurora-echo?tab=video");
+  const random = page.getByRole("button", { name: "Random playback" });
+  const loop = page.getByRole("button", { name: "Loop playback" });
+  await expect(random).toHaveAttribute("aria-pressed", "false");
+  await random.focus();
+  await random.press("Space");
+  await loop.click();
+  await expect(random).toHaveAttribute("aria-pressed", "true");
+  await expect(loop).toHaveAttribute("aria-pressed", "true");
+  await loop.locator("..").screenshot({
+    path: testInfo.outputPath("playback-controls-mobile.png"),
+  });
+  const originalTheme = await page.locator("html").getAttribute("data-theme");
+  for (const theme of ["light", "dark"] as const) {
+    await page.evaluate((theme) => {
+      document.documentElement.dataset.theme = theme;
+    }, theme);
+    await loop.locator("..").screenshot({
+      path: testInfo.outputPath(`playback-controls-mobile-${theme}.png`),
+      animations: "disabled",
+    });
+  }
+  await page.evaluate((theme) => {
+    if (theme === null) delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+  }, originalTheme);
+  await random.click();
+  await loop.click();
   const start = page.getByRole("button", { name: "Play all" });
   await start.focus();
   await start.press("Enter");
@@ -124,9 +162,29 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
       if (name === "block") events.onAutoplayBlocked();
       else events.onStateChange({ data: name === "end" ? 0 : 1 });
     }, name);
-  await event("end");
+  // Reproduce seeking to the end when the ended notification is missed.
+  // The real DOM should still advance using the player's reported state.
+  await page.evaluate(() => {
+    const state = (window as unknown as {
+      queueTest: { players: { playerState: number }[] };
+    }).queueTest;
+    state.players.at(-1)!.playerState = 0;
+  });
   await expect(region).toContainText("Second video (2/2)");
   await expect(page.locator("iframe")).toHaveCount(1);
+  // A video can also change inside the same iframe without an ended event.
+  const changeVideo = async (videoId: string) => page.evaluate((videoId) => {
+    const state = (window as unknown as {
+      queueTest: { players: { videoId: string }[] };
+    }).queueTest;
+    state.players.at(-1)!.videoId = videoId;
+  }, videoId);
+  await changeVideo("abcdefghijk");
+  await expect(region).toContainText("First video (1/2)");
+  await expect(page.locator("iframe")).toHaveAttribute("title", "First video");
+  await changeVideo("lmnopqrstuv");
+  await expect(region).toContainText("Second video (2/2)");
+  await expect(page.locator("iframe")).toHaveAttribute("title", "Second video");
   await event("block");
   const resume = page.getByRole("button", { name: "Resume playback" });
   await resume.focus();

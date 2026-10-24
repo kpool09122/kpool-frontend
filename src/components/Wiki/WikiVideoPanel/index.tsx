@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
+import {
+  advancePlayback,
+  playbackOrder,
+  type PlaybackQueue,
+} from "./playbackQueue";
 import { useEffect, useRef, useState } from "react";
 import { useWikiVideoDeleteAccess } from "@/gateways/wiki/useWikiVideoDeleteAccess";
 import { WikiVideoDeleteButton } from "./WikiVideoDeleteButton";
@@ -282,10 +288,12 @@ function VideoPlaybackList({
     return videoId ? [{ video, videoId }] : [];
   });
   const [playback, setPlayback] = useState<
-    | { mode: "continuous"; index: number }
+    | PlaybackQueue
     | { mode: "individual"; identifier: string }
     | null
   >(null);
+  const [loop, setLoop] = useState(false);
+  const [random, setRandom] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const startButton = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
@@ -296,58 +304,139 @@ function VideoPlaybackList({
     }
   }, [playback]);
   const active =
-    playback?.mode === "continuous" ? queue[playback.index] : undefined;
-  const next = () =>
-    setPlayback((current) =>
-      current?.mode === "continuous" && current.index + 1 < queue.length
-        ? { mode: "continuous", index: current.index + 1 }
-        : null,
+    playback?.mode === "continuous"
+      ? queue[playback.order[playback.position]]
+      : undefined;
+  const requested =
+    playback?.mode === "continuous" ? queue[playback.playerIndex] : undefined;
+  const playbackAtVideo = (current: PlaybackQueue, videoId?: string) => {
+    if (queue[current.order[current.position]].videoId === videoId) return current;
+    const position = current.order.findIndex(
+      (index) => queue[index].videoId === videoId,
     );
+    return position >= 0 ? { ...current, position } : current;
+  };
+  const next = (failed = false, videoId?: string) => {
+    if (playback?.mode === "continuous") {
+      setPlayback(
+        advancePlayback(playbackAtVideo(playback, videoId), {
+          loop,
+          random,
+          failed,
+        }),
+      );
+    }
+  };
+  const toggleRandom = () => {
+    const enabled = !random;
+    setRandom(enabled);
+    if (playback?.mode === "continuous") {
+      const remaining = playback.order.slice(playback.position + 1);
+      setPlayback({
+        ...playback,
+        order: [
+          ...playback.order.slice(0, playback.position + 1),
+          ...playbackOrder(remaining.sort((a, b) => a - b), enabled),
+        ],
+      });
+    }
+  };
+  const toggleClassName =
+    "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary aria-pressed:after:absolute aria-pressed:after:bottom-1 aria-pressed:after:h-1 aria-pressed:after:w-1 aria-pressed:after:rounded-full aria-pressed:after:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-40";
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-5">
+        <button
+          type="button"
+          aria-label={t.random}
+          title={t.random}
+          aria-pressed={random}
+          disabled={!queue.length}
+          onClick={toggleRandom}
+          className={toggleClassName}
+        >
+          <ShuffleIcon aria-hidden="true" className="h-6 w-6" />
+        </button>
         <button
           type="button"
           ref={startButton}
+          aria-pressed={playback?.mode === "continuous"}
           disabled={!queue.length || playback?.mode === "continuous"}
-          className="rounded-lg bg-brand-primary px-4 py-2 font-semibold text-on-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:opacity-50"
+          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:aria-pressed:opacity-100"
           onClick={() => {
             setNotice(null);
-            setPlayback({ mode: "continuous", index: 0 });
+            const order = playbackOrder(
+              queue.map((_, index) => index),
+              random,
+            );
+            setPlayback({
+              mode: "continuous",
+              order,
+              position: 0,
+              playerIndex: order[0],
+              sequence: 0,
+              failed: [],
+            });
           }}
         >
+          <PlayIcon aria-hidden="true" className="h-6 w-6" />
           {t.start}
         </button>
         {playback ? (
           <button
             type="button"
-            className="rounded-lg border border-stroke-subtle px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-brand-primary"
+            aria-label={t.stop}
+            title={t.stop}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
             onClick={() => {
               restoreFocus.current = true;
               setPlayback(null);
               setNotice(null);
             }}
           >
-            {t.stop}
+            <StopIcon aria-hidden="true" className="h-5 w-5" />
           </button>
         ) : null}
+        <button
+          type="button"
+          aria-label={t.loop}
+          title={t.loop}
+          aria-pressed={loop}
+          disabled={!queue.length}
+          onClick={() => setLoop((current) => !current)}
+          className={toggleClassName}
+        >
+          <LoopIcon aria-hidden="true" className="h-6 w-6" />
+        </button>
       </div>
       {notice ? <p role="status">{notice}</p> : null}
-      {active ? (
+      {active && requested ? (
         <section aria-label={t.nowPlaying} className="space-y-3">
           <p role="status" className="break-words font-semibold">
             {t.nowPlaying}: {active.video.title} (
-            {playback?.mode === "continuous" ? playback.index + 1 : 0}/
-            {queue.length})
+            {playback?.mode === "continuous" ? playback.position + 1 : 0}/
+            {playback?.mode === "continuous"
+              ? playback.order.length
+              : queue.length})
           </p>
           <YouTubeQueuePlayer
-            key={active.video.videoLinkIdentifier}
-            videoId={active.videoId}
+            key={playback?.mode === "continuous" ? playback.sequence : 0}
+            videoId={requested.videoId}
             title={active.video.title}
-            onEnded={next}
+            onVideoChange={(videoId) => {
+              if (playback?.mode !== "continuous") return;
+              const synchronized = playbackAtVideo(playback, videoId);
+              if (synchronized.position !== playback.position) {
+                setPlayback(synchronized);
+              } else if (active.videoId !== videoId) {
+                setNotice(t.outsideQueue);
+                setPlayback(null);
+              }
+            }}
+            onEnded={(videoId) => next(false, videoId)}
             onError={() => {
               setNotice(`${t.skipped}: ${active.video.title}`);
-              next();
+              next(true);
             }}
             onUnavailable={() => {
               setNotice(t.unavailable);
