@@ -33,7 +33,7 @@ function api() {
 beforeEach(() => { mocks.pathname = "/admin/site-management/contacts/manage"; mocks.search = ""; mocks.ownOnly = false; mocks.locale = "ja"; mocks.replace.mockReset(); mocks.push.mockReset(); vi.stubGlobal("scrollTo", vi.fn()); });
 afterEach(() => { cleanup(); client?.clear(); vi.unstubAllGlobals(); });
 describe("own and management contact tabs", () => {
-  it.each(["", "hasReply=0"])("keeps the management heading and right-aligned filter in one wrapping row (filter=%s)", async (search) => {
+  it.each(["", "isPending=1"])("keeps the management heading and right-aligned filter in one wrapping row (filter=%s)", async (search) => {
     mocks.search = search;
     api(); mount();
     await screen.findByText(contact.name);
@@ -49,9 +49,9 @@ describe("own and management contact tabs", () => {
     expect(description.tagName).toBe("P");
     expect(Array.from(row.parentElement!.children)).toEqual([row, description]);
     expect(row.closest("header")).not.toContainElement(screen.getByRole("tab", { name: text.title }));
-    expect(checkbox).toHaveProperty("checked", search === "hasReply=0");
+    expect(checkbox).toHaveProperty("checked", search === "isPending=1");
     fireEvent.click(label);
-    expect(mocks.push).toHaveBeenCalledWith(`/admin/site-management/contacts/manage${search ? "" : "?hasReply=0"}`, { scroll: false });
+    expect(mocks.push).toHaveBeenCalledWith(`/admin/site-management/contacts/manage${search ? "" : "?isPending=1"}`, { scroll: false });
   });
   it.each(["/admin/site-management", "/admin/site-management/", "/admin/site-management/contacts"])("uses only own API on the default route %s even for administrators", async (pathname) => {
     mocks.pathname = pathname;
@@ -88,7 +88,7 @@ describe("own and management contact tabs", () => {
     const card = await screen.findByRole("button", { name: /返信1件/ });
     fireEvent.click(card);
     await within(screen.getByRole("dialog")).findByText(reply.content);
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/me"))).toHaveLength(2);
     expect(fetchMock.mock.calls.filter(([url]) => String(url) === `/api/site-management/contact/me/${id}`)).toHaveLength(2);
   });
@@ -97,7 +97,7 @@ describe("own and management contact tabs", () => {
     const fetchMock = api();
     const normal = fetchMock.getMockImplementation()!;
     fetchMock.mockImplementation((input) => String(input).endsWith("/replies") ? new Promise<Response>((done) => { resolve = done; }) : normal(input));
-    mocks.search = "hasReply=0";
+    mocks.search = "isPending=1";
     const view = mount();
     fireEvent.click(await screen.findByRole("button", { name: /山田花子/ }));
     fireEvent.change(await screen.findByRole("textbox"), { target: { value: "元のお問い合わせへの返信" } });
@@ -119,7 +119,7 @@ describe("own and management contact tabs", () => {
     }
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/replies")).map(([url]) => url)).toEqual([`/api/site-management/contacts/${id}/replies`]);
   });
-  it.each(["", "hasReply=0"])("disables background pagination while sending a reply (filter=%s)", async (search) => {
+  it.each(["", "isPending=1"])("disables background pagination while sending a reply (filter=%s)", async (search) => {
     mocks.search = search;
     let resolve!: (response: Response) => void;
     const fetchMock = api();
@@ -176,7 +176,7 @@ describe("own and management contact tabs", () => {
     client.setQueryData([...ownKey, id], { ...contact, replies: [] });
     client.setQueryData(["myContacts", "other", "account", "principal"], [contact]);
     const managementKey = ["admin", "siteManagement", "contacts", "actor", "account", "principal", null];
-    client.setQueryData([...managementKey, "unanswered", 1], { contacts: [contact] });
+    client.setQueryData([...managementKey, "pending", 1], { contacts: [contact] });
     fireEvent.click(await screen.findByRole("button", { name: /山田花子/ }));
     fireEvent.change(await screen.findByRole("textbox"), { target: { value: "確認しました。" } });
     fireEvent.click(screen.getByRole("button", { name: text.reply }));
@@ -188,7 +188,7 @@ describe("own and management contact tabs", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await waitFor(() => expect(client.getQueryState(ownKey)?.isInvalidated).toBe(true));
     expect(client.getQueryState([...ownKey, id])?.isInvalidated).toBe(true);
-    expect(client.getQueryState([...managementKey, "unanswered", 1])?.isInvalidated).toBe(true);
+    expect(client.getQueryState([...managementKey, "pending", 1])?.isInvalidated).toBe(true);
     expect(client.getQueryState(["myContacts", "other", "account", "principal"])?.isInvalidated).toBe(false);
   });
   it.each(["ja", "en", "ko"] as const)("separates both tab titles and APIs for an administrator in %s", async (locale) => {
@@ -211,7 +211,7 @@ describe("own and management contact tabs", () => {
     mocks.ownOnly = ownOnly;
     mocks.pathname = "/admin/site-management/contacts/unanswered";
     const fetchMock = api(); mount();
-    expect(mocks.replace).toHaveBeenCalledWith(ownOnly ? "/admin/site-management/contacts" : "/admin/site-management/contacts/manage?hasReply=0");
+    expect(mocks.replace).toHaveBeenCalledWith(ownOnly ? "/admin/site-management/contacts" : "/admin/site-management/contacts/manage?isPending=1");
     expect(fetchMock).not.toHaveBeenCalled();
   });
   it("gates the direct management URL and falls back to own contacts for an own-only viewer", async () => {
@@ -222,13 +222,13 @@ describe("own and management contact tabs", () => {
     expect(screen.queryByRole("tab", { name: text.title })).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(["/api/site-management/contact/me"]);
   });
-  it.each(["hasReply=0", "hasReply=1", "hasReply=", "hasReply=false", "hasReply=0&hasReply=0", "hasReply=0&hasReply=1"])("validates the management URL condition %s", async (search) => {
+  it.each(["isPending=1", "isPending=0", "isPending=", "isPending=false", "isPending=1&isPending=1", "isPending=1&isPending=0", "hasReply=0"])("validates the management URL condition %s", async (search) => {
     mocks.search = search;
     const fetchMock = api(); mount();
     await screen.findByText(contact.name);
-    const active = search === "hasReply=0";
+    const active = search === "isPending=1";
     expect(screen.getByRole("checkbox")).toHaveProperty("checked", active);
-    expect(fetchMock.mock.calls[0][0]).toBe(`/api/site-management/contacts?${active ? "hasReply=0&" : ""}page=1&perPage=50`);
+    expect(fetchMock.mock.calls[0][0]).toBe(`/api/site-management/contacts?${active ? "isPending=1&" : ""}page=1&perPage=50`);
   });
   it("writes only the explicit checkbox condition and resets to page one on changes and browser navigation", async () => {
     const fetchMock = api(); const view = mount();
@@ -236,10 +236,10 @@ describe("own and management contact tabs", () => {
     fireEvent.click(screen.getByRole("button", { name: text.nextPage }));
     await screen.findByText(text.page(2, 3));
     fireEvent.click(screen.getByRole("checkbox", { name: "未対応のみ" }));
-    expect(mocks.push).toHaveBeenCalledWith("/admin/site-management/contacts/manage?hasReply=0", { scroll: false });
-    view.navigate("/admin/site-management/contacts/manage?hasReply=0");
+    expect(mocks.push).toHaveBeenCalledWith("/admin/site-management/contacts/manage?isPending=1", { scroll: false });
+    view.navigate("/admin/site-management/contacts/manage?isPending=1");
     await screen.findByText(text.page(1, 3));
-    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?hasReply=0&page=1&perPage=50", expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?isPending=1&page=1&perPage=50", expect.anything());
     fireEvent.click(screen.getByRole("checkbox"));
     expect(mocks.push).toHaveBeenLastCalledWith("/admin/site-management/contacts/manage", { scroll: false });
     fireEvent.click(screen.getByRole("button", { name: text.nextPage }));
@@ -248,14 +248,14 @@ describe("own and management contact tabs", () => {
     await screen.findByText(text.page(1, 3));
     expect(screen.getByRole("checkbox")).not.toBeChecked();
     expect(client.getQueryData(["admin", "siteManagement", "contacts", "actor", "account", "principal", null, "all", 2])).toMatchObject({ current_page: 2 });
-    expect(client.getQueryData(["admin", "siteManagement", "contacts", "actor", "account", "principal", null, "unanswered", 2])).toMatchObject({ current_page: 2 });
+    expect(client.getQueryData(["admin", "siteManagement", "contacts", "actor", "account", "principal", null, "pending", 2])).toMatchObject({ current_page: 2 });
   });
   it("changes only the background filter while keeping the sender list unfiltered", async () => {
     const fetchMock = api(); const view = mount();
     fireEvent.click(await screen.findByRole("button", { name: /山田花子/ }));
     fireEvent.click(await screen.findByRole("button", { name: text.viewSenderContacts }));
     await within(screen.getByRole("dialog")).findByText(contact.name);
-    view.navigate("/admin/site-management/contacts/manage?hasReply=0");
+    view.navigate("/admin/site-management/contacts/manage?isPending=1");
     await waitFor(() => expect(screen.getByRole("checkbox")).toBeChecked());
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("principalIdentifier=")).map(([url]) => String(url))).toEqual([`/api/site-management/contacts?page=1&perPage=50&principalIdentifier=${id}`]);

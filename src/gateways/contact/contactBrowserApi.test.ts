@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchMyContactDetail, fetchMyContacts, submitContact } from "./contactBrowserApi";
+import { fetchMyContactDetail, fetchMyContacts, replyToMyContact, submitContact } from "./contactBrowserApi";
 
 const requestBody = {
   category: 1 as const,
@@ -30,6 +30,17 @@ const contact = {
 };
 
 describe("contact browser API", () => {
+  it("posts only reply content to the own BFF with CSRF, locale and no retry", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(replyToMyContact({ contactIdentifier, content: "追加の状況", locale: "ja", fallbackErrorMessage: "failed" })).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`/api/site-management/contact/me/${contactIdentifier}/replies`, expect.objectContaining({ method: "POST", cache: "no-store", credentials: "include", headers: expect.objectContaining({ "X-XSRF-TOKEN": "test-csrf-token", "Accept-Language": "ja" }), body: JSON.stringify({ content: "追加の状況" }) }));
+  });
+  it.each([401, 403, 404, 409, 419, 422, 500])("retains the own reply error status %s without retry", async (status) => {
+    const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ message: "rejected" }, { status }));
+    await expect(replyToMyContact({ contactIdentifier, content: "reply", locale: "ja", fallbackErrorMessage: "failed", fetchAdapter })).rejects.toMatchObject({ contactRouteStatus: status, message: "rejected" });
+    expect(fetchAdapter).toHaveBeenCalledTimes(1);
+  });
   afterEach(() => {
     vi.restoreAllMocks();
   });

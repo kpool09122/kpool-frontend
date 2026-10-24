@@ -6,6 +6,19 @@ import { GET } from "./route";
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("site-management contacts list BFF", () => {
+  it("forwards isPending=1 instead of confusing pending conversations with reply counts", async () => {
+    vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ contacts: [], current_page: 1, last_page: 1, total: 0, per_page: 50 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect((await GET(new NextRequest("http://localhost/api/site-management/contacts?isPending=1&page=1"))).status).toBe(200);
+    expect(fetchMock.mock.calls[0][0]).toBe("http://backend.test/api/v1/site-management/contacts?isPending=1&page=1");
+  });
+  it.each(["", "true", "false", "2", "0&isPending=1", "1&isPending=1"])("rejects malformed pending query %s before upstream", async (value) => {
+    vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    expect((await GET(new NextRequest(`http://localhost/api/site-management/contacts?isPending=${value}`))).status).toBe(422);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it("forwards only supported list filters to the versioned backend endpoint", async () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ contacts: [], current_page: 2, last_page: 2, total: 51, per_page: 50 }));

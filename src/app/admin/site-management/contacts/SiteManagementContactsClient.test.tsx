@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dictionaries } from "@/i18n/dictionaries";
 import { SiteManagementContactsClient } from "./SiteManagementContactsClient";
 
-const mocks = vi.hoisted(() => ({ locale: "ja" as "ja" | "en" | "ko", actions: ["contact:view", "contact:reply"], pathname: "/admin/site-management/contacts/manage", search: "hasReply=0", push: vi.fn(), replace: vi.fn() }));
+const mocks = vi.hoisted(() => ({ locale: "ja" as "ja" | "en" | "ko", actions: ["contact:view", "contact:reply"], pathname: "/admin/site-management/contacts/manage", search: "isPending=1", push: vi.fn(), replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname, useSearchParams: () => new URLSearchParams(mocks.search), useRouter: () => ({ push: mocks.push, replace: mocks.replace }) }));
 vi.mock("../../AdminProvider", () => ({
   useAdmin: () => ({
@@ -42,7 +42,7 @@ const contact = {
 };
 const detail = { ...contact, content: "Anonymous inquiry", replies: [] };
 const text = dictionaries.ja.admin.siteManagementContacts;
-const listUrl = "/api/site-management/contacts?hasReply=0&page=1&perPage=50";
+const listUrl = "/api/site-management/contacts?isPending=1&page=1&perPage=50";
 const detailUrl = `/api/site-management/contacts/${identifier}`;
 const replyUrl = `${detailUrl}/replies`;
 const page = (contacts = [contact]) => ({ contacts, current_page: 1, last_page: 1, total: contacts.length, per_page: 50 });
@@ -66,7 +66,7 @@ beforeEach(() => {
   mocks.locale = "ja";
   mocks.actions = ["contact:view", "contact:reply"];
   mocks.pathname = "/admin/site-management/contacts/manage";
-  mocks.search = "hasReply=0";
+  mocks.search = "isPending=1";
   mocks.push.mockReset();
   mocks.replace.mockReset();
   vi.stubGlobal("scrollTo", vi.fn());
@@ -101,7 +101,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
   describe.each(["ja", "en", "ko"] as const)("shared reply status in %s", (locale) => {
-    it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("shows exact reply counts inside main and sender cards on %s", async (pathname) => {
+    it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("shows exact reply counts inside main and sender cards on %s", async (pathname) => {
       mocks.locale = locale;
       mocks.pathname = pathname.split("?")[0];
       mocks.search = pathname.split("?")[1] ?? "";
@@ -152,7 +152,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     });
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("keeps the reply textarea taller with min-h-48 on %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("keeps the reply textarea taller with min-h-48 on %s", async (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => Response.json(input === detailUrl ? detail : page())));
@@ -193,7 +193,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("resets collapsed history when selecting another cached contact or reopening on %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("resets collapsed history when selecting another cached contact or reopening on %s", async (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     const other = { ...contact, contactIdentifier: "019a1234-5678-7000-8000-444444444444", name: "佐藤 直樹" };
@@ -226,8 +226,8 @@ describe("site-management contacts anonymous inquiry path", () => {
   it.each([
     ["/admin/site-management/contacts/manage", 1],
     ["/admin/site-management/contacts/manage", 2],
-    ["/admin/site-management/contacts/manage?hasReply=0", 1],
-    ["/admin/site-management/contacts/manage?hasReply=0", 2],
+    ["/admin/site-management/contacts/manage?isPending=1", 1],
+    ["/admin/site-management/contacts/manage?isPending=1", 2],
   ] as const)("gives legacy operator replies separate primary-color indented rails with gaps on %s (replies=%s)", async (pathname, replyCount) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
@@ -267,7 +267,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("shows an empty reply message without any thread line on %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("shows an empty reply message without any thread line on %s", async (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => Response.json(input === detailUrl ? detail : page())));
@@ -321,7 +321,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  describe.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("content preview on %s", (pathname) => {
+  describe.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("content preview on %s", (pathname) => {
     it.each([
       ["empty", "", ""],
       ["49 characters", "あ".repeat(49), "あ".repeat(49)],
@@ -376,10 +376,10 @@ describe("site-management contacts anonymous inquiry path", () => {
 
   it.each([
     ["/admin/site-management/contacts/manage", 1],
-    ["/admin/site-management/contacts/manage?hasReply=0", 1],
+    ["/admin/site-management/contacts/manage?isPending=1", 1],
     // Keyboard activation dispatches a click with detail=0. jsdom does not synthesize Enter/Space's native default action.
     ["/admin/site-management/contacts/manage", 0],
-    ["/admin/site-management/contacts/manage?hasReply=0", 0],
+    ["/admin/site-management/contacts/manage?isPending=1", 0],
   ] as const)("opens detail from the whole native card with badge, long name and date in order on %s (click detail=%s)", async (pathname, clickDetail) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
@@ -454,7 +454,7 @@ describe("site-management contacts anonymous inquiry path", () => {
   });
 
   describe.each(["ja", "en", "ko"] as const)("category badges in %s", (locale) => {
-    it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("keeps every category and date consistent across cards, detail and sender cards on %s", async (pathname) => {
+    it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("keeps every category and date consistent across cards, detail and sender cards on %s", async (pathname) => {
       mocks.locale = locale;
       mocks.pathname = pathname.split("?")[0];
       mocks.search = pathname.split("?")[1] ?? "";
@@ -659,7 +659,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("shows all of the persisted sender's inquiries in the same dialog without changing the background on %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("shows all of the persisted sender's inquiries in the same dialog without changing the background on %s", async (pathname) => {
     const sender = "019a1234-5678-7000-8000-333333333333";
     const other = { ...contact, contactIdentifier: "019a1234-5678-7000-8000-444444444444", name: "Saved inquiry name" };
     mocks.pathname = pathname.split("?")[0];
@@ -695,7 +695,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     expect(within(dialog).getByText(text.page(1, 2))).toBeInTheDocument();
     const senderRequest = fetchMock.mock.calls.map(([url]) => new URL(String(url), window.location.origin)).find((url) => url.searchParams.has("principalIdentifier"));
     expect(senderRequest?.searchParams.get("principalIdentifier")).toBe(sender);
-    expect(senderRequest?.searchParams.has("hasReply")).toBe(false);
+    expect(senderRequest?.searchParams.has("isPending")).toBe(false);
     fireEvent.click(within(dialog).getByRole("button", { name: cardName(other.name) }));
     await within(dialog).findByText("Another inquiry");
     expect(within(dialog).getAllByRole("button", { name: text.viewSenderContacts })).toHaveLength(1);
@@ -763,11 +763,11 @@ describe("site-management contacts anonymous inquiry path", () => {
       fireEvent.click(within(dialog).getByRole("button", { name: text.close }));
       expect(screen.getByText(contact.name)).toBeInTheDocument();
     }
-    expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "unanswered", 1])).toMatchObject({ contacts: [contact] });
+    expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "pending", 1])).toMatchObject({ contacts: [contact] });
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("keeps sender pagination independent and returns via the single header action to the same sender page on %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("keeps sender pagination independent and returns via the single header action to the same sender page on %s", async (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     mocks.actions = ["contact:view"];
@@ -880,7 +880,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     fireEvent.click(await screen.findByRole("button", { name: text.viewSenderContacts }));
     if (view === "nested detail") fireEvent.click(await within(screen.getByRole("dialog")).findByRole("button", { name: cardName(other.name) }));
     mocks.actions = [];
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     const requestsAtRevocation = fetchMock.mock.calls.length;
@@ -893,7 +893,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     expect(screen.queryByText("Late private detail")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(requestsAtRevocation);
     mocks.actions = ["contact:view"];
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     await screen.findByRole("button", { name: cardName() });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     client.clear();
@@ -908,13 +908,13 @@ describe("site-management contacts anonymous inquiry path", () => {
       if (input === replyUrl) return new Promise<Response>((done) => { resolve = (response) => { replied = response.ok; done(response); }; });
       if (input === detailUrl) return Promise.resolve(Response.json({ ...detail, principalIdentifier: sender, replies: replied ? [sentReply] : [] }));
       const url = new URL(String(input), window.location.origin);
-      return Promise.resolve(Response.json(page(replied && url.searchParams.get("hasReply") === "0" ? [] : [{ ...contact, replyIdentifiers: replied ? [sentReply.replyIdentifier] : [] }])));
+      return Promise.resolve(Response.json(page(replied && url.searchParams.get("isPending") === "1" ? [] : [{ ...contact, replyIdentifiers: replied ? [sentReply.replyIdentifier] : [] }])));
     }));
     const { client, switchTab } = renderContacts(Infinity);
     await screen.findByText(contact.name);
     switchTab("/admin/site-management/contacts/manage");
     await screen.findByText(contact.name);
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     fireEvent.click(await screen.findByRole("button", { name: cardName() }));
     fireEvent.click(await screen.findByRole("button", { name: text.viewSenderContacts }));
     const dialog = screen.getByRole("dialog");
@@ -958,7 +958,7 @@ describe("site-management contacts anonymous inquiry path", () => {
       if (input === replyUrl) { replied = true; return new Response(null, { status: 204 }); }
       if (input === detailUrl) return Response.json({ ...detail, principalIdentifier: sender });
       const url = new URL(String(input), window.location.origin);
-      return Response.json(page(replied && url.searchParams.get("hasReply") === "0" ? [] : [contact]));
+      return Response.json(page(replied && url.searchParams.get("isPending") === "1" ? [] : [contact]));
     }));
     const { client } = renderContacts(Infinity);
     const backgroundHeading = screen.getByRole("heading", { name: text.title });
@@ -1049,7 +1049,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it("loads all inquiries without hasReply on the contacts URL", async () => {
+  it("loads all inquiries without isPending on the contacts URL", async () => {
     mocks.pathname = "/admin/site-management/contacts/manage";
     mocks.search = "";
     const fetchMock = vi.fn().mockResolvedValue(Response.json(page()));
@@ -1067,7 +1067,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), window.location.origin);
       const currentPage = Number(url.searchParams.get("page"));
-      const name = url.searchParams.has("hasReply") ? "Unanswered sender" : "All sender";
+      const name = url.searchParams.has("isPending") ? "Unanswered sender" : "All sender";
       return Response.json({ ...page([{ ...contact, name }]), current_page: currentPage, last_page: 3, total: 101 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -1075,7 +1075,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     await screen.findByText("All sender");
     fireEvent.click(screen.getByRole("button", { name: text.nextPage }));
     await screen.findByText(text.page(2, 3));
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     await screen.findByText("Unanswered sender");
     expect(screen.getByText(text.page(1, 3))).toBeInTheDocument();
     expect(screen.queryByText("All sender")).not.toBeInTheDocument();
@@ -1087,11 +1087,11 @@ describe("site-management contacts anonymous inquiry path", () => {
     await screen.findByText("All sender");
     expect(screen.getByText(text.page(1, 3))).toBeInTheDocument();
     expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "all", 2])).toMatchObject({ current_page: 2, contacts: [{ name: "All sender" }] });
-    expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "unanswered", 3])).toMatchObject({ current_page: 3, contacts: [{ name: "Unanswered sender" }] });
+    expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "pending", 3])).toMatchObject({ current_page: 3, contacts: [{ name: "Unanswered sender" }] });
     client.clear();
   });
 
-  it.each(["all", "unanswered"])("refreshes both cached lists and detail after replying from %s", async (replyFrom) => {
+  it.each(["all", "pending"])("refreshes both cached lists and detail after replying from %s", async (replyFrom) => {
     let replied = false;
     const sentReply = { replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "Sent reply", sentAt: "2026-10-09T00:00:00+00:00" };
     const allUrl = "/api/site-management/contacts?page=1&perPage=50";
@@ -1104,10 +1104,10 @@ describe("site-management contacts anonymous inquiry path", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     mocks.pathname = "/admin/site-management/contacts/manage";
-    mocks.search = replyFrom === "all" ? "hasReply=0" : "";
+    mocks.search = replyFrom === "all" ? "isPending=1" : "";
     const { client, switchTab } = renderContacts(Infinity);
     await screen.findByText(contact.name);
-    switchTab(replyFrom === "all" ? "/admin/site-management/contacts/manage" : "/admin/site-management/contacts/manage?hasReply=0");
+    switchTab(replyFrom === "all" ? "/admin/site-management/contacts/manage" : "/admin/site-management/contacts/manage?isPending=1");
     fireEvent.click(await screen.findByRole("button", { name: cardName() }));
     fireEvent.change(await screen.findByRole("textbox", { name: text.replyContent }), { target: { value: "Sent reply" } });
     const history = screen.getByRole("heading", { name: text.previousReplies }).closest("details")!;
@@ -1116,17 +1116,17 @@ describe("site-management contacts anonymous inquiry path", () => {
     expect(screen.getByRole("textbox", { name: text.replyContent })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: text.reply }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    const inactiveList = replyFrom === "all" ? "unanswered" : "all";
+    const inactiveList = replyFrom === "all" ? "pending" : "all";
     await waitFor(() => expect(client.getQueryState(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, inactiveList, 1])?.isInvalidated).toBe(true));
     expect(fetchMock.mock.calls.filter(([url]) => url === (replyFrom === "all" ? listUrl : allUrl))).toHaveLength(1);
     if (replyFrom === "all") expect(screen.getByText(contact.name)).toBeInTheDocument();
     else await screen.findByText(text.empty);
-    switchTab(replyFrom === "all" ? "/admin/site-management/contacts/manage?hasReply=0" : "/admin/site-management/contacts/manage");
+    switchTab(replyFrom === "all" ? "/admin/site-management/contacts/manage?isPending=1" : "/admin/site-management/contacts/manage");
     await waitFor(() => expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "all", 1])).toMatchObject({ contacts: [{ replyIdentifiers: [sentReply.replyIdentifier] }] }));
-    await waitFor(() => expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "unanswered", 1])).toMatchObject({ contacts: [] }));
+    await waitFor(() => expect(client.getQueryData(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "pending", 1])).toMatchObject({ contacts: [] }));
     expect(fetchMock.mock.calls.filter(([url]) => url === allUrl)).toHaveLength(2);
     expect(fetchMock.mock.calls.filter(([url]) => url === listUrl)).toHaveLength(2);
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     await screen.findByText(text.empty);
     expect(screen.queryByText(contact.name)).not.toBeInTheDocument();
     switchTab("/admin/site-management/contacts/manage");
@@ -1138,7 +1138,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("does not fetch or display contacts without view permission on %s", (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("does not fetch or display contacts without view permission on %s", (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     mocks.actions = ["contact:reply"];
@@ -1150,14 +1150,14 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("discards an unsent draft when switching away from %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("discards an unsent draft when switching away from %s", async (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => Response.json(input === detailUrl ? detail : page())));
     const { client, switchTab } = renderContacts(Infinity);
     fireEvent.click(await screen.findByRole("button", { name: cardName() }));
     fireEvent.change(await screen.findByRole("textbox", { name: text.replyContent }), { target: { value: "Draft for the previous tab" } });
-    const other = pathname.includes("hasReply=0") ? "/admin/site-management/contacts/manage" : "/admin/site-management/contacts/manage?hasReply=0";
+    const other = pathname.includes("isPending=1") ? "/admin/site-management/contacts/manage" : "/admin/site-management/contacts/manage?isPending=1";
     switchTab(other);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: cardName() }));
@@ -1174,7 +1174,7 @@ describe("site-management contacts anonymous inquiry path", () => {
       : new Promise<Response>((done) => { resolve = done; })));
     const { client, switchTab } = renderContacts(Infinity);
     expect(screen.getByText(text.loading)).toBeInTheDocument();
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     await screen.findByText("Unanswered sender");
     resolve(Response.json(page([{ ...contact, name: "Late all sender" }])));
     await waitFor(() => expect(client.getQueryState(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "all", 1])?.status).toBe("success"));
@@ -1191,7 +1191,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     const { client, switchTab } = renderContacts();
     await screen.findByText(text.loadFailed);
     expect(screen.queryByText(text.allEmpty)).not.toBeInTheDocument();
-    switchTab("/admin/site-management/contacts/manage?hasReply=0");
+    switchTab("/admin/site-management/contacts/manage?isPending=1");
     await screen.findByText(contact.name);
     expect(screen.queryByText(text.loadFailed)).not.toBeInTheDocument();
     client.clear();
@@ -1226,7 +1226,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
-  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?hasReply=0"])("disables every native card while its reply is pending on %s", async (pathname) => {
+  it.each(["/admin/site-management/contacts/manage", "/admin/site-management/contacts/manage?isPending=1"])("disables every native card while its reply is pending on %s", async (pathname) => {
     mocks.pathname = pathname.split("?")[0];
     mocks.search = pathname.split("?")[1] ?? "";
     const other = { ...contact, contactIdentifier: "019a1234-5678-7000-8000-444444444444", name: "佐藤 直樹" };
@@ -1323,8 +1323,8 @@ describe("site-management contacts anonymous inquiry path", () => {
     fireEvent.change(await screen.findByRole("textbox", { name: text.replyContent }), { target: { value: "Reply" } });
     fireEvent.click(screen.getByRole("button", { name: text.reply }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    await waitFor(() => expect(client.getQueryCache().find({ queryKey: ["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "unanswered", 2] })?.getObserversCount()).toBe(0));
-    await waitFor(() => expect(client.getQueryData<{ current_page: number }>(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "unanswered", 1])?.current_page).toBe(1));
+    await waitFor(() => expect(client.getQueryCache().find({ queryKey: ["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "pending", 2] })?.getObserversCount()).toBe(0));
+    await waitFor(() => expect(client.getQueryData<{ current_page: number }>(["admin", "siteManagement", "contacts", "operator", "account", "operator-principal", null, "pending", 1])?.current_page).toBe(1));
     await waitFor(() => expect(screen.queryByText(text.empty)).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: cardName() })).toBeInTheDocument();
     client.clear();
@@ -1485,7 +1485,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     fireEvent.click(screen.getByRole("button", { name: text.nextPage }));
     expect(await screen.findByText(text.page(2, 2))).toBeInTheDocument();
     expect(screen.getByRole("button", { name: text.nextPage })).toBeDisabled();
-    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?hasReply=0&page=2&perPage=50", expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?isPending=1&page=2&perPage=50", expect.anything());
     fireEvent.click(screen.getByRole("button", { name: text.previousPage }));
     await waitFor(() => expect(screen.getByRole("button", { name: text.previousPage })).toBeDisabled());
     client.clear();

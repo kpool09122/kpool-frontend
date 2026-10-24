@@ -3,7 +3,7 @@ import { getRouteErrorBody, readResponseBody } from "../contact/routeSupport";
 
 import { getSiteManagementApiBaseUrl } from "@/gateways/contact/contactApi";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
-import { parseSiteManagementContactsPage, siteManagementContactsUnavailableMessage, siteManagementContactSenderFilterSchema } from "@/gateways/site-management/siteManagementContacts";
+import { parseSiteManagementContactsPage, siteManagementContactsUnavailableMessage, siteManagementContactSenderFilterSchema, siteManagementContactPendingFilterSchema } from "@/gateways/site-management/siteManagementContacts";
 
 export async function GET(request: NextRequest) {
   const baseUrl = getSiteManagementApiBaseUrl();
@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
 
   const input = request.nextUrl.searchParams;
   if (!siteManagementContactSenderFilterSchema.safeParse(input.getAll("principalIdentifier")).success) return unavailable(422);
+  if (!siteManagementContactPendingFilterSchema.safeParse(input.getAll("isPending")).success) return unavailable(422);
   const params = new URLSearchParams();
-  for (const key of ["hasReply", "page", "perPage", "principalIdentifier"]) {
+  for (const key of ["isPending", "hasReply", "page", "perPage", "principalIdentifier"]) {
     const value = input.get(key);
     if (value !== null) params.set(key, value);
   }
