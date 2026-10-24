@@ -44,6 +44,7 @@ it.each([false, true])(
     mount();
     expect(screen.queryByRole("form")).not.toBeInTheDocument();
     if (canCreate) {
+      fireEvent.click(await screen.findByText("Add video"));
       expect(
         await screen.findByRole("form", { name: "Add video" }),
       ).toBeInTheDocument();
@@ -69,6 +70,7 @@ it("preserves draft during permission refetch but removes it on revocation", asy
   vi.stubGlobal("fetch", fetcher);
   const client = new QueryClient();
   mount(client);
+  fireEvent.click(await screen.findByText("Add video"));
   await screen.findByRole("form", { name: "Add video" });
   fireEvent.change(screen.getByLabelText("Video title"), {
     target: { value: "Draft title" },
@@ -90,6 +92,7 @@ it("does not reuse a previous session's grant while a new access request is pend
     .mockImplementation(() => new Promise(() => {}));
   vi.stubGlobal("fetch", fetcher);
   mount();
+  fireEvent.click(await screen.findByText("Add video"));
   await screen.findByRole("form", { name: "Add video" });
   act(() => useAuthStore.setState({ sessionVersion: 1 }));
   expect(screen.queryByRole("form")).not.toBeInTheDocument();

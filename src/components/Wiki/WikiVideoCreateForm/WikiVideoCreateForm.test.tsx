@@ -36,10 +36,10 @@ const identity = {
   wikiIdentifier: "11111111-1111-4111-8111-111111111111",
   resourceType: "group" as const,
 };
-const mount = () =>
+const mount = (onCreated?: () => void) =>
   render(
     <I18nProvider initialLocale="en">
-      <WikiVideoCreateForm {...identity} />
+      <WikiVideoCreateForm {...identity} onCreated={onCreated} />
     </I18nProvider>,
   );
 const fill = () => {
@@ -57,6 +57,16 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 describe("single video form", () => {
+  it("shows an invalid YouTube URL error and prevents saving a TikTok URL", () => {
+    mount();
+    fireEvent.change(screen.getByLabelText("YouTube URL"), {
+      target: { value: "https://www.tiktok.com/@example/video/6718335390845095173" },
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid YouTube URL");
+    expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
+    fireEvent.submit(screen.getByRole("form", { name: "Add video" }));
+    expect(create).not.toHaveBeenCalled();
+  });
   it("waits for duration, sends one canonical video and locks duplicate submits", async () => {
     let resolve!: (v: { ok: boolean; status: number }) => void;
     create.mockImplementation(
@@ -65,7 +75,8 @@ describe("single video form", () => {
           resolve = r;
         }),
     );
-    mount();
+    const onCreated = vi.fn();
+    mount(onCreated);
     fill();
     expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
     fireEvent.click(screen.getByText("Metadata ready"));
@@ -75,15 +86,16 @@ describe("single video form", () => {
     expect(create).toHaveBeenCalledWith({
       ...identity,
       url: "https://www.youtube.com/watch?v=Os_heh8vPfs",
+      thumbnailUrl: "https://i.ytimg.com/vi/Os_heh8vPfs/hqdefault.jpg",
       title: "My video",
       videoUsage: "music_video",
-      displayOrder: 0,
       durationSeconds: 124,
     });
     expect(screen.getByLabelText("YouTube URL")).toBeDisabled();
     await act(async () => resolve({ ok: true, status: 204 }));
-    expect(await screen.findByRole("status")).toHaveTextContent("Video saved");
+    expect(await screen.findByRole("status")).toHaveTextContent(/^Video saved\.$/);
     expect(screen.getByLabelText("YouTube URL")).toHaveValue("");
+    expect(onCreated).toHaveBeenCalledTimes(1);
   });
   it("resets duration even for a changed URL for the same video and reports invalid URL/player failure", () => {
     mount();

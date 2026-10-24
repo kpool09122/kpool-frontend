@@ -6,9 +6,9 @@ const body = {
   resourceType: "group",
   wikiIdentifier: "11111111-1111-4111-8111-111111111111",
   url: "https://www.youtube.com/watch?v=Os_heh8vPfs&list=ignored",
+  thumbnailUrl: "https://i.ytimg.com/vi/Os_heh8vPfs/hqdefault.jpg",
   title: "Video",
   videoUsage: "music_video",
-  displayOrder: 0,
   durationSeconds: 123,
 };
 const request = (payload: unknown = body, headers = {}) =>
@@ -106,8 +106,13 @@ describe("single video create BFF", () => {
     { ...body, durationSeconds: 1.5 },
     { ...body, durationSeconds: 2147483648 },
     { ...body, url: "https://evil.test/Os_heh8vPfs" },
+    { ...body, url: "https://www.tiktok.com/@example/video/6718335390845095173" },
+    { ...body, url: "https://vimeo.com/123456789" },
+    { ...body, url: "https://youtube.com.example.com/watch?v=Os_heh8vPfs" },
+    { ...body, url: "https://www.youtube.com/@example" },
+    { ...body, url: "https://www.youtube.com/watch?v=invalid" },
+    { ...body, url: "Os_heh8vPfs" },
     { ...body, title: "" },
-    { ...body, displayOrder: -1 },
     { videoLinks: [body] },
   ])(
     "rejects invalid one-video input before upstream fetch",

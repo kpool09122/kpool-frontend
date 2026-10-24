@@ -6,8 +6,7 @@ import { z } from "zod";
 export const wikiVideoCreateSchema =
   wikiPrivateApiTypes.schemas.CreateVideoLinkRequestBody.strip().extend({
     title: z.string().trim().min(1).max(255),
-    url: z.string().refine((value) => normalizeYouTubeVideoUrl(value) !== null),
+    url: z.string().url().max(255).refine((value) => normalizeYouTubeVideoUrl(value) !== null),
     durationSeconds: z.number().int().min(1).max(2147483647),
-    displayOrder: z.number().int().min(0).max(2147483647),
   });
 export type WikiVideoCreateRequest = z.infer<typeof wikiVideoCreateSchema>;

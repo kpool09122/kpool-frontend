@@ -10,7 +10,6 @@ it("provides a schema-valid Wiki UUID for video creation E2E without changing le
       url: "https://www.youtube.com/watch?v=Os_heh8vPfs",
       title: "Video",
       videoUsage: "live",
-      displayOrder: 0,
       durationSeconds: 124,
     }).success,
   ).toBe(true);

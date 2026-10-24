@@ -2,8 +2,12 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getYouTubeVideoId, getYouTubeThumbnailUrl } from "@kpool/wiki";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  formatVideoDuration,
+  getYouTubeVideoId,
+  getYouTubeThumbnailUrl,
+} from "@kpool/wiki";
 import {
   fetchWikiVideos,
   type WikiVideo,
@@ -12,6 +16,9 @@ import {
 import { useI18n } from "@/i18n/I18nProvider";
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
 import { WikiVideoCreateEntry } from "../WikiVideoCreateForm/WikiVideoCreateEntry";
+import type { WikiVideoDurationFilter as DurationFilter } from "@/gateways/wiki/wikiVideoFilters";
+import { WikiVideoDurationFilter } from "./WikiVideoDurationFilter";
+import { SocialLinkIcon } from "../socialLinks";
 
 function VideoCard({ video }: { video: WikiVideo }) {
   const { dictionary } = useI18n();
@@ -20,15 +27,23 @@ function VideoCard({ video }: { video: WikiVideo }) {
   const [imageFailed, setImageFailed] = useState(false);
   const videoId = getYouTubeVideoId(video.url);
   const thumbnail = getYouTubeThumbnailUrl(video.thumbnailUrl);
+  const duration = formatVideoDuration(video.durationSeconds);
   return (
     <li className="min-w-0 space-y-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4">
-      <h2 className="break-words text-lg font-semibold">{video.title}</h2>
+      <h2 className="flex items-start gap-2 text-lg font-semibold">
+        {videoId ? (
+          <span className="pt-1">
+            <SocialLinkIcon url={`https://www.youtube.com/watch?v=${videoId}`} />
+          </span>
+        ) : null}
+        <span className="min-w-0 break-words">{video.title}</span>
+      </h2>
       {playing && videoId ? (
         <WikiEmbedFrame
           block={{
             blockType: "embed",
             blockIdentifier: video.videoLinkIdentifier,
-            displayOrder: video.displayOrder,
+            displayOrder: 0,
             provider: "youtube",
             embedId: videoId,
             caption: video.title,
@@ -66,6 +81,11 @@ function VideoCard({ video }: { video: WikiVideo }) {
               ▶
             </span>
           ) : null}
+          {duration !== null ? (
+            <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-white">
+              {duration}
+            </span>
+          ) : null}
         </button>
       )}
       {videoId ? (
@@ -88,6 +108,7 @@ export function WikiVideoPanel({
   wikiIdentifier,
   ...identity
 }: WikiVideoIdentity & { wikiIdentifier?: string }) {
+  const queryClient = useQueryClient();
   return (
     <>
       {wikiIdentifier ? (
@@ -95,14 +116,34 @@ export function WikiVideoPanel({
           key={`${wikiIdentifier}:${identity.resourceType}`}
           wikiIdentifier={wikiIdentifier}
           resourceType={identity.resourceType}
+          onCreated={() => {
+            void queryClient.invalidateQueries({
+              queryKey: [
+                "public-wiki-videos",
+                identity.language,
+                identity.resourceType,
+                identity.slug,
+              ],
+            });
+          }}
         />
       ) : null}
-      <VideoList {...identity} />
+      <VideoSearch key={`${identity.language}:${identity.resourceType}:${identity.slug}`} identity={identity} />
     </>
   );
 }
 
-function VideoList(identity: WikiVideoIdentity) {
+function VideoSearch({ identity }: { identity: WikiVideoIdentity }) {
+  const [filter, setFilter] = useState<DurationFilter>({});
+  return (
+    <>
+      <WikiVideoDurationFilter onSearch={setFilter} />
+      <VideoList identity={identity} filter={filter} />
+    </>
+  );
+}
+
+function VideoList({ identity, filter }: { identity: WikiVideoIdentity; filter: DurationFilter }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
   const query = useQuery({
@@ -111,8 +152,9 @@ function VideoList(identity: WikiVideoIdentity) {
       identity.language,
       identity.resourceType,
       identity.slug,
+      filter,
     ],
-    queryFn: () => fetchWikiVideos(identity),
+    queryFn: () => fetchWikiVideos({ ...identity, ...filter }),
     staleTime: 60_000,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -132,7 +174,8 @@ function VideoList(identity: WikiVideoIdentity) {
         </button>
       </div>
     );
-  if (!query.data.videos.length) return <p>{t.empty}</p>;
+  if (!query.data.videos.length)
+    return <p>{Object.keys(filter).length ? t.filter.empty : t.empty}</p>;
   return (
     <ul className="grid gap-5 sm:grid-cols-2">
       {query.data.videos.map((video) => (

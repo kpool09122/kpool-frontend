@@ -1,6 +1,7 @@
 import { wikiPrivateApiTypes } from "@kpool/types";
 import type { WikiResourceType } from "@kpool/wiki";
 import { z } from "zod";
+import { wikiVideoDurationSearchParams, type WikiVideoDurationFilter } from "./wikiVideoFilters";
 
 // The authoritative generated Video schema was introduced by backend #765 / frontend #501.
 export const wikiVideosResponseSchema = z.object({
@@ -19,10 +20,13 @@ export const fetchWikiVideos = async ({
   language,
   resourceType,
   slug,
-}: WikiVideoIdentity) => {
+  ...filter
+}: WikiVideoIdentity & WikiVideoDurationFilter) => {
   try {
+    const params = wikiVideoDurationSearchParams(filter);
+    params.set("resourceType", resourceType);
     const response = await fetch(
-      `/api/wiki/${encodeURIComponent(language)}/${encodeURIComponent(slug)}/videos?resourceType=${resourceType}`,
+      `/api/wiki/${encodeURIComponent(language)}/${encodeURIComponent(slug)}/videos?${params}`,
       { credentials: "omit" },
     );
     if (!response.ok) throw new Error(wikiVideosUnavailableMessage);

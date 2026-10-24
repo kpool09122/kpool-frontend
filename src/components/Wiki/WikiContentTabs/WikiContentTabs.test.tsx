@@ -1,11 +1,25 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { WikiContentTabs } from "./index";
 
 describe("WikiContentTabs", () => {
   afterEach(() => cleanup());
+
+  it("reflects externally selected tabs and reports keyboard changes", () => {
+    const onTabChange = vi.fn();
+    const tabs = [
+      { id: "wiki", label: "Wiki", panel: <p>Wiki body</p> },
+      { id: "video", label: "Video", panel: <p>Video body</p> },
+    ];
+    const view = render(<WikiContentTabs ariaLabel="tabs" tabs={tabs} activeTabId="video" onTabChange={onTabChange} />);
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("Video body");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Video" }), { key: "ArrowLeft" });
+    expect(onTabChange).toHaveBeenCalledWith("wiki");
+    view.rerender(<WikiContentTabs ariaLabel="tabs" tabs={tabs} activeTabId="wiki" onTabChange={onTabChange} />);
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("Wiki body");
+  });
 
   it("renders wiki content in an accessible tab panel", () => {
     render(

@@ -487,7 +487,7 @@ const CreateVideoLinkRequestBody = z
   .object({
     resourceType: z.enum(["agency", "group", "song", "talent"]),
     wikiIdentifier: KPool_Common_Uuid.uuid(),
-    url: z.string(),
+    url: z.string().max(255),
     videoUsage: z.enum([
       "music_video",
       "live",
@@ -499,7 +499,6 @@ const CreateVideoLinkRequestBody = z
       "other",
     ]),
     title: z.string().max(255),
-    displayOrder: z.number().int().gte(0),
     durationSeconds: z.number().int().gte(0),
     thumbnailUrl: z.string().nullish(),
     publishedAt: z.string().nullish(),
@@ -874,8 +873,16 @@ const Video = z
     title: z.string(),
     thumbnailUrl: z.string().nullable(),
     publishedAt: z.string().nullable(),
-    displayOrder: z.number().int(),
+    durationSeconds: z.number().int().gte(0).nullable(),
     videoUsage: z.enum([
+      "music_video",
+      "live",
+      "interview",
+      "behind_the_scenes",
+      "cover",
+      "collaboration",
+      "short",
+      "other",
       "youtube_auto_view_count",
       "youtube_auto_like_count",
       "youtube_auto_recent_popular",
@@ -3138,7 +3145,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/:resourceType/:slug/videos",
     alias: "PublicVideoLinkOperations_listVideos",
-    description: `Public, unauthenticated list of videos for the exact published wiki. Currently, only automatically collected videos are included. Ordered by displayOrder ascending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Collection targets are group/song/talent; agency returns an empty list. Viewing never calls YouTube or dispatches collection jobs.`,
+    description: `Public, unauthenticated list of videos for the exact published wiki. Includes manually created and automatically collected videos. Ordered by creation time descending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Viewing never calls YouTube or dispatches collection jobs.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3155,6 +3162,16 @@ const endpoints = makeApi([
         name: "slug",
         type: "Path",
         schema: z.string(),
+      },
+      {
+        name: "minDurationSeconds",
+        type: "Query",
+        schema: z.number().int().gte(0).nullish(),
+      },
+      {
+        name: "maxDurationSeconds",
+        type: "Query",
+        schema: z.number().int().gte(0).nullish(),
       },
     ],
     response: z.object({ videos: z.array(Video) }).passthrough(),

@@ -21,7 +21,7 @@ const video = {
   title: "Collected video",
   thumbnailUrl: "https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg",
   publishedAt: null,
-  displayOrder: 1,
+  durationSeconds: 253,
   videoUsage: "youtube_auto_view_count",
 };
 const wrap = (client: QueryClient, slug = identity.slug) => (
@@ -38,6 +38,41 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("WikiVideoPanel", () => {
+  it("applies duration bounds only on search and distinguishes empty results", async () => {
+    const fetcher = vi.fn().mockImplementation((url: string) =>
+      Promise.resolve(Response.json({ videos: url.includes("minDurationSeconds") ? [] : [video] })),
+    );
+    vi.stubGlobal("fetch", fetcher);
+    render(wrap(client()));
+    await screen.findByText(video.title);
+    fireEvent.change(screen.getByRole("slider", { name: "Minimum duration (minutes)" }), { target: { value: "10" } });
+    fireEvent.change(screen.getByRole("slider", { name: "Maximum duration (minutes)" }), { target: { value: "20" } });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
+    await screen.findByText("No videos match this duration range.");
+    const url = new URL(fetcher.mock.calls[1][0], "http://localhost");
+    expect(url.searchParams.get("minDurationSeconds")).toBe("600");
+    expect(url.searchParams.get("maxDurationSeconds")).toBe("1200");
+    expect(screen.queryByText(video.title)).not.toBeInTheDocument();
+  });
+
+  it("treats 40+ as unbounded and prevents inverted ranges", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ videos: [video] }));
+    vi.stubGlobal("fetch", fetcher);
+    render(wrap(client()));
+    await screen.findByText(video.title);
+    const minimum = screen.getByRole("slider", { name: "Minimum duration (minutes)" });
+    const maximum = screen.getByRole("slider", { name: "Maximum duration (minutes)" });
+    fireEvent.change(minimum, { target: { value: "40" } });
+    fireEvent.change(maximum, { target: { value: "20" } });
+    expect(maximum).toHaveValue("40");
+    fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    const url = new URL(fetcher.mock.calls[1][0], "http://localhost");
+    expect(url.searchParams.get("minDurationSeconds")).toBe("2400");
+    expect(url.searchParams.has("maxDurationSeconds")).toBe(false);
+  });
+
   it("shows saved thumbnail/title, then the shared player and a YouTube fallback", async () => {
     vi.stubGlobal(
       "fetch",
@@ -48,6 +83,7 @@ describe("WikiVideoPanel", () => {
     expect(
       await screen.findByRole("img", { name: video.title }),
     ).toHaveAttribute("src", video.thumbnailUrl);
+    expect(screen.getByText("4:13")).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: `Play: ${video.title}` }),
     );
@@ -58,6 +94,15 @@ describe("WikiVideoPanel", () => {
     expect(
       screen.getByRole("link", { name: "Open on YouTube" }),
     ).toHaveAttribute("href", "https://www.youtube.com/watch?v=abcdefghijk");
+  });
+  it("omits duration when the API has no stored duration", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      Response.json({ videos: [{ ...video, durationSeconds: null }] }),
+    ));
+    render(wrap(client()));
+    await screen.findByText(video.title);
+    expect(screen.queryByText("4:13")).not.toBeInTheDocument();
+    expect(screen.queryByText("0:00")).not.toBeInTheDocument();
   });
   it("reuses cached results across remounts and never shows a previous wiki list", async () => {
     const fetcher = vi

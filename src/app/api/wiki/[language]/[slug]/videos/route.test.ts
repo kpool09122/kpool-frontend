@@ -11,6 +11,28 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe("public video BFF", () => {
+  it("forwards duration bounds in seconds", async () => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ videos: [] }));
+    vi.stubGlobal("fetch", fetcher);
+    const response = await GET(request("resourceType=song&minDurationSeconds=600&maxDurationSeconds=1200"), context);
+    expect(response.status).toBe(200);
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://backend.example/api/v1/wiki/wiki/ko/song/a%2Fb/videos?minDurationSeconds=600&maxDurationSeconds=1200",
+      expect.any(Object),
+    );
+  });
+  it.each([
+    "minDurationSeconds=-1", "maxDurationSeconds=1.5", "minDurationSeconds=foo",
+    "maxDurationSeconds=2147483648", "minDurationSeconds=1200&maxDurationSeconds=600",
+    "minDurationSeconds=", "minDurationSeconds[]=600",
+  ])("rejects invalid duration before fetching (%s)", async (query) => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    const response = await GET(request(`resourceType=song&${query}`), context);
+    expect(response.status).toBe(400);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it("fetches exact identity anonymously and validates the response", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
     const fetcher = vi.fn().mockResolvedValue(Response.json({ videos: [] }));

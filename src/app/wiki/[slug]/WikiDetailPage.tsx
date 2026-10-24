@@ -1,5 +1,7 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+
 import {
   type WikiDetailState,
 } from "@kpool/wiki";
@@ -33,6 +35,7 @@ export function WikiDetailPage({
   resumeEditing = false,
 }: WikiDetailPageProps) {
   const { dictionary } = useI18n();
+  const searchParams = useSearchParams();
   const t = dictionary.wiki;
   const editEntry = useWikiEditEntry({ language, slug, themeColor }, resumeEditing && wikiState.status === "success");
 
@@ -85,6 +88,15 @@ export function WikiDetailPage({
           <WikiDetailContent
             key={`${data.language}:${data.resourceType}:${data.slug}`}
             data={data}
+            activeTabId={searchParams.get("tab") === "video" ? "video" : "wiki"}
+            onTabChange={(tabId) => {
+              const url = new URL(window.location.href);
+              if (tabId === "video") url.searchParams.set("tab", "video");
+              else url.searchParams.delete("tab");
+              const href = `${url.pathname}${url.search}${url.hash}`;
+              if (href !== `${window.location.pathname}${window.location.search}${window.location.hash}`)
+                window.history.pushState(null, "", href);
+            }}
             videoPanel={
               <WikiVideoPanel
                 wikiIdentifier={data.wikiIdentifier}
