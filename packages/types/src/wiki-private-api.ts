@@ -874,6 +874,8 @@ const Video = z
     thumbnailUrl: z.string().nullable(),
     publishedAt: z.string().nullable(),
     durationSeconds: z.number().int().gte(0).nullable(),
+    creatorPrincipalIdentifier: KPool_Common_Uuid.nullable(),
+    creatorIdentityName: z.string().nullable(),
     videoUsage: z.enum([
       "music_video",
       "live",
@@ -3028,6 +3030,63 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "delete",
+    path: "/video-link/:videoLinkId",
+    alias: "VideoLinkOperations_deleteVideoLink",
+    description: `Delete only the specified video link. Requires an authenticated Wiki collaborator with an active Account/Principal and DELETE_VIDEO_LINK permission. Manual videos may be deleted only by their creator; all three automatically collected video categories may be deleted by any Wiki collaborator. Returns 204 without a body, 403 when forbidden, 404 when missing, and 422 for an invalid identifier. Deletion does not prevent future automatic re-collection.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/video-link/create",
     alias: "VideoLinkOperations_createVideoLink",
@@ -3145,7 +3204,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/:resourceType/:slug/videos",
     alias: "PublicVideoLinkOperations_listVideos",
-    description: `Public, unauthenticated list of videos for the exact published wiki. Includes manually created and automatically collected videos. Ordered by creation time descending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Viewing never calls YouTube or dispatches collection jobs.`,
+    description: `Public, unauthenticated list of videos for the exact published wiki. Includes manually created and automatically collected videos. creatorPrincipalIdentifier is the saved creator for manual videos and null for automatically collected videos. Agency includes manual videos only. Ordered by creation time descending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Viewing never calls YouTube or dispatches collection jobs.`,
     requestFormat: "json",
     parameters: [
       {
