@@ -15,6 +15,7 @@ describe("site-management contact detail BFF", () => {
       { replyIdentifier: identifier, content: "確認しました。", sentAt: "2026-10-09T00:00:00+00:00", principalIdentifier: identifier, name: "山田はるか" },
       { replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "以前の返信", sentAt: "2026-10-09T01:00:00+00:00", principalIdentifier: identifier, name: null },
       { replyIdentifier: "019a1234-5678-7000-8000-333333333333", content: "旧APIの返信", sentAt: "2026-10-09T02:00:00+00:00" },
+      { replyIdentifier: "019a1234-5678-7000-8000-444444444444", content: "本人の追加説明", sentAt: null, replyType: "submitter", createdAt: "2026-10-09T03:00:00+00:00", principalIdentifier: null, name: null },
     ] };
     const fetchMock = vi.fn().mockResolvedValue(Response.json(detail, { headers: { "Set-Cookie": "session=renewed; HttpOnly" } }));
     vi.stubGlobal("fetch", fetchMock);

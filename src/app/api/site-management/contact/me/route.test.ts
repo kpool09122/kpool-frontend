@@ -28,11 +28,16 @@ describe("own contact BFF", () => {
     expect(response.headers.getSetCookie()).toEqual(["session=refreshed; HttpOnly; Path=/"]);
     expect(fetchMock).toHaveBeenCalledWith("http://backend.test/api/v1/site-management/my/contact", expect.objectContaining({ method: "GET", cache: "no-store", headers: expect.objectContaining({ Cookie: "session=own-session", "Accept-Language": "ko" }) }));
   });
-  it("uses only the own detail endpoint and strips author data", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ ...contact, replies: [{ replyIdentifier: id, content: "返信", sentAt: contact.createdAt, name: "private", principalIdentifier: id }] }));
+  it.each([
+    { replyIdentifier: id, content: "返信", sentAt: contact.createdAt },
+    { replyIdentifier: id, content: "返信", sentAt: null, replyType: "submitter", createdAt: contact.createdAt },
+  ])("uses only the own detail endpoint and strips author data without changing reply fields: %j", async (reply) => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ ...contact, principalIdentifier: id, replies: [{ ...reply, name: "private", principalIdentifier: id }] }));
     vi.stubGlobal("fetch", fetchMock);
     const response = await detail(request(), context());
-    expect((await response.json()).replies).toEqual([{ replyIdentifier: id, content: "返信", sentAt: contact.createdAt }]);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual({ contactIdentifier: id, identityIdentifier: null, category: contact.category, name: contact.name, content: contact.content, createdAt: contact.createdAt, replies: [reply] });
     expect(fetchMock.mock.calls[0][0]).toBe(`http://backend.test/api/v1/site-management/my/contact/${id}`);
   });
   it.each([401, 403, 404, 422, 429, 500])("preserves upstream status %s and cookies for both routes", async (status) => {

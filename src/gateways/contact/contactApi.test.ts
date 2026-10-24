@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { siteManagementPublicApiTypes } from "@kpool/types";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   getSiteManagementApiBaseUrl,
@@ -22,6 +23,11 @@ const contact = {
 };
 
 describe("contact API helpers", () => {
+  it("keeps the public schema's original delivery contract separate from gateway compatibility", () => {
+    const reply = { replyIdentifier, content: "返信", sentAt: null };
+    expect(siteManagementPublicApiTypes.schemas.ContactReplyDetail.safeParse(reply).success).toBe(false);
+    expect(parseMyContactDetailResponse({ ...contact, replies: [reply] }).replies).toEqual([reply]);
+  });
   it("preserves conversation types and nullable delivery dates without exposing authors", () => {
     const replies = ["operator", "submitter"].map((replyType) => ({
       replyIdentifier, content: "返信", replyType, createdAt: contact.createdAt,
@@ -30,6 +36,29 @@ describe("contact API helpers", () => {
     const parsed = parseMyContactDetailResponse({ ...contact, replies: replies.map((reply) => ({ ...reply, name: "private", principalIdentifier: identityIdentifier })) });
     expect(parsed.replies).toEqual(replies);
     expect(() => parseMyContactDetailResponse({ ...contact, replies: [{ ...replies[0], replyType: "unknown" }] })).toThrow();
+  });
+  it.each([
+    {},
+    { replyType: "operator" },
+    { createdAt: contact.createdAt },
+    { replyType: "submitter", createdAt: contact.createdAt, sentAt: null },
+  ])("preserves conversation fields without inferring missing values: %j", (fields) => {
+    const reply = { replyIdentifier, content: "返信", sentAt: contact.createdAt, ...fields };
+    const parsed = parseMyContactDetailResponse({ ...contact, replies: [{ ...reply, name: "private", principalIdentifier: identityIdentifier, extra: "private" }] });
+    expect(parsed.replies).toEqual([reply]);
+    expectTypeOf(parsed.replies[0].replyType).toEqualTypeOf<"operator" | "submitter" | undefined>();
+    expectTypeOf(parsed.replies[0].createdAt).toEqualTypeOf<string | undefined>();
+    expectTypeOf(parsed.replies[0].sentAt).toEqualTypeOf<string | null>();
+    expectTypeOf(parsed.replies[0]).not.toHaveProperty("name");
+    expectTypeOf(parsed.replies[0]).not.toHaveProperty("principalIdentifier");
+  });
+  it.each([
+    { replyType: null }, { replyType: 1 }, { replyType: "unknown" },
+    { createdAt: null }, { createdAt: 1 },
+    { sentAt: undefined }, { sentAt: 1 },
+  ])("rejects malformed conversation fields rather than stripping them: %j", (fields) => {
+    const reply = { replyIdentifier, content: "返信", sentAt: contact.createdAt, replyType: "operator", createdAt: contact.createdAt, ...fields };
+    expect(() => parseMyContactDetailResponse({ ...contact, replies: [reply] })).toThrow();
   });
   it("adds the site management API prefix when the base URL omits it", () => {
     expect(withSiteManagementApiPrefix("http://127.0.0.1:8080")).toBe(

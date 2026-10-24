@@ -1,10 +1,19 @@
 import { siteManagementApiTypes } from "@kpool/types";
 import { z } from "zod";
 
+import { contactReplyCompatibilitySchema } from "@/gateways/contact/contactApi";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
-export type SiteManagementContactDetail = z.infer<typeof siteManagementApiTypes.schemas.OperatorContactDetail>;
+const operatorContactReplyCompatibilitySchema = siteManagementApiTypes.schemas.OperatorContactReplyDetail.extend({
+  ...contactReplyCompatibilitySchema.pick({ replyType: true, createdAt: true }).shape,
+  principalIdentifier: z.string().uuid().nullish(),
+  name: siteManagementApiTypes.schemas.OperatorContactReplyDetail.shape.name.optional(),
+});
+const siteManagementContactDetailSchema = siteManagementApiTypes.schemas.OperatorContactDetail.extend({
+  replies: z.array(operatorContactReplyCompatibilitySchema),
+});
+export type SiteManagementContactDetail = z.infer<typeof siteManagementContactDetailSchema>;
 export type SiteManagementContactsPage = z.infer<typeof siteManagementApiTypes.schemas.ListContactsPage>;
 export const siteManagementContactSenderFilterSchema = z.array(z.string().uuid()).max(1);
 
@@ -17,7 +26,7 @@ export const parseSiteManagementContactsPage = (body: unknown): SiteManagementCo
   parseWithSchemaLog("site management contacts", siteManagementApiTypes.schemas.ListContactsPage, body);
 
 export const parseSiteManagementContactDetail = (body: unknown): SiteManagementContactDetail =>
-  parseWithSchemaLog("site management contact detail", siteManagementApiTypes.schemas.OperatorContactDetail, body);
+  parseWithSchemaLog("site management contact detail", siteManagementContactDetailSchema, body);
 
 export const fetchSiteManagementContacts = async ({
   page,

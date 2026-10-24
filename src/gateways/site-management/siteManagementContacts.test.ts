@@ -23,10 +23,25 @@ describe("site-management contacts gateway", () => {
     expect(endpoint).toBeDefined();
     expect(endpoint?.response).toBeInstanceOf(z.ZodUnion);
     expect(endpoint?.response).toHaveProperty("options", [schemas.ContactDetail, schemas.OperatorContactDetail]);
-    const reply = { replyIdentifier: identifier, content: "運営からの返信", sentAt: contact.createdAt, principalIdentifier: identifier, name: "山田はるか" };
+    const reply = { replyIdentifier: identifier, content: "運営からの返信", sentAt: contact.createdAt, replyType: "operator", createdAt: contact.createdAt, principalIdentifier: identifier, name: "山田はるか" };
     expect(endpoint?.response.safeParse({ ...contact, replies: [reply] })).toEqual({ success: true, data: { ...contact, replies: [reply] } });
-    const ownReply = { replyIdentifier: identifier, content: "本人向けの返信", sentAt: contact.createdAt };
+    const ownReply = { replyIdentifier: identifier, content: "本人向けの返信", sentAt: contact.createdAt, replyType: "operator", createdAt: contact.createdAt };
     expect(endpoint?.response.safeParse({ ...contact, replies: [ownReply] })).toEqual({ success: true, data: { ...contact, replies: [ownReply] } });
+    const legacyReply = { replyIdentifier: identifier, content: "旧返信", sentAt: contact.createdAt };
+    expect(endpoint?.response.safeParse({ ...contact, replies: [legacyReply] }).success).toBe(false);
+  });
+
+  it("keeps generated replies strict while the gateway accepts legacy replies", () => {
+    const { schemas } = siteManagementApiTypes;
+    const legacyReply = { replyIdentifier: identifier, content: "旧返信", sentAt: contact.createdAt };
+    const reply = { ...legacyReply, replyType: "submitter", createdAt: contact.createdAt, sentAt: null };
+    expect(schemas.ContactReplyDetail.safeParse(legacyReply).success).toBe(false);
+    expect(schemas.ContactReplyDetail.safeParse(reply)).toEqual({ success: true, data: reply });
+    expect(schemas.OperatorContactReplyDetail.safeParse(reply).success).toBe(false);
+    const operatorReply = { ...reply, principalIdentifier: null, name: null };
+    expect(schemas.OperatorContactReplyDetail.safeParse(operatorReply)).toEqual({ success: true, data: operatorReply });
+    expect(schemas.OperatorContactDetail.safeParse({ ...contact, replies: [operatorReply] }).success).toBe(true);
+    expect(parseSiteManagementContactDetail({ ...contact, replies: [legacyReply] }).replies).toEqual([legacyReply]);
   });
 
   it("preserves both reply types including submitter posts with failed notifications", () => {
@@ -36,6 +51,28 @@ describe("site-management contacts gateway", () => {
     }));
     expect(parseSiteManagementContactDetail({ ...contact, replies }).replies).toEqual(replies);
     expect(() => parseSiteManagementContactDetail({ ...contact, replies: [{ ...replies[0], replyType: "unknown" }] })).toThrow();
+  });
+  it.each([
+    {},
+    { replyType: "operator" },
+    { createdAt: contact.createdAt },
+    { replyType: "submitter", createdAt: contact.createdAt, sentAt: null },
+  ])("preserves missing conversation/author fields without filling defaults: %j", (fields) => {
+    const reply = { replyIdentifier: identifier, content: "返信", sentAt: contact.createdAt, ...fields, extra: "retained" };
+    const parsed = parseSiteManagementContactDetail({ ...contact, replies: [reply] }).replies[0];
+    expect(parsed).toEqual(reply);
+    expectTypeOf(parsed.replyType).toEqualTypeOf<"operator" | "submitter" | undefined>();
+    expectTypeOf(parsed.createdAt).toEqualTypeOf<string | undefined>();
+    expectTypeOf(parsed.sentAt).toEqualTypeOf<string | null>();
+  });
+  it.each([
+    { replyType: null }, { replyType: 1 }, { replyType: "unknown" },
+    { createdAt: null }, { createdAt: 1 },
+    { sentAt: undefined }, { sentAt: 1 },
+    { principalIdentifier: 1 }, { principalIdentifier: "not-a-uuid" }, { name: 1 },
+  ])("rejects malformed conversation or author fields: %j", (fields) => {
+    const reply = { replyIdentifier: identifier, content: "返信", sentAt: contact.createdAt, replyType: "operator", createdAt: contact.createdAt, principalIdentifier: identifier, name: "運営", ...fields };
+    expect(() => parseSiteManagementContactDetail({ ...contact, replies: [reply] })).toThrow(z.ZodError);
   });
   it("validates operator reply authors rather than accepting unknown passthrough values", () => {
     const reply = { replyIdentifier: identifier, content: "確認しました。", sentAt: contact.createdAt, principalIdentifier: identifier, name: "山田はるか" };
@@ -51,8 +88,8 @@ describe("site-management contacts gateway", () => {
     expect(() => parse({ principalIdentifier: "not-a-uuid" })).toThrow();
     const legacyReply = { replyIdentifier: identifier, content: reply.content, sentAt: reply.sentAt };
     expect(parseSiteManagementContactDetail({ ...contact, replies: [legacyReply] }).replies).toEqual([legacyReply]);
-    // General/my-contact replies retain the original three-field contract.
-    expect(siteManagementApiTypes.schemas.ContactReplyDetail.safeParse(legacyReply)).toEqual({ success: true, data: legacyReply });
+    // Legacy compatibility belongs to the gateway, not the generated API contract.
+    expect(siteManagementApiTypes.schemas.ContactReplyDetail.safeParse(legacyReply).success).toBe(false);
   });
 
   it("requires full string content on the shared operator/sender/my-contact list schema, not just passthrough", () => {

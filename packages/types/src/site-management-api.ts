@@ -47,14 +47,14 @@ const MyContactSummary = z
     content: z.string(),
   })
   .passthrough();
+const ContactReplyType = z.enum(["operator", "submitter"]);
 const ContactReplyDetail = z
   .object({
     replyIdentifier: KPool_Common_Uuid.uuid(),
     content: z.string(),
     sentAt: KPool_Common_Timestamp.nullable(),
-    // Optional only for compatibility with responses predating conversation entries.
-    replyType: z.enum(["operator", "submitter"]).optional(),
-    createdAt: KPool_Common_Timestamp.optional(),
+    replyType: ContactReplyType,
+    createdAt: KPool_Common_Timestamp,
   })
   .passthrough();
 const ContactDetail = z
@@ -68,16 +68,28 @@ const ContactDetail = z
     replies: z.array(ContactReplyDetail),
   })
   .passthrough();
-// OperatorContactReplyDetail in the backend TypeSpec/OpenAPI. Author fields are
-// null when unavailable; optional here for compatibility with older API responses.
-const OperatorContactReplyDetail = ContactReplyDetail.extend({
-  principalIdentifier: KPool_Common_Uuid.uuid().nullish(),
-  // Current Identity.identity_name of the stored Principal, not a name snapshot.
-  name: z.string().nullish(),
-});
-const OperatorContactDetail = ContactDetail.extend({
-  replies: z.array(OperatorContactReplyDetail),
-});
+const OperatorContactReplyDetail = z
+  .object({
+    replyIdentifier: KPool_Common_Uuid.uuid(),
+    content: z.string(),
+    sentAt: KPool_Common_Timestamp.nullable(),
+    replyType: ContactReplyType,
+    createdAt: KPool_Common_Timestamp,
+    principalIdentifier: KPool_Common_Uuid.nullable(),
+    name: z.string().nullable(),
+  })
+  .passthrough();
+const OperatorContactDetail = z
+  .object({
+    contactIdentifier: KPool_Common_Uuid.uuid(),
+    principalIdentifier: KPool_Common_Uuid.nullish(),
+    category: z.number().int(),
+    name: z.string(),
+    createdAt: KPool_Common_Timestamp,
+    content: z.string(),
+    replies: z.array(OperatorContactReplyDetail),
+  })
+  .passthrough();
 const ContactCategory = z.union([
   z.literal(1),
   z.literal(2),
@@ -272,6 +284,7 @@ export const schemas = {
   KPool_Common_Uuid,
   KPool_Common_Timestamp,
   MyContactSummary,
+  ContactReplyType,
   ContactReplyDetail,
   ContactDetail,
   OperatorContactReplyDetail,
