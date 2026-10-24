@@ -141,14 +141,6 @@ function DeleteDialog({
           <button
             type="button"
             disabled={pending}
-            onClick={close}
-            className="min-h-11 rounded-lg border border-stroke-subtle px-4"
-          >
-            {t.close}
-          </button>
-          <button
-            type="button"
-            disabled={pending}
             onClick={submit}
             className="min-h-11 rounded-lg bg-status-danger px-4 text-white disabled:opacity-50"
           >
