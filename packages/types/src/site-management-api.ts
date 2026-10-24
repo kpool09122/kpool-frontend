@@ -491,7 +491,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ContactDetail,
+    response: z.union([ContactDetail, OperatorContactDetail]),
     errors: [
       {
         status: 401,
@@ -637,7 +637,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ContactDetail,
+    response: z.union([ContactDetail, OperatorContactDetail]),
     errors: [
       {
         status: 401,

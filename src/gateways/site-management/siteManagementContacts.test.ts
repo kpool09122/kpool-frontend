@@ -1,5 +1,6 @@
 import { siteManagementApiTypes } from "@kpool/types";
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
+import { z } from "zod";
 
 import {
   fetchSiteManagementContactDetail,
@@ -13,6 +14,21 @@ const identifier = "019a1234-5678-7000-8000-111111111111";
 const contact = { contactIdentifier: identifier, principalIdentifier: identifier, category: 1, name: "Sender", replyIdentifiers: [], createdAt: "2026-10-08T00:00:00+00:00", content: "ログイン後に画面が表示されません。" };
 
 describe("site-management contacts gateway", () => {
+  it.each([
+    "/contacts/:contactIdentifier",
+    "/contact/principals/:principalIdentifier/:contactIdentifier",
+  ])("exports the generated general/operator response union for GET %s", (path) => {
+    const { siteManagementApi, schemas } = siteManagementApiTypes;
+    const endpoint = siteManagementApi.api.find((entry) => entry.method === "get" && entry.path === path);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.response).toBeInstanceOf(z.ZodUnion);
+    expect(endpoint?.response).toHaveProperty("options", [schemas.ContactDetail, schemas.OperatorContactDetail]);
+    const reply = { replyIdentifier: identifier, content: "運営からの返信", sentAt: contact.createdAt, principalIdentifier: identifier, name: "山田はるか" };
+    expect(endpoint?.response.safeParse({ ...contact, replies: [reply] })).toEqual({ success: true, data: { ...contact, replies: [reply] } });
+    const ownReply = { replyIdentifier: identifier, content: "本人向けの返信", sentAt: contact.createdAt };
+    expect(endpoint?.response.safeParse({ ...contact, replies: [ownReply] })).toEqual({ success: true, data: { ...contact, replies: [ownReply] } });
+  });
+
   it("preserves both reply types including submitter posts with failed notifications", () => {
     const replies = ["operator", "submitter"].map((replyType) => ({
       replyIdentifier: identifier, content: "返信", replyType, createdAt: contact.createdAt,
