@@ -85,9 +85,8 @@ test("mobile collaborator confirms by keyboard, preserves duration filters and h
   expect(attempts).toBe(0);
   await remove.click();
   await dialog.getByRole("button", { name: "Cancel" }).click();
-  expect(attempts).toBe(0);
-  await remove.click();
-  await dialog.getByRole("button", { name: "Close" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(remove).toBeFocused();
   expect(attempts).toBe(0);
   const minimum = page.getByRole("slider", {
     name: "Minimum duration (minutes)",
