@@ -11,6 +11,8 @@ describe("public wiki videos", () => {
       thumbnailUrl: null,
       publishedAt: null,
       durationSeconds: 253,
+      creatorPrincipalIdentifier: null,
+      creatorIdentityName: null,
       videoUsage: n === 2 ? "music_video" : "youtube_auto_view_count",
     }));
     const fetcher = vi.fn().mockResolvedValue(Response.json({ videos }));
