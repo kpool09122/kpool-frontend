@@ -47,11 +47,14 @@ const MyContactSummary = z
     content: z.string(),
   })
   .passthrough();
+const ContactReplyType = z.enum(["operator", "submitter"]);
 const ContactReplyDetail = z
   .object({
     replyIdentifier: KPool_Common_Uuid.uuid(),
     content: z.string(),
-    sentAt: KPool_Common_Timestamp,
+    sentAt: KPool_Common_Timestamp.nullable(),
+    replyType: ContactReplyType,
+    createdAt: KPool_Common_Timestamp,
   })
   .passthrough();
 const ContactDetail = z
@@ -63,6 +66,28 @@ const ContactDetail = z
     createdAt: KPool_Common_Timestamp,
     content: z.string(),
     replies: z.array(ContactReplyDetail),
+  })
+  .passthrough();
+const OperatorContactReplyDetail = z
+  .object({
+    replyIdentifier: KPool_Common_Uuid.uuid(),
+    content: z.string(),
+    sentAt: KPool_Common_Timestamp.nullable(),
+    replyType: ContactReplyType,
+    createdAt: KPool_Common_Timestamp,
+    principalIdentifier: KPool_Common_Uuid.nullable(),
+    name: z.string().nullable(),
+  })
+  .passthrough();
+const OperatorContactDetail = z
+  .object({
+    contactIdentifier: KPool_Common_Uuid.uuid(),
+    principalIdentifier: KPool_Common_Uuid.nullish(),
+    category: z.number().int(),
+    name: z.string(),
+    createdAt: KPool_Common_Timestamp,
+    content: z.string(),
+    replies: z.array(OperatorContactReplyDetail),
   })
   .passthrough();
 const ContactCategory = z.union([
@@ -259,8 +284,11 @@ export const schemas = {
   KPool_Common_Uuid,
   KPool_Common_Timestamp,
   MyContactSummary,
+  ContactReplyType,
   ContactReplyDetail,
   ContactDetail,
+  OperatorContactReplyDetail,
+  OperatorContactDetail,
   ContactCategory,
   SubmitContactRequestBody,
   ContactSummary,
@@ -476,7 +504,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ContactDetail,
+    response: z.union([ContactDetail, OperatorContactDetail]),
     errors: [
       {
         status: 401,
@@ -622,7 +650,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ContactDetail,
+    response: z.union([ContactDetail, OperatorContactDetail]),
     errors: [
       {
         status: 401,

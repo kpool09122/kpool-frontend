@@ -1,4 +1,4 @@
-import { siteManagementPublicApiTypes } from "@kpool/types";
+import { siteManagementApiTypes, siteManagementPublicApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
@@ -29,8 +29,26 @@ export const submitContactResponseSchema = z.object({
 export type SubmitContactRequest = z.infer<typeof submitContactRequestSchema>;
 export type SubmitContactResponse = z.infer<typeof submitContactResponseSchema>;
 
-export type MyContactSummary = z.infer<typeof siteManagementPublicApiTypes.schemas.MyContactSummary>;
-export type MyContactDetail = z.infer<typeof siteManagementPublicApiTypes.schemas.ContactDetail>;
+// Keep missing legacy conversation fields missing; never infer type or creation time.
+export const contactReplyCompatibilitySchema = siteManagementApiTypes.schemas.ContactReplyDetail.extend({
+  replyType: siteManagementApiTypes.schemas.ContactReplyDetail.shape.replyType.optional(),
+  createdAt: siteManagementApiTypes.schemas.ContactReplyDetail.shape.createdAt.optional(),
+});
+
+// Reuse the existing API models, stripping passthrough fields at the own-contact
+// boundary so operator-only reply author data can never escape through this BFF.
+const myContactSummarySchema = siteManagementPublicApiTypes.schemas.MyContactSummary.strip();
+const myContactDetailSchema = siteManagementPublicApiTypes.schemas.ContactDetail.strip().extend({
+  replies: z.array(contactReplyCompatibilitySchema.strip()),
+});
+export type MyContactSummary = z.infer<typeof myContactSummarySchema>;
+export type MyContactDetail = z.infer<typeof myContactDetailSchema>;
+
+export const parseMyContactsResponse = (body: unknown): MyContactSummary[] =>
+  parseWithSchemaLog("my contacts response", z.array(myContactSummarySchema), body);
+
+export const parseMyContactDetailResponse = (body: unknown): MyContactDetail =>
+  parseWithSchemaLog("my contact detail response", myContactDetailSchema, body);
 
 type ContactApiEnv = Record<string, string | undefined>;
 
@@ -64,9 +82,3 @@ export const parseSubmitContactRequest = (body: unknown): SubmitContactRequest =
 
 export const parseSubmitContactResponse = (body: unknown): SubmitContactResponse =>
   parseWithSchemaLog("contact submit response", submitContactResponseSchema, body);
-
-export const parseMyContactsResponse = (body: unknown): MyContactSummary[] =>
-  parseWithSchemaLog("my contacts response", z.array(siteManagementPublicApiTypes.schemas.MyContactSummary), body);
-
-export const parseMyContactDetailResponse = (body: unknown): MyContactDetail =>
-  parseWithSchemaLog("my contact detail response", siteManagementPublicApiTypes.schemas.ContactDetail, body);

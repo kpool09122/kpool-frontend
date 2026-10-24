@@ -35,12 +35,13 @@ describe("principal group menu tabs", () => {
     expect(screen.queryByRole("link", { name: dictionaries.ja.admin.siteManagementMenu })).not.toBeInTheDocument();
     expect(screen.queryByText("Site management content")).not.toBeInTheDocument();
   });
-  it("keeps the site entry for contact permission even when no current tab is available", () => {
+  it("provides the contact tab and site entry for own-contact permission", () => {
     siteAdmin.currentIdentity = { ...identity, account: { status: "active" }, siteManagementPrincipalIdentifier: principal.principalIdentifier, siteManagementPrincipalCount: 1, siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "General", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: "own_contact" }] }] };
     render(<AdminShellClient><SiteManagementPageClient><p>Site management content</p></SiteManagementPageClient></AdminShellClient>);
     expect(screen.getByRole("link", { name: dictionaries.ja.admin.siteManagementMenu })).toBeInTheDocument();
-    expect(screen.getByText(dictionaries.ja.admin.siteManagementNoAvailableServices)).toBeInTheDocument();
-    expect(screen.queryByText("Site management content")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "自身のお問い合わせ" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "お問い合わせ管理" })).not.toBeInTheDocument();
+    expect(screen.getByText("Site management content")).toBeInTheDocument();
   });
   it.each([undefined, 0, 1, 2, 3])("shows site permissions only with at least two site principals: %s", (count) => {
     siteAdmin.currentIdentity = {

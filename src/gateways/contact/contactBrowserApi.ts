@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
 import {
@@ -83,6 +84,8 @@ export const fetchMyContactDetail = async ({
   fallbackErrorMessage,
   fetchAdapter = fetch,
 }: FetchOptions & { contactIdentifier: string }): Promise<MyContactDetail> => {
+  const identifier = z.string().uuid().safeParse(contactIdentifier);
+  if (!identifier.success) throw identifier.error;
   const response = await fetchAdapter(`/api/site-management/contact/me/${encodeURIComponent(contactIdentifier)}`, {
     cache: "no-store",
     credentials: "include",
