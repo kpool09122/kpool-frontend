@@ -10,8 +10,8 @@ describe("public wiki videos", () => {
       title: `Video ${n}`,
       thumbnailUrl: null,
       publishedAt: null,
-      displayOrder: n,
-      videoUsage: "youtube_auto_view_count",
+      durationSeconds: 253,
+      videoUsage: n === 2 ? "music_video" : "youtube_auto_view_count",
     }));
     const fetcher = vi.fn().mockResolvedValue(Response.json({ videos }));
     vi.stubGlobal("fetch", fetcher);

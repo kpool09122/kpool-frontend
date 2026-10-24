@@ -1,5 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { getYouTubeVideoId, getYouTubeThumbnailUrl } from "./wikiVideoModel";
+import { formatVideoDuration, getYouTubeVideoId, getYouTubeThumbnailUrl } from "./wikiVideoModel";
+
+describe("video duration", () => {
+  it.each([
+    [0, "0:00"],
+    [9, "0:09"],
+    [60, "1:00"],
+    [253, "4:13"],
+    [3599, "59:59"],
+    [3600, "1:00:00"],
+    [3661, "1:01:01"],
+    [36000, "10:00:00"],
+    [null, null],
+    [-1, null],
+    [1.5, null],
+    [NaN, null],
+    [Infinity, null],
+  ])("formats %s seconds as %s", (seconds, expected) => {
+    expect(formatVideoDuration(seconds)).toBe(expected);
+  });
+});
 describe("YouTube URLs", () => {
   it.each([
     "abcdefghijk",

@@ -113,6 +113,12 @@ const mockPrincipalStateByMode: Record<
   "principal-manager": { status: "available", principal: { ...createMockPrincipal([createMockPolicy("GROUP_MANAGEMENT", ["principal-group:manage"], ["principal_group"])]), accountPrincipalCount: 3 } },
   suspended: { status: "available", principal: { ...createMockPrincipal([]), status: "suspended" } },
   forced_stop: { status: "available", principal: { ...createMockPrincipal([]), status: "forced_stop" } },
+  "video-collaborator": {
+    status: "available",
+    principal: createMockPrincipal([
+      createMockPolicy("BASIC_EDITING", ["save_video_links"], ["group"]),
+    ]),
+  },
   basic: {
     status: "available",
     principal: createMockPrincipal([

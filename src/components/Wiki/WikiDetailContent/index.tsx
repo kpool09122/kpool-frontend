@@ -21,6 +21,8 @@ type WikiDetailContentProps = {
   onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
   videoPanel?: ReactNode;
+  activeTabId?: string;
+  onTabChange?: (tabId: string) => void;
 };
 
 export function WikiDetailContent({
@@ -29,6 +31,8 @@ export function WikiDetailContent({
   onEdit,
   language,
   videoPanel,
+  activeTabId,
+  onTabChange,
 }: WikiDetailContentProps) {
   const { dictionary } = useI18n();
   const contentDictionary = dictionaries[normalizeLocale(language) ?? "ja"];
@@ -62,6 +66,8 @@ export function WikiDetailContent({
 
       <WikiContentTabs
         ariaLabel={t.contentTabsLabel}
+        activeTabId={activeTabId}
+        onTabChange={onTabChange}
         tabs={[
           {
             id: "wiki",

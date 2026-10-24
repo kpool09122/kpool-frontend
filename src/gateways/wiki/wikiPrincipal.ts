@@ -136,6 +136,21 @@ export const canSearchWikiFreeMaterials = (principal: WikiPrincipalSummary): boo
     && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && materialSearchConditionMatches(statement) === true);
 };
 
+// The backend evaluates SAVE_VIDEO_LINKS against the Wiki's resource type.
+// Only unconditional grants are provable here; the create API is authoritative.
+export const canCreateWikiVideo = (
+  principal: WikiPrincipalSummary,
+  resourceType: "agency" | "group" | "song" | "talent",
+): boolean => {
+  const statements = principal.policies.flatMap((policy) => policy.statements)
+    .filter((statement) => valueMatches(statement.actions, "save_video_links")
+      && valueMatches(statement.resourceTypes, resourceType));
+  return principal.status === "active"
+    && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY")
+    && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW"
+      && !(statement.condition?.clauses?.length));
+};
+
 export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
   isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");

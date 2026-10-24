@@ -12,18 +12,25 @@ export type WikiContentTab = {
 type WikiContentTabsProps = {
   ariaLabel: string;
   tabs: readonly WikiContentTab[];
+  activeTabId?: string;
+  onTabChange?: (tabId: string) => void;
 };
 
-export function WikiContentTabs({ ariaLabel, tabs }: WikiContentTabsProps) {
+export function WikiContentTabs({ ariaLabel, tabs, activeTabId: selectedTabId, onTabChange }: WikiContentTabsProps) {
   const instanceId = useId();
   const [activeTabId, setActiveTabId] = useState(() => tabs[0]?.id ?? "");
   const activeTab =
-    tabs.find((tab) => tab.id === activeTabId && !tab.disabled) ??
+    tabs.find((tab) => tab.id === (selectedTabId ?? activeTabId) && !tab.disabled) ??
     tabs.find((tab) => !tab.disabled);
 
   if (!activeTab) {
     return null;
   }
+
+  const selectTab = (tabId: string) => {
+    if (selectedTabId === undefined) setActiveTabId(tabId);
+    onTabChange?.(tabId);
+  };
 
   const selectAdjacentTab = (currentIndex: number, direction: 1 | -1) => {
     const enabledTabs = tabs.filter((tab) => !tab.disabled);
@@ -35,7 +42,7 @@ export function WikiContentTabs({ ariaLabel, tabs }: WikiContentTabsProps) {
     );
 
     if (nextTab) {
-      setActiveTabId(nextTab.id);
+      selectTab(nextTab.id);
       document.getElementById(`${instanceId}-${nextTab.id}-tab`)?.focus();
     }
   };
@@ -85,7 +92,7 @@ export function WikiContentTabs({ ariaLabel, tabs }: WikiContentTabsProps) {
                 id={tabId}
                 key={tab.id}
                 onClick={() => {
-                  if (!tab.disabled) setActiveTabId(tab.id);
+                  if (!tab.disabled) selectTab(tab.id);
                 }}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
                 role="tab"
