@@ -372,7 +372,7 @@ describe("WikiVideoPanel", () => {
       listCalls.filter(([url]) => !url.includes("minDurationSeconds")),
     ).toHaveLength(2);
   });
-  it.each(["Close", "Escape", "backdrop"])(
+  it.each(["Cancel", "Escape", "backdrop"])(
     "does not send DELETE when closing via %s and restores trigger focus",
     async (method) => {
       useAuthStore.setState({ status: "authenticated" });
@@ -398,7 +398,7 @@ describe("WikiVideoPanel", () => {
         fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
       else if (method === "backdrop")
         fireEvent.click(screen.getByRole("dialog"));
-      else fireEvent.click(screen.getByRole("button", { name: "Close" }));
+      else fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(trigger).toHaveFocus();
       expect(
