@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { installYouTubePlayerMock } from "./youtube-player";
 const video = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
   url: "https://youtu.be/jfKfPfyJRdk",
@@ -25,6 +26,7 @@ test("anonymous mobile viewer loads videos only on selection, plays inline, and 
       },
     ]);
   await page.setViewportSize({ width: 390, height: 844 });
+  await installYouTubePlayerMock(page);
   let requests = 0;
   await page.route("**/api/wiki/*/*/videos?*", async (route) => {
     requests += 1;

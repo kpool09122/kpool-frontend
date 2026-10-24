@@ -601,10 +601,8 @@ describe("WikiVideoPanel", () => {
     fireEvent.click(
       screen.getByRole("button", { name: `Play: ${video.title}` }),
     );
-    expect(screen.getByTitle(`YouTube embed: ${video.title}`)).toHaveAttribute(
-      "src",
-      "https://www.youtube-nocookie.com/embed/abcdefghijk",
-    );
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(video.title);
+    expect(screen.getByRole("button", { name: "Continue in mini player" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open on YouTube" }),
     ).toHaveAttribute("href", "https://www.youtube.com/watch?v=abcdefghijk");

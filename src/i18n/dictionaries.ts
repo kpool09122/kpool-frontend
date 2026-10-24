@@ -1018,6 +1018,10 @@ const ja = {
       continuous: {
         start: "連続再生",
         loop: "ループ再生",
+        miniPlayer: "ミニプレイヤー",
+        detach: "ミニプレイヤーで再生を続ける",
+        moveHint: "ドラッグまたは矢印キーで移動できます。端のドラッグ、タイトルや余白での2本指のピンチ、Shift＋矢印キーでサイズを変更できます。",
+        close: "閉じる",
         random: "ランダム再生",
         outsideQueue: "一覧外の動画に切り替わったため、連続再生を終了しました。",
         stop: "再生を停止",
@@ -2446,6 +2450,10 @@ const en: typeof ja = {
       continuous: {
         start: "Play all",
         loop: "Loop playback",
+        miniPlayer: "Mini player",
+        detach: "Continue in mini player",
+        moveHint: "Drag or use arrow keys to move. Resize by dragging an edge, pinching with two fingers on the title or padding, or using Shift and arrow keys.",
+        close: "Close",
         random: "Random playback",
         outsideQueue: "Playback stopped because the player switched to a video outside this list.",
         stop: "Stop playback",
@@ -3871,6 +3879,10 @@ const ko: typeof ja = {
       continuous: {
         start: "연속 재생",
         loop: "반복 재생",
+        miniPlayer: "미니 플레이어",
+        detach: "미니 플레이어에서 계속 재생",
+        moveHint: "드래그하거나 방향키로 이동할 수 있습니다. 가장자리 드래그, 제목이나 여백에서 두 손가락 핀치, Shift와 방향키로 크기를 조절할 수 있습니다.",
+        close: "닫기",
         random: "무작위 재생",
         outsideQueue: "목록에 없는 동영상으로 전환되어 연속 재생을 종료했습니다.",
         stop: "재생 중지",

@@ -13,10 +13,12 @@ import { I18nProvider } from "@/i18n/I18nProvider";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { WikiVideoPanel } from "./index";
+import { WikiEmbedFrame } from "../WikiEmbedFrame";
+import { YouTubePlaybackProvider } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
 import {
   YouTubeQueuePlayer,
   type QueuePlayerOptions,
-} from "./YouTubeQueuePlayer";
+} from "@/components/YouTubePlayback/YouTubeQueuePlayer";
 
 const first: WikiVideo = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
@@ -55,25 +57,32 @@ function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
   });
   client.setQueryData(key, { videos });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ videos })));
-  const tree = (slug = "gr-test") => (
+  const tree = (slug = "gr-test", withEmbed = false) => (
     <QueryClientProvider client={client}>
       <I18nProvider initialLocale={locale}>
-        <WikiVideoPanel language="ja" resourceType="group" slug={slug} />
+        <YouTubePlaybackProvider>
+          <WikiVideoPanel language="ja" resourceType="group" slug={slug} />
+          {withEmbed ? <WikiEmbedFrame block={{
+            blockType: "embed", blockIdentifier: "body-video", displayOrder: 0,
+            provider: "youtube", embedId: "12345678901", caption: "Body video",
+          }} /> : null}
+        </YouTubePlaybackProvider>
       </I18nProvider>
     </QueryClientProvider>
   );
   return { client, tree, ...render(tree()) };
 }
 const start = async () => {
+  const previous = players.length;
   fireEvent.click(screen.getByRole("button", { name: "Play all" }));
-  await waitFor(() => expect(players.length).toBeGreaterThan(0));
+  await waitFor(() => expect(players.length).toBeGreaterThan(previous));
 };
 function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
   expect(players.at(-1)?.options.videoId).toBe(
     new URL(video.url).pathname.slice(1),
   );
   expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
-    `Now playing: ${video.title} (${position}/${total})`,
+    `${video.title} (${position}/${total})`,
   );
   expect(
     screen.getByRole("heading", { name: video.title }).closest("li"),
@@ -120,7 +129,7 @@ describe("continuous playback", () => {
     players[0].getVideoUrl.mockReturnValue(target.url);
     act(() => players[0].options.events.onStateChange({ data: 1 }));
     expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
-      `Now playing: ${target.title} (2/2)`,
+      `${target.title} (2/2)`,
     );
     expect(players[0].destroy).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: target.title }).closest("li"))
@@ -142,7 +151,7 @@ describe("continuous playback", () => {
       else players[0].getVideoUrl.mockReturnValue(second.url);
       await act(async () => vi.advanceTimersByTimeAsync(501));
       expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
-        "Now playing: Second video (2/2)",
+        "Second video (2/2)",
       );
       if (scenario === "ended") {
         expect(players).toHaveLength(2);
@@ -222,7 +231,7 @@ describe("continuous playback", () => {
     expect(players.map((player) => player.options.videoId)).toEqual([
       "abcdefghijk", "lmnopqrstuv", "abcdefghijk",
     ]);
-    expect(screen.getByText("Now playing: First video (1/2)")).toBeInTheDocument();
+    expect(screen.getByText("First video (1/2)")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
     act(() => players[2].options.events.onStateChange({ data: 0 }));
     expect(players).toHaveLength(3);
@@ -273,7 +282,7 @@ describe("continuous playback", () => {
     act(() => players[1].options.events.onStateChange({ data: 0 }));
     await waitFor(() => expect(players).toHaveLength(3));
     expect(players[2].options.videoId).toBe("lmnopqrstuv");
-    expect(screen.getByText("Now playing: Second video (1/1)")).toBeInTheDocument();
+    expect(screen.getByText("Second video (1/1)")).toBeInTheDocument();
     act(() => players[2].options.events.onError());
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
     expect(players).toHaveLength(3);
@@ -312,7 +321,7 @@ describe("continuous playback", () => {
       playerVars: { playsinline: 1, origin: window.location.origin },
     });
     expect(
-      screen.getByText("Now playing: Second video (1/2)"),
+      screen.getByText("Second video (1/2)"),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: second.title }).closest("li"),
@@ -391,42 +400,72 @@ describe("continuous playback", () => {
     ).not.toBeInTheDocument();
     expect(players).toHaveLength(1);
   });
-  it("mutually excludes individual and continuous players and stops late events", async () => {
-    const view = mount();
-    fireEvent.click(
-      screen.getByRole("button", { name: `Play: ${first.title}` }),
-    );
-    expect(view.container.querySelectorAll("iframe")).toHaveLength(1);
-    fireEvent.click(
-      screen.getByRole("button", { name: `Play: ${second.title}` }),
-    );
-    expect(view.container.querySelectorAll("iframe")).toHaveLength(1);
-    expect(
-      screen.queryByTitle(`YouTube embed: ${first.title}`),
-    ).not.toBeInTheDocument();
-    await start();
-    expect(view.container.querySelectorAll("iframe")).toHaveLength(0);
-    fireEvent.click(
-      screen.getByRole("button", { name: `Play: ${second.title}` }),
-    );
-    expect(players[0].destroy).toHaveBeenCalledOnce();
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    expect(players).toHaveLength(1);
-    expect(
-      screen.getByTitle(`YouTube embed: ${second.title}`),
-    ).toBeInTheDocument();
-    await start();
+  it("uses one player for individual and continuous playback and ignores late events", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
+    await waitFor(() => expect(players).toHaveLength(1));
+    fireEvent.click(screen.getByRole("button", { name: `Play: ${second.title}` }));
     await waitFor(() => expect(players).toHaveLength(2));
-    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    expect(players[0].destroy).toHaveBeenCalledOnce();
+    expect(players[1].options.videoId).toBe("lmnopqrstuv");
+    await start();
     expect(players[1].destroy).toHaveBeenCalledOnce();
+    expect(players[2].options.videoId).toBe("abcdefghijk");
+    fireEvent.click(screen.getByRole("button", { name: `Play: ${second.title}` }));
+    await waitFor(() => expect(players).toHaveLength(4));
+    expect(players[2].destroy).toHaveBeenCalledOnce();
+    act(() => players[2].options.events.onStateChange({ data: 0 }));
+    expect(players).toHaveLength(4);
+    await start();
+    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    expect(players[4].destroy).toHaveBeenCalledOnce();
     act(() => {
-      players[1].options.events.onAutoplayBlocked();
-      players[1].options.events.onError();
+      players[4].options.events.onAutoplayBlocked();
+      players[4].options.events.onError();
     });
-    expect(
-      screen.queryByRole("region", { name: "Now playing" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Skipped/)).not.toBeInTheDocument();
+  });
+  it("switches the floating player from the video list to a Wiki body embed", async () => {
+    const view = mount();
+    view.rerender(view.tree("gr-test", true));
+    await start();
+    fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+    fireEvent.click(screen.getByRole("button", { name: "Play: Body video" }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    expect(players[0].destroy).toHaveBeenCalledOnce();
+    expect(players[1].options.videoId).toBe("12345678901");
+    expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Body video");
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    expect(players).toHaveLength(2);
+  });
+  it("keeps the same player when detached and continues the queue", async () => {
+    mount();
+    await start();
+    fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+    expect(screen.getByRole("region", { name: "Mini player" })).toHaveStyle({ position: "fixed", right: "16px", bottom: "16px" });
+    expect(players).toHaveLength(1);
+    expect(players[0].destroy).not.toHaveBeenCalled();
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Second video (2/2)");
+  });
+  it("retains the queue across Wiki navigation and switches to a new selection", async () => {
+    const view = mount();
+    await start();
+    fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+    view.rerender(view.tree("gr-other"));
+    await screen.findByRole("button", { name: "Play all" });
+    expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("First video (1/2)");
+    expect(players[0].destroy).not.toHaveBeenCalled();
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(players).toHaveLength(2));
+    expect(players[1].options.videoId).toBe("lmnopqrstuv");
+    await start();
+    expect(players[1].destroy).toHaveBeenCalledOnce();
+    expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("First video (1/2)");
+    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    expect(screen.queryByRole("region", { name: "Mini player" })).not.toBeInTheDocument();
   });
   it.each(["filter", "same filter", "wiki", "delete", "reorder", "unmount"])(
     "destroys playback on %s and rejects late callbacks",
@@ -477,7 +516,7 @@ describe("continuous playback", () => {
     await waitFor(() => expect(players).toHaveLength(2));
     expect(players[1].options.videoId).toBe("lmnopqrstuv");
     expect(
-      screen.getByText("Now playing: Second video (1/1)"),
+      screen.getByText("Second video (1/1)"),
     ).toBeInTheDocument();
   });
   it.each([

@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
-import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
+import { useEffect, useId, useRef, useState } from "react";
+import { useStore } from "zustand";
 import {
-  advancePlayback,
-  playbackOrder,
-  type PlaybackQueue,
-} from "./playbackQueue";
-import { useEffect, useRef, useState } from "react";
+  PlaybackOutlet,
+  YouTubePlaybackProvider,
+  usePlaybackOwner,
+  useYouTubePlayback,
+} from "@/components/YouTubePlayback/YouTubePlaybackProvider";
 import { useWikiVideoDeleteAccess } from "@/gateways/wiki/useWikiVideoDeleteAccess";
 import { WikiVideoDeleteButton } from "./WikiVideoDeleteButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +24,6 @@ import {
   type WikiVideoIdentity,
 } from "@/gateways/wiki/wikiVideos";
 import { useI18n } from "@/i18n/I18nProvider";
-import { WikiEmbedFrame } from "../WikiEmbedFrame";
 import { WikiVideoCreateEntry } from "../WikiVideoCreateForm/WikiVideoCreateEntry";
 import type { WikiVideoDurationFilter as DurationFilter } from "@/gateways/wiki/wikiVideoFilters";
 import { WikiVideoDurationFilter } from "./WikiVideoDurationFilter";
@@ -32,12 +32,12 @@ import { SocialLinkIcon } from "../socialLinks";
 function VideoCard({
   video,
   deleteControl,
-  playing,
+  player,
   current,
   onPlay,
 }: {
   video: WikiVideo;
-  playing: boolean;
+  player?: React.ReactNode;
   current: boolean;
   onPlay: () => void;
   deleteControl?: React.ReactNode;
@@ -53,11 +53,6 @@ function VideoCard({
       aria-current={current ? "true" : undefined}
       className="min-w-0 space-y-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
     >
-      {current ? (
-        <p className="font-semibold text-brand-primary">
-          {t.continuous.nowPlaying}
-        </p>
-      ) : null}
       <div className="flex items-start gap-2">
         <h2 className="flex min-w-0 flex-1 items-start gap-2 text-lg font-semibold">
           {videoId ? (
@@ -71,17 +66,8 @@ function VideoCard({
         </h2>
         {deleteControl}
       </div>
-      {playing && videoId ? (
-        <WikiEmbedFrame
-          block={{
-            blockType: "embed",
-            blockIdentifier: video.videoLinkIdentifier,
-            displayOrder: 0,
-            provider: "youtube",
-            embedId: videoId,
-            caption: video.title,
-          }}
-        />
+      {player ? (
+        player
       ) : (
         <button
           type="button"
@@ -137,7 +123,14 @@ function VideoCard({
   );
 }
 
-export function WikiVideoPanel({
+export function WikiVideoPanel(props: WikiVideoIdentity & { wikiIdentifier?: string }) {
+  const context = useYouTubePlayback();
+  return context ? <WikiVideoPanelContent {...props} /> : (
+    <YouTubePlaybackProvider><WikiVideoPanelContent {...props} /></YouTubePlaybackProvider>
+  );
+}
+
+function WikiVideoPanelContent({
   wikiIdentifier,
   ...identity
 }: WikiVideoIdentity & { wikiIdentifier?: string }) {
@@ -287,14 +280,19 @@ function VideoPlaybackList({
     const videoId = getYouTubeVideoId(video.url);
     return videoId ? [{ video, videoId }] : [];
   });
-  const [playback, setPlayback] = useState<
-    | PlaybackQueue
-    | { mode: "individual"; identifier: string }
-    | null
-  >(null);
-  const [loop, setLoop] = useState(false);
-  const [random, setRandom] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const { store } = useYouTubePlayback()!;
+  const owner = useId();
+  usePlaybackOwner(store, owner);
+  const session = useStore(store, (state) => state.session);
+  const floating = useStore(store, (state) => state.floating);
+  const sharedNotice = useStore(store, (state) => state.notice);
+  const playback = session?.owner === owner ? session : null;
+  const [preferredLoop, setPreferredLoop] = useState(false);
+  const [preferredRandom, setPreferredRandom] = useState(false);
+  const loop = playback?.loop ?? preferredLoop;
+  const random = playback?.random ?? preferredRandom;
+  const notice = sharedNotice?.owner === owner && !sharedNotice.floating
+    ? `${t[sharedNotice.kind]}${sharedNotice.title ? `: ${sharedNotice.title}` : ""}` : null;
   const startButton = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
   useEffect(() => {
@@ -303,86 +301,49 @@ function VideoPlaybackList({
       startButton.current?.focus();
     }
   }, [playback]);
-  const active =
-    playback?.mode === "continuous"
-      ? queue[playback.order[playback.position]]
-      : undefined;
-  const requested =
-    playback?.mode === "continuous" ? queue[playback.playerIndex] : undefined;
-  const playbackAtVideo = (current: PlaybackQueue, videoId?: string) => {
-    if (queue[current.order[current.position]].videoId === videoId) return current;
-    const position = current.order.findIndex(
-      (index) => queue[index].videoId === videoId,
-    );
-    return position >= 0 ? { ...current, position } : current;
-  };
-  const next = (failed = false, videoId?: string) => {
-    if (playback?.mode === "continuous") {
-      setPlayback(
-        advancePlayback(playbackAtVideo(playback, videoId), {
-          loop,
-          random,
-          failed,
-        }),
-      );
-    }
+  const active = playback?.tracks[playback.queue.order[playback.queue.position]];
+  const setLoop = (enabled: boolean) => {
+    setPreferredLoop(enabled);
+    if (playback) store.getState().setLoop(enabled);
   };
   const toggleRandom = () => {
-    const enabled = !random;
-    setRandom(enabled);
-    if (playback?.mode === "continuous") {
-      const remaining = playback.order.slice(playback.position + 1);
-      setPlayback({
-        ...playback,
-        order: [
-          ...playback.order.slice(0, playback.position + 1),
-          ...playbackOrder(remaining.sort((a, b) => a - b), enabled),
-        ],
-      });
-    }
+    setPreferredRandom(!random);
+    if (playback) store.getState().setRandom(!random);
   };
   const toggleClassName =
     "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary aria-pressed:after:absolute aria-pressed:after:bottom-1 aria-pressed:after:h-1 aria-pressed:after:w-1 aria-pressed:after:rounded-full aria-pressed:after:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-40";
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-5">
-        <button
-          type="button"
-          aria-label={t.random}
-          title={t.random}
-          aria-pressed={random}
-          disabled={!queue.length}
-          onClick={toggleRandom}
-          className={toggleClassName}
-        >
-          <ShuffleIcon aria-hidden="true" className="h-6 w-6" />
-        </button>
+        {!(playback && floating) ? (
+          <button
+            type="button"
+            aria-label={t.random}
+            title={t.random}
+            aria-pressed={random}
+            disabled={!queue.length}
+            onClick={toggleRandom}
+            className={toggleClassName}
+          >
+            <ShuffleIcon aria-hidden="true" className="h-6 w-6" />
+          </button>
+        ) : null}
         <button
           type="button"
           ref={startButton}
-          aria-pressed={playback?.mode === "continuous"}
-          disabled={!queue.length || playback?.mode === "continuous"}
+          aria-pressed={playback?.kind === "queue"}
+          disabled={!queue.length || playback?.kind === "queue"}
           className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:aria-pressed:opacity-100"
           onClick={() => {
-            setNotice(null);
-            const order = playbackOrder(
-              queue.map((_, index) => index),
-              random,
-            );
-            setPlayback({
-              mode: "continuous",
-              order,
-              position: 0,
-              playerIndex: order[0],
-              sequence: 0,
-              failed: [],
-            });
+            store.getState().start(owner, queue.map(({ video, videoId }) => ({
+              identifier: video.videoLinkIdentifier, videoId, title: video.title,
+            })), "queue", loop, random);
           }}
         >
           <PlayIcon aria-hidden="true" className="h-6 w-6" />
           {t.start}
         </button>
-        {playback ? (
+        {playback && !floating ? (
           <button
             type="button"
             aria-label={t.stop}
@@ -390,80 +351,42 @@ function VideoPlaybackList({
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
             onClick={() => {
               restoreFocus.current = true;
-              setPlayback(null);
-              setNotice(null);
+              store.getState().stop();
             }}
           >
             <StopIcon aria-hidden="true" className="h-5 w-5" />
           </button>
         ) : null}
-        <button
-          type="button"
-          aria-label={t.loop}
-          title={t.loop}
-          aria-pressed={loop}
-          disabled={!queue.length}
-          onClick={() => setLoop((current) => !current)}
-          className={toggleClassName}
-        >
-          <LoopIcon aria-hidden="true" className="h-6 w-6" />
-        </button>
+        {!(playback && floating) ? (
+          <button
+            type="button"
+            aria-label={t.loop}
+            title={t.loop}
+            aria-pressed={loop}
+            disabled={!queue.length}
+            onClick={() => setLoop(!loop)}
+            className={toggleClassName}
+          >
+            <LoopIcon aria-hidden="true" className="h-6 w-6" />
+          </button>
+        ) : null}
       </div>
       {notice ? <p role="status">{notice}</p> : null}
-      {active && requested ? (
-        <section aria-label={t.nowPlaying} className="space-y-3">
-          <p role="status" className="break-words font-semibold">
-            {t.nowPlaying}: {active.video.title} (
-            {playback?.mode === "continuous" ? playback.position + 1 : 0}/
-            {playback?.mode === "continuous"
-              ? playback.order.length
-              : queue.length})
-          </p>
-          <YouTubeQueuePlayer
-            key={playback?.mode === "continuous" ? playback.sequence : 0}
-            videoId={requested.videoId}
-            title={active.video.title}
-            onVideoChange={(videoId) => {
-              if (playback?.mode !== "continuous") return;
-              const synchronized = playbackAtVideo(playback, videoId);
-              if (synchronized.position !== playback.position) {
-                setPlayback(synchronized);
-              } else if (active.videoId !== videoId) {
-                setNotice(t.outsideQueue);
-                setPlayback(null);
-              }
-            }}
-            onEnded={(videoId) => next(false, videoId)}
-            onError={() => {
-              setNotice(`${t.skipped}: ${active.video.title}`);
-              next(true);
-            }}
-            onUnavailable={() => {
-              setNotice(t.unavailable);
-              setPlayback(null);
-            }}
-          />
-        </section>
-      ) : null}
+      {playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
       {!videos.length ? <p>{emptyMessage}</p> : null}
       <ul className="grid gap-5 sm:grid-cols-2">
         {videos.map((video) => (
           <VideoCard
             key={video.videoLinkIdentifier}
             video={video}
-            playing={
-              playback?.mode === "individual" &&
-              playback.identifier === video.videoLinkIdentifier
-            }
-            current={
-              active?.video.videoLinkIdentifier === video.videoLinkIdentifier
-            }
+            player={playback?.kind === "single" && active?.identifier === video.videoLinkIdentifier
+              ? <PlaybackOutlet owner={owner} /> : undefined}
+            current={active?.identifier === video.videoLinkIdentifier}
             onPlay={() => {
-              setNotice(null);
-              setPlayback({
-                mode: "individual",
-                identifier: video.videoLinkIdentifier,
-              });
+              const videoId = getYouTubeVideoId(video.url);
+              if (videoId) store.getState().start(owner, [{
+                identifier: video.videoLinkIdentifier, videoId, title: video.title,
+              }], "single");
             }}
             deleteControl={
               access.principalIdentifier &&
