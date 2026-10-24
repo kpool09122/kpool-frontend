@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useWikiVideoDeleteAccess } from "@/gateways/wiki/useWikiVideoDeleteAccess";
+import { WikiVideoDeleteButton } from "./WikiVideoDeleteButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   formatVideoDuration,
@@ -20,7 +22,13 @@ import type { WikiVideoDurationFilter as DurationFilter } from "@/gateways/wiki/
 import { WikiVideoDurationFilter } from "./WikiVideoDurationFilter";
 import { SocialLinkIcon } from "../socialLinks";
 
-function VideoCard({ video }: { video: WikiVideo }) {
+function VideoCard({
+  video,
+  deleteControl,
+}: {
+  video: WikiVideo;
+  deleteControl?: React.ReactNode;
+}) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
   const [playing, setPlaying] = useState(false);
@@ -30,14 +38,19 @@ function VideoCard({ video }: { video: WikiVideo }) {
   const duration = formatVideoDuration(video.durationSeconds);
   return (
     <li className="min-w-0 space-y-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4">
-      <h2 className="flex items-start gap-2 text-lg font-semibold">
-        {videoId ? (
-          <span className="pt-1">
-            <SocialLinkIcon url={`https://www.youtube.com/watch?v=${videoId}`} />
-          </span>
-        ) : null}
-        <span className="min-w-0 break-words">{video.title}</span>
-      </h2>
+      <div className="flex items-start gap-2">
+        <h2 className="flex min-w-0 flex-1 items-start gap-2 text-lg font-semibold">
+          {videoId ? (
+            <span className="pt-1">
+              <SocialLinkIcon
+                url={`https://www.youtube.com/watch?v=${videoId}`}
+              />
+            </span>
+          ) : null}
+          <span className="min-w-0 break-words">{video.title}</span>
+        </h2>
+        {deleteControl}
+      </div>
       {playing && videoId ? (
         <WikiEmbedFrame
           block={{
@@ -128,7 +141,10 @@ export function WikiVideoPanel({
           }}
         />
       ) : null}
-      <VideoSearch key={`${identity.language}:${identity.resourceType}:${identity.slug}`} identity={identity} />
+      <VideoSearch
+        key={`${identity.language}:${identity.resourceType}:${identity.slug}`}
+        identity={identity}
+      />
     </>
   );
 }
@@ -143,9 +159,41 @@ function VideoSearch({ identity }: { identity: WikiVideoIdentity }) {
   );
 }
 
-function VideoList({ identity, filter }: { identity: WikiVideoIdentity; filter: DurationFilter }) {
+function VideoList({
+  identity,
+  filter,
+}: {
+  identity: WikiVideoIdentity;
+  filter: DurationFilter;
+}) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
+  const queryClient = useQueryClient();
+  const access = useWikiVideoDeleteAccess(identity.resourceType);
+  const cacheKey = [
+    "public-wiki-videos",
+    identity.language,
+    identity.resourceType,
+    identity.slug,
+  ];
+  const onDeleted = (video: WikiVideo) => {
+    queryClient.setQueriesData<{ videos: WikiVideo[] }>(
+      { queryKey: cacheKey },
+      (data) =>
+        data
+          ? {
+              videos: data.videos.filter(
+                (item) =>
+                  item.videoLinkIdentifier !== video.videoLinkIdentifier,
+              ),
+            }
+          : data,
+    );
+    void queryClient.invalidateQueries({
+      queryKey: cacheKey,
+      refetchType: "all",
+    });
+  };
   const query = useQuery({
     queryKey: [
       "public-wiki-videos",
@@ -182,6 +230,23 @@ function VideoList({ identity, filter }: { identity: WikiVideoIdentity; filter: 
         <VideoCard
           key={`${identity.language}:${identity.resourceType}:${identity.slug}:${video.videoLinkIdentifier}`}
           video={video}
+          deleteControl={
+            access.principalIdentifier &&
+            ([
+              "youtube_auto_view_count",
+              "youtube_auto_like_count",
+              "youtube_auto_recent_popular",
+            ].includes(video.videoUsage) ||
+              (video.creatorPrincipalIdentifier !== null &&
+                video.creatorPrincipalIdentifier ===
+                  access.principalIdentifier)) ? (
+              <WikiVideoDeleteButton
+                key={access.sessionKey}
+                video={video}
+                onDeleted={() => onDeleted(video)}
+              />
+            ) : undefined
+          }
         />
       ))}
     </ul>

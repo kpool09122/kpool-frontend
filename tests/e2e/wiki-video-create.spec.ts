@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
 
 test("collaborator previews one YouTube video, resets metadata on URL change, and saves one normalized record", async ({
   page,
@@ -25,6 +26,7 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
       url: `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`,
     },
   ]);
+  await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: wikiVideoAuthenticatedIdentity }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("https://i.ytimg.com/vi/*/hqdefault.jpg", (route) =>
     route.fulfill({
@@ -69,6 +71,8 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
       videoUsage: body.videoUsage,
       thumbnailUrl: body.thumbnailUrl,
       durationSeconds: body.durationSeconds,
+      creatorPrincipalIdentifier: null,
+      creatorIdentityName: null,
       publishedAt: null,
     };
     expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf");

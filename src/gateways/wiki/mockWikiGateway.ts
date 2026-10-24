@@ -116,7 +116,7 @@ const mockPrincipalStateByMode: Record<
   "video-collaborator": {
     status: "available",
     principal: createMockPrincipal([
-      createMockPolicy("BASIC_EDITING", ["save_video_links"], ["group"]),
+      createMockPolicy("BASIC_EDITING", ["save_video_links", "delete_video_link"], ["group"]),
     ]),
   },
   basic: {

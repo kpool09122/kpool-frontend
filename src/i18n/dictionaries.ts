@@ -1015,6 +1015,7 @@ const ja = {
     contentTabsLabel: "Wiki本文タブ",
     contentVideoTab: "Video",
     videos: {
+      deletion: { label: "動画を削除", confirm: "この動画を削除しますか？", submit: "削除する", cancel: "キャンセル", deleting: "削除中…", failed: "動画を削除できませんでした。もう一度お試しください。" },
       create: {
         add: "動画を追加",
         url: "YouTube URL",
@@ -2430,6 +2431,7 @@ const en: typeof ja = {
     contentTabsLabel: "Wiki content tabs",
     contentVideoTab: "Video",
     videos: {
+      deletion: { label: "Delete video", confirm: "Delete this video?", submit: "Delete", cancel: "Cancel", deleting: "Deleting…", failed: "Could not delete the video. Please try again." },
       create: {
         add: "Add video",
         url: "YouTube URL",
@@ -3842,6 +3844,7 @@ const ko: typeof ja = {
     contentTabsLabel: "Wiki 본문 탭",
     contentVideoTab: "Video",
     videos: {
+      deletion: { label: "동영상 삭제", confirm: "이 동영상을 삭제하시겠습니까?", submit: "삭제", cancel: "취소", deleting: "삭제 중…", failed: "동영상을 삭제할 수 없습니다. 다시 시도해 주세요." },
       create: {
         add: "동영상 추가", url: "YouTube URL", title: "동영상 제목", usage: "용도",
         save: "동영상 저장", saving: "저장 중…", saved: "동영상이 저장되었습니다.",

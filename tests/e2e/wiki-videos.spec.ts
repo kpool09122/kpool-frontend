@@ -6,6 +6,8 @@ const video = {
   thumbnailUrl: "https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg",
   publishedAt: null,
   durationSeconds: 253,
+      creatorPrincipalIdentifier: null,
+      creatorIdentityName: null,
   videoUsage: "youtube_auto_view_count",
 };
 

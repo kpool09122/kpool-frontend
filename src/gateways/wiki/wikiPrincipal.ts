@@ -106,7 +106,7 @@ const isAllowedWithoutDeny = (
 
 // Material search authorizes a new empty IMAGE resource, not the edited Wiki.
 // Unknown/dynamic conditions cannot grant access client-side; the API remains authoritative.
-const materialSearchConditionMatches = (statement: WikiPolicyStatement): boolean | null => {
+const emptyWikiResourceConditionMatches = (statement: WikiPolicyStatement): boolean | null => {
   const clauses = statement.condition?.clauses ?? [];
   const values: Record<string, string | string[] | boolean | null> = {
     "resource:agencyId": null, "resource:groupId": [], "resource:talentId": [],
@@ -132,8 +132,8 @@ export const canSearchWikiFreeMaterials = (principal: WikiPrincipalSummary): boo
   const statements = principal.policies.flatMap((policy) => policy.statements).filter((statement) =>
     valueMatches(statement.actions, "search_free_materials") && valueMatches(statement.resourceTypes, "image"));
   return principal.status === "active"
-    && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY" && materialSearchConditionMatches(statement) !== false)
-    && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && materialSearchConditionMatches(statement) === true);
+    && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY" && emptyWikiResourceConditionMatches(statement) !== false)
+    && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && emptyWikiResourceConditionMatches(statement) === true);
 };
 
 // The backend evaluates SAVE_VIDEO_LINKS against the Wiki's resource type.
@@ -149,6 +149,16 @@ export const canCreateWikiVideo = (
     && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY")
     && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW"
       && !(statement.condition?.clauses?.length));
+};
+
+// DeleteVideoLink authorizes Resource(type: video.resourceType), with other fields left empty.
+// Unknown/dynamic conditions cannot grant access here; the DELETE API is authoritative.
+export const canDeleteWikiVideo = (principal: WikiPrincipalSummary, resourceType: "agency" | "group" | "song" | "talent") => {
+  const statements = principal.policies.flatMap((policy) => policy.statements).filter((statement) =>
+    valueMatches(statement.actions, "delete_video_link") && valueMatches(statement.resourceTypes, resourceType));
+  return principal.status === "active"
+    && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY" && emptyWikiResourceConditionMatches(statement) !== false)
+    && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && emptyWikiResourceConditionMatches(statement) === true);
 };
 
 export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
