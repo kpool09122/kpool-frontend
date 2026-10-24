@@ -16,7 +16,7 @@ import { useAdmin } from "../../AdminProvider";
 import { MyContactsClient } from "../../user/contacts/MyContactsClient";
 
 type SelectedContact = { contactIdentifier: string };
-type ContactList = "all" | "unanswered";
+type ContactList = "all" | "pending";
 
 export function SiteManagementContactsClient() {
   const { currentIdentity } = useAdmin();
@@ -37,11 +37,11 @@ function SiteManagementContactsContent() {
   const { currentIdentity, locale, t } = useAdmin();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const hasReply = searchParams.getAll("hasReply");
-  const listType: ContactList = hasReply.length === 1 && hasReply[0] === "0" ? "unanswered" : "all";
+  const isPending = searchParams.getAll("isPending");
+  const listType: ContactList = isPending.length === 1 && isPending[0] === "1" ? "pending" : "all";
   const text = t.siteManagementContacts;
   const actorScope = [currentIdentity.identityIdentifier, currentIdentity.accountIdentifier, currentIdentity.siteManagementPrincipalIdentifier, currentIdentity.delegationIdentifier ?? null];
-  const unanswered = listType === "unanswered";
+  const unanswered = listType === "pending";
   const title = text.title;
   const queryClient = useQueryClient();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -56,7 +56,7 @@ function SiteManagementContactsContent() {
   const list = useQuery({
     enabled: !accessLost,
     queryKey: ["admin", "siteManagement", "contacts", ...actorScope, listType, page],
-    queryFn: () => fetchSiteManagementContacts({ page, hasReply: unanswered ? "0" : undefined }),
+    queryFn: () => fetchSiteManagementContacts({ page, isPending: unanswered ? "1" : undefined }),
   });
   const senderList = useQuery({
     queryKey: ["admin", "siteManagement", "contacts", ...actorScope, "sender", sender?.principalIdentifier, sender?.page],
@@ -136,7 +136,7 @@ function SiteManagementContactsContent() {
           <label className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-semibold">
             <input type="checkbox" checked={unanswered} disabled={reply.isPending} onChange={(event) => {
               if (reply.isPending) return;
-              router.push(event.currentTarget.checked ? "/admin/site-management/contacts/manage?hasReply=0" : "/admin/site-management/contacts/manage", { scroll: false });
+              router.push(event.currentTarget.checked ? "/admin/site-management/contacts/manage?isPending=1" : "/admin/site-management/contacts/manage", { scroll: false });
             }} />
             {text.unansweredOnly}
           </label>

@@ -38,7 +38,7 @@ describe("MyContactsClient", () => {
     expect(articles[0]).toHaveTextContent(format(reply.sentAt));
     expect(articles[1]).toHaveTextContent(format(createdAt));
     expect(screen.queryByText(/秘密の/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
   it.each([
     ["短い本文", "短い本文"],
@@ -106,8 +106,8 @@ describe("MyContactsClient", () => {
     expect(heading.nextElementSibling).toHaveTextContent(common.savedName(detail.name));
     expect(within(dialog).getByText(detail.content).previousElementSibling).toHaveTextContent(`${t.category(detail.category)} · ${date}`);
     expect(within(dialog).getByRole("article")).toHaveTextContent(date);
-    expect(within(dialog).queryByRole("textbox")).not.toBeInTheDocument();
-    expect(within(dialog).getAllByRole("button")).toHaveLength(1);
+    expect(within(dialog).getByRole("textbox")).toBeInTheDocument();
+    expect(within(dialog).getAllByRole("button")).toHaveLength(2);
     fireEvent.click(within(dialog).getByRole("button", { name: t.close }));
     expect(cards[0]).toHaveFocus();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -125,7 +125,7 @@ describe("MyContactsClient", () => {
     fireEvent.click(screen.getByRole("button"));
     expect(await screen.findByText(reply.content)).toBeInTheDocument();
     expect(screen.queryByText("秘密の返信者")).not.toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: dictionaries.ja.admin.myContacts.close }));
     expect(screen.queryByText(reply.content)).not.toBeInTheDocument();
   });

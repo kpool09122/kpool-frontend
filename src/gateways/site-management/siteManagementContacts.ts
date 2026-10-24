@@ -16,6 +16,7 @@ const siteManagementContactDetailSchema = siteManagementApiTypes.schemas.Operato
 export type SiteManagementContactDetail = z.infer<typeof siteManagementContactDetailSchema>;
 export type SiteManagementContactsPage = z.infer<typeof siteManagementApiTypes.schemas.ListContactsPage>;
 export const siteManagementContactSenderFilterSchema = z.array(z.string().uuid()).max(1);
+export const siteManagementContactPendingFilterSchema = z.array(z.enum(["0", "1"])).max(1);
 
 export const siteManagementContactsUnavailableMessage = "SiteManagement contacts are unavailable.";
 
@@ -30,13 +31,13 @@ export const parseSiteManagementContactDetail = (body: unknown): SiteManagementC
 
 export const fetchSiteManagementContacts = async ({
   page,
-  hasReply,
+  isPending,
   principalIdentifier,
   perPage = 50,
   fetchAdapter = browserApiFetch,
 }: {
   page: number;
-  hasReply?: "0" | "1";
+  isPending?: "0" | "1";
   principalIdentifier?: string;
   perPage?: number;
   fetchAdapter?: typeof fetch;
@@ -44,7 +45,8 @@ export const fetchSiteManagementContacts = async ({
   const senderFilter = siteManagementContactSenderFilterSchema.safeParse(principalIdentifier === undefined ? [] : [principalIdentifier]);
   if (!senderFilter.success) throw contactError(422);
   const params = new URLSearchParams();
-  if (hasReply !== undefined) params.set("hasReply", hasReply);
+  if (!siteManagementContactPendingFilterSchema.safeParse(isPending === undefined ? [] : [isPending]).success) throw contactError(422);
+  if (isPending !== undefined) params.set("isPending", isPending);
   params.set("page", String(page));
   params.set("perPage", String(perPage));
   if (principalIdentifier !== undefined) params.set("principalIdentifier", principalIdentifier);

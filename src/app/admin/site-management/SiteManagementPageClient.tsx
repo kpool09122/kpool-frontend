@@ -33,7 +33,7 @@ export function SiteManagementPageClient({ children, activeTab }: {
 
   useEffect(() => {
     if (pathname === "/admin/site-management/contacts/unanswered" && canViewContactTab) {
-      router.replace(canViewContacts ? "/admin/site-management/contacts/manage?hasReply=0" : "/admin/site-management/contacts");
+      router.replace(canViewContacts ? "/admin/site-management/contacts/manage?isPending=1" : "/admin/site-management/contacts");
     } else if (pathname === "/admin/site-management/contacts/manage" && !canViewContacts && canViewContactTab) {
       router.replace("/admin/site-management/contacts");
     }

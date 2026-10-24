@@ -48,6 +48,25 @@ export const submitContact: SubmitContactAdapter = async ({ locale, requestBody 
 
 export type ContactBrowserApiError = Error & { contactRouteStatus: number };
 
+export const replyToMyContact = async ({ contactIdentifier, content, locale, fallbackErrorMessage, fetchAdapter = browserApiFetch }: {
+  contactIdentifier: string;
+  content: string;
+  locale: string;
+  fallbackErrorMessage: string;
+  fetchAdapter?: typeof fetch;
+}): Promise<void> => {
+  const identifier = z.string().uuid().safeParse(contactIdentifier);
+  if (!identifier.success) throw identifier.error;
+  const response = await fetchAdapter(`/api/site-management/contact/me/${encodeURIComponent(contactIdentifier)}/replies`, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "include",
+    headers: { Accept: "application/json", "Accept-Language": locale, "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!response.ok) throw getRouteError(response, await readResponseBody(response), fallbackErrorMessage);
+};
+
 type FetchOptions = { fallbackErrorMessage: string; fetchAdapter?: typeof fetch };
 
 const readResponseBody = async (response: Response): Promise<unknown> => {

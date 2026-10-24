@@ -115,18 +115,18 @@ describe("site-management contacts gateway", () => {
     expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?page=2&perPage=50", expect.objectContaining({ cache: "no-store", credentials: "include" }));
   });
 
-  it.each(["0", "1"] as const)("forwards the optional hasReply=%s filter", async (hasReply) => {
+  it.each(["0", "1"] as const)("forwards the optional isPending=%s filter", async (isPending) => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ contacts: [contact], current_page: 2, last_page: 2, total: 51, per_page: 50 }));
-    await fetchSiteManagementContacts({ page: 2, hasReply, fetchAdapter });
-    expect(fetchAdapter).toHaveBeenCalledWith(`/api/site-management/contacts?hasReply=${hasReply}&page=2&perPage=50`, expect.anything());
+    await fetchSiteManagementContacts({ page: 2, isPending, fetchAdapter });
+    expect(fetchAdapter).toHaveBeenCalledWith(`/api/site-management/contacts?isPending=${isPending}&page=2&perPage=50`, expect.anything());
   });
 
-  it.each([undefined, "0"] as const)("combines the sender identifier with hasReply=%s", async (hasReply) => {
+  it.each([undefined, "1"] as const)("combines the sender identifier with isPending=%s", async (isPending) => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ contacts: [contact], current_page: 1, last_page: 1, total: 1, per_page: 50 }));
-    await fetchSiteManagementContacts({ page: 1, principalIdentifier: identifier, hasReply, fetchAdapter });
+    await fetchSiteManagementContacts({ page: 1, principalIdentifier: identifier, isPending, fetchAdapter });
     const url = new URL(fetchAdapter.mock.calls[0][0], "http://localhost");
     expect(url.searchParams.get("principalIdentifier")).toBe(identifier);
-    expect(url.searchParams.get("hasReply")).toBe(hasReply ?? null);
+    expect(url.searchParams.get("isPending")).toBe(isPending ?? null);
   });
 
   it.each(["", "invalid", " 019a1234-5678-7000-8000-111111111111"])("rejects invalid sender %s before fetching", async (principalIdentifier) => {
