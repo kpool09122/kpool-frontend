@@ -5,6 +5,7 @@ import { POST } from "./drafts/[wikiId]/submit/route";
 import { POST as approve } from "./drafts/[wikiId]/approve/route";
 import { POST as reject } from "./drafts/[wikiId]/reject/route";
 import { POST as publish } from "./drafts/[wikiId]/publish/route";
+import { POST as publishSameVersion } from "./drafts/[wikiId]/publish-same-version/route";
 import { POST as withdraw } from "./drafts/[wikiId]/withdraw/route";
 import { POST as translate } from "./drafts/[wikiId]/translate/route";
 import { getWikiVisitorLocationSigner } from "./visitorLocation";
@@ -44,12 +45,12 @@ const scenarios = [
   { label: "invalid region", cf: { country: "JP", regionCode: "JP-01" }, country: "JP", region: null },
   { label: "unavailable context", cf: undefined, unavailable: true, country: null, region: null },
 ];
-for (const [action, handler] of [["submit", POST], ["approve", approve], ["reject", reject], ["publish", publish], ["withdraw", withdraw]] as const) {
+for (const [action, handler] of [["submit", POST], ["approve", approve], ["reject", reject], ["publish", publish], ["publish-same-version", publishSameVersion], ["withdraw", withdraw]] as const) {
   it.each(scenarios)(`${action}: $label succeeds preserving existing auth/CSRF and ignoring spoofed geo`, async (scenario) => {
     if (scenario.unavailable) context.mockImplementation(() => { throw new Error("No Worker context"); });
     else context.mockReturnValue({ cf: scenario.cf, env: { WIKI_VISITOR_LOCATION_SECRET: secret } });
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
-    const fetchMock = vi.fn().mockResolvedValue(Response.json(action === "publish" ? {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(action.startsWith("publish") ? {
       wikiIdentifier: "published-id", language: "ja", name: "Fixture", resourceType: "group", version: 2,
     } : { wikiIdentifier: "draft-id", language: "ja", name: "Fixture", resourceType: "group", status: "pending" }));
     vi.stubGlobal("fetch", fetchMock);

@@ -1,4 +1,7 @@
-import { backendErrorResponse } from "@/app/api/backendErrorResponse";
+import {
+  getApiErrorMessage,
+  getBackendErrorResponse,
+} from "@/gateways/support/apiError";
 import { getWikiVisitorLocationSigner } from "../../visitorLocation";
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -23,7 +26,8 @@ type WikiDraftReviewRouteContext = {
 };
 
 const hasReviewRequestHeader = (request: NextRequest): boolean =>
-  request.headers.get(wikiDraftReviewCsrfHeaderName) === wikiDraftReviewCsrfHeaderValue;
+  request.headers.get(wikiDraftReviewCsrfHeaderName) ===
+  wikiDraftReviewCsrfHeaderValue;
 
 export const createWikiDraftReviewRoute =
   (action: WikiDraftWorkflowAction) =>
@@ -61,6 +65,16 @@ export const createWikiDraftReviewRoute =
         status: getWikiRouteErrorStatus(error),
       });
 
-      return backendErrorResponse(error, wikiDraftUnavailableMessage);
+      const backend = getBackendErrorResponse(error);
+      const status = backend?.status ?? 502;
+      return NextResponse.json(
+        {
+          message:
+            status >= 500
+              ? wikiDraftUnavailableMessage
+              : getApiErrorMessage(backend?.data, wikiDraftUnavailableMessage),
+        },
+        { status, headers: { "Cache-Control": "no-store" } },
+      );
     }
   };

@@ -414,7 +414,8 @@ test("admin shows unapproved draft wikis only for reviewer principals", async ({
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
 });
 
-test("admin publishes approved draft wikis only for publisher principals", async ({ page }) => {
+for (const sameVersion of [false, true]) {
+test(`admin publishes approved draft wikis with ${sameVersion ? "same-version" : "next-generation"} only for publisher principals`, async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "wiki-publish");
   let publishRequests = 0;
@@ -458,7 +459,7 @@ test("admin publishes approved draft wikis only for publisher principals", async
           ? [
               {
                 wikiIdentifier: "88888888-8888-8888-8888-888888888888",
-                publishedWikiIdentifier: null,
+                publishedWikiIdentifier: sameVersion ? "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" : null,
                 translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
                 slug: "gr-review-wiki",
                 language: "ja",
@@ -486,7 +487,8 @@ test("admin publishes approved draft wikis only for publisher principals", async
       }),
     });
   });
-  await page.route("**/api/wiki/drafts/*/publish", async (route) => {
+  await page.route("**/api/wiki/drafts/*/publish*", async (route) => {
+    expect(new URL(route.request().url()).pathname.endsWith(sameVersion ? "/publish-same-version" : "/publish")).toBe(true);
     publishRequests += 1;
     expect(route.request().postDataJSON()).toMatchObject({
       resourceType: "group",
@@ -512,9 +514,14 @@ test("admin publishes approved draft wikis only for publisher principals", async
   await expect(page).toHaveURL(/\/admin\/wiki\/approved$/);
   await expect(page.getByRole("link", { name: "承認済み Wiki" })).toBeVisible();
   await page.getByRole("button", { name: "公開" }).click();
+  await expect(page.getByRole("radio", { name: /次世代として公開/ })).toBeChecked();
+  if (sameVersion) await page.getByRole("radio", { name: /同じバージョンとして公開/ }).check();
+  else await expect(page.getByRole("radio", { name: /同じバージョンとして公開/ })).toBeDisabled();
+  await page.getByRole("button", { name: "選択した方法で公開" }).click();
   await expect(page.getByText("承認済みWikiはありません")).toBeVisible();
   expect(publishRequests).toBe(1);
 });
+}
 
 test("admin translates untranslated wikis for publisher principals", async ({ page }) => {
   await useJapaneseLocale(page);

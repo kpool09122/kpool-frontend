@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
+import { wikiDraftUnavailableMessage } from "../../wikiRouteSupport";
 
 import {
   wikiDraftReviewCsrfHeaderName,
@@ -7,6 +8,7 @@ import {
 } from "@/gateways/wiki/draftWiki";
 import { POST as approvePOST } from "./approve/route";
 import { POST as publishPOST } from "./publish/route";
+import { POST as sameVersionPOST } from "./publish-same-version/route";
 import { POST as rejectPOST } from "./reject/route";
 import { POST as translatePOST } from "./translate/route";
 
@@ -104,7 +106,7 @@ describe("wiki draft review route", () => {
     );
   });
 
-  it("forwards publish requests to the publish backend action", async () => {
+  it.each([["publish", publishPOST], ["publish-same-version", sameVersionPOST]] as const)("forwards %s requests to the matching backend action", async (action, handler) => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
@@ -117,15 +119,18 @@ describe("wiki draft review route", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const body = { resourceType: "group" };
-    const response = await publishPOST(createRequest(body), createContext());
+    const body = { resourceType: "group", agencyIdentifier: "11111111-1111-4111-8111-111111111111", title: "title", metaDescription: "description", keywords: "keyword" };
+    const response = await handler(createRequest(body, { cookie: "session=abc", "accept-language": "ko", "x-xsrf-token": "csrf" }), createContext());
 
     expect(response.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/publish`,
+      `https://api.example.test/api/v1/wiki/wiki/${wikiId}/${action}`,
       expect.objectContaining({
         body: JSON.stringify(body),
         method: "POST",
+        cache: "no-store",
+        headers: expect.objectContaining({ Cookie: "session=abc", "Accept-Language": "ko", "X-XSRF-TOKEN": "csrf" }),
       }),
     );
   });
@@ -177,6 +182,33 @@ describe("wiki draft review route", () => {
   });
 
 
+  it.each([["publish", publishPOST], ["publish-same-version", sameVersionPOST]] as const)("%s rejects missing CSRF header before backend access", async (_action, handler) => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    const request = createRequest({ resourceType: "group" });
+    request.headers.delete(wikiDraftReviewCsrfHeaderName);
+    expect((await handler(request, createContext())).status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([publishPOST, sameVersionPOST])("preserves public error status and message without internal fields", async (handler) => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: "公開条件を満たしていません", trace: "private trace", exception: "InternalException" }, 409)));
+    const response = await handler(createRequest({ resourceType: "group" }), createContext());
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ message: "公開条件を満たしていません" });
+  });
+
+  it.each([publishPOST, sameVersionPOST])("masks backend 5xx messages and trace", async (handler) => {
+    process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: internalBackendMessage, trace: "private trace" }, 500)));
+    const response = await handler(createRequest({ resourceType: "group" }), createContext());
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ message: wikiDraftUnavailableMessage });
+  });
+
   it("returns 500 when the backend base URL is not configured", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -212,7 +244,7 @@ describe("wiki draft review route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("preserves backend messages from review errors", async () => {
+  it("masks backend messages from server-side review errors", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubGlobal(
@@ -232,7 +264,7 @@ describe("wiki draft review route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(503);
-    expect(body.message).toBe(internalBackendMessage);
+    expect(body.message).toBe(wikiDraftUnavailableMessage);
 
     expect(consoleError).toHaveBeenCalledWith(
       "Failed to approve wiki draft.",
