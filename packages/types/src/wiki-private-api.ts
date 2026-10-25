@@ -305,6 +305,26 @@ const ListMyOwnedWikisResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const LikedVideoLink = z
+  .object({
+    videoLinkIdentifier: KPool_Common_Uuid.uuid(),
+    url: z.string(),
+    title: z.string(),
+    thumbnailUrl: z.string().nullable(),
+    durationSeconds: z.number().int().gte(0).nullable(),
+    language: z.enum(["ja", "ko", "en"]),
+    resourceType: z.enum(["agency", "group", "song", "talent"]),
+    slug: z.string(),
+    likedAt: z.string(),
+  })
+  .passthrough();
+const VideoLinkLikesPagination = z
+  .object({
+    currentPage: z.number().int(),
+    perPage: z.number().int(),
+    total: z.number().int(),
+  })
+  .passthrough();
 const SyncOwnedWikiCertificationsRequestBody = z
   .object({ translationSetIdentifiers: z.array(KPool_Common_Uuid) })
   .passthrough();
@@ -992,6 +1012,8 @@ export const schemas = {
   WikiListItem,
   OfficialCertificationListItem,
   ListMyOwnedWikisResponseBody,
+  LikedVideoLink,
+  VideoLinkLikesPagination,
   SyncOwnedWikiCertificationsRequestBody,
   SyncedOfficialCertificationResource,
   RequestCertificationRequestBody,
@@ -1945,17 +1967,31 @@ const endpoints = makeApi([
     method: "get",
     path: "/my/video-link-likes",
     alias: "VideoLinkLikeOperations_listMyVideoLinkLikes",
-    description: `Return only requested VideoLink IDs liked by the authenticated active Wiki Principal, sorted by identifier. Unknown or unliked IDs are omitted; zero matches returns an empty array. Accepts 1-100 IDs per request; split larger batches. Does not accept a principal ID.`,
+    description: `Return likes of the authenticated active Wiki Principal. With videoLinkIds[], return all matching liked IDs in identifier order without pagination, even for non-public or missing wikis; videos includes only existing videos on published wikis and pagination is null. Omitted IDs list existing videos on published wikis across languages and resource types, sorted by likedAt descending then videoLinkIdentifier ascending, with matching IDs in the same order and pagination metadata. Each VideoLink is counted independently even when URLs match. Empty lists return 200. Explicit empty IDs, invalid UUIDs, more than 100 IDs or invalid pagination return 422. Does not accept a principal ID.`,
     requestFormat: "json",
     parameters: [
       {
         name: "videoLinkIds[]",
         type: "Query",
-        schema: z.array(KPool_Common_Uuid).min(1).max(100),
+        schema: z.array(KPool_Common_Uuid).min(1).max(100).optional(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).optional().default(1),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(100).optional().default(20),
       },
     ],
     response: z
-      .object({ likedVideoLinkIdentifiers: z.array(KPool_Common_Uuid) })
+      .object({
+        likedVideoLinkIdentifiers: z.array(KPool_Common_Uuid),
+        videos: z.array(LikedVideoLink),
+        pagination: VideoLinkLikesPagination.nullable(),
+      })
       .passthrough(),
     errors: [
       {
