@@ -869,6 +869,7 @@ const TalentWikiDetail = z
 const Video = z
   .object({
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
+    likeCount: z.number().int().gte(0),
     url: z.string(),
     title: z.string(),
     thumbnailUrl: z.string().nullable(),
@@ -1916,6 +1917,55 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/video-link-likes",
+    alias: "VideoLinkLikeOperations_listMyVideoLinkLikes",
+    description: `Return only requested VideoLink IDs liked by the authenticated active Wiki Principal, sorted by identifier. Unknown or unliked IDs are omitted; zero matches returns an empty array. Accepts 1-100 IDs per request; split larger batches. Does not accept a principal ID.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkIds[]",
+        type: "Query",
+        schema: z.array(KPool_Common_Uuid).min(1).max(100),
+      },
+    ],
+    response: z
+      .object({ likedVideoLinkIdentifiers: z.array(KPool_Common_Uuid) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3034,6 +3084,125 @@ const endpoints = makeApi([
     path: "/video-link/:videoLinkId",
     alias: "VideoLinkOperations_deleteVideoLink",
     description: `Delete only the specified video link. Requires an authenticated Wiki collaborator with an active Account/Principal and DELETE_VIDEO_LINK permission. Manual videos may be deleted only by their creator; all three automatically collected video categories may be deleted by any Wiki collaborator. Returns 204 without a body, 403 when forbidden, 404 when missing, and 422 for an invalid identifier. Deletion does not prevent future automatic re-collection.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/video-link/:videoLinkId/like",
+    alias: "VideoLinkLikeOperations_likeVideoLink",
+    description: `Like a manual or automatically collected VideoLink as the authenticated Wiki Principal. Requires LIKE_VIDEO_LINK permission for its resource type. Returns 409 if the Principal has already liked the VideoLink.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/video-link/:videoLinkId/like",
+    alias: "VideoLinkLikeOperations_unlikeVideoLink",
+    description: `Remove only the authenticated Wiki Principal&#x27;s like. Requires UNLIKE_VIDEO_LINK permission. Repeated removal is idempotent (204); a missing VideoLink returns 404.`,
     requestFormat: "json",
     parameters: [
       {
