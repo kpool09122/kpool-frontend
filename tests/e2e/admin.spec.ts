@@ -514,6 +514,13 @@ test(`admin publishes approved draft wikis with ${sameVersion ? "same-version" :
   await expect(page).toHaveURL(/\/admin\/wiki\/approved$/);
   await expect(page.getByRole("link", { name: "承認済み Wiki" })).toBeVisible();
   await page.getByRole("button", { name: "公開" }).click();
+  const dialog = page.getByRole("dialog", { name: "公開方法" });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  expect(publishRequests).toBe(0);
+  await expect(page.getByRole("button", { name: "公開", exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "公開", exact: true }).click();
   await expect(page.getByRole("radio", { name: /次世代として公開/ })).toBeChecked();
   if (sameVersion) await page.getByRole("radio", { name: /同じバージョンとして公開/ }).check();
   else await expect(page.getByRole("radio", { name: /同じバージョンとして公開/ })).toBeDisabled();
