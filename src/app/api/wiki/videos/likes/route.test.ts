@@ -31,7 +31,12 @@ describe("my video likes BFF", () => {
       .fn()
       .mockResolvedValue(
         Response.json(
-          { likedVideoLinkIdentifiers: [id], secret: "hidden" },
+          {
+            likedVideoLinkIdentifiers: [id],
+            videos: [],
+            pagination: null,
+            secret: "hidden",
+          },
           { headers: { "Set-Cookie": "session=new" } },
         ),
       );
@@ -77,7 +82,16 @@ describe("my video likes BFF", () => {
   );
   it("keeps rotated cookies even on invalid JSON/schema", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
-    for (const body of ["bad json", "{}"]) {
+    for (const body of [
+      "bad json",
+      "{}",
+      JSON.stringify({ likedVideoLinkIdentifiers: [id] }),
+      JSON.stringify({
+        likedVideoLinkIdentifiers: [id],
+        videos: [{ videoLinkIdentifier: id }],
+        pagination: null,
+      }),
+    ]) {
       vi.stubGlobal(
         "fetch",
         vi

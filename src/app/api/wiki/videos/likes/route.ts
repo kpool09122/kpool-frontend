@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
   wikiVideoLikeIdsSchema,
-  wikiVideoLikesResponseSchema,
+  wikiVideoLikesUpstreamResponseSchema,
 } from "@/gateways/wiki/wikiVideoLikes";
 import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { getForwardedWikiApiHeaders } from "../../wikiRouteSupport";
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     });
     if (!upstream.ok) response = fail(upstream.status);
     else {
-      const result = wikiVideoLikesResponseSchema.safeParse(
+      const result = wikiVideoLikesUpstreamResponseSchema.safeParse(
         await upstream.json(),
       );
       response = result.success
