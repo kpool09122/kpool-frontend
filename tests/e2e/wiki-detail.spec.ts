@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { installYouTubePlayerMock } from "./youtube-player";
+import { expectYouTubePlayerSource, installYouTubePlayerMock } from "./youtube-player";
 
 const e2eBaseUrl = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
 
@@ -339,10 +339,7 @@ test("wiki edit page exposes the TWICE namuwiki compatibility demo mock", async 
   const youtube = page.locator('iframe[src*="youtube-nocookie.com"]');
   await expect(youtube).toHaveCount(0);
   await page.getByRole("button", { name: 'Play: TWICE "CHEER UP" M/V', exact: true }).click();
-  await expect(youtube).toHaveAttribute(
-    "src",
-    "https://www.youtube-nocookie.com/embed/c7rCyll5AeY",
-  );
+  await expectYouTubePlayerSource(youtube, "c7rCyll5AeY");
   await expect(youtube).toHaveAttribute("title", 'TWICE "CHEER UP" M/V');
   await expect(page.locator('a[href="/ja/wiki/tl-momo-twice"]')).toHaveCount(0);
   await expect(page.getByText("No related profiles.")).toBeVisible();
@@ -578,10 +575,7 @@ test("wiki edit page converts supported media includes into embeds", async ({
   const youtube = page.locator('iframe[src*="youtube-nocookie.com"]');
   await expect(youtube).toHaveCount(0);
   await page.getByRole("button", { name: "Play: YouTube", exact: true }).click();
-  await expect(youtube).toHaveAttribute(
-    "src",
-    "https://www.youtube-nocookie.com/embed/jNQXAC9IVRw",
-  );
+  await expectYouTubePlayerSource(youtube, "jNQXAC9IVRw");
   await expect(youtube).toHaveAttribute("title", "YouTube");
 });
 

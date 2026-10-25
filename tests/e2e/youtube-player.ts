@@ -1,4 +1,26 @@
 import type { Page } from "./fixtures";
+import { expect, type Locator } from "@playwright/test";
+
+export async function expectYouTubePlayerSource(frame: Locator, videoId: string) {
+  await expect.poll(async () => {
+    const src = await frame.getAttribute("src");
+    if (!src || !URL.canParse(src)) return null;
+    const url = new URL(src);
+    return {
+      host: url.origin,
+      path: url.pathname,
+      enablejsapi: url.searchParams.get("enablejsapi"),
+      origin: url.searchParams.get("origin"),
+      playsinline: url.searchParams.get("playsinline"),
+    };
+  }).toEqual({
+    host: "https://www.youtube-nocookie.com",
+    path: `/embed/${videoId}`,
+    enablejsapi: "1",
+    origin: new URL(frame.page().url()).origin,
+    playsinline: "1",
+  });
+}
 
 export async function installYouTubePlayerMock(page: Page) {
   // Mock YouTube at the external boundary; real React, DOM and tab routing run
