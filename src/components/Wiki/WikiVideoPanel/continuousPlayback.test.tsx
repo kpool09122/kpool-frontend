@@ -54,6 +54,7 @@ const requests: {
   getVideoUrl: ReturnType<typeof vi.fn>;
   getPlayerState: ReturnType<typeof vi.fn>;
 }[] = [];
+let blockAutoplay = false;
 const key = ["public-wiki-videos", "ja", "group", "gr-test", {}];
 function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
   const client = new QueryClient({
@@ -95,6 +96,7 @@ function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
 }
 beforeEach(() => {
   requests.length = 0;
+  blockAutoplay = false;
   useAuthStore.setState({ status: "guest", identity: null });
   vi.stubGlobal("YT", {
     Player: vi.fn(function (
@@ -103,6 +105,11 @@ beforeEach(() => {
     ) {
       const player = {
         playVideo: vi.fn(() => {
+          if (blockAutoplay) {
+            player.getPlayerState.mockReturnValue(2);
+            options.events.onAutoplayBlocked();
+            return;
+          }
           player.getPlayerState.mockReturnValue(1);
           options.events.onStateChange({ data: 1 });
         }),
@@ -147,6 +154,69 @@ afterEach(() => {
 });
 
 describe("continuous playback", () => {
+  it.each([false, true])("keeps the fullscreen host through video changes and restores presentation (mini: %s)", async (mini) => {
+    let fullscreenElement: Element | null = null;
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: true });
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, get: () => fullscreenElement });
+    const enter = vi.fn(() => {
+      fullscreenElement = screen.getByRole("button", { name: "Play in fullscreen" }).closest("section");
+      document.dispatchEvent(new Event("fullscreenchange"));
+      return Promise.resolve();
+    });
+    const exit = vi.fn(() => {
+      fullscreenElement = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+      return Promise.resolve();
+    });
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", { configurable: true, value: enter });
+    Object.defineProperty(document, "exitFullscreen", { configurable: true, value: exit });
+    try {
+      mount();
+      await start();
+      if (mini) fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+      const host = screen.getByRole("region", { name: mini ? "Mini player" : "Now playing" });
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" })));
+      expect(fullscreenElement).toBe(host);
+      expect(host.querySelector("[data-player-resize]")).toBeNull();
+      act(() => requests[0].options.events.onStateChange({ data: 0 }));
+      expect(host).toHaveTextContent("Second video (2/2)");
+      expect(fullscreenElement).toBe(host);
+      expect(requests[0].destroy).not.toHaveBeenCalled();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Exit fullscreen" })));
+      expect(exit).toHaveBeenCalledOnce();
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toHaveAttribute("aria-pressed", "false");
+      expect(host.querySelectorAll("[data-player-resize]")).toHaveLength(mini ? 8 : 0);
+      // Browser exit (e.g. Escape) must also update the toggle.
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" })));
+      act(() => { void exit(); });
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toBeInTheDocument();
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).requestFullscreen;
+      Reflect.deleteProperty(document, "fullscreenEnabled");
+      Reflect.deleteProperty(document, "fullscreenElement");
+      delete (document as Partial<Document>).exitFullscreen;
+    }
+  });
+
+  it("reports a rejected fullscreen request and continues playback", async () => {
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: true });
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", {
+      configurable: true, value: vi.fn().mockRejectedValue(new Error("denied")),
+    });
+    try {
+      mount();
+      await start();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" })));
+      expect(screen.getByText("Could not switch fullscreen. Please try again.")).toBeInTheDocument();
+      expect(requests[0].destroy).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toHaveAttribute("aria-pressed", "false");
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).requestFullscreen;
+      Reflect.deleteProperty(document, "fullscreenEnabled");
+      Reflect.deleteProperty(document, "fullscreenElement");
+    }
+  });
+
   it.each([false, true])("updates the title and queue position without an ended event (random: %s)", async (random) => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     mount();
@@ -415,18 +485,39 @@ describe("continuous playback", () => {
     ).not.toBeInTheDocument();
     expect(requests).toHaveLength(2);
   });
-  it("offers manual resume after autoplay is blocked without skipping the item", async () => {
+  it.each(["single", "queue"])("leaves initial blocked %s playback to the embedded player without a resume message", async (kind) => {
+    blockAutoplay = true;
+    mount();
+    if (kind === "queue") await start();
+    else {
+      fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
+      await waitFor(() => expect(requests).toHaveLength(1));
+    }
+    expect(requests[0].playVideo).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Autoplay was blocked/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Resume playback" })).not.toBeInTheDocument();
+    // Starting from YouTube's play button still works without an extra K-Pool step.
+    blockAutoplay = false;
+    act(() => requests[0].options.events.onStateChange({ data: 1 }));
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(first.title);
+    if (kind === "queue") expectCurrentVideo(first, 1, 2);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+  });
+  it("offers manual resume when the next video is blocked without skipping the item", async () => {
     mount();
     await start();
-    act(() => requests[0].options.events.onAutoplayBlocked());
+    blockAutoplay = true;
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    expectCurrentVideo(second, 2, 2);
     expect(screen.getByText(/Autoplay was blocked/)).toBeInTheDocument();
+    blockAutoplay = false;
     fireEvent.click(screen.getByRole("button", { name: "Resume playback" }));
-    expect(requests[0].playVideo).toHaveBeenCalledTimes(2);
-    act(() => requests[0].options.events.onStateChange({ data: 1 }));
+    expect(requests[0].playVideo).toHaveBeenCalledTimes(3);
     expect(
       screen.queryByRole("button", { name: "Resume playback" }),
     ).not.toBeInTheDocument();
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(2);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
   });
   it("uses one player for individual and continuous playback and ignores late events", async () => {
     mount();
@@ -474,7 +565,7 @@ describe("continuous playback", () => {
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveStyle({ position: "fixed", right: "16px", bottom: "16px" });
     const mini = within(screen.getByRole("region", { name: "Mini player" }));
     const heart = mini.getByRole("button", { name: "Like: First video" });
-    expect(heart).toBeDisabled();
+    expect(heart).toBeEnabled();
     expect(heart).toHaveTextContent("");
     const buttons = mini.getAllByRole("button");
     expect(buttons.indexOf(heart)).toBe(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" })) + 1);

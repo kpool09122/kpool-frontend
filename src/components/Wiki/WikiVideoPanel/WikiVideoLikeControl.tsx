@@ -1,7 +1,7 @@
 "use client";
 
 import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -17,14 +17,39 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
   const t = dictionary.wiki.videos.likes;
   const state = likes.state(video);
   const gradientId = useId();
+  const noticeId = useId();
+  const root = useRef<HTMLDivElement>(null);
+  const [noticeReason, setNoticeReason] = useState<typeof state.unavailableReason>();
+  const notice = noticeReason && noticeReason === state.unavailableReason ? t[noticeReason] : undefined;
+  const messageClass = compact ? "absolute right-0 top-full z-10 w-48 rounded-lg bg-surface-raised p-2 text-sm text-text-strong shadow-soft" : undefined;
+  useEffect(() => {
+    if (!notice) return;
+    const dismiss = () => setNoticeReason(undefined);
+    const dismissOutside = (event: Event) => {
+      if (event.target instanceof Node && !root.current?.contains(event.target)) dismiss();
+    };
+    document.addEventListener("click", dismissOutside, true);
+    document.addEventListener("focusin", dismissOutside, true);
+    // Clicking the YouTube iframe moves focus out of the parent document.
+    window.addEventListener("blur", dismiss);
+    return () => {
+      document.removeEventListener("click", dismissOutside, true);
+      document.removeEventListener("focusin", dismissOutside, true);
+      window.removeEventListener("blur", dismiss);
+    };
+  }, [notice]);
   return (
-    <div className={compact ? "relative shrink-0" : undefined}>
+    <div ref={root} className={compact ? "relative shrink-0" : undefined}>
       <button
         type="button"
         aria-label={`${state.liked ? t.unlike : t.like}: ${video.title}`}
         aria-pressed={state.liked}
-        disabled={state.disabled}
-        onClick={() => void likes.toggle(video)}
+        aria-describedby={notice ? noticeId : undefined}
+        disabled={state.disabled && !state.unavailableReason}
+        onClick={() => {
+          if (state.unavailableReason) setNoticeReason(state.unavailableReason);
+          else void likes.toggle(video);
+        }}
         className={`inline-flex items-center justify-center rounded-lg text-text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed ${compact ? "h-10 w-10" : "min-h-11 min-w-11 gap-2 px-3"}`}
       >
         {state.liked ? (
@@ -45,7 +70,8 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
         )}
         {!compact ? <span className="tabular-nums" aria-live="polite">{state.count}</span> : null}
       </button>
-      {state.failed ? <p role="alert" className={compact ? "absolute right-0 top-full z-10 w-48 rounded-lg bg-surface-raised p-2 text-sm shadow-soft" : undefined}>{t.failed}</p> : null}
+      {notice ? <p id={noticeId} role="status" className={messageClass}>{notice}</p> : null}
+      {state.failed ? <p role="alert" className={messageClass}>{t.failed}</p> : null}
     </div>
   );
 }

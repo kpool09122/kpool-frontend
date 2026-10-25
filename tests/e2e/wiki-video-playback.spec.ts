@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "./fixtures";
 import { installYouTubePlayerMock } from "./youtube-player";
+import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
 
 const videos = [
   {
@@ -56,6 +57,92 @@ async function setupPlayback(page: Page) {
   await page.goto("/wiki/ja/gr-aurora-echo?tab=video");
 }
 
+test("admin language changes preserve the mini player and its playback queue", async ({ page }) => {
+  await setupPlayback(page);
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await page.context().addCookies([{
+    name: "kpool-e2e-wiki-principal", value: "basic", domain: "127.0.0.1", path: "/",
+  }]);
+  await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: {
+    ...wikiVideoAuthenticatedIdentity,
+    accountIdentifier: "22222222-2222-2222-2222-222222222222",
+    accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+    account: { ...wikiVideoAuthenticatedIdentity.account, accountIdentifier: "22222222-2222-2222-2222-222222222222" },
+  } }));
+  await page.reload();
+  await page.getByRole("button", { name: "Play all" }).click();
+  await page.getByRole("button", { name: "Continue in mini player" }).click();
+  await page.locator("iframe").evaluate((frame) => frame.setAttribute("data-persisted-player", "true"));
+  const header = page.getByRole("banner");
+  await header.getByRole("button", { name: "member", exact: true }).hover();
+  await header.getByRole("link", { name: "Admin", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin(?:\/wiki\/editing)?$/);
+  await expect(page.getByRole("complementary", { name: "Admin menu" })).toBeVisible();
+  // A document navigation would recreate this marker and the native player.
+  const documentNavigations: string[] = [];
+  page.on("request", (request) => {
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame()) documentNavigations.push(request.url());
+  });
+  const serverRefresh = page.waitForResponse((response) =>
+    new URL(response.url()).pathname.startsWith("/admin") && response.request().headers()["rsc"] === "1",
+  );
+  await header.getByRole("combobox", { name: "Language", exact: true }).selectOption("ja");
+  await serverRefresh;
+  const mini = page.getByRole("region", { name: "ミニプレイヤー" });
+  await expect(page.getByRole("complementary", { name: "管理画面メニュー" })).toBeVisible();
+  await expect(mini).toContainText("First video (1/2)");
+  await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+  expect(documentNavigations).toEqual([]);
+  await page.evaluate(() => {
+    const state = (window as unknown as { queueTest: { players: { playerState: number }[] } }).queueTest;
+    state.players[0].playerState = 0;
+  });
+  await expect(mini).toContainText("Second video (2/2)");
+  await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+  expect(await page.evaluate(() => {
+    const state = (window as unknown as { queueTest: { players: { destroyed: boolean }[] } }).queueTest;
+    return state.players.length === 1 && !state.players[0].destroyed;
+  })).toBe(true);
+});
+
+for (const mini of [false, true]) {
+  test(`K-Pool fullscreen survives the next video and restores ${mini ? "mini player" : "inline playback"}`, async ({ page }, testInfo) => {
+    await setupPlayback(page);
+    await page.getByRole("button", { name: "Play all" }).click();
+    if (mini) await page.getByRole("button", { name: "Continue in mini player" }).click();
+    const host = page.getByRole("region", { name: mini ? "Mini player" : "Now playing" });
+    await expect(host).toContainText("First video (1/2)");
+    await page.locator("iframe").evaluate((frame) => frame.setAttribute("data-persisted-player", "true"));
+    const original = (await host.boundingBox())!;
+    await host.getByRole("button", { name: "Play in fullscreen" }).click();
+    await expect.poll(() => host.evaluate((element) => document.fullscreenElement === element)).toBe(true);
+    await expect(host.getByRole("button", { name: "Exit fullscreen" })).toBeVisible();
+    await expect.poll(async () => {
+      const box = (await host.boundingBox())!;
+      const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+      return Math.abs(box.width - viewport.width) < 2 && Math.abs(box.height - viewport.height) < 2;
+    }).toBe(true);
+    await page.evaluate(() => {
+      const state = (window as unknown as { queueTest: { players: { playerState: number }[] } }).queueTest;
+      state.players[0].playerState = 0;
+    });
+    await expect(host).toContainText("Second video (2/2)");
+    await expect.poll(() => host.evaluate((element) => document.fullscreenElement === element)).toBe(true);
+    await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+    await page.screenshot({ path: testInfo.outputPath("kpool-fullscreen.png") });
+    await host.getByRole("button", { name: "Exit fullscreen" }).click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+    await expect(host.getByRole("button", { name: "Play in fullscreen" })).toBeVisible();
+    await expect.poll(async () => Math.abs((await host.boundingBox())!.width - original.width)).toBeLessThan(2);
+    await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+    // Ending the session removes its fullscreen element and exits fullscreen.
+    await host.getByRole("button", { name: "Play in fullscreen" }).click();
+    await host.getByRole("button", { name: "Stop playback" }).click();
+    await expect(host).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+  });
+}
+
 test("mobile keyboard playback progresses, resumes blocked autoplay, stops and tears down on tab exit", async ({
   page,
 }, testInfo) => {
@@ -98,6 +185,10 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
   );
   const box = await page.locator("iframe").boundingBox();
   expect(box!.width / box!.height).toBeCloseTo(16 / 9, 1);
+  // The iframe can appear before onReady starts playback. Wait before ending it.
+  await expect.poll(() => page.evaluate(() =>
+    (window as unknown as { queueTest: { players: { plays: number }[] } }).queueTest.players.at(-1)?.plays,
+  )).toBe(1);
   const event = async (name: "end" | "block" | "play") =>
     page.evaluate((name) => {
       const { queueTest } = window as unknown as {

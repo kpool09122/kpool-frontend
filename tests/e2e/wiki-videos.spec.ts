@@ -54,9 +54,6 @@ test("anonymous mobile viewer loads videos only on selection, plays inline, and 
   const box = await player.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.width / box!.height).toBeCloseTo(16 / 9, 1);
-  await expect(
-    page.getByRole("link", { name: "Open on YouTube" }),
-  ).toHaveAttribute("href", "https://www.youtube.com/watch?v=jfKfPfyJRdk");
   await wiki.click();
   await expect(player).toHaveCount(0);
   await videos.click();

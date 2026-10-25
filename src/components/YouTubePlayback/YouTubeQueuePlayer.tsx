@@ -36,6 +36,7 @@ type PlaybackRequest = { videoId: string; key: string | number };
 export function YouTubeQueuePlayer({
   videoId,
   playbackKey = videoId,
+  expanded = false,
   title,
   onVideoChange,
   onEnded,
@@ -44,6 +45,7 @@ export function YouTubeQueuePlayer({
 }: {
   videoId: string;
   playbackKey?: string | number;
+  expanded?: boolean;
   title: string;
   onVideoChange?: (videoId: string) => void;
   onEnded: (videoId?: string) => void;
@@ -81,6 +83,8 @@ export function YouTubeQueuePlayer({
     let creating = false;
     let ready = false;
     let awaitingPlayback = true;
+    let hasStartedPlayback = false;
+    let isContinuation = false;
     let player: Player | undefined;
     let loaded: PlaybackRequest | undefined;
     let reportedVideoId = request.current.videoId;
@@ -120,6 +124,7 @@ export function YouTubeQueuePlayer({
         // loadVideoById can leave the old video's state visible briefly.
         if (awaitingPlayback && id && id !== loaded?.videoId) return;
         awaitingPlayback = false;
+        hasStartedPlayback = true;
         setBlocked(false);
         if (id && id !== reportedVideoId) {
           reportedVideoId = id;
@@ -135,6 +140,9 @@ export function YouTubeQueuePlayer({
         return;
       }
       loaded = next;
+      // Initial playback uses the embedded player's own play button if blocked.
+      // Offer resume only after playback has started in this session.
+      isContinuation = hasStartedPlayback;
       finished = false;
       awaitingPlayback = true;
       reportedVideoId = next.videoId;
@@ -191,7 +199,7 @@ export function YouTubeQueuePlayer({
             onStateChange: ({ data }) => checkPlayback(data),
             onError: () => finish("onError"),
             onAutoplayBlocked: () => {
-              if (!disposed && !unavailable && !finished) setBlocked(true);
+              if (!disposed && !unavailable && !finished && isContinuation) setBlocked(true);
             },
           },
         });
@@ -213,10 +221,10 @@ export function YouTubeQueuePlayer({
     };
   }, []);
   return (
-    <div className="space-y-3">
+    <div className={expanded ? "flex h-full min-h-0 flex-col gap-3" : "space-y-3"}>
       <div
         ref={container}
-        className="aspect-video w-full overflow-hidden rounded-xl bg-surface-muted"
+        className={expanded ? "min-h-0 w-full flex-1 overflow-hidden bg-black" : "aspect-video w-full overflow-hidden rounded-xl bg-surface-muted"}
       />
       {blocked ? (
         <div>

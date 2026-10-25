@@ -599,7 +599,7 @@ describe("WikiVideoPanel", () => {
     expect(url.searchParams.has("maxDurationSeconds")).toBe(false);
   });
 
-  it("shows saved thumbnail/title, then the shared player and a YouTube fallback", async () => {
+  it("shows saved thumbnail/title, then the shared player", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(Response.json({ videos: [video] })),
@@ -615,9 +615,6 @@ describe("WikiVideoPanel", () => {
     );
     expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(video.title);
     expect(screen.getByRole("button", { name: "Continue in mini player" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Open on YouTube" }),
-    ).toHaveAttribute("href", "https://www.youtube.com/watch?v=abcdefghijk");
   });
   it("omits duration when the API has no stored duration", async () => {
     vi.stubGlobal(

@@ -109,7 +109,7 @@ test("collaborator adds and removes with keyboard, does not refetch, restores sa
   await expect(add).toHaveAttribute("aria-pressed", "false");
   expect(methods).toEqual(["POST", "DELETE"]);
 });
-test("guest can see public counts without sending personal reads or writes", async ({
+test("guest sees login guidance after pressing like without sending personal reads or writes", async ({
   page,
 }) => {
   await page.context().clearCookies();
@@ -134,7 +134,21 @@ test("guest can see public counts without sending personal reads or writes", asy
     name: "Like: Video likes",
     exact: true,
   });
-  await expect(button).toBeDisabled();
+  await expect(button).toBeEnabled();
   await expect(button).toHaveText("0");
+  await expect(page.getByText("To like videos, log in and activate Wiki collaborator access.")).toHaveCount(0);
+  await button.focus();
+  await button.press("Enter");
+  await expect(button).toHaveAccessibleDescription("To like videos, log in and activate Wiki collaborator access.");
+  await expect(page.getByRole("status").filter({ hasText: "To like videos, log in and activate Wiki collaborator access." })).toBeVisible();
+  await page.getByRole("heading", { name: "Video likes", exact: true }).click();
+  await expect(page.getByText("To like videos, log in and activate Wiki collaborator access.")).toHaveCount(0);
+  await button.focus();
+  await button.press("Enter");
+  await expect(button).toHaveAccessibleDescription("To like videos, log in and activate Wiki collaborator access.");
+  const filter = page.getByRole("slider", { name: "Minimum duration (minutes)" });
+  await filter.focus();
+  await expect(page.getByText("To like videos, log in and activate Wiki collaborator access.")).toHaveCount(0);
+  await expect(filter).toBeFocused();
   expect(personal).toEqual([]);
 });
