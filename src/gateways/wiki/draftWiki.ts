@@ -89,7 +89,8 @@ export type WikiDraftWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schem
 export type WikiVersionInconsistentWiki = z.infer<typeof wikiPrivateApiTypes.schemas.WikiListItem>;
 export type WikiVersionInconsistentWikiListResponse = z.infer<typeof wikiPrivateApiTypes.schemas.ListWikisResponseBody>;
 export type WikiDraftReviewAction = "approve" | "reject";
-export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish" | "translate";
+export type WikiPublishMethod = "next-generation" | "same-version";
+export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish" | "publish-same-version" | "translate";
 export type InitialDraftWikiListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
@@ -924,7 +925,7 @@ export const createDraftWikiApiClient = (
 
           const responseBody = await readResponseBody(response);
 
-          return action === "publish"
+          return (action === "publish" || action === "publish-same-version")
             ? parsePublishedWikiSummaryBody(responseBody)
             : action === "translate"
               ? parseTranslateWikiResponseBody(responseBody)
@@ -1276,7 +1277,7 @@ const reviewWikiDraftRequest = async ({
     throw new Error(getRouteErrorMessage(body, fallbackErrorMessage));
   }
 
-  return action === "publish"
+  return (action === "publish" || action === "publish-same-version")
     ? parsePublishedWikiSummaryBody(body)
     : action === "translate"
       ? parseTranslateWikiResponseBody(body)
@@ -1345,15 +1346,17 @@ export const deleteWikiDraft = async ({
 
 export const publishWikiDraft = async ({
   fallbackErrorMessage,
+  publishMethod,
   wikiId,
   requestBody,
 }: {
   fallbackErrorMessage: string;
+  publishMethod: WikiPublishMethod;
   wikiId: string;
   requestBody: ReviewWikiRequestBody;
 }): Promise<PublishedWikiSummary> =>
   reviewWikiDraftRequest({
-    action: "publish",
+    action: publishMethod === "same-version" ? "publish-same-version" : "publish",
     fallbackErrorMessage,
     wikiId,
     requestBody,

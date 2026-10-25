@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import {
   defaultWikiDraftPerPage,
   type WikiDraftWikiListResponse,
   type WikiVersionInconsistentWikiListResponse,
   createReviewWikiRequestBody,
+  type WikiPublishMethod,
 } from "@/gateways/wiki/draftWiki";
 import type { AdminDraftWikiAdapter } from "@/gateways/admin/adminAdapters";
 import { adminQueryKeys } from "../../queryKeys";
@@ -96,6 +97,7 @@ export const useApprovedDraftWikis = ({
     queryKey: listQueryKey,
     retry: false,
   });
+  const publishInFlight = useRef(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewingWikiIdentifier, setReviewingWikiIdentifier] = useState<string | null>(null);
 
@@ -147,29 +149,33 @@ export const useApprovedDraftWikis = ({
     }));
   }, [listQueryKey, queryClient]);
 
-  const publishMutation = useMutation<unknown, Error, AdminWikiListItem>({
-    mutationFn: (wiki) => adapter.publishDraftWiki({
+  const publishMutation = useMutation<unknown, Error, { wiki: AdminWikiListItem; publishMethod: WikiPublishMethod }>({
+    mutationFn: ({ wiki, publishMethod }) => adapter.publishDraftWiki({
+      publishMethod,
       fallbackErrorMessage: messages.draftWikiPublishFailed,
       requestBody: createReviewWikiRequestBody(wiki),
       wikiId: wiki.wikiIdentifier,
     }),
-    onMutate: (wiki) => {
+    onMutate: ({ wiki }) => {
       setReviewingWikiIdentifier(wiki.wikiIdentifier);
       setReviewError(null);
     },
-    onSuccess: (_data, wiki) => {
+    onSuccess: (_data, { wiki }) => {
       removeWikiFromCurrentList(wiki.wikiIdentifier);
     },
     onError: (error) => {
       setReviewError(error instanceof Error ? error.message : messages.draftWikiPublishFailed);
     },
     onSettled: () => {
+      publishInFlight.current = false;
       setReviewingWikiIdentifier(null);
     },
   });
 
-  const publishDraftWiki = (wiki: AdminWikiListItem) => {
-    publishMutation.mutate(wiki);
+  const publishDraftWiki = (wiki: AdminWikiListItem, publishMethod: WikiPublishMethod) => {
+    if (publishInFlight.current) return;
+    publishInFlight.current = true;
+    publishMutation.mutate({ wiki, publishMethod });
   };
 
   return {

@@ -39,6 +39,8 @@ import {
   loadInitialDraftWikiListForRequest,
   publishDraftWiki,
   publishWikiDraft,
+  wikiDraftReviewCsrfHeaderName,
+  wikiDraftReviewCsrfHeaderValue,
   saveDraftWiki,
   rejectWikiDraft,
   reviewDraftWiki,
@@ -1924,6 +1926,7 @@ describe("draftWiki", () => {
     );
 
     await publishWikiDraft({
+      publishMethod: "next-generation",
       fallbackErrorMessage: "failed",
       requestBody,
       wikiId: "wiki-1",
@@ -1956,6 +1959,20 @@ describe("draftWiki", () => {
         method: "POST",
       }),
     );
+  });
+
+  it.each([
+    ["next-generation", "publish"],
+    ["same-version", "publish-same-version"],
+  ] as const)("routes %s publication to %s only", async (publishMethod, action) => {
+    const summary = { wikiIdentifier: "published", language: "ko", name: "수정", resourceType: "group", version: 2 };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(summary));
+    await expect(publishWikiDraft({ publishMethod, fallbackErrorMessage: "failed", wikiId: "draft/id", requestBody: { resourceType: "group" } })).resolves.toEqual(summary);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(`/api/wiki/drafts/draft%2Fid/${action}`, expect.objectContaining({
+      method: "POST", credentials: "include", body: JSON.stringify({ resourceType: "group" }),
+      headers: expect.objectContaining({ [wikiDraftReviewCsrfHeaderName]: wikiDraftReviewCsrfHeaderValue }),
+    }));
   });
 
   it("deletes draft wikis through the browser API route", async () => {

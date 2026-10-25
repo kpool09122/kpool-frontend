@@ -1,4 +1,5 @@
 import React from "react";
+import { I18nProvider, dictionaries } from "@/i18n/I18nProvider";
 import {
   QueryClient,
   QueryClientProvider,
@@ -3190,11 +3191,12 @@ describe("admin page clients", () => {
     expect(await screen.findByText("未翻訳のWikiはありません")).toBeInTheDocument();
   });
 
-  it("publishes an approved draft wiki and removes it from the list", async () => {
+  it.each(["next-generation", "same-version"] as const)("publishes an approved draft wiki using %s and removes it from the list", async (publishMethod) => {
     const draftWikiAdapter = createDraftWikiAdapter({
       listManagedDraftWikis: vi.fn().mockResolvedValue({
         wikis: [{
           ...draftWiki,
+          publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
           status: "approved",
           name: "承認済み Wiki",
         }],
@@ -3222,9 +3224,16 @@ describe("admin page clients", () => {
 
     fireEvent.click(await screen.findByRole("tab", { name: "承認済みWiki" }));
     fireEvent.click(await screen.findByRole("button", { name: "公開" }));
+    expect(draftWikiAdapter.publishDraftWiki).not.toHaveBeenCalled();
+    expect(screen.getByRole("radio", { name: /次世代として公開/ })).toBeChecked();
+    if (publishMethod === "same-version") {
+      fireEvent.click(screen.getByRole("radio", { name: /同じバージョンとして公開/ }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: "選択した方法で公開" }));
 
     await waitFor(() =>
       expect(draftWikiAdapter.publishDraftWiki).toHaveBeenCalledWith({
+        publishMethod,
         fallbackErrorMessage: "Wiki を公開できませんでした。",
         requestBody: {
           keywords: null,
@@ -3236,6 +3245,93 @@ describe("admin page clients", () => {
       }),
     );
     expect(await screen.findByText("承認済みWikiはありません")).toBeInTheDocument();
+  });
+
+  it.each(["ja", "en", "ko"] as const)("renders publication choices and explanations in %s", async (locale) => {
+    const t = dictionaries[locale].admin;
+    const adapter = createDraftWikiAdapter({ listManagedDraftWikis: vi.fn().mockResolvedValue({
+      wikis: [{ ...draftWiki, status: "approved", publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" }],
+      current_page: 1, last_page: 1, total: 1, per_page: 12,
+    }) });
+    renderWithQueryClient(<I18nProvider initialLocale={locale}><AdminClient
+      draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={adapter} initialIdentity={identity}
+      initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }} principalAdapter={createAdapter()} /></I18nProvider>);
+    fireEvent.click(await screen.findByRole("tab", { name: t.approvedWikisTab }));
+    fireEvent.click(await screen.findByRole("button", { name: t.publishDraftWiki }));
+    const dialog = screen.getByRole("dialog", { name: t.wikiPublishMethod });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(within(dialog).getByRole("group", { name: t.wikiPublishMethod })).toBeInTheDocument();
+    expect(screen.getByText(t.wikiPublishNextGenerationDescription)).toBeInTheDocument();
+    expect(screen.getByText(t.wikiPublishSameVersionDescription)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t.wikiPublishConfirm })).toBeInTheDocument();
+  });
+
+  it("restricts first publication and resets the method when opening another wiki or reopening", async () => {
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [
+          { ...draftWiki, status: "approved", name: "修正 Wiki", publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+          { ...draftWiki, wikiIdentifier: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", status: "approved", name: "初回 Wiki", publishedWikiIdentifier: null },
+        ], current_page: 1, last_page: 1, total: 2, per_page: 12,
+      }),
+    });
+    renderWithQueryClient(<AdminClient draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={draftWikiAdapter} initialIdentity={identity}
+      initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }} principalAdapter={createAdapter()} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "承認済みWiki" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "公開" }))[0]);
+    fireEvent.click(screen.getByRole("radio", { name: /同じバージョンとして公開/ }));
+    expect(screen.getByRole("radio", { name: /同じバージョンとして公開/ })).toBeChecked();
+    fireEvent(screen.getByRole("dialog", { name: "公開方法" }), new Event("cancel", { cancelable: true }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "公開" })[0]);
+    expect(screen.getByRole("radio", { name: /次世代として公開/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "公開" })[1]);
+    expect(screen.getByRole("radio", { name: /次世代として公開/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /同じバージョンとして公開/ })).toBeDisabled();
+    expect(screen.getByText("初回公開では「次世代として公開」を使用します。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "公開" })[0]);
+    expect(screen.getByRole("radio", { name: /次世代として公開/ })).toBeChecked();
+    expect(draftWikiAdapter.publishDraftWiki).not.toHaveBeenCalled();
+  });
+
+  it.each(["next-generation", "same-version"] as const)("blocks duplicate publication and retains failed wiki for %s", async (publishMethod) => {
+    const result = Promise.withResolvers<never>();
+    const publishDraftWiki = vi.fn().mockReturnValueOnce(result.promise).mockResolvedValueOnce({});
+    const draftWikiAdapter = createDraftWikiAdapter({
+      publishDraftWiki,
+      listManagedDraftWikis: vi.fn().mockResolvedValue({
+        wikis: [
+          { ...draftWiki, status: "approved", name: "修正 Wiki", publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
+          { ...draftWiki, wikiIdentifier: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", status: "approved", name: "別 Wiki" },
+        ], current_page: 1, last_page: 1, total: 2, per_page: 12,
+      }),
+    });
+    renderWithQueryClient(<AdminClient draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={draftWikiAdapter} initialIdentity={identity}
+      initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }} principalAdapter={createAdapter()} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "承認済みWiki" }));
+    fireEvent.click((await screen.findAllByRole("button", { name: "公開" }))[0]);
+    if (publishMethod === "same-version") fireEvent.click(screen.getByRole("radio", { name: /同じバージョンとして公開/ }));
+    const confirm = screen.getByRole("button", { name: "選択した方法で公開" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(publishDraftWiki).toHaveBeenCalledTimes(1));
+    expect(publishDraftWiki).toHaveBeenCalledWith(expect.objectContaining({ publishMethod }));
+    expect(screen.getByRole("button", { name: "公開中" })).toBeDisabled();
+    screen.getAllByRole("button", { name: "公開" }).forEach((button) => expect(button).toBeDisabled());
+    expect(screen.getByRole("button", { name: "キャンセル" })).toBeDisabled();
+    fireEvent(screen.getByRole("dialog", { name: "公開方法" }), new Event("cancel", { cancelable: true }));
+    expect(screen.getByRole("dialog", { name: "公開方法" })).toBeInTheDocument();
+    result.reject(new Error("公開の競合が発生しました"));
+    expect(await within(screen.getByRole("dialog", { name: "公開方法" })).findByRole("alert")).toHaveTextContent("公開の競合が発生しました");
+    expect(screen.getByRole("link", { name: "修正 Wiki" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "選択した方法で公開" }));
+    await waitFor(() => expect(publishDraftWiki).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole("link", { name: "修正 Wiki" })).not.toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "別 Wiki" })).toBeInTheDocument();
+    expect(screen.queryByText("公開の競合が発生しました")).not.toBeInTheDocument();
   });
 
   it("opens a reject reason dialog before rejecting an unapproved draft wiki", async () => {
