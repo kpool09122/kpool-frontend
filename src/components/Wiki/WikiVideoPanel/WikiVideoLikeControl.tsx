@@ -21,7 +21,7 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
   const root = useRef<HTMLDivElement>(null);
   const [noticeReason, setNoticeReason] = useState<typeof state.unavailableReason>();
   const notice = noticeReason && noticeReason === state.unavailableReason ? t[noticeReason] : undefined;
-  const messageClass = compact ? "absolute right-0 top-full z-10 w-48 rounded-lg bg-surface-raised p-2 text-sm text-text-strong shadow-soft" : undefined;
+  const messageClass = "absolute right-0 top-full z-10 w-48 rounded-lg bg-surface-raised p-2 text-sm text-text-strong shadow-soft";
   useEffect(() => {
     if (!notice) return;
     const dismiss = () => setNoticeReason(undefined);
@@ -39,7 +39,7 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
     };
   }, [notice]);
   return (
-    <div ref={root} className={compact ? "relative shrink-0" : undefined}>
+    <div ref={root} className="relative shrink-0">
       <button
         type="button"
         aria-label={`${state.liked ? t.unlike : t.like}: ${video.title}`}
