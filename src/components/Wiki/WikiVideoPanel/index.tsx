@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
+import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
 import { useEffect, useId, useRef, useState } from "react";
@@ -55,7 +55,7 @@ function VideoCard({
   return (
     <li
       aria-current={current ? "true" : undefined}
-      className="min-w-0 space-y-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
+      className="flex min-w-0 flex-col gap-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
     >
       <div className="flex items-start gap-2">
         <h2 className="flex min-w-0 flex-1 items-start gap-2 text-lg font-semibold">
@@ -111,46 +111,22 @@ function VideoCard({
           ) : null}
         </button>
       )}
-      {likeControl}
-      {videoId ? (
-        <a
-          className="inline-block underline"
-          href={`https://www.youtube.com/watch?v=${videoId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t.openYouTube}
-        </a>
-      ) : (
-        <p role="status">{t.unavailable}</p>
-      )}
+      <div className="mt-auto flex items-center justify-between gap-3">
+        {videoId ? (
+          <a
+            className="inline-block underline"
+            href={`https://www.youtube.com/watch?v=${videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.openYouTube}
+          </a>
+        ) : (
+          <p role="status">{t.unavailable}</p>
+        )}
+        {likeControl}
+      </div>
     </li>
-  );
-}
-
-function WikiVideoLikeControl({ video, likes }: {
-  video: WikiVideo;
-  likes: ReturnType<typeof useWikiVideoLikes>;
-}) {
-  const { dictionary } = useI18n();
-  const t = dictionary.wiki.videos.likes;
-  const state = likes.state(video);
-  const Icon = state.liked ? HeartFilledIcon : HeartIcon;
-  return (
-    <div>
-      <button
-        type="button"
-        aria-label={`${state.liked ? t.unlike : t.like}: ${video.title}`}
-        aria-pressed={state.liked}
-        disabled={state.disabled}
-        onClick={() => void likes.toggle(video)}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg px-3 text-text-muted aria-pressed:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed"
-      >
-        <Icon aria-hidden="true" className="h-5 w-5" />
-        <span className="tabular-nums" aria-live="polite">{state.count}</span>
-      </button>
-      {state.failed ? <p role="alert">{t.failed}</p> : null}
-    </div>
   );
 }
 
@@ -287,6 +263,7 @@ function VideoList({
           video.url,
         ]),
       )}
+      identity={identity}
       videos={query.data.videos}
       emptyMessage={Object.keys(filter).length ? t.filter.empty : t.empty}
       access={access}
@@ -297,12 +274,14 @@ function VideoList({
 }
 
 function VideoPlaybackList({
+  identity,
   videos,
   emptyMessage,
   access,
   likes,
   onDeleted,
 }: {
+  identity: WikiVideoIdentity;
   videos: WikiVideo[];
   emptyMessage: string;
   access: ReturnType<typeof useWikiVideoDeleteAccess>;
@@ -372,6 +351,7 @@ function VideoPlaybackList({
           onClick={() => {
             store.getState().start(owner, queue.map(({ video, videoId }) => ({
               identifier: video.videoLinkIdentifier, videoId, title: video.title,
+              controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
             })), "queue", loop, random);
           }}
         >
@@ -423,6 +403,7 @@ function VideoPlaybackList({
               const videoId = getYouTubeVideoId(video.url);
               if (videoId) store.getState().start(owner, [{
                 identifier: video.videoLinkIdentifier, videoId, title: video.title,
+                controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
               }], "single");
             }}
             likeControl={<WikiVideoLikeControl video={video} likes={likes} />}

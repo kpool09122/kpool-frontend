@@ -11,6 +11,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { WikiVideoPanel } from "./index";
+import { WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
+import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { parseAuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { wikiVideoAuthenticatedIdentity } from "../../../../tests/e2e/wiki-video-identity";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -20,7 +22,7 @@ const identity = {
   resourceType: "group" as const,
   slug: "gr-test",
 };
-const video = {
+const video: WikiVideo = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
   likeCount: 0,
   url: "https://youtu.be/abcdefghijk",
@@ -396,4 +398,32 @@ it.each([
   setup({ locale });
   const button = await screen.findByRole("button", { name: `${label}: Video` });
   await waitFor(() => expect(button).toBeEnabled());
+});
+
+it("shares optimistic like state between the icon-only playback control and the card", async () => {
+  const state = setup();
+  await ready();
+  const card = within(screen.getByRole("heading", { name: "Video" }).closest("li")!);
+  const playback = render(
+    <QueryClientProvider client={state.client}>
+      <I18nProvider initialLocale="en">
+        <WikiVideoPlaybackLike identity={identity} video={video} />
+      </I18nProvider>
+    </QueryClientProvider>,
+  );
+  const compact = within(playback.container);
+  await waitFor(() => expect(compact.getByRole("button", { name: "Like: Video" })).toBeEnabled());
+  expect(compact.getByRole("button")).toHaveTextContent("");
+  fireEvent.click(compact.getByRole("button"));
+  await waitFor(() => expect(card.getByRole("button", { name: "Unlike: Video" })).toBeDisabled());
+  expect(card.getByRole("button", { name: "Unlike: Video" })).toHaveTextContent("1");
+  await waitFor(() => expect(state.fetcher.mock.calls.some(([url]) => url.endsWith("/like"))).toBe(true));
+  await act(async () => state.finish(new Response(null, { status: 204 })));
+  await waitFor(() => expect(compact.getByRole("button", { name: "Unlike: Video" })).toBeEnabled());
+  fireEvent.click(card.getByRole("button", { name: "Unlike: Video" }));
+  await waitFor(() => expect(compact.getByRole("button", { name: "Like: Video" })).toBeDisabled());
+  await act(async () => state.finish(new Response(null, { status: 204 })));
+  await waitFor(() => expect(compact.getByRole("button", { name: "Like: Video" })).toBeEnabled());
+  expect(compact.getByRole("button")).toHaveTextContent("");
+  expect(card.getByRole("button", { name: "Like: Video" })).toHaveTextContent("0");
 });

@@ -150,6 +150,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
           <button type="button" aria-label={t.loop} title={t.loop} aria-pressed={session.loop} className={iconClass} onClick={() => store.getState().setLoop(!session.loop)}><LoopIcon aria-hidden="true" className="h-5 w-5" /></button>
         </> : null}
+        {floating ? active.controls : null}
         {!floating ? (
           <button type="button" aria-label={t.detach} title={t.detach} className={iconClass} onClick={() => store.getState().detach()}><ExternalLinkIcon aria-hidden="true" className="h-5 w-5" /></button>
         ) : (
