@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { getYouTubeVideoId } from "@kpool/wiki";
 import { useI18n } from "@/i18n/I18nProvider";
 
@@ -56,21 +56,20 @@ export function YouTubeQueuePlayer({
   const t = dictionary.wiki.videos.continuous;
   const container = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | undefined>(undefined);
-  const callbacks = useRef({ onEnded, onError, onUnavailable, onVideoChange });
-  const titleRef = useRef(title);
-  const request = useRef<PlaybackRequest>({ videoId, key: playbackKey });
   const loadRequest = useRef<((next: PlaybackRequest) => void) | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const reportEnded = useEffectEvent(onEnded);
+  const reportError = useEffectEvent(onError);
+  const reportUnavailable = useEffectEvent(onUnavailable);
+  const reportVideoChange = useEffectEvent((id: string) => onVideoChange?.(id));
+  // Read the latest committed props when the external player becomes ready or
+  // sends an event, without recreating it or copying those props into refs.
+  const currentPlayback = useEffectEvent(() => ({ videoId, key: playbackKey, title }));
   useEffect(() => {
-    callbacks.current = { onEnded, onError, onUnavailable, onVideoChange };
-  }, [onEnded, onError, onUnavailable, onVideoChange]);
-  useEffect(() => {
-    titleRef.current = title;
     container.current?.querySelector("iframe")?.setAttribute("title", title);
   }, [title]);
   useEffect(() => {
-    request.current = { videoId, key: playbackKey };
-    loadRequest.current?.(request.current);
+    loadRequest.current?.({ videoId, key: playbackKey });
   }, [videoId, playbackKey]);
   useEffect(() => {
     const root = container.current;
@@ -87,7 +86,7 @@ export function YouTubeQueuePlayer({
     let isContinuation = false;
     let player: Player | undefined;
     let loaded: PlaybackRequest | undefined;
-    let reportedVideoId = request.current.videoId;
+    let reportedVideoId = currentPlayback().videoId;
     let playbackInterval: number | undefined;
     const currentVideoId = () =>
       getYouTubeVideoId(player?.getVideoUrl?.() ?? "") ?? undefined;
@@ -101,17 +100,17 @@ export function YouTubeQueuePlayer({
       stopWaiting();
       window.clearInterval(playbackInterval);
       if (!(window as YouTubeWindow).YT?.Player) script?.remove();
-      callbacks.current.onUnavailable();
+      reportUnavailable();
     };
     const finish = (kind: "onEnded" | "onError") => {
       if (
         disposed || unavailable || finished ||
-        loaded?.key !== request.current.key
+        loaded?.key !== currentPlayback().key
       ) return;
       if (kind === "onEnded" && awaitingPlayback) return;
       finished = true;
-      if (kind === "onEnded") callbacks.current.onEnded(currentVideoId());
-      else callbacks.current.onError();
+      if (kind === "onEnded") reportEnded(currentVideoId());
+      else reportError();
     };
     const checkPlayback = (state: number | undefined) => {
       if (disposed || unavailable || finished) return;
@@ -128,7 +127,7 @@ export function YouTubeQueuePlayer({
         setBlocked(false);
         if (id && id !== reportedVideoId) {
           reportedVideoId = id;
-          callbacks.current.onVideoChange?.(id);
+          reportVideoChange(id);
         }
       }
     };
@@ -147,7 +146,7 @@ export function YouTubeQueuePlayer({
       awaitingPlayback = true;
       reportedVideoId = next.videoId;
       setBlocked(false);
-      root.querySelector("iframe")?.setAttribute("title", titleRef.current);
+      root.querySelector("iframe")?.setAttribute("title", currentPlayback().title);
       if (initial) player.playVideo();
       else player.loadVideoById(next.videoId);
     };
@@ -169,7 +168,7 @@ export function YouTubeQueuePlayer({
       creating = true;
       void Promise.resolve().then(() => {
         if (disposed || unavailable) return;
-        const initial = request.current;
+        const initial = currentPlayback();
         if (getYouTubeVideoId(initial.videoId) !== initial.videoId) {
           fail();
           return;
@@ -193,7 +192,7 @@ export function YouTubeQueuePlayer({
               playbackInterval = window.setInterval(
                 () => checkPlayback(player?.getPlayerState?.()), 500,
               );
-              const latest = request.current;
+              const latest = currentPlayback();
               begin(latest, loaded?.key === latest.key && loaded.videoId === latest.videoId);
             },
             onStateChange: ({ data }) => checkPlayback(data),

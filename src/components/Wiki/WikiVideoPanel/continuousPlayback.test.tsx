@@ -677,6 +677,44 @@ describe("external player lifecycle", () => {
       />
     </I18nProvider>
   );
+  it.each([false, true])("uses updated callbacks and iframe title without recreating the player (before ready: %s)", async (beforeReady) => {
+    let options!: QueuePlayerOptions;
+    const native = {
+      playVideo: vi.fn(), loadVideoById: vi.fn(), destroy: vi.fn(),
+      getVideoUrl: () => "https://youtu.be/abcdefghijk",
+      getPlayerState: vi.fn(() => 1),
+    };
+    const constructor = vi.fn(function (element: HTMLElement, next: QueuePlayerOptions) {
+      options = next;
+      element.replaceWith(document.createElement("iframe"));
+      return native;
+    });
+    vi.stubGlobal("YT", { Player: constructor });
+    const previousEnded = vi.fn();
+    const latestEnded = vi.fn();
+    const tree = (title: string, onEnded: (id?: string) => void) => (
+      <I18nProvider initialLocale="en">
+        <YouTubeQueuePlayer videoId="abcdefghijk" title={title} onEnded={onEnded}
+          onError={vi.fn()} onUnavailable={vi.fn()} />
+      </I18nProvider>
+    );
+    const view = render(tree("Previous title", previousEnded));
+    await act(async () => {});
+    if (!beforeReady) act(() => options.events.onReady());
+    view.rerender(tree("Latest title", latestEnded));
+    if (beforeReady) act(() => options.events.onReady());
+    expect(screen.getByTitle("Latest title")).toBeInTheDocument();
+    act(() => {
+      options.events.onStateChange({ data: 1 });
+      native.getPlayerState.mockReturnValue(0);
+      options.events.onStateChange({ data: 0 });
+    });
+    expect(previousEnded).not.toHaveBeenCalled();
+    expect(latestEnded).toHaveBeenCalledExactlyOnceWith("abcdefghijk");
+    expect(constructor).toHaveBeenCalledOnce();
+    expect(native.loadVideoById).not.toHaveBeenCalled();
+    expect(native.destroy).not.toHaveBeenCalled();
+  });
   it.each([false, true])("keeps the instance and ignores old ended states while loading (before ready: %s)", async (beforeReady) => {
     let options!: QueuePlayerOptions;
     let actualId = "abcdefghijk";
