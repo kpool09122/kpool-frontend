@@ -305,6 +305,16 @@ const ListMyOwnedWikisResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const CreatePlaylistRequestBody = z.object({ name: z.string() }).passthrough();
+const CreatedPlaylist = z
+  .object({
+    playlistIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string().min(1).max(32),
+    videoCount: z.literal(0),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
 const LikedVideoLink = z
   .object({
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
@@ -1012,6 +1022,8 @@ export const schemas = {
   WikiListItem,
   OfficialCertificationListItem,
   ListMyOwnedWikisResponseBody,
+  CreatePlaylistRequestBody,
+  CreatedPlaylist,
   LikedVideoLink,
   VideoLinkLikesPagination,
   SyncOwnedWikiCertificationsRequestBody,
@@ -1939,6 +1951,63 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/my/playlists",
+    alias: "PlaylistOperations_createPlaylist",
+    description: `Create an empty private playlist for the authenticated Wiki Principal; the owner cannot be supplied by the caller. Requires an active Account/Principal and Wiki collaborator CREATE_PLAYLIST permission. Accepts a name of 1-32 characters after trimming, including duplicate names. Returns 409 when the owner already has three playlists; deleting one allows creation again. Invalid names return 422. This endpoint never accepts video metadata from the caller. Playlist items store independent server-provided snapshots and retain them when source VideoLinks disappear.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z.object({ name: z.string() }).passthrough(),
+      },
+    ],
+    response: CreatedPlaylist,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
