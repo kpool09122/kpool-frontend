@@ -6,6 +6,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 
 type Player = {
   playVideo: () => void;
+  loadVideoById: (videoId: string) => void;
   destroy: () => void;
   getVideoUrl?: () => string;
   getPlayerState?: () => number;
@@ -28,11 +29,13 @@ type YouTubeWindow = Window & {
     Player?: new (element: HTMLElement, options: QueuePlayerOptions) => Player;
   };
 };
+type PlaybackRequest = { videoId: string; key: string | number };
 
-// The parent owns queue progression. This boundary owns the external API,
-// reports the actual video when it changes, and tears down completed players.
+// Keep the iframe for the entire playback session, including repeated videos.
+// The parent owns the queue; this boundary loads each request into that player.
 export function YouTubeQueuePlayer({
   videoId,
+  playbackKey = videoId,
   title,
   onVideoChange,
   onEnded,
@@ -40,6 +43,7 @@ export function YouTubeQueuePlayer({
   onUnavailable,
 }: {
   videoId: string;
+  playbackKey?: string | number;
   title: string;
   onVideoChange?: (videoId: string) => void;
   onEnded: (videoId?: string) => void;
@@ -52,6 +56,8 @@ export function YouTubeQueuePlayer({
   const playerRef = useRef<Player | undefined>(undefined);
   const callbacks = useRef({ onEnded, onError, onUnavailable, onVideoChange });
   const titleRef = useRef(title);
+  const request = useRef<PlaybackRequest>({ videoId, key: playbackKey });
+  const loadRequest = useRef<((next: PlaybackRequest) => void) | null>(null);
   const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     callbacks.current = { onEnded, onError, onUnavailable, onVideoChange };
@@ -61,45 +67,83 @@ export function YouTubeQueuePlayer({
     container.current?.querySelector("iframe")?.setAttribute("title", title);
   }, [title]);
   useEffect(() => {
+    request.current = { videoId, key: playbackKey };
+    loadRequest.current?.(request.current);
+  }, [videoId, playbackKey]);
+  useEffect(() => {
     const root = container.current;
     if (!root) return;
     const element = document.createElement("div");
     root.appendChild(element);
-    let disposed = false,
-      finished = false,
-      creating = false;
+    let disposed = false;
+    let unavailable = false;
+    let finished = false;
+    let creating = false;
+    let ready = false;
+    let awaitingPlayback = true;
     let player: Player | undefined;
+    let loaded: PlaybackRequest | undefined;
+    let reportedVideoId = request.current.videoId;
     let playbackInterval: number | undefined;
-    let reportedVideoId = videoId;
     const currentVideoId = () =>
       getYouTubeVideoId(player?.getVideoUrl?.() ?? "") ?? undefined;
     const stopWaiting = () => {
       window.clearInterval(interval);
       window.clearTimeout(timeout);
-      window.clearInterval(playbackInterval);
     };
-    const finish = (kind: "onEnded" | "onError" | "onUnavailable") => {
-      if (disposed || finished) return;
-      finished = true;
+    const fail = () => {
+      if (disposed || unavailable) return;
+      unavailable = true;
       stopWaiting();
+      window.clearInterval(playbackInterval);
       if (!(window as YouTubeWindow).YT?.Player) script?.remove();
+      callbacks.current.onUnavailable();
+    };
+    const finish = (kind: "onEnded" | "onError") => {
+      if (
+        disposed || unavailable || finished ||
+        loaded?.key !== request.current.key
+      ) return;
+      if (kind === "onEnded" && awaitingPlayback) return;
+      finished = true;
       if (kind === "onEnded") callbacks.current.onEnded(currentVideoId());
-      else callbacks.current[kind]();
+      else callbacks.current.onError();
     };
     const checkPlayback = (state: number | undefined) => {
-      if (disposed || finished) return;
+      if (disposed || unavailable || finished) return;
       if (state === 0) {
+        // A delayed ENDED notification must not finish an item already playing.
+        if (player?.getPlayerState && player.getPlayerState() !== 0) return;
         finish("onEnded");
       } else if (state === 1) {
-        setBlocked(false);
         const id = currentVideoId();
+        // loadVideoById can leave the old video's state visible briefly.
+        if (awaitingPlayback && id && id !== loaded?.videoId) return;
+        awaitingPlayback = false;
+        setBlocked(false);
         if (id && id !== reportedVideoId) {
           reportedVideoId = id;
           callbacks.current.onVideoChange?.(id);
         }
       }
     };
-    const fail = () => finish("onUnavailable");
+    const begin = (next: PlaybackRequest, initial = false) => {
+      if (disposed || unavailable || !ready || !player) return;
+      if (!initial && loaded?.key === next.key && loaded.videoId === next.videoId) return;
+      if (getYouTubeVideoId(next.videoId) !== next.videoId) {
+        fail();
+        return;
+      }
+      loaded = next;
+      finished = false;
+      awaitingPlayback = true;
+      reportedVideoId = next.videoId;
+      setBlocked(false);
+      root.querySelector("iframe")?.setAttribute("title", titleRef.current);
+      if (initial) player.playVideo();
+      else player.loadVideoById(next.videoId);
+    };
+    loadRequest.current = (next) => begin(next);
     let script = document.querySelector<HTMLScriptElement>(
       'script[src="https://www.youtube.com/iframe_api"]',
     );
@@ -111,49 +155,48 @@ export function YouTubeQueuePlayer({
     }
     script?.addEventListener("error", fail);
     const tick = () => {
-      if (disposed || finished || creating) return;
+      if (disposed || unavailable || creating) return;
       const Constructor = (window as YouTubeWindow).YT?.Player;
       if (!Constructor) return;
       creating = true;
-      void Promise.resolve()
-        .then(() => {
-          if (disposed || finished) return;
-          if (getYouTubeVideoId(videoId) !== videoId) {
-            fail();
-            return;
-          }
-          player = new Constructor(element, {
-            videoId,
-            host: "https://www.youtube-nocookie.com",
-            width: "100%",
-            height: "100%",
-            playerVars: { origin: window.location.origin, playsinline: 1 },
-            events: {
-              onReady: () => {
-                if (disposed || finished) return;
-                stopWaiting();
-                root
-                  .querySelector("iframe")
-                  ?.setAttribute("title", titleRef.current);
-                // Reconcile with the actual player even if an ended or playing
-                // notification is missed while seeking or switching videos.
-                playbackInterval = window.setInterval(() => {
-                  checkPlayback(player?.getPlayerState?.());
-                }, 500);
-                player?.playVideo();
-              },
-              onStateChange: ({ data }) => {
-                checkPlayback(data);
-              },
-              onError: () => finish("onError"),
-              onAutoplayBlocked: () => {
-                if (!disposed && !finished) setBlocked(true);
-              },
+      void Promise.resolve().then(() => {
+        if (disposed || unavailable) return;
+        const initial = request.current;
+        if (getYouTubeVideoId(initial.videoId) !== initial.videoId) {
+          fail();
+          return;
+        }
+        loaded = initial;
+        player = new Constructor(element, {
+          videoId: initial.videoId,
+          host: "https://www.youtube-nocookie.com",
+          width: "100%",
+          height: "100%",
+          playerVars: { origin: window.location.origin, playsinline: 1 },
+          events: {
+            onReady: () => {
+              if (disposed || unavailable || ready) return;
+              ready = true;
+              stopWaiting();
+              root.querySelector("iframe")?.setAttribute(
+                "allow",
+                "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+              );
+              playbackInterval = window.setInterval(
+                () => checkPlayback(player?.getPlayerState?.()), 500,
+              );
+              const latest = request.current;
+              begin(latest, loaded?.key === latest.key && loaded.videoId === latest.videoId);
             },
-          });
-          playerRef.current = player;
-        })
-        .catch(fail);
+            onStateChange: ({ data }) => checkPlayback(data),
+            onError: () => finish("onError"),
+            onAutoplayBlocked: () => {
+              if (!disposed && !unavailable && !finished) setBlocked(true);
+            },
+          },
+        });
+        playerRef.current = player;
+      }).catch(fail);
     };
     const interval = window.setInterval(tick, 250);
     const timeout = window.setTimeout(fail, 20_000);
@@ -161,12 +204,14 @@ export function YouTubeQueuePlayer({
     return () => {
       disposed = true;
       stopWaiting();
+      window.clearInterval(playbackInterval);
       script?.removeEventListener("error", fail);
+      loadRequest.current = null;
       playerRef.current = undefined;
       player?.destroy();
       root.replaceChildren();
     };
-  }, [videoId]);
+  }, []);
   return (
     <div className="space-y-3">
       <div
