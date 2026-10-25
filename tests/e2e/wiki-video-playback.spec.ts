@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "./fixtures";
 import { installYouTubePlayerMock } from "./youtube-player";
 import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
+import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
 
 const videos = [
   {
@@ -332,6 +333,76 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
   await expect(page.locator("iframe")).toHaveCount(0);
 });
 
+
+test("admin wiki cards preserve the playing mini player when opening the editor", async ({ page }) => {
+  await setupPlayback(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.context().addCookies([{
+    name: mockWikiPrincipalCookieName,
+    value: "basic",
+    domain: "127.0.0.1",
+    path: "/",
+  }]);
+  await page.route("**/api/identity/auth/me", (route) =>
+    route.fulfill({ json: {
+      ...wikiVideoAuthenticatedIdentity,
+      accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333",
+      account: {
+        ...wikiVideoAuthenticatedIdentity.account,
+        accountIdentifier: "22222222-2222-2222-2222-222222222222",
+      },
+    } }),
+  );
+  await page.reload();
+  await page.getByRole("button", { name: "Play all" }).click();
+  await expect(page.getByRole("region", { name: "Now playing" })).toContainText("First video (1/2)");
+  await page.locator("iframe").evaluate((frame) => frame.setAttribute("data-persisted-player", "true"));
+  await page.getByRole("button", { name: "Continue in mini player" }).click();
+  await page.getByRole("banner").getByRole("button", { name: "member", exact: true }).focus();
+  const adminLink = page.getByRole("link", { name: "Admin", exact: true });
+  await adminLink.click();
+  await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
+  await page.getByRole("link", { name: "編集中 Wiki", exact: true }).click();
+  await expect(page).toHaveURL(/\/wiki\/88888888-8888-8888-8888-888888888888\/edit\?resourceType=group$/);
+  await expect(page.getByRole("region", { name: "Mini player" })).toContainText("First video (1/2)");
+  await expect(page.locator("iframe")).toHaveCount(1);
+  await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+});
+
+test("wiki list searches and filters preserve the playing mini player", async ({ page }) => {
+  await setupPlayback(page);
+  await page.getByRole("button", { name: "Play all" }).click();
+  await expect(page.getByRole("region", { name: "Now playing" })).toContainText("First video (1/2)");
+  await page.locator("iframe").evaluate((frame) => frame.setAttribute("data-persisted-player", "true"));
+  await page.getByRole("button", { name: "Continue in mini player" }).click();
+  await page.getByRole("link", { name: "k-pool", exact: true }).click();
+  await page.getByRole("region", { name: "Recently updated wikis" }).getByRole("link", { name: "View more" }).click();
+  await expect(page).toHaveURL(/\/en\/wiki\?/);
+
+  const mini = page.getByRole("region", { name: "Mini player" });
+  const expectPlaybackPreserved = async () => {
+    await expect(mini).toContainText("First video (1/2)");
+    await expect(page.locator("iframe")).toHaveCount(1);
+    await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+  };
+  await expectPlaybackPreserved();
+  await page.getByLabel("Search", { exact: true }).fill("aurora");
+  await page.getByLabel("Search", { exact: true }).press("Enter");
+  await expect(page).toHaveURL(/keyword=aurora/);
+  await expect(page.getByLabel("Search", { exact: true })).toHaveValue("aurora");
+  await expectPlaybackPreserved();
+
+  for (const [label, value, query] of [
+    ["Resource", "group", /resourceType=group/],
+    ["Sort", "desc", /order=desc/],
+    ["Per page", "30", /perPage=30/],
+  ] as const) {
+    await page.getByRole("combobox", { name: label, exact: true }).selectOption(value);
+    await expect(page).toHaveURL(query);
+    await expectPlaybackPreserved();
+  }
+});
 
 test("mini player preserves the iframe across navigation, dragging and video takeover", async ({ page }, testInfo) => {
   await setupPlayback(page);

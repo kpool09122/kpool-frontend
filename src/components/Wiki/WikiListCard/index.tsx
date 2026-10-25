@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
 
 export type WikiListCardMeta = {
   label: string;
@@ -41,13 +42,13 @@ export function WikiListCard({
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 break-words text-base font-semibold">
-              <a
+              <Link
                 className="wiki-title underline underline-offset-4"
                 href={href}
                 style={{ color: isOnImage ? "var(--wiki-title-text-dark, #fffaf4)" : undefined }}
               >
                 {title}
-              </a>
+              </Link>
               {titleAdornment}
             </h3>
             <p
@@ -157,13 +158,13 @@ export function WikiListCardActionLink({
   isOnImage?: boolean;
 }) {
   return (
-    <a
+    <Link
       className={getActionClassName("secondary")}
       href={href}
       style={getActionStyle("secondary", Boolean(isOnImage))}
     >
       {children}
-    </a>
+    </Link>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import {
   buildWikiPath,
@@ -259,9 +260,9 @@ function DraftImageWikiMeta({
     <div className="min-w-0">
       <dt className="font-semibold text-text-muted">{label}</dt>
       <dd className="mt-1 break-all text-text-strong">
-        <a className="text-brand-primary underline underline-offset-4" href={href}>
+        <Link className="text-brand-primary underline underline-offset-4" href={href}>
           {name}
-        </a>
+        </Link>
       </dd>
     </div>
   );

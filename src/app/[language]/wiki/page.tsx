@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LocalizedForm } from "@/components/LocalizedForm";
+import Form from "next/form";
 import Link from "next/link";
 
 import { dictionaries, type I18nDictionary } from "../../../i18n/dictionaries";
@@ -234,7 +234,7 @@ export default async function WikiListPage({ params, searchParams }: WikiListPag
           </h1>
         </header>
 
-        <LocalizedForm
+        <Form
           action={`/${resolvedLanguage}/wiki`}
           className="grid gap-4 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft lg:grid-cols-[minmax(16rem,1fr)_12rem_12rem_10rem]"
         >
@@ -289,7 +289,7 @@ export default async function WikiListPage({ params, searchParams }: WikiListPag
               ))}
             </AutoSubmitSelect>
           </label>
-        </LocalizedForm>
+        </Form>
 
         <WikiListContent
           query={query}
