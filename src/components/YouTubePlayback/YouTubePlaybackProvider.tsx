@@ -158,7 +158,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
       </div>
       <div data-player-interactive className="touch-auto cursor-auto">
         <YouTubeQueuePlayer
-          key={`${session.id}:${queue.sequence}`}
+          key={session.id}
+          playbackKey={queue.sequence}
           videoId={requested.videoId}
           title={active.title}
           onVideoChange={(id) => store.getState().synchronize(session.id, id)}

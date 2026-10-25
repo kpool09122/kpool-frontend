@@ -17,6 +17,7 @@ export async function installYouTubePlayerMock(page: Page) {
         options: Options;
         destroyed: boolean;
         plays: number;
+        loads: string[];
         videoId: string;
         playerState: number;
       }[],
@@ -32,7 +33,7 @@ export async function installYouTubePlayerMock(page: Page) {
           frame.srcdoc = "<p>YouTube API test double</p>";
           element.replaceWith(frame);
           const item = {
-            options, destroyed: false, plays: 0,
+            options, destroyed: false, plays: 0, loads: [options.videoId],
             videoId: options.videoId, playerState: 1,
           };
           state.players.push(item);
@@ -42,6 +43,14 @@ export async function installYouTubePlayerMock(page: Page) {
             getPlayerState: () => item.playerState,
             playVideo: () => {
               item.plays += 1;
+              item.playerState = 1;
+              options.events.onStateChange({ data: 1 });
+            },
+            loadVideoById: (videoId: string) => {
+              item.videoId = videoId;
+              item.loads.push(videoId);
+              item.playerState = 1;
+              options.events.onStateChange({ data: 1 });
             },
             destroy: () => {
               item.destroyed = true;

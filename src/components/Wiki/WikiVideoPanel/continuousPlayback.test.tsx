@@ -43,9 +43,11 @@ const invalid: WikiVideo = {
   url: "https://tracker.example/abcdefghijk",
   title: "Invalid video",
 };
-const players: {
+// One record per loaded video; successive records can share one native player.
+const requests: {
   options: QueuePlayerOptions;
   playVideo: ReturnType<typeof vi.fn>;
+  loadVideoById: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   getVideoUrl: ReturnType<typeof vi.fn>;
   getPlayerState: ReturnType<typeof vi.fn>;
@@ -73,12 +75,12 @@ function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
   return { client, tree, ...render(tree()) };
 }
 const start = async () => {
-  const previous = players.length;
+  const previous = requests.length;
   fireEvent.click(screen.getByRole("button", { name: "Play all" }));
-  await waitFor(() => expect(players.length).toBeGreaterThan(previous));
+  await waitFor(() => expect(requests.length).toBeGreaterThan(previous));
 };
 function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
-  expect(players.at(-1)?.options.videoId).toBe(
+  expect(requests.at(-1)?.options.videoId).toBe(
     new URL(video.url).pathname.slice(1),
   );
   expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
@@ -90,7 +92,7 @@ function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
   expect(document.querySelectorAll('li[aria-current="true"]')).toHaveLength(1);
 }
 beforeEach(() => {
-  players.length = 0;
+  requests.length = 0;
   useAuthStore.setState({ status: "guest", identity: null });
   vi.stubGlobal("YT", {
     Player: vi.fn(function (
@@ -98,13 +100,36 @@ beforeEach(() => {
       options: QueuePlayerOptions,
     ) {
       const player = {
-        options,
-        playVideo: vi.fn(),
+        playVideo: vi.fn(() => {
+          player.getPlayerState.mockReturnValue(1);
+          options.events.onStateChange({ data: 1 });
+        }),
+        loadVideoById: vi.fn((id: string) => {
+          // YouTube may deliver the previous track's ENDED while loading.
+          options.events.onStateChange({ data: 0 });
+          record(id);
+          player.playVideo();
+        }),
         destroy: vi.fn(),
         getVideoUrl: vi.fn(() => `https://www.youtube.com/watch?v=${options.videoId}`),
         getPlayerState: vi.fn(() => 1),
       };
-      players.push(player);
+      function record(id: string) {
+        player.getVideoUrl.mockReturnValue(`https://www.youtube.com/watch?v=${id}`);
+        const recorded: (typeof requests)[number] = {
+          ...player,
+          options: { ...options, videoId: id, events: {
+            ...options.events,
+            onStateChange: ({ data }) => {
+              if (requests.at(-1) === recorded) player.getPlayerState.mockReturnValue(data);
+              options.events.onStateChange({ data });
+            },
+          } },
+        };
+        requests.push(recorded);
+      }
+      record(options.videoId);
+      void Promise.resolve().then(() => options.events.onReady());
       return player;
     }),
   });
@@ -126,17 +151,17 @@ describe("continuous playback", () => {
     if (random) fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
     await start();
     const target = random ? first : second;
-    players[0].getVideoUrl.mockReturnValue(target.url);
-    act(() => players[0].options.events.onStateChange({ data: 1 }));
+    requests[0].getVideoUrl.mockReturnValue(target.url);
+    act(() => requests[0].options.events.onStateChange({ data: 1 }));
     expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
       `${target.title} (2/2)`,
     );
-    expect(players[0].destroy).not.toHaveBeenCalled();
+    expect(requests[0].destroy).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: target.title }).closest("li"))
       .toHaveAttribute("aria-current", "true");
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
-    expect(players).toHaveLength(1);
+    expect(requests).toHaveLength(1);
   });
   it.each(["ended", "changed video"])(
     "reconciles player state after seeking near the end without a notification: %s",
@@ -145,23 +170,23 @@ describe("continuous playback", () => {
       mount();
       fireEvent.click(screen.getByRole("button", { name: "Play all" }));
       await act(async () => {});
-      expect(players).toHaveLength(1);
-      act(() => players[0].options.events.onReady());
-      if (scenario === "ended") players[0].getPlayerState.mockReturnValue(0);
-      else players[0].getVideoUrl.mockReturnValue(second.url);
+      expect(requests).toHaveLength(1);
+      act(() => requests[0].options.events.onReady());
+      if (scenario === "ended") requests[0].getPlayerState.mockReturnValue(0);
+      else requests[0].getVideoUrl.mockReturnValue(second.url);
       await act(async () => vi.advanceTimersByTimeAsync(501));
       expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(
         "Second video (2/2)",
       );
       if (scenario === "ended") {
-        expect(players).toHaveLength(2);
-        expect(players[0].destroy).toHaveBeenCalledOnce();
+        expect(requests).toHaveLength(2);
+        expect(requests[0].destroy).not.toHaveBeenCalled();
         // A delayed ended notification must not advance the new player again.
-        act(() => players[0].options.events.onStateChange({ data: 0 }));
-        expect(players).toHaveLength(2);
+        act(() => requests[0].options.events.onStateChange({ data: 0 }));
+        expect(requests).toHaveLength(2);
       } else {
-        expect(players).toHaveLength(1);
-        expect(players[0].destroy).not.toHaveBeenCalled();
+        expect(requests).toHaveLength(1);
+        expect(requests[0].destroy).not.toHaveBeenCalled();
       }
       fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
       await act(async () => vi.advanceTimersByTimeAsync(2_000));
@@ -171,11 +196,11 @@ describe("continuous playback", () => {
   it("clears the previous title if the player switches outside the queue", async () => {
     mount();
     await start();
-    players[0].getVideoUrl.mockReturnValue("https://youtu.be/12345678901");
-    act(() => players[0].options.events.onStateChange({ data: 1 }));
+    requests[0].getVideoUrl.mockReturnValue("https://youtu.be/12345678901");
+    act(() => requests[0].options.events.onStateChange({ data: 1 }));
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
     expect(screen.getByText(/outside this list/)).toBeInTheDocument();
-    expect(players[0].destroy).toHaveBeenCalledOnce();
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
   });
   it("toggles playback options with pressed state and allows changes during playback", async () => {
     mount();
@@ -192,11 +217,11 @@ describe("continuous playback", () => {
     fireEvent.click(random);
     expect(loop).toHaveAttribute("aria-pressed", "false");
     expect(random).toHaveAttribute("aria-pressed", "false");
-    expect(players).toHaveLength(1);
-    expect(players[0].destroy).not.toHaveBeenCalled();
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    act(() => players[1].options.events.onStateChange({ data: 0 }));
+    expect(requests).toHaveLength(1);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    act(() => requests[1].options.events.onStateChange({ data: 0 }));
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
   });
   it("shuffles only upcoming videos when enabled during playback", async () => {
@@ -207,17 +232,17 @@ describe("continuous playback", () => {
     expectCurrentVideo(first, 1, 3);
     const random = screen.getByRole("button", { name: "Random playback" });
     fireEvent.click(random);
-    expect(players[0].destroy).not.toHaveBeenCalled();
+    expect(requests[0].destroy).not.toHaveBeenCalled();
     expectCurrentVideo(first, 1, 3);
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[1].options.videoId).toBe("12345678901");
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[1].options.videoId).toBe("12345678901");
     expectCurrentVideo(third, 2, 3);
     fireEvent.click(random);
     expectCurrentVideo(third, 2, 3);
-    act(() => players[1].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(3));
-    expect(players[2].options.videoId).toBe("lmnopqrstuv");
+    act(() => requests[1].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(3));
+    expect(requests[2].options.videoId).toBe("lmnopqrstuv");
     expectCurrentVideo(second, 3, 3);
   });
   it("loops the list and stops when requested", async () => {
@@ -225,26 +250,27 @@ describe("continuous playback", () => {
     fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
     await start();
     for (let i = 0; i < 2; i++) {
-      act(() => players[i].options.events.onStateChange({ data: 0 }));
-      await waitFor(() => expect(players).toHaveLength(i + 2));
+      act(() => requests[i].options.events.onStateChange({ data: 0 }));
+      await waitFor(() => expect(requests).toHaveLength(i + 2));
     }
-    expect(players.map((player) => player.options.videoId)).toEqual([
+    expect(requests.map((player) => player.options.videoId)).toEqual([
       "abcdefghijk", "lmnopqrstuv", "abcdefghijk",
     ]);
     expect(screen.getByText("First video (1/2)")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
-    act(() => players[2].options.events.onStateChange({ data: 0 }));
-    expect(players).toHaveLength(3);
+    act(() => requests[2].options.events.onStateChange({ data: 0 }));
+    expect(requests).toHaveLength(3);
     expect(screen.getByRole("button", { name: "Loop playback" })).toBeEnabled();
   });
-  it("recreates the player to loop a single video", async () => {
+  it("reloads a single video without recreating the player", async () => {
     mount([first]);
     fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
     await start();
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[0].destroy).toHaveBeenCalledOnce();
-    expect(players[1].options.videoId).toBe("abcdefghijk");
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    expect(requests[1].options.videoId).toBe("abcdefghijk");
+    expect(requests[0].loadVideoById).toHaveBeenCalledWith("abcdefghijk");
   });
   it.each([false, true])("shuffles without repeats within a pass (loop: %s)", async (loop) => {
     const third = { ...invalid, url: "https://youtu.be/12345678901" };
@@ -256,36 +282,36 @@ describe("continuous playback", () => {
     expect(screen.getByRole("button", { name: "Random playback" })).toBeEnabled();
     expectCurrentVideo(second, 1, 3);
     for (let i = 0; i < 2; i++) {
-      act(() => players[i].options.events.onStateChange({ data: 0 }));
-      await waitFor(() => expect(players).toHaveLength(i + 2));
+      act(() => requests[i].options.events.onStateChange({ data: 0 }));
+      await waitFor(() => expect(requests).toHaveLength(i + 2));
       expectCurrentVideo([third, first][i], i + 2, 3);
     }
-    expect(players.map((player) => player.options.videoId)).toEqual([
+    expect(requests.map((player) => player.options.videoId)).toEqual([
       "lmnopqrstuv", "12345678901", "abcdefghijk",
     ]);
-    act(() => players[2].options.events.onStateChange({ data: 0 }));
+    act(() => requests[2].options.events.onStateChange({ data: 0 }));
     if (loop) {
-      await waitFor(() => expect(players).toHaveLength(4));
-      expect(players[3].options.videoId).not.toBe(players[2].options.videoId);
+      await waitFor(() => expect(requests).toHaveLength(4));
+      expect(requests[3].options.videoId).not.toBe(requests[2].options.videoId);
       expectCurrentVideo(second, 1, 3);
     } else {
       expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
-      expect(players).toHaveLength(3);
+      expect(requests).toHaveLength(3);
     }
   });
   it("excludes failed videos from later loops and stops when all have failed", async () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
     await start();
-    act(() => players[0].options.events.onError());
-    await waitFor(() => expect(players).toHaveLength(2));
-    act(() => players[1].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(3));
-    expect(players[2].options.videoId).toBe("lmnopqrstuv");
+    act(() => requests[0].options.events.onError());
+    await waitFor(() => expect(requests).toHaveLength(2));
+    act(() => requests[1].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(3));
+    expect(requests[2].options.videoId).toBe("lmnopqrstuv");
     expect(screen.getByText("Second video (1/1)")).toBeInTheDocument();
-    act(() => players[2].options.events.onError());
+    act(() => requests[2].options.events.onError());
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
-    expect(players).toHaveLength(3);
+    expect(requests).toHaveLength(3);
   });
   it("avoids repeating the last video when the next shuffled pass starts with it", async () => {
     vi.spyOn(Math, "random").mockReturnValueOnce(0.99).mockReturnValue(0);
@@ -294,10 +320,10 @@ describe("continuous playback", () => {
     fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
     await start();
     for (let i = 0; i < 2; i++) {
-      act(() => players[i].options.events.onStateChange({ data: 0 }));
-      await waitFor(() => expect(players).toHaveLength(i + 2));
+      act(() => requests[i].options.events.onStateChange({ data: 0 }));
+      await waitFor(() => expect(requests).toHaveLength(i + 2));
     }
-    expect(players.map((player) => player.options.videoId)).toEqual([
+    expect(requests.map((player) => player.options.videoId)).toEqual([
       "abcdefghijk", "lmnopqrstuv", "abcdefghijk",
     ]);
   });
@@ -306,16 +332,16 @@ describe("continuous playback", () => {
     fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
     fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
     await start();
-    act(() => players[0].options.events.onError());
-    await waitFor(() => expect(players).toHaveLength(2));
-    act(() => players[1].options.events.onError());
+    act(() => requests[0].options.events.onError());
+    await waitFor(() => expect(requests).toHaveLength(2));
+    act(() => requests[1].options.events.onError());
     expect(screen.queryByRole("button", { name: "Stop playback" })).not.toBeInTheDocument();
-    expect(players).toHaveLength(2);
+    expect(requests).toHaveLength(2);
   });
   it("excludes invalid URLs, preserves display order and marks the current card", async () => {
     mount([second, invalid, first]);
     await start();
-    expect(players[0].options).toMatchObject({
+    expect(requests[0].options).toMatchObject({
       videoId: "lmnopqrstuv",
       host: "https://www.youtube-nocookie.com",
       playerVars: { playsinline: 1, origin: window.location.origin },
@@ -326,9 +352,9 @@ describe("continuous playback", () => {
     expect(
       screen.getByRole("heading", { name: second.title }).closest("li"),
     ).toHaveAttribute("aria-current", "true");
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[1].options.videoId).toBe("abcdefghijk");
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[1].options.videoId).toBe("abcdefghijk");
     expect(
       screen.getByRole("heading", { name: second.title }).closest("li"),
     ).not.toHaveAttribute("aria-current");
@@ -338,19 +364,19 @@ describe("continuous playback", () => {
     ({ videos }) => {
       mount(videos);
       expect(screen.getByRole("button", { name: "Play all" })).toBeDisabled();
-      expect(players).toHaveLength(0);
+      expect(requests).toHaveLength(0);
     },
   );
   it("finishes a single video and can start again", async () => {
     mount([first]);
     await start();
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    expect(players[0].destroy).toHaveBeenCalledOnce();
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
     expect(
       screen.queryByRole("region", { name: "Now playing" }),
     ).not.toBeInTheDocument();
     await start();
-    await waitFor(() => expect(players).toHaveLength(2));
+    await waitFor(() => expect(requests).toHaveLength(2));
   });
   it("returns keyboard focus to the start button after stopping", async () => {
     mount();
@@ -369,59 +395,59 @@ describe("continuous playback", () => {
     mount();
     await start();
     act(() => {
-      players[0].options.events.onError();
-      players[0].options.events.onError();
-      players[0].options.events.onStateChange({ data: 0 });
+      requests[0].options.events.onError();
+      requests[0].options.events.onError();
+      requests[0].options.events.onStateChange({ data: 0 });
     });
-    await waitFor(() => expect(players).toHaveLength(2));
+    await waitFor(() => expect(requests).toHaveLength(2));
     expect(
       screen.getByText("Skipped an unavailable video: First video"),
     ).toBeInTheDocument();
-    act(() => players[1].options.events.onError());
-    expect(players[1].destroy).toHaveBeenCalledOnce();
+    act(() => requests[1].options.events.onError());
+    expect(requests[1].destroy).toHaveBeenCalledOnce();
     expect(
       screen.getByText("Skipped an unavailable video: Second video"),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Stop playback" }),
     ).not.toBeInTheDocument();
-    expect(players).toHaveLength(2);
+    expect(requests).toHaveLength(2);
   });
   it("offers manual resume after autoplay is blocked without skipping the item", async () => {
     mount();
     await start();
-    act(() => players[0].options.events.onAutoplayBlocked());
+    act(() => requests[0].options.events.onAutoplayBlocked());
     expect(screen.getByText(/Autoplay was blocked/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Resume playback" }));
-    expect(players[0].playVideo).toHaveBeenCalledOnce();
-    act(() => players[0].options.events.onStateChange({ data: 1 }));
+    expect(requests[0].playVideo).toHaveBeenCalledTimes(2);
+    act(() => requests[0].options.events.onStateChange({ data: 1 }));
     expect(
       screen.queryByRole("button", { name: "Resume playback" }),
     ).not.toBeInTheDocument();
-    expect(players).toHaveLength(1);
+    expect(requests).toHaveLength(1);
   });
   it("uses one player for individual and continuous playback and ignores late events", async () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
-    await waitFor(() => expect(players).toHaveLength(1));
+    await waitFor(() => expect(requests).toHaveLength(1));
     fireEvent.click(screen.getByRole("button", { name: `Play: ${second.title}` }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[0].destroy).toHaveBeenCalledOnce();
-    expect(players[1].options.videoId).toBe("lmnopqrstuv");
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
+    expect(requests[1].options.videoId).toBe("lmnopqrstuv");
     await start();
-    expect(players[1].destroy).toHaveBeenCalledOnce();
-    expect(players[2].options.videoId).toBe("abcdefghijk");
+    expect(requests[1].destroy).toHaveBeenCalledOnce();
+    expect(requests[2].options.videoId).toBe("abcdefghijk");
     fireEvent.click(screen.getByRole("button", { name: `Play: ${second.title}` }));
-    await waitFor(() => expect(players).toHaveLength(4));
-    expect(players[2].destroy).toHaveBeenCalledOnce();
-    act(() => players[2].options.events.onStateChange({ data: 0 }));
-    expect(players).toHaveLength(4);
+    await waitFor(() => expect(requests).toHaveLength(4));
+    expect(requests[2].destroy).toHaveBeenCalledOnce();
+    act(() => requests[2].options.events.onStateChange({ data: 0 }));
+    expect(requests).toHaveLength(4);
     await start();
     fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
-    expect(players[4].destroy).toHaveBeenCalledOnce();
+    expect(requests[4].destroy).toHaveBeenCalledOnce();
     act(() => {
-      players[4].options.events.onAutoplayBlocked();
-      players[4].options.events.onError();
+      requests[4].options.events.onAutoplayBlocked();
+      requests[4].options.events.onError();
     });
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Skipped/)).not.toBeInTheDocument();
@@ -432,22 +458,22 @@ describe("continuous playback", () => {
     await start();
     fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
     fireEvent.click(screen.getByRole("button", { name: "Play: Body video" }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[0].destroy).toHaveBeenCalledOnce();
-    expect(players[1].options.videoId).toBe("12345678901");
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
+    expect(requests[1].options.videoId).toBe("12345678901");
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Body video");
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    expect(players).toHaveLength(2);
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    expect(requests).toHaveLength(2);
   });
   it("keeps the same player when detached and continues the queue", async () => {
     mount();
     await start();
     fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveStyle({ position: "fixed", right: "16px", bottom: "16px" });
-    expect(players).toHaveLength(1);
-    expect(players[0].destroy).not.toHaveBeenCalled();
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
+    expect(requests).toHaveLength(1);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Second video (2/2)");
   });
   it("retains the queue across Wiki navigation and switches to a new selection", async () => {
@@ -457,12 +483,12 @@ describe("continuous playback", () => {
     view.rerender(view.tree("gr-other"));
     await screen.findByRole("button", { name: "Play all" });
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("First video (1/2)");
-    expect(players[0].destroy).not.toHaveBeenCalled();
-    act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[1].options.videoId).toBe("lmnopqrstuv");
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[1].options.videoId).toBe("lmnopqrstuv");
     await start();
-    expect(players[1].destroy).toHaveBeenCalledOnce();
+    expect(requests[1].destroy).toHaveBeenCalledOnce();
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("First video (1/2)");
     fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
     expect(screen.queryByRole("region", { name: "Mini player" })).not.toBeInTheDocument();
@@ -487,13 +513,13 @@ describe("continuous playback", () => {
           });
         });
       } else view.unmount();
-      await waitFor(() => expect(players[0].destroy).toHaveBeenCalledOnce());
+      await waitFor(() => expect(requests[0].destroy).toHaveBeenCalledOnce());
       act(() => {
-        players[0].options.events.onStateChange({ data: 0 });
-        players[0].options.events.onReady();
+        requests[0].options.events.onStateChange({ data: 0 });
+        requests[0].options.events.onReady();
       });
-      expect(players).toHaveLength(1);
-      expect(players[0].playVideo).not.toHaveBeenCalled();
+      expect(requests).toHaveLength(1);
+      expect(requests[0].playVideo).toHaveBeenCalledOnce();
       expect(
         screen.queryByRole("region", { name: "Now playing" }),
       ).not.toBeInTheDocument();
@@ -511,10 +537,10 @@ describe("continuous playback", () => {
       { target: { value: "1" } },
     );
     fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
-    expect(players[0].destroy).toHaveBeenCalledOnce();
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "Play all" }));
-    await waitFor(() => expect(players).toHaveLength(2));
-    expect(players[1].options.videoId).toBe("lmnopqrstuv");
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expect(requests[1].options.videoId).toBe("lmnopqrstuv");
     expect(
       screen.getByText("Second video (1/1)"),
     ).toBeInTheDocument();
@@ -549,11 +575,61 @@ describe("external player lifecycle", () => {
       />
     </I18nProvider>
   );
+  it.each([false, true])("keeps the instance and ignores old ended states while loading (before ready: %s)", async (beforeReady) => {
+    let options!: QueuePlayerOptions;
+    let actualId = "abcdefghijk";
+    let state = 1;
+    const native = {
+      playVideo: vi.fn(), loadVideoById: vi.fn(), destroy: vi.fn(),
+      getVideoUrl: () => `https://youtu.be/${actualId}`,
+      getPlayerState: () => state,
+    };
+    const constructor = vi.fn(function (_element: HTMLElement, next: QueuePlayerOptions) {
+      options = next;
+      return native;
+    });
+    vi.stubGlobal("YT", { Player: constructor });
+    const ended = vi.fn();
+    const changed = vi.fn();
+    const tree = (id: string) => <I18nProvider initialLocale="en">
+      <YouTubeQueuePlayer videoId={id} title={id} onEnded={ended}
+        onVideoChange={changed} onError={vi.fn()} onUnavailable={vi.fn()} />
+    </I18nProvider>;
+    const view = render(tree(actualId));
+    await act(async () => {});
+    if (!beforeReady) act(() => {
+      options.events.onReady();
+      options.events.onStateChange({ data: 1 });
+    });
+    view.rerender(tree("lmnopqrstuv"));
+    if (beforeReady) act(() => options.events.onReady());
+    expect(constructor).toHaveBeenCalledOnce();
+    expect(native.loadVideoById).toHaveBeenCalledExactlyOnceWith("lmnopqrstuv");
+    expect(native.destroy).not.toHaveBeenCalled();
+    act(() => {
+      state = 0;
+      options.events.onStateChange({ data: 0 });
+      state = 1;
+      options.events.onStateChange({ data: 1 });
+    });
+    expect(ended).not.toHaveBeenCalled();
+    expect(changed).not.toHaveBeenCalled();
+    act(() => {
+      actualId = "lmnopqrstuv";
+      options.events.onStateChange({ data: 1 });
+      state = 0;
+      options.events.onStateChange({ data: 0 });
+      options.events.onStateChange({ data: 0 });
+    });
+    expect(ended).toHaveBeenCalledExactlyOnceWith("lmnopqrstuv");
+    view.unmount();
+    expect(native.destroy).toHaveBeenCalledOnce();
+  });
   it("does not create a player if unmounted before the constructor microtask", async () => {
     const view = render(player());
     view.unmount();
     await act(async () => {});
-    expect(players).toHaveLength(0);
+    expect(requests).toHaveLength(0);
   });
   it("cleans API polling/timeout after unmount, before the script loads", async () => {
     vi.useFakeTimers();
@@ -563,7 +639,7 @@ describe("external player lifecycle", () => {
     view.unmount();
     expect(vi.getTimerCount()).toBe(0);
     await act(async () => vi.advanceTimersByTimeAsync(21_000));
-    expect(players).toHaveLength(0);
+    expect(requests).toHaveLength(0);
   });
   it.each(["script", "timeout", "constructor"])(
     "stops with a recoverable error on %s failure",

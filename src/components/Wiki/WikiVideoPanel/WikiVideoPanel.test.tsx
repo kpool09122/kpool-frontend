@@ -82,10 +82,16 @@ describe("WikiVideoPanel", () => {
       };
       destroy: ReturnType<typeof vi.fn>;
       playVideo: ReturnType<typeof vi.fn>;
+      loadVideoById: ReturnType<typeof vi.fn>;
     }[] = [];
     vi.stubGlobal("YT", {
       Player: vi.fn(function (_node, options) {
-        const player = { options, destroy: vi.fn(), playVideo: vi.fn() };
+        const player = {
+          options,
+          destroy: vi.fn(),
+          playVideo: vi.fn(() => options.events.onStateChange({ data: 1 })),
+          loadVideoById: vi.fn(() => options.events.onStateChange({ data: 1 })),
+        };
         players.push(player);
         return player;
       }),
@@ -115,11 +121,11 @@ describe("WikiVideoPanel", () => {
     act(() => players[0].options.events.onReady());
     expect(players[0].playVideo).toHaveBeenCalledOnce();
     act(() => players[0].options.events.onStateChange({ data: 0 }));
-    await waitFor(() => expect(players).toHaveLength(2));
+    expect(players).toHaveLength(1);
+    expect(players[0].destroy).not.toHaveBeenCalled();
+    expect(players[0].loadVideoById).toHaveBeenCalledWith("lmnopqrstuv");
+    act(() => players[0].options.events.onStateChange({ data: 0 }));
     expect(players[0].destroy).toHaveBeenCalledOnce();
-    expect(players[1].options.videoId).toBe("lmnopqrstuv");
-    act(() => players[1].options.events.onStateChange({ data: 0 }));
-    expect(players[1].destroy).toHaveBeenCalledOnce();
     expect(
       screen.queryByRole("button", { name: "Stop playback" }),
     ).not.toBeInTheDocument();

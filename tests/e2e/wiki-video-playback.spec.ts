@@ -117,6 +117,7 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
       if (name === "block") events.onAutoplayBlocked();
       else events.onStateChange({ data: current.playerState });
     }, name);
+  await page.locator("iframe").evaluate((frame) => frame.setAttribute("data-session-frame", "original"));
   // Reproduce seeking to the end when the ended notification is missed.
   // The real DOM should still advance using the player's reported state.
   await page.evaluate(() => {
@@ -127,6 +128,11 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
   });
   await expect(region).toContainText("Second video (2/2)");
   await expect(page.locator("iframe")).toHaveCount(1);
+  await expect(page.locator("iframe")).toHaveAttribute("data-session-frame", "original");
+  await expect.poll(() => page.evaluate(() => {
+    const state = (window as unknown as { queueTest: { players: { loads: string[] }[] } }).queueTest;
+    return { instances: state.players.length, loads: state.players[0].loads };
+  })).toEqual({ instances: 1, loads: ["abcdefghijk", "lmnopqrstuv"] });
   // A video can also change inside the same iframe without an ended event.
   const changeVideo = async (videoId: string) => page.evaluate((videoId) => {
     const state = (window as unknown as {
