@@ -73,6 +73,7 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
       durationSeconds: body.durationSeconds,
       creatorPrincipalIdentifier: null,
       creatorIdentityName: null,
+      likeCount: 0,
       publishedAt: null,
     };
     expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf");

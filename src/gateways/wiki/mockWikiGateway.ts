@@ -117,6 +117,8 @@ const mockPrincipalStateByMode: Record<
     status: "available",
     principal: createMockPrincipal([
       createMockPolicy("BASIC_EDITING", ["save_video_links", "delete_video_link"], ["group"]),
+      createMockPolicy("GLOBAL_LIKE_VIDEO_LINK", ["like_video_link"], ["group"]),
+      createMockPolicy("GLOBAL_UNLIKE_VIDEO_LINK", ["unlike_video_link"], ["group"]),
     ]),
   },
   basic: {

@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,6 +30,7 @@ const first: WikiVideo = {
   durationSeconds: 120,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
+  likeCount: 0,
   videoUsage: "youtube_auto_view_count",
 };
 const second: WikiVideo = {
@@ -470,11 +472,20 @@ describe("continuous playback", () => {
     await start();
     fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveStyle({ position: "fixed", right: "16px", bottom: "16px" });
+    const mini = within(screen.getByRole("region", { name: "Mini player" }));
+    const heart = mini.getByRole("button", { name: "Like: First video" });
+    expect(heart).toBeDisabled();
+    expect(heart).toHaveTextContent("");
+    const buttons = mini.getAllByRole("button");
+    expect(buttons.indexOf(heart)).toBe(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" })) + 1);
+    expect(buttons.indexOf(mini.getByRole("button", { name: "Stop playback" }))).toBe(buttons.indexOf(heart) + 1);
     expect(requests).toHaveLength(1);
     expect(requests[0].destroy).not.toHaveBeenCalled();
     act(() => requests[0].options.events.onStateChange({ data: 0 }));
     await waitFor(() => expect(requests).toHaveLength(2));
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Second video (2/2)");
+    expect(mini.getByRole("button", { name: "Like: Second video" })).toBeInTheDocument();
+    expect(mini.queryByRole("button", { name: "Like: First video" })).not.toBeInTheDocument();
   });
   it("retains the queue across Wiki navigation and switches to a new selection", async () => {
     const view = mount();

@@ -10,6 +10,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WikiVideoPanel } from "./index";
+// These tests exercise playback/deletion. Like behavior has its own gateway/UI suite.
+vi.mock("@/gateways/wiki/wikiVideoLikes", async (original) => ({
+  ...(await original<typeof import("@/gateways/wiki/wikiVideoLikes")>()),
+  fetchWikiVideoLikeAccess: vi.fn().mockResolvedValue({ canLike: false, canUnlike: false, principalIdentifier: null }),
+}));
 import { parseAuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { I18nProvider } from "@/i18n/I18nProvider";
@@ -54,6 +59,7 @@ const video = {
   durationSeconds: 253,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
+  likeCount: 0,
   videoUsage: "youtube_auto_view_count",
 };
 const wrap = (client: QueryClient, slug = identity.slug) => (

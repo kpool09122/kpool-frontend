@@ -9,6 +9,7 @@ const video = {
   durationSeconds: 253,
       creatorPrincipalIdentifier: null,
       creatorIdentityName: null,
+  likeCount: 0,
   videoUsage: "youtube_auto_view_count",
 };
 

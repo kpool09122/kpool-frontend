@@ -161,6 +161,18 @@ export const canDeleteWikiVideo = (principal: WikiPrincipalSummary, resourceType
     && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && emptyWikiResourceConditionMatches(statement) === true);
 };
 
+// Like actions use the video's resource type with an otherwise empty resource.
+export const getWikiVideoLikePermissions = (principal: WikiPrincipalSummary, resourceType: "agency" | "group" | "song" | "talent") => {
+  const allowed = (action: "like_video_link" | "unlike_video_link") => {
+    const statements = principal.policies.flatMap((policy) => policy.statements).filter((statement) =>
+      valueMatches(statement.actions, action) && valueMatches(statement.resourceTypes, resourceType));
+    return principal.status === "active"
+      && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY" && emptyWikiResourceConditionMatches(statement) !== false)
+      && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && emptyWikiResourceConditionMatches(statement) === true);
+  };
+  return { canLike: allowed("like_video_link"), canUnlike: allowed("unlike_video_link") };
+};
+
 export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
   isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");

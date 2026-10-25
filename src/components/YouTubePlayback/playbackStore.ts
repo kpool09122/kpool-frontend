@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import { createStore } from "zustand/vanilla";
 import { advancePlayback, playbackOrder, type PlaybackQueue } from "./playbackQueue";
 
-export type PlaybackTrack = { identifier: string; videoId: string; title: string };
+export type PlaybackTrack = { identifier: string; videoId: string; title: string; controls?: ReactNode };
 export type PlaybackSession = {
   id: number;
   owner: string;

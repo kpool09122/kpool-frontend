@@ -11,6 +11,7 @@ const videos = [
     durationSeconds: 120,
     creatorPrincipalIdentifier: null,
     creatorIdentityName: null,
+    likeCount: 0,
     videoUsage: "youtube_auto_view_count",
   },
   {
@@ -22,6 +23,7 @@ const videos = [
     durationSeconds: 300,
     creatorPrincipalIdentifier: null,
     creatorIdentityName: null,
+    likeCount: 0,
     videoUsage: "youtube_auto_view_count",
   },
 ];

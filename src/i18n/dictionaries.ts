@@ -1015,6 +1015,7 @@ const ja = {
     contentTabsLabel: "Wiki本文タブ",
     contentVideoTab: "Video",
     videos: {
+      likes: { like: "いいね", unlike: "いいねを解除", loading: "いいねを読み込み中…", loadError: "いいねを取得できませんでした。", retry: "いいねを再試行", failed: "いいねを更新できませんでした。もう一度お試しください。" },
       continuous: {
         start: "連続再生",
         loop: "ループ再生",
@@ -2447,6 +2448,7 @@ const en: typeof ja = {
     contentTabsLabel: "Wiki content tabs",
     contentVideoTab: "Video",
     videos: {
+      likes: { like: "Like", unlike: "Unlike", loading: "Loading likes…", loadError: "Could not load likes.", retry: "Retry likes", failed: "Could not update the like. Please try again." },
       continuous: {
         start: "Play all",
         loop: "Loop playback",
@@ -3876,6 +3878,7 @@ const ko: typeof ja = {
     contentTabsLabel: "Wiki 본문 탭",
     contentVideoTab: "Video",
     videos: {
+      likes: { like: "좋아요", unlike: "좋아요 취소", loading: "좋아요 불러오는 중…", loadError: "좋아요를 불러오지 못했습니다.", retry: "좋아요 다시 시도", failed: "좋아요를 변경하지 못했습니다. 다시 시도해 주세요." },
       continuous: {
         start: "연속 재생",
         loop: "반복 재생",

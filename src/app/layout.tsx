@@ -58,8 +58,8 @@ export default async function RootLayout({
       </head>
       <body className="flex min-h-dvh flex-col antialiased">
         <I18nProvider initialLocale={locale}>
-          <YouTubePlaybackProvider>
-            <QueryProvider>
+          <QueryProvider>
+            <YouTubePlaybackProvider>
               <AnalyticsProvider containerId={resolveGtmContainerId(
                 process.env.NEXT_PUBLIC_ANALYTICS_ENABLED,
                 process.env.NEXT_PUBLIC_GTM_ID,
@@ -72,8 +72,8 @@ export default async function RootLayout({
                 <div className="flex flex-1 flex-col">{children}</div>
                 <Footer />
               </AnalyticsProvider>
-            </QueryProvider>
-          </YouTubePlaybackProvider>
+            </YouTubePlaybackProvider>
+          </QueryProvider>
         </I18nProvider>
       </body>
     </html>

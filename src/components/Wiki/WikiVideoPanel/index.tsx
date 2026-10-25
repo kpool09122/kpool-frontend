@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
+import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
@@ -32,6 +34,7 @@ import { SocialLinkIcon } from "../socialLinks";
 function VideoCard({
   video,
   deleteControl,
+  likeControl,
   player,
   current,
   onPlay,
@@ -41,6 +44,7 @@ function VideoCard({
   current: boolean;
   onPlay: () => void;
   deleteControl?: React.ReactNode;
+  likeControl?: React.ReactNode;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
@@ -51,7 +55,7 @@ function VideoCard({
   return (
     <li
       aria-current={current ? "true" : undefined}
-      className="min-w-0 space-y-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
+      className="flex min-w-0 flex-col gap-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
     >
       <div className="flex items-start gap-2">
         <h2 className="flex min-w-0 flex-1 items-start gap-2 text-lg font-semibold">
@@ -107,18 +111,21 @@ function VideoCard({
           ) : null}
         </button>
       )}
-      {videoId ? (
-        <a
-          className="inline-block underline"
-          href={`https://www.youtube.com/watch?v=${videoId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t.openYouTube}
-        </a>
-      ) : (
-        <p role="status">{t.unavailable}</p>
-      )}
+      <div className="mt-auto flex items-center justify-between gap-3">
+        {videoId ? (
+          <a
+            className="inline-block underline"
+            href={`https://www.youtube.com/watch?v=${videoId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.openYouTube}
+          </a>
+        ) : (
+          <p role="status">{t.unavailable}</p>
+        )}
+        {likeControl}
+      </div>
     </li>
   );
 }
@@ -231,6 +238,7 @@ function VideoList({
     refetchOnWindowFocus: false,
     retry: false,
   });
+  const likes = useWikiVideoLikes(identity, query.data?.videos ?? [], access.sessionKey);
   if (query.isPending) return <p role="status">{t.loading}</p>;
   if (query.isError)
     return (
@@ -255,23 +263,29 @@ function VideoList({
           video.url,
         ]),
       )}
+      identity={identity}
       videos={query.data.videos}
       emptyMessage={Object.keys(filter).length ? t.filter.empty : t.empty}
       access={access}
+      likes={likes}
       onDeleted={onDeleted}
     />
   );
 }
 
 function VideoPlaybackList({
+  identity,
   videos,
   emptyMessage,
   access,
+  likes,
   onDeleted,
 }: {
+  identity: WikiVideoIdentity;
   videos: WikiVideo[];
   emptyMessage: string;
   access: ReturnType<typeof useWikiVideoDeleteAccess>;
+  likes: ReturnType<typeof useWikiVideoLikes>;
   onDeleted: (video: WikiVideo) => void;
 }) {
   const { dictionary } = useI18n();
@@ -337,6 +351,7 @@ function VideoPlaybackList({
           onClick={() => {
             store.getState().start(owner, queue.map(({ video, videoId }) => ({
               identifier: video.videoLinkIdentifier, videoId, title: video.title,
+              controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
             })), "queue", loop, random);
           }}
         >
@@ -373,6 +388,8 @@ function VideoPlaybackList({
       </div>
       {notice ? <p role="status">{notice}</p> : null}
       {playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
+      {likes.loading ? <p role="status">{dictionary.wiki.videos.likes.loading}</p> : null}
+      {likes.error ? <div role="alert"><p>{dictionary.wiki.videos.likes.loadError}</p><button type="button" className="min-h-11 underline" onClick={likes.retry}>{dictionary.wiki.videos.likes.retry}</button></div> : null}
       {!videos.length ? <p>{emptyMessage}</p> : null}
       <ul className="grid gap-5 sm:grid-cols-2">
         {videos.map((video) => (
@@ -386,8 +403,10 @@ function VideoPlaybackList({
               const videoId = getYouTubeVideoId(video.url);
               if (videoId) store.getState().start(owner, [{
                 identifier: video.videoLinkIdentifier, videoId, title: video.title,
+                controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
               }], "single");
             }}
+            likeControl={<WikiVideoLikeControl video={video} likes={likes} />}
             deleteControl={
               access.principalIdentifier &&
               ([
