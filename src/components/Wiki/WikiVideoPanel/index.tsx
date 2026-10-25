@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { HeartIcon, HeartFilledIcon } from "@radix-ui/react-icons";
+import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
@@ -32,6 +34,7 @@ import { SocialLinkIcon } from "../socialLinks";
 function VideoCard({
   video,
   deleteControl,
+  likeControl,
   player,
   current,
   onPlay,
@@ -41,6 +44,7 @@ function VideoCard({
   current: boolean;
   onPlay: () => void;
   deleteControl?: React.ReactNode;
+  likeControl?: React.ReactNode;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
@@ -107,6 +111,7 @@ function VideoCard({
           ) : null}
         </button>
       )}
+      {likeControl}
       {videoId ? (
         <a
           className="inline-block underline"
@@ -120,6 +125,32 @@ function VideoCard({
         <p role="status">{t.unavailable}</p>
       )}
     </li>
+  );
+}
+
+function WikiVideoLikeControl({ video, likes }: {
+  video: WikiVideo;
+  likes: ReturnType<typeof useWikiVideoLikes>;
+}) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.videos.likes;
+  const state = likes.state(video);
+  const Icon = state.liked ? HeartFilledIcon : HeartIcon;
+  return (
+    <div>
+      <button
+        type="button"
+        aria-label={`${state.liked ? t.unlike : t.like}: ${video.title}`}
+        aria-pressed={state.liked}
+        disabled={state.disabled}
+        onClick={() => void likes.toggle(video)}
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg px-3 text-text-muted aria-pressed:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed"
+      >
+        <Icon aria-hidden="true" className="h-5 w-5" />
+        <span className="tabular-nums" aria-live="polite">{state.count}</span>
+      </button>
+      {state.failed ? <p role="alert">{t.failed}</p> : null}
+    </div>
   );
 }
 
@@ -231,6 +262,7 @@ function VideoList({
     refetchOnWindowFocus: false,
     retry: false,
   });
+  const likes = useWikiVideoLikes(identity, query.data?.videos ?? [], access.sessionKey);
   if (query.isPending) return <p role="status">{t.loading}</p>;
   if (query.isError)
     return (
@@ -258,6 +290,7 @@ function VideoList({
       videos={query.data.videos}
       emptyMessage={Object.keys(filter).length ? t.filter.empty : t.empty}
       access={access}
+      likes={likes}
       onDeleted={onDeleted}
     />
   );
@@ -267,11 +300,13 @@ function VideoPlaybackList({
   videos,
   emptyMessage,
   access,
+  likes,
   onDeleted,
 }: {
   videos: WikiVideo[];
   emptyMessage: string;
   access: ReturnType<typeof useWikiVideoDeleteAccess>;
+  likes: ReturnType<typeof useWikiVideoLikes>;
   onDeleted: (video: WikiVideo) => void;
 }) {
   const { dictionary } = useI18n();
@@ -373,6 +408,8 @@ function VideoPlaybackList({
       </div>
       {notice ? <p role="status">{notice}</p> : null}
       {playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
+      {likes.loading ? <p role="status">{dictionary.wiki.videos.likes.loading}</p> : null}
+      {likes.error ? <div role="alert"><p>{dictionary.wiki.videos.likes.loadError}</p><button type="button" className="min-h-11 underline" onClick={likes.retry}>{dictionary.wiki.videos.likes.retry}</button></div> : null}
       {!videos.length ? <p>{emptyMessage}</p> : null}
       <ul className="grid gap-5 sm:grid-cols-2">
         {videos.map((video) => (
@@ -388,6 +425,7 @@ function VideoPlaybackList({
                 identifier: video.videoLinkIdentifier, videoId, title: video.title,
               }], "single");
             }}
+            likeControl={<WikiVideoLikeControl video={video} likes={likes} />}
             deleteControl={
               access.principalIdentifier &&
               ([

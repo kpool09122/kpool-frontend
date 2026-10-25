@@ -29,6 +29,7 @@ const first: WikiVideo = {
   durationSeconds: 120,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
+  likeCount: 0,
   videoUsage: "youtube_auto_view_count",
 };
 const second: WikiVideo = {
