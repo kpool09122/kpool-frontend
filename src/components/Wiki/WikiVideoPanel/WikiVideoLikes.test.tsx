@@ -39,6 +39,8 @@ const setup = (
   options: {
     liked?: boolean;
     denied?: boolean;
+    missingCollaborator?: boolean;
+    compact?: boolean;
     guest?: boolean;
     stateFailure?: boolean;
     pendingState?: boolean;
@@ -64,7 +66,7 @@ const setup = (
         Response.json({
           canLike: !options.denied,
           canUnlike: !options.denied,
-          principalIdentifier: "wiki-me",
+          principalIdentifier: options.missingCollaborator ? null : "wiki-me",
         }),
       );
     if (url.includes("/likes?"))
@@ -99,7 +101,7 @@ const setup = (
   const wrap = () => (
     <QueryClientProvider client={client}>
       <I18nProvider initialLocale={options.locale ?? "en"}>
-        <WikiVideoPanel {...identity} />
+        {options.compact ? <WikiVideoPlaybackLike identity={identity} video={video} /> : <WikiVideoPanel {...identity} />}
       </I18nProvider>
     </QueryClientProvider>
   );
@@ -244,15 +246,37 @@ it("offers retry when the personal state fails, without enabling an unknown like
   await ready();
   expect(heart()).toHaveAttribute("aria-pressed", "true");
 });
-it.each([{ guest: true }, { denied: true }])(
-  "keeps public zero counts but disables unauthorized operations (%o)",
-  async (options) => {
-    setup(options);
-    await screen.findByText("Video");
-    await waitFor(() => expect(heart()).toBeDisabled());
-    expect(within(heart()).getByText("0")).toBeInTheDocument();
-  },
-);
+for (const compact of [false, true]) {
+  it.each([
+    [{ guest: true }, "To like videos, log in and activate Wiki collaborator access."],
+    [{ missingCollaborator: true }, "To like videos, activate Wiki collaborator access."],
+    [{ denied: true }, "You do not have permission to change likes on this video."],
+  ] as const)("explains unavailable likes after a click (%o, compact: " + compact + ")", async (options, message) => {
+    const state = setup({ ...options, compact });
+    await waitFor(() => expect(heart()).toBeEnabled());
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(heart());
+    expect(screen.getByRole("status")).toHaveTextContent(message);
+    expect(heart()).toHaveAccessibleDescription(message);
+    fireEvent.click(screen.getByText(message));
+    expect(screen.getByRole("status")).toHaveTextContent(message);
+    fireEvent.click(document.body);
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    expect(heart()).not.toHaveAttribute("aria-describedby");
+    fireEvent.click(heart());
+    expect(screen.getByRole("status")).toHaveTextContent(message);
+    fireEvent.focusIn(document.body);
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(heart());
+    fireEvent.blur(window);
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    if (!compact) expect(within(heart()).getByText("0")).toBeInTheDocument();
+    expect(state.fetcher.mock.calls.some(([url]) => url.endsWith("/like"))).toBe(false);
+    if (!("denied" in options)) {
+      expect(state.fetcher.mock.calls.some(([url]) => url.includes("/likes?"))).toBe(false);
+    }
+  });
+}
 it("discards an old session's optimistic count and late response after logout", async () => {
   const state = setup();
   await ready();
@@ -267,7 +291,7 @@ it("discards an old session's optimistic count and late response after logout", 
     state.fetcher.mock.calls.find(([url]) => url.endsWith("/like"))?.[1].signal
       .aborted,
   ).toBe(true);
-  expect(heart()).toBeDisabled();
+  expect(heart()).toBeEnabled();
   expect(heart()).not.toHaveAttribute("aria-pressed");
   expect(within(heart()).getByText("0")).toBeInTheDocument();
   await act(async () => state.finish(new Response(null, { status: 204 })));

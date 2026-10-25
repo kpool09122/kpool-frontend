@@ -111,19 +111,8 @@ function VideoCard({
           ) : null}
         </button>
       )}
-      <div className="mt-auto flex items-center justify-between gap-3">
-        {videoId ? (
-          <a
-            className="inline-block underline"
-            href={`https://www.youtube.com/watch?v=${videoId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t.openYouTube}
-          </a>
-        ) : (
-          <p role="status">{t.unavailable}</p>
-        )}
+      <div className="mt-auto flex items-center justify-end gap-3">
+        {!videoId ? <p role="status" className="mr-auto">{t.unavailable}</p> : null}
         {likeControl}
       </div>
     </li>

@@ -173,7 +173,7 @@ export function Header({
       return;
     }
 
-    window.location.reload();
+    router.refresh();
   };
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);

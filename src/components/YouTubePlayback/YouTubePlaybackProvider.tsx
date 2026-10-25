@@ -13,11 +13,13 @@ import {
   type ReactNode,
 } from "react";
 import { useStore } from "zustand";
-import { Cross2Icon, ExternalLinkIcon, LoopIcon, ShuffleIcon } from "@radix-ui/react-icons";
+import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, LoopIcon, ShuffleIcon } from "@radix-ui/react-icons";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from "./playbackStore";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
 import { useFloatingPosition } from "./useFloatingPosition";
+import { usePlayerFullscreen } from "./usePlayerFullscreen";
+import { MiniPlayerPlaceholder } from "./MiniPlayerPlaceholder";
 
 type Anchor = { owner: string; node: HTMLDivElement };
 const PlaybackContext = createContext<{
@@ -58,7 +60,11 @@ function ConnectedOutlet({ owner, store, height, anchorRef }: {
   const session = useStore(store, (state) => state.session);
   const floating = useStore(store, (state) => state.floating);
   if (session?.owner !== owner) return null;
-  return <div ref={anchorRef} style={{ height: floating ? 0 : height || 240 }} />;
+  return (
+    <div ref={anchorRef} style={floating ? undefined : { height: height || 240 }}>
+      {floating ? <MiniPlayerPlaceholder /> : null}
+    </div>
+  );
 }
 
 export function usePlaybackOwner(store: PlaybackStore, owner: string) {
@@ -102,16 +108,18 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.continuous;
   const root = useRef<HTMLElement>(null);
+  const { supported, fullscreen, failed: fullscreenFailed, toggle: toggleFullscreen } = usePlayerFullscreen(root);
   const moveHintId = useId();
   const [inlineStyle, setInlineStyle] = useState<CSSProperties>({});
-  const { style: floatingStyle, dragProps, keyboardProps } = useFloatingPosition(root, floating);
+  const movable = floating && !fullscreen;
+  const { style: floatingStyle, dragProps, keyboardProps } = useFloatingPosition(root, movable);
   const { queue, tracks } = session;
   const active = tracks[queue.order[queue.position]];
   const requested = tracks[queue.playerIndex];
   // Keep the player in this shared host; the page outlet only supplies its
   // coordinates and reserves space for the inline presentation.
   useLayoutEffect(() => {
-    if (floating || !anchor) return;
+    if (floating || fullscreen || !anchor) return;
     const measure = () => {
       const rect = anchor.getBoundingClientRect();
       setInlineStyle({ position: "absolute", top: rect.top + window.scrollY, left: rect.left + window.scrollX, width: rect.width || 320 });
@@ -129,37 +137,46 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [anchor, floating, onHeight]);
+  }, [anchor, floating, fullscreen, onHeight]);
   return (
     <section
       ref={root}
-      {...(floating ? { ...dragProps, ...keyboardProps, tabIndex: 0 } : {})}
+      {...(movable ? { ...dragProps, ...keyboardProps, tabIndex: 0 } : {})}
       aria-label={floating ? t.miniPlayer : t.nowPlaying}
-      aria-describedby={floating ? moveHintId : undefined}
-      style={floating ? floatingStyle : inlineStyle}
-      className={floating
+      aria-describedby={movable ? moveHintId : undefined}
+      style={fullscreen ? { position: "fixed", inset: 0, width: "100%", height: "100%" } : floating ? floatingStyle : inlineStyle}
+      className={fullscreen
+        ? "flex min-h-0 flex-col gap-3 overflow-hidden bg-black p-3 text-white"
+        : floating
         ? "z-50 max-h-[calc(100dvh-2rem)] touch-none cursor-grab select-none overflow-auto rounded-2xl border border-stroke-subtle bg-surface-raised p-3 text-text-strong shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary active:cursor-grabbing"
         : "z-10 space-y-3 text-text-strong"}
     >
-      {floating ? <span id={moveHintId} className="sr-only">{t.moveHint}</span> : null}
-      <div className={`flex items-center gap-1${floating ? " pb-2" : ""}`}>
+      {movable ? <span id={moveHintId} className="sr-only">{t.moveHint}</span> : null}
+      <div className={`flex shrink-0 items-center gap-1${floating && !fullscreen ? " pb-2" : ""}`}>
         <p role="status" title={active.title} className="min-w-0 flex-1 truncate font-semibold">
           {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
         </p>
-        {floating && session.kind === "queue" ? <>
+        {(floating || fullscreen) && session.kind === "queue" ? <>
           <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
           <button type="button" aria-label={t.loop} title={t.loop} aria-pressed={session.loop} className={iconClass} onClick={() => store.getState().setLoop(!session.loop)}><LoopIcon aria-hidden="true" className="h-5 w-5" /></button>
         </> : null}
         {floating ? active.controls : null}
-        {!floating ? (
+        {supported ? (
+          <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>
+            {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
+          </button>
+        ) : null}
+        {!floating && !fullscreen ? (
           <button type="button" aria-label={t.detach} title={t.detach} className={iconClass} onClick={() => store.getState().detach()}><ExternalLinkIcon aria-hidden="true" className="h-5 w-5" /></button>
         ) : (
           <button type="button" aria-label={t.stop} title={t.stop} className={iconClass} onClick={() => store.getState().stop()}><Cross2Icon aria-hidden="true" className="h-5 w-5" /></button>
         )}
       </div>
-      <div data-player-interactive className="touch-auto cursor-auto">
+      {fullscreenFailed ? <p role="status">{t.fullscreenFailed}</p> : null}
+      <div data-player-interactive className={`touch-auto cursor-auto${fullscreen ? " min-h-0 flex-1" : ""}`}>
         <YouTubeQueuePlayer
           key={session.id}
+          expanded={fullscreen}
           playbackKey={queue.sequence}
           videoId={requested.videoId}
           title={active.title}
@@ -170,7 +187,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         />
       </div>
       {floating && notice?.owner === session.owner ? <p role="status">{t[notice.kind]}{notice.title ? `: ${notice.title}` : ""}</p> : null}
-      {floating ? Object.entries(resizeHandles).map(([edge, className]) => (
+      {movable ? Object.entries(resizeHandles).map(([edge, className]) => (
         <div key={edge} aria-hidden="true" data-player-resize={edge} className={`absolute z-20 touch-none ${className}`} />
       )) : null}
     </section>

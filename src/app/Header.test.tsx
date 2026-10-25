@@ -56,6 +56,24 @@ afterEach(() => {
 });
 
 describe("Header", () => {
+  it.each(["/admin", "/admin/wiki/editing", "/admin/user/language"])(
+    "refreshes server content without a document reload when changing language at %s", (pathname) => {
+      vi.spyOn(navigation, "usePathname").mockReturnValue(pathname);
+      const router = navigation.useRouter();
+      const refresh = vi.fn();
+      const replace = vi.fn();
+      vi.spyOn(navigation, "useRouter").mockReturnValue({ ...router, refresh, replace });
+      render(<I18nProvider initialLocale="ja"><Header /></I18nProvider>);
+
+      fireEvent.change(screen.getByRole("combobox", { name: "言語" }), { target: { value: "en" } });
+
+      expect(screen.getByRole("combobox", { name: "Language" })).toHaveValue("en");
+      expect(document.cookie).toContain("kpool-locale=en");
+      expect(refresh).toHaveBeenCalledOnce();
+      expect(replace).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(["/wiki/draft-1/edit", "/wiki/ko/gr-twice/edit", "/ko/wiki/gr-twice/edit"])(
     "changes UI language without navigating or refreshing the editor at %s", (pathname) => {
       vi.spyOn(navigation, "usePathname").mockReturnValue(pathname);

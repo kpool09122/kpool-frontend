@@ -25,6 +25,7 @@ type Operation = {
   failed: boolean;
 };
 type Operations = Record<string, Operation | undefined>;
+type UnavailableReason = "loginRequired" | "collaboratorRequired" | "permissionDenied";
 
 export function useWikiVideoLikes(
   identity: WikiVideoIdentity,
@@ -166,8 +167,17 @@ export function useWikiVideoLikes(
           ? operation.liked
           : personal.data.includes(video.videoLinkIdentifier)
         : undefined;
+      let unavailableReason: UnavailableReason | undefined;
+      if (status === "guest") unavailableReason = "loginRequired";
+      else if (status === "authenticated" && access.isSuccess && !access.isFetching) {
+        if (!access.data.principalIdentifier) unavailableReason = "collaboratorRequired";
+        else if (known && !(liked ? access.data.canUnlike : access.data.canLike)) {
+          unavailableReason = "permissionDenied";
+        }
+      }
       return {
         liked,
+        unavailableReason,
         count: operation?.pending ? operation.count : video.likeCount,
         disabled:
           !known ||

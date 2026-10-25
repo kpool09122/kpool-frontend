@@ -16,10 +16,8 @@ import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { WikiVideoPanel } from "./index";
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
 import { YouTubePlaybackProvider } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
-import {
-  YouTubeQueuePlayer,
-  type QueuePlayerOptions,
-} from "@/components/YouTubePlayback/YouTubeQueuePlayer";
+import { YouTubeQueuePlayer } from "@/components/YouTubePlayback/YouTubeQueuePlayer";
+import type { YouTubePlayerOptions } from "@/components/YouTubePlayback/youtubeIframeApi";
 
 const first: WikiVideo = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
@@ -47,13 +45,14 @@ const invalid: WikiVideo = {
 };
 // One record per loaded video; successive records can share one native player.
 const requests: {
-  options: QueuePlayerOptions;
+  options: YouTubePlayerOptions;
   playVideo: ReturnType<typeof vi.fn>;
   loadVideoById: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   getVideoUrl: ReturnType<typeof vi.fn>;
   getPlayerState: ReturnType<typeof vi.fn>;
 }[] = [];
+let blockAutoplay = false;
 const key = ["public-wiki-videos", "ja", "group", "gr-test", {}];
 function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
   const client = new QueryClient({
@@ -95,14 +94,20 @@ function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
 }
 beforeEach(() => {
   requests.length = 0;
+  blockAutoplay = false;
   useAuthStore.setState({ status: "guest", identity: null });
   vi.stubGlobal("YT", {
     Player: vi.fn(function (
       _element: HTMLElement,
-      options: QueuePlayerOptions,
+      options: YouTubePlayerOptions,
     ) {
       const player = {
         playVideo: vi.fn(() => {
+          if (blockAutoplay) {
+            player.getPlayerState.mockReturnValue(2);
+            options.events.onAutoplayBlocked();
+            return;
+          }
           player.getPlayerState.mockReturnValue(1);
           options.events.onStateChange({ data: 1 });
         }),
@@ -112,7 +117,7 @@ beforeEach(() => {
           record(id);
           player.playVideo();
         }),
-        destroy: vi.fn(),
+        destroy: vi.fn(() => _element.remove()),
         getVideoUrl: vi.fn(() => `https://www.youtube.com/watch?v=${options.videoId}`),
         getPlayerState: vi.fn(() => 1),
       };
@@ -147,6 +152,69 @@ afterEach(() => {
 });
 
 describe("continuous playback", () => {
+  it.each([false, true])("keeps the fullscreen host through video changes and restores presentation (mini: %s)", async (mini) => {
+    let fullscreenElement: Element | null = null;
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: true });
+    Object.defineProperty(document, "fullscreenElement", { configurable: true, get: () => fullscreenElement });
+    const enter = vi.fn(() => {
+      fullscreenElement = screen.getByRole("button", { name: "Play in fullscreen" }).closest("section");
+      document.dispatchEvent(new Event("fullscreenchange"));
+      return Promise.resolve();
+    });
+    const exit = vi.fn(() => {
+      fullscreenElement = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+      return Promise.resolve();
+    });
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", { configurable: true, value: enter });
+    Object.defineProperty(document, "exitFullscreen", { configurable: true, value: exit });
+    try {
+      mount();
+      await start();
+      if (mini) fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+      const host = screen.getByRole("region", { name: mini ? "Mini player" : "Now playing" });
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" })));
+      expect(fullscreenElement).toBe(host);
+      expect(host.querySelector("[data-player-resize]")).toBeNull();
+      act(() => requests[0].options.events.onStateChange({ data: 0 }));
+      expect(host).toHaveTextContent("Second video (2/2)");
+      expect(fullscreenElement).toBe(host);
+      expect(requests[0].destroy).not.toHaveBeenCalled();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Exit fullscreen" })));
+      expect(exit).toHaveBeenCalledOnce();
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toHaveAttribute("aria-pressed", "false");
+      expect(host.querySelectorAll("[data-player-resize]")).toHaveLength(mini ? 8 : 0);
+      // Browser exit (e.g. Escape) must also update the toggle.
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" })));
+      act(() => { void exit(); });
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toBeInTheDocument();
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).requestFullscreen;
+      Reflect.deleteProperty(document, "fullscreenEnabled");
+      Reflect.deleteProperty(document, "fullscreenElement");
+      delete (document as Partial<Document>).exitFullscreen;
+    }
+  });
+
+  it("reports a rejected fullscreen request and continues playback", async () => {
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: true });
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", {
+      configurable: true, value: vi.fn().mockRejectedValue(new Error("denied")),
+    });
+    try {
+      mount();
+      await start();
+      await act(async () => fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" })));
+      expect(screen.getByText("Could not switch fullscreen. Please try again.")).toBeInTheDocument();
+      expect(requests[0].destroy).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toHaveAttribute("aria-pressed", "false");
+    } finally {
+      delete (HTMLElement.prototype as Partial<HTMLElement>).requestFullscreen;
+      Reflect.deleteProperty(document, "fullscreenEnabled");
+      Reflect.deleteProperty(document, "fullscreenElement");
+    }
+  });
+
   it.each([false, true])("updates the title and queue position without an ended event (random: %s)", async (random) => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     mount();
@@ -415,18 +483,39 @@ describe("continuous playback", () => {
     ).not.toBeInTheDocument();
     expect(requests).toHaveLength(2);
   });
-  it("offers manual resume after autoplay is blocked without skipping the item", async () => {
+  it.each(["single", "queue"])("leaves initial blocked %s playback to the embedded player without a resume message", async (kind) => {
+    blockAutoplay = true;
+    mount();
+    if (kind === "queue") await start();
+    else {
+      fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
+      await waitFor(() => expect(requests).toHaveLength(1));
+    }
+    expect(requests[0].playVideo).toHaveBeenCalledOnce();
+    expect(screen.queryByText(/Autoplay was blocked/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Resume playback" })).not.toBeInTheDocument();
+    // Starting from YouTube's play button still works without an extra K-Pool step.
+    blockAutoplay = false;
+    act(() => requests[0].options.events.onStateChange({ data: 1 }));
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(first.title);
+    if (kind === "queue") expectCurrentVideo(first, 1, 2);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+  });
+  it("offers manual resume when the next video is blocked without skipping the item", async () => {
     mount();
     await start();
-    act(() => requests[0].options.events.onAutoplayBlocked());
+    blockAutoplay = true;
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    expectCurrentVideo(second, 2, 2);
     expect(screen.getByText(/Autoplay was blocked/)).toBeInTheDocument();
+    blockAutoplay = false;
     fireEvent.click(screen.getByRole("button", { name: "Resume playback" }));
-    expect(requests[0].playVideo).toHaveBeenCalledTimes(2);
-    act(() => requests[0].options.events.onStateChange({ data: 1 }));
+    expect(requests[0].playVideo).toHaveBeenCalledTimes(3);
     expect(
       screen.queryByRole("button", { name: "Resume playback" }),
     ).not.toBeInTheDocument();
-    expect(requests).toHaveLength(1);
+    expect(requests).toHaveLength(2);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
   });
   it("uses one player for individual and continuous playback and ignores late events", async () => {
     mount();
@@ -474,7 +563,7 @@ describe("continuous playback", () => {
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveStyle({ position: "fixed", right: "16px", bottom: "16px" });
     const mini = within(screen.getByRole("region", { name: "Mini player" }));
     const heart = mini.getByRole("button", { name: "Like: First video" });
-    expect(heart).toBeDisabled();
+    expect(heart).toBeEnabled();
     expect(heart).toHaveTextContent("");
     const buttons = mini.getAllByRole("button");
     expect(buttons.indexOf(heart)).toBe(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" })) + 1);
@@ -486,6 +575,38 @@ describe("continuous playback", () => {
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Second video (2/2)");
     expect(mini.getByRole("button", { name: "Like: Second video" })).toBeInTheDocument();
     expect(mini.queryByRole("button", { name: "Like: First video" })).not.toBeInTheDocument();
+  });
+  it.each(["body", "single", "queue"])("leaves a placeholder at the original %s video location while playing in the mini player", async (source) => {
+    const view = mount();
+    view.rerender(view.tree("gr-test", true));
+    expect(screen.queryByText("Playing in the mini player")).not.toBeInTheDocument();
+    if (source === "queue") await start();
+    else {
+      fireEvent.click(screen.getByRole("button", { name: source === "body" ? "Play: Body video" : `Play: ${first.title}` }));
+      await waitFor(() => expect(requests).toHaveLength(1));
+    }
+    const frame = document.querySelector("iframe");
+    fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+    const placeholder = screen.getByText("Playing in the mini player").parentElement!;
+    expect(placeholder).toHaveClass("aspect-video", "bg-black");
+    expect(placeholder).toHaveAttribute("role", "status");
+    expect(placeholder.querySelector("iframe")).toBeNull();
+    const mini = screen.getByRole("region", { name: "Mini player" });
+    expect(mini).not.toContainElement(placeholder);
+    expect(mini).toContainElement(frame);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    if (source === "single") {
+      expect(screen.getByRole("heading", { name: first.title }).closest("li")).toContainElement(placeholder);
+    } else if (source === "body") {
+      expect(placeholder.closest("figure")).toHaveTextContent("Body video");
+    } else {
+      act(() => requests[0].options.events.onStateChange({ data: 0 }));
+      expect(screen.getByText("Playing in the mini player").parentElement).toBe(placeholder);
+      expect(mini).toHaveTextContent("Second video (2/2)");
+    }
+    fireEvent.click(within(mini).getByRole("button", { name: "Stop playback" }));
+    expect(screen.queryByText("Playing in the mini player")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Mini player" })).not.toBeInTheDocument();
   });
   it("retains the queue across Wiki navigation and switches to a new selection", async () => {
     const view = mount();
@@ -586,8 +707,88 @@ describe("external player lifecycle", () => {
       />
     </I18nProvider>
   );
+  it("keeps a React-owned iframe through Strict Mode setup and video/title updates", async () => {
+    const unavailable = vi.fn();
+    const tree = (videoId: string, title: string) => (
+      <React.StrictMode>
+        <I18nProvider initialLocale="en">
+          <YouTubeQueuePlayer videoId={videoId} title={title} onEnded={vi.fn()}
+            onError={vi.fn()} onUnavailable={unavailable} />
+        </I18nProvider>
+      </React.StrictMode>
+    );
+    const view = render(tree("abcdefghijk", "First video"));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    const frame = screen.getByTitle("First video");
+    expect(frame).toBeInstanceOf(HTMLIFrameElement);
+    const src = frame.getAttribute("src");
+    const url = new URL(src!);
+    expect(url.searchParams.get("enablejsapi")).toBe("1");
+    expect(url.searchParams.get("origin")).toBe(window.location.origin);
+    expect(frame).toHaveAttribute("allowfullscreen");
+    expect(frame).toHaveAttribute("allow", expect.stringContaining("autoplay"));
+    view.rerender(tree("lmnopqrstuv", "Second video"));
+    expect(screen.getByTitle("Second video")).toBe(frame);
+    expect(frame).toHaveAttribute("src", src!);
+    expect(requests[0].loadVideoById).toHaveBeenCalledExactlyOnceWith("lmnopqrstuv");
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    expect(unavailable).not.toHaveBeenCalled();
+    view.unmount();
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
+    expect(frame.isConnected).toBe(false);
+  });
+  it("reports a player error before ready without waiting for the timeout", async () => {
+    const error = vi.fn();
+    vi.stubGlobal("YT", { Player: vi.fn(function (_element: HTMLElement, options: YouTubePlayerOptions) {
+      void Promise.resolve().then(() => options.events.onError());
+      return { playVideo: vi.fn(), loadVideoById: vi.fn(), destroy: vi.fn() };
+    }) });
+    render(<I18nProvider initialLocale="en">
+      <YouTubeQueuePlayer videoId="abcdefghijk" title="First video" onEnded={vi.fn()}
+        onError={error} onUnavailable={vi.fn()} />
+    </I18nProvider>);
+    await waitFor(() => expect(error).toHaveBeenCalledOnce());
+  });
+  it.each([false, true])("uses updated callbacks and iframe title without recreating the player (before ready: %s)", async (beforeReady) => {
+    let options!: YouTubePlayerOptions;
+    const native = {
+      playVideo: vi.fn(), loadVideoById: vi.fn(), destroy: vi.fn(),
+      getVideoUrl: () => "https://youtu.be/abcdefghijk",
+      getPlayerState: vi.fn(() => 1),
+    };
+    const constructor = vi.fn(function (element: HTMLElement, next: YouTubePlayerOptions) {
+      options = next;
+      expect(element).toBeInstanceOf(HTMLIFrameElement);
+      return native;
+    });
+    vi.stubGlobal("YT", { Player: constructor });
+    const previousEnded = vi.fn();
+    const latestEnded = vi.fn();
+    const tree = (title: string, onEnded: (id?: string) => void) => (
+      <I18nProvider initialLocale="en">
+        <YouTubeQueuePlayer videoId="abcdefghijk" title={title} onEnded={onEnded}
+          onError={vi.fn()} onUnavailable={vi.fn()} />
+      </I18nProvider>
+    );
+    const view = render(tree("Previous title", previousEnded));
+    await act(async () => {});
+    if (!beforeReady) act(() => options.events.onReady());
+    view.rerender(tree("Latest title", latestEnded));
+    if (beforeReady) act(() => options.events.onReady());
+    expect(screen.getByTitle("Latest title")).toBeInTheDocument();
+    act(() => {
+      options.events.onStateChange({ data: 1 });
+      native.getPlayerState.mockReturnValue(0);
+      options.events.onStateChange({ data: 0 });
+    });
+    expect(previousEnded).not.toHaveBeenCalled();
+    expect(latestEnded).toHaveBeenCalledExactlyOnceWith("abcdefghijk");
+    expect(constructor).toHaveBeenCalledOnce();
+    expect(native.loadVideoById).not.toHaveBeenCalled();
+    expect(native.destroy).not.toHaveBeenCalled();
+  });
   it.each([false, true])("keeps the instance and ignores old ended states while loading (before ready: %s)", async (beforeReady) => {
-    let options!: QueuePlayerOptions;
+    let options!: YouTubePlayerOptions;
     let actualId = "abcdefghijk";
     let state = 1;
     const native = {
@@ -595,7 +796,7 @@ describe("external player lifecycle", () => {
       getVideoUrl: () => `https://youtu.be/${actualId}`,
       getPlayerState: () => state,
     };
-    const constructor = vi.fn(function (_element: HTMLElement, next: QueuePlayerOptions) {
+    const constructor = vi.fn(function (_element: HTMLElement, next: YouTubePlayerOptions) {
       options = next;
       return native;
     });
@@ -651,6 +852,24 @@ describe("external player lifecycle", () => {
     expect(vi.getTimerCount()).toBe(0);
     await act(async () => vi.advanceTimersByTimeAsync(21_000));
     expect(requests).toHaveLength(0);
+  });
+  it("shares an in-flight API script across player mounts and replaces a failed script on retry", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("YT", undefined);
+    const firstMount = render(player());
+    const script = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+    expect(script).not.toBeNull();
+    firstMount.unmount();
+    const secondMount = render(player());
+    expect(document.querySelectorAll('script[src="https://www.youtube.com/iframe_api"]')).toHaveLength(1);
+    expect(document.querySelector('script[src="https://www.youtube.com/iframe_api"]')).toBe(script);
+    act(() => script!.dispatchEvent(new Event("error")));
+    expect(script!.isConnected).toBe(false);
+    secondMount.unmount();
+    const retry = render(player());
+    expect(document.querySelector('script[src="https://www.youtube.com/iframe_api"]')).not.toBe(script);
+    retry.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
   it.each(["script", "timeout", "constructor"])(
     "stops with a recoverable error on %s failure",

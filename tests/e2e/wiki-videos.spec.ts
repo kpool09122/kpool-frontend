@@ -1,5 +1,5 @@
 import { expect, test } from "./fixtures";
-import { installYouTubePlayerMock } from "./youtube-player";
+import { expectYouTubePlayerSource, installYouTubePlayerMock } from "./youtube-player";
 const video = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
   url: "https://youtu.be/jfKfPfyJRdk",
@@ -47,16 +47,10 @@ test("anonymous mobile viewer loads videos only on selection, plays inline, and 
   await expect(page.getByRole("img", { name: video.title })).toBeVisible();
   await page.getByRole("button", { name: `Play: ${video.title}` }).click();
   const player = page.locator('iframe[src*="youtube-nocookie.com"]');
-  await expect(player).toHaveAttribute(
-    "src",
-    "https://www.youtube-nocookie.com/embed/jfKfPfyJRdk",
-  );
+  await expectYouTubePlayerSource(player, "jfKfPfyJRdk");
   const box = await player.boundingBox();
   expect(box).not.toBeNull();
   expect(box!.width / box!.height).toBeCloseTo(16 / 9, 1);
-  await expect(
-    page.getByRole("link", { name: "Open on YouTube" }),
-  ).toHaveAttribute("href", "https://www.youtube.com/watch?v=jfKfPfyJRdk");
   await wiki.click();
   await expect(player).toHaveCount(0);
   await videos.click();

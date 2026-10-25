@@ -1,4 +1,26 @@
 import type { Page } from "./fixtures";
+import { expect, type Locator } from "@playwright/test";
+
+export async function expectYouTubePlayerSource(frame: Locator, videoId: string) {
+  await expect.poll(async () => {
+    const src = await frame.getAttribute("src");
+    if (!src || !URL.canParse(src)) return null;
+    const url = new URL(src);
+    return {
+      host: url.origin,
+      path: url.pathname,
+      enablejsapi: url.searchParams.get("enablejsapi"),
+      origin: url.searchParams.get("origin"),
+      playsinline: url.searchParams.get("playsinline"),
+    };
+  }).toEqual({
+    host: "https://www.youtube-nocookie.com",
+    path: `/embed/${videoId}`,
+    enablejsapi: "1",
+    origin: new URL(frame.page().url()).origin,
+    playsinline: "1",
+  });
+}
 
 export async function installYouTubePlayerMock(page: Page) {
   // Mock YouTube at the external boundary; real React, DOM and tab routing run
@@ -26,12 +48,9 @@ export async function installYouTubePlayerMock(page: Page) {
       queueTest: state,
       YT: {
         Player: function (element: HTMLElement, options: Options) {
-          const frame = document.createElement("iframe");
-          frame.title = "Mock YouTube player";
-          frame.src = `https://www.youtube-nocookie.com/embed/${options.videoId}`;
-          frame.style.cssText = "width:100%;height:100%;border:0";
+          if (!(element instanceof HTMLIFrameElement)) throw new Error("Expected a React-rendered iframe");
+          const frame = element;
           frame.srcdoc = "<p>YouTube API test double</p>";
-          element.replaceWith(frame);
           const item = {
             options, destroyed: false, plays: 0, loads: [options.videoId],
             videoId: options.videoId, playerState: 1,
