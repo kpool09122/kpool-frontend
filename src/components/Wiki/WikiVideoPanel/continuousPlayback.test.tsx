@@ -576,6 +576,38 @@ describe("continuous playback", () => {
     expect(mini.getByRole("button", { name: "Like: Second video" })).toBeInTheDocument();
     expect(mini.queryByRole("button", { name: "Like: First video" })).not.toBeInTheDocument();
   });
+  it.each(["body", "single", "queue"])("leaves a placeholder at the original %s video location while playing in the mini player", async (source) => {
+    const view = mount();
+    view.rerender(view.tree("gr-test", true));
+    expect(screen.queryByText("Playing in the mini player")).not.toBeInTheDocument();
+    if (source === "queue") await start();
+    else {
+      fireEvent.click(screen.getByRole("button", { name: source === "body" ? "Play: Body video" : `Play: ${first.title}` }));
+      await waitFor(() => expect(requests).toHaveLength(1));
+    }
+    const frame = document.querySelector("iframe");
+    fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+    const placeholder = screen.getByText("Playing in the mini player").parentElement!;
+    expect(placeholder).toHaveClass("aspect-video", "bg-black");
+    expect(placeholder).toHaveAttribute("role", "status");
+    expect(placeholder.querySelector("iframe")).toBeNull();
+    const mini = screen.getByRole("region", { name: "Mini player" });
+    expect(mini).not.toContainElement(placeholder);
+    expect(mini).toContainElement(frame);
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    if (source === "single") {
+      expect(screen.getByRole("heading", { name: first.title }).closest("li")).toContainElement(placeholder);
+    } else if (source === "body") {
+      expect(placeholder.closest("figure")).toHaveTextContent("Body video");
+    } else {
+      act(() => requests[0].options.events.onStateChange({ data: 0 }));
+      expect(screen.getByText("Playing in the mini player").parentElement).toBe(placeholder);
+      expect(mini).toHaveTextContent("Second video (2/2)");
+    }
+    fireEvent.click(within(mini).getByRole("button", { name: "Stop playback" }));
+    expect(screen.queryByText("Playing in the mini player")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Mini player" })).not.toBeInTheDocument();
+  });
   it("retains the queue across Wiki navigation and switches to a new selection", async () => {
     const view = mount();
     await start();

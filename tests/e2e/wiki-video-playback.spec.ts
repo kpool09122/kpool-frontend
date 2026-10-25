@@ -57,6 +57,41 @@ async function setupPlayback(page: Page) {
   await page.goto("/wiki/ja/gr-aurora-echo?tab=video");
 }
 
+for (const source of ["body", "single", "queue"] as const) {
+  test(`detached ${source} playback leaves a black placeholder in its original location`, async ({ page }, testInfo) => {
+    await setupPlayback(page);
+    if (source === "body") {
+      await page.goto("/wiki/ja/gr-twice");
+      const section = page.getByTestId("section-sec-twice-overview");
+      if (await section.getAttribute("open") === null) {
+        await page.getByTestId("section-toggle-sec-twice-overview").click();
+      }
+    }
+    await page.getByRole("button", { name: source === "queue" ? "Play all" : source === "body" ? 'Play: TWICE "CHEER UP" M/V' : "Play: First video", exact: true }).click();
+    const frame = page.locator('iframe[src*="youtube-nocookie.com"]');
+    await frame.evaluate((element) => element.setAttribute("data-original-player", "true"));
+    await page.getByRole("button", { name: "Continue in mini player" }).click();
+    const placeholder = page.getByRole("status").filter({ hasText: "Playing in the mini player" });
+    await expect(placeholder).toBeVisible();
+    await expect(placeholder).toHaveCSS("background-color", "rgb(0, 0, 0)");
+    await expect(placeholder.locator("p")).toBeVisible();
+    await expect(placeholder.locator("p")).toHaveCSS("color", "rgb(255, 255, 255)");
+    const box = (await placeholder.boundingBox())!;
+    expect(box.width / box.height).toBeCloseTo(16 / 9, 1);
+    if (source === "single") await expect(page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "First video", exact: true }) })).toContainText("Playing in the mini player");
+    if (source === "body") await expect(page.locator("figure").filter({ has: placeholder })).toContainText('TWICE "CHEER UP" M/V');
+    await expect(frame).toHaveAttribute("data-original-player", "true");
+    await expect(frame).toHaveCount(1);
+    const mini = page.getByRole("region", { name: "Mini player" });
+    for (let step = 0; step < 20; step++) await mini.press("ArrowUp");
+    await placeholder.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath(`mini-player-placeholder-${source}.png`) });
+    await page.getByRole("region", { name: "Mini player" }).getByRole("button", { name: "Stop playback" }).click();
+    await expect(placeholder).toHaveCount(0);
+    await expect(frame).toHaveCount(0);
+  });
+}
+
 test("admin language changes preserve the mini player and its playback queue", async ({ page }) => {
   await setupPlayback(page);
   await page.setViewportSize({ width: 1000, height: 800 });

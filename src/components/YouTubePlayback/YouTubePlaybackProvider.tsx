@@ -19,6 +19,7 @@ import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from ".
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
 import { useFloatingPosition } from "./useFloatingPosition";
 import { usePlayerFullscreen } from "./usePlayerFullscreen";
+import { MiniPlayerPlaceholder } from "./MiniPlayerPlaceholder";
 
 type Anchor = { owner: string; node: HTMLDivElement };
 const PlaybackContext = createContext<{
@@ -59,7 +60,11 @@ function ConnectedOutlet({ owner, store, height, anchorRef }: {
   const session = useStore(store, (state) => state.session);
   const floating = useStore(store, (state) => state.floating);
   if (session?.owner !== owner) return null;
-  return <div ref={anchorRef} style={{ height: floating ? 0 : height || 240 }} />;
+  return (
+    <div ref={anchorRef} style={floating ? undefined : { height: height || 240 }}>
+      {floating ? <MiniPlayerPlaceholder /> : null}
+    </div>
+  );
 }
 
 export function usePlaybackOwner(store: PlaybackStore, owner: string) {

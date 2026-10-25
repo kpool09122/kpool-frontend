@@ -14,14 +14,10 @@ export function SharedYouTubeEmbed({ videoId, title, identifier }: {
   const owner = useId();
   usePlaybackOwner(store, owner);
   const session = useStore(store, (state) => state.session);
-  const floating = useStore(store, (state) => state.floating);
   const notice = useStore(store, (state) => state.notice);
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
-  if (session?.owner === owner) return <>
-    <PlaybackOutlet owner={owner} />
-    {floating ? <p className="p-3 text-text-muted">{t.continuous.miniPlayer}</p> : null}
-  </>;
+  if (session?.owner === owner) return <PlaybackOutlet owner={owner} />;
   return <>
     <button
       type="button"
