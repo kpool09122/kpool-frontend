@@ -49,7 +49,7 @@ test("anonymous mobile viewer loads videos only on selection, plays inline, and 
   const player = page.locator('iframe[src*="youtube-nocookie.com"]');
   await expect(player).toHaveAttribute(
     "src",
-    "https://www.youtube-nocookie.com/embed/jfKfPfyJRdk",
+    /^https:\/\/www\.youtube-nocookie\.com\/embed\/jfKfPfyJRdk\?/,
   );
   const box = await player.boundingBox();
   expect(box).not.toBeNull();

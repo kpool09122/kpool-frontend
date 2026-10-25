@@ -16,10 +16,8 @@ import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { WikiVideoPanel } from "./index";
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
 import { YouTubePlaybackProvider } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
-import {
-  YouTubeQueuePlayer,
-  type QueuePlayerOptions,
-} from "@/components/YouTubePlayback/YouTubeQueuePlayer";
+import { YouTubeQueuePlayer } from "@/components/YouTubePlayback/YouTubeQueuePlayer";
+import type { YouTubePlayerOptions } from "@/components/YouTubePlayback/youtubeIframeApi";
 
 const first: WikiVideo = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
@@ -47,7 +45,7 @@ const invalid: WikiVideo = {
 };
 // One record per loaded video; successive records can share one native player.
 const requests: {
-  options: QueuePlayerOptions;
+  options: YouTubePlayerOptions;
   playVideo: ReturnType<typeof vi.fn>;
   loadVideoById: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
@@ -101,7 +99,7 @@ beforeEach(() => {
   vi.stubGlobal("YT", {
     Player: vi.fn(function (
       _element: HTMLElement,
-      options: QueuePlayerOptions,
+      options: YouTubePlayerOptions,
     ) {
       const player = {
         playVideo: vi.fn(() => {
@@ -119,7 +117,7 @@ beforeEach(() => {
           record(id);
           player.playVideo();
         }),
-        destroy: vi.fn(),
+        destroy: vi.fn(() => _element.remove()),
         getVideoUrl: vi.fn(() => `https://www.youtube.com/watch?v=${options.videoId}`),
         getPlayerState: vi.fn(() => 1),
       };
@@ -677,16 +675,58 @@ describe("external player lifecycle", () => {
       />
     </I18nProvider>
   );
+  it("keeps a React-owned iframe through Strict Mode setup and video/title updates", async () => {
+    const unavailable = vi.fn();
+    const tree = (videoId: string, title: string) => (
+      <React.StrictMode>
+        <I18nProvider initialLocale="en">
+          <YouTubeQueuePlayer videoId={videoId} title={title} onEnded={vi.fn()}
+            onError={vi.fn()} onUnavailable={unavailable} />
+        </I18nProvider>
+      </React.StrictMode>
+    );
+    const view = render(tree("abcdefghijk", "First video"));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    const frame = screen.getByTitle("First video");
+    expect(frame).toBeInstanceOf(HTMLIFrameElement);
+    const src = frame.getAttribute("src");
+    const url = new URL(src!);
+    expect(url.searchParams.get("enablejsapi")).toBe("1");
+    expect(url.searchParams.get("origin")).toBe(window.location.origin);
+    expect(frame).toHaveAttribute("allowfullscreen");
+    expect(frame).toHaveAttribute("allow", expect.stringContaining("autoplay"));
+    view.rerender(tree("lmnopqrstuv", "Second video"));
+    expect(screen.getByTitle("Second video")).toBe(frame);
+    expect(frame).toHaveAttribute("src", src!);
+    expect(requests[0].loadVideoById).toHaveBeenCalledExactlyOnceWith("lmnopqrstuv");
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    expect(unavailable).not.toHaveBeenCalled();
+    view.unmount();
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
+    expect(frame.isConnected).toBe(false);
+  });
+  it("reports a player error before ready without waiting for the timeout", async () => {
+    const error = vi.fn();
+    vi.stubGlobal("YT", { Player: vi.fn(function (_element: HTMLElement, options: YouTubePlayerOptions) {
+      void Promise.resolve().then(() => options.events.onError());
+      return { playVideo: vi.fn(), loadVideoById: vi.fn(), destroy: vi.fn() };
+    }) });
+    render(<I18nProvider initialLocale="en">
+      <YouTubeQueuePlayer videoId="abcdefghijk" title="First video" onEnded={vi.fn()}
+        onError={error} onUnavailable={vi.fn()} />
+    </I18nProvider>);
+    await waitFor(() => expect(error).toHaveBeenCalledOnce());
+  });
   it.each([false, true])("uses updated callbacks and iframe title without recreating the player (before ready: %s)", async (beforeReady) => {
-    let options!: QueuePlayerOptions;
+    let options!: YouTubePlayerOptions;
     const native = {
       playVideo: vi.fn(), loadVideoById: vi.fn(), destroy: vi.fn(),
       getVideoUrl: () => "https://youtu.be/abcdefghijk",
       getPlayerState: vi.fn(() => 1),
     };
-    const constructor = vi.fn(function (element: HTMLElement, next: QueuePlayerOptions) {
+    const constructor = vi.fn(function (element: HTMLElement, next: YouTubePlayerOptions) {
       options = next;
-      element.replaceWith(document.createElement("iframe"));
+      expect(element).toBeInstanceOf(HTMLIFrameElement);
       return native;
     });
     vi.stubGlobal("YT", { Player: constructor });
@@ -716,7 +756,7 @@ describe("external player lifecycle", () => {
     expect(native.destroy).not.toHaveBeenCalled();
   });
   it.each([false, true])("keeps the instance and ignores old ended states while loading (before ready: %s)", async (beforeReady) => {
-    let options!: QueuePlayerOptions;
+    let options!: YouTubePlayerOptions;
     let actualId = "abcdefghijk";
     let state = 1;
     const native = {
@@ -724,7 +764,7 @@ describe("external player lifecycle", () => {
       getVideoUrl: () => `https://youtu.be/${actualId}`,
       getPlayerState: () => state,
     };
-    const constructor = vi.fn(function (_element: HTMLElement, next: QueuePlayerOptions) {
+    const constructor = vi.fn(function (_element: HTMLElement, next: YouTubePlayerOptions) {
       options = next;
       return native;
     });
@@ -780,6 +820,24 @@ describe("external player lifecycle", () => {
     expect(vi.getTimerCount()).toBe(0);
     await act(async () => vi.advanceTimersByTimeAsync(21_000));
     expect(requests).toHaveLength(0);
+  });
+  it("shares an in-flight API script across player mounts and replaces a failed script on retry", () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("YT", undefined);
+    const firstMount = render(player());
+    const script = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+    expect(script).not.toBeNull();
+    firstMount.unmount();
+    const secondMount = render(player());
+    expect(document.querySelectorAll('script[src="https://www.youtube.com/iframe_api"]')).toHaveLength(1);
+    expect(document.querySelector('script[src="https://www.youtube.com/iframe_api"]')).toBe(script);
+    act(() => script!.dispatchEvent(new Event("error")));
+    expect(script!.isConnected).toBe(false);
+    secondMount.unmount();
+    const retry = render(player());
+    expect(document.querySelector('script[src="https://www.youtube.com/iframe_api"]')).not.toBe(script);
+    retry.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
   it.each(["script", "timeout", "constructor"])(
     "stops with a recoverable error on %s failure",
