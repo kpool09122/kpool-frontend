@@ -152,6 +152,57 @@ afterEach(() => {
 });
 
 describe("continuous playback", () => {
+  it.each([
+    { mini: false, enabled: false },
+    { mini: true, enabled: false },
+    { mini: false, enabled: true },
+    { mini: true, enabled: true },
+  ])("expands within the page without fullscreen support (mini: $mini, enabled: $enabled)", async ({ mini, enabled }) => {
+    // Also cover browsers that expose fullscreenEnabled but lack requestFullscreen.
+    const enter = vi.fn();
+    Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: enabled });
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", { configurable: true, value: enabled ? undefined : enter });
+    const htmlOverflow = document.documentElement.style.overflow;
+    const bodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "auto";
+    document.body.style.overflow = "scroll";
+    try {
+      mount();
+      await start();
+      if (mini) fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+      const host = screen.getByRole("region", { name: mini ? "Mini player" : "Now playing" });
+      const originalPosition = host.style.position;
+      fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+      expect(screen.getByRole("button", { name: "Exit fullscreen" })).toHaveAttribute("aria-pressed", "true");
+      expect(host).toHaveStyle({ position: "fixed", height: "100dvh" });
+      expect(host.querySelector("[data-player-resize]")).toBeNull();
+      expect(document.documentElement.style.overflow).toBe("hidden");
+      expect(document.body.style.overflow).toBe("hidden");
+      expect(enter).not.toHaveBeenCalled();
+      act(() => requests[0].options.events.onStateChange({ data: 0 }));
+      expect(host).toHaveTextContent("Second video (2/2)");
+      expect(requests[0].destroy).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Exit fullscreen" }));
+      expect(host.style.position).toBe(originalPosition);
+      expect(host.querySelectorAll("[data-player-resize]")).toHaveLength(mini ? 8 : 0);
+      expect(document.documentElement.style.overflow).toBe("auto");
+      expect(document.body.style.overflow).toBe("scroll");
+      fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(screen.getByRole("button", { name: "Play in fullscreen" })).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+      cleanup();
+      expect(document.documentElement.style.overflow).toBe("auto");
+      expect(document.body.style.overflow).toBe("scroll");
+    } finally {
+      cleanup();
+      document.documentElement.style.overflow = htmlOverflow;
+      document.body.style.overflow = bodyOverflow;
+      delete (HTMLElement.prototype as Partial<HTMLElement>).requestFullscreen;
+      Reflect.deleteProperty(document, "fullscreenEnabled");
+    }
+  });
+
   it.each([false, true])("keeps the fullscreen host through video changes and restores presentation (mini: %s)", async (mini) => {
     let fullscreenElement: Element | null = null;
     Object.defineProperty(document, "fullscreenEnabled", { configurable: true, value: true });
@@ -567,7 +618,9 @@ describe("continuous playback", () => {
     expect(heart).toHaveTextContent("");
     const buttons = mini.getAllByRole("button");
     expect(buttons.indexOf(heart)).toBe(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" })) + 1);
-    expect(buttons.indexOf(mini.getByRole("button", { name: "Stop playback" }))).toBe(buttons.indexOf(heart) + 1);
+    const fullscreenButton = mini.getByRole("button", { name: "Play in fullscreen" });
+    expect(buttons.indexOf(fullscreenButton)).toBe(buttons.indexOf(heart) + 1);
+    expect(buttons.indexOf(mini.getByRole("button", { name: "Stop playback" }))).toBe(buttons.indexOf(fullscreenButton) + 1);
     expect(requests).toHaveLength(1);
     expect(requests[0].destroy).not.toHaveBeenCalled();
     act(() => requests[0].options.events.onStateChange({ data: 0 }));
