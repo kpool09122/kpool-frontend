@@ -1,10 +1,38 @@
-import { expect, test } from "./fixtures";
+import { expect, test, type Page } from "./fixtures";
 import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
 import { installYouTubePlayerMock } from "./youtube-player";
 const id = "00000000-0000-4000-8000-000000000001";
 const source1 = "00000000-0000-4000-8000-000000000011";
 const source2 = "00000000-0000-4000-8000-000000000012";
 const baseURL = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
+async function dragPlaylistItem(page: Page, source: string, target: string, touch: boolean) {
+  const handle = page.getByRole("button", { name: `Reorder: ${source}`, exact: true });
+  await handle.click({ trial: true });
+  const from = await handle.boundingBox();
+  const to = await page.getByRole("button", { name: `Reorder: ${target}`, exact: true }).boundingBox();
+  if (!from || !to) throw new Error("Playlist drag handles are not visible");
+  const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
+  const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
+  if (touch) {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
+    for (let step = 1; step <= 8; step++) {
+      await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{
+        x: start.x + (end.x - start.x) * step / 8,
+        y: start.y + (end.y - start.y) * step / 8,
+      }] });
+    }
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await session.detach();
+  } else {
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 8 });
+    await page.mouse.up();
+  }
+}
+
 for (const width of [1280, 390])
   test(`collaborator manages and plays playlists at ${width}px`, async ({
     page,
@@ -140,15 +168,25 @@ for (const width of [1280, 390])
       await page.getByRole("button", { name: "Collapse admin menu" }).click();
     await page.getByRole("tab", { name: "My playlists" }).click();
     await expect(page.getByText("No playlists yet.")).toBeVisible();
+    await page.getByRole("tab", { name: "Create", exact: true }).click();
     await page.getByLabel("New playlist name").fill("My music");
     await page
       .getByRole("region", { name: "My playlists", exact: true })
       .getByRole("button", { name: "Create", exact: true })
       .click();
-    await expect(
-      page.getByLabel("Playlist name", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("Empty playlist created. Add videos from the Edit tab.")).toBeVisible();
+    await page.getByRole("tab", { name: "Edit", exact: true }).click();
+    await expect(page.getByRole("tabpanel", { name: "Edit", exact: true }).getByRole("combobox")).toHaveCount(0);
     await page.getByRole("button", { name: "Add: First", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Choose a playlist" })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("playlist-add-dialog.png") });
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Add: First", exact: true })).toBeFocused();
+    await page.getByRole("button", { name: "Add: First", exact: true }).click();
+    await page.getByRole("dialog", { name: "Choose a playlist", exact: true }).getByRole("button", { name: "My music", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+    expect(writes).toHaveLength(0);
     await page.getByRole("button", { name: "Load more", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Add: Duplicate" }),
@@ -156,22 +194,41 @@ for (const width of [1280, 390])
     await page
       .getByRole("button", { name: "Add: Second", exact: true })
       .click();
+    await page.getByRole("dialog", { name: "Choose a playlist", exact: true }).getByRole("button", { name: "My music", exact: true }).click();
     await expect(
       page.getByText("Total VideoLinks (includes language variants): 22", {
         exact: true,
       }),
     ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
     expect(writes).toHaveLength(0);
-    await page.getByRole("button", { name: "Move up: Second" }).click();
+    await page.getByRole("tab", { name: "List", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Reorder: First", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
-    expect(writes[0]).toEqual({
-      name: "My music",
-      items: [
-        { videoLinkIdentifier: source2 },
-        { videoLinkIdentifier: source1 },
-      ],
-    });
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    expect(writes[0]).toEqual({ name: "My music", items: [{ videoLinkIdentifier: source1 }, { videoLinkIdentifier: source2 }] });
+    await dragPlaylistItem(page, "Second", "First", width < 768);
+    await expect.poll(() => page.getByRole("button", { name: /^Reorder:/ }).evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))).toEqual(["Reorder: Second", "Reorder: First"]);
+    expect(writes).toHaveLength(1);
+    await page.reload();
+    if (width < 768) await page.getByRole("button", { name: "Collapse admin menu" }).click();
+    await page.getByRole("combobox", { name: "Playlist", exact: true }).selectOption(id);
+    await expect(page.getByRole("button", { name: "Reorder: First", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    expect(await page.getByRole("button", { name: /^Reorder:/ }).evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))).toEqual(["Reorder: First", "Reorder: Second"]);
+    await dragPlaylistItem(page, "Second", "First", width < 768);
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    expect(writes[1]).toEqual({ name: "My music", items: [
+      { provider: "youtube", externalVideoId: "lmnopqrstuv" },
+      { provider: "youtube", externalVideoId: "abcdefghijk" },
+    ] });
+    await page.screenshot({ path: testInfo.outputPath("playlist-list.png") });
     await page
       .getByRole("button", { name: "Random playback", exact: true })
       .click();
@@ -184,16 +241,82 @@ for (const width of [1280, 390])
     await page
       .getByRole("button", { name: "Loop playback", exact: true })
       .click();
-    await page
-      .getByRole("button", { name: "Play continuously", exact: true })
-      .click();
+    // Start from the second row using its thumbnail, then switch via row whitespace.
+    await page.getByRole("button", { name: "Play video: First", exact: true }).click({ position: { x: 65, y: 25 } });
+    await expect(page.locator('iframe[src*="youtube-nocookie.com"]')).toHaveAttribute("src", /abcdefghijk/);
+    await page.getByRole("complementary", { name: "Playback queue", exact: true })
+      .getByRole("button", { name: "Play video: Second", exact: true }).click({ position: { x: 5, y: 5 } });
+    await expect.poll(() => page.evaluate(() =>
+      (window as unknown as { queueTest: { players: { videoId: string }[] } }).queueTest.players.at(-1)?.videoId,
+    )).toBe("lmnopqrstuv");
     await expect(
       page.locator('iframe[src*="youtube-nocookie.com"]'),
-    ).toHaveAttribute("src", /lmnopqrstuv/);
+    ).toHaveAttribute("src", /abcdefghijk/);
+    const queue = page.getByRole("complementary", { name: "Playback queue", exact: true });
+    await expect(queue).toBeVisible();
+    await expect(queue.getByRole("button", { name: "Play video: Second", exact: true })).toHaveAttribute("aria-current", "true");
+    const player = page.getByRole("region", { name: "Now playing", exact: true });
+    const queueBox = await queue.boundingBox();
+    const playerBox = await player.boundingBox();
+    await expect(page.getByRole("heading", { name: "My music", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Delete playlist", exact: true })).toHaveCount(0);
+    expect(queueBox).not.toBeNull();
+    expect(playerBox).not.toBeNull();
+    if (width >= 1024) expect(queueBox!.x).toBeGreaterThanOrEqual(playerBox!.x + playerBox!.width);
+    else expect(queueBox!.y).toBeGreaterThanOrEqual(playerBox!.y + playerBox!.height - 1);
+    const iframe = await page.locator('iframe[src*="youtube-nocookie.com"]').elementHandle();
+    await queue.getByRole("button", { name: "Play video: First", exact: true }).click();
+    await expect.poll(() => page.evaluate(() =>
+      (window as unknown as { queueTest: { players: { videoId: string }[] } }).queueTest.players.at(-1)?.videoId,
+    )).toBe("abcdefghijk");
+    await expect(queue.getByRole("button", { name: "Play video: First", exact: true })).toHaveAttribute("aria-current", "true");
+    expect(await iframe!.evaluate((node) => node.isConnected)).toBe(true);
+    await queue.getByRole("button", { name: "Play video: Second", exact: true }).click();
+    await expect.poll(() => page.evaluate(() =>
+      (window as unknown as { queueTest: { players: { videoId: string }[] } }).queueTest.players.at(-1)?.videoId,
+    )).toBe("lmnopqrstuv");
+    await expect(queue.getByRole("button", { name: "Save", exact: true })).toHaveCount(0);
+    await expect(queue.getByRole("button", { name: /^Reorder:/ })).toHaveCount(0);
+    await expect(queue.getByRole("button", { name: /^Remove:/ })).toHaveCount(0);
+    await page.screenshot({ path: testInfo.outputPath("playlist-playing-queue.png") });
+    const sourceLayout = await queue.locator("..").evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { top: rect.top + window.scrollY, width: rect.width, height: rect.height };
+    });
     await page.getByRole("button", { name: "Continue in mini player" }).click();
     await expect(
       page.getByRole("region", { name: "Mini player", exact: true }),
     ).toBeVisible();
+    await expect(queue).toBeVisible();
+    await expect(queue.getByRole("button", { name: "Save", exact: true })).toHaveCount(0);
+    await expect(queue.getByRole("button", { name: /^Reorder:/ })).toHaveCount(0);
+    await expect(queue.getByRole("button", { name: /^Remove:/ })).toHaveCount(0);
+    await expect(page.getByText("Playing in the mini player", { exact: true })).toBeVisible();
+    const detachedLayout = await queue.locator("..").evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { top: rect.top + window.scrollY, width: rect.width, height: rect.height };
+    });
+    expect(detachedLayout.top).toBeCloseTo(sourceLayout.top, 0);
+    expect(detachedLayout.width).toBeCloseTo(sourceLayout.width, 0);
+    expect(detachedLayout.height).toBeCloseTo(sourceLayout.height, 0);
+    await page.getByRole("button", { name: "Return player here", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Mini player", exact: true })).toHaveCount(0);
+    await expect(player).toBeVisible();
+    await expect(player).toBeFocused();
+    await expect(player).toContainText("Second (1/2)");
+    expect(await iframe!.evaluate((node) => node.isConnected)).toBe(true);
+    await expect(player.getByRole("button", { name: "Continue in mini player" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Loop playback", exact: true })).toHaveAttribute("aria-pressed", "true");
+    const restoredLayout = await queue.locator("..").evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { top: rect.top + window.scrollY, width: rect.width, height: rect.height };
+    });
+    expect(restoredLayout.top).toBeCloseTo(sourceLayout.top, 0);
+    expect(restoredLayout.width).toBeCloseTo(sourceLayout.width, 0);
+    expect(restoredLayout.height).toBeCloseTo(sourceLayout.height, 0);
+    await player.getByRole("button", { name: "Continue in mini player" }).click();
+    await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
     const mini = page.getByRole("region", { name: "Mini player", exact: true });
     await expect(
       mini.getByRole("button", { name: "Loop playback" }),
@@ -221,17 +344,22 @@ for (const width of [1280, 390])
       .getByRole("region", { name: "Mini player" })
       .getByRole("button", { name: "Stop playback" })
       .click();
-    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Remove: First" })).toBeVisible();
     await page.getByRole("button", { name: "Remove: First" }).click();
     await page.getByRole("button", { name: "Remove: Second" }).click();
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "Edit", exact: true }),
-    ).toBeVisible();
-    expect(writes[1]).toEqual({ name: "My music", items: [] });
+    await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
+    expect(writes[2]).toEqual({ name: "My music", items: [] });
+    await expect(page.getByText("No videos.", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Playlist actions" }).click();
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page.getByRole("button", { name: "Delete playlist", exact: true }).click();
+    await expect(page.getByRole("combobox", { name: "Playlist", exact: true })).toHaveValue(id);
+    await page.getByRole("button", { name: "Playlist actions" }).click();
     page.once("dialog", (dialog) => dialog.accept());
-    await page
-      .getByRole("button", { name: "Delete playlist", exact: true })
-      .click();
-    await expect(page.getByText("No playlists yet.")).toBeVisible();
+    await page.getByRole("button", { name: "Delete playlist", exact: true }).click();
+    await expect(page.getByText("Deleted.", { exact: true })).toBeVisible();
+    await expect(page.getByText("No playlists yet.", { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Playlist", exact: true })).toHaveCount(0);
   });

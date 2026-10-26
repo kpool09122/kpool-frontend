@@ -51,24 +51,24 @@ export function YouTubePlaybackProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function PlaybackOutlet({ owner }: { owner: string }) {
+export function PlaybackOutlet({ owner, preserveSpace = false }: { owner: string; preserveSpace?: boolean }) {
   const context = useYouTubePlayback();
   const register = context?.register;
   const ref = useCallback((node: HTMLDivElement | null) => register?.(owner, node), [owner, register]);
   if (!context) return null;
-  return <ConnectedOutlet owner={owner} store={context.store} height={context.height} anchorRef={ref} />;
+  return <ConnectedOutlet owner={owner} store={context.store} height={context.height} anchorRef={ref} preserveSpace={preserveSpace} />;
 }
 
-function ConnectedOutlet({ owner, store, height, anchorRef }: {
-  owner: string; store: PlaybackStore; height: number;
+function ConnectedOutlet({ owner, store, height, anchorRef, preserveSpace }: {
+  owner: string; store: PlaybackStore; height: number; preserveSpace: boolean;
   anchorRef: (node: HTMLDivElement | null) => void;
 }) {
   const session = useStore(store, (state) => state.session);
   const floating = useStore(store, (state) => state.floating);
   if (session?.owner !== owner) return null;
   return (
-    <div ref={anchorRef} style={floating ? undefined : { height: height || 240 }}>
-      {floating ? <MiniPlayerPlaceholder /> : null}
+    <div ref={anchorRef} style={floating && !preserveSpace ? undefined : { height: height || 240 }}>
+      {floating ? <MiniPlayerPlaceholder fill={preserveSpace} onRestore={() => store.getState().restore(owner)} /> : null}
     </div>
   );
 }
@@ -114,6 +114,11 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.continuous;
   const root = useRef<HTMLElement>(null);
+  const wasFloating = useRef(floating);
+  useEffect(() => {
+    if (wasFloating.current && !floating) root.current?.focus({ preventScroll: true });
+    wasFloating.current = floating;
+  }, [floating]);
   const { fullscreen, failed: fullscreenFailed, toggle: toggleFullscreen } = usePlayerFullscreen(root);
   const moveHintId = useId();
   const [inlineStyle, setInlineStyle] = useState<CSSProperties>({});
@@ -147,7 +152,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
   return (
     <section
       ref={root}
-      {...(movable ? { ...dragProps, ...keyboardProps, tabIndex: 0 } : {})}
+      tabIndex={movable ? 0 : -1}
+      {...(movable ? { ...dragProps, ...keyboardProps } : {})}
       aria-label={floating ? t.miniPlayer : t.nowPlaying}
       aria-describedby={movable ? moveHintId : undefined}
       style={fullscreen ? { position: "fixed", inset: 0, width: "100%", height: "100dvh" } : floating ? floatingStyle : inlineStyle}

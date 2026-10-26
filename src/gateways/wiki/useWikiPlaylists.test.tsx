@@ -113,7 +113,7 @@ it("distinguishes committed save from failed refetch and prevents duplicate writ
   expect(result.current.committed).toBe(false);
   expect(result.current.draft).toBeNull();
 });
-it("keeps the created empty list and unsaved draft separate after initial save failure", async () => {
+it("keeps the created empty list separate from a subsequent failed edit", async () => {
   vi.mocked(api.createPlaylist).mockResolvedValue({
     ok: true,
     status: 201,
@@ -123,6 +123,7 @@ it("keeps the created empty list and unsaved draft separate after initial save f
   await act(() => result.current.create("New"));
   expect(result.current.detail?.items).toEqual([]);
   expect(result.current.notice).toBe("created");
+  expect(result.current.draft).toBeNull();
   act(() =>
     result.current.setDraft({
       name: "New",
@@ -142,43 +143,6 @@ it("keeps the created empty list and unsaved draft separate after initial save f
   expect(result.current.draft?.items).toHaveLength(1);
   expect(result.current.notice).toBeNull();
   expect(api.createPlaylist).toHaveBeenCalledTimes(1);
-});
-it("does not permit a 51st or duplicate video and makes cancel non-persistent", async () => {
-  const { result } = setup();
-  await act(() => result.current.open(id));
-  act(() => result.current.edit());
-  const video = {
-    videoLinkIdentifier: id,
-    title: "Source",
-    url: "https://youtu.be/abcdefghijk",
-    thumbnailUrl: null,
-    durationSeconds: null,
-    language: "ja" as const,
-    resourceType: "group" as const,
-    slug: "group",
-    likedAt: "now",
-  };
-  act(() => result.current.add(video));
-  expect(result.current.error).toBe(422);
-  expect(result.current.draft?.items).toHaveLength(1);
-  act(() =>
-    result.current.setDraft({
-      name: "Full",
-      items: Array.from({ length: 50 }, (_, i) => ({
-        provider: "youtube",
-        externalVideoId: `video${String(i).padStart(6, "0")}`,
-        title: "Item",
-      })),
-    }),
-  );
-  act(() =>
-    result.current.add({ ...video, url: "https://youtu.be/lmnopqrstuv" }),
-  );
-  expect(result.current.error).toBe(50);
-  expect(result.current.draft?.items).toHaveLength(50);
-  act(() => result.current.cancel());
-  expect(result.current.draft).toBeNull();
-  expect(api.savePlaylist).not.toHaveBeenCalled();
 });
 it("shows server playlist limit and deletion errors without false success", async () => {
   const { result } = setup();
@@ -217,4 +181,68 @@ it("drops late completions when identity session changes", async () => {
   });
   expect(result.current.detail).toBeNull();
   expect(result.current.draft).toBeNull();
+});
+
+const likedVideo = {
+  videoLinkIdentifier: "00000000-0000-4000-8000-000000000011",
+  title: "New song", url: "https://youtu.be/lmnopqrstuv", thumbnailUrl: null,
+  durationSeconds: null, language: "ja" as const, resourceType: "group" as const,
+  slug: "group", likedAt: "2026-10-26T00:00:00Z",
+};
+it("adds a liked video to the latest playlist while preserving existing snapshots", async () => {
+  const { result } = setup();
+  await act(() => result.current.addToPlaylist(id, likedVideo));
+  expect(api.savePlaylist).not.toHaveBeenCalled();
+  expect(result.current.draft?.items).toHaveLength(2);
+  expect(result.current.hasUnsavedChanges).toBe(true);
+  await act(() => result.current.save());
+  expect(api.savePlaylist).toHaveBeenCalledWith(id, {
+    name: "Saved", items: [
+      { provider: "youtube", externalVideoId: "abcdefghijk" },
+      { videoLinkIdentifier: likedVideo.videoLinkIdentifier },
+    ],
+  }, expect.any(AbortSignal));
+  expect(api.fetchPlaylist).toHaveBeenCalledTimes(2);
+  expect(result.current.draft).toBeNull();
+  expect(result.current.notice).toBe("saved");
+  expect(result.current.busy).toBe(false);
+});
+it.each(["duplicate", "full"] as const)("rejects a %s addition without writing", async (condition) => {
+  if (condition === "duplicate") {
+    vi.mocked(api.fetchPlaylist).mockResolvedValue({ ...saved, items: [{ ...saved.items[0], externalVideoId: "lmnopqrstuv" }] });
+  } else {
+    vi.mocked(api.fetchPlaylist).mockResolvedValue({ ...saved, videoCount: 50, items: Array.from({ length: 50 }, () => saved.items[0]) });
+  }
+  const { result } = setup();
+  await act(() => result.current.addToPlaylist(id, likedVideo));
+  expect(api.savePlaylist).not.toHaveBeenCalled();
+  expect(result.current.error).toBe(condition === "duplicate" ? 422 : 50);
+  expect(result.current.busy).toBe(false);
+});
+it("retries only fetching after an addition was saved but its refresh failed", async () => {
+  vi.mocked(api.fetchPlaylist).mockResolvedValueOnce(saved).mockRejectedValueOnce(new Error("Refresh failed"));
+  const { result } = setup();
+  await act(() => result.current.addToPlaylist(id, likedVideo));
+  await act(() => result.current.save());
+  expect(result.current.committed).toBe(true);
+  expect(result.current.notice).toBe("savedRefreshFailed");
+  await act(() => result.current.addToPlaylist(id, likedVideo));
+  expect(api.savePlaylist).toHaveBeenCalledTimes(1);
+  vi.mocked(api.fetchPlaylist).mockResolvedValue(saved);
+  await act(() => result.current.refreshSaved());
+  expect(api.savePlaylist).toHaveBeenCalledTimes(1);
+  expect(result.current.committed).toBe(false);
+  expect(result.current.notice).toBe("saved");
+});
+it("reports a failed addition without committing or discarding the selected playlist", async () => {
+  vi.mocked(api.savePlaylist).mockResolvedValue({ ok: false, status: 403 });
+  const { result } = setup();
+  await act(() => result.current.open(id));
+  await act(() => result.current.addToPlaylist(id, likedVideo));
+  await act(() => result.current.save());
+  expect(result.current.detail).toEqual(saved);
+  expect(result.current.draft?.items).toHaveLength(2);
+  expect(result.current.error).toBe(403);
+  expect(result.current.notice).toBeNull();
+  expect(result.current.committed).toBe(false);
 });

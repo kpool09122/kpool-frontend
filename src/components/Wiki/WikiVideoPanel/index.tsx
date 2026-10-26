@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
-import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
+import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
 import {
@@ -313,68 +313,29 @@ function VideoPlaybackList({
     setPreferredRandom(!random);
     if (playback) store.getState().setRandom(!random);
   };
-  const toggleClassName =
-    "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary aria-pressed:after:absolute aria-pressed:after:bottom-1 aria-pressed:after:h-1 aria-pressed:after:w-1 aria-pressed:after:rounded-full aria-pressed:after:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-40";
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-5">
-        {!(playback && floating) ? (
-          <button
-            type="button"
-            aria-label={t.random}
-            title={t.random}
-            aria-pressed={random}
-            disabled={!queue.length}
-            onClick={toggleRandom}
-            className={toggleClassName}
-          >
-            <ShuffleIcon aria-hidden="true" className="h-6 w-6" />
-          </button>
-        ) : null}
-        <button
-          type="button"
-          ref={startButton}
-          aria-pressed={playback?.kind === "queue"}
-          disabled={!queue.length || playback?.kind === "queue"}
-          className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-semibold text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:aria-pressed:opacity-100"
-          onClick={() => {
-            store.getState().start(owner, queue.map(({ video, videoId }) => ({
-              identifier: video.videoLinkIdentifier, videoId, title: video.title,
-              controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
-            })), "queue", loop, random);
-          }}
-        >
-          <PlayIcon aria-hidden="true" className="h-6 w-6" />
-          {t.start}
-        </button>
-        {playback && !floating ? (
-          <button
-            type="button"
-            aria-label={t.stop}
-            title={t.stop}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary"
-            onClick={() => {
-              restoreFocus.current = true;
-              store.getState().stop();
-            }}
-          >
-            <StopIcon aria-hidden="true" className="h-5 w-5" />
-          </button>
-        ) : null}
-        {!(playback && floating) ? (
-          <button
-            type="button"
-            aria-label={t.loop}
-            title={t.loop}
-            aria-pressed={loop}
-            disabled={!queue.length}
-            onClick={() => setLoop(!loop)}
-            className={toggleClassName}
-          >
-            <LoopIcon aria-hidden="true" className="h-6 w-6" />
-          </button>
-        ) : null}
-      </div>
+      <YouTubeQueueControls
+        labels={t}
+        empty={!queue.length}
+        playing={playback?.kind === "queue"}
+        floating={!!playback && floating}
+        random={random}
+        loop={loop}
+        startRef={startButton}
+        onToggleRandom={toggleRandom}
+        onToggleLoop={() => setLoop(!loop)}
+        onStart={() => {
+          store.getState().start(owner, queue.map(({ video, videoId }) => ({
+            identifier: video.videoLinkIdentifier, videoId, title: video.title,
+            controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
+          })), "queue", loop, random);
+        }}
+        onStop={playback ? () => {
+          restoreFocus.current = true;
+          store.getState().stop();
+        } : undefined}
+      />
       {notice ? <p role="status">{notice}</p> : null}
       {playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
       {likes.loading ? <p role="status">{dictionary.wiki.videos.likes.loading}</p> : null}

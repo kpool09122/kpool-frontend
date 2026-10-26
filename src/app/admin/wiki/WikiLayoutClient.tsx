@@ -76,7 +76,6 @@ export function WikiLayoutClient({
 
     const tabs: Array<{ id: AdminWikiTab; label: string }> = [
       createWikiTab("editingWikis", t.editingWikisTab),
-      createWikiTab("playlists", t.playlists.title),
       createWikiTab("submittedWikis", t.submittedWikisTab),
       ...(canReviewDraftWikis ? [createWikiTab("unapprovedWikis", t.unapprovedWikisTab)] : []),
       ...(canPublishDraftWikis ? [createWikiTab("approvedWikis", t.approvedWikisTab)] : []),
@@ -85,6 +84,7 @@ export function WikiLayoutClient({
       ...(canReviewImageDeletionRequests ? [createWikiTab("imageDeletionRequests", t.imageDeletionRequestsTab)] : []),
       ...(canRequestOfficialCertification ? [createWikiTab("officialCertificationRequest", t.officialCertificationRequestTab)] : []),
       ...(canReviewOfficialCertifications(state.principal) ? [createWikiTab("officialCertificationReview", t.officialCertificationReviewTab)] : []),
+      createWikiTab("playlists", t.playlists.title),
       ...(canManagePrincipalGroups ? [createWikiTab("principalGroupManagement", t.wikiPrincipalGroupManagementTab)] : []),
     ];
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)

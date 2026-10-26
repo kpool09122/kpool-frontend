@@ -7,6 +7,22 @@ const tracks = [
 ];
 
 describe("shared playback ownership", () => {
+  it("restores only the current source without changing its track, queue or playback settings", () => {
+    const store = createPlaybackStore();
+    store.getState().restore("playlist");
+    expect(store.getState().session).toBeNull();
+    store.getState().start("playlist", tracks, "queue", true, true);
+    store.getState().advance(store.getState().session!.id);
+    store.getState().detach();
+    const session = store.getState().session;
+    store.getState().restore("another-source");
+    expect(store.getState().floating).toBe(true);
+    store.getState().restore("playlist");
+    expect(store.getState().floating).toBe(false);
+    expect(store.getState().session).toBe(session);
+    store.getState().release("playlist");
+    expect(store.getState().session).toBeNull();
+  });
   it("stops on source removal unless the user explicitly detached the player", () => {
     const store = createPlaybackStore();
     store.getState().start("wiki-a", tracks, "queue");
@@ -46,5 +62,61 @@ describe("shared playback ownership", () => {
     store.getState().stop();
     store.getState().start("wiki-b", tracks, "queue");
     expect(store.getState().floating).toBe(false);
+  });
+});
+
+describe("selecting a queued track", () => {
+  it("starts at the chosen track and continues in playlist order", () => {
+    const store = createPlaybackStore();
+    store.getState().start("playlist", tracks, "queue", true, false, "second");
+    const session = store.getState().session!;
+    expect(session.queue).toMatchObject({ order: [0, 1], position: 1, playerIndex: 1, sequence: 0 });
+    store.getState().advance(session.id);
+    expect(store.getState().session?.queue).toMatchObject({ position: 0, playerIndex: 0 });
+  });
+  it("plays the chosen track first when shuffle is enabled", () => {
+    const store = createPlaybackStore();
+    store.getState().start("playlist", tracks, "queue", false, true, "second");
+    const session = store.getState().session!;
+    expect(session.queue).toMatchObject({ order: [1, 0], position: 0, playerIndex: 1 });
+    store.getState().advance(session.id);
+    expect(store.getState().session?.queue.playerIndex).toBe(0);
+  });
+  it("loads the selected track without replacing the session, order or playback settings", () => {
+    const store = createPlaybackStore();
+    store.getState().start("playlist", tracks, "queue", true, true);
+    const before = store.getState().session!;
+    const index = before.queue.order[1];
+    store.getState().selectTrack(before.id, tracks[index].identifier);
+    expect(store.getState().session).toMatchObject({
+      id: before.id, owner: before.owner, loop: true, random: true,
+      queue: { order: before.queue.order, position: 1, playerIndex: index, sequence: 1 },
+    });
+    expect(store.getState().floating).toBe(false);
+  });
+  it("ignores stale sessions, unknown tracks, the current track and single-video playback", () => {
+    const store = createPlaybackStore();
+    store.getState().start("playlist", tracks, "queue");
+    const before = store.getState().session!;
+    store.getState().selectTrack(before.id - 1, "second");
+    store.getState().selectTrack(before.id, "missing");
+    store.getState().selectTrack(before.id, "first");
+    expect(store.getState().session).toBe(before);
+    store.getState().start("wiki", tracks, "single");
+    const single = store.getState().session!;
+    store.getState().selectTrack(single.id, "second");
+    expect(store.getState().session).toBe(single);
+  });
+  it("allows retrying a previously failed track and then continues from that position", () => {
+    const store = createPlaybackStore();
+    store.getState().start("playlist", tracks, "queue", true);
+    const id = store.getState().session!.id;
+    store.getState().advance(id, true);
+    expect(store.getState().session?.queue.failed).toEqual([0]);
+    store.getState().selectTrack(id, "first");
+    expect(store.getState().session?.queue).toMatchObject({ position: 0, playerIndex: 0, sequence: 2, failed: [] });
+    expect(store.getState().notice).toBeNull();
+    store.getState().advance(id);
+    expect(store.getState().session?.queue).toMatchObject({ position: 1, playerIndex: 1 });
   });
 });

@@ -13,7 +13,6 @@ import {
   fetchLikedVideoPage,
   fetchPlaylist,
   fetchPlaylists,
-  playlistItemKey,
   playlistName,
   savePlaylist,
   type Playlist,
@@ -28,6 +27,17 @@ export type PlaylistDraftItem = {
   videoLinkIdentifier?: string;
 };
 export type PlaylistDraft = { name: string; items: PlaylistDraftItem[] };
+export const playlistToDraft = (data: Playlist): PlaylistDraft => ({
+  name: data.name,
+  items: [...data.items]
+    .sort((a, b) => a.position - b.position)
+    .map((item) => ({
+      provider: item.provider,
+      externalVideoId: item.externalVideoId,
+      title: item.title,
+    })),
+});
+
 export const playlistSessionKey = () => {
   const { status, identity, sessionVersion } = useAuthStore.getState();
   return [
@@ -123,17 +133,7 @@ export function useWikiPlaylists(principal: string) {
       queryFn: ({ signal }) => fetchPlaylists(signal),
       staleTime: 0,
     });
-  const toDraft = (data: Playlist): PlaylistDraft => ({
-    name: data.name,
-    items: [...data.items]
-      .sort((a, b) => a.position - b.position)
-      .map((item) => ({
-        provider: item.provider,
-        externalVideoId: item.externalVideoId,
-        title: item.title,
-      })),
-  });
-  const open = async (id: string, add?: LikedVideo) => {
+  const open = async (id: string) => {
     const op = begin();
     if (!op) return;
     try {
@@ -141,25 +141,7 @@ export function useWikiPlaylists(principal: string) {
       if (!op.current()) return;
       setDetail(data);
       setCommitted(false);
-      if (add) {
-        const next = toDraft(data);
-        const externalVideoId = getYouTubeVideoId(add.url);
-        if (
-          externalVideoId &&
-          !next.items.some(
-            (item) => item.externalVideoId === externalVideoId,
-          ) &&
-          next.items.length < 50
-        )
-          next.items.push({
-            provider: "youtube",
-            externalVideoId,
-            title: add.title,
-            videoLinkIdentifier: add.videoLinkIdentifier,
-          });
-        else setError(next.items.length >= 50 ? 50 : 422);
-        setDraft(next);
-      } else setDraft(null);
+      setDraft(null);
     } catch (e) {
       if (op.current()) setError(statusOf(e));
     } finally {
@@ -191,45 +173,32 @@ export function useWikiPlaylists(principal: string) {
       finish(op);
     }
   };
-  const save = async () => {
-    if (!detail || !draft || committed) return;
-    const name = playlistName.safeParse(draft.name);
-    if (!name.success) {
-      setError(422);
-      return;
-    }
-    const op = begin();
-    if (!op) return;
+  const persistPlaylist = async (
+    op: NonNullable<ReturnType<typeof begin>>,
+    playlist: Playlist,
+    next: PlaylistDraft,
+  ) => {
     const result = await savePlaylist(
-      detail.playlistIdentifier,
+      playlist.playlistIdentifier,
       {
-        name: name.data,
-        items: draft.items.map((item) =>
+        name: next.name,
+        items: next.items.map((item) =>
           item.videoLinkIdentifier
             ? { videoLinkIdentifier: item.videoLinkIdentifier }
-            : {
-                provider: item.provider,
-                externalVideoId: item.externalVideoId,
-              },
+            : { provider: item.provider, externalVideoId: item.externalVideoId },
         ),
       },
       op.controller.signal,
     );
-    if (!op.current()) {
-      finish(op);
-      return;
-    }
+    if (!op.current()) return;
     if (!result.ok) {
       setError(result.status);
-      finish(op);
       return;
     }
+    setDetail(playlist);
     setCommitted(true);
     try {
-      const data = await fetchPlaylist(
-        detail.playlistIdentifier,
-        op.controller.signal,
-      );
+      const data = await fetchPlaylist(playlist.playlistIdentifier, op.controller.signal);
       await refreshList();
       if (op.current()) {
         setDetail(data);
@@ -242,6 +211,47 @@ export function useWikiPlaylists(principal: string) {
         setError(statusOf(e));
         setNotice("savedRefreshFailed");
       }
+    }
+  };
+  const save = async () => {
+    if (!detail || !draft || committed) return;
+    const name = playlistName.safeParse(draft.name);
+    if (!name.success) {
+      setError(422);
+      return;
+    }
+    const op = begin();
+    if (!op) return;
+    try {
+      await persistPlaylist(op, detail, { ...draft, name: name.data });
+    } finally {
+      finish(op);
+    }
+  };
+  const addToPlaylist = async (identifier: string, video: LikedVideo) => {
+    if (committed || (draft && detail?.playlistIdentifier !== identifier)) return;
+    const op = begin();
+    if (!op) return;
+    try {
+      const playlist = draft && detail
+        ? detail
+        : await fetchPlaylist(identifier, op.controller.signal);
+      if (!op.current()) return;
+      const next = draft ? { ...draft, items: [...draft.items] } : playlistToDraft(playlist);
+      const externalVideoId = getYouTubeVideoId(video.url);
+      if (!externalVideoId || next.items.some((item) => item.externalVideoId === externalVideoId)) {
+        setError(422);
+        return;
+      }
+      if (next.items.length >= 50) {
+        setError(50);
+        return;
+      }
+      next.items.push({ provider: "youtube", externalVideoId, title: video.title, videoLinkIdentifier: video.videoLinkIdentifier });
+      setDetail(playlist);
+      setDraft(next);
+    } catch (e) {
+      if (op.current()) setError(statusOf(e));
     } finally {
       finish(op);
     }
@@ -267,7 +277,7 @@ export function useWikiPlaylists(principal: string) {
     // Creation is committed independently; never recreate on a later save failure.
     const data = { ...result.data, items: [] };
     setDetail(data);
-    setDraft(toDraft(data));
+    setDraft(null);
     setCommitted(false);
     setNotice("created");
     try {
@@ -313,35 +323,8 @@ export function useWikiPlaylists(principal: string) {
       finish(op);
     }
   };
-  const add = (video: LikedVideo) => {
-    if (!draft || busy || committed) return;
-    const externalVideoId = getYouTubeVideoId(video.url);
-    if (!externalVideoId) return;
-    if (
-      draft.items.some(
-        (item) => playlistItemKey(item) === `youtube:${externalVideoId}`,
-      )
-    ) {
-      setError(422);
-      return;
-    }
-    if (draft.items.length >= 50) {
-      setError(50);
-      return;
-    }
-    setDraft({
-      ...draft,
-      items: [
-        ...draft.items,
-        {
-          provider: "youtube",
-          externalVideoId,
-          title: video.title,
-          videoLinkIdentifier: video.videoLinkIdentifier,
-        },
-      ],
-    });
-  };
+  const hasUnsavedChanges = detail !== null && draft !== null &&
+    JSON.stringify(draft) !== JSON.stringify(playlistToDraft(detail));
   const visible = auth.status === "authenticated";
   return {
     list,
@@ -353,7 +336,11 @@ export function useWikiPlaylists(principal: string) {
       : [],
     detail: visible ? detail : null,
     draft: visible ? draft : null,
-    setDraft,
+    hasUnsavedChanges: visible && hasUnsavedChanges,
+    setDraft: (next: PlaylistDraft | null) => {
+      if (busy || committed) return;
+      setDraft(next && detail && JSON.stringify(next) === JSON.stringify(playlistToDraft(detail)) ? null : next);
+    },
     busy,
     error,
     notice,
@@ -363,10 +350,16 @@ export function useWikiPlaylists(principal: string) {
     save,
     remove,
     refreshSaved,
-    add,
+    addToPlaylist,
+    clearFeedback: () => {
+      if (!busy && !committed) {
+        setError(null);
+        setNotice(null);
+      }
+    },
     edit: () => {
       if (detail && !busy) {
-        setDraft(toDraft(detail));
+        setDraft(playlistToDraft(detail));
         setNotice(null);
         setError(null);
       }

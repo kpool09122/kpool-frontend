@@ -87,6 +87,13 @@ for (const source of ["body", "single", "queue"] as const) {
     for (let step = 0; step < 20; step++) await mini.press("ArrowUp");
     await placeholder.scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`mini-player-placeholder-${source}.png`) });
+    await placeholder.getByRole("button", { name: "Return player here" }).click();
+    await expect(mini).toHaveCount(0);
+    await expect(placeholder).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Now playing", exact: true })).toBeVisible();
+    await expect(frame).toHaveAttribute("data-original-player", "true");
+    await expect(frame).toHaveCount(1);
+    await page.getByRole("button", { name: "Continue in mini player" }).click();
     await page.getByRole("region", { name: "Mini player" }).getByRole("button", { name: "Stop playback" }).click();
     await expect(placeholder).toHaveCount(0);
     await expect(frame).toHaveCount(0);
@@ -464,6 +471,7 @@ test("mini player preserves the iframe across navigation, dragging and video tak
   await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
   await page.getByRole("link", { name: "k-pool", exact: true }).click();
   await expect(page).toHaveURL(/\/en$/);
+  await expect(page.getByRole("button", { name: "Return player here" })).toHaveCount(0);
   await expect(mini).toContainText("First video (1/2)");
   await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
   await page.screenshot({ path: testInfo.outputPath("mini-player-after-navigation.png") });
