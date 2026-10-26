@@ -324,6 +324,7 @@ const CreatedPlaylist = z
     updatedAt: z.string().datetime({ offset: true }),
   })
   .passthrough();
+const PlaylistDetail = PlaylistListItem;
 const LikedVideoLink = z
   .object({
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
@@ -992,6 +993,19 @@ const WikiMasterSearchItem = z
 const SearchMasterWikisResponseBody = z
   .object({ wikis: z.array(WikiMasterSearchItem) })
   .passthrough();
+const PlaylistItem = z
+  .object({
+    playlistItemIdentifier: KPool_Common_Uuid.uuid(),
+    sourceVideoLinkIdentifier: KPool_Common_Uuid.nullable(),
+    provider: z.literal("youtube"),
+    externalVideoId: z.string(),
+    position: z.number().int().gte(0).lte(49),
+    url: z.string().url(),
+    title: z.string(),
+    thumbnailUrl: z.string().url().nullable(),
+    durationSeconds: z.number().int().nullable(),
+  })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -1034,6 +1048,7 @@ export const schemas = {
   PlaylistListItem,
   CreatePlaylistRequestBody,
   CreatedPlaylist,
+  PlaylistDetail,
   LikedVideoLink,
   VideoLinkLikesPagination,
   SyncOwnedWikiCertificationsRequestBody,
@@ -1107,6 +1122,7 @@ export const schemas = {
   ListWikisResponseBody,
   WikiMasterSearchItem,
   SearchMasterWikisResponseBody,
+  PlaylistItem,
 };
 
 const endpoints = makeApi([
@@ -2055,6 +2071,58 @@ const endpoints = makeApi([
       {
         status: 419,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/playlists/:playlistId",
+    alias: "PlaylistOperations_getMyPlaylist",
+    description: `Return the authenticated Wiki Principal&#x27;s private playlist with all stored items, ordered by position then identifier, without pagination. Requires an active Account/Principal and Wiki collaborator GET_MY_PLAYLIST permission. Other owners and missing identifiers return the same 404; malformed identifiers return 422. Empty playlists return items: []. videoCount equals the stored item count. Snapshots remain available after source deletion (sourceVideoLinkIdentifier becomes null), Wiki unpublication or unlike. No YouTube requests or collection jobs are triggered; playback failures are handled by the player.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "playlistId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: PlaylistDetail,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
