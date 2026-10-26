@@ -11,6 +11,8 @@ import { useWikiPrincipalState } from "./useWikiPrincipalState";
 import { QueryProvider } from "../QueryProvider";
 import { PrincipalAccessMonitor } from "./PrincipalAccessMonitor";
 import { getAdminAccountScope } from "./accountScope";
+import { useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
+import { reconcilePrivatePlayback } from "./privatePlaybackAccess";
 
 type AdminContextValue = {
   principalState: WikiPrincipalState;
@@ -73,6 +75,9 @@ function AdminSession({ children, initialPrincipalState, principalStateUpdatedAt
   value: Omit<AdminContextValue, "principalState">;
 }) {
   const principalState = useWikiPrincipalState(value.currentIdentity, initialPrincipalState, principalStateUpdatedAt);
+  const playback = useYouTubePlayback()?.store;
+  const principal = principalState.status === "available" && principalState.principal.status === "active" ? principalState.principal.principalIdentifier : null;
+  useEffect(() => { if (playback) reconcilePrivatePlayback(playback, principal); }, [playback, principal]);
   return (
     <AdminContext.Provider value={{ ...value, principalState }}>
       <PrincipalAccessMonitor identity={value.currentIdentity} refreshIdentity={value.refreshIdentity} t={value.t}>

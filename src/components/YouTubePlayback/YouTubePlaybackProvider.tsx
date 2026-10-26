@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { useStore } from "zustand";
+import { useAuthStore } from "@/gateways/auth/authStore";
 import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, LoopIcon, ShuffleIcon } from "@radix-ui/react-icons";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from "./playbackStore";
@@ -32,6 +33,11 @@ export const useYouTubePlayback = () => useContext(PlaybackContext);
 
 export function YouTubePlaybackProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createPlaybackStore);
+  useEffect(() => useAuthStore.subscribe((next, previous) => {
+    const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
+    const state = store.getState();
+    if (scope(next) !== scope(previous) && (state.session?.owner.startsWith("private-playlist:") || state.notice?.owner.startsWith("private-playlist:"))) state.stop();
+  }), [store]);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [height, setHeight] = useState(0);
   const register = useCallback((owner: string, node: HTMLDivElement | null) => {

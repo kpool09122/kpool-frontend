@@ -18,7 +18,7 @@ describe("my video likes BFF", () => {
     vi.stubGlobal("fetch", fetcher);
     expect((await run(undefined, "")).status).toBe(401);
     for (const query of [
-      "",
+      "videoLinkIds[]=",
       "videoLinkIds[]=bad",
       Array.from({ length: 101 }, () => `videoLinkIds[]=${id}`).join("&"),
     ])
@@ -105,4 +105,14 @@ describe("my video likes BFF", () => {
       expect(response.headers.get("set-cookie")).toContain("session=new");
     }
   });
+});
+
+it("supports ID-omitted paging while keeping VideoLink totals", async () => {
+ vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+ const fetcher = vi.fn().mockResolvedValue(Response.json({ likedVideoLinkIdentifiers: [id], videos: [], pagination: { currentPage: 2, perPage: 20, total: 21 } }));
+ vi.stubGlobal("fetch", fetcher);
+ const response = await run("page=2&perPage=20&principalIdentifier=other");
+ expect(response.status).toBe(200);
+ expect((await response.json()).pagination.total).toBe(21);
+ expect(fetcher.mock.calls[0][0]).toBe("https://backend.example/api/v1/wiki/my/video-link-likes?page=2&perPage=20");
 });

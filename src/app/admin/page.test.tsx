@@ -3153,6 +3153,7 @@ describe("admin page clients", () => {
 
     expect((await screen.findAllByRole("tab")).map((tab) => tab.textContent)).toEqual([
       "編集中のWiki",
+      "マイプレイリスト",
       "申請中のWiki",
       "承認済みWiki",
       "未翻訳のWiki",

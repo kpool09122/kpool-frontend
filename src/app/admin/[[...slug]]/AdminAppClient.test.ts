@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { resolveAdminClientPage } from "./AdminAppClient";
 
 describe("resolveAdminClientPage", () => {
+  it("resolves private Wiki playlists", () => { expect(resolveAdminClientPage("/admin/wiki/playlists")).toBe("wikiPlaylists"); });
   it("resolves SiteManagement independently of Wiki", () => {
     expect(resolveAdminClientPage("/admin/site-management/principal-groups")).toBe("siteManagementPrincipalGroups");
   });
