@@ -357,6 +357,12 @@ for (const width of [1280, 390])
       .getByRole("button", { name: "Stop playback" })
       .click();
     await expect(page.getByRole("button", { name: "Remove: First" })).toBeVisible();
+    const startPlayback = page.getByRole("button", { name: "Play all", exact: true });
+    await startPlayback.click();
+    await expect(startPlayback).toBeDisabled();
+    await page.getByRole("button", { name: "Stop playback", exact: true }).click();
+    await expect(startPlayback).toBeEnabled();
+    await expect(startPlayback).toBeFocused();
     await page.getByRole("button", { name: "Remove: First" }).click();
     await page.getByRole("button", { name: "Remove: Second" }).click();
     await page.getByRole("button", { name: "Save", exact: true }).click();

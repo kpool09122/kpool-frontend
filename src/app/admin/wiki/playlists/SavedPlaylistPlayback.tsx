@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { PlaybackOutlet, useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
 import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
@@ -29,17 +29,17 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
   const [preferredRandom, setPreferredRandom] = useState(false);
   const [preferredLoop, setPreferredLoop] = useState(false);
   const playback = session?.owner === owner ? session : null;
+  const playing = playback !== null;
   const random = playback?.random ?? preferredRandom;
   const loop = playback?.loop ?? preferredLoop;
-  const startButton = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
   useEffect(() => () => store.getState().release(owner), [store, owner]);
-  useEffect(() => {
-    if (restoreFocus.current && !playback) {
+  const focusStartButton = useCallback((node: HTMLButtonElement | null) => {
+    if (node && !playing && restoreFocus.current) {
       restoreFocus.current = false;
-      startButton.current?.focus();
+      node.focus();
     }
-  }, [playback]);
+  }, [playing]);
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
@@ -47,11 +47,11 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
           <YouTubeQueueControls
             labels={playbackText}
             empty={!detail.items.length}
-            playing={!!playback}
+            playing={playing}
             floating={false}
             loop={loop}
             random={random}
-            startRef={startButton}
+            startRef={focusStartButton}
             onStart={() => store.getState().start(
               owner,
               [...detail.items].sort((a, b) => a.position - b.position).map((item) => ({

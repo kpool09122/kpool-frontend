@@ -155,6 +155,24 @@ it("removes previous private details and draft on Wiki Principal change and logo
   act(() => useAuthStore.getState().clearIdentity());
   expect(screen.queryByRole("heading", { name: "My playlists" })).toBeNull();
 });
+it("aborts a pending request on Principal remount and ignores its late result", async () => {
+  let resolve!: (value: typeof saved) => void;
+  vi.mocked(api.fetchPlaylist).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+  const client = new QueryClient();
+  const tree = () => <QueryClientProvider client={client}><WikiPlaylistsClient /></QueryClientProvider>;
+  const view = render(tree());
+  await openSaved();
+  const signal = vi.mocked(api.fetchPlaylist).mock.calls[0][1];
+  expect(signal.aborted).toBe(false);
+  vi.mocked(api.fetchPlaylists).mockResolvedValue({ playlists: [] });
+  sectionMock.principal = "new-principal";
+  view.rerender(tree());
+  expect(signal.aborted).toBe(true);
+  await act(async () => { resolve(saved); });
+  expect(await screen.findByText(dictionaries.en.admin.playlists.empty)).toBeVisible();
+  expect(screen.queryByText("Deleted source")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+});
 it("resolves initial browser authentication on a direct admin load", async () => {
   const refresh = vi.fn(async () => {
     useAuthStore.setState({ status: "authenticated" });
@@ -282,6 +300,25 @@ it("starts row playback from the selected video without saving or triggering pla
   fireEvent.click(screen.getByRole("button", { name: "Remove: Second" }));
   expect(store.getState().session).toBeNull();
   expect(api.savePlaylist).not.toHaveBeenCalled();
+});
+it("returns focus to the enabled start button after Stop without taking focus on unrelated stops", async () => {
+  const store = createPlaybackStore();
+  playbackMock.context = { store };
+  setup();
+  await openSaved();
+  const start = await screen.findByRole("button", { name: "Play all" });
+  fireEvent.click(start);
+  expect(start).toBeDisabled();
+  const stop = screen.getByRole("button", { name: "Stop playback" });
+  stop.focus();
+  fireEvent.click(stop);
+  expect(start).toBeEnabled();
+  expect(start).toHaveFocus();
+  fireEvent.click(start);
+  const selection = screen.getByRole("combobox", { name: "Playlist" });
+  selection.focus();
+  act(() => store.getState().stop());
+  expect(selection).toHaveFocus();
 });
 it("plays only saved snapshots in position order independent from draft edits and shuffle", async () => {
   const store = createPlaybackStore();

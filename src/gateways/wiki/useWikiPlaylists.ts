@@ -55,6 +55,7 @@ const statusOf = (error: unknown) =>
   typeof error.status === "number"
     ? error.status
     : 0;
+/** Use inside a workspace keyed by the authenticated Principal and session. */
 export function useWikiPlaylists(principal: string) {
   const auth = useAuthStore();
   const session = playlistSessionKey();
@@ -77,10 +78,6 @@ export function useWikiPlaylists(principal: string) {
   >(null);
   const [committed, setCommitted] = useState(false);
   const pending = useRef<AbortController | null>(null);
-  const liveScope = useRef(scope);
-  useEffect(() => {
-    liveScope.current = scope;
-  }, [scope]);
   useEffect(
     () => () => {
       pending.current?.abort();
@@ -120,8 +117,7 @@ export function useWikiPlaylists(principal: string) {
       controller,
       current: () =>
         !controller.signal.aborted &&
-        liveScope.current === scope &&
-        `${playlistSessionKey()}:${principal}` === scope,
+        playlistSessionKey() === session,
     };
   };
   const finish = (op: NonNullable<ReturnType<typeof begin>>) => {
