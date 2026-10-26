@@ -324,6 +324,18 @@ const CreatedPlaylist = z
     updatedAt: z.string().datetime({ offset: true }),
   })
   .passthrough();
+const SavePlaylistItem = z.union([
+  z
+    .object({
+      provider: z.literal("youtube"),
+      externalVideoId: z.string().regex(/^[a-zA-Z0-9_-]{11}$/),
+    })
+    .passthrough(),
+  z.object({ videoLinkIdentifier: KPool_Common_Uuid.uuid() }).passthrough(),
+]);
+const SavePlaylistRequestBody = z
+  .object({ name: z.string(), items: z.array(SavePlaylistItem).max(50) })
+  .passthrough();
 const PlaylistDetail = PlaylistListItem;
 const LikedVideoLink = z
   .object({
@@ -995,10 +1007,9 @@ const SearchMasterWikisResponseBody = z
   .passthrough();
 const PlaylistItem = z
   .object({
-    playlistItemIdentifier: KPool_Common_Uuid.uuid(),
     sourceVideoLinkIdentifier: KPool_Common_Uuid.nullable(),
     provider: z.literal("youtube"),
-    externalVideoId: z.string(),
+    externalVideoId: z.string().regex(/^[a-zA-Z0-9_-]{11}$/),
     position: z.number().int().gte(0).lte(49),
     url: z.string().url(),
     title: z.string(),
@@ -1048,6 +1059,8 @@ export const schemas = {
   PlaylistListItem,
   CreatePlaylistRequestBody,
   CreatedPlaylist,
+  SavePlaylistItem,
+  SavePlaylistRequestBody,
   PlaylistDetail,
   LikedVideoLink,
   VideoLinkLikesPagination,
@@ -2096,6 +2109,68 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "put",
+    path: "/my/playlists/:playlistId",
+    alias: "PlaylistOperations_savePlaylist",
+    description: `Atomically replace the authenticated Wiki Principal&#x27;s playlist name, membership and stored order. Each item specifies either an existing provider/externalVideoId pair or a new videoLinkIdentifier. Existing items must belong to this playlist and remain editable after source deletion, unpublication or unlike. New sources must exist in published Wikis (404 otherwise) and be liked by the caller (403 otherwise); all snapshots are resolved by the server. Foreign/missing playlists and foreign/missing items return 404. Invalid names, input shapes, more than 50 entries or duplicate provider/externalVideoId in the final state return 422. Omitting an existing item removes it; an empty array clears the playlist. Repeating a new-source selection reuses an existing item for the same video, preserving its snapshot, but duplicate selections in the same array are rejected. Returns 204 with no body. VideoLinks, likes and other playlists are not modified. Requires active Account/Principal and Wiki collaborator SAVE_PLAYLIST permission. Playback shuffle order is independent of stored order.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: SavePlaylistRequestBody,
+      },
+      {
+        name: "playlistId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "delete",
     path: "/my/playlists/:playlistId",
     alias: "PlaylistOperations_deletePlaylist",
@@ -2156,7 +2231,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/my/playlists/:playlistId",
     alias: "PlaylistOperations_getMyPlaylist",
-    description: `Return the authenticated Wiki Principal&#x27;s private playlist with all stored items, ordered by position then identifier, without pagination. Requires an active Account/Principal and Wiki collaborator GET_MY_PLAYLIST permission. Other owners and missing identifiers return the same 404; malformed identifiers return 422. Empty playlists return items: []. videoCount equals the stored item count. Snapshots remain available after source deletion (sourceVideoLinkIdentifier becomes null), Wiki unpublication or unlike. No YouTube requests or collection jobs are triggered; playback failures are handled by the player.`,
+    description: `Return the authenticated Wiki Principal&#x27;s private playlist with all stored items, ordered by position, without pagination. Requires an active Account/Principal and Wiki collaborator GET_MY_PLAYLIST permission. Other owners and missing identifiers return the same 404; malformed identifiers return 422. Empty playlists return items: []. videoCount equals the stored item count. Snapshots remain available after source deletion (sourceVideoLinkIdentifier becomes null), Wiki unpublication or unlike. No YouTube requests or collection jobs are triggered; playback failures are handled by the player.`,
     requestFormat: "json",
     parameters: [
       {
