@@ -337,6 +337,9 @@ const SavePlaylistRequestBody = z
   .object({ name: z.string(), items: z.array(SavePlaylistItem).max(50) })
   .passthrough();
 const PlaylistDetail = PlaylistListItem;
+const LikedVideoPlaylist = z
+  .object({ playlistIdentifier: KPool_Common_Uuid.uuid(), name: z.string() })
+  .passthrough();
 const LikedVideoLink = z
   .object({
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
@@ -348,6 +351,7 @@ const LikedVideoLink = z
     resourceType: z.enum(["agency", "group", "song", "talent"]),
     slug: z.string(),
     likedAt: z.string(),
+    playlists: z.array(LikedVideoPlaylist),
   })
   .passthrough();
 const VideoLinkLikesPagination = z
@@ -1062,6 +1066,7 @@ export const schemas = {
   SavePlaylistItem,
   SavePlaylistRequestBody,
   PlaylistDetail,
+  LikedVideoPlaylist,
   LikedVideoLink,
   VideoLinkLikesPagination,
   SyncOwnedWikiCertificationsRequestBody,

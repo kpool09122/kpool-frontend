@@ -17,6 +17,7 @@ export function LikedVideoRow({
     playlistIdentifier: string;
     name: string;
     reason: string | null;
+    included: boolean;
   }>;
   disabled: boolean;
   onSelect: (identifier: string) => void;
@@ -41,9 +42,15 @@ export function LikedVideoRow({
         <PlaylistVideoThumbnail url={video.url} thumbnailUrl={video.thumbnailUrl} />
         <div className="min-w-0 flex-1">
           <p className="truncate" title={video.title}>{video.title}</p>
-          <p className="text-sm text-text-muted">
-            {video.language} · {video.resourceType}
-          </p>
+          {playlists.some((playlist) => playlist.included) ? (
+            <ul className="mt-1 flex flex-wrap gap-1" aria-label={t.addedPlaylists}>
+              {playlists.filter((playlist) => playlist.included).map((playlist) => (
+                <li key={playlist.playlistIdentifier}
+                  className="max-w-full truncate rounded-full bg-brand-highlight/30 px-2 py-0.5 text-xs text-brand-primary"
+                  title={playlist.name}>{playlist.name}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
         <button
           ref={trigger}

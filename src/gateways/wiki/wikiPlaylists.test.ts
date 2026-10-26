@@ -32,6 +32,7 @@ it("aggregates pages by YouTube ID preserving the first representative source", 
     resourceType: "group" as const,
     slug: "group",
     likedAt: "now",
+    playlists: [],
   };
   expect(
     aggregateLikedVideos([

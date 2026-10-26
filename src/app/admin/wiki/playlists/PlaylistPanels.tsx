@@ -104,11 +104,6 @@ export function PlaylistEditPanel({ state, t }: { state: PlaylistState; t: Text 
   return (
     <section aria-label={t.likes} className="space-y-4">
       <h3 className="text-lg font-semibold">{t.likes}</h3>
-      {state.likes.isSuccess ? (
-        <p className="text-sm text-text-muted">
-          {t.sourceCount}: {state.likes.data.pages[0].pagination.total}
-        </p>
-      ) : null}
       {state.likes.isSuccess && !state.videos.length ? (
         <p>{t.noVideos}</p>
       ) : null}
@@ -121,10 +116,13 @@ export function PlaylistEditPanel({ state, t }: { state: PlaylistState; t: Text 
             playlists={lists.map((list) => {
               const editing = state.detail?.playlistIdentifier === list.playlistIdentifier;
               const count = editing && state.draft ? state.draft.items.length : list.videoCount;
+              const included = editing && state.detail
+                ? (state.draft ?? state.detail).items.some((item) => item.externalVideoId === video.externalVideoId)
+                : video.playlists.some((playlist) => playlist.playlistIdentifier === list.playlistIdentifier);
               const reason = state.hasUnsavedChanges && !editing ? t.finishEditing
-                : editing && state.draft?.items.some((item) => item.externalVideoId === video.externalVideoId) ? t.alreadyAdded
+                : included ? t.alreadyAdded
                   : count >= 50 ? t.tooMany : null;
-              return { ...list, reason };
+              return { ...list, reason, included };
             })}
             onSelect={(identifier) => void state.addToPlaylist(identifier, video)}
             t={t}

@@ -13,6 +13,21 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe("my video likes BFF", () => {
+  it("preserves playlist membership badges in paginated video responses", async () => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+    const video = {
+      videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Song",
+      thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
+      likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Favorites" }],
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      likedVideoLinkIdentifiers: [id], videos: [video], pagination: { currentPage: 1, perPage: 20, total: 1 },
+    })));
+    const response = await run("page=1");
+    expect(response.status).toBe(200);
+    expect((await response.json()).videos[0].playlists).toEqual(video.playlists);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
   it("validates authentication and batch size before I/O", async () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);

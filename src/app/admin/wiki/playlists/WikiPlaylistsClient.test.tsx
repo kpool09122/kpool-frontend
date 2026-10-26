@@ -223,19 +223,18 @@ it("deletes the selected playlist from its adjacent actions after confirmation",
   await screen.findByRole("button", { name: "Remove: Deleted source" });
   const trigger = await screen.findByRole("button", { name: "Playlist actions" });
   await waitFor(() => expect(trigger).toBeEnabled());
+  const menuId = trigger.getAttribute("popovertarget");
+  expect(document.getElementById(menuId!)).toHaveAttribute("popover", "auto");
+  expect(screen.getByRole("button", { name: "Delete playlist", hidden: true })).toHaveAttribute("popovertargetaction", "hide");
   fireEvent.click(trigger);
-  fireEvent.keyDown(document, { key: "Escape" });
-  expect(screen.queryByRole("button", { name: "Delete playlist" })).toBeNull();
-  expect(trigger).toHaveFocus();
-  fireEvent.click(trigger);
-  fireEvent.click(screen.getByRole("button", { name: "Delete playlist" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete playlist", hidden: true }));
   expect(confirm).toHaveBeenCalledWith(dictionaries.en.admin.playlists.confirmDelete);
   expect(api.deletePlaylist).not.toHaveBeenCalled();
   expect(screen.getByRole("combobox", { name: "Playlist" })).toHaveValue(id);
   confirm.mockReturnValue(true);
   vi.mocked(api.fetchPlaylists).mockResolvedValue({ playlists: [] });
   fireEvent.click(trigger);
-  fireEvent.click(screen.getByRole("button", { name: "Delete playlist" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete playlist", hidden: true }));
   expect(await screen.findByText("Deleted.")).toBeVisible();
   expect(api.deletePlaylist).toHaveBeenCalledWith(id, expect.any(AbortSignal));
   expect(screen.queryByRole("combobox", { name: "Playlist" })).toBeNull();
@@ -249,7 +248,7 @@ it("retains the selected playlist and its draft when deletion fails", async () =
   await openSaved();
   fireEvent.click(await screen.findByRole("button", { name: "Remove: Deleted source" }));
   fireEvent.click(screen.getByRole("button", { name: "Playlist actions" }));
-  fireEvent.click(screen.getByRole("button", { name: "Delete playlist" }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete playlist", hidden: true }));
   expect(await screen.findByRole("alert")).toHaveTextContent(dictionaries.en.admin.playlists.forbidden);
   expect(screen.getByRole("combobox", { name: "Playlist" })).toHaveValue(id);
   expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
@@ -376,6 +375,39 @@ it("reorders with the handle keyboard controls and writes only after Save", asyn
   }, expect.any(AbortSignal)));
 });
 
+it("shows saved playlist badges and reflects local removals without source metadata", async () => {
+  const t = dictionaries.en.admin.playlists;
+  const other = "00000000-0000-4000-8000-000000000002";
+  vi.mocked(api.fetchPlaylists).mockResolvedValue({ playlists: [saved, { ...saved, playlistIdentifier: other, name: "Other" }] });
+  vi.mocked(api.fetchLikedVideoPage).mockResolvedValue({
+    likedVideoLinkIdentifiers: [id],
+    videos: [{
+      videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Shared song",
+      thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
+      likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Saved" }, { playlistIdentifier: other, name: "Other" }],
+    }],
+    pagination: { currentPage: 1, perPage: 20, total: 10 },
+  });
+  setup();
+  await screen.findByRole("option", { name: "Saved" });
+  fireEvent.click(screen.getByRole("tab", { name: t.editTab }));
+  const badges = await screen.findByRole("list", { name: t.addedPlaylists });
+  expect(within(badges).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["Saved", "Other"]);
+  expect(screen.queryByText(/ko.*group/)).toBeNull();
+  expect(screen.queryByText(new RegExp(t.sourceCount))).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Add: Shared song" }));
+  const dialog = screen.getByRole("dialog");
+  expect(within(dialog).getByRole("button", { name: "Saved" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Other" })).toBeDisabled();
+  fireEvent.click(within(dialog).getByRole("button", { name: t.close }));
+  fireEvent.click(screen.getByRole("tab", { name: t.listTab }));
+  await openSaved();
+  fireEvent.click(await screen.findByRole("button", { name: "Remove: Deleted source" }));
+  fireEvent.click(screen.getByRole("tab", { name: t.editTab }));
+  expect(screen.getByRole("list", { name: t.addedPlaylists })).toHaveTextContent("Other");
+  expect(screen.getByRole("list", { name: t.addedPlaylists })).not.toHaveTextContent("Saved");
+  expect(api.savePlaylist).not.toHaveBeenCalled();
+});
 it("stages additions from the destination dialog and writes them only when Save is pressed", async () => {
   const t = dictionaries.en.admin.playlists;
   const source = "00000000-0000-4000-8000-000000000011";
@@ -383,6 +415,7 @@ it("stages additions from the destination dialog and writes them only when Save 
     videoLinkIdentifier: source, title: "Liked song", url: "https://youtu.be/lmnopqrstuv",
     thumbnailUrl: null, durationSeconds: null, language: "ja" as const,
     resourceType: "group" as const, slug: "group", likedAt: "2026-10-26T00:00:00Z",
+    playlists: [],
   };
   vi.mocked(api.fetchPlaylists).mockResolvedValue({
     playlists: [saved, { ...saved, playlistIdentifier: source, name: "Other" }],
@@ -412,6 +445,7 @@ it("stages additions from the destination dialog and writes them only when Save 
   fireEvent.click(within(chooser).getByRole("button", { name: "Saved" }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeEnabled());
   expect(api.savePlaylist).not.toHaveBeenCalled();
+  expect(screen.getByRole("list", { name: t.addedPlaylists })).toHaveTextContent("Saved");
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await waitFor(() => expect(api.savePlaylist).toHaveBeenCalledWith(
     id,

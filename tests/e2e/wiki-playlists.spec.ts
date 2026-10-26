@@ -134,6 +134,8 @@ for (const width of [1280, 390])
         resourceType: "group",
         slug: "group",
         likedAt: "2026-10-26T00:00:00Z",
+        playlists: saved.items.some((item) => item.externalVideoId === "abcdefghijk")
+          ? [{ playlistIdentifier: id, name: saved.name }] : [],
       };
       return route.fulfill({
         json: {
@@ -152,6 +154,8 @@ for (const width of [1280, 390])
                   url: "https://youtu.be/lmnopqrstuv",
                   title: "Second",
                   language: "en",
+                  playlists: saved.items.some((item) => item.externalVideoId === "lmnopqrstuv")
+                    ? [{ playlistIdentifier: id, name: saved.name }] : [],
                 },
               ]
             : Array.from({ length: 20 }, (_, i) => ({
@@ -195,11 +199,12 @@ for (const width of [1280, 390])
       .getByRole("button", { name: "Add: Second", exact: true })
       .click();
     await page.getByRole("dialog", { name: "Choose a playlist", exact: true }).getByRole("button", { name: "My music", exact: true }).click();
-    await expect(
-      page.getByText("Total VideoLinks (includes language variants): 22", {
-        exact: true,
-      }),
-    ).toBeVisible();
+    await expect(page.getByText(/Total VideoLinks/)).toHaveCount(0);
+    await expect(page.getByText(/(?:ja|ko|en) · group/)).toHaveCount(0);
+    const badges = page.getByRole("list", { name: "Added to playlists", exact: true });
+    await expect(badges).toHaveCount(2);
+    for (const badge of await badges.all()) await expect(badge).toHaveText("My music");
+    await page.screenshot({ path: testInfo.outputPath("playlist-membership-badges.png") });
     await expect(page.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
     expect(writes).toHaveLength(0);
     await page.getByRole("tab", { name: "List", exact: true }).click();
@@ -215,6 +220,13 @@ for (const width of [1280, 390])
     expect(writes).toHaveLength(1);
     await page.reload();
     if (width < 768) await page.getByRole("button", { name: "Collapse admin menu" }).click();
+    await page.getByRole("tab", { name: "Edit", exact: true }).click();
+    await page.getByRole("button", { name: "Load more", exact: true }).click();
+    await expect(page.getByRole("list", { name: "Added to playlists", exact: true })).toHaveCount(2);
+    await page.getByRole("button", { name: "Add: First", exact: true }).click();
+    await expect(page.getByRole("dialog").getByRole("button", { name: "My music", exact: true })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await page.getByRole("tab", { name: "List", exact: true }).click();
     await page.getByRole("combobox", { name: "Playlist", exact: true }).selectOption(id);
     await expect(page.getByRole("button", { name: "Reorder: First", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
@@ -352,9 +364,27 @@ for (const width of [1280, 390])
     await expect(page.getByRole("button", { name: "Save", exact: true })).toBeDisabled();
     expect(writes[2]).toEqual({ name: "My music", items: [] });
     await expect(page.getByText("No videos.", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Playlist actions" }).click();
+    const actions = page.getByRole("button", { name: "Playlist actions" });
+    const deletion = page.getByRole("button", { name: "Delete playlist", exact: true });
+    await actions.click();
+    await expect(deletion).toBeVisible();
+    const triggerBox = (await actions.boundingBox())!;
+    const menuBox = (await deletion.locator("..").boundingBox())!;
+    expect(menuBox.y).toBeGreaterThanOrEqual(triggerBox.y + triggerBox.height);
+    expect(menuBox.x + menuBox.width).toBeCloseTo(triggerBox.x + triggerBox.width, 0);
+    await page.screenshot({ path: testInfo.outputPath("playlist-actions-popover.png") });
+    await page.keyboard.press("Tab");
+    await expect(deletion).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(deletion).toBeHidden();
+    await expect(actions).toBeFocused();
+    await actions.click();
+    await page.getByRole("heading", { name: "My playlists", exact: true }).click();
+    await expect(deletion).toBeHidden();
+    await actions.click();
     page.once("dialog", (dialog) => dialog.dismiss());
-    await page.getByRole("button", { name: "Delete playlist", exact: true }).click();
+    await deletion.click();
+    await expect(deletion).toBeHidden();
     await expect(page.getByRole("combobox", { name: "Playlist", exact: true })).toHaveValue(id);
     await page.getByRole("button", { name: "Playlist actions" }).click();
     page.once("dialog", (dialog) => dialog.accept());

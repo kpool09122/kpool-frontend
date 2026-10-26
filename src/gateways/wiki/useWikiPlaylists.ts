@@ -61,6 +61,7 @@ export function useWikiPlaylists(principal: string) {
   const scope = `${session}:${principal}`;
   const client = useQueryClient();
   const prefix = ["private-wiki-playlists", scope];
+  const likesKey = ["private-wiki-playlist-likes", scope];
   const [detail, setDetail] = useState<Playlist | null>(null);
   const [draft, setDraft] = useState<PlaylistDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -95,7 +96,7 @@ export function useWikiPlaylists(principal: string) {
     retry: false,
   });
   const likes = useInfiniteQuery({
-    queryKey: ["private-wiki-playlist-likes", scope],
+    queryKey: likesKey,
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) => fetchLikedVideoPage(pageParam, signal),
     getNextPageParam: (last) =>
@@ -197,6 +198,7 @@ export function useWikiPlaylists(principal: string) {
     }
     setDetail(playlist);
     setCommitted(true);
+    void client.invalidateQueries({ queryKey: likesKey });
     try {
       const data = await fetchPlaylist(playlist.playlistIdentifier, op.controller.signal);
       await refreshList();
@@ -312,6 +314,7 @@ export function useWikiPlaylists(principal: string) {
     setDraft(null);
     setCommitted(false);
     setNotice("deleted");
+    void client.invalidateQueries({ queryKey: likesKey });
     try {
       await refreshList();
     } catch (e) {
