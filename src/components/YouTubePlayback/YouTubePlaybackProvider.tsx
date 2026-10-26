@@ -13,7 +13,10 @@ import {
   type ReactNode,
 } from "react";
 import { useStore } from "zustand";
-import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, LoopIcon, ShuffleIcon } from "@radix-ui/react-icons";
+import { useAuthStore } from "@/gateways/auth/authStore";
+import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, ShuffleIcon } from "@radix-ui/react-icons";
+import { nextLoopMode } from "./playbackQueue";
+import { LoopPlaybackButton } from "./LoopPlaybackButton";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from "./playbackStore";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
@@ -32,6 +35,11 @@ export const useYouTubePlayback = () => useContext(PlaybackContext);
 
 export function YouTubePlaybackProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createPlaybackStore);
+  useEffect(() => useAuthStore.subscribe((next, previous) => {
+    const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
+    const state = store.getState();
+    if (scope(next) !== scope(previous) && (state.session?.owner.startsWith("private-playlist:") || state.notice?.owner.startsWith("private-playlist:"))) state.stop();
+  }), [store]);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [height, setHeight] = useState(0);
   const register = useCallback((owner: string, node: HTMLDivElement | null) => {
@@ -45,24 +53,24 @@ export function YouTubePlaybackProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function PlaybackOutlet({ owner }: { owner: string }) {
+export function PlaybackOutlet({ owner, preserveSpace = false }: { owner: string; preserveSpace?: boolean }) {
   const context = useYouTubePlayback();
   const register = context?.register;
   const ref = useCallback((node: HTMLDivElement | null) => register?.(owner, node), [owner, register]);
   if (!context) return null;
-  return <ConnectedOutlet owner={owner} store={context.store} height={context.height} anchorRef={ref} />;
+  return <ConnectedOutlet owner={owner} store={context.store} height={context.height} anchorRef={ref} preserveSpace={preserveSpace} />;
 }
 
-function ConnectedOutlet({ owner, store, height, anchorRef }: {
-  owner: string; store: PlaybackStore; height: number;
+function ConnectedOutlet({ owner, store, height, anchorRef, preserveSpace }: {
+  owner: string; store: PlaybackStore; height: number; preserveSpace: boolean;
   anchorRef: (node: HTMLDivElement | null) => void;
 }) {
   const session = useStore(store, (state) => state.session);
   const floating = useStore(store, (state) => state.floating);
   if (session?.owner !== owner) return null;
   return (
-    <div ref={anchorRef} style={floating ? undefined : { height: height || 240 }}>
-      {floating ? <MiniPlayerPlaceholder /> : null}
+    <div ref={anchorRef} style={floating && !preserveSpace ? undefined : { height: height || 240 }}>
+      {floating ? <MiniPlayerPlaceholder fill={preserveSpace} onRestore={() => store.getState().restore(owner)} /> : null}
     </div>
   );
 }
@@ -108,6 +116,11 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.continuous;
   const root = useRef<HTMLElement>(null);
+  const wasFloating = useRef(floating);
+  useEffect(() => {
+    if (wasFloating.current && !floating) root.current?.focus({ preventScroll: true });
+    wasFloating.current = floating;
+  }, [floating]);
   const { fullscreen, failed: fullscreenFailed, toggle: toggleFullscreen } = usePlayerFullscreen(root);
   const moveHintId = useId();
   const [inlineStyle, setInlineStyle] = useState<CSSProperties>({});
@@ -141,7 +154,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
   return (
     <section
       ref={root}
-      {...(movable ? { ...dragProps, ...keyboardProps, tabIndex: 0 } : {})}
+      tabIndex={movable ? 0 : -1}
+      {...(movable ? { ...dragProps, ...keyboardProps } : {})}
       aria-label={floating ? t.miniPlayer : t.nowPlaying}
       aria-describedby={movable ? moveHintId : undefined}
       style={fullscreen ? { position: "fixed", inset: 0, width: "100%", height: "100dvh" } : floating ? floatingStyle : inlineStyle}
@@ -158,7 +172,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         </p>
         {(floating || fullscreen) && session.kind === "queue" ? <>
           <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
-          <button type="button" aria-label={t.loop} title={t.loop} aria-pressed={session.loop} className={iconClass} onClick={() => store.getState().setLoop(!session.loop)}><LoopIcon aria-hidden="true" className="h-5 w-5" /></button>
+          <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
+            onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
         </> : null}
         {floating ? active.controls : null}
         <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>

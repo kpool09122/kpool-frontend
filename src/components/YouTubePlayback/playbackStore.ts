@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createStore } from "zustand/vanilla";
-import { advancePlayback, playbackOrder, type PlaybackQueue } from "./playbackQueue";
+import { advancePlayback, playbackOrder, type LoopMode, type PlaybackQueue } from "./playbackQueue";
 
 export type PlaybackTrack = { identifier: string; videoId: string; title: string; controls?: ReactNode };
 export type PlaybackSession = {
@@ -9,7 +9,7 @@ export type PlaybackSession = {
   kind: "queue" | "single";
   tracks: PlaybackTrack[];
   queue: PlaybackQueue;
-  loop: boolean;
+  loop: LoopMode;
   random: boolean;
 };
 type Notice = {
@@ -23,13 +23,15 @@ type PlaybackState = {
   floating: boolean;
   generation: number;
   notice: Notice | null;
-  start: (owner: string, tracks: PlaybackTrack[], kind: PlaybackSession["kind"], loop?: boolean, random?: boolean) => void;
+  start: (owner: string, tracks: PlaybackTrack[], kind: PlaybackSession["kind"], loop?: LoopMode, random?: boolean, initialIdentifier?: string) => void;
   stop: () => void;
   detach: () => void;
+  restore: (owner: string) => void;
   release: (owner: string) => void;
-  setLoop: (enabled: boolean) => void;
+  setLoop: (mode: LoopMode) => void;
   setRandom: (enabled: boolean) => void;
   advance: (sessionId: number, failed?: boolean, videoId?: string) => void;
+  selectTrack: (sessionId: number, identifier: string) => void;
   synchronize: (sessionId: number, videoId: string) => void;
   unavailable: (sessionId: number) => void;
   clearNotice: () => void;
@@ -48,9 +50,14 @@ export function createPlaybackStore() {
     floating: false,
     generation: 0,
     notice: null,
-    start: (owner, tracks, kind, loop = false, random = false) => {
+    start: (owner, tracks, kind, loop = "off", random = false, initialIdentifier) => {
       if (!tracks.length) return;
-      const order = playbackOrder(tracks.map((_, index) => index), random);
+      const initialIndex = tracks.findIndex((track) => track.identifier === initialIdentifier);
+      const indices = tracks.map((_, index) => index);
+      const order = random && initialIndex >= 0
+        ? [initialIndex, ...playbackOrder(indices.filter((index) => index !== initialIndex), true)]
+        : playbackOrder(indices, random);
+      const position = initialIndex >= 0 ? order.indexOf(initialIndex) : 0;
       const state = get();
       const id = state.generation + 1;
       set({
@@ -59,12 +66,20 @@ export function createPlaybackStore() {
         notice: null,
         session: {
           id, owner, kind, tracks, loop, random,
-          queue: { mode: "continuous", order, position: 0, playerIndex: order[0], sequence: 0, failed: [] },
+          queue: { mode: "continuous", order, position, playerIndex: order[position], sequence: 0, failed: [] },
         },
       });
     },
     stop: () => set({ session: null, floating: false, notice: null }),
     detach: () => { if (get().session) set({ floating: true }); },
+    restore: (owner) => {
+      const state = get();
+      if (!state.floating || state.session?.owner !== owner) return;
+      set({
+        floating: false,
+        notice: state.notice?.owner === owner ? { ...state.notice, floating: false } : state.notice,
+      });
+    },
     release: (owner) => {
       if (get().session?.owner === owner && !get().floating) get().stop();
     },
@@ -97,6 +112,24 @@ export function createPlaybackStore() {
           owner: session.owner, floating: state.floating, kind: "skipped",
           title: session.tracks[current.order[current.position]].title,
         } : state.notice,
+      });
+    },
+    selectTrack: (sessionId, identifier) => {
+      const session = get().session;
+      if (!session || session.id !== sessionId || session.kind !== "queue") return;
+      const { queue, tracks } = session;
+      const position = queue.order.findIndex((index) => tracks[index].identifier === identifier);
+      if (position < 0 || position === queue.position) return;
+      const playerIndex = queue.order[position];
+      set({
+        notice: null,
+        session: { ...session, queue: {
+          ...queue,
+          position,
+          playerIndex,
+          sequence: queue.sequence + 1,
+          failed: queue.failed.filter((index) => index !== playerIndex),
+        } },
       });
     },
     synchronize: (sessionId, videoId) => {

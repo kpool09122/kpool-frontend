@@ -335,6 +335,9 @@ describe("continuous playback", () => {
     expect(random).toHaveAttribute("aria-pressed", "true");
     await start();
     fireEvent.click(loop);
+    expect(screen.getByRole("button", { name: "Repeat current video" })).toHaveTextContent("1");
+    expect(loop).toHaveAttribute("data-loop-mode", "one");
+    fireEvent.click(loop);
     fireEvent.click(random);
     expect(loop).toHaveAttribute("aria-pressed", "false");
     expect(random).toHaveAttribute("aria-pressed", "false");
@@ -344,6 +347,24 @@ describe("continuous playback", () => {
     await waitFor(() => expect(requests).toHaveLength(2));
     act(() => requests[1].options.events.onStateChange({ data: 0 }));
     expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+  });
+  it("repeats the current video with the same player until repeat-one is turned off", async () => {
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Loop playback" }));
+    const repeat = screen.getByRole("button", { name: "Repeat current video" });
+    expect(repeat).toHaveTextContent("1");
+    await start();
+    act(() => requests[0].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(2));
+    expectCurrentVideo(first, 1, 2);
+    expect(requests[1].options.videoId).toBe("abcdefghijk");
+    expect(requests[0].destroy).not.toHaveBeenCalled();
+    fireEvent.click(repeat);
+    expect(repeat).toHaveAttribute("aria-pressed", "false");
+    act(() => requests[1].options.events.onStateChange({ data: 0 }));
+    await waitFor(() => expect(requests).toHaveLength(3));
+    expectCurrentVideo(second, 2, 2);
   });
   it("shuffles only upcoming videos when enabled during playback", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);

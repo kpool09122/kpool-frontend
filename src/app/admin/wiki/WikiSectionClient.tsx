@@ -204,6 +204,7 @@ export function WikiSectionClient({
     const canPublishDraftWikis = canPublishWikiDraftWikis(principalState.principal);
     const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(principalState.principal);
     const isAllowed =
+      activeWikiTab === "playlists" ||
       activeWikiTab === "editingWikis" ||
       activeWikiTab === "submittedWikis" ||
       (activeWikiTab === "officialCertificationRequest" && canManageOfficialCertifications(principalState.principal)) ||
@@ -312,6 +313,7 @@ export function WikiSectionClient({
 }
 
 const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
+  if (pathname?.endsWith("/playlists")) return "playlists";
   if (pathname?.endsWith("/submitted")) {
     return "submittedWikis";
   }

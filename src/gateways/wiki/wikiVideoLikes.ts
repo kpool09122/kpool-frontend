@@ -6,8 +6,8 @@ import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 const endpoint = wikiPrivateApiTypes.wikiPrivateApi.api.find(
   (entry) => entry.alias === "VideoLinkLikeOperations_listMyVideoLinkLikes",
 )!;
-// The backend also supports listing all likes without IDs. This BFF only
-// exposes the batched lookup used by the video panel.
+// The BFF also exposes paginated likes when IDs are omitted. This helper
+// keeps the existing ID-based panel lookup and never derives likes from videos.
 export const wikiVideoLikeIdsSchema = endpoint.parameters[0].schema.unwrap();
 export const wikiVideoLikesUpstreamResponseSchema = endpoint.response;
 export const wikiVideoLikesResponseSchema =

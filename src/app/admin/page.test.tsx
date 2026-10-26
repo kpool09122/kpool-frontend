@@ -3158,6 +3158,7 @@ describe("admin page clients", () => {
       "未翻訳のWiki",
       "未承認の画像",
       "削除申請画像",
+      "マイプレイリスト",
     ]);
     fireEvent.click(screen.getByRole("tab", { name: "未翻訳のWiki" }));
     await waitFor(() =>
