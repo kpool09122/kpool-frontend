@@ -305,6 +305,15 @@ const ListMyOwnedWikisResponseBody = z
     per_page: z.number().int(),
   })
   .passthrough();
+const PlaylistListItem = z
+  .object({
+    playlistIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string().min(1).max(32),
+    videoCount: z.number().int().gte(0).lte(50),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
 const CreatePlaylistRequestBody = z.object({ name: z.string() }).passthrough();
 const CreatedPlaylist = z
   .object({
@@ -1022,6 +1031,7 @@ export const schemas = {
   WikiListItem,
   OfficialCertificationListItem,
   ListMyOwnedWikisResponseBody,
+  PlaylistListItem,
   CreatePlaylistRequestBody,
   CreatedPlaylist,
   LikedVideoLink,
@@ -1956,6 +1966,43 @@ const endpoints = makeApi([
       {
         status: 422,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/my/playlists",
+    alias: "PlaylistOperations_listMyPlaylists",
+    description: `List only the authenticated Wiki Principal&#x27;s private playlists in ascending creation time, then identifier order. Requires an active Account/Principal and Wiki collaborator LIST_MY_PLAYLISTS permission. Returns an empty array when none exist, with no pagination. videoCount counts stored PlaylistItems, including items whose source VideoLink was deleted, unliked or unpublished. The caller cannot specify the owner.`,
+    requestFormat: "json",
+    response: z
+      .object({ playlists: z.array(PlaylistListItem).max(3) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
