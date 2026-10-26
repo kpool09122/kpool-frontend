@@ -347,7 +347,7 @@ it("plays only saved snapshots in position order independent from draft edits an
     "lmnopqrstuv",
     "abcdefghijk",
   ]);
-  expect(store.getState().session).toMatchObject({ loop: true, random: true });
+  expect(store.getState().session).toMatchObject({ loop: "all", random: true });
   expect(screen.queryByLabelText("Playlist name", { exact: true })).toBeNull();
   expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
   expect(screen.queryByRole("button", { name: /^Reorder:/ })).toBeNull();
@@ -364,7 +364,7 @@ it("plays only saved snapshots in position order independent from draft edits an
   const targetButton = within(queue).getByRole("button", { name: `Play video: ${target.title}` });
   fireEvent.click(targetButton);
   expect(targetButton).toHaveAttribute("aria-current", "true");
-  expect(store.getState().session).toMatchObject({ id: session, loop: true, random: true, queue: { position: 1 } });
+  expect(store.getState().session).toMatchObject({ id: session, loop: "all", random: true, queue: { position: 1 } });
   expect(api.savePlaylist).not.toHaveBeenCalled();
   expect(store.getState().session?.tracks).toHaveLength(2);
   act(() => store.getState().detach());

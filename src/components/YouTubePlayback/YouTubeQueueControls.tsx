@@ -1,9 +1,11 @@
 "use client";
 
-import { LoopIcon, PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
+import { PlayIcon, ShuffleIcon, StopIcon } from "@radix-ui/react-icons";
 import type { Ref } from "react";
+import type { LoopMode } from "./playbackQueue";
+import { LoopPlaybackButton } from "./LoopPlaybackButton";
 
-type Labels = { start: string; stop: string; random: string; loop: string };
+type Labels = { start: string; stop: string; random: string; loop: string; loopOne: string };
 const toggleClassName =
   "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary aria-pressed:after:absolute aria-pressed:after:bottom-1 aria-pressed:after:h-1 aria-pressed:after:w-1 aria-pressed:after:rounded-full aria-pressed:after:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-40";
 
@@ -15,7 +17,7 @@ export function YouTubeQueueControls({
   empty: boolean;
   playing: boolean;
   floating: boolean;
-  loop: boolean;
+  loop: LoopMode;
   random: boolean;
   startRef?: Ref<HTMLButtonElement>;
   onStart: () => void;
@@ -45,10 +47,7 @@ export function YouTubeQueueControls({
         </button>
       ) : null}
       {!floating ? (
-        <button type="button" aria-label={labels.loop} title={labels.loop}
-          aria-pressed={loop} disabled={empty} onClick={onToggleLoop} className={toggleClassName}>
-          <LoopIcon aria-hidden="true" className="h-6 w-6" />
-        </button>
+        <LoopPlaybackButton mode={loop} labels={labels} disabled={empty} onClick={onToggleLoop} className={toggleClassName} />
       ) : null}
     </div>
   );

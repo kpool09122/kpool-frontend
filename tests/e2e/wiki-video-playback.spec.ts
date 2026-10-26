@@ -217,6 +217,7 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
   }, originalTheme);
   await random.click();
   await loop.click();
+  await page.getByRole("button", { name: "Repeat current video" }).click();
   const start = page.getByRole("button", { name: "Play all" });
   await start.focus();
   await start.press("Enter");

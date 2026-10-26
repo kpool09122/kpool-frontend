@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useStore } from "zustand";
 import { PlaybackOutlet, useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
 import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
+import { nextLoopMode, type LoopMode } from "@/components/YouTubePlayback/playbackQueue";
 import type { PlaybackSession, PlaybackTrack } from "@/components/YouTubePlayback/playbackStore";
 import { playlistItemKey, type Playlist } from "@/gateways/wiki/wikiPlaylists";
 import type { PlaybackText } from "./playlistUi";
@@ -27,7 +28,7 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
   const session = useStore(store, (state) => state.session);
   const notice = useStore(store, (state) => state.notice);
   const [preferredRandom, setPreferredRandom] = useState(false);
-  const [preferredLoop, setPreferredLoop] = useState(false);
+  const [preferredLoop, setPreferredLoop] = useState<LoopMode>("off");
   const playback = session?.owner === owner ? session : null;
   const playing = playback !== null;
   const random = playback?.random ?? preferredRandom;
@@ -64,8 +65,9 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
               if (playback) store.getState().setRandom(!random);
             }}
             onToggleLoop={() => {
-              setPreferredLoop(!loop);
-              if (playback) store.getState().setLoop(!loop);
+              const next = nextLoopMode(loop);
+              setPreferredLoop(next);
+              if (playback) store.getState().setLoop(next);
             }}
             onStop={playback ? () => {
               restoreFocus.current = true;

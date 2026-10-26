@@ -1,3 +1,6 @@
+export type LoopMode = "off" | "all" | "one";
+export const nextLoopMode = (mode: LoopMode): LoopMode => mode === "off" ? "all" : mode === "all" ? "one" : "off";
+
 export type PlaybackQueue = {
   mode: "continuous";
   order: number[];
@@ -20,9 +23,12 @@ export function playbackOrder(indices: number[], random: boolean): number[] {
 
 export function advancePlayback(
   current: PlaybackQueue,
-  options: { loop: boolean; random: boolean; failed: boolean },
+  options: { loop: LoopMode; random: boolean; failed: boolean },
 ): PlaybackQueue | null {
   const index = current.order[current.position];
+  if (options.loop === "one" && !options.failed) {
+    return { ...current, playerIndex: index, sequence: current.sequence + 1 };
+  }
   const failed = options.failed ? [...current.failed, index] : current.failed;
   if (current.position + 1 < current.order.length) {
     return {
@@ -33,7 +39,7 @@ export function advancePlayback(
       failed,
     };
   }
-  if (!options.loop) return null;
+  if (options.loop === "off") return null;
   const eligible = current.order.filter((item) => !failed.includes(item));
   // Restore display order before starting another sequential pass.
   const order = playbackOrder(eligible.sort((a, b) => a - b), options.random);

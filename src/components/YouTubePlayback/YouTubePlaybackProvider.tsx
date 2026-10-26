@@ -14,7 +14,9 @@ import {
 } from "react";
 import { useStore } from "zustand";
 import { useAuthStore } from "@/gateways/auth/authStore";
-import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, LoopIcon, ShuffleIcon } from "@radix-ui/react-icons";
+import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, ShuffleIcon } from "@radix-ui/react-icons";
+import { nextLoopMode } from "./playbackQueue";
+import { LoopPlaybackButton } from "./LoopPlaybackButton";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from "./playbackStore";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
@@ -170,7 +172,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         </p>
         {(floating || fullscreen) && session.kind === "queue" ? <>
           <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
-          <button type="button" aria-label={t.loop} title={t.loop} aria-pressed={session.loop} className={iconClass} onClick={() => store.getState().setLoop(!session.loop)}><LoopIcon aria-hidden="true" className="h-5 w-5" /></button>
+          <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
+            onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
         </> : null}
         {floating ? active.controls : null}
         <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>

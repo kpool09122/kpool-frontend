@@ -4,6 +4,7 @@ import Image from "next/image";
 import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
+import { nextLoopMode, type LoopMode } from "@/components/YouTubePlayback/playbackQueue";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
 import {
@@ -290,7 +291,7 @@ function VideoPlaybackList({
   const floating = useStore(store, (state) => state.floating);
   const sharedNotice = useStore(store, (state) => state.notice);
   const playback = session?.owner === owner ? session : null;
-  const [preferredLoop, setPreferredLoop] = useState(false);
+  const [preferredLoop, setPreferredLoop] = useState<LoopMode>("off");
   const [preferredRandom, setPreferredRandom] = useState(false);
   const loop = playback?.loop ?? preferredLoop;
   const random = playback?.random ?? preferredRandom;
@@ -305,9 +306,9 @@ function VideoPlaybackList({
     }
   }, [playback]);
   const active = playback?.tracks[playback.queue.order[playback.queue.position]];
-  const setLoop = (enabled: boolean) => {
-    setPreferredLoop(enabled);
-    if (playback) store.getState().setLoop(enabled);
+  const setLoop = (mode: LoopMode) => {
+    setPreferredLoop(mode);
+    if (playback) store.getState().setLoop(mode);
   };
   const toggleRandom = () => {
     setPreferredRandom(!random);
@@ -324,7 +325,7 @@ function VideoPlaybackList({
         loop={loop}
         startRef={startButton}
         onToggleRandom={toggleRandom}
-        onToggleLoop={() => setLoop(!loop)}
+        onToggleLoop={() => setLoop(nextLoopMode(loop))}
         onStart={() => {
           store.getState().start(owner, queue.map(({ video, videoId }) => ({
             identifier: video.videoLinkIdentifier, videoId, title: video.title,

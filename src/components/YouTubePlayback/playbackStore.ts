@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createStore } from "zustand/vanilla";
-import { advancePlayback, playbackOrder, type PlaybackQueue } from "./playbackQueue";
+import { advancePlayback, playbackOrder, type LoopMode, type PlaybackQueue } from "./playbackQueue";
 
 export type PlaybackTrack = { identifier: string; videoId: string; title: string; controls?: ReactNode };
 export type PlaybackSession = {
@@ -9,7 +9,7 @@ export type PlaybackSession = {
   kind: "queue" | "single";
   tracks: PlaybackTrack[];
   queue: PlaybackQueue;
-  loop: boolean;
+  loop: LoopMode;
   random: boolean;
 };
 type Notice = {
@@ -23,12 +23,12 @@ type PlaybackState = {
   floating: boolean;
   generation: number;
   notice: Notice | null;
-  start: (owner: string, tracks: PlaybackTrack[], kind: PlaybackSession["kind"], loop?: boolean, random?: boolean, initialIdentifier?: string) => void;
+  start: (owner: string, tracks: PlaybackTrack[], kind: PlaybackSession["kind"], loop?: LoopMode, random?: boolean, initialIdentifier?: string) => void;
   stop: () => void;
   detach: () => void;
   restore: (owner: string) => void;
   release: (owner: string) => void;
-  setLoop: (enabled: boolean) => void;
+  setLoop: (mode: LoopMode) => void;
   setRandom: (enabled: boolean) => void;
   advance: (sessionId: number, failed?: boolean, videoId?: string) => void;
   selectTrack: (sessionId: number, identifier: string) => void;
@@ -50,7 +50,7 @@ export function createPlaybackStore() {
     floating: false,
     generation: 0,
     notice: null,
-    start: (owner, tracks, kind, loop = false, random = false, initialIdentifier) => {
+    start: (owner, tracks, kind, loop = "off", random = false, initialIdentifier) => {
       if (!tracks.length) return;
       const initialIndex = tracks.findIndex((track) => track.identifier === initialIdentifier);
       const indices = tracks.map((_, index) => index);

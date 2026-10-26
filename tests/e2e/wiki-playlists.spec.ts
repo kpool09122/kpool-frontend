@@ -333,6 +333,25 @@ for (const width of [1280, 390])
     await expect(
       mini.getByRole("button", { name: "Loop playback" }),
     ).toHaveAttribute("aria-pressed", "true");
+    await mini.getByRole("button", { name: "Loop playback" }).click();
+    const repeatOne = mini.getByRole("button", { name: "Repeat current video" });
+    await expect(repeatOne).toHaveText("1");
+    await expect(page.getByRole("region", { name: "My playlists", exact: true })
+      .getByRole("button", { name: "Repeat current video" })).toHaveAttribute("data-loop-mode", "one");
+    const loads = await page.evaluate(() =>
+      (window as unknown as { queueTest: { players: { loads: string[] }[] } }).queueTest.players[0].loads.length,
+    );
+    await page.evaluate(() => {
+      (window as unknown as { queueTest: { players: { playerState: number }[] } }).queueTest.players[0].playerState = 0;
+    });
+    await expect.poll(() => page.evaluate(() =>
+      (window as unknown as { queueTest: { players: { loads: string[] }[] } }).queueTest.players[0].loads.length,
+    )).toBe(loads + 1);
+    await expect(mini).toContainText("Second (1/2)");
+    await page.screenshot({ path: testInfo.outputPath("playlist-repeat-one.png") });
+    await repeatOne.click();
+    await expect(mini.getByRole("button", { name: "Loop playback" })).toHaveAttribute("aria-pressed", "false");
+    await mini.getByRole("button", { name: "Loop playback" }).click();
     await page.evaluate(() => {
       (
         window as unknown as {
