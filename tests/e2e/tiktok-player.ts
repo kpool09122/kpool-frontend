@@ -13,6 +13,14 @@ export async function installTikTokPlayerMock(page: Page) {
         if (data.type === 'test:state') send('onStateChange', data.value);
         if (data.type === 'test:error') send('onPlayerError', data.value);
       });
+      const play = document.createElement('button');
+      play.textContent = 'Play preview';
+      play.onclick = () => send('onStateChange', 1);
+      document.body.append(play);
+      const fail = document.createElement('button');
+      fail.textContent = 'Unavailable preview';
+      fail.onclick = () => send('onPlayerError', { errorCode: 1001, errorType: 'INVALID_VIDEO' });
+      document.body.append(fail);
       setTimeout(() => send('onPlayerReady'), 50);
     </script></body></html>`,
   }));

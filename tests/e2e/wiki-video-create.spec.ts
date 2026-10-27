@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { installTikTokPlayerMock } from "./tiktok-player";
 import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
 
 test("collaborator previews one YouTube video, resets metadata on URL change, and saves one normalized record", async ({
@@ -138,13 +139,14 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
   );
 });
 
-for (const url of ["https://www.tiktok.com/@scout2015/video/6718335390845095173", "https://vm.tiktok.com/AbCd123/", "https://vt.tiktok.com/AbCd123/"]) test(`TikTok registration retains inputs after metadata failure and shows saved server metadata: ${url}`, async ({ page }) => {
+for (const url of ["https://www.tiktok.com/@scout2015/video/6718335390845095173", "https://vm.tiktok.com/AbCd123/", "https://vt.tiktok.com/AbCd123/"]) test(`TikTok registration requires verified playback and a full URL: ${url}`, async ({ page }) => {
   const base = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
   await page.context().addCookies([
     { name: "kpool-locale", value: "en", url: base }, { name: "XSRF-TOKEN", value: "csrf", url: base },
     { name: "kpool-mock-account-status", value: "active", url: base }, { name: "kpool-e2e-wiki-principal", value: "video-collaborator", url: base },
   ]);
   await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: wikiVideoAuthenticatedIdentity }));
+  await installTikTokPlayerMock(page);
   let saved = false, attempts = 0;
   await page.route("https://images.k-pool.app/images/test.webp", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64") }));
   await page.route("**/api/wiki/*/*/videos?*", (route) => route.fulfill({ json: { videos: saved ? [{ provider: "tiktok", externalVideoId: "6718335390845095173", videoLinkIdentifier: "00000000-0000-4000-8000-000000000001", url, title: "TikTok saved", videoUsage: "short", thumbnailUrl: "https://images.k-pool.app/images/test.webp", durationSeconds: 15, creatorPrincipalIdentifier: null, creatorIdentityName: null, likeCount: 0, publishedAt: null }] : [] } }));
@@ -159,8 +161,24 @@ for (const url of ["https://www.tiktok.com/@scout2015/video/6718335390845095173"
   const form = page.getByRole("form", { name: "Add video" });
   await form.getByLabel("YouTube / TikTok URL").fill(url);
   await form.getByLabel("Video title").fill("TikTok saved");
-  await expect(form.locator("iframe")).toHaveCount(0);
-  await form.getByRole("button", { name: "Save video" }).click();
+  const save = form.getByRole("button", { name: "Save video" });
+  await expect(save).toBeDisabled();
+  if (!url.includes("/video/")) {
+    await expect(form.getByRole("alert")).toContainText("paste its full URL");
+    expect(attempts).toBe(0);
+    return;
+  }
+  const preview = form.frameLocator('iframe[title="TikTok preview"]');
+  await preview.getByRole("button", { name: "Unavailable preview" }).click();
+  await expect(form.getByRole("alert")).toContainText("TikTok restrictions");
+  await expect(save).toBeDisabled();
+  expect(attempts).toBe(0);
+  await expect(form.getByRole("button", { name: "Retry", exact: true })).toHaveCount(0);
+  await form.getByLabel("YouTube / TikTok URL").fill("https://www.tiktok.com/@scout2015/video/6740558728342359297");
+  await form.getByLabel("YouTube / TikTok URL").fill(url);
+  await preview.getByRole("button", { name: "Play preview" }).click();
+  await expect(save).toBeEnabled();
+  await save.click();
   await expect(form.getByRole("alert")).toContainText("Could not save");
   await expect(form.getByLabel("YouTube / TikTok URL")).toHaveValue(url);
   await form.getByRole("button", { name: "Save video" }).click();

@@ -193,6 +193,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         {requested.provider === "tiktok" ? <TikTokPlayer
           key={`${session.id}:tiktok:${queue.sequence}`}
           videoId={requested.videoId} title={active.title} expanded={fullscreen}
+          advanceOnError={session.kind === "queue"}
           onEnded={() => store.getState().advance(session.id, false, requested.videoId, "tiktok", queue.sequence)}
           onError={() => store.getState().advance(session.id, true, requested.videoId, "tiktok", queue.sequence)}
         /> : <YouTubeQueuePlayer

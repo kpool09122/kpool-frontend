@@ -46,7 +46,7 @@ for (const width of [1280, 390]) test(`mixed providers keep one host and resume 
   await expect(page.locator('iframe[src*="youtube-nocookie"]')).toHaveCount(0);
   await frame.evaluate((node) => node.setAttribute("data-persistent", "true"));
   await frame.evaluate((node) => { (node as HTMLIFrameElement).contentWindow?.postMessage({ "x-tiktok-player": true, type: "test:error", value: { errorCode: 3002, errorType: "AUTOPLAY_ERROR" } }, "https://www.tiktok.com"); });
-  await page.getByRole("button", { name: "Resume playback", exact: true }).click();
+  await page.frameLocator('iframe[src*="tiktok.com/player/v1/"]').getByRole("button", { name: "Play preview" }).click();
   await page.getByRole("button", { name: "Continue in mini player" }).click();
   const mini = page.getByRole("region", { name: "Mini player" });
   await expect(mini).toContainText("TikTok one (2/4)");
