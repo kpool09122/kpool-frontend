@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
-import { YouTubePlayer, type YouTubePlaybackRequest, type YouTubePlaybackState, type YouTubePlayerHandle } from "./YouTubePlayer";
+import { YouTubePlayer, type VideoPlaybackRequest, type VideoPlaybackState, type YouTubePlayerHandle } from "./YouTubePlayer";
 
 // The queue owns completion guards and resume guidance. YouTubePlayer owns
 // the iframe and API connection, keeping both alive across video changes.
@@ -23,7 +23,7 @@ export function YouTubeQueuePlayer({
   const t = dictionary.wiki.videos.continuous;
   const player = useRef<YouTubePlayerHandle>(null);
   const playback = useRef<{
-    loaded?: YouTubePlaybackRequest;
+    loaded?: VideoPlaybackRequest;
     finished: boolean;
     awaitingPlayback: boolean;
     hasStarted: boolean;
@@ -39,7 +39,7 @@ export function YouTubeQueuePlayer({
     if (kind === "ended") onEnded(id);
     else onError();
   };
-  const onLoad = (request: YouTubePlaybackRequest) => {
+  const onLoad = (request: VideoPlaybackRequest) => {
     const current = playback.current;
     current.loaded = request;
     current.finished = false;
@@ -48,7 +48,7 @@ export function YouTubeQueuePlayer({
     current.reportedVideoId = request.videoId;
     setBlocked(false);
   };
-  const onStateChange = ({ state, actualState, videoId: id }: YouTubePlaybackState) => {
+  const onStateChange = ({ state, actualState, videoId: id }: VideoPlaybackState) => {
     const current = playback.current;
     if (current.finished || current.loaded?.key !== playbackKey) return;
     if (state === 0) {

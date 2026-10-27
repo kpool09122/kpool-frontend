@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
-import { PlaybackOutlet, useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
-import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
-import { adjacentPlaybackIndex, nextLoopMode, type LoopMode } from "@/components/YouTubePlayback/playbackQueue";
-import type { PlaybackSession, PlaybackTrack } from "@/components/YouTubePlayback/playbackStore";
+import { PlaybackOutlet, useVideoPlayback } from "@/components/VideoPlayback/VideoPlaybackProvider";
+import { VideoQueueControls } from "@/components/VideoPlayback/VideoQueueControls";
+import { adjacentPlaybackIndex, nextLoopMode, type LoopMode } from "@/components/VideoPlayback/playbackQueue";
+import type { PlaybackSession, PlaybackTrack } from "@/components/VideoPlayback/playbackStore";
 import { playlistItemKey, type Playlist } from "@/gateways/wiki/wikiPlaylists";
 import type { PlaybackText } from "./playlistUi";
 import { SavedPlaylistQueue } from "./SavedPlaylistQueue";
@@ -13,7 +13,7 @@ import { SavedPlaylistQueue } from "./SavedPlaylistQueue";
 export function SavedPlaylistPlayback(props: {
   detail: Playlist; tracks: PlaybackTrack[]; principal: string; playbackText: PlaybackText; editor: EditorRenderer;
 }) {
-  const context = useYouTubePlayback();
+  const context = useVideoPlayback();
   if (!context) return props.editor();
   return <ConnectedPlaylistPlayback key={props.detail.playlistIdentifier} {...props} store={context.store} />;
 }
@@ -22,7 +22,7 @@ type EditorRenderer = (session?: PlaybackSession, onSelect?: (identifier: string
 
 function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, store, editor }: {
   detail: Playlist; tracks: PlaybackTrack[]; principal: string; playbackText: PlaybackText; editor: EditorRenderer;
-  store: NonNullable<ReturnType<typeof useYouTubePlayback>>["store"];
+  store: NonNullable<ReturnType<typeof useVideoPlayback>>["store"];
 }) {
   const owner = `private-playlist:${principal}:${detail.playlistIdentifier}`;
   const session = useStore(store, (state) => state.session);
@@ -52,7 +52,7 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
     <div className="space-y-3">
       <div className="flex justify-end">
         <div className="max-w-full">
-          <YouTubeQueueControls
+          <VideoQueueControls
             labels={playbackText}
             showStartLabel={false}
             navigation={{
@@ -70,7 +70,7 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
             onStart={() => store.getState().start(
               owner,
               [...detail.items].sort((a, b) => a.position - b.position).map((item) => ({
-                identifier: playlistItemKey(item), videoId: item.externalVideoId, title: item.title,
+                identifier: playlistItemKey(item), videoId: item.externalVideoId, provider: item.provider, title: item.title,
               })),
               "queue", loop, random,
             )}

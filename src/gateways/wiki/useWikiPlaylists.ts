@@ -14,14 +14,15 @@ import {
   fetchPlaylist,
   fetchPlaylists,
   playlistName,
+  playlistItemKey,
   savePlaylist,
   type Playlist,
   type LikedVideo,
 } from "./wikiPlaylists";
-import { getYouTubeVideoId } from "@kpool/wiki";
+import { isVideoId } from "@kpool/wiki";
 
 export type PlaylistDraftItem = {
-  provider: "youtube";
+  provider: "youtube" | "tiktok";
   externalVideoId: string;
   title: string;
   videoLinkIdentifier?: string;
@@ -236,8 +237,8 @@ export function useWikiPlaylists(principal: string) {
         : await fetchPlaylist(identifier, op.controller.signal);
       if (!op.current()) return;
       const next = draft ? { ...draft, items: [...draft.items] } : playlistToDraft(playlist);
-      const externalVideoId = getYouTubeVideoId(video.url);
-      if (!externalVideoId || next.items.some((item) => item.externalVideoId === externalVideoId)) {
+      const { provider, externalVideoId } = video;
+      if (!isVideoId(provider, externalVideoId) || next.items.some((item) => playlistItemKey(item) === playlistItemKey(video))) {
         setError(422);
         return;
       }
@@ -245,7 +246,7 @@ export function useWikiPlaylists(principal: string) {
         setError(50);
         return;
       }
-      next.items.push({ provider: "youtube", externalVideoId, title: video.title, videoLinkIdentifier: video.videoLinkIdentifier });
+      next.items.push({ provider, externalVideoId, title: video.title, videoLinkIdentifier: video.videoLinkIdentifier });
       setDetail(playlist);
       setDraft(next);
     } catch (e) {

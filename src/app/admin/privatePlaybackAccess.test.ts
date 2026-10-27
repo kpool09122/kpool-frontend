@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { createPlaybackStore } from "@/components/YouTubePlayback/playbackStore";
+import { createPlaybackStore } from "@/components/VideoPlayback/playbackStore";
 import { reconcilePrivatePlayback } from "./privatePlaybackAccess";
 it("clears private playback on Wiki Principal replacement or suspension, including floating notices", () => {
   const store = createPlaybackStore();

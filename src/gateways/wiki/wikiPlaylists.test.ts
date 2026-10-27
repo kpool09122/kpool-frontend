@@ -23,6 +23,7 @@ it("uses mb_trim and Unicode code points for Japanese and emoji boundaries", () 
 });
 it("aggregates pages by YouTube ID preserving the first representative source", () => {
   const video = {
+    provider: "youtube" as const, externalVideoId: "abcdefghijk",
     videoLinkIdentifier: id,
     url: "https://youtu.be/abcdefghijk",
     title: "First",

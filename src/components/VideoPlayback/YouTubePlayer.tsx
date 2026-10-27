@@ -4,8 +4,8 @@ import { useEffect, useEffectEvent, useImperativeHandle, useRef, useState, useSy
 import { getYouTubeVideoId } from "@kpool/wiki";
 import { discardFailedYouTubeIframeApi, getYouTubePlayerConstructor, loadYouTubeIframeApi, type YouTubePlayerInstance } from "./youtubeIframeApi";
 
-export type YouTubePlaybackRequest = { videoId: string; key: string | number };
-export type YouTubePlaybackState = { state: number; actualState?: number; videoId?: string };
+export type VideoPlaybackRequest = { videoId: string; key: string | number };
+export type VideoPlaybackState = { state: number; actualState?: number; videoId?: string };
 export type YouTubePlayerHandle = { play: () => void };
 const subscribeToOrigin = () => () => {};
 const browserOrigin = () => window.location.origin;
@@ -22,20 +22,20 @@ export function YouTubePlayer({
   title: string;
   className?: string;
   ref?: Ref<YouTubePlayerHandle>;
-  onLoad?: (request: YouTubePlaybackRequest) => void;
-  onStateChange?: (state: YouTubePlaybackState) => void;
+  onLoad?: (request: VideoPlaybackRequest) => void;
+  onStateChange?: (state: VideoPlaybackState) => void;
   onError?: () => void;
   onAutoplayBlocked?: () => void;
   onUnavailable: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<YouTubePlayerInstance | undefined>(undefined);
-  const loadRequest = useRef<((request: YouTubePlaybackRequest) => void) | null>(null);
+  const loadRequest = useRef<((request: VideoPlaybackRequest) => void) | null>(null);
   const origin = useSyncExternalStore(subscribeToOrigin, browserOrigin, serverOrigin);
   const [initialRequest] = useState(() => ({ videoId, key: playbackKey }));
   const latestRequest = useEffectEvent(() => ({ videoId, key: playbackKey }));
-  const reportLoad = useEffectEvent((request: YouTubePlaybackRequest) => onLoad?.(request));
-  const reportState = useEffectEvent((state: YouTubePlaybackState) => onStateChange?.(state));
+  const reportLoad = useEffectEvent((request: VideoPlaybackRequest) => onLoad?.(request));
+  const reportState = useEffectEvent((state: VideoPlaybackState) => onStateChange?.(state));
   const reportError = useEffectEvent(() => onError?.());
   const reportBlocked = useEffectEvent(() => onAutoplayBlocked?.());
   const reportUnavailable = useEffectEvent(onUnavailable);
@@ -53,7 +53,7 @@ export function YouTubePlayer({
     let creating = false;
     let ready = false;
     let player: YouTubePlayerInstance | undefined;
-    let loaded: YouTubePlaybackRequest | undefined;
+    let loaded: VideoPlaybackRequest | undefined;
     let playbackInterval: number | undefined;
     const stopWaiting = () => {
       window.clearInterval(interval);
@@ -67,7 +67,7 @@ export function YouTubePlayer({
       discardFailedYouTubeIframeApi(script);
       reportUnavailable();
     };
-    const load = (next: YouTubePlaybackRequest, initial = false) => {
+    const load = (next: VideoPlaybackRequest, initial = false) => {
       if (disposed || unavailable || !ready || !player) return;
       if (!initial && loaded?.key === next.key && loaded.videoId === next.videoId) return;
       if (getYouTubeVideoId(next.videoId) !== next.videoId) {

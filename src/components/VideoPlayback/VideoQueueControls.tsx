@@ -10,7 +10,7 @@ const transportClassName = "flex h-12 w-12 shrink-0 items-center justify-center 
 const toggleClassName =
   "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary aria-pressed:text-brand-primary aria-pressed:after:absolute aria-pressed:after:bottom-1 aria-pressed:after:h-1 aria-pressed:after:w-1 aria-pressed:after:rounded-full aria-pressed:after:bg-brand-primary disabled:cursor-not-allowed disabled:opacity-40";
 
-export function YouTubeQueueControls({
+export function VideoQueueControls({
   labels, empty, playing, floating, loop, random, startRef, showStartLabel = true,
   onStart, onStop, onToggleLoop, onToggleRandom, navigation,
 }: {

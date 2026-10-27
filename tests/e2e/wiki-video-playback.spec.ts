@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { installTikTokPlayerMock, sendTikTokState } from "./tiktok-player";
 import { installYouTubePlayerMock } from "./youtube-player";
 import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
 import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
@@ -6,7 +7,7 @@ import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
 const videos = [
   {
     videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
-    url: "https://youtu.be/abcdefghijk",
+    provider: "youtube", externalVideoId: "abcdefghijk", url: "https://youtu.be/abcdefghijk",
     title: "First video",
     thumbnailUrl: null,
     publishedAt: null,
@@ -18,7 +19,7 @@ const videos = [
   },
   {
     videoLinkIdentifier: "00000000-0000-4000-8000-000000000002",
-    url: "https://youtu.be/lmnopqrstuv",
+    provider: "youtube", externalVideoId: "lmnopqrstuv", url: "https://youtu.be/lmnopqrstuv",
     title: "Second video",
     thumbnailUrl: null,
     publishedAt: null,
@@ -29,6 +30,44 @@ const videos = [
     videoUsage: "youtube_auto_view_count",
   },
 ];
+
+for (const width of [1280, 390]) test(`mixed providers keep one host and resume across mini player/navigation at ${width}px`, async ({ page }, testInfo) => {
+  await setupPlayback(page);
+  await page.setViewportSize({ width, height: 844 });
+  await installTikTokPlayerMock(page);
+  const tiktok = { ...videos[0], provider: "tiktok", externalVideoId: "6718335390845095173", videoLinkIdentifier: "00000000-0000-4000-8000-000000000003", url: "https://www.tiktok.com/@scout2015/video/6718335390845095173", title: "TikTok one", thumbnailUrl: "https://images.k-pool.app/images/video.webp" };
+  await page.route("**/api/wiki/*/*/videos?*", (route) => route.fulfill({ json: { videos: [videos[0], tiktok, { ...tiktok, externalVideoId: "6718335390845095174", videoLinkIdentifier: "00000000-0000-4000-8000-000000000004", title: "TikTok two" }, videos[1]] } }));
+  await page.reload();
+  await page.getByRole("button", { name: "Play all", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { queueTest: { players: { plays: number }[] } }).queueTest.players[0]?.plays ?? 0)).toBeGreaterThan(0);
+  await page.evaluate(() => { (window as unknown as { queueTest: { players: { playerState: number }[] } }).queueTest.players[0].playerState = 0; });
+  const frame = page.locator('iframe[src*="tiktok.com/player/v1/"]');
+  await expect(frame).toHaveCount(1);
+  await expect(page.locator('iframe[src*="youtube-nocookie"]')).toHaveCount(0);
+  await frame.evaluate((node) => node.setAttribute("data-persistent", "true"));
+  await frame.evaluate((node) => { (node as HTMLIFrameElement).contentWindow?.postMessage({ "x-tiktok-player": true, type: "test:error", value: { errorCode: 3002, errorType: "AUTOPLAY_ERROR" } }, "https://www.tiktok.com"); });
+  await page.getByRole("button", { name: "Resume playback", exact: true }).click();
+  await page.getByRole("button", { name: "Continue in mini player" }).click();
+  const mini = page.getByRole("region", { name: "Mini player" });
+  await expect(mini).toContainText("TikTok one (2/4)");
+  await expect(frame).toHaveAttribute("data-persistent", "true");
+  await mini.getByRole("button", { name: "Play in fullscreen" }).click();
+  await expect(mini.getByRole("button", { name: "Exit fullscreen" })).toBeVisible();
+  await expect(frame).toHaveAttribute("data-persistent", "true");
+  await mini.getByRole("button", { name: "Exit fullscreen" }).click();
+  await page.screenshot({ path: testInfo.outputPath(`mixed-tiktok-${width}.png`) });
+  await page.locator("header a").first().click();
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(mini).toContainText("TikTok one (2/4)");
+  await expect(frame).toHaveAttribute("data-persistent", "true");
+  await sendTikTokState(page, 1); await sendTikTokState(page, 0);
+  await expect(mini).toContainText("TikTok two (3/4)");
+  await expect(frame).toHaveCount(1);
+  await sendTikTokState(page, 1); await sendTikTokState(page, 0);
+  await expect(mini).toContainText("Second video (4/4)");
+  await expect(frame).toHaveCount(0);
+  await expect(page.locator('iframe[src*="youtube-nocookie"]')).toHaveCount(1);
+});
 
 async function setupPlayback(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });

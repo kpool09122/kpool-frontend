@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { dictionaries } from "@/i18n/dictionaries";
-import { YouTubePlaybackProvider, useYouTubePlayback } from "./YouTubePlaybackProvider";
+import { VideoPlaybackProvider, useVideoPlayback } from "./VideoPlaybackProvider";
 import type { PlaybackStore } from "./playbackStore";
 
 vi.mock("@/i18n/I18nProvider", () => ({
@@ -14,7 +14,7 @@ vi.mock("./YouTubeQueuePlayer", () => ({
 
 let store: PlaybackStore;
 function CaptureStore() {
-  const context = useYouTubePlayback()!;
+  const context = useVideoPlayback()!;
   useEffect(() => { store = context.store; }, [context]);
   return null;
 }
@@ -23,7 +23,7 @@ const tracks = [
   { identifier: "second", videoId: "lmnopqrstuv", title: "Second" },
   { identifier: "third", videoId: "zyxwvutsrqp", title: "Third" },
 ];
-const setup = () => render(<YouTubePlaybackProvider><CaptureStore /></YouTubePlaybackProvider>);
+const setup = () => render(<VideoPlaybackProvider><CaptureStore /></VideoPlaybackProvider>);
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 it("shows navigation below the floating queue player and preserves the player when switching videos", () => {

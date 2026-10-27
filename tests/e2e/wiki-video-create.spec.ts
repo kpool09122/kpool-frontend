@@ -65,6 +65,7 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
     const body = route.request().postDataJSON();
     requests.push(body);
     savedVideo = {
+      provider: "youtube", externalVideoId: "Os_heh8vPfs",
       videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
       url: body.url,
       title: body.title,
@@ -86,12 +87,12 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
   await page.getByText("Add video", { exact: true }).press("Enter");
   await expect(form).toBeVisible();
   await expect(form.getByRole("spinbutton")).toHaveCount(0);
-  await form.getByLabel("YouTube URL").fill("https://www.tiktok.com/@example/video/6718335390845095173");
-  await expect(form.getByRole("alert")).toHaveText("Enter a valid YouTube URL.");
+  await form.getByLabel("YouTube / TikTok URL").fill("https://www.tiktok.com.evil.test/@example/video/6718335390845095173");
+  await expect(form.getByRole("alert")).toHaveText("Enter a valid YouTube / TikTok URL.");
   await expect(form.getByRole("button", { name: "Save video" })).toBeDisabled();
   expect(requests).toHaveLength(0);
   await form
-    .getByLabel("YouTube URL")
+    .getByLabel("YouTube / TikTok URL")
     .fill(
       "https://www.youtube.com/watch?v=Os_heh8vPfs&list=RDokVTSehE414&index=27",
     );
@@ -108,7 +109,7 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
   );
   await page.evaluate(() => window.dispatchEvent(new Event("test:duration")));
   await expect(save).toBeEnabled();
-  await form.getByLabel("YouTube URL").fill("https://youtu.be/jfKfPfyJRdk");
+  await form.getByLabel("YouTube / TikTok URL").fill("https://youtu.be/jfKfPfyJRdk");
   await expect(save).toBeDisabled();
   await expect(page.getByTitle("YouTube preview")).toHaveAttribute(
     "data-video-id",
@@ -135,6 +136,37 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
     "src",
     "https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg",
   );
+});
+
+for (const url of ["https://www.tiktok.com/@scout2015/video/6718335390845095173", "https://vm.tiktok.com/AbCd123/", "https://vt.tiktok.com/AbCd123/"]) test(`TikTok registration retains inputs after metadata failure and shows saved server metadata: ${url}`, async ({ page }) => {
+  const base = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
+  await page.context().addCookies([
+    { name: "kpool-locale", value: "en", url: base }, { name: "XSRF-TOKEN", value: "csrf", url: base },
+    { name: "kpool-mock-account-status", value: "active", url: base }, { name: "kpool-e2e-wiki-principal", value: "video-collaborator", url: base },
+  ]);
+  await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: wikiVideoAuthenticatedIdentity }));
+  let saved = false, attempts = 0;
+  await page.route("https://images.k-pool.app/images/test.webp", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64") }));
+  await page.route("**/api/wiki/*/*/videos?*", (route) => route.fulfill({ json: { videos: saved ? [{ provider: "tiktok", externalVideoId: "6718335390845095173", videoLinkIdentifier: "00000000-0000-4000-8000-000000000001", url, title: "TikTok saved", videoUsage: "short", thumbnailUrl: "https://images.k-pool.app/images/test.webp", durationSeconds: 15, creatorPrincipalIdentifier: null, creatorIdentityName: null, likeCount: 0, publishedAt: null }] : [] } }));
+  await page.route("**/api/wiki/videos/create", (route) => {
+    expect(route.request().postDataJSON()).toMatchObject({ url, durationSeconds: null, thumbnailUrl: null });
+    attempts += 1;
+    if (attempts === 1) return route.fulfill({ status: 502, json: {} });
+    saved = true; return route.fulfill({ status: 204 });
+  });
+  await page.goto("/wiki/ja/gr-video-create?tab=video");
+  await page.getByText("Add video", { exact: true }).click();
+  const form = page.getByRole("form", { name: "Add video" });
+  await form.getByLabel("YouTube / TikTok URL").fill(url);
+  await form.getByLabel("Video title").fill("TikTok saved");
+  await expect(form.locator("iframe")).toHaveCount(0);
+  await form.getByRole("button", { name: "Save video" }).click();
+  await expect(form.getByRole("alert")).toContainText("Could not save");
+  await expect(form.getByLabel("YouTube / TikTok URL")).toHaveValue(url);
+  await form.getByRole("button", { name: "Save video" }).click();
+  await expect(page.getByText("Video saved.", { exact: true })).toBeVisible();
+  await expect(page.getByText("0:15", { exact: true })).toBeVisible();
+  await expect(page.getByRole("img", { name: "TikTok saved" })).toHaveAttribute("src", "https://images.k-pool.app/images/test.webp");
 });
 
 test("guest has public videos but no form or save button", async ({ page }) => {

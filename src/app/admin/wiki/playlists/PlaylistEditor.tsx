@@ -2,7 +2,7 @@
 
 import { Cross2Icon, DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { useId, useRef, useState, type PointerEvent } from "react";
-import type { PlaybackSession } from "@/components/YouTubePlayback/playbackStore";
+import type { PlaybackSession } from "@/components/VideoPlayback/playbackStore";
 import { playlistToDraft } from "@/gateways/wiki/useWikiPlaylists";
 import { playlistItemKey } from "@/gateways/wiki/wikiPlaylists";
 import { PlaylistVideoThumbnail } from "./PlaylistVideoThumbnail";
@@ -38,7 +38,7 @@ export function PlaylistEditor({ state, t, playbackText, playback, onSelect }: {
   const locked = state.busy || state.committed;
   const items = playback ? playback.queue.order.map((index) => {
     const track = playback.tracks[index];
-    return { provider: "youtube" as const, externalVideoId: track.videoId, title: track.title };
+    return { provider: track.provider ?? "youtube" as const, externalVideoId: track.videoId, title: track.title };
   }) : draft.items;
   const active = playback?.tracks[playback.queue.order[playback.queue.position]];
   const sources = new Map(detail.items.map((item) => [playlistItemKey(item), item]));
@@ -121,7 +121,7 @@ export function PlaylistEditor({ state, t, playbackText, playback, onSelect }: {
                 <DragHandleDots2Icon aria-hidden="true" className="h-5 w-5" />
               </button> : null}
               <div className="pointer-events-none relative shrink-0">
-                <PlaylistVideoThumbnail url={`https://youtu.be/${item.externalVideoId}`} thumbnailUrl={source?.thumbnailUrl ?? null} />
+                <PlaylistVideoThumbnail url={item.provider === "youtube" ? `https://youtu.be/${item.externalVideoId}` : ""} thumbnailUrl={source?.thumbnailUrl ?? null} />
               </div>
               <div className="pointer-events-none relative min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold" title={item.title}>{item.title}</p>

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createStore } from "zustand/vanilla";
 import { advancePlayback, playbackOrder, type LoopMode, type PlaybackQueue } from "./playbackQueue";
 
-export type PlaybackTrack = { identifier: string; videoId: string; title: string; controls?: ReactNode };
+export type PlaybackTrack = { identifier: string; videoId: string; provider?: "youtube" | "tiktok"; title: string; controls?: ReactNode };
 export type PlaybackSession = {
   id: number;
   owner: string;
@@ -30,17 +30,18 @@ type PlaybackState = {
   release: (owner: string) => void;
   setLoop: (mode: LoopMode) => void;
   setRandom: (enabled: boolean) => void;
-  advance: (sessionId: number, failed?: boolean, videoId?: string) => void;
+  advance: (sessionId: number, failed?: boolean, videoId?: string, provider?: "youtube" | "tiktok", sequence?: number) => void;
   selectTrack: (sessionId: number, identifier: string) => void;
-  synchronize: (sessionId: number, videoId: string) => void;
+  synchronize: (sessionId: number, videoId: string, provider?: "youtube" | "tiktok", sequence?: number) => void;
   unavailable: (sessionId: number) => void;
   clearNotice: () => void;
 };
 
-function atVideo(session: PlaybackSession, videoId?: string): PlaybackQueue {
+function atVideo(session: PlaybackSession, videoId?: string, provider?: PlaybackTrack["provider"]): PlaybackQueue {
   const current = session.queue;
-  if (session.tracks[current.order[current.position]].videoId === videoId) return current;
-  const position = current.order.findIndex((index) => session.tracks[index].videoId === videoId);
+  const matches = (track: PlaybackTrack) => track.videoId === videoId && (provider === undefined || (track.provider ?? "youtube") === provider);
+  if (matches(session.tracks[current.order[current.position]])) return current;
+  const position = current.order.findIndex((index) => matches(session.tracks[index]));
   return position < 0 ? current : { ...current, position };
 }
 
@@ -97,11 +98,14 @@ export function createPlaybackStore() {
         order: [...queue.order.slice(0, queue.position + 1), ...playbackOrder(remaining, random)],
       } } });
     },
-    advance: (sessionId, failed = false, videoId) => {
+    advance: (sessionId, failed = false, videoId, provider, sequence) => {
       const state = get();
       const session = state.session;
       if (!session || session.id !== sessionId) return;
-      const current = atVideo(session, videoId);
+      if (sequence !== undefined && sequence !== session.queue.sequence) return;
+      const active = session.tracks[session.queue.order[session.queue.position]];
+      if (provider && ((active.provider ?? "youtube") !== provider || (videoId !== undefined && active.videoId !== videoId))) return;
+      const current = atVideo(session, videoId, provider);
       const queue = session.kind === "single" ? null : advancePlayback(current, {
         loop: session.loop, random: session.random, failed,
       });
@@ -119,7 +123,7 @@ export function createPlaybackStore() {
       if (!session || session.id !== sessionId || session.kind !== "queue") return;
       const { queue, tracks } = session;
       const position = queue.order.findIndex((index) => tracks[index].identifier === identifier);
-      if (position < 0 || position === queue.position) return;
+      if (position < 0) return;
       const playerIndex = queue.order[position];
       set({
         notice: null,
@@ -132,11 +136,13 @@ export function createPlaybackStore() {
         } },
       });
     },
-    synchronize: (sessionId, videoId) => {
+    synchronize: (sessionId, videoId, provider, sequence) => {
       const state = get();
       const session = state.session;
       if (!session || session.id !== sessionId) return;
-      const queue = atVideo(session, videoId);
+      if (sequence !== undefined && sequence !== session.queue.sequence) return;
+      if (provider && (session.tracks[session.queue.playerIndex].provider ?? "youtube") !== provider) return;
+      const queue = atVideo(session, videoId, provider);
       if (session.tracks[queue.order[queue.position]].videoId !== videoId) {
         set({ session: null, floating: false, notice: {
           owner: session.owner, floating: state.floating, kind: "outsideQueue",

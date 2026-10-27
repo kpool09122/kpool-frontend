@@ -1,10 +1,50 @@
 import { expect, test, type Page } from "./fixtures";
 import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
+import { installTikTokPlayerMock, sendTikTokState } from "./tiktok-player";
 import { installYouTubePlayerMock } from "./youtube-player";
 const id = "00000000-0000-4000-8000-000000000001";
 const source1 = "00000000-0000-4000-8000-000000000011";
 const source2 = "00000000-0000-4000-8000-000000000012";
 const baseURL = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
+test("mixed playlist snapshots survive source deletion, reorder/save/refetch and select the matching provider", async ({ page }) => {
+  await page.context().addCookies([
+    { name: "kpool-locale", value: "en", url: baseURL }, { name: "XSRF-TOKEN", value: "csrf", url: baseURL },
+    { name: "kpool-mock-account-status", value: "active", url: baseURL }, { name: "kpool-e2e-wiki-principal", value: "basic", url: baseURL },
+  ]);
+  await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: { ...wikiVideoAuthenticatedIdentity, accountIdentifier: "22222222-2222-2222-2222-222222222222", accountPrincipalIdentifier: "33333333-3333-3333-3333-333333333333", account: { ...wikiVideoAuthenticatedIdentity.account, accountIdentifier: "22222222-2222-2222-2222-222222222222" } } }));
+  await installYouTubePlayerMock(page); await installTikTokPlayerMock(page);
+  let items = [
+    { provider: "youtube", externalVideoId: "abcdefghijk", sourceVideoLinkIdentifier: null, position: 0, title: "Saved YouTube", url: "https://youtu.be/abcdefghijk", thumbnailUrl: null, durationSeconds: 120 },
+    { provider: "tiktok", externalVideoId: "6718335390845095173", sourceVideoLinkIdentifier: null, position: 1, title: "Deleted TikTok", url: "https://www.tiktok.com/@scout2015/video/6718335390845095173", thumbnailUrl: null, durationSeconds: 15 },
+  ];
+  const summary = { playlistIdentifier: id, name: "Mixed", videoCount: 2, createdAt: "2026-10-26T00:00:00Z", updatedAt: "2026-10-26T00:00:00Z" };
+  const writes: unknown[] = [];
+  await page.route("**/api/wiki/playlists", (route) => route.fulfill({ json: { playlists: [summary] } }));
+  await page.route(`**/api/wiki/playlists/${id}`, (route) => {
+    if (route.request().method() === "PUT") {
+      const body = route.request().postDataJSON(); writes.push(body);
+      items = body.items.map((item: { provider: string; externalVideoId: string }, position: number) => ({ ...items.find((existing) => existing.provider === item.provider && existing.externalVideoId === item.externalVideoId)!, position }));
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({ json: { ...summary, items } });
+  });
+  await page.route("**/api/wiki/videos/likes?*", (route) => route.fulfill({ json: { likedVideoLinkIdentifiers: [], videos: [], pagination: { currentPage: 1, perPage: 20, total: 0 } } }));
+  await page.goto("/admin/wiki/editing");
+  await page.getByRole("tab", { name: "My playlists" }).click();
+  await page.getByRole("combobox", { name: "Playlist", exact: true }).selectOption(id);
+  const handle = page.getByRole("button", { name: "Reorder: Deleted TikTok", exact: true });
+  await handle.focus(); await handle.press("ArrowUp");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect.poll(() => writes.length).toBe(1);
+  expect(writes[0]).toEqual({ name: "Mixed", items: [{ provider: "tiktok", externalVideoId: "6718335390845095173" }, { provider: "youtube", externalVideoId: "abcdefghijk" }] });
+  await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Play all", exact: true }).click();
+  await expect(page.locator('iframe[src*="tiktok.com/player/v1/"]')).toHaveCount(1);
+  await sendTikTokState(page, 1); await sendTikTokState(page, 0);
+  await expect(page.locator('iframe[src*="youtube-nocookie"]')).toHaveCount(1);
+  await expect(page.locator('iframe[src*="tiktok.com/player/v1/"]')).toHaveCount(0);
+});
+
 async function dragPlaylistItem(page: Page, source: string, target: string, touch: boolean) {
   const handle = page.getByRole("button", { name: `Reorder: ${source}`, exact: true });
   await handle.click({ trial: true });
@@ -125,6 +165,7 @@ for (const width of [1280, 390])
       const second =
         new URL(route.request().url()).searchParams.get("page") === "2";
       const video = {
+        provider: "youtube", externalVideoId: "abcdefghijk",
         videoLinkIdentifier: source1,
         url: "https://youtu.be/abcdefghijk",
         title: "First",
@@ -151,7 +192,7 @@ for (const width of [1280, 390])
                 {
                   ...video,
                   videoLinkIdentifier: source2,
-                  url: "https://youtu.be/lmnopqrstuv",
+                  externalVideoId: "lmnopqrstuv", url: "https://youtu.be/lmnopqrstuv",
                   title: "Second",
                   language: "en",
                   playlists: saved.items.some((item) => item.externalVideoId === "lmnopqrstuv")

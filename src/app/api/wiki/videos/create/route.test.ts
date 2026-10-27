@@ -101,12 +101,24 @@ describe("single video create BFF", () => {
       expect(response.headers.get("set-cookie")).toContain("session=new");
     },
   );
+  it.each(["https://www.tiktok.com/@scout2015/video/6718335390845095173", "https://vm.tiktok.com/AbCd123/", "https://vt.tiktok.com/AbCd123/"])("forwards TikTok URL without YouTube normalization and preserves metadata failure %s", async (url) => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+    const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ detail: "SQL secret", trace: "secret" }, { status: 502, headers: { "Set-Cookie": "session=new" } })).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetcher);
+    const payload = { ...body, url, durationSeconds: null, thumbnailUrl: null };
+    const failure = await POST(request(payload));
+    expect(failure.status).toBe(502);
+    expect(await failure.text()).not.toContain("secret");
+    expect(failure.headers.get("set-cookie")).toContain("session=new");
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual(payload);
+    expect((await POST(request(payload))).status).toBe(204);
+  });
   it.each([
     { ...body, durationSeconds: -1 },
     { ...body, durationSeconds: 1.5 },
     { ...body, durationSeconds: 2147483648 },
     { ...body, url: "https://evil.test/Os_heh8vPfs" },
-    { ...body, url: "https://www.tiktok.com/@example/video/6718335390845095173" },
+    { ...body, url: "https://www.tiktok.com/@example/photo/6718335390845095173" },
     { ...body, url: "https://vimeo.com/123456789" },
     { ...body, url: "https://youtube.com.example.com/watch?v=Os_heh8vPfs" },
     { ...body, url: "https://www.youtube.com/@example" },

@@ -1,4 +1,4 @@
-import type { PlaybackStore } from "@/components/YouTubePlayback/playbackStore";
+import type { PlaybackStore } from "@/components/VideoPlayback/playbackStore";
 export function reconcilePrivatePlayback(
   store: PlaybackStore,
   principal: string | null,

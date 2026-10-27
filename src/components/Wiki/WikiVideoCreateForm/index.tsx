@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
-import { getYouTubeVideoId, normalizeYouTubeVideoUrl } from "@kpool/wiki";
+import { getYouTubeVideoId, normalizeVideoUrl } from "@kpool/wiki";
 import {
   createWikiVideo,
   wikiVideoCreateSchema,
@@ -28,7 +28,7 @@ export function WikiVideoCreateForm({ onCreated, ...identity }: Props) {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const videoId = getYouTubeVideoId(url.trim());
-  const canonicalUrl = normalizeYouTubeVideoUrl(url);
+  const canonicalUrl = normalizeVideoUrl(url);
   const payload = {
     ...identity,
     url: canonicalUrl,
@@ -102,7 +102,7 @@ export function WikiVideoCreateForm({ onCreated, ...identity }: Props) {
             }}
           />
         </label>
-        {url && !videoId ? (
+        {url && !canonicalUrl ? (
           <p className={errorClassName} role="alert">{t.invalidUrl}</p>
         ) : null}
         {videoId ? (

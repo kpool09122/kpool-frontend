@@ -1,8 +1,8 @@
 "use client";
 
-import { getYouTubeVideoId, type WikiEmbedBlock } from "@kpool/wiki";
-import { useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
-import { SharedYouTubeEmbed } from "@/components/YouTubePlayback/SharedYouTubeEmbed";
+import { getYouTubeVideoId, getTikTokVideoId, type WikiEmbedBlock } from "@kpool/wiki";
+import { useVideoPlayback } from "@/components/VideoPlayback/VideoPlaybackProvider";
+import { SharedVideoEmbed } from "@/components/VideoPlayback/SharedVideoEmbed";
 
 const frameSurfaceStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
@@ -47,18 +47,6 @@ function getXPostId(value: string): string {
   return getLastPathPart(url.pathname);
 }
 
-function getTiktokVideoId(value: string): string {
-  const url = parseUrl(value);
-
-  if (!url) {
-    return value;
-  }
-
-  const videoMatch = url.pathname.match(/\/video\/([^/?]+)/);
-
-  return videoMatch?.[1] ?? getLastPathPart(url.pathname);
-}
-
 function getEmbedFrame(block: WikiEmbedBlock): {
   allow: string;
   src: string;
@@ -95,11 +83,11 @@ function getEmbedFrame(block: WikiEmbedBlock): {
       };
     }
     case "tiktok": {
-      const videoId = encodeURIComponent(getTiktokVideoId(block.embedId));
+      const videoId = encodeURIComponent(getTikTokVideoId(block.embedId) ?? "");
 
       return {
         allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-        src: `https://www.tiktok.com/embed/v2/${videoId}`,
+        src: `https://www.tiktok.com/player/v1/${videoId}?loop=0`,
         title: `TikTok embed${titleCaption}`,
       };
     }
@@ -107,14 +95,14 @@ function getEmbedFrame(block: WikiEmbedBlock): {
 }
 
 export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
-  const playback = useYouTubePlayback();
+  const playback = useVideoPlayback();
   const frame = getEmbedFrame(block);
-  const videoId = block.provider === "youtube" ? getYouTubeVideoId(getYoutubeVideoId(block.embedId)) : null;
+  const videoId = block.provider === "youtube" ? getYouTubeVideoId(block.embedId) : block.provider === "tiktok" ? getTikTokVideoId(block.embedId) : null;
 
   return (
     <figure className="overflow-hidden rounded-2xl border border-stroke-subtle" style={frameSurfaceStyle}>
       {playback && videoId ? (
-        <SharedYouTubeEmbed videoId={videoId} title={block.caption || "YouTube"} identifier={block.blockIdentifier} />
+        <SharedVideoEmbed provider={block.provider === "tiktok" ? "tiktok" : "youtube"} videoId={videoId} title={block.caption || (block.provider === "tiktok" ? "TikTok" : "YouTube")} identifier={block.blockIdentifier} />
       ) : <div className="aspect-video w-full bg-surface-base">
         <iframe
           allow={frame.allow}

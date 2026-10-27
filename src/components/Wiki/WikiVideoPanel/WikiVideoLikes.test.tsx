@@ -23,6 +23,7 @@ const identity = {
   slug: "gr-test",
 };
 const video: WikiVideo = {
+  provider: "youtube", externalVideoId: "abcdefghijk",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
   likeCount: 0,
   url: "https://youtu.be/abcdefghijk",

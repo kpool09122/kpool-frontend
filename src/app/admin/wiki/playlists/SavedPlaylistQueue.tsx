@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { PlaybackSession } from "@/components/YouTubePlayback/playbackStore";
+import type { PlaybackSession } from "@/components/VideoPlayback/playbackStore";
 import type { PlaybackText } from "./playlistUi";
 
 export function SavedPlaylistQueue({ session, t, children }: {

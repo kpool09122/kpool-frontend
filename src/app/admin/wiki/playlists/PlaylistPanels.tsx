@@ -86,7 +86,7 @@ export function PlaylistListPanel({ state, principal, t, playbackText }: {
         <section aria-label={detail.name} className="border-t border-stroke-subtle pt-4">
           <SavedPlaylistPlayback detail={detail} principal={principal} playbackText={playbackText}
             tracks={(state.draft ?? playlistToDraft(detail)).items.map((item) => ({
-              identifier: playlistItemKey(item), videoId: item.externalVideoId, title: item.title,
+              identifier: playlistItemKey(item), videoId: item.externalVideoId, provider: item.provider, title: item.title,
             }))}
             editor={(playback, onSelect) => (
               <PlaylistEditor state={state} t={t} playbackText={playbackText} playback={playback} onSelect={onSelect} />
@@ -110,14 +110,14 @@ export function PlaylistEditPanel({ state, t }: { state: PlaylistState; t: Text 
       <ul className="divide-y divide-stroke-subtle">
         {state.videos.map((video) => (
           <LikedVideoRow
-            key={video.externalVideoId}
+            key={playlistItemKey(video)}
             video={video}
             disabled={locked || !state.list.isSuccess}
             playlists={lists.map((list) => {
               const editing = state.detail?.playlistIdentifier === list.playlistIdentifier;
               const count = editing && state.draft ? state.draft.items.length : list.videoCount;
               const included = editing && state.detail
-                ? (state.draft ?? state.detail).items.some((item) => item.externalVideoId === video.externalVideoId)
+                ? (state.draft ?? state.detail).items.some((item) => playlistItemKey(item) === playlistItemKey(video))
                 : video.playlists.some((playlist) => playlist.playlistIdentifier === list.playlistIdentifier);
               const reason = state.hasUnsavedChanges && !editing ? t.finishEditing
                 : included ? t.alreadyAdded
