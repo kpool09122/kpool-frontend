@@ -79,7 +79,7 @@ for (const source of ["body", "single", "queue"] as const) {
     await expect(placeholder.locator("p")).toHaveCSS("color", "rgb(255, 255, 255)");
     const box = (await placeholder.boundingBox())!;
     expect(box.width / box.height).toBeCloseTo(16 / 9, 1);
-    if (source === "single") await expect(page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "First video", exact: true }) })).toContainText("Playing in the mini player");
+    if (source === "single") await expect(page.locator('li[aria-current="true"]')).toContainText("Playing in the mini player");
     if (source === "body") await expect(page.locator("figure").filter({ has: placeholder })).toContainText('TWICE "CHEER UP" M/V');
     await expect(frame).toHaveAttribute("data-original-player", "true");
     await expect(frame).toHaveCount(1);

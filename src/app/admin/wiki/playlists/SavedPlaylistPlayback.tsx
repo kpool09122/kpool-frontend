@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useStore } from "zustand";
 import { PlaybackOutlet, useYouTubePlayback } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
 import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
-import { nextLoopMode, type LoopMode } from "@/components/YouTubePlayback/playbackQueue";
+import { adjacentPlaybackIndex, nextLoopMode, type LoopMode } from "@/components/YouTubePlayback/playbackQueue";
 import type { PlaybackSession, PlaybackTrack } from "@/components/YouTubePlayback/playbackStore";
 import { playlistItemKey, type Playlist } from "@/gateways/wiki/wikiPlaylists";
 import type { PlaybackText } from "./playlistUi";
@@ -33,6 +33,13 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
   const playing = playback !== null;
   const random = playback?.random ?? preferredRandom;
   const loop = playback?.loop ?? preferredLoop;
+  const adjacentTrack = (offset: -1 | 1) => {
+    if (!playback) return undefined;
+    const index = adjacentPlaybackIndex(playback.queue, offset, loop);
+    return index === undefined ? undefined : playback.tracks[index];
+  };
+  const previousTrack = adjacentTrack(-1);
+  const nextTrack = adjacentTrack(1);
   const restoreFocus = useRef(false);
   useEffect(() => () => store.getState().release(owner), [store, owner]);
   const focusStartButton = useCallback((node: HTMLButtonElement | null) => {
@@ -47,6 +54,13 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
         <div className="max-w-full">
           <YouTubeQueueControls
             labels={playbackText}
+            showStartLabel={false}
+            navigation={{
+              onPrevious: playback && previousTrack
+                ? () => store.getState().selectTrack(playback.id, previousTrack.identifier) : undefined,
+              onNext: playback && nextTrack
+                ? () => store.getState().selectTrack(playback.id, nextTrack.identifier) : undefined,
+            }}
             empty={!detail.items.length}
             playing={playing}
             floating={false}

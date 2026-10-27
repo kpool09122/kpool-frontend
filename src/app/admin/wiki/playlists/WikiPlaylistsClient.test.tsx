@@ -301,6 +301,73 @@ it("starts row playback from the selected video without saving or triggering pla
   expect(store.getState().session).toBeNull();
   expect(api.savePlaylist).not.toHaveBeenCalled();
 });
+it("disables playlist navigation before playback and for a single video", async () => {
+  const store = createPlaybackStore();
+  playbackMock.context = { store };
+  setup();
+  await openSaved();
+  const start = await screen.findByRole("button", { name: "Play all" });
+  const previous = screen.getByRole("button", { name: "Previous video" });
+  const next = screen.getByRole("button", { name: "Next video" });
+  expect(previous).toBeDisabled();
+  expect(next).toBeDisabled();
+  fireEvent.click(start);
+  expect(previous).toBeDisabled();
+  expect(next).toBeDisabled();
+});
+it.each(["off", "all", "one"] as const)("navigates the shuffled playlist in %s loop mode, including while floating", async (loop) => {
+  const store = createPlaybackStore();
+  playbackMock.context = { store };
+  vi.spyOn(Math, "random").mockReturnValue(0);
+  vi.mocked(api.fetchPlaylist).mockResolvedValue({
+    ...saved,
+    videoCount: 3,
+    items: [
+      saved.items[0],
+      { ...saved.items[0], externalVideoId: "lmnopqrstuv", title: "Second", position: 1 },
+      { ...saved.items[0], externalVideoId: "zyxwvutsrqp", title: "Third", position: 2 },
+    ],
+  });
+  setup();
+  await openSaved();
+  const start = await screen.findByRole("button", { name: "Play all" });
+  fireEvent.click(screen.getByRole("button", { name: "Random playback" }));
+  fireEvent.click(start);
+  act(() => store.getState().setLoop(loop));
+  const sessionId = store.getState().session!.id;
+  const currentTitle = () => {
+    const session = store.getState().session!;
+    return session.tracks[session.queue.playerIndex].title;
+  };
+  const previous = screen.getByRole("button", { name: "Previous video" });
+  const next = screen.getByRole("button", { name: "Next video" });
+  expect(currentTitle()).toBe("Second");
+  if (loop === "all") {
+    fireEvent.click(previous);
+    expect(currentTitle()).toBe("Deleted source");
+    fireEvent.click(next);
+    expect(currentTitle()).toBe("Second");
+  } else expect(previous).toBeDisabled();
+  fireEvent.click(next);
+  expect(currentTitle()).toBe("Third");
+  fireEvent.click(next);
+  expect(currentTitle()).toBe("Deleted source");
+  if (loop === "all") {
+    fireEvent.click(next);
+    expect(currentTitle()).toBe("Second");
+    fireEvent.click(previous);
+    expect(currentTitle()).toBe("Deleted source");
+  } else expect(next).toBeDisabled();
+  act(() => store.getState().detach());
+  fireEvent.click(previous);
+  expect(currentTitle()).toBe("Third");
+  expect(store.getState().floating).toBe(true);
+  expect(store.getState().session?.id).toBe(sessionId);
+  fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+  expect(previous).toBeDisabled();
+  expect(next).toBeDisabled();
+  expect(api.savePlaylist).not.toHaveBeenCalled();
+});
 it("returns focus to the enabled start button after Stop without taking focus on unrelated stops", async () => {
   const store = createPlaybackStore();
   playbackMock.context = { store };
@@ -308,11 +375,14 @@ it("returns focus to the enabled start button after Stop without taking focus on
   await openSaved();
   const start = await screen.findByRole("button", { name: "Play all" });
   fireEvent.click(start);
-  expect(start).toBeDisabled();
+  expect(start).toBeEnabled();
+  expect(start).toHaveAccessibleName("Stop playback");
   const stop = screen.getByRole("button", { name: "Stop playback" });
+  expect(stop).toBe(start);
   stop.focus();
   fireEvent.click(stop);
   expect(start).toBeEnabled();
+  expect(start).toHaveAccessibleName("Play all");
   expect(start).toHaveFocus();
   fireEvent.click(start);
   const selection = screen.getByRole("combobox", { name: "Playlist" });

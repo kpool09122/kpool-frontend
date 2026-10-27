@@ -1083,6 +1083,8 @@ const ja = {
       likes: { loginRequired: "いいねするには、ログインしてWikiコラボレータを有効にしてください。", collaboratorRequired: "いいねするには、Wikiコラボレータを有効にしてください。", permissionDenied: "この動画のいいねを操作する権限がありません。", like: "いいね", unlike: "いいねを解除", loading: "いいねを読み込み中…", loadError: "いいねを取得できませんでした。", retry: "いいねを再試行", failed: "いいねを更新できませんでした。もう一度お試しください。" },
       continuous: {
         start: "連続再生",
+        previous: "前の動画",
+        next: "次の動画",
         queue: "再生リスト",
         playTrack: "この動画を再生",
         loop: "ループ再生",
@@ -2588,6 +2590,8 @@ const en: typeof ja = {
       likes: { loginRequired: "To like videos, log in and activate Wiki collaborator access.", collaboratorRequired: "To like videos, activate Wiki collaborator access.", permissionDenied: "You do not have permission to change likes on this video.", like: "Like", unlike: "Unlike", loading: "Loading likes…", loadError: "Could not load likes.", retry: "Retry likes", failed: "Could not update the like. Please try again." },
       continuous: {
         start: "Play all",
+        previous: "Previous video",
+        next: "Next video",
         queue: "Playback queue",
         playTrack: "Play video",
         loop: "Loop playback",
@@ -4090,6 +4094,8 @@ const ko: typeof ja = {
       likes: { loginRequired: "좋아요를 누르려면 로그인하고 Wiki 콜라보레이터를 활성화해 주세요.", collaboratorRequired: "좋아요를 누르려면 Wiki 콜라보레이터를 활성화해 주세요.", permissionDenied: "이 동영상의 좋아요를 변경할 권한이 없습니다.", like: "좋아요", unlike: "좋아요 취소", loading: "좋아요 불러오는 중…", loadError: "좋아요를 불러오지 못했습니다.", retry: "좋아요 다시 시도", failed: "좋아요를 변경하지 못했습니다. 다시 시도해 주세요." },
       continuous: {
         start: "연속 재생",
+        previous: "이전 동영상",
+        next: "다음 동영상",
         queue: "재생목록",
         playTrack: "동영상 재생",
         loop: "반복 재생",

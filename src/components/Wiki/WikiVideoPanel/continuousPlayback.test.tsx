@@ -528,10 +528,17 @@ describe("continuous playback", () => {
     fireEvent.click(stop);
     expect(screen.getByRole("button", { name: "Play all" })).toHaveFocus();
   });
-  it("prevents restarting an active item without first stopping it", async () => {
+  it("replaces the start button with stop and returns to start after stopping", async () => {
     mount();
+    const button = screen.getByRole("button", { name: "Play all" });
     await start();
-    expect(screen.getByRole("button", { name: "Play all" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Play all" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Stop playback" })).toBe(button);
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    expect(screen.getByRole("button", { name: "Play all" })).toBe(button);
+    expect(button).toHaveFocus();
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
   });
   it("skips unavailable videos exactly once and never loops when every item fails", async () => {
     mount();
@@ -589,6 +596,26 @@ describe("continuous playback", () => {
     expect(requests).toHaveLength(2);
     expect(requests[0].destroy).not.toHaveBeenCalled();
   });
+  it("hides the card title and delete button during inline playback and restores them on stop", async () => {
+    mount();
+    vi.mocked(fetch).mockImplementation(async (input) => Response.json(
+      String(input).includes("delete-access")
+        ? { canDelete: true, principalIdentifier: "wiki-me" }
+        : { videos: [first, second] },
+    ));
+    act(() => useAuthStore.setState({ status: "authenticated" }));
+    await screen.findByRole("button", { name: `Delete video: ${first.title}` });
+    const card = screen.getByRole("heading", { name: first.title }).closest("li")!;
+    fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    expect(within(card).queryByRole("heading")).not.toBeInTheDocument();
+    expect(within(card).queryByRole("button", { name: `Delete video: ${first.title}` })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(first.title);
+    expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    expect(within(card).getByRole("heading", { name: first.title })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: `Delete video: ${first.title}` })).toBeInTheDocument();
+  });
   it("uses one player for individual and continuous playback and ignores late events", async () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
@@ -638,10 +665,11 @@ describe("continuous playback", () => {
     expect(heart).toBeEnabled();
     expect(heart).toHaveTextContent("");
     const buttons = mini.getAllByRole("button");
-    expect(buttons.indexOf(heart)).toBe(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" })) + 1);
+    expect(buttons.indexOf(heart)).toBe(0);
     const fullscreenButton = mini.getByRole("button", { name: "Play in fullscreen" });
     expect(buttons.indexOf(fullscreenButton)).toBe(buttons.indexOf(heart) + 1);
     expect(buttons.indexOf(mini.getByRole("button", { name: "Stop playback" }))).toBe(buttons.indexOf(fullscreenButton) + 1);
+    expect(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" }))).toBeGreaterThan(buttons.indexOf(fullscreenButton));
     expect(requests).toHaveLength(1);
     expect(requests[0].destroy).not.toHaveBeenCalled();
     act(() => requests[0].options.events.onStateChange({ data: 0 }));
@@ -653,6 +681,7 @@ describe("continuous playback", () => {
   it.each(["body", "single", "queue"])("leaves a placeholder at the original %s video location while playing in the mini player", async (source) => {
     const view = mount();
     view.rerender(view.tree("gr-test", true));
+    const firstCard = screen.getByRole("heading", { name: first.title }).closest("li");
     expect(screen.queryByText("Playing in the mini player")).not.toBeInTheDocument();
     if (source === "queue") await start();
     else {
@@ -670,7 +699,8 @@ describe("continuous playback", () => {
     expect(mini).toContainElement(frame);
     expect(requests[0].destroy).not.toHaveBeenCalled();
     if (source === "single") {
-      expect(screen.getByRole("heading", { name: first.title }).closest("li")).toContainElement(placeholder);
+      expect(firstCard).toContainElement(placeholder);
+      expect(screen.queryByRole("heading", { name: first.title })).not.toBeInTheDocument();
     } else if (source === "body") {
       expect(placeholder.closest("figure")).toHaveTextContent("Body video");
     } else {
@@ -696,7 +726,7 @@ describe("continuous playback", () => {
     await start();
     expect(requests[1].destroy).toHaveBeenCalledOnce();
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("First video (1/2)");
-    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    fireEvent.click(within(screen.getByRole("region", { name: "Mini player" })).getByRole("button", { name: "Stop playback" }));
     expect(screen.queryByRole("region", { name: "Mini player" })).not.toBeInTheDocument();
   });
   it.each(["filter", "same filter", "wiki", "delete", "reorder", "unmount"])(

@@ -58,19 +58,21 @@ function VideoCard({
       aria-current={current ? "true" : undefined}
       className="flex min-w-0 flex-col gap-3 rounded-2xl border border-stroke-subtle bg-surface-base p-4"
     >
-      <div className="flex items-start gap-2">
-        <h2 className="flex min-w-0 flex-1 items-start gap-2 text-lg font-semibold">
-          {videoId ? (
-            <span className="pt-1">
-              <SocialLinkIcon
-                url={`https://www.youtube.com/watch?v=${videoId}`}
-              />
-            </span>
-          ) : null}
-          <span className="min-w-0 break-words">{video.title}</span>
-        </h2>
-        {deleteControl}
-      </div>
+      {!player ? (
+        <div className="flex items-start gap-2">
+          <h2 className="flex min-w-0 flex-1 items-start gap-2 text-lg font-semibold">
+            {videoId ? (
+              <span className="pt-1">
+                <SocialLinkIcon
+                  url={`https://www.youtube.com/watch?v=${videoId}`}
+                />
+              </span>
+            ) : null}
+            <span className="min-w-0 break-words">{video.title}</span>
+          </h2>
+          {deleteControl}
+        </div>
+      ) : null}
       {player ? (
         player
       ) : (

@@ -324,7 +324,7 @@ it("keeps the playing video and duration filter intact during a like", async () 
     ).toBe(true),
   );
   await act(async () => state.finish(new Response(null, { status: 204 })));
-  await ready();
+  await waitFor(() => expect(heart()).toBeEnabled());
   expect(minimum).toHaveValue("1");
   expect(
     screen.getByRole("button", { name: "Stop playback" }),
