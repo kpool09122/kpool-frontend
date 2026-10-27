@@ -28,8 +28,16 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
   useEffect(() => {
     const element = frame.current;
     let disposed = false, started = false, finished = false;
+    let muted: boolean | undefined;
+    const command = (type: "unMute" | "play" | "pause") => {
+      element?.contentWindow?.postMessage({ "x-tiktok-player": true, type }, origin);
+    };
     ready.current = false;
-    const timeout = window.setTimeout(() => { if (!disposed && !ready.current) setGuidance("tiktokUnavailable"); }, 20000);
+    const timeout = window.setTimeout(() => {
+      if (!disposed && !ready.current) {
+        setGuidance("tiktokUnavailable");
+      }
+    }, 20000);
     const fail = (restricted = false) => {
       finished = true;
       window.clearTimeout(timeout);
@@ -47,23 +55,24 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
       if (data.type === "onPlayerReady") {
         ready.current = true;
         window.clearTimeout(timeout);
-        element?.contentWindow?.postMessage({ "x-tiktok-player": true, type: "unMute" }, origin);
-        if (autoplay) element?.contentWindow?.postMessage({ "x-tiktok-player": true, type: "play" }, origin);
+        command("unMute");
+        if (autoplay) command("play");
+      } else if (data.type === "onMute" && typeof value === "boolean") {
+        muted = value;
       } else if (data.type === "onStateChange" && typeof value === "number") {
-        if (value === 1) { started = true; setGuidance(null); reportPlaying(); }
+        if (value === 1) {
+          // Ready-time unMute can be superseded by the player's startup mute.
+          // Retry once at first playback; later mute choices belong to the viewer.
+          if (!started && muted === true) command("unMute");
+          started = true;
+          setGuidance(null);
+          reportPlaying();
+        }
         if (value === 0 && started) { finished = true; reportEnded(); }
       } else if (data.type === "onPlayerError" && value && typeof value === "object" && "errorCode" in value && typeof value.errorCode === "number" && "errorType" in value && typeof value.errorType === "string") {
-        console.warn("[debug-log-triage:tiktok-playback] Player error.", {
-          videoId,
-          errorCode: value.errorCode,
-        });
         if (value.errorCode === 3002) setGuidance("tiktokBlocked");
         else fail([1001, 1002].includes(value.errorCode));
       } else if (data.type === "onError" && typeof value === "number" && [1, 2, 3, 4].includes(value)) {
-        console.warn("[debug-log-triage:tiktok-playback] Legacy media error.", {
-          videoId,
-          errorCode: value,
-        });
         // TikTok emits legacy code 1 before the detailed onPlayerError event.
         if (value !== 1) fail();
       }
@@ -73,7 +82,7 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
       disposed = true;
       window.clearTimeout(timeout);
       window.removeEventListener("message", receive);
-      element?.contentWindow?.postMessage({ "x-tiktok-player": true, type: "pause" }, origin);
+      command("pause");
     };
   }, [videoId, advanceOnError, autoplay]);
   return <div className={expanded ? "flex h-full min-h-0 flex-col gap-3" : "space-y-3"}>

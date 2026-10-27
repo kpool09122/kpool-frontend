@@ -848,6 +848,33 @@ describe("admin page clients", () => {
     expect(screen.getByRole("link", { name: "ユーザー設定" })).not.toHaveAttribute("aria-current");
   });
 
+  it.each([375, 768, 1023, 1024, 1440])("defaults the sidebar by viewport width and allows toggling at %spx", (width) => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: width >= 1024,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    renderWithQueryClient(
+      <AdminClient
+        draftImageAdapter={createDraftImageAdapter()}
+        draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity}
+        initialPrincipalState={{ status: "available", principal }}
+        principalAdapter={createAdapter()}
+      />,
+    );
+    const open = width >= 1024;
+    const toggle = screen.getByRole("button", { name: open ? "管理画面メニューを閉じる" : "管理画面メニューを開く" });
+    expect(toggle).toHaveAttribute("aria-expanded", String(open));
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", String(!open));
+    fireEvent.click(screen.getByRole("tab", { name: "申請中のWiki" }));
+    expect(toggle).toHaveAttribute("aria-expanded", String(!open));
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", String(open));
+  });
+
   it("collapses and expands the sidebar with a persistent toggle", () => {
     renderWithQueryClient(
       <AdminClient

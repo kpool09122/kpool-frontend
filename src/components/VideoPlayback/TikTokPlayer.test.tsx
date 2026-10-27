@@ -93,7 +93,7 @@ it("confirms preview only after playing, without requesting autoplay", () => {
   expect(error).toHaveBeenCalledTimes(1);
 });
 
-it("requests sound before starting autoplay and leaves later volume choices to the viewer", () => {
+it("retries startup mute at first playback and preserves later viewer mute choices", () => {
   const { frame, send } = mount();
   const command = vi.spyOn(frame.contentWindow!, "postMessage");
   expect(frame.src).toContain("muted=0");
@@ -101,6 +101,23 @@ it("requests sound before starting autoplay and leaves later volume choices to t
   expect(command).toHaveBeenNthCalledWith(1, { "x-tiktok-player": true, type: "unMute" }, "https://www.tiktok.com");
   expect(command).toHaveBeenNthCalledWith(2, { "x-tiktok-player": true, type: "play" }, "https://www.tiktok.com");
   send("onMute", true);
+  send("onVolumeChange", 100);
+  send("onStateChange", 3);
+  expect(command).toHaveBeenCalledTimes(2);
+  send("onStateChange", 1);
+  expect(command).toHaveBeenNthCalledWith(3, { "x-tiktok-player": true, type: "unMute" }, "https://www.tiktok.com");
+  send("onMute", false);
+  send("onMute", true);
+  send("onStateChange", 2);
+  send("onStateChange", 1);
+  expect(command).toHaveBeenCalledTimes(3);
+});
+
+it("does not retry unmute when playback starts with sound already enabled", () => {
+  const { frame, send } = mount();
+  const command = vi.spyOn(frame.contentWindow!, "postMessage");
+  send("onPlayerReady");
+  send("onMute", false);
   send("onStateChange", 1);
   expect(command).toHaveBeenCalledTimes(2);
 });

@@ -14,6 +14,13 @@ import { isAccountSetupRequired, isAccountStatusUnavailable, isAccountSuspended 
 
 const selectedSectionClass = "bg-brand-highlight/70 text-text-strong";
 const subscribeToHydration = () => () => {};
+const desktopSidebarQuery = "(min-width: 1024px)";
+const subscribeToViewport = (onChange: () => void) => {
+  const media = window.matchMedia?.(desktopSidebarQuery);
+  media?.addEventListener("change", onChange);
+  return () => media?.removeEventListener("change", onChange);
+};
+const getDesktopSnapshot = () => window.matchMedia?.(desktopSidebarQuery).matches ?? window.innerWidth >= 1024;
 
 type AdminShellClientProps = {
   children: ReactNode;
@@ -25,7 +32,9 @@ export function AdminShellClient({
   const pathname = usePathname();
   const { currentIdentity, t, principalState = { status: "idle" } } = useAdmin();
   const searchParams = useSearchParams();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null);
+  const isDesktop = useSyncExternalStore(subscribeToViewport, getDesktopSnapshot, () => false);
+  const isSidebarOpen = sidebarOverride ?? isDesktop;
   const isSidebarHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const activeSection = resolveAdminSection(pathname);
   const isUserSettings = activeSection === "settings";
@@ -71,13 +80,13 @@ export function AdminShellClient({
   return (
     <main
       className={`flex-1 bg-surface-base px-6 py-8 text-text-strong transition-[padding] duration-300 sm:px-10 lg:pr-16 ${
-        isSidebarOpen ? "lg:pl-80" : "lg:pl-20"
+        sidebarOverride === false ? "lg:pl-20" : "lg:pl-80"
       }`}
     >
       <aside
         aria-label={t.sidebarLabel}
         className={`fixed bottom-0 left-0 top-20 z-30 w-72 max-w-[calc(100vw-2rem)] transition-transform duration-300 ${
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOverride === null ? "-translate-x-full lg:translate-x-0" : isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <button
@@ -86,14 +95,14 @@ export function AdminShellClient({
           aria-label={isSidebarOpen ? t.collapseSidebar : t.expandSidebar}
           aria-expanded={isSidebarOpen}
           className="absolute -right-11 top-6 z-10 grid h-20 w-11 place-items-center rounded-r-2xl border-y border-r border-stroke-subtle bg-surface-raised text-text-strong shadow-soft transition hover:bg-brand-highlight/20"
-          onClick={() => setIsSidebarOpen((current) => !current)}
+          onClick={() => setSidebarOverride(!isSidebarOpen)}
         >
-          <span className={`transition-transform ${isSidebarOpen ? "rotate-180" : ""}`}>
+          <span className={`transition-transform ${sidebarOverride === null ? "lg:rotate-180" : isSidebarOpen ? "rotate-180" : ""}`}>
             <ChevronRightIcon />
           </span>
         </button>
         <div className="relative h-full overflow-y-auto border border-l-0 border-stroke-subtle bg-surface-raised p-4 shadow-soft">
-          <div className={isSidebarOpen ? "block" : "pointer-events-none invisible"}>
+          <div className={sidebarOverride === null ? "pointer-events-none invisible lg:pointer-events-auto lg:visible" : isSidebarOpen ? "block" : "pointer-events-none invisible"}>
             <nav className="grid gap-2">
               {navigation.map((item) => (
                 <AdminSectionLink href={item.href} isSelected={activeSection === item.section} label={t[item.labelKey]} key={item.section} />
