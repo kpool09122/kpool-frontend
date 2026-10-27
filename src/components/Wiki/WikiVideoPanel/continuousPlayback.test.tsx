@@ -528,10 +528,17 @@ describe("continuous playback", () => {
     fireEvent.click(stop);
     expect(screen.getByRole("button", { name: "Play all" })).toHaveFocus();
   });
-  it("prevents restarting an active item without first stopping it", async () => {
+  it("replaces the start button with stop and returns to start after stopping", async () => {
     mount();
+    const button = screen.getByRole("button", { name: "Play all" });
     await start();
-    expect(screen.getByRole("button", { name: "Play all" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Play all" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Stop playback" })).toBe(button);
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    expect(screen.getByRole("button", { name: "Play all" })).toBe(button);
+    expect(button).toHaveFocus();
+    expect(requests[0].destroy).toHaveBeenCalledOnce();
   });
   it("skips unavailable videos exactly once and never loops when every item fails", async () => {
     mount();
@@ -638,10 +645,11 @@ describe("continuous playback", () => {
     expect(heart).toBeEnabled();
     expect(heart).toHaveTextContent("");
     const buttons = mini.getAllByRole("button");
-    expect(buttons.indexOf(heart)).toBe(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" })) + 1);
+    expect(buttons.indexOf(heart)).toBe(0);
     const fullscreenButton = mini.getByRole("button", { name: "Play in fullscreen" });
     expect(buttons.indexOf(fullscreenButton)).toBe(buttons.indexOf(heart) + 1);
     expect(buttons.indexOf(mini.getByRole("button", { name: "Stop playback" }))).toBe(buttons.indexOf(fullscreenButton) + 1);
+    expect(buttons.indexOf(mini.getByRole("button", { name: "Loop playback" }))).toBeGreaterThan(buttons.indexOf(fullscreenButton));
     expect(requests).toHaveLength(1);
     expect(requests[0].destroy).not.toHaveBeenCalled();
     act(() => requests[0].options.events.onStateChange({ data: 0 }));
@@ -696,7 +704,7 @@ describe("continuous playback", () => {
     await start();
     expect(requests[1].destroy).toHaveBeenCalledOnce();
     expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("First video (1/2)");
-    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    fireEvent.click(within(screen.getByRole("region", { name: "Mini player" })).getByRole("button", { name: "Stop playback" }));
     expect(screen.queryByRole("region", { name: "Mini player" })).not.toBeInTheDocument();
   });
   it.each(["filter", "same filter", "wiki", "delete", "reorder", "unmount"])(

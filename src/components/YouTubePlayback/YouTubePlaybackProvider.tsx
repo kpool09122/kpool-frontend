@@ -14,8 +14,8 @@ import {
 } from "react";
 import { useStore } from "zustand";
 import { useAuthStore } from "@/gateways/auth/authStore";
-import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, ShuffleIcon } from "@radix-ui/react-icons";
-import { nextLoopMode } from "./playbackQueue";
+import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, ShuffleIcon, TrackNextIcon, TrackPreviousIcon } from "@radix-ui/react-icons";
+import { adjacentPlaybackIndex, nextLoopMode } from "./playbackQueue";
 import { LoopPlaybackButton } from "./LoopPlaybackButton";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from "./playbackStore";
@@ -129,6 +129,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
   const { queue, tracks } = session;
   const active = tracks[queue.order[queue.position]];
   const requested = tracks[queue.playerIndex];
+  const previousIndex = adjacentPlaybackIndex(queue, -1, session.loop);
+  const nextIndex = adjacentPlaybackIndex(queue, 1, session.loop);
   // Keep the player in this shared host; the page outlet only supplies its
   // coordinates and reserves space for the inline presentation.
   useLayoutEffect(() => {
@@ -170,7 +172,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         <p role="status" title={active.title} className="min-w-0 flex-1 truncate font-semibold">
           {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
         </p>
-        {(floating || fullscreen) && session.kind === "queue" ? <>
+        {fullscreen && !floating && session.kind === "queue" ? <>
           <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
           <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
             onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
@@ -199,6 +201,29 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           onUnavailable={() => store.getState().unavailable(session.id)}
         />
       </div>
+      {floating && session.kind === "queue" ? (
+        <div className="flex shrink-0 items-center justify-center gap-4 pt-2">
+          <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
+          <button type="button" aria-label={t.previous} title={t.previous}
+            className={`${iconClass} disabled:cursor-not-allowed disabled:opacity-40`}
+            disabled={previousIndex === undefined}
+            onClick={() => {
+              if (previousIndex !== undefined) store.getState().selectTrack(session.id, tracks[previousIndex].identifier);
+            }}>
+            <TrackPreviousIcon aria-hidden="true" className="h-5 w-5" />
+          </button>
+          <button type="button" aria-label={t.next} title={t.next}
+            className={`${iconClass} disabled:cursor-not-allowed disabled:opacity-40`}
+            disabled={nextIndex === undefined}
+            onClick={() => {
+              if (nextIndex !== undefined) store.getState().selectTrack(session.id, tracks[nextIndex].identifier);
+            }}>
+            <TrackNextIcon aria-hidden="true" className="h-5 w-5" />
+          </button>
+          <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
+            onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
+        </div>
+      ) : null}
       {floating && notice?.owner === session.owner ? <p role="status">{t[notice.kind]}{notice.title ? `: ${notice.title}` : ""}</p> : null}
       {movable ? Object.entries(resizeHandles).map(([edge, className]) => (
         <div key={edge} aria-hidden="true" data-player-resize={edge} className={`absolute z-20 touch-none ${className}`} />

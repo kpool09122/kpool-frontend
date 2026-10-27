@@ -10,6 +10,13 @@ export type PlaybackQueue = {
   failed: number[];
 };
 
+export function adjacentPlaybackIndex(queue: PlaybackQueue, offset: -1 | 1, loop: LoopMode): number | undefined {
+  const { order, position } = queue;
+  if (order.length < 2) return undefined;
+  const target = position + offset;
+  return order[loop === "all" ? (target + order.length) % order.length : target];
+}
+
 export function playbackOrder(indices: number[], random: boolean): number[] {
   const order = [...indices];
   if (random) {
