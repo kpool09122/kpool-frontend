@@ -58,8 +58,8 @@ export function PlaylistWorkspace({ principal, t, playbackText }: {
   return (
     <section aria-label={t.title} className="mt-5 rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft">
       <h2 className="text-xl font-semibold">{t.title}</h2>
-      <div className="mt-5 grid gap-5">
-        <div className="grid gap-4">
+      <div className="mt-5 grid grid-cols-1 gap-5">
+        <div className="grid min-w-0 grid-cols-1 gap-4">
           <div className="overflow-x-auto border-b border-stroke-subtle">
             <div aria-label={t.tabsLabel} className="-mb-px flex gap-1" role="tablist"
               onKeyDown={(event) => {
@@ -93,7 +93,7 @@ export function PlaylistWorkspace({ principal, t, playbackText }: {
               })}
             </div>
           </div>
-          <div role="tabpanel" id={`${instanceId}-${activeTab}-panel`} aria-labelledby={`${instanceId}-${activeTab}-tab`}>
+          <div className="min-w-0" role="tabpanel" id={`${instanceId}-${activeTab}-panel`} aria-labelledby={`${instanceId}-${activeTab}-tab`}>
             {activeTab === "list" ? <PlaylistListPanel state={state} principal={principal} t={t} playbackText={playbackText} /> : null}
             {activeTab === "create" ? <PlaylistCreatePanel state={state} t={t} /> : null}
             {activeTab === "edit" ? <PlaylistEditPanel state={state} t={t} /> : null}
