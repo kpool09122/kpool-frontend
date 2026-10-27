@@ -210,7 +210,7 @@ for (const width of [1280, 390])
     });
     await page.goto("/admin/wiki/editing");
     if (width < 768)
-      await page.getByRole("button", { name: "Collapse admin menu" }).click();
+      await expect(page.getByRole("button", { name: "Expand admin menu" })).toHaveAttribute("aria-expanded", "false");
     await page.getByRole("tab", { name: "My playlists" }).click();
     await expect(page.getByText("No playlists yet.")).toBeVisible();
     await page.getByRole("tab", { name: "Create", exact: true }).click();
@@ -260,7 +260,7 @@ for (const width of [1280, 390])
     await expect.poll(() => page.getByRole("button", { name: /^Reorder:/ }).evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))).toEqual(["Reorder: Second", "Reorder: First"]);
     expect(writes).toHaveLength(1);
     await page.reload();
-    if (width < 768) await page.getByRole("button", { name: "Collapse admin menu" }).click();
+    if (width < 768) await expect(page.getByRole("button", { name: "Expand admin menu" })).toHaveAttribute("aria-expanded", "false");
     await page.getByRole("tab", { name: "Edit", exact: true }).click();
     await page.getByRole("button", { name: "Load more", exact: true }).click();
     await expect(page.getByRole("list", { name: "Added to playlists", exact: true })).toHaveCount(2);

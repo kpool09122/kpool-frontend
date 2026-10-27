@@ -107,7 +107,7 @@ test("custom policy allows limit, save, reload and zero recipients on mobile", a
   await expect(
     page.getByRole("checkbox", { name: "Member 0" }),
   ).toBeChecked();
-  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
   const firstRecipient = page.getByRole("checkbox", { name: "Member 0" });
   await firstRecipient.click({ position: { x: 8, y: 8 } });
   await expect(firstRecipient).not.toBeChecked();
@@ -134,7 +134,7 @@ test("custom policy allows limit, save, reload and zero recipients on mobile", a
     await expect(
       page.getByRole("checkbox", { name: `Member ${i}` }),
     ).toBeChecked();
-  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
   await page.getByRole("button", { name: "全解除" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   for (let i = 0; i < 6; i++)

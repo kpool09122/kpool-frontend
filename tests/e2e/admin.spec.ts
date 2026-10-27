@@ -747,7 +747,7 @@ test("admin exposes the withdrawal flow from the direct Other route on mobile", 
 
   await page.goto("/admin/user/other");
   await expect(page.getByRole("tab", { name: "その他", selected: true })).toBeVisible();
-  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByText("退会手続きを行うには追加の本人確認が必要です。")).toBeVisible();
   await expect(page.getByRole("button", { name: "本人確認を行う" })).toBeVisible();
   await expect(page.getByRole("button", { name: "退会手続きへ" })).toHaveCount(0);
@@ -755,7 +755,7 @@ test("admin exposes the withdrawal flow from the direct Other route on mobile", 
 
   recentlyVerified = true;
   await page.goto("/admin/user/other");
-  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
   await page.getByRole("button", { name: "退会手続きへ" }).click();
   await expect(page.getByRole("dialog", { name: "サービスから退会しますか？" })).toBeVisible();
   await expect(page.getByText(/退会後は旧利用者として復元できません/)).toBeVisible();
@@ -798,7 +798,7 @@ test("admin keeps profile fields within the panel at mobile and desktop widths",
   }));
 
   await page.goto("/admin/account/profile");
-  await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+  await expect(page.getByRole("button", { name: "管理画面メニューを開く" })).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByLabel("アカウント名")).toHaveValue("Member Account");
   const panel = page.locator("section").filter({ has: page.getByRole("heading", { name: "プロフィール設定", exact: true }) }).last();
 
