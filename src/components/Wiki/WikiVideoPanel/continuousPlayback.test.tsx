@@ -596,6 +596,26 @@ describe("continuous playback", () => {
     expect(requests).toHaveLength(2);
     expect(requests[0].destroy).not.toHaveBeenCalled();
   });
+  it("hides the card title and delete button during inline playback and restores them on stop", async () => {
+    mount();
+    vi.mocked(fetch).mockImplementation(async (input) => Response.json(
+      String(input).includes("delete-access")
+        ? { canDelete: true, principalIdentifier: "wiki-me" }
+        : { videos: [first, second] },
+    ));
+    act(() => useAuthStore.setState({ status: "authenticated" }));
+    await screen.findByRole("button", { name: `Delete video: ${first.title}` });
+    const card = screen.getByRole("heading", { name: first.title }).closest("li")!;
+    fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
+    await waitFor(() => expect(requests).toHaveLength(1));
+    expect(within(card).queryByRole("heading")).not.toBeInTheDocument();
+    expect(within(card).queryByRole("button", { name: `Delete video: ${first.title}` })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Now playing" })).toHaveTextContent(first.title);
+    expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+    expect(within(card).getByRole("heading", { name: first.title })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: `Delete video: ${first.title}` })).toBeInTheDocument();
+  });
   it("uses one player for individual and continuous playback and ignores late events", async () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: `Play: ${first.title}` }));
@@ -661,6 +681,7 @@ describe("continuous playback", () => {
   it.each(["body", "single", "queue"])("leaves a placeholder at the original %s video location while playing in the mini player", async (source) => {
     const view = mount();
     view.rerender(view.tree("gr-test", true));
+    const firstCard = screen.getByRole("heading", { name: first.title }).closest("li");
     expect(screen.queryByText("Playing in the mini player")).not.toBeInTheDocument();
     if (source === "queue") await start();
     else {
@@ -678,7 +699,8 @@ describe("continuous playback", () => {
     expect(mini).toContainElement(frame);
     expect(requests[0].destroy).not.toHaveBeenCalled();
     if (source === "single") {
-      expect(screen.getByRole("heading", { name: first.title }).closest("li")).toContainElement(placeholder);
+      expect(firstCard).toContainElement(placeholder);
+      expect(screen.queryByRole("heading", { name: first.title })).not.toBeInTheDocument();
     } else if (source === "body") {
       expect(placeholder.closest("figure")).toHaveTextContent("Body video");
     } else {
