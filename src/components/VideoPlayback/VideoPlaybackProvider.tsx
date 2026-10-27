@@ -23,6 +23,7 @@ import { TikTokPlayer } from "./TikTokPlayer";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
 import { useFloatingPosition } from "./useFloatingPosition";
 import { usePlayerFullscreen } from "./usePlayerFullscreen";
+import { useFullscreenControls } from "./useFullscreenControls";
 import { MiniPlayerPlaceholder } from "./MiniPlayerPlaceholder";
 
 type Anchor = { owner: string; node: HTMLDivElement };
@@ -123,6 +124,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
     wasFloating.current = floating;
   }, [floating]);
   const { fullscreen, failed: fullscreenFailed, toggle: toggleFullscreen } = usePlayerFullscreen(root);
+  const controls = useFullscreenControls(fullscreen);
+  const fullscreenBarClass = `absolute inset-x-0 z-20 bg-black/50 px-3 backdrop-blur-sm transition-opacity duration-200 motion-reduce:transition-none [&_button]:text-white/85 [&_button:hover]:text-white ${controls.visible ? "opacity-100" : "pointer-events-none opacity-0"}`;
   const moveHintId = useId();
   const [inlineStyle, setInlineStyle] = useState<CSSProperties>({});
   const movable = floating && !fullscreen;
@@ -154,31 +157,60 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
       window.removeEventListener("scroll", measure, true);
     };
   }, [anchor, floating, fullscreen, onHeight]);
+  const queueControls = (
+    <>
+      <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
+      <button type="button" aria-label={t.previous} title={t.previous}
+        className={`${iconClass} disabled:cursor-not-allowed disabled:opacity-40`}
+        disabled={previousIndex === undefined}
+        onClick={() => {
+          if (previousIndex !== undefined) store.getState().selectTrack(session.id, tracks[previousIndex].identifier);
+        }}>
+        <TrackPreviousIcon aria-hidden="true" className="h-5 w-5" />
+      </button>
+      <button type="button" aria-label={t.next} title={t.next}
+        className={`${iconClass} disabled:cursor-not-allowed disabled:opacity-40`}
+        disabled={nextIndex === undefined}
+        onClick={() => {
+          if (nextIndex !== undefined) store.getState().selectTrack(session.id, tracks[nextIndex].identifier);
+        }}>
+        <TrackNextIcon aria-hidden="true" className="h-5 w-5" />
+      </button>
+      <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
+        onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
+    </>
+  );
   return (
     <section
       ref={root}
       tabIndex={movable ? 0 : -1}
       {...(movable ? { ...dragProps, ...keyboardProps } : {})}
+      {...(fullscreen ? {
+        onPointerMove: controls.reveal,
+        onPointerDown: controls.reveal,
+        onKeyDown: controls.reveal,
+      } : {})}
       aria-label={floating ? t.miniPlayer : t.nowPlaying}
       aria-describedby={movable ? moveHintId : undefined}
       style={fullscreen ? { position: "fixed", inset: 0, width: "100%", height: "100dvh" } : floating ? floatingStyle : inlineStyle}
       className={fullscreen
-        ? "z-50 flex min-h-0 flex-col gap-3 overflow-hidden overscroll-none bg-black p-3 text-white"
+        ? "z-50 overflow-hidden overscroll-none bg-black text-white"
         : floating
         ? "z-50 max-h-[calc(100dvh-2rem)] touch-none cursor-grab select-none overflow-auto rounded-2xl border border-stroke-subtle bg-surface-raised p-3 text-text-strong shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary active:cursor-grabbing"
         : "z-10 space-y-3 text-text-strong"}
     >
       {movable ? <span id={moveHintId} className="sr-only">{t.moveHint}</span> : null}
-      <div className={`flex shrink-0 items-center gap-1${floating && !fullscreen ? " pb-2" : ""}`}>
-        <p role="status" title={active.title} className="min-w-0 flex-1 truncate font-semibold">
+      <div
+        {...(fullscreen ? controls.barProps : {})}
+        inert={fullscreen && !controls.visible}
+        aria-hidden={fullscreen && !controls.visible ? true : undefined}
+        data-fullscreen-bar={fullscreen ? "top" : undefined}
+        className={`flex shrink-0 items-center gap-1${floating && !fullscreen ? " pb-2" : ""}${fullscreen ? ` ${fullscreenBarClass} top-0 flex-wrap pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]` : ""}`}>
+        <p role="status" title={active.title} className={fullscreen ? "w-full min-w-0 truncate font-semibold sm:w-auto sm:flex-1" : "min-w-0 flex-1 truncate font-semibold"}>
           {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
         </p>
-        {fullscreen && !floating && session.kind === "queue" ? <>
-          <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
-          <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
-            onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
-        </> : null}
-        {floating ? active.controls : null}
+        {fullscreen && session.kind === "queue" ? queueControls : null}
+        {floating || fullscreen ? active.controls : null}
         <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>
           {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
         </button>
@@ -188,8 +220,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           <button type="button" aria-label={t.stop} title={t.stop} className={iconClass} onClick={() => store.getState().stop()}><Cross2Icon aria-hidden="true" className="h-5 w-5" /></button>
         )}
       </div>
-      {fullscreenFailed ? <p role="status">{t.fullscreenFailed}</p> : null}
-      <div data-player-interactive className={`touch-auto cursor-auto${fullscreen ? " min-h-0 flex-1" : ""}`}>
+      {fullscreenFailed ? <p role="status" className={fullscreen ? "absolute inset-x-0 bottom-24 z-30 bg-black/60 p-3" : undefined}>{t.fullscreenFailed}</p> : null}
+      <div data-player-interactive className={`touch-auto cursor-auto${fullscreen ? " absolute inset-0" : ""}`}>
         {requested.provider === "tiktok" ? <TikTokPlayer
           key={`${session.id}:tiktok:${queue.sequence}`}
           videoId={requested.videoId} title={active.title} expanded={fullscreen}
@@ -208,30 +240,17 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           onUnavailable={() => store.getState().unavailable(session.id)}
         />}
       </div>
-      {floating && session.kind === "queue" ? (
+      {fullscreen && !controls.visible ? (
+        <button type="button" aria-label={t.showControls}
+          className="absolute inset-0 z-10 cursor-default bg-transparent focus-visible:outline-2 focus-visible:outline-white"
+          onClick={controls.reveal} onFocus={controls.reveal} />
+      ) : null}
+      {floating && !fullscreen && session.kind === "queue" ? (
         <div className="flex shrink-0 items-center justify-center gap-4 pt-2">
-          <button type="button" aria-label={t.random} title={t.random} aria-pressed={session.random} className={iconClass} onClick={() => store.getState().setRandom(!session.random)}><ShuffleIcon aria-hidden="true" className="h-5 w-5" /></button>
-          <button type="button" aria-label={t.previous} title={t.previous}
-            className={`${iconClass} disabled:cursor-not-allowed disabled:opacity-40`}
-            disabled={previousIndex === undefined}
-            onClick={() => {
-              if (previousIndex !== undefined) store.getState().selectTrack(session.id, tracks[previousIndex].identifier);
-            }}>
-            <TrackPreviousIcon aria-hidden="true" className="h-5 w-5" />
-          </button>
-          <button type="button" aria-label={t.next} title={t.next}
-            className={`${iconClass} disabled:cursor-not-allowed disabled:opacity-40`}
-            disabled={nextIndex === undefined}
-            onClick={() => {
-              if (nextIndex !== undefined) store.getState().selectTrack(session.id, tracks[nextIndex].identifier);
-            }}>
-            <TrackNextIcon aria-hidden="true" className="h-5 w-5" />
-          </button>
-          <LoopPlaybackButton mode={session.loop} labels={t} className={iconClass} iconClassName="h-5 w-5"
-            onClick={() => store.getState().setLoop(nextLoopMode(session.loop))} />
+          {queueControls}
         </div>
       ) : null}
-      {floating && notice?.owner === session.owner ? <p role="status">{t[notice.kind]}{notice.title ? `: ${notice.title}` : ""}</p> : null}
+      {floating && notice?.owner === session.owner ? <p role="status" className={fullscreen ? "absolute inset-x-0 bottom-24 z-30 bg-black/60 p-3" : undefined}>{t[notice.kind]}{notice.title ? `: ${notice.title}` : ""}</p> : null}
       {movable ? Object.entries(resizeHandles).map(([edge, className]) => (
         <div key={edge} aria-hidden="true" data-player-resize={edge} className={`absolute z-20 touch-none ${className}`} />
       )) : null}

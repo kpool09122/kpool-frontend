@@ -24,7 +24,7 @@ const tracks = [
   { identifier: "third", videoId: "zyxwvutsrqp", title: "Third" },
 ];
 const setup = () => render(<VideoPlaybackProvider><CaptureStore /></VideoPlaybackProvider>);
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 it("shows navigation below the floating queue player and preserves the player when switching videos", () => {
   setup();
@@ -85,4 +85,88 @@ it("disables both navigation buttons for a one-video queue and hides them for si
   act(() => store.getState().start("video", tracks.slice(0, 1), "single"));
   expect(screen.queryByRole("button", { name: "Previous video" })).toBeNull();
   expect(screen.queryByRole("button", { name: "Next video" })).toBeNull();
+});
+
+it("overlays fullscreen controls, hides them when idle and reveals them on tap or pointer movement", () => {
+  vi.useFakeTimers();
+  setup();
+  act(() => {
+    store.getState().start("playlist", [{ ...tracks[0], provider: "tiktok", videoId: "6740558728342359297" }], "queue");
+    store.getState().detach();
+  });
+  const frame = screen.getAllByTitle("First").find((node) => node.tagName === "IFRAME") as HTMLIFrameElement;
+  const host = screen.getByRole("region", { name: "Mini player" });
+  fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+  const bars = host.querySelectorAll("[data-fullscreen-bar]");
+  expect(bars).toHaveLength(1);
+  expect(bars[0]).toHaveAttribute("data-fullscreen-bar", "top");
+  expect(within(bars[0] as HTMLElement).getByRole("button", { name: "Next video" })).toBeInTheDocument();
+  for (const bar of bars) {
+    expect(bar).toHaveClass("absolute", "bg-black/50", "opacity-100");
+  }
+  expect(frame.closest("[data-player-interactive]")).toHaveClass("absolute", "inset-0");
+  act(() => vi.advanceTimersByTime(3000));
+  expect(screen.queryByRole("button", { name: "Exit fullscreen" })).toBeNull();
+  for (const bar of bars) {
+    expect(bar).toHaveAttribute("inert");
+    expect(bar).toHaveClass("opacity-0");
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Show playback controls" }));
+  expect(screen.getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+  act(() => vi.advanceTimersByTime(3000));
+  fireEvent.pointerMove(screen.getByRole("button", { name: "Show playback controls" }));
+  expect(screen.getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+  expect(host.querySelector("iframe")).toBe(frame);
+  fireEvent.click(screen.getByRole("button", { name: "Exit fullscreen" }));
+  act(() => vi.advanceTimersByTime(3000));
+  expect(screen.getByRole("button", { name: "Play in fullscreen" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Next video" })).toBeInTheDocument();
+  expect(host.querySelector("iframe")).toBe(frame);
+});
+
+it.each([false, true])("groups all fullscreen queue controls in the top bar (mini: %s)", (mini) => {
+  setup();
+  act(() => {
+    store.getState().start("playlist", tracks, "queue");
+    if (mini) store.getState().detach();
+  });
+  const player = screen.getByTestId("player");
+  fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+  const host = screen.getByRole("region", { name: mini ? "Mini player" : "Now playing" });
+  const bar = within(host.querySelector<HTMLElement>('[data-fullscreen-bar="top"]')!);
+  expect(host.querySelector('[data-fullscreen-bar="bottom"]')).toBeNull();
+  expect(bar.getByRole("button", { name: "Previous video" })).toBeDisabled();
+  fireEvent.click(bar.getByRole("button", { name: "Next video" }));
+  expect(player).toHaveTextContent(tracks[1].videoId);
+  fireEvent.click(bar.getByRole("button", { name: "Previous video" }));
+  expect(player).toHaveTextContent(tracks[0].videoId);
+  expect(bar.getByRole("button", { name: "Random playback" })).toBeInTheDocument();
+  expect(bar.getByRole("button", { name: "Loop playback" })).toBeInTheDocument();
+  expect(bar.getByRole("button", { name: "Stop playback" })).toBeInTheDocument();
+});
+
+it("keeps the fullscreen bar visible during hover and keyboard focus, then resumes the idle timer", () => {
+  vi.useFakeTimers();
+  setup();
+  act(() => {
+    store.getState().start("playlist", tracks, "queue");
+    store.getState().detach();
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+  const exit = screen.getByRole("button", { name: "Exit fullscreen" });
+  const bar = exit.closest("[data-fullscreen-bar]")!;
+  fireEvent.pointerEnter(bar);
+  act(() => vi.advanceTimersByTime(5000));
+  expect(exit).not.toHaveAttribute("aria-hidden");
+  expect(bar).not.toHaveAttribute("inert");
+  fireEvent.pointerLeave(bar);
+  act(() => vi.advanceTimersByTime(3000));
+  expect(bar).toHaveAttribute("inert");
+  fireEvent.keyDown(screen.getByRole("region", { name: "Mini player" }), { key: "Tab" });
+  act(() => exit.focus());
+  act(() => vi.advanceTimersByTime(5000));
+  expect(bar).not.toHaveAttribute("inert");
+  act(() => exit.blur());
+  act(() => vi.advanceTimersByTime(3000));
+  expect(bar).toHaveAttribute("inert");
 });
