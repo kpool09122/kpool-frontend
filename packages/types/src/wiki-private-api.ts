@@ -331,6 +331,12 @@ const SavePlaylistItem = z.union([
       externalVideoId: z.string().regex(/^[a-zA-Z0-9_-]{11}$/),
     })
     .passthrough(),
+  z
+    .object({
+      provider: z.literal("tiktok"),
+      externalVideoId: z.string().regex(/^[1-9][0-9]{14,19}$/),
+    })
+    .passthrough(),
   z.object({ videoLinkIdentifier: KPool_Common_Uuid.uuid() }).passthrough(),
 ]);
 const SavePlaylistRequestBody = z
@@ -342,6 +348,8 @@ const LikedVideoPlaylist = z
   .passthrough();
 const LikedVideoLink = z
   .object({
+    provider: z.enum(["youtube", "tiktok"]),
+    externalVideoId: z.string(),
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
     url: z.string(),
     title: z.string(),
@@ -555,7 +563,7 @@ const CreateVideoLinkRequestBody = z
       "other",
     ]),
     title: z.string().max(255),
-    durationSeconds: z.number().int().gte(0),
+    durationSeconds: z.number().int().gte(0).nullish(),
     thumbnailUrl: z.string().nullish(),
     publishedAt: z.string().nullish(),
   })
@@ -924,6 +932,8 @@ const TalentWikiDetail = z
   .passthrough();
 const Video = z
   .object({
+    provider: z.enum(["youtube", "tiktok"]),
+    externalVideoId: z.string(),
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
     likeCount: z.number().int().gte(0),
     url: z.string(),
@@ -1012,8 +1022,10 @@ const SearchMasterWikisResponseBody = z
 const PlaylistItem = z
   .object({
     sourceVideoLinkIdentifier: KPool_Common_Uuid.nullable(),
-    provider: z.literal("youtube"),
-    externalVideoId: z.string().regex(/^[a-zA-Z0-9_-]{11}$/),
+    provider: z.enum(["youtube", "tiktok"]),
+    externalVideoId: z
+      .string()
+      .regex(/^([a-zA-Z0-9_-]{11}|[1-9][0-9]{14,19})$/),
     position: z.number().int().gte(0).lte(49),
     url: z.string().url(),
     title: z.string(),
@@ -2236,7 +2248,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/my/playlists/:playlistId",
     alias: "PlaylistOperations_getMyPlaylist",
-    description: `Return the authenticated Wiki Principal&#x27;s private playlist with all stored items, ordered by position, without pagination. Requires an active Account/Principal and Wiki collaborator GET_MY_PLAYLIST permission. Other owners and missing identifiers return the same 404; malformed identifiers return 422. Empty playlists return items: []. videoCount equals the stored item count. Snapshots remain available after source deletion (sourceVideoLinkIdentifier becomes null), Wiki unpublication or unlike. No YouTube requests or collection jobs are triggered; playback failures are handled by the player.`,
+    description: `Return the authenticated Wiki Principal&#x27;s private playlist with all stored items, ordered by position, without pagination. Requires an active Account/Principal and Wiki collaborator GET_MY_PLAYLIST permission. Other owners and missing identifiers return the same 404; malformed identifiers return 422. Empty playlists return items: []. videoCount equals the stored item count. Snapshots remain available after source deletion (sourceVideoLinkIdentifier becomes null), Wiki unpublication or unlike. No YouTube/TikTok requests or collection jobs are triggered; playback failures are handled by the player.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3616,7 +3628,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/video-link/create",
     alias: "VideoLinkOperations_createVideoLink",
-    description: `Create one manual video without replacing existing videos. Requires an authenticated Wiki collaborator. durationSeconds is a non-negative integer obtained by the frontend player; zero is allowed. The creator principal identifier is determined on the server. Duplicate URLs within the wiki return 409.`,
+    description: `Create one manual video without replacing existing videos. Requires an authenticated Wiki collaborator. YouTube requires a non-negative frontend-player duration; zero is allowed. TikTok ignores client thumbnail/duration and resolves the selected public video before storing its cover. The creator is determined on the server. Duplicate provider/video IDs within the wiki return 409, including URL variants. Invalid URL or resolved non-video share links return 422. Unavailable, restricted, changed or invalid public metadata/image and storage failures return 502 (video_metadata_unavailable); no video is saved. Successful response is 204 without a body.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3664,6 +3676,11 @@ const endpoints = makeApi([
       },
       {
         status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 502,
         description: `Server error`,
         schema: KPool_Common_ProblemDetails,
       },
@@ -3730,7 +3747,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/:resourceType/:slug/videos",
     alias: "PublicVideoLinkOperations_listVideos",
-    description: `Public, unauthenticated list of videos for the exact published wiki. Includes manually created and automatically collected videos. creatorPrincipalIdentifier is the saved creator for manual videos and null for automatically collected videos. Agency includes manual videos only. Ordered by creation time descending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Viewing never calls YouTube or dispatches collection jobs.`,
+    description: `Public, unauthenticated list of videos for the exact published wiki. Includes manually created and automatically collected videos. creatorPrincipalIdentifier is the saved creator for manual videos and null for automatically collected videos. Agency includes manual videos only. Ordered by creation time descending, then videoLinkIdentifier ascending. A missing published wiki returns 404; zero videos returns videos: []. Viewing never calls YouTube or TikTok or dispatches collection jobs.`,
     requestFormat: "json",
     parameters: [
       {
