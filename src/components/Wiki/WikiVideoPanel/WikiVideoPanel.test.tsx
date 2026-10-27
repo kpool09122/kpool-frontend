@@ -51,6 +51,7 @@ const identity = {
   slug: "gr-test",
 };
 const video = {
+  provider: "youtube", externalVideoId: "abcdefghijk",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
   url: "https://youtu.be/abcdefghijk",
   title: "Collected video",
@@ -113,7 +114,7 @@ describe("WikiVideoPanel", () => {
               {
                 ...video,
                 videoLinkIdentifier: "00000000-0000-4000-8000-000000000002",
-                url: "https://youtu.be/lmnopqrstuv",
+                externalVideoId: "lmnopqrstuv", url: "https://youtu.be/lmnopqrstuv",
                 title: "Second video",
               },
             ],
@@ -676,7 +677,7 @@ describe("WikiVideoPanel", () => {
       expect(screen.getByRole("status")).toHaveTextContent("Loading videos");
     },
   );
-  it("never renders arbitrary backend URLs as players, links or images", async () => {
+  it("plays only validated identity and never renders arbitrary backend URLs as players, links or images", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -695,7 +696,7 @@ describe("WikiVideoPanel", () => {
     await screen.findByText(video.title);
     expect(
       screen.getByRole("button", { name: `Play: ${video.title}` }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });

@@ -4,7 +4,7 @@ const id = "00000000-0000-4000-8000-000000000001";
 const video = {
   videoLinkIdentifier: id,
   likeCount: 0,
-  url: "https://youtu.be/jfKfPfyJRdk",
+  provider: "youtube", externalVideoId: "jfKfPfyJRdk", url: "https://youtu.be/jfKfPfyJRdk",
   title: "Video likes",
   thumbnailUrl: null,
   publishedAt: null,

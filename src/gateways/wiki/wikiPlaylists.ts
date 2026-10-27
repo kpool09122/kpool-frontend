@@ -1,5 +1,5 @@
 import { wikiPrivateApiTypes } from "@kpool/types";
-import { getYouTubeVideoId } from "@kpool/wiki";
+import { isVideoId } from "@kpool/wiki";
 import { z } from "zod";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
@@ -42,7 +42,7 @@ export const playlistSaveSchema = schemas.SavePlaylistRequestBody.extend({
             provider: schemas.PlaylistItem.shape.provider,
             externalVideoId: schemas.PlaylistItem.shape.externalVideoId,
           })
-          .strict(),
+          .strict().refine((item) => isVideoId(item.provider, item.externalVideoId)),
         z
           .object({
             videoLinkIdentifier:
@@ -65,10 +65,10 @@ export type SavePlaylist = z.infer<typeof playlistSaveSchema>;
 export const aggregateLikedVideos = (videos: LikedVideo[]) => {
   const seen = new Set<string>();
   return videos.flatMap((video) => {
-    const externalVideoId = getYouTubeVideoId(video.url);
-    if (!externalVideoId || seen.has(externalVideoId)) return [];
-    seen.add(externalVideoId);
-    return [{ ...video, externalVideoId }];
+    const key = playlistItemKey(video);
+    if (!isVideoId(video.provider, video.externalVideoId) || seen.has(key)) return [];
+    seen.add(key);
+    return [video];
   });
 };
 export const playlistItemKey = (item: {

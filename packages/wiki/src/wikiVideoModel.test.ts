@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { formatVideoDuration, getYouTubeVideoId, getYouTubeThumbnailUrl } from "./wikiVideoModel";
+import { formatVideoDuration, getYouTubeVideoId, getYouTubeThumbnailUrl, getTikTokVideoId, normalizeVideoUrl, getVideoThumbnailUrl } from "./wikiVideoModel";
 
+describe("provider-specific identifiers and saved images", () => {
+  it("keeps TikTok IDs as strings and validates hosts and path", () => {
+    expect(getTikTokVideoId("6718335390845095173")).toBe("6718335390845095173");
+    expect(getTikTokVideoId("https://www.tiktok.com/@scout2015/video/6718335390845095173")).toBe("6718335390845095173");
+    for (const value of ["https://www.tiktok.com.evil.test/@x/video/6718335390845095173", "https://user:pass@www.tiktok.com/@x/video/6718335390845095173", "https://vm.tiktok.com/a/b", "https://www.tiktok.com/@x/photo/6718335390845095173", "https://www.tiktok.com/@x/video/0718335390845095173"]) expect(normalizeVideoUrl(value)).toBeNull();
+  });
+  it("accepts only trusted saved image hosts, including WebP", () => {
+    expect(getVideoThumbnailUrl("https://images.k-pool.app/images/video.webp")).toBe("https://images.k-pool.app/images/video.webp");
+    for (const value of ["data:image/webp;base64,AAAA", "javascript:alert(1)", "https://images.k-pool.app.evil.test/images/video.webp", "https://images.k-pool.app/track", "https://tracking.example/video.webp", "http://user:secret@localhost:8080/image.webp"]) expect(getVideoThumbnailUrl(value)).toBeNull();
+  });
+});
 describe("video duration", () => {
   it.each([
     [0, "0:00"],

@@ -15,11 +15,12 @@ import { useAuthStore } from "@/gateways/auth/authStore";
 import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { WikiVideoPanel } from "./index";
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
-import { YouTubePlaybackProvider } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
-import { YouTubeQueuePlayer } from "@/components/YouTubePlayback/YouTubeQueuePlayer";
-import type { YouTubePlayerOptions } from "@/components/YouTubePlayback/youtubeIframeApi";
+import { VideoPlaybackProvider } from "@/components/VideoPlayback/VideoPlaybackProvider";
+import { YouTubeQueuePlayer } from "@/components/VideoPlayback/YouTubeQueuePlayer";
+import type { YouTubePlayerOptions } from "@/components/VideoPlayback/youtubeIframeApi";
 
 const first: WikiVideo = {
+  provider: "youtube", externalVideoId: "abcdefghijk",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
   url: "https://youtu.be/abcdefghijk",
   title: "First video",
@@ -32,13 +33,13 @@ const first: WikiVideo = {
   videoUsage: "youtube_auto_view_count",
 };
 const second: WikiVideo = {
-  ...first,
+  ...first, externalVideoId: "lmnopqrstuv",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000002",
   url: "https://youtu.be/lmnopqrstuv",
   title: "Second video",
 };
 const invalid: WikiVideo = {
-  ...first,
+  ...first, externalVideoId: "invalid",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000003",
   url: "https://tracker.example/abcdefghijk",
   title: "Invalid video",
@@ -63,13 +64,13 @@ function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
   const tree = (slug = "gr-test", withEmbed = false) => (
     <QueryClientProvider client={client}>
       <I18nProvider initialLocale={locale}>
-        <YouTubePlaybackProvider>
+        <VideoPlaybackProvider>
           <WikiVideoPanel language="ja" resourceType="group" slug={slug} />
           {withEmbed ? <WikiEmbedFrame block={{
             blockType: "embed", blockIdentifier: "body-video", displayOrder: 0,
             provider: "youtube", embedId: "12345678901", caption: "Body video",
           }} /> : null}
-        </YouTubePlaybackProvider>
+        </VideoPlaybackProvider>
       </I18nProvider>
     </QueryClientProvider>
   );
@@ -368,7 +369,7 @@ describe("continuous playback", () => {
   });
   it("shuffles only upcoming videos when enabled during playback", async () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
-    const third = { ...invalid, url: "https://youtu.be/12345678901" };
+    const third = { ...invalid, externalVideoId: "12345678901", url: "https://youtu.be/12345678901" };
     mount([first, second, third]);
     await start();
     expectCurrentVideo(first, 1, 3);
@@ -415,7 +416,7 @@ describe("continuous playback", () => {
     expect(requests[0].loadVideoById).toHaveBeenCalledWith("abcdefghijk");
   });
   it.each([false, true])("shuffles without repeats within a pass (loop: %s)", async (loop) => {
-    const third = { ...invalid, url: "https://youtu.be/12345678901" };
+    const third = { ...invalid, externalVideoId: "12345678901", url: "https://youtu.be/12345678901" };
     vi.spyOn(Math, "random").mockReturnValue(0);
     mount([first, second, third]);
     fireEvent.click(screen.getByRole("button", { name: "Random playback" }));

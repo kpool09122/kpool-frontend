@@ -5,6 +5,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("public wiki videos", () => {
   it("uses exact encoded identity without credentials and preserves order/nullable fields", async () => {
     const videos = [2, 1].map((n) => ({
+      provider: "youtube", externalVideoId: "abcdefghijk",
       videoLinkIdentifier: `00000000-0000-4000-8000-00000000000${n}`,
       url: "https://youtu.be/abcdefghijk",
       title: `Video ${n}`,

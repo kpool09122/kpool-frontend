@@ -7,6 +7,33 @@ const tracks = [
 ];
 
 describe("shared playback ownership", () => {
+  it.each(["off", "one", "all"] as const)("mixed queue skips every failed provider and stops even with loop %s", (loop) => {
+    const store = createPlaybackStore();
+    store.getState().start("mixed", [{ ...tracks[0], provider: "youtube" }, { ...tracks[1], provider: "tiktok", videoId: "6718335390845095173" }], "queue", loop, true);
+    const session = store.getState().session!;
+    const first = session.tracks[session.queue.playerIndex];
+    store.getState().advance(session.id, true, first.videoId, first.provider, 0);
+    const next = store.getState().session!;
+    const second = next.tracks[next.queue.playerIndex];
+    expect(second.provider).not.toBe(first.provider);
+    store.getState().advance(session.id, true, second.videoId, second.provider, next.queue.sequence);
+    expect(store.getState().session).toBeNull();
+  });
+  it("ignores duplicate and stale mixed-provider completion tokens including repeat-one", () => {
+    const store = createPlaybackStore();
+    store.getState().start("mixed", [{ ...tracks[0], provider: "youtube" }, { ...tracks[1], provider: "tiktok", videoId: "6718335390845095173" }], "queue", "all");
+    const session = store.getState().session!;
+    store.getState().advance(session.id, false, tracks[0].videoId, "youtube", 0);
+    expect(store.getState().session?.queue.position).toBe(1);
+    store.getState().advance(session.id, false, tracks[0].videoId, "youtube", 0);
+    expect(store.getState().session?.queue.position).toBe(1);
+    store.getState().setLoop("one");
+    store.getState().advance(session.id, false, "6718335390845095173", "tiktok", 1);
+    store.getState().advance(session.id, false, "6718335390845095173", "tiktok", 1);
+    expect(store.getState().session?.queue.sequence).toBe(2);
+    store.getState().selectTrack(session.id, "second");
+    expect(store.getState().session?.queue.sequence).toBe(3);
+  });
   it("restores only the current source without changing its track, queue or playback settings", () => {
     const store = createPlaybackStore();
     store.getState().restore("playlist");
@@ -120,13 +147,12 @@ describe("selecting a queued track", () => {
     });
     expect(store.getState().floating).toBe(false);
   });
-  it("ignores stale sessions, unknown tracks, the current track and single-video playback", () => {
+  it("ignores stale sessions, unknown tracks and single-video playback", () => {
     const store = createPlaybackStore();
     store.getState().start("playlist", tracks, "queue");
     const before = store.getState().session!;
     store.getState().selectTrack(before.id - 1, "second");
     store.getState().selectTrack(before.id, "missing");
-    store.getState().selectTrack(before.id, "first");
     expect(store.getState().session).toBe(before);
     store.getState().start("wiki", tracks, "single");
     const single = store.getState().session!;

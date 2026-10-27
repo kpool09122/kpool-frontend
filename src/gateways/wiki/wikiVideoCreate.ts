@@ -1,4 +1,4 @@
-import { normalizeYouTubeVideoUrl } from "@kpool/wiki";
+import { normalizeVideoUrl } from "@kpool/wiki";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 import {
   wikiVideoCreateSchema,
@@ -22,7 +22,7 @@ export const createWikiVideo = async (body: WikiVideoCreateRequest) => {
       },
       body: JSON.stringify({
         ...parsed.data,
-        url: normalizeYouTubeVideoUrl(parsed.data.url),
+        url: normalizeVideoUrl(parsed.data.url),
       }),
     });
     return { ok: response.status === 204, status: response.status };

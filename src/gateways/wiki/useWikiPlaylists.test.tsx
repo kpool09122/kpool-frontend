@@ -14,6 +14,18 @@ vi.mock("./wikiPlaylists", async (original) => ({
   savePlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
 }));
+it("adds TikTok using server identity and sends new link while preserving deleted snapshots", async () => {
+  const { result } = setup();
+  await act(() => result.current.open(id));
+  const video = { provider: "tiktok", externalVideoId: "6718335390845095173", title: "TikTok", url: "https://vm.tiktok.com/AbCd123/", videoLinkIdentifier: "00000000-0000-4000-8000-000000000002" } as api.LikedVideo;
+  await act(() => result.current.addToPlaylist(id, video));
+  expect(result.current.draft?.items).toHaveLength(2);
+  expect(result.current.draft?.items[1]).toMatchObject({ provider: "tiktok", externalVideoId: video.externalVideoId });
+  await act(() => result.current.addToPlaylist(id, video));
+  expect(result.current.draft?.items).toHaveLength(2);
+  await act(() => result.current.save());
+  expect(api.savePlaylist).toHaveBeenCalledWith(id, { name: "Saved", items: [{ provider: "youtube", externalVideoId: "abcdefghijk" }, { videoLinkIdentifier: video.videoLinkIdentifier }] }, expect.any(AbortSignal));
+});
 afterEach(cleanup);
 const id = "00000000-0000-4000-8000-000000000001";
 const saved = {
@@ -184,6 +196,7 @@ it("drops late completions when identity session changes", async () => {
 });
 
 const likedVideo = {
+  provider: "youtube" as const, externalVideoId: "lmnopqrstuv",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000011",
   title: "New song", url: "https://youtu.be/lmnopqrstuv", thumbnailUrl: null,
   durationSeconds: null, language: "ja" as const, resourceType: "group" as const,

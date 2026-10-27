@@ -1,8 +1,11 @@
 import { expect, test } from "./fixtures";
+import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { wikiVideoAuthenticatedIdentity as authenticatedIdentity } from "./wiki-video-identity";
 const id = "00000000-0000-4000-8000-000000000001";
 const video = {
   videoLinkIdentifier: id,
+  provider: "youtube",
+  externalVideoId: "jfKfPfyJRdk",
   url: "https://youtu.be/jfKfPfyJRdk",
   title:
     "A long video title for mobile deletion confirmation and playback layout",
@@ -13,7 +16,7 @@ const video = {
   creatorIdentityName: null,
   likeCount: 0,
   videoUsage: "youtube_auto_recent_popular",
-};
+} satisfies WikiVideo;
 const baseURL = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
 
 test("mobile collaborator confirms by keyboard, preserves duration filters and handles failed deletion", async ({

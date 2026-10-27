@@ -3,23 +3,23 @@
 import Image from "next/image";
 import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
-import { YouTubeQueueControls } from "@/components/YouTubePlayback/YouTubeQueueControls";
-import { nextLoopMode, type LoopMode } from "@/components/YouTubePlayback/playbackQueue";
+import { VideoQueueControls } from "@/components/VideoPlayback/VideoQueueControls";
+import { nextLoopMode, type LoopMode } from "@/components/VideoPlayback/playbackQueue";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
 import {
   PlaybackOutlet,
-  YouTubePlaybackProvider,
+  VideoPlaybackProvider,
   usePlaybackOwner,
-  useYouTubePlayback,
-} from "@/components/YouTubePlayback/YouTubePlaybackProvider";
+  useVideoPlayback,
+} from "@/components/VideoPlayback/VideoPlaybackProvider";
 import { useWikiVideoDeleteAccess } from "@/gateways/wiki/useWikiVideoDeleteAccess";
 import { WikiVideoDeleteButton } from "./WikiVideoDeleteButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   formatVideoDuration,
-  getYouTubeVideoId,
-  getYouTubeThumbnailUrl,
+  isVideoId,
+  getVideoThumbnailUrl,
 } from "@kpool/wiki";
 import {
   fetchWikiVideos,
@@ -50,8 +50,8 @@ function VideoCard({
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
   const [imageFailed, setImageFailed] = useState(false);
-  const videoId = getYouTubeVideoId(video.url);
-  const thumbnail = getYouTubeThumbnailUrl(video.thumbnailUrl);
+  const videoId = isVideoId(video.provider, video.externalVideoId) ? video.externalVideoId : null;
+  const thumbnail = getVideoThumbnailUrl(video.thumbnailUrl);
   const duration = formatVideoDuration(video.durationSeconds);
   return (
     <li
@@ -64,7 +64,7 @@ function VideoCard({
             {videoId ? (
               <span className="pt-1">
                 <SocialLinkIcon
-                  url={`https://www.youtube.com/watch?v=${videoId}`}
+                  url={video.provider === "tiktok" ? `https://www.tiktok.com/@_/video/${videoId}` : `https://www.youtube.com/watch?v=${videoId}`}
                 />
               </span>
             ) : null}
@@ -123,9 +123,9 @@ function VideoCard({
 }
 
 export function WikiVideoPanel(props: WikiVideoIdentity & { wikiIdentifier?: string }) {
-  const context = useYouTubePlayback();
+  const context = useVideoPlayback();
   return context ? <WikiVideoPanelContent {...props} /> : (
-    <YouTubePlaybackProvider><WikiVideoPanelContent {...props} /></YouTubePlaybackProvider>
+    <VideoPlaybackProvider><WikiVideoPanelContent {...props} /></VideoPlaybackProvider>
   );
 }
 
@@ -283,10 +283,10 @@ function VideoPlaybackList({
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.continuous;
   const queue = videos.flatMap((video) => {
-    const videoId = getYouTubeVideoId(video.url);
+    const videoId = isVideoId(video.provider, video.externalVideoId) ? video.externalVideoId : null;
     return videoId ? [{ video, videoId }] : [];
   });
-  const { store } = useYouTubePlayback()!;
+  const { store } = useVideoPlayback()!;
   const owner = useId();
   usePlaybackOwner(store, owner);
   const session = useStore(store, (state) => state.session);
@@ -318,7 +318,7 @@ function VideoPlaybackList({
   };
   return (
     <div className="space-y-5">
-      <YouTubeQueueControls
+      <VideoQueueControls
         labels={t}
         empty={!queue.length}
         playing={playback?.kind === "queue"}
@@ -330,7 +330,7 @@ function VideoPlaybackList({
         onToggleLoop={() => setLoop(nextLoopMode(loop))}
         onStart={() => {
           store.getState().start(owner, queue.map(({ video, videoId }) => ({
-            identifier: video.videoLinkIdentifier, videoId, title: video.title,
+            identifier: video.videoLinkIdentifier, videoId, provider: video.provider, title: video.title,
             controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
           })), "queue", loop, random);
         }}
@@ -353,9 +353,9 @@ function VideoPlaybackList({
               ? <PlaybackOutlet owner={owner} /> : undefined}
             current={active?.identifier === video.videoLinkIdentifier}
             onPlay={() => {
-              const videoId = getYouTubeVideoId(video.url);
+              const videoId = isVideoId(video.provider, video.externalVideoId) ? video.externalVideoId : null;
               if (videoId) store.getState().start(owner, [{
-                identifier: video.videoLinkIdentifier, videoId, title: video.title,
+                identifier: video.videoLinkIdentifier, videoId, provider: video.provider, title: video.title,
                 controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
               }], "single");
             }}

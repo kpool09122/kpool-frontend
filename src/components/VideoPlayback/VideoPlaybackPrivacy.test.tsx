@@ -1,9 +1,9 @@
 import { act, render } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import {
-  YouTubePlaybackProvider,
-  useYouTubePlayback,
-} from "./YouTubePlaybackProvider";
+  VideoPlaybackProvider,
+  useVideoPlayback,
+} from "./VideoPlaybackProvider";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { PlaybackStore } from "./playbackStore";
 import { useEffect } from "react";
@@ -14,7 +14,7 @@ vi.mock("@/i18n/I18nProvider", () => ({
 vi.mock("./YouTubeQueuePlayer", () => ({ YouTubeQueuePlayer: () => null }));
 let store: PlaybackStore;
 function Capture() {
-  const context = useYouTubePlayback()!;
+  const context = useVideoPlayback()!;
   useEffect(() => {
     store = context.store;
   }, [context]);
@@ -27,18 +27,18 @@ beforeEach(() =>
     sessionVersion: 1,
   }),
 );
-it("stops floating private queues synchronously on logout but preserves public queues", () => {
+it.each(["youtube", "tiktok"] as const)("stops floating private %s queues synchronously on logout but preserves public queues", (provider) => {
   render(
-    <YouTubePlaybackProvider>
+    <VideoPlaybackProvider>
       <Capture />
-    </YouTubePlaybackProvider>,
+    </VideoPlaybackProvider>,
   );
   act(() => {
     store
       .getState()
       .start(
         "private-playlist:owner",
-        [{ identifier: "one", videoId: "abcdefghijk", title: "Private" }],
+        [{ identifier: "one", provider, videoId: provider === "tiktok" ? "6718335390845095173" : "abcdefghijk", title: "Private" }],
         "queue",
       );
     store.getState().detach();

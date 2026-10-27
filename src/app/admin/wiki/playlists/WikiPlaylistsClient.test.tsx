@@ -15,7 +15,7 @@ import { useAuthStore } from "@/gateways/auth/authStore";
 import {
   createPlaybackStore,
   type PlaybackStore,
-} from "@/components/YouTubePlayback/playbackStore";
+} from "@/components/VideoPlayback/playbackStore";
 const sectionMock = vi.hoisted(() => ({ principal: "principal" }));
 const playbackMock = vi.hoisted(() => ({
   context: null as { store: PlaybackStore } | null,
@@ -30,8 +30,8 @@ vi.mock("@/gateways/wiki/wikiPlaylists", async (original) => ({
   savePlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
 }));
-vi.mock("@/components/YouTubePlayback/YouTubePlaybackProvider", () => ({
-  useYouTubePlayback: () => playbackMock.context,
+vi.mock("@/components/VideoPlayback/VideoPlaybackProvider", () => ({
+  useVideoPlayback: () => playbackMock.context,
   PlaybackOutlet: () => null,
 }));
 vi.mock("@/i18n/I18nProvider", () => ({
@@ -390,6 +390,18 @@ it("returns focus to the enabled start button after Stop without taking focus on
   act(() => store.getState().stop());
   expect(selection).toHaveFocus();
 });
+it("keeps mixed saved queue identity and current rows matched to provider snapshots", async () => {
+  const store = createPlaybackStore(); playbackMock.context = { store };
+  vi.mocked(api.fetchPlaylist).mockResolvedValue({ ...saved, videoCount: 2, items: [saved.items[0], { ...saved.items[0], provider: "tiktok", externalVideoId: "6718335390845095173", title: "Saved TikTok", url: "https://www.tiktok.com/@scout2015/video/6718335390845095173", thumbnailUrl: "https://images.k-pool.app/images/snapshot.webp", position: 1 }] });
+  setup(); await openSaved();
+  fireEvent.click(await screen.findByRole("button", { name: "Play all" }));
+  expect(store.getState().session?.tracks.map(({ provider, videoId }) => [provider, videoId])).toEqual([["youtube", "abcdefghijk"], ["tiktok", "6718335390845095173"]]);
+  const target = screen.getByRole("button", { name: "Play video: Saved TikTok" });
+  fireEvent.click(target);
+  expect(target).toHaveAttribute("aria-current", "true");
+  expect(target.closest("li")?.querySelector("img")).toHaveAttribute("src", "https://images.k-pool.app/images/snapshot.webp");
+  expect(api.savePlaylist).not.toHaveBeenCalled();
+});
 it("plays only saved snapshots in position order independent from draft edits and shuffle", async () => {
   const store = createPlaybackStore();
   playbackMock.context = { store };
@@ -489,7 +501,7 @@ it("shows saved playlist badges and reflects local removals without source metad
   vi.mocked(api.fetchLikedVideoPage).mockResolvedValue({
     likedVideoLinkIdentifiers: [id],
     videos: [{
-      videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Shared song",
+      provider: "youtube", externalVideoId: "abcdefghijk", videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Shared song",
       thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
       likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Saved" }, { playlistIdentifier: other, name: "Other" }],
     }],
@@ -519,6 +531,7 @@ it("stages additions from the destination dialog and writes them only when Save 
   const t = dictionaries.en.admin.playlists;
   const source = "00000000-0000-4000-8000-000000000011";
   const video = {
+    provider: "youtube" as const, externalVideoId: "lmnopqrstuv",
     videoLinkIdentifier: source, title: "Liked song", url: "https://youtu.be/lmnopqrstuv",
     thumbnailUrl: null, durationSeconds: null, language: "ja" as const,
     resourceType: "group" as const, slug: "group", likedAt: "2026-10-26T00:00:00Z",

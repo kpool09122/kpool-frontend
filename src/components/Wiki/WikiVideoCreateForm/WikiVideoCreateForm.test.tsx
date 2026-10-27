@@ -32,6 +32,12 @@ vi.mock("../YouTubeDurationPreview", () => ({
     </div>
   ),
 }));
+vi.mock("@/components/VideoPlayback/TikTokPlayer", () => ({
+  TikTokPlayer: ({ onPlaying, onError }: { onPlaying: () => void; onError: () => void }) => <div>
+    <button type="button" onClick={onPlaying}>TikTok playing</button>
+    <button type="button" onClick={onError}>TikTok error</button>
+  </div>,
+}));
 const identity = {
   wikiIdentifier: "11111111-1111-4111-8111-111111111111",
   resourceType: "group" as const,
@@ -43,7 +49,7 @@ const mount = (onCreated?: () => void) =>
     </I18nProvider>,
   );
 const fill = () => {
-  fireEvent.change(screen.getByLabelText("YouTube URL"), {
+  fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), {
     target: {
       value: "https://www.youtube.com/watch?v=Os_heh8vPfs&list=ignore&index=27",
     },
@@ -57,12 +63,12 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 describe("single video form", () => {
-  it("shows an invalid YouTube URL error and prevents saving a TikTok URL", () => {
+  it("shows an invalid video URL error and prevents saving a forged TikTok host", () => {
     mount();
-    fireEvent.change(screen.getByLabelText("YouTube URL"), {
-      target: { value: "https://www.tiktok.com/@example/video/6718335390845095173" },
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), {
+      target: { value: "https://www.tiktok.com.evil.example/@example/video/6718335390845095173" },
     });
-    expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid YouTube URL");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a valid YouTube / TikTok URL");
     expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
     fireEvent.submit(screen.getByRole("form", { name: "Add video" }));
     expect(create).not.toHaveBeenCalled();
@@ -91,10 +97,10 @@ describe("single video form", () => {
       videoUsage: "music_video",
       durationSeconds: 124,
     });
-    expect(screen.getByLabelText("YouTube URL")).toBeDisabled();
+    expect(screen.getByLabelText("YouTube / TikTok URL")).toBeDisabled();
     await act(async () => resolve({ ok: true, status: 204 }));
     expect(await screen.findByRole("status")).toHaveTextContent(/^Video saved\.$/);
-    expect(screen.getByLabelText("YouTube URL")).toHaveValue("");
+    expect(screen.getByLabelText("YouTube / TikTok URL")).toHaveValue("");
     expect(onCreated).toHaveBeenCalledTimes(1);
   });
   it("resets duration even for a changed URL for the same video and reports invalid URL/player failure", () => {
@@ -102,7 +108,7 @@ describe("single video form", () => {
     fill();
     fireEvent.click(screen.getByText("Metadata ready"));
     expect(screen.getByRole("button", { name: "Save video" })).toBeEnabled();
-    fireEvent.change(screen.getByLabelText("YouTube URL"), {
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), {
       target: { value: "https://youtu.be/Os_heh8vPfs" },
     });
     expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
@@ -110,13 +116,60 @@ describe("single video form", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Could not load video duration",
     );
-    fireEvent.change(screen.getByLabelText("YouTube URL"), {
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), {
       target: { value: "https://evil.test" },
     });
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Enter a valid YouTube URL",
+      "Enter a valid YouTube / TikTok URL",
     );
     expect(screen.queryByText("Metadata ready")).not.toBeInTheDocument();
+  });
+  it("requires TikTok playback confirmation and retains inputs after save failure", async () => {
+    const url = "https://www.tiktok.com/@scout2015/video/6718335390845095173";
+    create.mockResolvedValueOnce({ ok: false, status: 502 }).mockResolvedValueOnce({ ok: true, status: 204 });
+    mount();
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), { target: { value: url } });
+    fireEvent.change(screen.getByLabelText("Video title"), { target: { value: "TikTok title" } });
+    expect(screen.queryByText("Metadata ready")).toBeNull();
+    expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
+    fireEvent.submit(screen.getByRole("form", { name: "Add video" }));
+    expect(create).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("TikTok playing"));
+    fireEvent.click(screen.getByRole("button", { name: "Save video" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not save");
+    expect(screen.getByLabelText("YouTube / TikTok URL")).toHaveValue(url);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Save video" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Save video" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("Video saved");
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ url, durationSeconds: null, thumbnailUrl: null }));
+  });
+  it.each(["https://vm.tiktok.com/AbCd123/", "https://vt.tiktok.com/AbCd123/"])("requires a full video URL to verify TikTok short links: %s", (url) => {
+    mount();
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), { target: { value: url } });
+    fireEvent.change(screen.getByLabelText("Video title"), { target: { value: "TikTok title" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("paste its full URL");
+    expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
+    fireEvent.submit(screen.getByRole("form", { name: "Add video" }));
+    expect(create).not.toHaveBeenCalled();
+  });
+  it("blocks restricted TikTok previews and resets confirmation when another video is selected", () => {
+    mount();
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), { target: { value: "https://www.tiktok.com/@x/video/6740558728342359297" } });
+    fireEvent.change(screen.getByLabelText("Video title"), { target: { value: "TikTok title" } });
+    fireEvent.click(screen.getByText("TikTok error"));
+    expect(screen.getByRole("alert")).toHaveTextContent("TikTok restrictions");
+    fireEvent.submit(screen.getByRole("form", { name: "Add video" }));
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), { target: { value: "https://www.tiktok.com/@x/video/6718335390845095173" } });
+    expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
+    fireEvent.click(screen.getByText("TikTok playing"));
+    expect(screen.getByRole("button", { name: "Save video" })).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("YouTube / TikTok URL"), { target: { value: "https://www.tiktok.com/@x/video/6795788035884584194" } });
+    expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
+    fireEvent.click(screen.getByText("TikTok playing"));
+    fireEvent.click(screen.getByText("TikTok error"));
+    expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();
   });
   it.each([
     [401, "Sign in again"],
@@ -133,7 +186,7 @@ describe("single video form", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(text);
     expect(screen.getByLabelText("Video title")).toHaveValue("My video");
     await waitFor(() =>
-      expect(screen.getByLabelText("YouTube URL")).toBeEnabled(),
+      expect(screen.getByLabelText("YouTube / TikTok URL")).toBeEnabled(),
     );
     if (status === 401 || status === 403)
       expect(screen.getByRole("button", { name: "Save video" })).toBeDisabled();

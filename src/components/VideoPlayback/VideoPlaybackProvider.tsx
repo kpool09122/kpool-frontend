@@ -19,6 +19,7 @@ import { adjacentPlaybackIndex, nextLoopMode } from "./playbackQueue";
 import { LoopPlaybackButton } from "./LoopPlaybackButton";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createPlaybackStore, type PlaybackStore, type PlaybackSession } from "./playbackStore";
+import { TikTokPlayer } from "./TikTokPlayer";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
 import { useFloatingPosition } from "./useFloatingPosition";
 import { usePlayerFullscreen } from "./usePlayerFullscreen";
@@ -31,9 +32,9 @@ const PlaybackContext = createContext<{
   height: number;
 } | null>(null);
 
-export const useYouTubePlayback = () => useContext(PlaybackContext);
+export const useVideoPlayback = () => useContext(PlaybackContext);
 
-export function YouTubePlaybackProvider({ children }: { children: ReactNode }) {
+export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createPlaybackStore);
   useEffect(() => useAuthStore.subscribe((next, previous) => {
     const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
@@ -54,7 +55,7 @@ export function YouTubePlaybackProvider({ children }: { children: ReactNode }) {
 }
 
 export function PlaybackOutlet({ owner, preserveSpace = false }: { owner: string; preserveSpace?: boolean }) {
-  const context = useYouTubePlayback();
+  const context = useVideoPlayback();
   const register = context?.register;
   const ref = useCallback((node: HTMLDivElement | null) => register?.(owner, node), [owner, register]);
   if (!context) return null;
@@ -189,17 +190,23 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
       </div>
       {fullscreenFailed ? <p role="status">{t.fullscreenFailed}</p> : null}
       <div data-player-interactive className={`touch-auto cursor-auto${fullscreen ? " min-h-0 flex-1" : ""}`}>
-        <YouTubeQueuePlayer
-          key={session.id}
+        {requested.provider === "tiktok" ? <TikTokPlayer
+          key={`${session.id}:tiktok:${queue.sequence}`}
+          videoId={requested.videoId} title={active.title} expanded={fullscreen}
+          advanceOnError={session.kind === "queue"}
+          onEnded={() => store.getState().advance(session.id, false, requested.videoId, "tiktok", queue.sequence)}
+          onError={() => store.getState().advance(session.id, true, requested.videoId, "tiktok", queue.sequence)}
+        /> : <YouTubeQueuePlayer
+          key={`${session.id}:youtube`}
           expanded={fullscreen}
           playbackKey={queue.sequence}
           videoId={requested.videoId}
           title={active.title}
-          onVideoChange={(id) => store.getState().synchronize(session.id, id)}
-          onEnded={(id) => store.getState().advance(session.id, false, id)}
-          onError={() => store.getState().advance(session.id, true)}
+          onVideoChange={(id) => store.getState().synchronize(session.id, id, "youtube", queue.sequence)}
+          onEnded={(id) => store.getState().advance(session.id, false, id, "youtube", queue.sequence)}
+          onError={() => store.getState().advance(session.id, true, requested.videoId, "youtube", queue.sequence)}
           onUnavailable={() => store.getState().unavailable(session.id)}
-        />
+        />}
       </div>
       {floating && session.kind === "queue" ? (
         <div className="flex shrink-0 items-center justify-center gap-4 pt-2">

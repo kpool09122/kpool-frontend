@@ -1,7 +1,10 @@
 import { expect, test } from "./fixtures";
+import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { expectYouTubePlayerSource, installYouTubePlayerMock } from "./youtube-player";
 const video = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
+  provider: "youtube",
+  externalVideoId: "jfKfPfyJRdk",
   url: "https://youtu.be/jfKfPfyJRdk",
   title: "Collected video",
   thumbnailUrl: "https://i.ytimg.com/vi/jfKfPfyJRdk/hqdefault.jpg",
@@ -11,7 +14,7 @@ const video = {
       creatorIdentityName: null,
   likeCount: 0,
   videoUsage: "youtube_auto_view_count",
-};
+} satisfies WikiVideo;
 
 test("anonymous mobile viewer loads videos only on selection, plays inline, and caches switches", async ({
   page,

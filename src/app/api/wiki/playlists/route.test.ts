@@ -50,6 +50,16 @@ it("requires cookie, validates bodies and UUID before upstream I/O", async () =>
   ).toBe(422);
   expect(fetcher).not.toHaveBeenCalled();
 });
+it("saves mixed existing snapshots and new links, rejecting provider mismatches", async () => {
+  vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+  const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  vi.stubGlobal("fetch", fetcher);
+  const body = { name: "Mixed", items: [{ provider: "tiktok", externalVideoId: "6718335390845095173" }, { provider: "youtube", externalVideoId: "abcdefghijk" }, { videoLinkIdentifier: id }] };
+  expect((await PUT(request("PUT", body), context)).status).toBe(204);
+  expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual(body);
+  expect((await PUT(request("PUT", { ...body, items: [{ provider: "tiktok", externalVideoId: "abcdefghijk" }] }), context)).status).toBe(422);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 it("forwards CSRF, cookie, locale and keeps 204 empty and private", async () => {
   vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
   const fetcher = vi.fn().mockImplementation(() =>

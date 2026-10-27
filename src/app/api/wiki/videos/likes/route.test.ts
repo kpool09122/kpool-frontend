@@ -16,7 +16,8 @@ describe("my video likes BFF", () => {
   it("preserves playlist membership badges in paginated video responses", async () => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
     const video = {
-      videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Song",
+      provider: "tiktok", externalVideoId: "6718335390845095173",
+      videoLinkIdentifier: id, url: "https://www.tiktok.com/@scout2015/video/6718335390845095173", title: "Song",
       thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
       likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Favorites" }],
     };

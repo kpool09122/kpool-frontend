@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { normalizeYouTubeVideoUrl, trimTrailingSlashes } from "@kpool/wiki";
+import { normalizeVideoUrl, trimTrailingSlashes } from "@kpool/wiki";
 import { wikiVideoCreateSchema } from "@/gateways/wiki/wikiVideoCreateModel";
 import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { getForwardedWikiApiHeaders } from "../../wikiRouteSupport";
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           ...parsed.data,
-          url: normalizeYouTubeVideoUrl(parsed.data.url),
+          url: normalizeVideoUrl(parsed.data.url),
         }),
       },
     );

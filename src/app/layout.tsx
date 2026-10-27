@@ -22,7 +22,7 @@ import { ThemeInitializer } from "./ThemeInitializer";
 import { themeBootstrapScript } from "./themeMode";
 import { AnalyticsProvider } from "@/components/Analytics/AnalyticsProvider";
 import { resolveGtmContainerId } from "@/gateways/analytics/wikiAnalytics";
-import { YouTubePlaybackProvider } from "@/components/YouTubePlayback/YouTubePlaybackProvider";
+import { VideoPlaybackProvider } from "@/components/VideoPlayback/VideoPlaybackProvider";
 
 export const metadata: Metadata = {
   title: siteTitle,
@@ -59,7 +59,7 @@ export default async function RootLayout({
       <body className="flex min-h-dvh flex-col antialiased">
         <I18nProvider initialLocale={locale}>
           <QueryProvider>
-            <YouTubePlaybackProvider>
+            <VideoPlaybackProvider>
               <AnalyticsProvider containerId={resolveGtmContainerId(
                 process.env.NEXT_PUBLIC_ANALYTICS_ENABLED,
                 process.env.NEXT_PUBLIC_GTM_ID,
@@ -72,7 +72,7 @@ export default async function RootLayout({
                 <div className="flex flex-1 flex-col">{children}</div>
                 <Footer />
               </AnalyticsProvider>
-            </YouTubePlaybackProvider>
+            </VideoPlaybackProvider>
           </QueryProvider>
         </I18nProvider>
       </body>
