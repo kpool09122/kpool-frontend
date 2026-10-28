@@ -50,6 +50,7 @@ describe("wiki draft wiki auto-create route", () => {
       agencyIdentifier: null,
       groupIdentifiers: [],
       talentIdentifiers: [],
+      notes: "以前は別のグループに所属",
     };
     const response = await POST(
       createPostRequest("https://app.example.test/api/wiki/draft-wikis/auto-create", requestBody, {

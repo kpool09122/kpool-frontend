@@ -655,6 +655,7 @@ const AutoCreateWikiRequestBody = z
     language: z.string(),
     slug: z.string(),
     name: z.string(),
+    notes: z.string().max(2000).nullish(),
     agencyIdentifier: KPool_Common_Uuid.nullish(),
     groupIdentifiers: z.array(KPool_Common_Uuid).optional(),
     talentIdentifiers: z.array(KPool_Common_Uuid).optional(),

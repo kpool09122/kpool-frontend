@@ -791,6 +791,47 @@ describe("draftWiki", () => {
     });
   });
 
+  it.each(["agency", "group", "song", "talent"] as const)(
+    "preserves trimmed notes for %s auto-generation",
+    (resourceType) => {
+      const body = createAutoCreateWikiRequestBodyFromInitialFields({
+        language: "ja",
+        name: "Generated Wiki",
+        notes: "  以前は別のグループに所属\n活動期間は2010年から2015年  ",
+        resourceType,
+        slug: "generated-wiki",
+      });
+      expect(body.notes).toBe("以前は別のグループに所属\n活動期間は2010年から2015年");
+    },
+  );
+
+  it.each([undefined, null, "", "  \n  "])("omits empty optional notes (%j)", (notes) => {
+    const body = createAutoCreateWikiRequestBodyFromInitialFields({
+      language: "ja",
+      name: "Generated Wiki",
+      notes,
+      resourceType: "talent",
+      slug: "tl-generated-wiki",
+    });
+    expect(body).not.toHaveProperty("notes");
+  });
+
+  it("accepts the notes limit and rejects longer notes", () => {
+    const fields = {
+      language: "ja",
+      name: "Generated Wiki",
+      resourceType: "group" as const,
+      slug: "gr-generated-wiki",
+    };
+    expect(createAutoCreateWikiRequestBodyFromInitialFields({
+      ...fields, notes: "あ".repeat(2000),
+    }).notes).toHaveLength(2000);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() => createAutoCreateWikiRequestBodyFromInitialFields({
+      ...fields, notes: "あ".repeat(2001),
+    })).toThrow();
+  });
+
   it("builds my and managed draft wiki list urls without legacy filtering query", () => {
     const params = {
       baseUrl: "https://api.example.test/api/v1/wiki/",
@@ -1395,6 +1436,7 @@ describe("draftWiki", () => {
       agencyIdentifier: null,
       groupIdentifiers: [],
       talentIdentifiers: [],
+      notes: "以前は別のグループに所属",
     };
 
     await expect(client!.autoCreateWikiDraft(body)).resolves.toEqual({
