@@ -503,7 +503,7 @@ it("shows saved playlist badges and reflects local removals without source metad
     videos: [{
       provider: "youtube", externalVideoId: "abcdefghijk", videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Shared song",
       thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
-      likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Saved" }, { playlistIdentifier: other, name: "Other" }],
+      likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false, playlists: [{ playlistIdentifier: id, name: "Saved" }, { playlistIdentifier: other, name: "Other" }],
     }],
     pagination: { currentPage: 1, perPage: 20, total: 10 },
   });
@@ -534,7 +534,7 @@ it("stages additions from the destination dialog and writes them only when Save 
     provider: "youtube" as const, externalVideoId: "lmnopqrstuv",
     videoLinkIdentifier: source, title: "Liked song", url: "https://youtu.be/lmnopqrstuv",
     thumbnailUrl: null, durationSeconds: null, language: "ja" as const,
-    resourceType: "group" as const, slug: "group", likedAt: "2026-10-26T00:00:00Z",
+    resourceType: "group" as const, slug: "group", likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false,
     playlists: [],
   };
   vi.mocked(api.fetchPlaylists).mockResolvedValue({

@@ -70,6 +70,8 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
         )}
         {!compact ? <span className="tabular-nums" aria-live="polite">{state.count}</span> : null}
       </button>
+      {state.restricted ? <p role="status" className="text-xs">{dictionary.wiki.videos.watchRequests.unlikeRestricted}</p> : null}
+      {video.hasOfficialOwnerLike && !compact ? <span className="text-sm">{dictionary.wiki.videos.watchRequests.official}</span> : null}
       {notice ? <p id={noticeId} role="status" className={messageClass}>{notice}</p> : null}
       {state.failed ? <p role="alert" className={messageClass}>{t.failed}</p> : null}
     </div>

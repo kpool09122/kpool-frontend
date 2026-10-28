@@ -19,7 +19,12 @@ export async function GET(
   const resourceType = wikiResourceTypeSchema.safeParse(
     request.nextUrl.searchParams.get("resourceType"),
   );
-  const durationInput: Record<string, number> = {};
+  const durationInput: Record<string, number | boolean | string> = {};
+  for (const key of ["recentWatchRequestsOnly", "sortByWatchRequests"] as const) {
+    const values = request.nextUrl.searchParams.getAll(key);
+    if (values.length > 1 || request.nextUrl.searchParams.has(`${key}[]`)) durationInput[key] = "invalid";
+    else if (values.length) durationInput[key] = values[0] === "true" ? true : values[0] === "false" ? false : "invalid";
+  }
   for (const key of ["minDurationSeconds", "maxDurationSeconds"] as const) {
     const value = request.nextUrl.searchParams.get(key);
     if (request.nextUrl.searchParams.has(`${key}[]`)) {

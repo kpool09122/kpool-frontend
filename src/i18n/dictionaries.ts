@@ -1082,6 +1082,7 @@ const ja = {
     contentTabsLabel: "Wiki本文タブ",
     contentVideoTab: "Video",
     videos: {
+      watchRequests: {"send": "これみて！を送信", "sent": "送信済み", "sending": "送信中…", "loading": "これみて情報を読み込み中…", "loadError": "これみて情報を取得できませんでした。ログイン・Wikiコラボレーターの権限を確認してください。", "retry": "再取得", "failed": "送信できませんでした。最新の状態を確認して再試行してください。", "auth": "ログイン・Wikiコラボレーターの権限を確認してください。", "remaining": "直近7日の残り送信可能数", "next": "次回送信可能日時", "recent": "直近7日のこれみてあり", "sort": "直近7日のこれみて件数順（同数なら通常いいね順）", "official": "本人からのいいね", "unlikeRestricted": "送信後7日間はいいねを取り消せません。", "deleteRestricted": "有効なこれみてリクエストがあるため削除できません。", "target_not_eligible": "この動画はこれみての対象外です。", "duration_not_eligible": "30秒以下で長さが確認できる動画が対象です。", "like_required": "先にこの動画にいいねしてください。", "resend_not_available": "同じ動画へ再送できるまでお待ちください。", "weekly_limit_reached": "同じWikiへ直近7日間で3件まで送信できます。"},
       likes: { loginRequired: "いいねするには、ログインしてWikiコラボレータを有効にしてください。", collaboratorRequired: "いいねするには、Wikiコラボレータを有効にしてください。", permissionDenied: "この動画のいいねを操作する権限がありません。", like: "いいね", unlike: "いいねを解除", loading: "いいねを読み込み中…", loadError: "いいねを取得できませんでした。", retry: "いいねを再試行", failed: "いいねを更新できませんでした。もう一度お試しください。" },
       continuous: {
         start: "連続再生",
@@ -2600,6 +2601,7 @@ const en: typeof ja = {
     contentTabsLabel: "Wiki content tabs",
     contentVideoTab: "Video",
     videos: {
+      watchRequests: {"send": "Send watch request", "sent": "Request sent", "sending": "Sending…", "loading": "Loading watch requests…", "loadError": "Could not load watch requests. Check your login and Wiki collaborator permissions.", "retry": "Retry watch requests", "failed": "Could not send the request. Check the latest state and try again.", "auth": "Check your login and Wiki collaborator permissions.", "remaining": "Requests remaining in the last 7 days", "next": "Next request available at", "recent": "With watch requests in the last 7 days", "sort": "Watch requests in last 7 days, then ordinary likes", "official": "Liked by the official owner", "unlikeRestricted": "You cannot unlike for 7 days after sending a request.", "deleteRestricted": "An active watch request prevents deletion.", "target_not_eligible": "This video is not eligible for watch requests.", "duration_not_eligible": "A known duration of 30 seconds or less is required.", "like_required": "Like this video first.", "resend_not_available": "Wait before sending again for this video.", "weekly_limit_reached": "You can send up to three requests per wiki in the last 7 days."},
       likes: { loginRequired: "To like videos, log in and activate Wiki collaborator access.", collaboratorRequired: "To like videos, activate Wiki collaborator access.", permissionDenied: "You do not have permission to change likes on this video.", like: "Like", unlike: "Unlike", loading: "Loading likes…", loadError: "Could not load likes.", retry: "Retry likes", failed: "Could not update the like. Please try again." },
       continuous: {
         start: "Play all",
@@ -4115,6 +4117,7 @@ const ko: typeof ja = {
     contentTabsLabel: "Wiki 본문 탭",
     contentVideoTab: "Video",
     videos: {
+      watchRequests: {"send": "이거 봐! 요청 보내기", "sent": "요청 전송 완료", "sending": "전송 중…", "loading": "시청 요청 불러오는 중…", "loadError": "시청 요청을 불러오지 못했습니다. 로그인 및 Wiki 콜라보레이터 권한을 확인해 주세요.", "retry": "시청 요청 다시 불러오기", "failed": "요청을 보내지 못했습니다. 최신 상태를 확인하고 다시 시도해 주세요.", "auth": "로그인 및 Wiki 콜라보레이터 권한을 확인해 주세요.", "remaining": "최근 7일간 남은 요청 수", "next": "다음 요청 가능 시각", "recent": "최근 7일간 시청 요청이 있는 동영상", "sort": "최근 7일 요청 수순, 같으면 일반 좋아요순", "official": "공식 본인의 좋아요", "unlikeRestricted": "요청 후 7일간 좋아요를 취소할 수 없습니다.", "deleteRestricted": "유효한 시청 요청이 있어 삭제할 수 없습니다.", "target_not_eligible": "시청 요청 대상이 아닌 동영상입니다.", "duration_not_eligible": "길이가 확인된 30초 이하 동영상만 가능합니다.", "like_required": "먼저 이 동영상에 좋아요를 눌러 주세요.", "resend_not_available": "같은 동영상에 다시 요청할 수 있을 때까지 기다려 주세요.", "weekly_limit_reached": "같은 Wiki에 최근 7일간 최대 3개를 요청할 수 있습니다."},
       likes: { loginRequired: "좋아요를 누르려면 로그인하고 Wiki 콜라보레이터를 활성화해 주세요.", collaboratorRequired: "좋아요를 누르려면 Wiki 콜라보레이터를 활성화해 주세요.", permissionDenied: "이 동영상의 좋아요를 변경할 권한이 없습니다.", like: "좋아요", unlike: "좋아요 취소", loading: "좋아요 불러오는 중…", loadError: "좋아요를 불러오지 못했습니다.", retry: "좋아요 다시 시도", failed: "좋아요를 변경하지 못했습니다. 다시 시도해 주세요." },
       continuous: {
         start: "연속 재생",

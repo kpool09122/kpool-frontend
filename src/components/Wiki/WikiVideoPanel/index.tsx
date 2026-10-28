@@ -1,5 +1,7 @@
 "use client";
 
+import { WikiVideoWatchRequestControl } from "./WikiVideoWatchRequestControl";
+import { useWikiVideoWatchRequests } from "@/gateways/wiki/useWikiVideoWatchRequests";
 import Image from "next/image";
 import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
@@ -36,6 +38,7 @@ function VideoCard({
   video,
   deleteControl,
   likeControl,
+  watchControl,
   player,
   current,
   onPlay,
@@ -46,6 +49,7 @@ function VideoCard({
   onPlay: () => void;
   deleteControl?: React.ReactNode;
   likeControl?: React.ReactNode;
+  watchControl?: React.ReactNode;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
@@ -114,6 +118,7 @@ function VideoCard({
           ) : null}
         </button>
       )}
+      {watchControl}
       <div className="mt-auto flex items-center justify-end gap-3">
         {!videoId ? <p role="status" className="mr-auto">{t.unavailable}</p> : null}
         {likeControl}
@@ -231,6 +236,7 @@ function VideoList({
     retry: false,
   });
   const likes = useWikiVideoLikes(identity, query.data?.videos ?? [], access.sessionKey);
+  const watch = useWikiVideoWatchRequests(identity, query.data?.videos ?? [], access.sessionKey);
   if (query.isPending) return <p role="status">{t.loading}</p>;
   if (query.isError)
     return (
@@ -260,6 +266,7 @@ function VideoList({
       emptyMessage={Object.keys(filter).length ? t.filter.empty : t.empty}
       access={access}
       likes={likes}
+      watch={watch}
       onDeleted={onDeleted}
     />
   );
@@ -271,6 +278,7 @@ function VideoPlaybackList({
   emptyMessage,
   access,
   likes,
+  watch,
   onDeleted,
 }: {
   identity: WikiVideoIdentity;
@@ -278,6 +286,7 @@ function VideoPlaybackList({
   emptyMessage: string;
   access: ReturnType<typeof useWikiVideoDeleteAccess>;
   likes: ReturnType<typeof useWikiVideoLikes>;
+  watch: ReturnType<typeof useWikiVideoWatchRequests>;
   onDeleted: (video: WikiVideo) => void;
 }) {
   const { dictionary } = useI18n();
@@ -343,6 +352,8 @@ function VideoPlaybackList({
       {playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
       {likes.loading ? <p role="status">{dictionary.wiki.videos.likes.loading}</p> : null}
       {likes.error ? <div role="alert"><p>{dictionary.wiki.videos.likes.loadError}</p><button type="button" className="min-h-11 underline" onClick={likes.retry}>{dictionary.wiki.videos.likes.retry}</button></div> : null}
+      {watch.loading ? <p role="status">{dictionary.wiki.videos.watchRequests.loading}</p> : null}
+      {watch.error ? <div role="alert"><p>{dictionary.wiki.videos.watchRequests.loadError}</p><button type="button" className="min-h-11 underline" onClick={watch.retry}>{dictionary.wiki.videos.watchRequests.retry}</button></div> : null}
       {!videos.length ? <p>{emptyMessage}</p> : null}
       <ul className="grid gap-5 sm:grid-cols-2">
         {videos.map((video) => (
@@ -359,6 +370,7 @@ function VideoPlaybackList({
                 controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
               }], "single");
             }}
+            watchControl={<><WikiVideoWatchRequestControl video={video} watch={watch} />{watch.state(video)?.deleteRestrictedUntil ? <p role="status" className="text-xs text-text-muted">{dictionary.wiki.videos.watchRequests.deleteRestricted}</p> : null}</>}
             likeControl={<WikiVideoLikeControl video={video} likes={likes} />}
             deleteControl={
               access.principalIdentifier &&
@@ -373,6 +385,7 @@ function VideoPlaybackList({
                 <WikiVideoDeleteButton
                   key={access.sessionKey}
                   video={video}
+                  restricted={!!watch.state(video)?.deleteRestrictedUntil}
                   onDeleted={() => onDeleted(video)}
                 />
               ) : undefined

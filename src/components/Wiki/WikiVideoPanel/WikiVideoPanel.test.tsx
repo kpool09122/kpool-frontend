@@ -60,7 +60,7 @@ const video = {
   durationSeconds: 253,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
-  likeCount: 0,
+  likeCount: 0, hasOfficialOwnerLike: false,
   videoUsage: "youtube_auto_view_count",
 };
 const wrap = (client: QueryClient, slug = identity.slug) => (

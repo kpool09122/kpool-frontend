@@ -200,7 +200,7 @@ const likedVideo = {
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000011",
   title: "New song", url: "https://youtu.be/lmnopqrstuv", thumbnailUrl: null,
   durationSeconds: null, language: "ja" as const, resourceType: "group" as const,
-  slug: "group", likedAt: "2026-10-26T00:00:00Z",
+  slug: "group", likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false,
   playlists: [],
 };
 it("adds a liked video to the latest playlist while preserving existing snapshots", async () => {

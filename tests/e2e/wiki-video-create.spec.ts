@@ -75,7 +75,7 @@ test("collaborator previews one YouTube video, resets metadata on URL change, an
       durationSeconds: body.durationSeconds,
       creatorPrincipalIdentifier: null,
       creatorIdentityName: null,
-      likeCount: 0,
+      likeCount: 0, hasOfficialOwnerLike: false,
       publishedAt: null,
     };
     expect(route.request().headers()["x-xsrf-token"]).toBe("e2e-csrf");
@@ -149,7 +149,7 @@ for (const url of ["https://www.tiktok.com/@scout2015/video/6718335390845095173"
   await installTikTokPlayerMock(page);
   let saved = false, attempts = 0;
   await page.route("https://images.k-pool.app/images/test.webp", (route) => route.fulfill({ contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64") }));
-  await page.route("**/api/wiki/*/*/videos?*", (route) => route.fulfill({ json: { videos: saved ? [{ provider: "tiktok", externalVideoId: "6718335390845095173", videoLinkIdentifier: "00000000-0000-4000-8000-000000000001", url, title: "TikTok saved", videoUsage: "short", thumbnailUrl: "https://images.k-pool.app/images/test.webp", durationSeconds: 15, creatorPrincipalIdentifier: null, creatorIdentityName: null, likeCount: 0, publishedAt: null }] : [] } }));
+  await page.route("**/api/wiki/*/*/videos?*", (route) => route.fulfill({ json: { videos: saved ? [{ provider: "tiktok", externalVideoId: "6718335390845095173", videoLinkIdentifier: "00000000-0000-4000-8000-000000000001", url, title: "TikTok saved", videoUsage: "short", thumbnailUrl: "https://images.k-pool.app/images/test.webp", durationSeconds: 15, creatorPrincipalIdentifier: null, creatorIdentityName: null, likeCount: 0, hasOfficialOwnerLike: false, publishedAt: null }] : [] } }));
   await page.route("**/api/wiki/videos/create", (route) => {
     expect(route.request().postDataJSON()).toMatchObject({ url, durationSeconds: null, thumbnailUrl: null });
     attempts += 1;
