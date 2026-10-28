@@ -369,6 +369,27 @@ const VideoLinkLikesPagination = z
     total: z.number().int(),
   })
   .passthrough();
+const VideoWatchRequestStatus = z
+  .object({
+    videoLinkIdentifier: KPool_Common_Uuid.uuid(),
+    sent: z.boolean(),
+    canSend: z.boolean(),
+    reason: z
+      .enum([
+        "target_not_eligible",
+        "duration_not_eligible",
+        "like_required",
+        "resend_not_available",
+        "weekly_limit_reached",
+      ])
+      .nullable(),
+    lastSentAt: z.string().nullable(),
+    nextSendAt: z.string().nullable(),
+    remainingRequests: z.number().int().gte(0),
+    unlikeRestrictedUntil: z.string().nullable(),
+    deleteRestrictedUntil: z.string().nullable(),
+  })
+  .passthrough();
 const SyncOwnedWikiCertificationsRequestBody = z
   .object({ translationSetIdentifiers: z.array(KPool_Common_Uuid) })
   .passthrough();
@@ -1081,6 +1102,7 @@ export const schemas = {
   LikedVideoPlaylist,
   LikedVideoLink,
   VideoLinkLikesPagination,
+  VideoWatchRequestStatus,
   SyncOwnedWikiCertificationsRequestBody,
   SyncedOfficialCertificationResource,
   RequestCertificationRequestBody,
@@ -2360,6 +2382,60 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "get",
+    path: "/my/video-watch-requests",
+    alias: "VideoWatchRequestOperations_listMyVideoWatchRequests",
+    description: `Return personal watch-request state for 1 to 100 explicitly supplied video IDs, ordered by videoLinkIdentifier with duplicate IDs collapsed. All IDs must exist (404 otherwise). Requires LIST_MY_VIDEO_WATCH_REQUESTS permission for every target resource type. Send permission is evaluated per video with its real resource attributes; a rejected send policy returns canSend&#x3D;false with target_not_eligible, without rejecting the entire batch. No sender identifier input. Uses the same stored database duration and rolling 168-hour eligibility boundary as sending; missing stored duration yields canSend&#x3D;false with duration_not_eligible. lastSentAt includes historical sends; sent only means an active send. Restrictions are independent: another sender can keep deletion restricted after this caller&#x27;s unlike restriction expires. remainingRequests is scoped to each video&#x27;s exact wiki and caller. This is a snapshot; send always revalidates. This endpoint does not send requests. Missing/empty IDs, invalid UUIDs or more than 100 IDs return 422.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkIds[]",
+        type: "Query",
+        schema: z.array(KPool_Common_Uuid).min(1).max(100),
+      },
+    ],
+    response: z
+      .object({ videoWatchRequests: z.array(VideoWatchRequestStatus) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/official-certification/:certificationId/approve",
     alias: "OfficialCertificationOperations_approveCertification",
@@ -3452,7 +3528,7 @@ const endpoints = makeApi([
     method: "delete",
     path: "/video-link/:videoLinkId",
     alias: "VideoLinkOperations_deleteVideoLink",
-    description: `Delete only the specified video link. Requires an authenticated Wiki collaborator with an active Account/Principal and DELETE_VIDEO_LINK permission. Manual videos may be deleted only by their creator; all three automatically collected video categories may be deleted by any Wiki collaborator. Returns 204 without a body, 403 when forbidden, 404 when missing, and 422 for an invalid identifier. Deletion does not prevent future automatic re-collection.`,
+    description: `Delete only the specified video link. Requires an authenticated Wiki collaborator with an active Account/Principal and DELETE_VIDEO_LINK permission. Manual videos may be deleted only by their creator; all three automatically collected video categories may be deleted by any Wiki collaborator. Returns 204 without a body, 403 when forbidden, 404 when missing, and 422 for an invalid identifier. Deletion does not prevent future automatic re-collection. Any request less than 168 hours old prevents deletion with 409 (video_watch_request_active), regardless of sender. The latest sender determines expiry; at exactly 168 hours that request stops blocking deletion.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3476,6 +3552,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3571,7 +3652,7 @@ const endpoints = makeApi([
     method: "delete",
     path: "/video-link/:videoLinkId/like",
     alias: "VideoLinkLikeOperations_unlikeVideoLink",
-    description: `Remove only the authenticated Wiki Principal&#x27;s like. Requires UNLIKE_VIDEO_LINK permission. Repeated removal is idempotent (204); a missing VideoLink returns 404.`,
+    description: `Remove only the authenticated Wiki Principal&#x27;s like. Requires UNLIKE_VIDEO_LINK permission. Repeated removal is idempotent (204); a missing VideoLink returns 404. Returns 409 (video_watch_request_active) while the authenticated sender has a request less than 168 hours old. At exactly 168 hours this restriction expires.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3595,6 +3676,73 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/video-link/:videoLinkId/watch-requests",
+    alias: "VideoWatchRequestOperations_sendVideoWatchRequest",
+    description: `Send a persistent watch request as an active authenticated Wiki collaborator with SEND_VIDEO_WATCH_REQUEST permission. The video must belong directly to an officially certified talent wiki and be user-created, liked by the caller, and confirmed to be at most 30 seconds (30 inclusive). The send policy requires a talent video on an officially certified talent wiki and user-created usage; policy rejection returns 403. Unknown/long stored durations are rejected with 409. Sender and target wiki are determined on the server. Eligibility uses durationSeconds stored in the database for both YouTube and TikTok; a missing stored duration is ineligible. No external duration lookup is performed. Sender, exact target wiki/video and server timestamp are stored permanently. Maximum three requests per caller/wiki in the last 168 hours; same-video resend, own unlike and any deletion are blocked for 168 hours, expiring exactly at that boundary. Success 204. A missing target wiki returns 409 video_watch_request_target_not_eligible. Other eligibility/limit failures return 409 video_watch_request_duration_not_eligible, video_watch_request_like_required, video_watch_request_resend_not_available or video_watch_request_weekly_limit_reached. Other callers&#x27; histories are never returned.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -3774,6 +3922,16 @@ const endpoints = makeApi([
         name: "maxDurationSeconds",
         type: "Query",
         schema: z.number().int().gte(0).nullish(),
+      },
+      {
+        name: "recentWatchRequestsOnly",
+        type: "Query",
+        schema: z.boolean().nullish(),
+      },
+      {
+        name: "sortByWatchRequests",
+        type: "Query",
+        schema: z.boolean().nullish(),
       },
     ],
     response: z.object({ videos: z.array(Video) }).passthrough(),
