@@ -152,6 +152,28 @@ afterEach(() => {
   useAuthStore.setState({ status: "guest", identity: null, sessionVersion: 0 });
   vi.unstubAllGlobals();
 });
+it("disables requests for a video already watched by its official owner", async () => {
+  const { fetcher } = setup({ state: { canSend: false, reason: "already_watched", sent: true } });
+  const button = await screen.findByRole("button", { name: "Watched by the official owner" });
+  expect(button).toBeDisabled();
+  fireEvent.click(button);
+  expect(fetcher.mock.calls.some(([url, init]) => url.endsWith("/watch-requests") && init?.method === "POST")).toBe(false);
+});
+it("shows the owner's liked status to the left of the ordinary like count", async () => {
+  setup({ locale: "ja" });
+  const ownerLike = await screen.findByText("本人がいいね済み");
+  const ordinaryLike = await screen.findByRole("button", { name: "いいねを解除: Short video" });
+  expect(ordinaryLike).toHaveTextContent("4");
+  expect(ownerLike.compareDocumentPosition(ordinaryLike) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(ordinaryLike).not.toHaveTextContent("本人がいいね済み");
+});
+
+it("omits the owner's liked status when the owner has not liked the video", async () => {
+  setup({ locale: "ja", video: { hasOfficialOwnerLike: false } });
+  await screen.findByRole("button", { name: "いいねを解除: Short video" });
+  expect(screen.queryByText("本人がいいね済み")).not.toBeInTheDocument();
+});
+
 it.each([29, 30])(
   "sends %i-second liked manual video, refreshes authoritative quota/restrictions and separates official likes",
   async (durationSeconds) => {
@@ -280,6 +302,21 @@ it("shows send failure without an optimistic sent state", async () => {
   await screen.findByText(/Could not send/);
   expect(screen.queryByText("Request sent")).not.toBeInTheDocument();
 });
+it.each([true, false])("mini-player shows an owner-like icon only when liked (%s)", async (hasOfficialOwnerLike) => {
+  setup({ compact: true, locale: "ja", video: { hasOfficialOwnerLike } });
+  const heart = await screen.findByRole("button", { name: "いいねを解除: Short video" });
+  const ownerLike = screen.queryByRole("img", { name: "本人がいいね済み" });
+  if (hasOfficialOwnerLike) {
+    expect(ownerLike).toBeInTheDocument();
+    expect(ownerLike!.compareDocumentPosition(heart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(ownerLike).toHaveTextContent("");
+  } else {
+    expect(ownerLike).not.toBeInTheDocument();
+  }
+  expect(screen.queryByText("本人がいいね済み")).not.toBeInTheDocument();
+  expect(heart).toHaveTextContent("");
+});
+
 it("mini-player has no send control and respects personal unlike restriction", async () => {
   const { fetcher } = setup({
     compact: true,

@@ -157,6 +157,7 @@ for (const width of [1280, 390])
       "Fewer requests, more likes",
     ]);
     await page.getByRole("button", { name: "Play all", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Now playing", exact: true }).getByRole("button", { name: "Like: Most requested", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Continue in mini player" }).click();
     const playing = page.getByRole("region", {
       name: "Mini player",
@@ -176,7 +177,7 @@ for (const width of [1280, 390])
       }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
-      page.getByText("Liked by the official owner", { exact: true }),
+      playing.getByRole("img", { name: "Liked by the official owner", exact: true }),
     ).toBeVisible();
     await expect(playing).toContainText("Most requested (1/3)");
     fail = true;

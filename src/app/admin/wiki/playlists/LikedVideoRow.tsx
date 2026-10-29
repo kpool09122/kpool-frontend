@@ -3,7 +3,7 @@
 import { useCallback, useId, useRef, useState } from "react";
 import type { LikedVideo } from "@/gateways/wiki/wikiPlaylists";
 import { button, type Text } from "./playlistUi";
-import { PlaylistVideoThumbnail } from "./PlaylistVideoThumbnail";
+import { VideoThumbnail } from "@/components/VideoPlayback/VideoThumbnail";
 
 export function LikedVideoRow({
   video,
@@ -39,7 +39,7 @@ export function LikedVideoRow({
   return (
     <li className="py-3">
       <div className="flex items-center gap-3">
-        <PlaylistVideoThumbnail url={video.url} thumbnailUrl={video.thumbnailUrl} />
+        <VideoThumbnail url={video.url} thumbnailUrl={video.thumbnailUrl} />
         <div className="min-w-0 flex-1">
           <p className="truncate" title={video.title}>{video.title}</p>
           {playlists.some((playlist) => playlist.included) ? (

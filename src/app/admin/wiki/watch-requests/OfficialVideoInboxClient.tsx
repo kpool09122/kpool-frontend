@@ -32,7 +32,6 @@ export function OfficialVideoInboxClient() {
   return (
     <section className="space-y-5 rounded-xl border border-stroke-subtle bg-surface-raised p-5">
       <h2 className="text-xl font-semibold">{t.title}</h2>
-      <p>{t.description}</p>
       {denied ? (
         <p role="alert">{t.forbidden}</p>
       ) : checkingIdentity || query.isPending ? (
@@ -53,7 +52,7 @@ export function OfficialVideoInboxClient() {
       ) : (
         <>
           <label className="grid gap-2">
-            {t.select}
+            <span className="sr-only">{t.select}</span>
             <select
               className="min-h-11 rounded border border-stroke-subtle bg-surface-base p-2"
               value={selected?.wikiIdentifier ?? ""}

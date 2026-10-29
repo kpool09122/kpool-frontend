@@ -382,6 +382,7 @@ const VideoWatchRequestStatus = z
         "like_required",
         "resend_not_available",
         "weekly_limit_reached",
+        "already_watched",
       ])
       .nullable(),
     lastSentAt: z.string().nullable(),
@@ -960,6 +961,7 @@ const Video = z
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
     likeCount: z.number().int().gte(0),
     hasOfficialOwnerLike: z.boolean(),
+    hasOfficialOwnerWatch: z.boolean().optional(),
     url: z.string(),
     title: z.string(),
     thumbnailUrl: z.string().nullable(),
@@ -3717,7 +3719,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/video-link/:videoLinkId/watch-requests",
     alias: "VideoWatchRequestOperations_sendVideoWatchRequest",
-    description: `Send a persistent watch request as an active authenticated Wiki collaborator with SEND_VIDEO_WATCH_REQUEST permission. The video must belong directly to an officially certified talent wiki and be user-created, liked by the caller, and confirmed to be at most 30 seconds (30 inclusive). The send policy requires a talent video on an officially certified talent wiki and user-created usage; policy rejection returns 403. Unknown/long stored durations are rejected with 409. Sender and target wiki are determined on the server. Eligibility uses durationSeconds stored in the database for both YouTube and TikTok; a missing stored duration is ineligible. No external duration lookup is performed. Sender, exact target wiki/video and server timestamp are stored permanently. Maximum three requests per caller/talent translation set across all languages in the last 168 hours; same-video resend, own unlike and any deletion are blocked for 168 hours, expiring exactly at that boundary. Success 204. A missing target wiki returns 409 video_watch_request_target_not_eligible. Other eligibility/limit failures return 409 video_watch_request_duration_not_eligible, video_watch_request_like_required, video_watch_request_resend_not_available or video_watch_request_weekly_limit_reached. Other callers&#x27; histories are never returned.`,
+    description: `A video already watched by its current official owner returns 409 video_already_watched. Send a persistent watch request as an active authenticated Wiki collaborator with SEND_VIDEO_WATCH_REQUEST permission. The video must belong directly to an officially certified talent wiki and be user-created, liked by the caller, and confirmed to be at most 30 seconds (30 inclusive). The send policy requires a talent video on an officially certified talent wiki and user-created usage; policy rejection returns 403. Unknown/long stored durations are rejected with 409. Sender and target wiki are determined on the server. Eligibility uses durationSeconds stored in the database for both YouTube and TikTok; a missing stored duration is ineligible. No external duration lookup is performed. Sender, exact target wiki/video and server timestamp are stored permanently. Maximum three requests per caller/talent translation set across all languages in the last 168 hours; same-video resend, own unlike and any deletion are blocked for 168 hours, expiring exactly at that boundary. Success 204. A missing target wiki returns 409 video_watch_request_target_not_eligible. Other eligibility/limit failures return 409 video_watch_request_duration_not_eligible, video_watch_request_like_required, video_watch_request_resend_not_available or video_watch_request_weekly_limit_reached. Other callers&#x27; histories are never returned.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3746,6 +3748,63 @@ const endpoints = makeApi([
       {
         status: 409,
         description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/video-link/:videoLinkId/watched",
+    alias: "VideoLinkWatchOperations_recordVideoLinkWatch",
+    description: `Record completed playback of a video on its exact officially certified talent wiki. Only its active, non-delegated owner Account may record completion; editors, other owners and delegated Principals receive 403. Video, owner, Principal and first completion time are resolved by the server. Idempotent per video and owner Account, returning 204 for repeated completion; does not create a like or request. A current-owner completion permanently prevents new watch requests for this video with 409 video_already_watched, independent of the rolling request window. Manual skips and playback errors must not invoke this endpoint.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "videoLinkId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {

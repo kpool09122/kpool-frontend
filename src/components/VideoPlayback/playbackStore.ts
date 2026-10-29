@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { createStore } from "zustand/vanilla";
 import { advancePlayback, playbackOrder, type LoopMode, type PlaybackQueue } from "./playbackQueue";
 
-export type PlaybackTrack = { identifier: string; videoId: string; provider?: "youtube" | "tiktok"; title: string; controls?: ReactNode };
+export type PlaybackTrack = { identifier: string; videoId: string; provider?: "youtube" | "tiktok"; title: string; controls?: ReactNode; onEnded?: () => void };
 export type PlaybackSession = {
   id: number;
   owner: string;
@@ -106,6 +106,7 @@ export function createPlaybackStore() {
       const active = session.tracks[session.queue.order[session.queue.position]];
       if (provider && ((active.provider ?? "youtube") !== provider || (videoId !== undefined && active.videoId !== videoId))) return;
       const current = atVideo(session, videoId, provider);
+      if (!failed) session.tracks[current.order[current.position]].onEnded?.();
       const queue = session.kind === "single" ? null : advancePlayback(current, {
         loop: session.loop, random: session.random, failed,
       });

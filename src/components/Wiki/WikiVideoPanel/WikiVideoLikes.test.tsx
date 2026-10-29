@@ -318,14 +318,16 @@ it("keeps the playing video and duration filter intact during a like", async () 
     name: "Minimum duration (minutes)",
   });
   fireEvent.change(minimum, { target: { value: "1" } });
-  fireEvent.click(heart());
+  const playbackHeart = () => within(screen.getByRole("region", { name: "Now playing" })).getByRole("button", { name: /^(Like|Unlike): Video$/ });
+  await waitFor(() => expect(playbackHeart()).toBeEnabled());
+  fireEvent.click(playbackHeart());
   await waitFor(() =>
     expect(
       state.fetcher.mock.calls.some(([url]) => url.endsWith("/like")),
     ).toBe(true),
   );
   await act(async () => state.finish(new Response(null, { status: 204 })));
-  await waitFor(() => expect(heart()).toBeEnabled());
+  await waitFor(() => expect(playbackHeart()).toBeEnabled());
   expect(minimum).toHaveValue("1");
   expect(
     screen.getByRole("button", { name: "Stop playback" }),

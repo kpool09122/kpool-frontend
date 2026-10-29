@@ -2,12 +2,15 @@
 
 import { WikiVideoWatchRequestControl } from "./WikiVideoWatchRequestControl";
 import { useWikiVideoWatchRequests } from "@/gateways/wiki/useWikiVideoWatchRequests";
+import { useOfficialVideoWatch } from "@/gateways/wiki/useOfficialVideoWatch";
 import Image from "next/image";
 import { officialVideoInboxErrorStatus, fetchOfficialRequestVideos } from "@/gateways/wiki/officialVideoInbox";
 import { OfficialVideoInboxEntry } from "./OfficialVideoInboxEntry";
+import { OfficialVideoInboxList } from "./OfficialVideoInboxList";
 import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { VideoQueueControls } from "@/components/VideoPlayback/VideoQueueControls";
+import { VideoPlaybackQueue } from "@/components/VideoPlayback/VideoPlaybackQueue";
 import { adjacentPlaybackIndex, nextLoopMode, type LoopMode } from "@/components/VideoPlayback/playbackQueue";
 import { useEffect, useId, useRef, useState } from "react";
 import { useStore } from "zustand";
@@ -120,11 +123,13 @@ function VideoCard({
           ) : null}
         </button>
       )}
-      <div className="mt-auto flex items-center justify-end gap-3">
-        {!videoId ? <p role="status" className="mr-auto">{t.unavailable}</p> : null}
-        {likeControl}
-        {watchControl}
-      </div>
+      {!videoId || likeControl || watchControl ? (
+        <div className="mt-auto flex flex-wrap items-center justify-end gap-3">
+          {!videoId ? <p role="status" className="mr-auto">{t.unavailable}</p> : null}
+          {likeControl}
+          {watchControl}
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -317,7 +322,11 @@ function VideoPlaybackList({
   const t = dictionary.wiki.videos.continuous;
   const queryClient = useQueryClient();
   const playbackLike = (video: WikiVideo) => <QueryClientProvider client={queryClient}><WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} /></QueryClientProvider>;
-  const queue = videos.flatMap((video) => {
+  const completion = useOfficialVideoWatch(access.sessionKey);
+  const [unwatchedOnly, setUnwatchedOnly] = useState(true);
+  const [watchedOnEntry] = useState(() => new Set(videos.filter((video) => video.hasOfficialOwnerWatch).map((video) => video.videoLinkIdentifier)));
+  const visibleVideos = ownerInbox && unwatchedOnly ? videos.filter((video) => !watchedOnEntry.has(video.videoLinkIdentifier)) : videos;
+  const queue = visibleVideos.flatMap((video) => {
     const videoId = isVideoId(video.provider, video.externalVideoId) ? video.externalVideoId : null;
     return videoId ? [{ video, videoId }] : [];
   });
@@ -357,8 +366,33 @@ function VideoPlaybackList({
     setPreferredRandom(!random);
     if (playback) store.getState().setRandom(!random);
   };
+  const inboxList = ownerInbox ? (
+    <OfficialVideoInboxList
+      likes={likes}
+      videos={playback ? playback.queue.order.flatMap((index) => {
+        const video = videos.find((item) => item.videoLinkIdentifier === playback.tracks[index].identifier);
+        return video ? [video] : [];
+      }) : visibleVideos}
+      activeIdentifier={active?.identifier}
+      onSelect={(identifier) => {
+        if (playback) store.getState().selectTrack(playback.id, identifier);
+        else store.getState().start(owner, queue.map(({ video, videoId }) => ({
+          identifier: video.videoLinkIdentifier, videoId, provider: video.provider, title: video.title,
+          controls: playbackLike(video),
+          onEnded: ownerInbox ? () => completion.record(video.videoLinkIdentifier) : undefined,
+        })), "queue", loop, random, identifier);
+      }}
+    />
+  ) : null;
   return (
     <div className="space-y-5">
+      {ownerInbox ? <label className="inline-flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" checked={unwatchedOnly} onChange={(event) => {
+          if (playback) store.getState().stop();
+          setUnwatchedOnly(event.target.checked);
+        }} />
+        {dictionary.admin.officialVideoInbox.unwatchedOnly}
+      </label> : null}
       <VideoQueueControls
         labels={t}
         empty={!queue.length}
@@ -383,6 +417,7 @@ function VideoPlaybackList({
           store.getState().start(owner, queue.map(({ video, videoId }) => ({
             identifier: video.videoLinkIdentifier, videoId, provider: video.provider, title: video.title,
             controls: playbackLike(video),
+            onEnded: ownerInbox ? () => completion.record(video.videoLinkIdentifier) : undefined,
           })), "queue", loop, random);
         }}
         onStop={playback ? () => {
@@ -391,13 +426,24 @@ function VideoPlaybackList({
         } : undefined}
       />
       {notice ? <p role="status">{notice}</p> : null}
-      {playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
-      {likes.loading ? <p role="status">{dictionary.wiki.videos.likes.loading}</p> : null}
+      {ownerInbox && completion.failed ? <div role="alert">
+        <p>{dictionary.admin.officialVideoInbox.watchSaveFailed}</p>
+        <button type="button" className="min-h-11 underline" disabled={completion.pending} onClick={completion.retry}>{dictionary.admin.officialVideoInbox.watchSaveRetry}</button>
+      </div> : null}
+      {ownerInbox ? (
+        <div className={playback ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] xl:grid-cols-[minmax(0,1fr)_18rem]" : undefined}>
+          {playback ? <>
+            <div className="min-w-0"><PlaybackOutlet owner={owner} preserveSpace /></div>
+            <VideoPlaybackQueue session={playback} t={t}>{inboxList}</VideoPlaybackQueue>
+          </> : inboxList}
+        </div>
+      ) : playback?.kind === "queue" ? <PlaybackOutlet owner={owner} /> : null}
+      {!ownerInbox && likes.loading ? <p role="status">{dictionary.wiki.videos.likes.loading}</p> : null}
       {likes.error ? <div role="alert"><p>{dictionary.wiki.videos.likes.loadError}</p><button type="button" className="min-h-11 underline" onClick={likes.retry}>{dictionary.wiki.videos.likes.retry}</button></div> : null}
-      {watch.loading ? <p role="status">{dictionary.wiki.videos.watchRequests.loading}</p> : null}
-      {watch.error ? <div role="alert"><p>{dictionary.wiki.videos.watchRequests.loadError}</p><button type="button" className="min-h-11 underline" onClick={watch.retry}>{dictionary.wiki.videos.watchRequests.retry}</button></div> : null}
-      {!videos.length ? <p>{emptyMessage}</p> : null}
-      <ul className="grid gap-5 sm:grid-cols-2">
+      {!ownerInbox && watch.loading ? <p role="status">{dictionary.wiki.videos.watchRequests.loading}</p> : null}
+      {!ownerInbox && watch.error ? <div role="alert"><p>{dictionary.wiki.videos.watchRequests.loadError}</p><button type="button" className="min-h-11 underline" onClick={watch.retry}>{dictionary.wiki.videos.watchRequests.retry}</button></div> : null}
+      {!visibleVideos.length ? <p>{emptyMessage}</p> : null}
+      {!ownerInbox ? <ul className="grid gap-5 sm:grid-cols-2">
         {videos.map((video) => (
           <VideoCard
             key={video.videoLinkIdentifier}
@@ -413,7 +459,7 @@ function VideoPlaybackList({
               }], "single");
             }}
             watchControl={!ownerInbox ? <WikiVideoWatchRequestControl video={video} wikiTitle={wikiTitle} watch={watch} /> : undefined}
-            likeControl={<WikiVideoLikeControl video={video} likes={likes} />}
+            likeControl={!ownerInbox ? <WikiVideoLikeControl video={video} likes={likes} /> : undefined}
             deleteControl={
               !ownerInbox && access.principalIdentifier &&
               ([
@@ -434,7 +480,7 @@ function VideoPlaybackList({
             }
           />
         ))}
-      </ul>
+      </ul> : null}
     </div>
   );
 }

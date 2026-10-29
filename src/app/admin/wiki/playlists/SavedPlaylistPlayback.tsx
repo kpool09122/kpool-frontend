@@ -8,7 +8,7 @@ import { adjacentPlaybackIndex, nextLoopMode, type LoopMode } from "@/components
 import type { PlaybackSession, PlaybackTrack } from "@/components/VideoPlayback/playbackStore";
 import { playlistItemKey, type Playlist } from "@/gateways/wiki/wikiPlaylists";
 import type { PlaybackText } from "./playlistUi";
-import { SavedPlaylistQueue } from "./SavedPlaylistQueue";
+import { VideoPlaybackQueue } from "@/components/VideoPlayback/VideoPlaybackQueue";
 
 export function SavedPlaylistPlayback(props: {
   detail: Playlist; tracks: PlaybackTrack[]; principal: string; playbackText: PlaybackText; editor: EditorRenderer;
@@ -94,12 +94,12 @@ function ConnectedPlaylistPlayback({ detail, tracks, principal, playbackText, st
       <div className={playback ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] xl:grid-cols-[minmax(0,1fr)_18rem]" : undefined}>
         <div className="min-w-0"><PlaybackOutlet owner={owner} preserveSpace /></div>
         {playback ? (
-          <SavedPlaylistQueue
+          <VideoPlaybackQueue
             session={playback}
             t={playbackText}
           >
             {editor(playback, (identifier) => store.getState().selectTrack(playback.id, identifier))}
-          </SavedPlaylistQueue>
+          </VideoPlaybackQueue>
         ) : null}
       </div>
       {!playback ? editor(undefined, (identifier) => store.getState().start(

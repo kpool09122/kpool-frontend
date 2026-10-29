@@ -211,7 +211,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
         </p>
         {fullscreen && session.kind === "queue" ? queueControls : null}
-        {floating || fullscreen ? active.controls : null}
+        {active.controls}
         <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>
           {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
         </button>

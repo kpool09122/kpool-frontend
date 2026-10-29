@@ -40,7 +40,7 @@ export function WikiVideoWatchRequestControl({
         className="min-h-9 whitespace-nowrap rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-semibold text-on-primary aria-busy:opacity-50"
         aria-describedby={notice ? noticeId : undefined}
         aria-busy={watch.pending}
-        disabled={watch.pending || watch.refreshing || (!state.canSend && !unavailableReason)}
+        disabled={watch.pending || watch.refreshing || state.reason === "already_watched" || (!state.canSend && !unavailableReason)}
         onClick={() => {
           if (unavailableReason) showNotice();
           else {
@@ -49,7 +49,7 @@ export function WikiVideoWatchRequestControl({
           }
         }}
       >
-        {watch.pending ? t.sending : state.sent ? t.sent : t.send}
+        {state.reason === "already_watched" ? t.already_watched : watch.pending ? t.sending : state.sent ? t.sent : t.send}
       </button>
       {notice ? (
         <div

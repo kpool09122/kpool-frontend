@@ -5,7 +5,7 @@ import { useId, useRef, useState, type PointerEvent } from "react";
 import type { PlaybackSession } from "@/components/VideoPlayback/playbackStore";
 import { playlistToDraft } from "@/gateways/wiki/useWikiPlaylists";
 import { playlistItemKey } from "@/gateways/wiki/wikiPlaylists";
-import { PlaylistVideoThumbnail } from "./PlaylistVideoThumbnail";
+import { VideoThumbnail } from "@/components/VideoPlayback/VideoThumbnail";
 import { button, type PlaybackText, type PlaylistState, type Text } from "./playlistUi";
 
 type Drag = { pointerId: number; source: string; target: string };
@@ -121,7 +121,7 @@ export function PlaylistEditor({ state, t, playbackText, playback, onSelect }: {
                 <DragHandleDots2Icon aria-hidden="true" className="h-5 w-5" />
               </button> : null}
               <div className="pointer-events-none relative shrink-0">
-                <PlaylistVideoThumbnail url={item.provider === "youtube" ? `https://youtu.be/${item.externalVideoId}` : ""} thumbnailUrl={source?.thumbnailUrl ?? null} />
+                <VideoThumbnail url={item.provider === "youtube" ? `https://youtu.be/${item.externalVideoId}` : ""} thumbnailUrl={source?.thumbnailUrl ?? null} />
               </div>
               <div className="pointer-events-none relative min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold" title={item.title}>{item.title}</p>
