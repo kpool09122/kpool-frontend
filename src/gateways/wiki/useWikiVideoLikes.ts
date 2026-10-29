@@ -169,8 +169,7 @@ export function useWikiVideoLikes(
           : undefined;
       const known =
         status === "authenticated" &&
-        personal.isSuccess &&
-        !personal.isFetching;
+        personal.isSuccess;
       const liked = known
         ? operation?.pending
           ? operation.liked
@@ -192,6 +191,7 @@ export function useWikiVideoLikes(
         disabled:
           (!!liked && watch.unlikeBlocked(video)) ||
           !known ||
+          personal.isFetching ||
           access.isFetching ||
           !!operation?.pending ||
           !(liked ? access.data?.canUnlike : access.data?.canLike),

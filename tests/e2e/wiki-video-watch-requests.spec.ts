@@ -117,30 +117,23 @@ test("fresh mobile public Wiki session sends with CSRF, refreshes restrictions, 
   await send.click();
   await expect(
     card.getByRole("button", { name: "Request sent", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(
     card.getByRole("button", {
       name: "Unlike: Recommended short",
       exact: true,
     }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(
     card.getByRole("button", {
       name: "Delete video: Recommended short",
       exact: true,
     }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(card.getByText("Liked by the official owner")).toBeVisible();
   expect(writes).toBe(1);
   expect(personalReads).toBeGreaterThan(1);
-  await page
-    .getByLabel("With watch requests in the last 7 days", { exact: true })
-    .check();
-  await page
-    .getByLabel("Watch requests in last 7 days, then ordinary likes", {
-      exact: true,
-    })
-    .check();
+  await page.getByLabel(/^Match .+’s watch request list$/).check();
   await page
     .getByRole("slider", { name: "Maximum duration (minutes)" })
     .fill("1");

@@ -5,14 +5,15 @@ import type { WikiVideoDurationFilter } from "@/gateways/wiki/wikiVideoFilters";
 import { useI18n } from "@/i18n/I18nProvider";
 
 export function WikiVideoDurationFilter({
+  wikiTitle,
   onSearch,
 }: {
+  wikiTitle: string;
   onSearch: (filter: WikiVideoDurationFilter) => void;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.filter;
-  const [recent, setRecent] = useState(false);
-  const [sort, setSort] = useState(false);
+  const [matchWatchRequestList, setMatchWatchRequestList] = useState(false);
   const watch = dictionary.wiki.videos.watchRequests;
   const [minimum, setMinimum] = useState(0);
   const [maximum, setMaximum] = useState(40);
@@ -25,8 +26,9 @@ export function WikiVideoDurationFilter({
       onSubmit={(event) => {
         event.preventDefault();
         onSearch({
-          ...(recent ? {recentWatchRequestsOnly: true} : {}),
-          ...(sort ? {sortByWatchRequests: true} : {}),
+          ...(matchWatchRequestList
+            ? { recentWatchRequestsOnly: true, sortByWatchRequests: true }
+            : {}),
           ...(minimum > 0 ? { minDurationSeconds: minimum * 60 } : {}),
           ...(maximum < 40 ? { maxDurationSeconds: maximum * 60 } : {}),
         });
@@ -71,8 +73,14 @@ export function WikiVideoDurationFilter({
           {[0, 10, 20, 30, "40+"].map((tick) => <span key={tick}>{tick}</span>)}
         </div>
       </fieldset>
-      <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={recent} onChange={(event) => setRecent(event.target.checked)} />{watch.recent}</label>
-      <label className="flex min-h-11 items-center gap-2"><input type="checkbox" checked={sort} onChange={(event) => setSort(event.target.checked)} />{watch.sort}</label>
+      <label className="flex min-h-11 items-center gap-2">
+        <input
+          type="checkbox"
+          checked={matchWatchRequestList}
+          onChange={(event) => setMatchWatchRequestList(event.target.checked)}
+        />
+        {watch.matchList.replace("{title}", () => wikiTitle)}
+      </label>
       <button type="submit" className="rounded-lg bg-brand-primary px-4 py-2 font-semibold text-on-primary">{t.search}</button>
     </form>
   );

@@ -118,16 +118,21 @@ function VideoCard({
           ) : null}
         </button>
       )}
-      {watchControl}
       <div className="mt-auto flex items-center justify-end gap-3">
         {!videoId ? <p role="status" className="mr-auto">{t.unavailable}</p> : null}
         {likeControl}
+        {watchControl}
       </div>
     </li>
   );
 }
 
-export function WikiVideoPanel(props: WikiVideoIdentity & { wikiIdentifier?: string }) {
+type WikiVideoPanelProps = WikiVideoIdentity & {
+  wikiIdentifier?: string;
+  wikiTitle: string;
+};
+
+export function WikiVideoPanel(props: WikiVideoPanelProps) {
   const context = useVideoPlayback();
   return context ? <WikiVideoPanelContent {...props} /> : (
     <VideoPlaybackProvider><WikiVideoPanelContent {...props} /></VideoPlaybackProvider>
@@ -136,8 +141,9 @@ export function WikiVideoPanel(props: WikiVideoIdentity & { wikiIdentifier?: str
 
 function WikiVideoPanelContent({
   wikiIdentifier,
+  wikiTitle,
   ...identity
-}: WikiVideoIdentity & { wikiIdentifier?: string }) {
+}: WikiVideoPanelProps) {
   const queryClient = useQueryClient();
   return (
     <>
@@ -161,12 +167,13 @@ function WikiVideoPanelContent({
       <VideoSearch
         key={`${identity.language}:${identity.resourceType}:${identity.slug}`}
         identity={identity}
+        wikiTitle={wikiTitle}
       />
     </>
   );
 }
 
-function VideoSearch({ identity }: { identity: WikiVideoIdentity }) {
+function VideoSearch({ identity, wikiTitle }: { identity: WikiVideoIdentity; wikiTitle: string }) {
   const [{ filter, generation }, setSearch] = useState<{
     filter: DurationFilter;
     generation: number;
@@ -174,6 +181,7 @@ function VideoSearch({ identity }: { identity: WikiVideoIdentity }) {
   return (
     <>
       <WikiVideoDurationFilter
+        wikiTitle={wikiTitle}
         onSearch={(filter) =>
           setSearch(({ generation }) => ({
             filter,
@@ -181,16 +189,18 @@ function VideoSearch({ identity }: { identity: WikiVideoIdentity }) {
           }))
         }
       />
-      <VideoList key={generation} identity={identity} filter={filter} />
+      <VideoList key={generation} identity={identity} wikiTitle={wikiTitle} filter={filter} />
     </>
   );
 }
 
 function VideoList({
   identity,
+  wikiTitle,
   filter,
 }: {
   identity: WikiVideoIdentity;
+  wikiTitle: string;
   filter: DurationFilter;
 }) {
   const { dictionary } = useI18n();
@@ -262,6 +272,7 @@ function VideoList({
         ]),
       )}
       identity={identity}
+      wikiTitle={wikiTitle}
       videos={query.data.videos}
       emptyMessage={Object.keys(filter).length ? t.filter.empty : t.empty}
       access={access}
@@ -274,6 +285,7 @@ function VideoList({
 
 function VideoPlaybackList({
   identity,
+  wikiTitle,
   videos,
   emptyMessage,
   access,
@@ -282,6 +294,7 @@ function VideoPlaybackList({
   onDeleted,
 }: {
   identity: WikiVideoIdentity;
+  wikiTitle: string;
   videos: WikiVideo[];
   emptyMessage: string;
   access: ReturnType<typeof useWikiVideoDeleteAccess>;
@@ -370,7 +383,7 @@ function VideoPlaybackList({
                 controls: <WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} />,
               }], "single");
             }}
-            watchControl={<><WikiVideoWatchRequestControl video={video} watch={watch} />{watch.state(video)?.deleteRestrictedUntil ? <p role="status" className="text-xs text-text-muted">{dictionary.wiki.videos.watchRequests.deleteRestricted}</p> : null}</>}
+            watchControl={<WikiVideoWatchRequestControl video={video} wikiTitle={wikiTitle} watch={watch} />}
             likeControl={<WikiVideoLikeControl video={video} likes={likes} />}
             deleteControl={
               access.principalIdentifier &&

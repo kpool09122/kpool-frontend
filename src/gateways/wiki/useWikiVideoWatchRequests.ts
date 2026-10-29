@@ -88,8 +88,7 @@ export function useWikiVideoWatchRequests(
   const known =
     relevant &&
     status === "authenticated" &&
-    query.isSuccess &&
-    !query.isFetching;
+    query.isSuccess;
   return {
     enabled: relevant && status === "authenticated",
     loading:
@@ -109,15 +108,18 @@ export function useWikiVideoWatchRequests(
       relevant &&
       status === "authenticated" &&
       (!known ||
+        query.isFetching ||
         !!query.data?.find(
           (item) => item.videoLinkIdentifier === video.videoLinkIdentifier,
         )?.unlikeRestrictedUntil),
     pending,
+    refreshing: query.isFetching,
     failed: mutation.data?.ok === false && wikiVideoSessionKey() === sessionKey,
     status: mutation.data?.status,
     send: (video: WikiVideo) => {
       if (
         !known ||
+        query.isFetching ||
         !query.data.find(
           (item) => item.videoLinkIdentifier === video.videoLinkIdentifier,
         )?.canSend ||

@@ -134,7 +134,7 @@ const setup = (
             video={{ ...video, ...options.video }}
           />
         ) : (
-          <WikiVideoPanel {...identity} />
+          <WikiVideoPanel wikiTitle="Momo" {...identity} />
         )}
       </I18nProvider>
     </QueryClientProvider>,
@@ -160,6 +160,7 @@ it.each([29, 30])(
       name: /Send watch request/,
     });
     await waitFor(() => expect(send).toBeEnabled());
+    expect(screen.queryByText(/Requests remaining/)).not.toBeInTheDocument();
     fireEvent.click(send);
     fireEvent.click(send);
     await screen.findByText("Request sent");
@@ -173,49 +174,88 @@ it.each([29, 30])(
       fetcher.mock.calls.filter(([url]) => url.endsWith("/like")),
     ).toHaveLength(0);
     expect(screen.getByText("Liked by the official owner")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Unlike: Short video/ }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: /Delete video: Short video/ }),
-    ).toBeDisabled();
-    expect(
-      screen.getByText("An active watch request prevents deletion."),
-    ).toBeInTheDocument();
+    const heart = screen.getByRole("button", { name: "Unlike: Short video" });
+    const remove = screen.getByRole("button", { name: "Delete video: Short video" });
+    const unlikeMessage = "You cannot unlike for 7 days after sending a request.";
+    const deleteMessage = "An active watch request prevents deletion.";
+    expect(heart).toBeEnabled();
+    expect(remove).toBeEnabled();
+    expect(screen.queryByText(unlikeMessage)).not.toBeInTheDocument();
+    expect(screen.queryByText(deleteMessage)).not.toBeInTheDocument();
+    fireEvent.click(heart);
+    expect(heart).toHaveAccessibleDescription(unlikeMessage);
+    expect(screen.getByText(unlikeMessage)).toBeInTheDocument();
+    fireEvent.keyDown(heart, { key: "Escape" });
+    expect(screen.queryByText(unlikeMessage)).not.toBeInTheDocument();
+    fireEvent.click(remove);
+    expect(remove).toHaveAccessibleDescription(deleteMessage);
+    expect(screen.getByText(deleteMessage)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(document.body);
+    expect(screen.queryByText(deleteMessage)).not.toBeInTheDocument();
+    fireEvent.click(remove);
+    fireEvent.keyDown(remove, { key: "Escape" });
+    expect(screen.queryByText(deleteMessage)).not.toBeInTheDocument();
+    expect(fetcher.mock.calls.some(([url]) => url.endsWith("/like"))).toBe(false);
+    expect(fetcher.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
   },
 );
 it.each([31, null])(
   "cannot send duration %s even if a stale server snapshot allows sending",
   async (durationSeconds) => {
-    setup({ video: { durationSeconds } });
+    const { fetcher } = setup({ video: { durationSeconds } });
     const send = await screen.findByRole("button", {
       name: /Send watch request/,
     });
-    expect(send).toBeDisabled();
+    expect(send).toBeEnabled();
+    expect(screen.queryByText(/A known duration/)).not.toBeInTheDocument();
+    fireEvent.click(send);
+    expect(send).toHaveAccessibleDescription("A known duration of 30 seconds or less is required.");
+    expect(fetcher.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
   },
 );
 it.each(["like_required", "weekly_limit_reached", "resend_not_available"])(
-  "shows server denial %s",
+  "explains server denial %s only after a click without sending",
   async (reason) => {
-    setup({
+    const { fetcher } = setup({
       state: {
         canSend: false,
         reason: reason as VideoWatchRequestStatus["reason"],
+        remainingRequests: reason === "weekly_limit_reached" ? 0 : 3,
+        nextSendAt: "2099-01-01",
       },
     });
     const send = await screen.findByRole("button", {
       name: /Send watch request/,
     });
-    expect(send).toBeDisabled();
-    expect(
-      screen.getByText(
-        reason === "weekly_limit_reached"
-          ? /three requests/
-          : reason === "like_required"
-            ? /Like this video first/
-            : /Wait before sending again/,
-      ),
-    ).toBeInTheDocument();
+    const message = reason === "weekly_limit_reached"
+      ? "You have already sent three watch requests to Momo in the last 7 days. You cannot send any more yet."
+      : reason === "like_required"
+        ? "Like this video first."
+        : "Wait before sending again for this video.";
+    expect(send).toBeEnabled();
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Requests remaining/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Next request available/)).not.toBeInTheDocument();
+    fireEvent.click(send);
+    expect(send).toHaveAccessibleDescription(new RegExp(message));
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(screen.getByText(/Next request available/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(message));
+    expect(screen.getByText(message)).toBeInTheDocument();
+    fireEvent.keyDown(send, { key: "Escape" });
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(send);
+    fireEvent.click(document.body);
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(send);
+    fireEvent.focusIn(document.body);
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    fireEvent.click(send);
+    fireEvent.blur(window);
+    expect(screen.queryByText(message)).not.toBeInTheDocument();
+    expect(send).not.toHaveAttribute("aria-describedby");
+    expect(fetcher.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
   },
 );
 it("does not expose sending on ineligible wiki or automatic video", async () => {
@@ -241,14 +281,19 @@ it("shows send failure without an optimistic sent state", async () => {
   expect(screen.queryByText("Request sent")).not.toBeInTheDocument();
 });
 it("mini-player has no send control and respects personal unlike restriction", async () => {
-  setup({
+  const { fetcher } = setup({
     compact: true,
     state: { sent: true, canSend: false, unlikeRestrictedUntil: "2099-01-01" },
   });
   const heart = await screen.findByRole("button", {
     name: /Unlike: Short video/,
   });
-  await waitFor(() => expect(heart).toBeDisabled());
+  await waitFor(() => expect(heart).toBeEnabled());
+  const message = "You cannot unlike for 7 days after sending a request.";
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
+  fireEvent.click(heart);
+  expect(heart).toHaveAccessibleDescription(message);
+  expect(fetcher.mock.calls.some(([url]) => url.endsWith("/like"))).toBe(false);
   expect(
     screen.queryByRole("button", { name: /Send watch request/ }),
   ).not.toBeInTheDocument();
@@ -289,8 +334,12 @@ it("unlocks only after refreshed authoritative seven-day state, never by the bro
   const heart = await screen.findByRole("button", {
     name: /Unlike: Short video/,
   });
-  await screen.findByText("Request sent");
-  expect(heart).toBeDisabled();
+  const sentButton = await screen.findByRole("button", { name: "Request sent" });
+  fireEvent.click(sentButton);
+  expect(screen.getByText("Wait before sending again for this video.")).toBeInTheDocument();
+  expect(heart).toBeEnabled();
+  fireEvent.click(heart);
+  expect(screen.getByText("You cannot unlike for 7 days after sending a request.")).toBeInTheDocument();
   updateSnapshot({
     sent: false,
     canSend: true,
@@ -303,9 +352,49 @@ it("unlocks only after refreshed authoritative seven-day state, never by the bro
     await client.invalidateQueries({ queryKey: ["wiki-video-watch-requests"] });
   });
   await waitFor(() => expect(heart).toBeEnabled());
+  expect(screen.queryByText("Wait before sending again for this video.")).not.toBeInTheDocument();
+  expect(screen.queryByText("You cannot unlike for 7 days after sending a request.")).not.toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: "Send watch request" }),
   ).toBeEnabled();
+});
+
+it("keeps the heart state and watch request button visible while refreshing after a like change", async () => {
+  const { fetcher } = setup();
+  const heart = await screen.findByRole("button", { name: "Unlike: Short video" });
+  await waitFor(() => expect(heart).toBeEnabled());
+  const watchButton = await screen.findByRole("button", { name: "Send watch request" });
+  const originalFetch = fetcher.getMockImplementation()!;
+  let finish!: () => void;
+  const refreshing = new Promise<void>((resolve) => { finish = resolve; });
+  let personalRefreshStarted = false;
+  let watchRefreshStarted = false;
+  fetcher.mockImplementation(async (url: string, init?: RequestInit) => {
+    const response = await originalFetch(url, init);
+    if (url.includes("/likes?")) {
+      personalRefreshStarted = true;
+      await refreshing;
+    }
+    if (url.includes("watch-requests?")) {
+      watchRefreshStarted = true;
+      await refreshing;
+    }
+    return response;
+  });
+  fireEvent.click(heart);
+  await waitFor(() => {
+    expect(personalRefreshStarted).toBe(true);
+    expect(watchRefreshStarted).toBe(true);
+  });
+  expect(screen.getByRole("button", { name: "Like: Short video" })).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("button", { name: "Like: Short video" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Send watch request" })).toBe(watchButton);
+  expect(watchButton).toBeDisabled();
+  expect(watchButton).toHaveAttribute("aria-busy", "false");
+  await act(async () => { finish(); });
+  await waitFor(() => expect(screen.getByRole("button", { name: "Like: Short video" })).toBeEnabled());
+  expect(screen.getByRole("button", { name: "Like: Short video" })).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("button", { name: "Send watch request" })).toBeEnabled();
 });
 
 it("uses authoritative owner-like flag/count after unlike rather than decrementing ordinary likes", async () => {
@@ -375,6 +464,7 @@ it("shares pending sends across filter remounts without duplicate POST", async (
   fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
   const pending = await screen.findByRole("button", { name: "Sending…" });
   expect(pending).toBeDisabled();
+  expect(pending).toHaveAttribute("aria-busy", "true");
   fireEvent.click(pending);
   await act(async () => {
     finish(new Response(null, { status: 204 }));
@@ -388,8 +478,8 @@ it("shares pending sends across filter remounts without duplicate POST", async (
   ).toHaveLength(1);
 });
 it.each([
-  ["ja", "これみて！を送信"],
-  ["ko", "이거 봐! 요청 보내기"],
+  ["ja", "これみて！"],
+  ["ko", "이거 봐!"],
 ] as const)("localizes request control in %s", async (locale, label) => {
   setup({ locale });
   expect(await screen.findByRole("button", { name: label })).toBeEnabled();
@@ -404,4 +494,21 @@ it("explains a server-rejected deletion when a request became active after the l
   fireEvent.click(screen.getByRole("button", { name: /^Delete$/ }));
   await screen.findByText("An active watch request prevents deletion.");
   expect(screen.getByRole("dialog")).toBeInTheDocument();
+});
+
+it.each([
+  ["ja", "これみて！", "Momoには直近7日間で3件送信済みのため、これ以上送信できません。"],
+  ["en", "Send watch request", "You have already sent three watch requests to Momo in the last 7 days. You cannot send any more yet."],
+  ["ko", "이거 봐!", "Momo에게 최근 7일간 이미 3개의 시청 요청을 보내 더 이상 보낼 수 없습니다."],
+] as const)("names the wiki and explains the reached quota in %s", async (locale, label, message) => {
+  const { fetcher } = setup({
+    locale,
+    state: { canSend: false, reason: "weekly_limit_reached", remainingRequests: 0 },
+  });
+  const send = await screen.findByRole("button", { name: label });
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
+  fireEvent.click(send);
+  expect(send).toHaveAccessibleDescription(message);
+  expect(screen.getByText(message)).toBeInTheDocument();
+  expect(fetcher.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
 });

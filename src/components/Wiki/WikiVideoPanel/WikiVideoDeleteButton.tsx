@@ -3,6 +3,7 @@ import { TrashIcon } from "@radix-ui/react-icons";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { deleteWikiVideo, type WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useVideoActionNotice } from "./useVideoActionNotice";
 import { getFocusableElements } from "../WikiImageLibrary/focus";
 
 export function WikiVideoDeleteButton({
@@ -18,19 +19,29 @@ export function WikiVideoDeleteButton({
   const t = dictionary.wiki.videos.deletion;
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const { root, noticeId, notice, showNotice } = useVideoActionNotice(
+    restricted ? dictionary.wiki.videos.watchRequests.deleteRestricted : undefined,
+  );
   return (
-    <>
+    <div ref={root} className="relative shrink-0">
       <button
         ref={trigger}
         type="button"
         aria-label={`${t.label}: ${video.title}`}
-        disabled={restricted}
-        title={restricted ? dictionary.wiki.videos.watchRequests.deleteRestricted : undefined}
-        onClick={() => setOpen(true)}
+        aria-describedby={notice ? noticeId : undefined}
+        onClick={() => {
+          if (restricted) showNotice();
+          else setOpen(true);
+        }}
         className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-status-danger hover:bg-status-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
       >
         <TrashIcon aria-hidden="true" className="h-4 w-4" />
       </button>
+      {notice ? (
+        <p id={noticeId} role="status" className="absolute right-0 top-full z-10 w-64 max-w-[calc(100vw-4.5rem)] rounded-lg bg-surface-raised p-2 text-sm text-text-strong shadow-soft">
+          {notice}
+        </p>
+      ) : null}
       {open ? (
         <DeleteDialog
           video={video}
@@ -41,7 +52,7 @@ export function WikiVideoDeleteButton({
           }}
         />
       ) : null}
-    </>
+    </div>
   );
 }
 

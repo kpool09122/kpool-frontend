@@ -102,7 +102,7 @@ const setup = (
   const wrap = () => (
     <QueryClientProvider client={client}>
       <I18nProvider initialLocale={options.locale ?? "en"}>
-        {options.compact ? <WikiVideoPlaybackLike identity={identity} video={video} /> : <WikiVideoPanel {...identity} />}
+        {options.compact ? <WikiVideoPlaybackLike identity={identity} video={video} /> : <WikiVideoPanel wikiTitle="Momo" {...identity} />}
       </I18nProvider>
     </QueryClientProvider>
   );

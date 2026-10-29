@@ -66,7 +66,7 @@ const video = {
 const wrap = (client: QueryClient, slug = identity.slug) => (
   <QueryClientProvider client={client}>
     <I18nProvider initialLocale="en">
-      <WikiVideoPanel {...identity} slug={slug} />
+      <WikiVideoPanel wikiTitle="Momo" {...identity} slug={slug} />
     </I18nProvider>
   </QueryClientProvider>
 );
@@ -186,7 +186,7 @@ describe("WikiVideoPanel", () => {
       render(
         <QueryClientProvider client={client()}>
           <I18nProvider initialLocale={locale}>
-            <WikiVideoPanel {...identity} />
+            <WikiVideoPanel wikiTitle="Momo" {...identity} />
           </I18nProvider>
         </QueryClientProvider>,
       );
@@ -549,7 +549,7 @@ describe("WikiVideoPanel", () => {
     await screen.findByText("No videos yet.");
     expect(deleted).toBe(true);
   });
-  it("applies duration bounds only on search and distinguishes empty results", async () => {
+  it("combines duration bounds with the named wiki watch request view only on search", async () => {
     const fetcher = vi.fn().mockImplementation((url: string) =>
       Promise.resolve(
         Response.json({
@@ -568,13 +568,28 @@ describe("WikiVideoPanel", () => {
       screen.getByRole("slider", { name: "Maximum duration (minutes)" }),
       { target: { value: "20" } },
     );
+    const matchList = screen.getByRole("checkbox", {
+      name: "Match Momo’s watch request list",
+    });
+    fireEvent.click(matchList);
     expect(fetcher).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
     await screen.findByText("No videos match this duration range.");
     const url = new URL(fetcher.mock.calls[1][0], "http://localhost");
     expect(url.searchParams.get("minDurationSeconds")).toBe("600");
     expect(url.searchParams.get("maxDurationSeconds")).toBe("1200");
+    expect(url.searchParams.get("recentWatchRequestsOnly")).toBe("true");
+    expect(url.searchParams.get("sortByWatchRequests")).toBe("true");
     expect(screen.queryByText(video.title)).not.toBeInTheDocument();
+
+    fireEvent.click(matchList);
+    fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+    const resetUrl = new URL(fetcher.mock.calls[2][0], "http://localhost");
+    expect(resetUrl.searchParams.has("recentWatchRequestsOnly")).toBe(false);
+    expect(resetUrl.searchParams.has("sortByWatchRequests")).toBe(false);
+    expect(resetUrl.searchParams.get("minDurationSeconds")).toBe("600");
+    expect(resetUrl.searchParams.get("maxDurationSeconds")).toBe("1200");
   });
 
   it("treats 40+ as unbounded and prevents inverted ranges", async () => {
@@ -669,7 +684,7 @@ describe("WikiVideoPanel", () => {
       view.rerender(
         <QueryClientProvider client={cache}>
           <I18nProvider initialLocale="en">
-            <WikiVideoPanel {...next} />
+            <WikiVideoPanel wikiTitle="Momo" {...next} />
           </I18nProvider>
         </QueryClientProvider>,
       );
