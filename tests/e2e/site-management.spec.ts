@@ -98,7 +98,7 @@ test("announcement draft create, edit, translate, publish and delete", async ({ 
  await page.getByLabel("本文", { exact: true }).fill(markdown);
  await expect(page.getByRole("heading", { name: "本文見出し" })).toBeVisible();
  await page.setViewportSize({ width: 390, height: 844 });
- await page.getByRole("button", { name: "管理画面メニューを閉じる", exact: true }).click();
+ await expect(page.getByRole("button", { name: "管理画面メニューを開く", exact: true })).toHaveAttribute("aria-expanded", "false");
  await expect(page.getByRole("heading", { name: "本文見出し" })).not.toBeVisible();
  await page.getByRole("tab", { name: "プレビュー", exact: true }).click();
  await expect(page.getByRole("heading", { name: "本文見出し" })).toBeVisible();
