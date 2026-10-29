@@ -2,11 +2,10 @@
 
 import type { ReactNode } from "react";
 import type { PlaybackSession } from "@/components/VideoPlayback/playbackStore";
-import type { PlaybackText } from "./playlistUi";
 
-export function SavedPlaylistQueue({ session, t, children }: {
+export function VideoPlaybackQueue({ session, t, children }: {
   session: PlaybackSession;
-  t: PlaybackText;
+  t: { queue: string };
   children: ReactNode;
 }) {
   const { queue } = session;

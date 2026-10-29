@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createPlaybackStore } from "./playbackStore";
 
 const tracks = [
@@ -7,6 +7,35 @@ const tracks = [
 ];
 
 describe("shared playback ownership", () => {
+  it.each(["youtube", "tiktok"] as const)("reports only actual completed playback once per completion token (%s)", (provider) => {
+    const ended = vi.fn();
+    const store = createPlaybackStore();
+    const videoId = provider === "youtube" ? "abcdefghijk" : "6718335390845095173";
+    store.getState().start("owner", [{ identifier: "first", videoId, provider, title: "First", onEnded: ended }, tracks[1]], "queue", "all");
+    const session = store.getState().session!;
+    store.getState().advance(session.id + 1, false, videoId, provider, 0);
+    store.getState().advance(session.id, false, "stale-video", provider, 0);
+    expect(ended).not.toHaveBeenCalled();
+    store.getState().advance(session.id, false, videoId, provider, 0);
+    store.getState().advance(session.id, false, videoId, provider, 0);
+    expect(ended).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not report completion on skips, errors, stops or replacement", () => {
+    const ended = vi.fn();
+    const store = createPlaybackStore();
+    const watchedTracks = tracks.map((track) => ({ ...track, onEnded: ended }));
+    store.getState().start("owner", watchedTracks, "queue");
+    let session = store.getState().session!;
+    store.getState().selectTrack(session.id, "second");
+    store.getState().advance(session.id, true, tracks[1].videoId, "youtube", 1);
+    store.getState().start("owner", watchedTracks, "single");
+    session = store.getState().session!;
+    store.getState().stop();
+    store.getState().advance(session.id, false, tracks[0].videoId, "youtube", 0);
+    expect(ended).not.toHaveBeenCalled();
+  });
+
   it.each(["off", "one", "all"] as const)("mixed queue skips every failed provider and stops even with loop %s", (loop) => {
     const store = createPlaybackStore();
     store.getState().start("mixed", [{ ...tracks[0], provider: "youtube" }, { ...tracks[1], provider: "tiktok", videoId: "6718335390845095173" }], "queue", loop, true);

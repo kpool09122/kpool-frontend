@@ -5,7 +5,7 @@ import { ImageIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 import { getVideoThumbnailUrl, getYouTubeVideoId } from "@kpool/wiki";
 
-export function PlaylistVideoThumbnail({ url, thumbnailUrl }: {
+export function VideoThumbnail({ url, thumbnailUrl }: {
   url: string;
   thumbnailUrl: string | null;
 }) {

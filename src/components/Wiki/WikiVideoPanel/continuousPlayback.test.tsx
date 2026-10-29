@@ -93,6 +93,35 @@ function expectCurrentVideo(video: WikiVideo, position: number, total: number) {
   ).toHaveAttribute("aria-current", "true");
   expect(document.querySelectorAll('li[aria-current="true"]')).toHaveLength(1);
 }
+
+function mountWatchInbox(videos: WikiVideo[], options = { failSave: false }) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const completed = new Set(videos.filter((video) => video.hasOfficialOwnerWatch).map((video) => video.videoLinkIdentifier));
+  useAuthStore.setState({ status: "authenticated" });
+  document.cookie = "XSRF-TOKEN=watch-test; path=/";
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith("/watched") && init?.method === "POST") {
+      if (options.failSave) return new Response(null, { status: 503 });
+      const identifier = url.split("/").at(-2)!;
+      completed.add(identifier);
+      return new Response(null, { status: 204 });
+    }
+    if (url.includes("like-access?")) return Response.json({ canLike: true, canUnlike: true, principalIdentifier: first.videoLinkIdentifier });
+    if (url.includes("/likes?")) return Response.json({ likedVideoLinkIdentifiers: [] });
+    if (url.includes("watch-requests?")) return Response.json({ videoWatchRequests: videos.map((video) => ({
+      videoLinkIdentifier: video.videoLinkIdentifier, sent: false, canSend: false, reason: "target_not_eligible",
+      lastSentAt: null, nextSendAt: null, remainingRequests: 3, unlikeRestrictedUntil: null, deleteRestrictedUntil: null,
+    })) });
+    return Response.json({ videos: videos.map((video) => ({ ...video, hasOfficialOwnerWatch: completed.has(video.videoLinkIdentifier) })) });
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const tree = (unwatchedOnly = true) => <QueryClientProvider client={client}><I18nProvider initialLocale="en"><VideoPlaybackProvider>
+    <WikiVideoPanel wikiTitle="Owner" language="ja" resourceType="talent" slug="ta-owner" officialInboxWikiIdentifier="00000000-0000-4000-8000-000000000099" officialInboxUnwatchedOnly={unwatchedOnly} />
+  </VideoPlaybackProvider></I18nProvider></QueryClientProvider>;
+  const view = render(tree());
+  return { ...view, client, fetcher, completed, setUnwatchedOnly: (value: boolean) => view.rerender(tree(value)) };
+}
+
 beforeEach(() => {
   requests.length = 0;
   blockAutoplay = false;
@@ -141,6 +170,60 @@ beforeEach(() => {
       return player;
     }),
   });
+});
+
+it("defaults to unwatched videos, records completion without removing the row, and filters saved completions after reload", async () => {
+  const view = mountWatchInbox([{ ...first, hasOfficialOwnerWatch: true }, second]);
+  await screen.findByRole("heading", { name: second.title });
+  expect(screen.queryByRole("heading", { name: first.title })).not.toBeInTheDocument();
+  view.setUnwatchedOnly(false);
+  expect(screen.getByRole("heading", { name: first.title })).toBeInTheDocument();
+  view.setUnwatchedOnly(true);
+  await start();
+  act(() => requests.at(-1)!.options.events.onStateChange({ data: 0 }));
+  await waitFor(() => expect(view.completed.has(second.videoLinkIdentifier)).toBe(true));
+  expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
+  await act(async () => { await view.client.invalidateQueries({ queryKey: ["public-wiki-videos"] }); });
+  expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
+  expect(view.fetcher.mock.calls.filter(([url, init]) => url.endsWith("/watched") && init?.method === "POST")).toHaveLength(1);
+  view.unmount();
+  const reloaded = mountWatchInbox([first, second].map((video) => ({ ...video, hasOfficialOwnerWatch: true })));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Play all" })).toBeDisabled());
+  expect(screen.queryByRole("heading", { name: second.title })).not.toBeInTheDocument();
+  reloaded.setUnwatchedOnly(false);
+  expect(screen.getByRole("heading", { name: first.title })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
+});
+
+it("records mini-player completion for the ended video and allows retry without disturbing the queue", async () => {
+  const options = { failSave: true };
+  const view = mountWatchInbox([first, second], options);
+  await screen.findByRole("heading", { name: first.title });
+  await start();
+  fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+  const ended = requests[0];
+  act(() => ended.options.events.onStateChange({ data: 0 }));
+  act(() => ended.options.events.onStateChange({ data: 0 }));
+  await screen.findByText("Could not save completion. Please retry.");
+  expect(view.completed.size).toBe(0);
+  expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Second video (2/2)");
+  options.failSave = false;
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await waitFor(() => expect(view.completed.has(first.videoLinkIdentifier)).toBe(true));
+  expect(view.completed.has(second.videoLinkIdentifier)).toBe(false);
+  expect(screen.getByRole("region", { name: "Mini player" })).toHaveTextContent("Second video (2/2)");
+  expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)).toEqual([first.title, second.title]);
+  expect(view.fetcher.mock.calls.filter(([url]) => url.endsWith("/watched"))).toHaveLength(2);
+});
+
+it("does not mark manual skips or playback errors as watched", async () => {
+  const view = mountWatchInbox([first, second]);
+  await screen.findByRole("heading", { name: first.title });
+  await start();
+  fireEvent.click(screen.getByRole("button", { name: "Next video" }));
+  await waitFor(() => expectCurrentVideo(second, 2, 2));
+  act(() => requests.at(-1)!.options.events.onError());
+  expect(view.fetcher.mock.calls.some(([url]) => url.endsWith("/watched"))).toBe(false);
 });
 afterEach(() => {
   cleanup();
@@ -1011,4 +1094,72 @@ describe("external player lifecycle", () => {
       expect(vi.getTimerCount()).toBe(0);
     },
   );
+});
+
+it.each([false, true])("uses the owner inbox order and preserves a running queue on reranking (start from row: %s)", async (startFromRow) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  useAuthStore.setState({ status: "authenticated" });
+  let liked = false;
+  const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("like-access?")) return Response.json({ canLike: true, canUnlike: true, principalIdentifier: first.videoLinkIdentifier });
+    if (url.includes("/likes?")) return Response.json({ likedVideoLinkIdentifiers: liked ? [second.videoLinkIdentifier] : [] });
+    if (url.endsWith("/like")) {
+      liked = init?.method === "POST";
+      return new Response(null, { status: 204 });
+    }
+    if (url.includes("watch-requests?")) return Response.json({ videoWatchRequests: [first, second].map((video) => ({
+      videoLinkIdentifier: video.videoLinkIdentifier,
+      sent: false, canSend: false, reason: "target_not_eligible",
+      lastSentAt: null, nextSendAt: null, remainingRequests: 3,
+      unlikeRestrictedUntil: null, deleteRestrictedUntil: null,
+    })) });
+    return Response.json({ videos: [{ ...second, hasOfficialOwnerLike: liked }, first] });
+  });
+  vi.stubGlobal("fetch", fetcher);
+  render(<QueryClientProvider client={client}><I18nProvider initialLocale="en"><VideoPlaybackProvider>
+    <WikiVideoPanel wikiTitle="Owner" language="ja" resourceType="talent" slug="ta-owner" officialInboxWikiIdentifier="00000000-0000-4000-8000-000000000099" />
+  </VideoPlaybackProvider></I18nProvider></QueryClientProvider>);
+  await screen.findByRole("heading", { name: second.title });
+  expect(fetcher.mock.calls.some(([url]) => url === "/api/wiki/my/watch-request-videos?wikiIdentifier=00000000-0000-4000-8000-000000000099")).toBe(true);
+  expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
+  const row = within(screen.getByRole("heading", { name: second.title }).closest("li")!);
+  const rowLike = await row.findByRole("button", { name: "Like: Second video" });
+  await waitFor(() => expect(rowLike).toBeEnabled());
+  expect(rowLike).toHaveTextContent("");
+  fireEvent.click(rowLike);
+  await waitFor(() => expect(row.getByRole("button", { name: "Unlike: Second video" })).toBeEnabled());
+  expect(requests).toHaveLength(0);
+  expect(screen.queryByRole("region", { name: "Now playing" })).not.toBeInTheDocument();
+  fireEvent.click(row.getByRole("button", { name: "Unlike: Second video" }));
+  await waitFor(() => expect(row.getByRole("button", { name: "Like: Second video" })).toBeEnabled());
+  expect(requests).toHaveLength(0);
+  if (startFromRow) {
+    fireEvent.click(screen.getByRole("button", { name: "Play video: Second video" }));
+    await waitFor(() => expect(requests.length).toBeGreaterThan(0));
+  } else await start();
+  expectCurrentVideo(second, 1, 2);
+  const queuePanel = within(screen.getByRole("complementary", { name: "Playback queue" }));
+  expect(queuePanel.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)).toEqual([second.title, first.title]);
+  const playing = within(screen.getByRole("region", { name: "Now playing" }));
+  const like = await playing.findByRole("button", { name: "Like: Second video" });
+  await waitFor(() => expect(like).toBeEnabled());
+  fireEvent.click(startFromRow ? queuePanel.getByRole("button", { name: "Like: Second video" }) : like);
+  await waitFor(() => expect(playing.getByRole("button", { name: "Unlike: Second video" })).toHaveAttribute("aria-pressed", "true"));
+  expect(queuePanel.getByRole("button", { name: "Unlike: Second video" })).toHaveAttribute("aria-pressed", "true");
+  expectCurrentVideo(second, 1, 2);
+  expect(fetcher.mock.calls.some(([url, init]) => url.endsWith(`/videos/${second.videoLinkIdentifier}/like`) && init?.method === "POST")).toBe(true);
+  await act(async () => client.setQueriesData({ queryKey: ["public-wiki-videos", "ja", "talent", "ta-owner"] }, { videos: [first, { ...second, hasOfficialOwnerLike: true }] }));
+  expectCurrentVideo(second, 1, 2);
+  expect(queuePanel.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)).toEqual([second.title, first.title]);
+  expect(requests.at(-1)?.destroy).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Next video" }));
+  await waitFor(() => expectCurrentVideo(first, 2, 2));
+  expect(playing.getByRole("button", { name: "Like: First video" })).toBeInTheDocument();
+  expect(playing.queryByRole("button", { name: "Unlike: Second video" })).not.toBeInTheDocument();
+  fireEvent.click(queuePanel.getByRole("button", { name: "Play video: Second video" }));
+  await waitFor(() => expectCurrentVideo(second, 1, 2));
+  fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+  expect(screen.getByRole("region", { name: "Mini player" })).toBeVisible();
+  act(() => useAuthStore.setState({ sessionVersion: useAuthStore.getState().sessionVersion + 1 }));
+  expect(screen.queryByRole("region", { name: "Mini player" })).toBeNull();
 });

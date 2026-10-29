@@ -130,6 +130,7 @@ const setup = (
       <I18nProvider initialLocale={options.locale ?? "en"}>
         {options.compact ? (
           <WikiVideoPlaybackLike
+            wikiTitle="Momo"
             identity={identity}
             video={{ ...video, ...options.video }}
           />
@@ -152,6 +153,32 @@ afterEach(() => {
   useAuthStore.setState({ status: "guest", identity: null, sessionVersion: 0 });
   vi.unstubAllGlobals();
 });
+it.each([
+  ["en", "Watched by Momo"],
+  ["ja", "Momoが視聴済み"],
+  ["ko", "Momo 시청 완료"],
+] as const)("disables watched requests with the Wiki title in %s", async (locale, label) => {
+  const { fetcher } = setup({ locale, state: { canSend: false, reason: "already_watched", sent: true } });
+  const button = await screen.findByRole("button", { name: label });
+  expect(button).toBeDisabled();
+  fireEvent.click(button);
+  expect(fetcher.mock.calls.some(([url, init]) => url.endsWith("/watch-requests") && init?.method === "POST")).toBe(false);
+});
+it("shows the owner's liked status to the left of the ordinary like count", async () => {
+  setup({ locale: "ja" });
+  const ownerLike = await screen.findByText("Momoがいいね済み");
+  const ordinaryLike = await screen.findByRole("button", { name: "いいねを解除: Short video" });
+  expect(ordinaryLike).toHaveTextContent("4");
+  expect(ownerLike.compareDocumentPosition(ordinaryLike) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(ordinaryLike).not.toHaveTextContent("Momoがいいね済み");
+});
+
+it("omits the owner's liked status when the owner has not liked the video", async () => {
+  setup({ locale: "ja", video: { hasOfficialOwnerLike: false } });
+  await screen.findByRole("button", { name: "いいねを解除: Short video" });
+  expect(screen.queryByText("Momoがいいね済み")).not.toBeInTheDocument();
+});
+
 it.each([29, 30])(
   "sends %i-second liked manual video, refreshes authoritative quota/restrictions and separates official likes",
   async (durationSeconds) => {
@@ -173,7 +200,7 @@ it.each([29, 30])(
     expect(
       fetcher.mock.calls.filter(([url]) => url.endsWith("/like")),
     ).toHaveLength(0);
-    expect(screen.getByText("Liked by the official owner")).toBeInTheDocument();
+    expect(screen.getByText("Liked by Momo")).toBeInTheDocument();
     const heart = screen.getByRole("button", { name: "Unlike: Short video" });
     const remove = screen.getByRole("button", { name: "Delete video: Short video" });
     const unlikeMessage = "You cannot unlike for 7 days after sending a request.";
@@ -280,6 +307,21 @@ it("shows send failure without an optimistic sent state", async () => {
   await screen.findByText(/Could not send/);
   expect(screen.queryByText("Request sent")).not.toBeInTheDocument();
 });
+it.each([true, false])("mini-player shows an owner-like icon only when liked (%s)", async (hasOfficialOwnerLike) => {
+  setup({ compact: true, locale: "ja", video: { hasOfficialOwnerLike } });
+  const heart = await screen.findByRole("button", { name: "いいねを解除: Short video" });
+  const ownerLike = screen.queryByRole("img", { name: "Momoがいいね済み" });
+  if (hasOfficialOwnerLike) {
+    expect(ownerLike).toBeInTheDocument();
+    expect(ownerLike!.compareDocumentPosition(heart) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(ownerLike).toHaveTextContent("");
+  } else {
+    expect(ownerLike).not.toBeInTheDocument();
+  }
+  expect(screen.queryByText("Momoがいいね済み")).not.toBeInTheDocument();
+  expect(heart).toHaveTextContent("");
+});
+
 it("mini-player has no send control and respects personal unlike restriction", async () => {
   const { fetcher } = setup({
     compact: true,
@@ -408,7 +450,7 @@ it("uses authoritative owner-like flag/count after unlike rather than decrementi
   await waitFor(() => expect(add).toBeEnabled());
   expect(add).toHaveTextContent("4");
   expect(
-    screen.queryByText("Liked by the official owner"),
+    screen.queryByText("Liked by Momo"),
   ).not.toBeInTheDocument();
 });
 it("aborts a pending send on session change and ignores late completion", async () => {

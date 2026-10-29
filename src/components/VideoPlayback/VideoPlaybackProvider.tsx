@@ -40,7 +40,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
   useEffect(() => useAuthStore.subscribe((next, previous) => {
     const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
     const state = store.getState();
-    if (scope(next) !== scope(previous) && (state.session?.owner.startsWith("private-playlist:") || state.notice?.owner.startsWith("private-playlist:"))) state.stop();
+    const isPrivate = (owner: string | undefined) => owner?.startsWith("private-playlist:") || owner?.startsWith("private-wiki-inbox:");
+    if (scope(next) !== scope(previous) && (isPrivate(state.session?.owner) || isPrivate(state.notice?.owner))) state.stop();
   }), [store]);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [height, setHeight] = useState(0);
@@ -210,7 +211,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
         </p>
         {fullscreen && session.kind === "queue" ? queueControls : null}
-        {floating || fullscreen ? active.controls : null}
+        {active.controls}
         <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>
           {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
         </button>
