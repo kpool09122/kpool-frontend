@@ -376,15 +376,17 @@ it("returns focus to the enabled start button after Stop without taking focus on
   const start = await screen.findByRole("button", { name: "Play all" });
   fireEvent.click(start);
   expect(start).toBeEnabled();
-  expect(start).toHaveAccessibleName("Stop playback");
-  const stop = screen.getByRole("button", { name: "Stop playback" });
+  const stop = await screen.findByRole("button", { name: "Stop playback" });
   expect(stop).toBe(start);
   stop.focus();
   fireEvent.click(stop);
   expect(start).toBeEnabled();
-  expect(start).toHaveAccessibleName("Play all");
-  expect(start).toHaveFocus();
+  await waitFor(() => {
+    expect(start).toHaveAccessibleName("Play all");
+    expect(start).toHaveFocus();
+  });
   fireEvent.click(start);
+  await screen.findByRole("button", { name: "Stop playback" });
   const selection = screen.getByRole("combobox", { name: "Playlist" });
   selection.focus();
   act(() => store.getState().stop());
