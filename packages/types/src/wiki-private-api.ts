@@ -359,6 +359,7 @@ const LikedVideoLink = z
     resourceType: z.enum(["agency", "group", "song", "talent"]),
     slug: z.string(),
     likedAt: z.string(),
+    isOfficialOwnerLike: z.boolean(),
     playlists: z.array(LikedVideoPlaylist),
   })
   .passthrough();
@@ -957,6 +958,7 @@ const Video = z
     externalVideoId: z.string(),
     videoLinkIdentifier: KPool_Common_Uuid.uuid(),
     likeCount: z.number().int().gte(0),
+    hasOfficialOwnerLike: z.boolean(),
     url: z.string(),
     title: z.string(),
     thumbnailUrl: z.string().nullable(),
@@ -2322,7 +2324,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/my/video-link-likes",
     alias: "VideoLinkLikeOperations_listMyVideoLinkLikes",
-    description: `Return likes of the authenticated active Wiki Principal. With videoLinkIds[], return all matching liked IDs in identifier order without pagination, even for non-public or missing wikis; videos includes only existing videos on published wikis and pagination is null. Omitted IDs list existing videos on published wikis across languages and resource types, sorted by likedAt descending then videoLinkIdentifier ascending, with matching IDs in the same order and pagination metadata. Each VideoLink is counted independently even when URLs match. Empty lists return 200. Explicit empty IDs, invalid UUIDs, more than 100 IDs or invalid pagination return 422. Does not accept a principal ID.`,
+    description: `Return likes of the authenticated active Wiki Principal. With videoLinkIds[], return all matching liked IDs in identifier order without pagination, even for non-public or missing wikis; videos includes only existing videos on published wikis and pagination is null. Omitted IDs list existing videos on published wikis across languages and resource types, sorted by likedAt descending then videoLinkIdentifier ascending, with matching IDs in the same order and pagination metadata. Each VideoLink is counted independently even when URLs match. Empty lists return 200. Explicit empty IDs, invalid UUIDs, more than 100 IDs or invalid pagination return 422. Does not accept a principal ID or like kind. Both ordinary and official-owner likes appear in likedVideoLinkIdentifiers and videos; isOfficialOwnerLike on each video identifies the saved kind, not current ownership. The usual authenticated active Account/Principal checks and permissions apply to both kinds.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3590,7 +3592,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/video-link/:videoLinkId/like",
     alias: "VideoLinkLikeOperations_likeVideoLink",
-    description: `Like a manual or automatically collected VideoLink as the authenticated Wiki Principal. Requires LIKE_VIDEO_LINK permission for its resource type. Returns 409 if the Principal has already liked the VideoLink.`,
+    description: `Like a manual or automatically collected VideoLink as the authenticated Wiki Principal. Requires LIKE_VIDEO_LINK permission for its resource type. The server classifies a like as official-owner only when the exact target wiki and video are talent resources, the wiki is official, and the non-delegated Principal belongs to its owner Account. Editing rights, roles, other wiki ownership and delegated owner Accounts do not confer this classification. No caller-supplied owner, sender or kind is accepted. Exactly one record per video/Principal, never counted twice. Returns 409 if the Principal has already liked the VideoLink, regardless of kind; existing classification is not changed by retry.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3652,7 +3654,7 @@ const endpoints = makeApi([
     method: "delete",
     path: "/video-link/:videoLinkId/like",
     alias: "VideoLinkLikeOperations_unlikeVideoLink",
-    description: `Remove only the authenticated Wiki Principal&#x27;s like. Requires UNLIKE_VIDEO_LINK permission. Repeated removal is idempotent (204); a missing VideoLink returns 404. Returns 409 (video_watch_request_active) while the authenticated sender has a request less than 168 hours old. At exactly 168 hours this restriction expires.`,
+    description: `Remove only the authenticated Wiki Principal&#x27;s like, including official-owner likes; another Principal&#x27;s like is never removed. Requires UNLIKE_VIDEO_LINK permission. Repeated removal is idempotent (204); a missing VideoLink returns 404. Returns 409 (video_watch_request_active) while the authenticated sender has a request less than 168 hours old. At exactly 168 hours this restriction expires.`,
     requestFormat: "json",
     parameters: [
       {
