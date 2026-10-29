@@ -46,6 +46,7 @@ export function CreateDraftWikiDialog({
     language: Locale;
     mode: CreateDraftWikiMode;
     name: string;
+    notes?: string;
     resourceType: WikiResourceType;
     slug: string;
     talentIdentifiers: string[];
@@ -77,7 +78,7 @@ export function CreateDraftWikiDialog({
       role="dialog"
     >
       <LocalizedForm
-        className="w-full max-w-md rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft"
+        className="max-h-full w-full max-w-md overflow-y-auto rounded-lg border border-stroke-subtle bg-surface-raised p-5 shadow-soft"
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
@@ -98,6 +99,7 @@ export function CreateDraftWikiDialog({
             language: language as Locale,
             mode: effectiveMode,
             name,
+            ...(effectiveMode === "auto" ? { notes: String(formData.get("notes") ?? "") } : {}),
             resourceType: selectedResourceType,
             slug,
             talentIdentifiers: effectiveMode === "auto" ? selectedTalents.map((item) => item.wikiIdentifier) : [],
@@ -199,6 +201,19 @@ export function CreateDraftWikiDialog({
               setSelectedTalents={setSelectedTalents}
               t={t}
             />
+          ) : null}
+          {effectiveMode === "auto" ? (
+            <label className="grid gap-2 text-sm font-semibold">
+              {t.autoCreateWikiNotesLabel}
+              <textarea
+                className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 font-normal"
+                disabled={isCreating}
+                maxLength={2000}
+                name="notes"
+                placeholder={t.autoCreateWikiNotesPlaceholder}
+                rows={3}
+              />
+            </label>
           ) : null}
           {error ? (
             <p

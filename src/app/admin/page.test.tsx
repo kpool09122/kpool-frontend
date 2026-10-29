@@ -2224,7 +2224,7 @@ describe("admin page clients", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity}
-        initialPrincipalState={{ status: "available", principal }}
+        initialPrincipalState={{ status: "available", principal: wikiAutoCreatePrincipal }}
         principalAdapter={createAdapter()}
       />,
     );
@@ -2233,6 +2233,13 @@ describe("admin page clients", () => {
     const dialog = screen.getByRole("dialog", { name: "Wikiを新規作成" });
 
     expect(dialog).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("備考（任意）")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "自動生成" }));
+    fireEvent.change(within(dialog).getByLabelText("備考（任意）"), {
+      target: { value: "自動生成向けの備考" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "手動作成" }));
+    expect(within(dialog).queryByLabelText("備考（任意）")).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("言語")).toHaveValue("ja");
 
     fireEvent.change(within(dialog).getByLabelText("言語"), {
@@ -2335,6 +2342,16 @@ describe("admin page clients", () => {
     expect(within(dialog).getByLabelText("関連事務所: 検索キーワード")).toBeEnabled();
     expect(within(dialog).getByLabelText("関連グループ: 検索キーワード")).toBeEnabled();
     expect(within(dialog).getByLabelText("関連タレント: 検索キーワード")).toBeEnabled();
+
+    for (const resourceType of ["agency", "group", "song", "talent"]) {
+      fireEvent.change(within(dialog).getByLabelText("リソース種別"), {
+        target: { value: resourceType },
+      });
+      const notes = within(dialog).getByLabelText("備考（任意）");
+      expect(notes).toBeEnabled();
+      expect(notes).toHaveAttribute("maxlength", "2000");
+      expect(notes).not.toBeRequired();
+    }
   });
 
   it("auto-creates a draft wiki with the normalized request slug and navigates with the returned ID", async () => {
@@ -2407,6 +2424,9 @@ describe("admin page clients", () => {
     fireEvent.change(within(dialog).getByLabelText("Slug"), {
       target: { value: "generated-wiki" },
     });
+    fireEvent.change(within(dialog).getByLabelText("備考（任意）"), {
+      target: { value: "  以前は別のグループに所属  " },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "自動生成で作成" }));
 
     await waitFor(() =>
@@ -2419,6 +2439,7 @@ describe("admin page clients", () => {
             language: "ja",
             name: "Generated Wiki",
             slug: "sg-generated-wiki",
+            notes: "以前は別のグループに所属",
             agencyIdentifier: "agency-wiki-1",
             groupIdentifiers: ["group-wiki-1"],
             talentIdentifiers: ["talent-wiki-1"],

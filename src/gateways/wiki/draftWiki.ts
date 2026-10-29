@@ -66,6 +66,7 @@ const autoCreateWikiRequestBodySchema = z.object({
   language: z.string(),
   name: z.string(),
   slug: z.string(),
+  notes: z.string().max(2000).nullish(),
   agencyIdentifier: z.string().nullable(),
   groupIdentifiers: z.array(z.string()),
   talentIdentifiers: z.array(z.string()),
@@ -456,6 +457,7 @@ export const createAutoCreateWikiRequestBodyFromInitialFields = ({
   groupIdentifiers = [],
   language,
   name,
+  notes,
   resourceType,
   slug,
   talentIdentifiers = [],
@@ -464,6 +466,7 @@ export const createAutoCreateWikiRequestBodyFromInitialFields = ({
   groupIdentifiers?: string[];
   language: string;
   name: string;
+  notes?: string | null;
   resourceType: WikiResourceType;
   slug: string;
   talentIdentifiers?: string[];
@@ -476,6 +479,7 @@ export const createAutoCreateWikiRequestBodyFromInitialFields = ({
     agencyIdentifier,
     groupIdentifiers,
     talentIdentifiers,
+    ...(notes?.trim() ? { notes: notes.trim() } : {}),
   });
 
 const isNotFoundApiError = (error: unknown): boolean =>

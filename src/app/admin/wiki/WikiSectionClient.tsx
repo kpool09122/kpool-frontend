@@ -226,6 +226,7 @@ export function WikiSectionClient({
     language: Locale;
     mode: CreateDraftWikiMode;
     name: string;
+    notes?: string;
     resourceType: WikiResourceType;
     slug: string;
     talentIdentifiers: string[];
@@ -246,6 +247,7 @@ export function WikiSectionClient({
             groupIdentifiers: input.groupIdentifiers,
             language: input.language,
             name: input.name,
+            notes: input.notes,
             resourceType: input.resourceType,
             slug,
             talentIdentifiers: input.talentIdentifiers,
