@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import type { CSSProperties } from "react";
 import { useState } from "react";
@@ -492,7 +493,7 @@ export const getDraftWikiListCardMeta = ({
       },
       {
         label: t.draftWikiEditedAtLabel,
-        value: formatDraftDate(wiki.editedAt, locale),
+        value: <LocalizedDateTime value={wiki.editedAt} locale={locale} />,
       },
     ];
   }
@@ -504,7 +505,7 @@ export const getDraftWikiListCardMeta = ({
     },
     {
       label: t.untranslatedWikiUpdatedAtLabel,
-      value: formatDraftDate(wiki.updatedAt, locale),
+      value: <LocalizedDateTime value={wiki.updatedAt} locale={locale} />,
     },
   ];
 };
@@ -542,24 +543,3 @@ const getDraftWikiStatusLabel = (
   t: ReturnType<typeof useI18n>["dictionary"]["admin"],
   status: WikiDraftWiki["status"],
 ): string => (t.draftWikiStatusLabels as Record<string, string>)[status] ?? status;
-
-export const formatDraftDate = (value: string | null, locale: Locale): string => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat(locale, {
-        day: "numeric",
-        hour: "numeric",
-        hour12: false,
-        minute: "2-digit",
-        month: "numeric",
-        second: "2-digit",
-        timeZone: "Asia/Tokyo",
-        year: "numeric",
-      }).format(date);
-};

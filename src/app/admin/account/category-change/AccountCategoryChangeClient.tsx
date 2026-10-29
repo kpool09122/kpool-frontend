@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import {
   AccountSettingsPanel,
   AccountStatusMessage,
@@ -94,7 +95,7 @@ function AccountCategoryChangePanel() {
                 <dt className="text-text-muted">
                   {t.accountCategoryChangeRequests.requestedAt}
                 </dt>
-                <dd>{state.request.requestedAt}</dd>
+                <dd><LocalizedDateTime value={state.request.requestedAt} /></dd>
               </div>
             </dl>
           </section>

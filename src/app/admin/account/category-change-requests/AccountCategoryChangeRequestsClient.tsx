@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { useAccountSection } from "../AccountSectionContext";
 import { useAccountCategoryChangeRequests } from "./useAccountCategoryChangeRequests";
@@ -27,7 +28,7 @@ export function AccountCategoryChangeRequestsClient() {
               <p className="mt-2 text-sm text-text-muted">{t.accountCategoryChange.statusLabels[request.status]}</p>
               <dl className="mt-3 grid gap-2 text-sm md:grid-cols-2">
                 <div><dt className="text-text-muted">{t.accountCategoryChangeRequests.categoryTransition}</dt><dd className="text-text-strong">{getCategoryLabel(labels, request.currentAccountCategory)} → {getCategoryLabel(labels, request.requestedAccountCategory)}</dd></div>
-                <div><dt className="text-text-muted">{t.accountCategoryChangeRequests.requestedAt}</dt><dd>{request.requestedAt}</dd></div>
+                <div><dt className="text-text-muted">{t.accountCategoryChangeRequests.requestedAt}</dt><dd><LocalizedDateTime value={request.requestedAt} /></dd></div>
               </dl>
             </button>
           ))}

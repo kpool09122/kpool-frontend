@@ -25,7 +25,7 @@ const identity = {
 const video: WikiVideo = {
   provider: "youtube", externalVideoId: "abcdefghijk",
   videoLinkIdentifier: "00000000-0000-4000-8000-000000000001",
-  likeCount: 0,
+  likeCount: 0, hasOfficialOwnerLike: false,
   url: "https://youtu.be/abcdefghijk",
   title: "Video",
   thumbnailUrl: null,
@@ -102,7 +102,7 @@ const setup = (
   const wrap = () => (
     <QueryClientProvider client={client}>
       <I18nProvider initialLocale={options.locale ?? "en"}>
-        {options.compact ? <WikiVideoPlaybackLike identity={identity} video={video} /> : <WikiVideoPanel {...identity} />}
+        {options.compact ? <WikiVideoPlaybackLike identity={identity} video={video} /> : <WikiVideoPanel wikiTitle="Momo" {...identity} />}
       </I18nProvider>
     </QueryClientProvider>
   );
@@ -372,7 +372,7 @@ it("does not double-apply the optimistic delta when a list snapshot arrives duri
   await waitFor(() => expect(heart()).toHaveAttribute("aria-pressed", "true"));
   act(() =>
     state.client.setQueryData([...key, {}], {
-      videos: [{ ...video, likeCount: 1 }],
+      videos: [{ ...video, likeCount: 1, hasOfficialOwnerLike: false }],
     }),
   );
   await waitFor(() =>

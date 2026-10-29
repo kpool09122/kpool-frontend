@@ -174,7 +174,7 @@ for (const width of [1280, 390])
         language: "ja",
         resourceType: "group",
         slug: "group",
-        likedAt: "2026-10-26T00:00:00Z",
+        likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false,
         playlists: saved.items.some((item) => item.externalVideoId === "abcdefghijk")
           ? [{ playlistIdentifier: id, name: saved.name }] : [],
       };

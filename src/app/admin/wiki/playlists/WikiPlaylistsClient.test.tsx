@@ -376,15 +376,17 @@ it("returns focus to the enabled start button after Stop without taking focus on
   const start = await screen.findByRole("button", { name: "Play all" });
   fireEvent.click(start);
   expect(start).toBeEnabled();
-  expect(start).toHaveAccessibleName("Stop playback");
-  const stop = screen.getByRole("button", { name: "Stop playback" });
+  const stop = await screen.findByRole("button", { name: "Stop playback" });
   expect(stop).toBe(start);
   stop.focus();
   fireEvent.click(stop);
   expect(start).toBeEnabled();
-  expect(start).toHaveAccessibleName("Play all");
-  expect(start).toHaveFocus();
+  await waitFor(() => {
+    expect(start).toHaveAccessibleName("Play all");
+    expect(start).toHaveFocus();
+  });
   fireEvent.click(start);
+  await screen.findByRole("button", { name: "Stop playback" });
   const selection = screen.getByRole("combobox", { name: "Playlist" });
   selection.focus();
   act(() => store.getState().stop());
@@ -503,7 +505,7 @@ it("shows saved playlist badges and reflects local removals without source metad
     videos: [{
       provider: "youtube", externalVideoId: "abcdefghijk", videoLinkIdentifier: id, url: "https://youtu.be/abcdefghijk", title: "Shared song",
       thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
-      likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Saved" }, { playlistIdentifier: other, name: "Other" }],
+      likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false, playlists: [{ playlistIdentifier: id, name: "Saved" }, { playlistIdentifier: other, name: "Other" }],
     }],
     pagination: { currentPage: 1, perPage: 20, total: 10 },
   });
@@ -534,7 +536,7 @@ it("stages additions from the destination dialog and writes them only when Save 
     provider: "youtube" as const, externalVideoId: "lmnopqrstuv",
     videoLinkIdentifier: source, title: "Liked song", url: "https://youtu.be/lmnopqrstuv",
     thumbnailUrl: null, durationSeconds: null, language: "ja" as const,
-    resourceType: "group" as const, slug: "group", likedAt: "2026-10-26T00:00:00Z",
+    resourceType: "group" as const, slug: "group", likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false,
     playlists: [],
   };
   vi.mocked(api.fetchPlaylists).mockResolvedValue({

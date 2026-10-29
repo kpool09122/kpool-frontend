@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export type WikiListCardMeta = {
   label: string;
-  value: string;
+  value: ReactNode;
 };
 
 export function WikiListCard({
@@ -83,7 +83,7 @@ export function WikiListCard({
           {meta.map((item) => (
             <WikiListCardMetaItem
               isOnImage={Boolean(isOnImage)}
-              key={`${item.label}:${item.value}`}
+              key={item.label}
               label={item.label}
               value={item.value}
             />
@@ -102,7 +102,7 @@ function WikiListCardMetaItem({
 }: {
   isOnImage: boolean;
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
     <div className="min-w-0">

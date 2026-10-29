@@ -3,7 +3,7 @@ import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
 const id = "00000000-0000-4000-8000-000000000001";
 const video = {
   videoLinkIdentifier: id,
-  likeCount: 0,
+  likeCount: 0, hasOfficialOwnerLike: false,
   provider: "youtube", externalVideoId: "jfKfPfyJRdk", url: "https://youtu.be/jfKfPfyJRdk",
   title: "Video likes",
   thumbnailUrl: null,
@@ -46,7 +46,7 @@ test("collaborator adds and removes with keyboard, does not refetch, restores sa
             videoLinkIdentifier: "00000000-0000-4000-8000-000000000002",
             title: "Manual video",
             videoUsage: "music_video",
-            likeCount: 0,
+            likeCount: 0, hasOfficialOwnerLike: false,
           },
         ],
       },

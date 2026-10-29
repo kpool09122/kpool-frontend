@@ -29,7 +29,7 @@ const first: WikiVideo = {
   durationSeconds: 120,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
-  likeCount: 0,
+  likeCount: 0, hasOfficialOwnerLike: false,
   videoUsage: "youtube_auto_view_count",
 };
 const second: WikiVideo = {
@@ -65,7 +65,7 @@ function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
     <QueryClientProvider client={client}>
       <I18nProvider initialLocale={locale}>
         <VideoPlaybackProvider>
-          <WikiVideoPanel language="ja" resourceType="group" slug={slug} />
+          <WikiVideoPanel wikiTitle="Momo" language="ja" resourceType="group" slug={slug} />
           {withEmbed ? <WikiEmbedFrame block={{
             blockType: "embed", blockIdentifier: "body-video", displayOrder: 0,
             provider: "youtube", embedId: "12345678901", caption: "Body video",
@@ -1006,6 +1006,8 @@ describe("external player lifecycle", () => {
         screen.queryByRole("button", { name: "Stop playback" }),
       ).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Play all" })).toBeEnabled();
+      // React Query mutation observers enqueue zero-delay notifications, not player lifecycle timers.
+      await act(async () => vi.advanceTimersByTimeAsync(0));
       expect(vi.getTimerCount()).toBe(0);
     },
   );

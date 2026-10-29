@@ -1,3 +1,4 @@
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 
@@ -16,13 +17,6 @@ type PublicWikiCardProps = {
   resolvedLanguage?: string;
   t: I18nDictionary["home"];
 };
-
-const formatDate = (value: string | null | undefined, locale: Locale): string =>
-  value
-    ? new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-      }).format(new Date(value))
-    : "";
 
 const getWikiCardImageSrc = (item: PublicWikiListItem): string | null => {
   if (item.isHidden === true || item.heroImage?.isHidden === true) {
@@ -118,7 +112,7 @@ export const PublicWikiCard = ({
       >
         <span>
           {item.updatedAt
-            ? t.updated(formatDate(item.updatedAt, locale))
+            ? <LocalizedDateTime value={item.updatedAt} locale={locale} dateOnly template={t.updated("{date}")} />
             : t.notPublished}
         </span>
         <span

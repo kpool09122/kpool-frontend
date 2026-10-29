@@ -3,30 +3,45 @@ import { TrashIcon } from "@radix-ui/react-icons";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { deleteWikiVideo, type WikiVideo } from "@/gateways/wiki/wikiVideos";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useVideoActionNotice } from "./useVideoActionNotice";
 import { getFocusableElements } from "../WikiImageLibrary/focus";
 
 export function WikiVideoDeleteButton({
   video,
   onDeleted,
+  restricted = false,
 }: {
   video: WikiVideo;
+  restricted?: boolean;
   onDeleted: () => void;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.deletion;
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const { root, noticeId, notice, showNotice } = useVideoActionNotice(
+    restricted ? dictionary.wiki.videos.watchRequests.deleteRestricted : undefined,
+  );
   return (
-    <>
+    <div ref={root} className="relative shrink-0">
       <button
         ref={trigger}
         type="button"
         aria-label={`${t.label}: ${video.title}`}
-        onClick={() => setOpen(true)}
+        aria-describedby={notice ? noticeId : undefined}
+        onClick={() => {
+          if (restricted) showNotice();
+          else setOpen(true);
+        }}
         className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-status-danger hover:bg-status-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
       >
         <TrashIcon aria-hidden="true" className="h-4 w-4" />
       </button>
+      {notice ? (
+        <p id={noticeId} role="status" className="absolute right-0 top-full z-10 w-64 max-w-[calc(100vw-4.5rem)] rounded-lg bg-surface-raised p-2 text-sm text-text-strong shadow-soft">
+          {notice}
+        </p>
+      ) : null}
       {open ? (
         <DeleteDialog
           video={video}
@@ -37,7 +52,7 @@ export function WikiVideoDeleteButton({
           }}
         />
       ) : null}
-    </>
+    </div>
   );
 }
 
@@ -53,7 +68,7 @@ function DeleteDialog({
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.deletion;
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"failed" | "restricted" | null>(null);
   const inFlight = useRef(false);
   const active = useRef(true);
   const panel = useRef<HTMLDivElement>(null);
@@ -94,7 +109,7 @@ function DeleteDialog({
     if (inFlight.current) return;
     inFlight.current = true;
     setPending(true);
-    setError(false);
+    setError(null);
     void deleteWikiVideo(video.videoLinkIdentifier).then((result) => {
       // A committed deletion invalidates the public cache even if the user logged out meanwhile.
       if (result.ok) onDeleted();
@@ -102,7 +117,7 @@ function DeleteDialog({
       inFlight.current = false;
       setPending(false);
       if (result.ok) onClose();
-      else setError(true);
+      else setError(result.status === 409 ? "restricted" : "failed");
     });
   };
   return (
@@ -125,7 +140,7 @@ function DeleteDialog({
         <p className="my-4 break-words">{video.title}</p>
         {error ? (
           <p role="alert" className="mb-4 text-status-danger">
-            {t.failed}
+            {error === "restricted" ? dictionary.wiki.videos.watchRequests.deleteRestricted : t.failed}
           </p>
         ) : null}
         <div className="flex flex-wrap justify-end gap-3">

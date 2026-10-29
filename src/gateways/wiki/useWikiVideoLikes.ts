@@ -1,5 +1,6 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWikiVideoWatchRequests } from "./useWikiVideoWatchRequests";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import {
   fetchWikiVideoLikeAccess,
@@ -33,6 +34,7 @@ export function useWikiVideoLikes(
   sessionKey: string,
 ) {
   const client = useQueryClient();
+  const watch = useWikiVideoWatchRequests(identity, videos, sessionKey);
   const status = useAuthStore((state) => state.status);
   const access = useQuery({
     queryKey: ["wiki-video-like-access", sessionKey, identity.resourceType],
@@ -95,6 +97,7 @@ export function useWikiVideoLikes(
     if (client.getQueryData<Operations>(operationsKey)?.[id]?.pending) return;
     const liked = !personal.data.includes(id);
     if (!(liked ? access.data?.canLike : access.data?.canUnlike)) return;
+    if (!liked && watch.unlikeBlocked(video)) return;
     const count = Math.max(0, video.likeCount + (liked ? 1 : -1));
     writeOperation(id, { liked, count, pending: true, failed: false });
     const controller = new AbortController();
@@ -117,6 +120,12 @@ export function useWikiVideoLikes(
     unsubscribe();
     // Late completions may not touch the next user's caches or public counts.
     if (!current || currentSessionKey() !== sessionKey) return;
+    if (identity.resourceType === "talent") {
+      await Promise.all([client.invalidateQueries({queryKey: publicPrefix}), client.invalidateQueries({queryKey: personalPrefix}), client.invalidateQueries({queryKey: ["wiki-video-watch-requests", sessionKey]})]);
+      if (currentSessionKey() !== sessionKey) return;
+      writeOperation(id, result.ok ? undefined : {liked: !liked, count: video.likeCount, pending: false, failed: true});
+      return;
+    }
     if (result.ok) {
       client.setQueriesData<{ videos: WikiVideo[] }>(
         { queryKey: publicPrefix },
@@ -160,8 +169,7 @@ export function useWikiVideoLikes(
           : undefined;
       const known =
         status === "authenticated" &&
-        personal.isSuccess &&
-        !personal.isFetching;
+        personal.isSuccess;
       const liked = known
         ? operation?.pending
           ? operation.liked
@@ -178,9 +186,12 @@ export function useWikiVideoLikes(
       return {
         liked,
         unavailableReason,
-        count: operation?.pending ? operation.count : video.likeCount,
+        restricted: !!liked && !!watch.state(video)?.unlikeRestrictedUntil,
+        count: operation?.pending && identity.resourceType !== "talent" ? operation.count : video.likeCount,
         disabled:
+          (!!liked && watch.unlikeBlocked(video)) ||
           !known ||
+          personal.isFetching ||
           access.isFetching ||
           !!operation?.pending ||
           !(liked ? access.data?.canUnlike : access.data?.canLike),

@@ -111,3 +111,14 @@ describe("public video BFF", () => {
     expect((await GET(request(), context)).status).toBe(502);
   });
 });
+
+it("forwards recent-only and request-priority ordering with duration anonymously", async () => {
+  vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+  const fetcher = vi.fn().mockResolvedValue(Response.json({videos: []})); vi.stubGlobal("fetch", fetcher);
+  expect((await GET(request("resourceType=talent&maxDurationSeconds=30&recentWatchRequestsOnly=true&sortByWatchRequests=true"), context)).status).toBe(200);
+  expect(fetcher.mock.calls[0][0]).toContain("maxDurationSeconds=30&recentWatchRequestsOnly=true&sortByWatchRequests=true");
+  expect(fetcher.mock.calls[0][1].headers).toEqual({Accept: "application/json"});
+});
+it.each(["recentWatchRequestsOnly=yes", "sortByWatchRequests[]=true", "sortByWatchRequests=true&sortByWatchRequests=false"])("rejects malformed watch filters %s", async (query) => {
+  expect((await GET(request(`resourceType=talent&${query}`), context)).status).toBe(400);
+});

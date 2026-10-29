@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import Image from "next/image";
 
@@ -13,7 +14,7 @@ import type { Locale } from "../../../../i18n/locales";
 import { useAdmin } from "../../AdminProvider";
 import { useAdminRouteData } from "../../AdminRouteProvider";
 import type { ImageDeletionRequestListState } from "../../useAdminImageDeletionRequestReview";
-import { formatDraftDate } from "../WikiContentClient";
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useImageDeletionRequests } from "./useImageDeletionRequests";
 
@@ -220,7 +221,7 @@ function ImageDeletionRequestCard({
           <ImageDeletionRequestMeta label={t.draftImageAltTextLabel} value={image.altText || t.draftImageNoAltText} />
           <ImageDeletionRequestMeta
             label={t.draftImageUploadedAtLabel}
-            value={formatDraftDate(image.uploadedAt, locale)}
+            value={<LocalizedDateTime value={image.uploadedAt} locale={locale} />}
           />
           <ImageDeletionRequestMeta
             label={t.imageDeletionRequestRequesterNameLabel}
@@ -313,7 +314,7 @@ function ImageDeletionRequestMeta({
   label: string;
   sourceName?: string;
   sourceUrl?: string;
-  value?: string;
+  value?: ReactNode;
 }) {
   const safeSourceUrl = sourceUrl && isSafeWikiSourceUrl(sourceUrl) ? sourceUrl : null;
 

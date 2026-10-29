@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -9,25 +10,6 @@ import { useI18n } from "../../../../i18n/I18nProvider";
 import { useAdmin } from "../../AdminProvider";
 
 type StatusFilter = "all" | "replied" | "awaitingReply";
-
-const formatContactDate = (value: string): string => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-    minute: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-  }).formatToParts(date);
-  const valueFor = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((part) => part.type === type)?.value ?? "";
-
-  return `${valueFor("year")}-${valueFor("month")}-${valueFor("day")} ${valueFor("hour")}:${valueFor("minute")}`;
-};
 
 export function MyContactsClient() {
   const { dictionary } = useI18n();
@@ -86,7 +68,7 @@ export function MyContactsClient() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                    <span className="w-full shrink-0 text-sm text-text-muted sm:w-auto">{formatContactDate(contact.createdAt)}</span>
+                    <span className="w-full shrink-0 text-sm text-text-muted sm:w-auto"><LocalizedDateTime value={contact.createdAt} /></span>
                     <span className="shrink-0 rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
                       {t.category(contact.category)}
                     </span>
@@ -115,7 +97,7 @@ export function MyContactsClient() {
                         {detail.data.replies.length ? detail.data.replies.map((reply) => (
                           <article className="relative border-l-4 border-brand-highlight bg-surface-raised py-3 pl-4 pr-3" key={reply.replyIdentifier}>
                             <p className="whitespace-pre-wrap">{reply.content}</p>
-                            <p className="mt-2 text-xs text-text-muted">{formatContactDate(reply.sentAt)}</p>
+                            <p className="mt-2 text-xs text-text-muted"><LocalizedDateTime value={reply.sentAt} /></p>
                           </article>
                         )) : <p className="text-sm text-text-muted">{t.noReplies}</p>}
                       </div>

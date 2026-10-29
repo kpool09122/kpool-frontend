@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useId, useState } from "react";
 
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
@@ -47,8 +48,8 @@ const DelegationDetails = ({ delegation, t }: { delegation: AccountDelegationSum
   <dl className="grid gap-2 text-sm md:grid-cols-2">
     <DelegationAccountDetails account={delegation.delegateAccount} label={t.accountDelegations.delegateAccount} />
     <DelegationAccountDetails account={delegation.delegatorAccount} label={t.accountDelegations.delegatorAccount} />
-    <div><dt className="text-text-muted">{t.accountDelegations.requestedAt}</dt><dd className="text-text-strong">{delegation.requestedAt}</dd></div>
-    {delegation.approvedAt ? <div><dt className="text-text-muted">{t.accountDelegations.approvedAt}</dt><dd className="text-text-strong">{delegation.approvedAt}</dd></div> : null}
+    <div><dt className="text-text-muted">{t.accountDelegations.requestedAt}</dt><dd className="text-text-strong"><LocalizedDateTime value={delegation.requestedAt} /></dd></div>
+    {delegation.approvedAt ? <div><dt className="text-text-muted">{t.accountDelegations.approvedAt}</dt><dd className="text-text-strong"><LocalizedDateTime value={delegation.approvedAt} /></dd></div> : null}
   </dl>
 );
 

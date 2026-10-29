@@ -19,7 +19,7 @@ describe("my video likes BFF", () => {
       provider: "tiktok", externalVideoId: "6718335390845095173",
       videoLinkIdentifier: id, url: "https://www.tiktok.com/@scout2015/video/6718335390845095173", title: "Song",
       thumbnailUrl: null, durationSeconds: null, language: "ko", resourceType: "group", slug: "group",
-      likedAt: "2026-10-26T00:00:00Z", playlists: [{ playlistIdentifier: id, name: "Favorites" }],
+      likedAt: "2026-10-26T00:00:00Z", isOfficialOwnerLike: false, playlists: [{ playlistIdentifier: id, name: "Favorites" }],
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
       likedVideoLinkIdentifiers: [id], videos: [video], pagination: { currentPage: 1, perPage: 20, total: 1 },

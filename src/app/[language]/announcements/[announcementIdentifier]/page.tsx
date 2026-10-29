@@ -1,3 +1,4 @@
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import Link from "next/link";
 import { AnnouncementCategoryBadge } from "@/components/Announcement/AnnouncementCategoryBadge";
 import { AnnouncementMarkdown } from "@/components/Announcement/AnnouncementMarkdown";
@@ -49,9 +50,7 @@ export default async function AnnouncementDetail({
             <AnnouncementCategoryBadge
               label={categories[item.category_name]}
             />
-            <time className="text-sm text-text-muted" dateTime={item.published_date}>
-              {item.published_date}
-            </time>
+            <LocalizedDateTime className="text-sm text-text-muted" value={item.published_date} locale={language} dateOnly />
           </p>
           <AnnouncementMarkdown content={item.content} />
         </article>
