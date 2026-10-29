@@ -7,8 +7,9 @@ import { isVideoId } from "@kpool/wiki";
 import type { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
 import { WikiVideoLikeControl } from "./WikiVideoLikeControl";
 
-export function OfficialVideoInboxList({ videos, activeIdentifier, onSelect, likes }: {
+export function OfficialVideoInboxList({ videos, wikiTitle, activeIdentifier, onSelect, likes }: {
   videos: WikiVideo[];
+  wikiTitle: string;
   activeIdentifier?: string;
   onSelect: (identifier: string) => void;
   likes: ReturnType<typeof useWikiVideoLikes>;
@@ -36,7 +37,7 @@ export function OfficialVideoInboxList({ videos, activeIdentifier, onSelect, lik
               {current ? <p className="text-xs">{t.nowPlaying}</p> : null}
             </div>
             <div className="relative shrink-0">
-              <WikiVideoLikeControl video={video} likes={likes} compact />
+              <WikiVideoLikeControl video={video} wikiTitle={wikiTitle} likes={likes} compact />
             </div>
           </li>
         );

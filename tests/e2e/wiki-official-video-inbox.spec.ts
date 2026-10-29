@@ -177,7 +177,7 @@ for (const width of [1280, 390])
       }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
-      playing.getByRole("img", { name: "Liked by the official owner", exact: true }),
+      playing.getByRole("img", { name: "Liked by Nayeon", exact: true }),
     ).toBeVisible();
     await expect(playing).toContainText("Most requested (1/3)");
     fail = true;
@@ -246,19 +246,4 @@ test("owner authorization errors never render private list items", async ({
   await expect(
     page.getByRole("heading", { name: "Most requested", exact: true }),
   ).toHaveCount(0);
-});
-test("daily digest public video link exposes the exact owner-management destination", async ({
-  page,
-}) => {
-  await setup(page);
-  await page.route("**/api/wiki/my/watch-request-videos", (route) =>
-    route.fulfill({ json: { wikis } }),
-  );
-  await page.route("**/api/wiki/*/*/videos?*", (route) =>
-    route.fulfill({ json: { videos: [] } }),
-  );
-  await page.goto("/ja/wiki/tl-nayeon-twice?tab=video");
-  await expect(
-    page.getByRole("link", { name: "本人向けこれみて管理画面を開く" }),
-  ).toHaveAttribute("href", `/admin/wiki/watch-requests/${id}`);
 });

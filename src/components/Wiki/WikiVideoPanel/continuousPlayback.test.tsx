@@ -115,10 +115,11 @@ function mountWatchInbox(videos: WikiVideo[], options = { failSave: false }) {
     return Response.json({ videos: videos.map((video) => ({ ...video, hasOfficialOwnerWatch: completed.has(video.videoLinkIdentifier) })) });
   });
   vi.stubGlobal("fetch", fetcher);
-  const view = render(<QueryClientProvider client={client}><I18nProvider initialLocale="en"><VideoPlaybackProvider>
-    <WikiVideoPanel wikiTitle="Owner" language="ja" resourceType="talent" slug="ta-owner" officialInboxWikiIdentifier="00000000-0000-4000-8000-000000000099" />
-  </VideoPlaybackProvider></I18nProvider></QueryClientProvider>);
-  return { ...view, client, fetcher, completed };
+  const tree = (unwatchedOnly = true) => <QueryClientProvider client={client}><I18nProvider initialLocale="en"><VideoPlaybackProvider>
+    <WikiVideoPanel wikiTitle="Owner" language="ja" resourceType="talent" slug="ta-owner" officialInboxWikiIdentifier="00000000-0000-4000-8000-000000000099" officialInboxUnwatchedOnly={unwatchedOnly} />
+  </VideoPlaybackProvider></I18nProvider></QueryClientProvider>;
+  const view = render(tree());
+  return { ...view, client, fetcher, completed, setUnwatchedOnly: (value: boolean) => view.rerender(tree(value)) };
 }
 
 beforeEach(() => {
@@ -174,12 +175,10 @@ beforeEach(() => {
 it("defaults to unwatched videos, records completion without removing the row, and filters saved completions after reload", async () => {
   const view = mountWatchInbox([{ ...first, hasOfficialOwnerWatch: true }, second]);
   await screen.findByRole("heading", { name: second.title });
-  const filter = screen.getByRole("checkbox", { name: "Unwatched only" });
-  expect(filter).toBeChecked();
   expect(screen.queryByRole("heading", { name: first.title })).not.toBeInTheDocument();
-  fireEvent.click(filter);
+  view.setUnwatchedOnly(false);
   expect(screen.getByRole("heading", { name: first.title })).toBeInTheDocument();
-  fireEvent.click(filter);
+  view.setUnwatchedOnly(true);
   await start();
   act(() => requests.at(-1)!.options.events.onStateChange({ data: 0 }));
   await waitFor(() => expect(view.completed.has(second.videoLinkIdentifier)).toBe(true));
@@ -188,10 +187,10 @@ it("defaults to unwatched videos, records completion without removing the row, a
   expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
   expect(view.fetcher.mock.calls.filter(([url, init]) => url.endsWith("/watched") && init?.method === "POST")).toHaveLength(1);
   view.unmount();
-  mountWatchInbox([first, second].map((video) => ({ ...video, hasOfficialOwnerWatch: true })));
-  await screen.findByRole("checkbox", { name: "Unwatched only" });
+  const reloaded = mountWatchInbox([first, second].map((video) => ({ ...video, hasOfficialOwnerWatch: true })));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Play all" })).toBeDisabled());
   expect(screen.queryByRole("heading", { name: second.title })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Unwatched only" }));
+  reloaded.setUnwatchedOnly(false);
   expect(screen.getByRole("heading", { name: first.title })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: second.title })).toBeInTheDocument();
 });

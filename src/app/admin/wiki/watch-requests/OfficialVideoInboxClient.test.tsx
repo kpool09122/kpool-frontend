@@ -9,7 +9,6 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { OfficialVideoInboxClient } from "./OfficialVideoInboxClient";
-import { OfficialVideoInboxEntry } from "@/components/Wiki/WikiVideoPanel/OfficialVideoInboxEntry";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { I18nProvider, dictionaries } from "@/i18n/I18nProvider";
 const navigation = vi.hoisted(() => ({
@@ -29,8 +28,9 @@ vi.mock("@/components/Wiki/WikiVideoPanel", () => ({
   WikiVideoPanel: (props: {
     slug: string;
     officialInboxWikiIdentifier: string;
+    officialInboxUnwatchedOnly: boolean;
   }) => (
-    <p data-testid="panel">
+    <p data-testid="panel" data-unwatched-only={props.officialInboxUnwatchedOnly}>
       {props.slug}:{props.officialInboxWikiIdentifier}
     </p>
   ),
@@ -104,6 +104,11 @@ it("resolves browser authentication on a fresh direct admin load", async () => {
 it("selects the current language by default and switches using exact owner URLs", async () => {
   mount();
   expect(await screen.findByTestId("panel")).toHaveTextContent("ta-second");
+  const filter = screen.getByRole("checkbox", { name: "Unwatched only" });
+  expect(filter).toBeChecked();
+  expect(screen.getByTestId("panel")).toHaveAttribute("data-unwatched-only", "true");
+  fireEvent.click(filter);
+  expect(screen.getByTestId("panel")).toHaveAttribute("data-unwatched-only", "false");
   fireEvent.change(screen.getByRole("combobox"), { target: { value: id } });
   expect(navigation.push).toHaveBeenCalledWith(
     `/admin/wiki/watch-requests/${id}`,
@@ -176,24 +181,4 @@ it("retains the player during background ownership refresh", async () => {
   });
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
   expect(screen.getByTestId("panel")).toBeVisible();
-});
-it("exposes the existing digest's public Wiki video tab to owner-inbox navigation", async () => {
-  mount(
-    <OfficialVideoInboxEntry
-      identity={{ language: "ja", resourceType: "talent", slug: "ta-owner" }}
-    />,
-  );
-  expect(await screen.findByRole("link")).toHaveAttribute(
-    "href",
-    `/admin/wiki/watch-requests/${id}`,
-  );
-});
-it("never exposes the owner-inbox link on another Wiki", async () => {
-  mount(
-    <OfficialVideoInboxEntry
-      identity={{ language: "ja", resourceType: "talent", slug: "ta-other" }}
-    />,
-  );
-  await waitFor(() => expect(fetcher).toHaveBeenCalled());
-  expect(screen.queryByRole("link")).toBeNull();
 });

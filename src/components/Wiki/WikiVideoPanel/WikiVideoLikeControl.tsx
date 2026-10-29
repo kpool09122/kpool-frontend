@@ -28,14 +28,16 @@ function GradientHeart({ official = false }: { official?: boolean }) {
   );
 }
 
-export function WikiVideoLikeControl({ video, likes, compact = false }: {
+export function WikiVideoLikeControl({ video, wikiTitle, likes, compact = false }: {
   compact?: boolean;
   video: WikiVideo;
+  wikiTitle: string;
   likes: ReturnType<typeof useWikiVideoLikes>;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.likes;
   const state = likes.state(video);
+  const officialLabel = dictionary.wiki.videos.watchRequests.official.replace("{title}", () => wikiTitle);
   const message = state.unavailableReason
     ? t[state.unavailableReason]
     : state.restricted ? dictionary.wiki.videos.watchRequests.unlikeRestricted : undefined;
@@ -46,11 +48,12 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
       {video.hasOfficialOwnerLike ? (
         <span
           role={compact ? "img" : undefined}
-          aria-label={compact ? dictionary.wiki.videos.watchRequests.official : undefined}
+          aria-label={compact ? officialLabel : undefined}
+          title={officialLabel}
           className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-text-muted"
         >
           <GradientHeart official />
-          {!compact ? <span>{dictionary.wiki.videos.watchRequests.official}</span> : null}
+          {!compact ? <span>{officialLabel}</span> : null}
         </span>
       ) : null}
       <button
@@ -78,9 +81,10 @@ export function WikiVideoLikeControl({ video, likes, compact = false }: {
   );
 }
 
-export function WikiVideoPlaybackLike({ identity, video }: {
+export function WikiVideoPlaybackLike({ identity, video, wikiTitle }: {
   identity: WikiVideoIdentity;
   video: WikiVideo;
+  wikiTitle: string;
 }) {
   const sessionKey = useAuthStore((state) => [
     state.status,
@@ -96,5 +100,5 @@ export function WikiVideoPlaybackLike({ identity, video }: {
   });
   const current = query.data?.videos.find((item) => item.videoLinkIdentifier === video.videoLinkIdentifier) ?? video;
   const likes = useWikiVideoLikes(identity, [current], sessionKey);
-  return <WikiVideoLikeControl video={current} likes={likes} compact />;
+  return <WikiVideoLikeControl video={current} wikiTitle={wikiTitle} likes={likes} compact />;
 }

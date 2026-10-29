@@ -130,7 +130,8 @@ test("fresh mobile public Wiki session sends with CSRF, refreshes restrictions, 
       exact: true,
     }),
   ).toBeEnabled();
-  await expect(card.getByText("Liked by the official owner")).toBeVisible();
+  const wikiTitle = await page.locator(".wiki-title > span").first().innerText();
+  await expect(card.getByText(`Liked by ${wikiTitle}`, { exact: true })).toBeVisible();
   expect(writes).toBe(1);
   expect(personalReads).toBeGreaterThan(1);
   await page.getByLabel(/^Match .+’s watch request list$/).check();

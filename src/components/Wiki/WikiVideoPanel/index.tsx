@@ -5,7 +5,6 @@ import { useWikiVideoWatchRequests } from "@/gateways/wiki/useWikiVideoWatchRequ
 import { useOfficialVideoWatch } from "@/gateways/wiki/useOfficialVideoWatch";
 import Image from "next/image";
 import { officialVideoInboxErrorStatus, fetchOfficialRequestVideos } from "@/gateways/wiki/officialVideoInbox";
-import { OfficialVideoInboxEntry } from "./OfficialVideoInboxEntry";
 import { OfficialVideoInboxList } from "./OfficialVideoInboxList";
 import { WikiVideoLikeControl, WikiVideoPlaybackLike } from "./WikiVideoLikeControl";
 import { useWikiVideoLikes } from "@/gateways/wiki/useWikiVideoLikes";
@@ -137,6 +136,7 @@ function VideoCard({
 type WikiVideoPanelProps = WikiVideoIdentity & {
   wikiIdentifier?: string;
   officialInboxWikiIdentifier?: string;
+  officialInboxUnwatchedOnly?: boolean;
   wikiTitle: string;
 };
 
@@ -150,13 +150,13 @@ export function WikiVideoPanel(props: WikiVideoPanelProps) {
 function WikiVideoPanelContent({
   wikiIdentifier,
   officialInboxWikiIdentifier,
+  officialInboxUnwatchedOnly = true,
   wikiTitle,
   ...identity
 }: WikiVideoPanelProps) {
   const queryClient = useQueryClient();
   return (
     <>
-      {!officialInboxWikiIdentifier && identity.resourceType === "talent" ? <OfficialVideoInboxEntry identity={identity} /> : null}
       {wikiIdentifier && !officialInboxWikiIdentifier ? (
         <WikiVideoCreateEntry
           key={`${wikiIdentifier}:${identity.resourceType}`}
@@ -174,7 +174,7 @@ function WikiVideoPanelContent({
           }}
         />
       ) : null}
-      {officialInboxWikiIdentifier ? <VideoList key={officialInboxWikiIdentifier} identity={identity} wikiTitle={wikiTitle} filter={{ recentWatchRequestsOnly: true, sortByWatchRequests: true }} officialInboxWikiIdentifier={officialInboxWikiIdentifier} /> : <VideoSearch
+      {officialInboxWikiIdentifier ? <VideoList key={officialInboxWikiIdentifier} identity={identity} wikiTitle={wikiTitle} filter={{ recentWatchRequestsOnly: true, sortByWatchRequests: true }} officialInboxWikiIdentifier={officialInboxWikiIdentifier} unwatchedOnly={officialInboxUnwatchedOnly} /> : <VideoSearch
         key={`${identity.language}:${identity.resourceType}:${identity.slug}`}
         identity={identity}
         wikiTitle={wikiTitle}
@@ -209,11 +209,13 @@ function VideoList({
   wikiTitle,
   filter,
   officialInboxWikiIdentifier,
+  unwatchedOnly = true,
 }: {
   identity: WikiVideoIdentity;
   wikiTitle: string;
   filter: DurationFilter;
   officialInboxWikiIdentifier?: string;
+  unwatchedOnly?: boolean;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos;
@@ -293,6 +295,7 @@ function VideoList({
       watch={watch}
       onDeleted={onDeleted}
       ownerInbox={!!officialInboxWikiIdentifier}
+      unwatchedOnly={unwatchedOnly}
     />
   );
 }
@@ -307,6 +310,7 @@ function VideoPlaybackList({
   watch,
   onDeleted,
   ownerInbox = false,
+  unwatchedOnly = true,
 }: {
   identity: WikiVideoIdentity;
   wikiTitle: string;
@@ -317,13 +321,13 @@ function VideoPlaybackList({
   watch: ReturnType<typeof useWikiVideoWatchRequests>;
   onDeleted: (video: WikiVideo) => void;
   ownerInbox?: boolean;
+  unwatchedOnly?: boolean;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.continuous;
   const queryClient = useQueryClient();
-  const playbackLike = (video: WikiVideo) => <QueryClientProvider client={queryClient}><WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} /></QueryClientProvider>;
+  const playbackLike = (video: WikiVideo) => <QueryClientProvider client={queryClient}><WikiVideoPlaybackLike key={video.videoLinkIdentifier} identity={identity} video={video} wikiTitle={wikiTitle} /></QueryClientProvider>;
   const completion = useOfficialVideoWatch(access.sessionKey);
-  const [unwatchedOnly, setUnwatchedOnly] = useState(true);
   const [watchedOnEntry] = useState(() => new Set(videos.filter((video) => video.hasOfficialOwnerWatch).map((video) => video.videoLinkIdentifier)));
   const visibleVideos = ownerInbox && unwatchedOnly ? videos.filter((video) => !watchedOnEntry.has(video.videoLinkIdentifier)) : videos;
   const queue = visibleVideos.flatMap((video) => {
@@ -334,6 +338,13 @@ function VideoPlaybackList({
   const instanceId = useId();
   const owner = ownerInbox ? `private-wiki-inbox:${instanceId}` : instanceId;
   usePlaybackOwner(store, owner);
+  const previousUnwatchedOnly = useRef(unwatchedOnly);
+  useEffect(() => {
+    if (ownerInbox && previousUnwatchedOnly.current !== unwatchedOnly && store.getState().session?.owner === owner) {
+      store.getState().stop();
+    }
+    previousUnwatchedOnly.current = unwatchedOnly;
+  }, [unwatchedOnly, ownerInbox, owner, store]);
   useEffect(() => () => {
     // Private inbox playback must not outlive its ownership/Principal boundary.
     const state = store.getState();
@@ -368,6 +379,7 @@ function VideoPlaybackList({
   };
   const inboxList = ownerInbox ? (
     <OfficialVideoInboxList
+      wikiTitle={wikiTitle}
       likes={likes}
       videos={playback ? playback.queue.order.flatMap((index) => {
         const video = videos.find((item) => item.videoLinkIdentifier === playback.tracks[index].identifier);
@@ -386,13 +398,6 @@ function VideoPlaybackList({
   ) : null;
   return (
     <div className="space-y-5">
-      {ownerInbox ? <label className="inline-flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" checked={unwatchedOnly} onChange={(event) => {
-          if (playback) store.getState().stop();
-          setUnwatchedOnly(event.target.checked);
-        }} />
-        {dictionary.admin.officialVideoInbox.unwatchedOnly}
-      </label> : null}
       <VideoQueueControls
         labels={t}
         empty={!queue.length}
@@ -459,7 +464,7 @@ function VideoPlaybackList({
               }], "single");
             }}
             watchControl={!ownerInbox ? <WikiVideoWatchRequestControl video={video} wikiTitle={wikiTitle} watch={watch} /> : undefined}
-            likeControl={!ownerInbox ? <WikiVideoLikeControl video={video} likes={likes} /> : undefined}
+            likeControl={!ownerInbox ? <WikiVideoLikeControl video={video} wikiTitle={wikiTitle} likes={likes} /> : undefined}
             deleteControl={
               !ownerInbox && access.principalIdentifier &&
               ([
