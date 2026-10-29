@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useId, useState } from "react";
 
@@ -148,7 +149,7 @@ export function AccountAffiliationsClient() {
                 <article className="grid gap-3 rounded-lg border border-stroke-subtle p-3" key={affiliation.affiliationIdentifier}>
                   <AffiliationAccounts affiliation={affiliation} labels={{ agency: t.accountAffiliations.agencyAccountLabel, talent: t.accountAffiliations.talentAccountLabel }} />
                   <dl className="grid gap-2 text-sm">
-                    <div><dt className="text-text-muted">{t.accountAffiliations.requestedAtLabel}</dt><dd className="text-text-strong">{affiliation.requestedAt}</dd></div>
+                    <div><dt className="text-text-muted">{t.accountAffiliations.requestedAtLabel}</dt><dd className="text-text-strong"><LocalizedDateTime value={affiliation.requestedAt} /></dd></div>
                   </dl>
                 </article>
               ))}
@@ -169,7 +170,7 @@ export function AccountAffiliationsClient() {
                 <article className="grid gap-3 rounded-lg border border-stroke-subtle p-3" key={affiliation.affiliationIdentifier}>
                   <AffiliationAccounts affiliation={affiliation} labels={{ agency: t.accountAffiliations.agencyAccountLabel, talent: t.accountAffiliations.talentAccountLabel }} />
                   <dl className="grid gap-2 text-sm">
-                    <div><dt className="text-text-muted">{t.accountAffiliations.requestedAtLabel}</dt><dd className="text-text-strong">{affiliation.requestedAt}</dd></div>
+                    <div><dt className="text-text-muted">{t.accountAffiliations.requestedAtLabel}</dt><dd className="text-text-strong"><LocalizedDateTime value={affiliation.requestedAt} /></dd></div>
                   </dl>
                   <div className="flex flex-wrap gap-3">
                     {canApproveAffiliations ? (
@@ -202,7 +203,7 @@ export function AccountAffiliationsClient() {
                 <article className="grid gap-3 rounded-lg border border-stroke-subtle p-3" key={affiliation.affiliationIdentifier}>
                   <AffiliationAccounts affiliation={affiliation} labels={{ agency: t.accountAffiliations.agencyAccountLabel, talent: t.accountAffiliations.talentAccountLabel }} />
                   <dl className="grid gap-2 text-sm">
-                    <div><dt className="text-text-muted">{t.accountAffiliations.activatedAtLabel}</dt><dd className="text-text-strong">{affiliation.activatedAt ?? "-"}</dd></div>
+                    <div><dt className="text-text-muted">{t.accountAffiliations.activatedAtLabel}</dt><dd className="text-text-strong"><LocalizedDateTime value={affiliation.activatedAt} /></dd></div>
                   </dl>
                 </article>
               ))}

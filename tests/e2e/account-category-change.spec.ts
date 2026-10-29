@@ -5,6 +5,8 @@ import {
 } from "@/gateways/identity/authIdentity";
 import type { AccountCategoryChangeRequestSummary } from "@/gateways/account/accountApi";
 
+test.use({ timezoneId: "Asia/Tokyo" });
+
 const accountIdentifier = "22222222-2222-2222-2222-222222222222";
 const account = {
   accountIdentifier,
@@ -123,7 +125,7 @@ test("application, reload, withdrawal and reapplication without management permi
   ).toBeEnabled();
   await expect(page.getByRole("radio")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByText(pending.requestedAt)).toBeVisible();
+  await expect(page.getByText("2026/10/12 9:00")).toHaveAttribute("datetime", pending.requestedAt);
   await page.getByRole("button", { name: "申請を取り下げる" }).click();
   await expect(
     page.getByRole("button", { name: "申請する", exact: true }),

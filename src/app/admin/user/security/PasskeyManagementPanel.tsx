@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil1Icon } from "@radix-ui/react-icons";
@@ -236,9 +237,6 @@ export function PasskeyManagementPanel({
     setBusyAction(null);
   };
 
-  const formatDate = (value: string | null): string =>
-    value ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : t.passkeyNeverUsed;
-
   return (
     <UserSettingsPanel
       title={t.passkeySettingsTitle}
@@ -295,8 +293,8 @@ export function PasskeyManagementPanel({
                       </div>
                     )}
                     <dl className="contents text-sm text-text-muted">
-                      <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyCreatedAt}: </dt><dd className="inline">{formatDate(passkey.createdAt)}</dd></div>
-                      <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyLastUsedAt}: </dt><dd className="inline">{formatDate(passkey.lastUsedAt)}</dd></div>
+                      <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyCreatedAt}: </dt><dd className="inline"><LocalizedDateTime value={passkey.createdAt} locale={locale} fallback={t.passkeyNeverUsed} /></dd></div>
+                      <div className="whitespace-nowrap"><dt className="inline font-semibold">{t.passkeyLastUsedAt}: </dt><dd className="inline"><LocalizedDateTime value={passkey.lastUsedAt} locale={locale} fallback={t.passkeyNeverUsed} /></dd></div>
                     </dl>
                     <button type="button" className="rounded-lg border border-status-danger px-4 py-2 text-sm font-semibold text-status-danger disabled:opacity-60" disabled={busyAction !== null} onClick={() => void handleDelete(passkey)}>{t.passkeyDelete}</button>
                   </div>

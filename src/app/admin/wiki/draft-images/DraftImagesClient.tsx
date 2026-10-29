@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -13,7 +14,7 @@ import type { Locale } from "../../../../i18n/locales";
 import { useAdmin } from "../../AdminProvider";
 import { useAdminRouteData } from "../../AdminRouteProvider";
 import type { DraftImageListState } from "../../useAdminDraftImageReview";
-import { formatDraftDate } from "../WikiContentClient";
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useWikiSection } from "../WikiSectionProvider";
 import { useDraftImages } from "./useDraftImages";
 
@@ -162,7 +163,7 @@ function DraftImageListPanel({
                   />
                   <DraftImageMeta
                     label={t.draftImageUploadedAtLabel}
-                    value={formatDraftDate(image.uploadedAt, locale)}
+                    value={<LocalizedDateTime value={image.uploadedAt} locale={locale} />}
                   />
                 </dl>
                 <div className="flex flex-wrap gap-2">
@@ -206,7 +207,7 @@ function DraftImageListPanel({
   );
 }
 
-function DraftImageMeta({ label, value }: { label: string; value: string }) {
+function DraftImageMeta({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0">
       <dt className="font-semibold text-text-muted">{label}</dt>

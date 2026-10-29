@@ -8,6 +8,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import * as dateTime from "@/utils/dateTime";
 import { dictionaries } from "../../../../i18n/dictionaries";
 import { AccountSectionProvider } from "../AccountSectionContext";
 import { AccountCategoryChangeClient } from "./AccountCategoryChangeClient";
@@ -66,6 +67,7 @@ const renderClient = (
 describe("AccountCategoryChangeClient", () => {
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     document.cookie = "XSRF-TOKEN=; Max-Age=0";
   });
@@ -548,6 +550,7 @@ describe("AccountCategoryChangeClient", () => {
     expect(screen.getByRole("button", { name: "申請する" })).toBeEnabled();
   });
   it("shows pending details instead of the application form without management permission", async () => {
+    vi.spyOn(dateTime, "getBrowserTimeZone").mockReturnValue("Asia/Tokyo");
     vi.stubGlobal(
       "fetch",
       vi
@@ -561,7 +564,7 @@ describe("AccountCategoryChangeClient", () => {
         ),
     );
     renderClient();
-    expect(await screen.findByText(pending.requestedAt)).toBeInTheDocument();
+    expect(await screen.findByText("2026/10/12 9:00")).toHaveAttribute("datetime", pending.requestedAt);
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "申請を取り下げる" }),

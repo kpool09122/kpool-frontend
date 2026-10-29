@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { buildWikiPath } from "@kpool/wiki";
@@ -7,7 +8,7 @@ import type { OfficialCertificationAction, OfficialCertificationListItem } from 
 import type { useI18n } from "../../../../../i18n/I18nProvider";
 import type { Locale } from "../../../../../i18n/locales";
 import { useAdmin } from "../../../AdminProvider";
-import { formatDraftDate } from "../../WikiContentClient";
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useWikiSection } from "../../WikiSectionProvider";
 import { useOfficialCertificationReviews, type OfficialCertificationReviewListState } from "./useOfficialCertificationReviews";
 
@@ -209,7 +210,7 @@ function OfficialCertificationReviewCard({
         <OfficialCertificationMeta label={t.officialCertificationResourceTypeLabel} value={certification.resourceType} />
         <OfficialCertificationMeta
           label={t.officialCertificationRequestedAtLabel}
-          value={formatDraftDate(certification.requestedAt, locale)}
+          value={<LocalizedDateTime value={certification.requestedAt} locale={locale} />}
         />
         {ownerAccount ? (
           <>
@@ -315,7 +316,7 @@ function OfficialCertificationMeta({
   value,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
     <div className="min-w-0">

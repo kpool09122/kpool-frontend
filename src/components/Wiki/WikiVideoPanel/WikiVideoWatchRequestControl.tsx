@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useVideoActionNotice } from "./useVideoActionNotice";
 import type { WikiVideo } from "@/gateways/wiki/wikiVideos";
 import type { useWikiVideoWatchRequests } from "@/gateways/wiki/useWikiVideoWatchRequests";
@@ -60,9 +61,7 @@ export function WikiVideoWatchRequestControl({
           {state.nextSendAt ? (
             <p>
               {t.next}:{" "}
-              <time className="break-all" dateTime={state.nextSendAt}>
-                {state.nextSendAt}
-              </time>
+              <LocalizedDateTime className="break-all" value={state.nextSendAt} />
             </p>
           ) : null}
         </div>

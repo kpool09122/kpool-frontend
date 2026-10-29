@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import type { CSSProperties, Dispatch, SetStateAction } from "react";
 import { useState } from "react";
 import Link from "next/link";
@@ -34,13 +35,6 @@ const buildListHref = (language: Locale, query: PublicWikiListQuery): string => 
   params.set("page", "1");
   return `/${language}/wiki?${params.toString()}`;
 };
-
-const formatDate = (value: string | null | undefined, locale: Locale): string =>
-  value
-    ? new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-      }).format(new Date(value))
-    : "";
 
 const getWikiCardImageSrc = (item: PublicWikiListItem): string | null => {
   if (item.isHidden === true || item.heroImage?.isHidden === true) {
@@ -119,7 +113,7 @@ const TopWikiSlide = ({
           className="mt-4 text-sm font-medium text-text-muted"
           style={{ color: hasHeroImage ? "rgba(255, 250, 244, 0.82)" : undefined }}
         >
-          {item.updatedAt ? t.updated(formatDate(item.updatedAt, locale)) : t.notPublished}
+          {item.updatedAt ? <LocalizedDateTime value={item.updatedAt} locale={locale} dateOnly template={t.updated("{date}")} /> : t.notPublished}
         </p>
       </div>
     </Link>
