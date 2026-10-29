@@ -398,9 +398,10 @@ it("keeps mixed saved queue identity and current rows matched to provider snapsh
   setup(); await openSaved();
   fireEvent.click(await screen.findByRole("button", { name: "Play all" }));
   expect(store.getState().session?.tracks.map(({ provider, videoId }) => [provider, videoId])).toEqual([["youtube", "abcdefghijk"], ["tiktok", "6718335390845095173"]]);
-  const target = screen.getByRole("button", { name: "Play video: Saved TikTok" });
+  const queue = await screen.findByRole("complementary", { name: "Playback queue" });
+  const target = within(queue).getByRole("button", { name: "Play video: Saved TikTok" });
   fireEvent.click(target);
-  expect(target).toHaveAttribute("aria-current", "true");
+  await waitFor(() => expect(target).toHaveAttribute("aria-current", "true"));
   expect(target.closest("li")?.querySelector("img")).toHaveAttribute("src", "https://images.k-pool.app/images/snapshot.webp");
   expect(api.savePlaylist).not.toHaveBeenCalled();
 });
