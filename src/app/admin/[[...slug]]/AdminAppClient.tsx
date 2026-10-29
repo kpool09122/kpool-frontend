@@ -1,5 +1,6 @@
 "use client";
 
+import { OfficialVideoInboxClient } from "../wiki/watch-requests/OfficialVideoInboxClient";
 import { usePathname } from "next/navigation";
 import { WikiPlaylistsClient } from "../wiki/playlists/WikiPlaylistsClient";
 import { SiteManagementAnnouncementsClient } from "../site-management/announcements/SiteManagementAnnouncementsClient";
@@ -69,6 +70,7 @@ type AdminClientPage = "accountAffiliations"
   | "userOther"
   | "userProfile"
   | "userSecurity"
+  | "wikiWatchRequests"
   | "wikiPlaylists"
   | "wikiApproved"
   | "wikiDraftImages"
@@ -137,6 +139,7 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
     return pathname.endsWith("/security") ? "userSecurity" : "userProfile";
   }
 
+  if (pathname === "/admin/wiki/watch-requests" || pathname?.startsWith("/admin/wiki/watch-requests/")) return "wikiWatchRequests";
   if (pathname === "/admin/wiki/playlists") return "wikiPlaylists";
   if (pathname?.endsWith("/submitted")) {
     return "wikiSubmitted";
@@ -303,7 +306,7 @@ function AdminResolvedPage({
 
   return (
     <WikiSectionClient returnTo={returnTo}>
-      {page === "wikiPlaylists" ? <WikiPlaylistsClient /> : page === "wikiSubmitted" ? (
+      {page === "wikiWatchRequests" ? <OfficialVideoInboxClient /> : page === "wikiPlaylists" ? <WikiPlaylistsClient /> : page === "wikiSubmitted" ? (
         <SubmittedWikisClient />
       ) : page === "wikiApproved" ? (
         <ApprovedWikisClient />

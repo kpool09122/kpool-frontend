@@ -111,6 +111,7 @@ const resolveAdminRouteDataTarget = (slug: string[] | undefined): AdminRouteData
 
 const resolveAdminWikiTab = (slug: string[] | undefined): AdminWikiTab => {
   const wikiPage = slug?.[0] === "wiki" ? slug[1] : undefined;
+  if (wikiPage === "watch-requests") return "watchRequests";
 
   if (wikiPage === "submitted") {
     return "submittedWikis";

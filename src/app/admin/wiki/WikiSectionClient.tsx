@@ -204,6 +204,7 @@ export function WikiSectionClient({
     const canPublishDraftWikis = canPublishWikiDraftWikis(principalState.principal);
     const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(principalState.principal);
     const isAllowed =
+      activeWikiTab === "watchRequests" ||
       activeWikiTab === "playlists" ||
       activeWikiTab === "editingWikis" ||
       activeWikiTab === "submittedWikis" ||
@@ -315,6 +316,7 @@ export function WikiSectionClient({
 }
 
 const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
+  if (pathname === "/admin/wiki/watch-requests" || pathname?.startsWith("/admin/wiki/watch-requests/")) return "watchRequests";
   if (pathname?.endsWith("/playlists")) return "playlists";
   if (pathname?.endsWith("/submitted")) {
     return "submittedWikis";

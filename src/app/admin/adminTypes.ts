@@ -9,7 +9,7 @@ import type { ImageDeletionRequestListState } from "./useAdminImageDeletionReque
 export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings" | "otherSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountNotifications" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "wiki" | "siteManagement" | "accountSettings" | "settings";
-export type AdminWikiTab = AdminDraftWikiActionTab | "playlists" | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
+export type AdminWikiTab = AdminDraftWikiActionTab | "watchRequests" | "playlists" | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
 
 export type AdminRouteContext = {
   accountScope: string;
@@ -71,6 +71,7 @@ export const adminSectionRoutes: Record<AdminSection, string> = {
 };
 
 export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
+  watchRequests: "/admin/wiki/watch-requests",
   playlists: "/admin/wiki/playlists",
   editingWikis: "/admin/wiki/editing",
   submittedWikis: "/admin/wiki/submitted",

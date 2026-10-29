@@ -309,6 +309,7 @@ const ja = {
     },
   },
   admin: {
+    officialVideoInbox: {"title": "届いたこれみて動画", "description": "この公式タレントWiki自身への直近7日間のリクエストを、これみて件数・通常いいね件数の多い順で表示します。再生中も通常のいいね操作で本人からのいいねを送れます。", "select": "対象の公式タレントWiki", "empty": "対象の公式タレントWikiはありません。", "forbidden": "本人としてアクセスできません。ログイン中のアカウント・所有権・委任状態を確認してください。", "open": "本人向けこれみて管理画面を開く"},
     playlists: {
       title: "マイプレイリスト",
       reorder: "並べ替え",
@@ -1828,6 +1829,7 @@ const en: typeof ja = {
     },
   },
   admin: {
+    officialVideoInbox: {"title": "Received watch requests", "description": "Videos requested for this official talent Wiki in the last 7 days, ranked by request count, then regular likes. Like normally during playback to send an official-owner like.", "select": "Official talent Wiki", "empty": "No eligible official talent Wikis.", "forbidden": "Owner access is unavailable. Check your signed-in account, ownership and delegation status.", "open": "Open my watch-request inbox"},
     playlists: {
       title: "My playlists",
       reorder: "Reorder",
@@ -3348,6 +3350,7 @@ const ko: typeof ja = {
     },
   },
   admin: {
+    officialVideoInbox: {"title": "받은 시청 요청", "description": "이 공식 탤런트 Wiki에 최근 7일간 도착한 요청을 요청 수, 일반 좋아요 수 순서로 표시합니다. 재생 중에도 일반 좋아요 버튼으로 공식 본인의 좋아요를 보낼 수 있습니다.", "select": "공식 탤런트 Wiki", "empty": "대상 공식 탤런트 Wiki가 없습니다.", "forbidden": "본인으로 접근할 수 없습니다. 로그인 계정, 소유권 및 위임 상태를 확인해 주세요.", "open": "본인 시청 요청 관리 화면 열기"},
     playlists: {
       title: "내 재생목록",
       reorder: "순서 변경",

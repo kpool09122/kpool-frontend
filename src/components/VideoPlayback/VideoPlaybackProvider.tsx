@@ -40,7 +40,8 @@ export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
   useEffect(() => useAuthStore.subscribe((next, previous) => {
     const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
     const state = store.getState();
-    if (scope(next) !== scope(previous) && (state.session?.owner.startsWith("private-playlist:") || state.notice?.owner.startsWith("private-playlist:"))) state.stop();
+    const isPrivate = (owner: string | undefined) => owner?.startsWith("private-playlist:") || owner?.startsWith("private-wiki-inbox:");
+    if (scope(next) !== scope(previous) && (isPrivate(state.session?.owner) || isPrivate(state.notice?.owner))) state.stop();
   }), [store]);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [height, setHeight] = useState(0);

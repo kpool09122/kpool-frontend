@@ -1012,3 +1012,26 @@ describe("external player lifecycle", () => {
     },
   );
 });
+
+it("uses the owner inbox order for playback without public filters and preserves a running queue on reranking", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const fetcher = vi.fn().mockResolvedValue(Response.json({ videos: [second, first] }));
+  vi.stubGlobal("fetch", fetcher);
+  render(<QueryClientProvider client={client}><I18nProvider initialLocale="en"><VideoPlaybackProvider>
+    <WikiVideoPanel wikiTitle="Owner" language="ja" resourceType="talent" slug="ta-owner" officialInboxWikiIdentifier="00000000-0000-4000-8000-000000000099" />
+  </VideoPlaybackProvider></I18nProvider></QueryClientProvider>);
+  await screen.findByRole("heading", { name: second.title });
+  expect(fetcher.mock.calls[0][0]).toBe("/api/wiki/my/watch-request-videos?wikiIdentifier=00000000-0000-4000-8000-000000000099");
+  expect(screen.queryByRole("button", { name: "Search" })).toBeNull();
+  await start();
+  expectCurrentVideo(second, 1, 2);
+  await act(async () => client.setQueriesData({ queryKey: ["public-wiki-videos", "ja", "talent", "ta-owner"] }, { videos: [first, { ...second, hasOfficialOwnerLike: true }] }));
+  expectCurrentVideo(second, 1, 2);
+  expect(requests.at(-1)?.destroy).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Next video" }));
+  await waitFor(() => expectCurrentVideo(first, 2, 2));
+  fireEvent.click(screen.getByRole("button", { name: "Continue in mini player" }));
+  expect(screen.getByRole("region", { name: "Mini player" })).toBeVisible();
+  act(() => useAuthStore.setState({ sessionVersion: useAuthStore.getState().sessionVersion + 1 }));
+  expect(screen.queryByRole("region", { name: "Mini player" })).toBeNull();
+});
