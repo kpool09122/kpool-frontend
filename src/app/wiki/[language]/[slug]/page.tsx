@@ -2,6 +2,8 @@ import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
 import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
 import type { Metadata } from "next";
 import { siteTitle } from "@/app/metadata";
+import { buildWikiPath } from "@kpool/wiki";
+import { getPublicSiteOrigin } from "@/config/publicSite";
 
 type WikiDetailRouteProps = {
   params: Promise<{
@@ -27,11 +29,13 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
 
   const wiki = wikiState.data;
   const title = wiki.title ?? wiki.basic.name;
+  const origin = getPublicSiteOrigin();
 
   return {
     title: `${title} | ${siteTitle}`,
     description: wiki.metaDescription ?? undefined,
     keywords: wiki.keywords ?? undefined,
+    ...(origin ? { alternates: { canonical: `${origin}${buildWikiPath(language, wiki.slug)}` } } : {}),
   };
 }
 

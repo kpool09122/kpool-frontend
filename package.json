@@ -23,7 +23,8 @@
     "workers:build": "opennextjs-cloudflare build",
     "workers:preview": "opennextjs-cloudflare preview",
     "workers:deploy": "node scripts/deploy-workers.mjs",
-    "workers:smoke": "node scripts/workers-smoke.mjs"
+    "workers:smoke": "node scripts/workers-smoke.mjs",
+    "workers:sitemap-smoke": "node scripts/workers-sitemap-smoke.mjs"
   },
   "dependencies": {
     "@fontsource/gowun-dodum": "^5.2.8",
