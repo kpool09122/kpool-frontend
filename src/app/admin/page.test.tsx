@@ -47,6 +47,9 @@ import type { AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 const identityMocks = vi.hoisted(() => ({
   fetchCurrentAuthenticatedIdentity: vi.fn(),
 }));
+vi.mock("@/gateways/wiki/officialVideoInbox", () => ({
+  fetchOfficialVideoWikis: vi.fn().mockResolvedValue({ wikis: [] }),
+}));
 const passkeyMocks = vi.hoisted(() => ({
   list: vi.fn(),
 }));
@@ -239,6 +242,20 @@ const wikiPublishPrincipal = {
       ],
     },
   ],
+};
+
+const wikiTranslatePrincipal = {
+  ...principal,
+  policies: [{
+    policyIdentifier: "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    name: "GROUP_TRANSLATE",
+    isSystemPolicy: true,
+    statements: [{ effect: "allow", actions: ["TRANSLATE"], resourceTypes: ["GROUP"], condition: null }],
+  }],
+};
+const wikiPublishAndTranslatePrincipal = {
+  ...wikiPublishPrincipal,
+  policies: [...wikiPublishPrincipal.policies, ...wikiTranslatePrincipal.policies],
 };
 
 const wikiAutoCreatePrincipal = {
@@ -3147,6 +3164,37 @@ describe("admin page clients", () => {
 	  expect(screen.queryByRole("button", { name: "却下" })).not.toBeInTheDocument();
 	});
 
+  it.each([
+    { name: "translation only", actor: wikiTranslatePrincipal, visible: true },
+    { name: "publish only", actor: wikiPublishPrincipal, visible: false },
+    { name: "no translation permission", actor: principal, visible: false },
+    { name: "explicit translation denial", actor: {
+      ...wikiTranslatePrincipal,
+      policies: [...wikiTranslatePrincipal.policies, {
+        ...wikiTranslatePrincipal.policies[0],
+        statements: [{ effect: "deny", actions: ["TRANSLATE"], resourceTypes: ["GROUP"], condition: null }],
+      }],
+    }, visible: false },
+  ])("controls the untranslated tab and direct URL for $name", async ({ actor, visible }) => {
+    const props = {
+      initialIdentity: identity,
+      initialPrincipalState: { status: "available" as const, principal: actor },
+      principalAdapter: createAdapter({ getCurrentPrincipal: vi.fn().mockResolvedValue({ status: "available", principal: actor }) }),
+      draftWikiAdapter: createDraftWikiAdapter(),
+    };
+    const view = renderWithQueryClient(<AdminClient {...props} />);
+    expect(Boolean(screen.queryByRole("tab", { name: "未翻訳のWiki" }))).toBe(visible);
+    expect(Boolean(screen.queryByRole("tab", { name: "承認済みWiki" }))).toBe(actor === wikiPublishPrincipal);
+    view.unmount();
+    const renderDirect = () => renderWithQueryClient(<AdminClient {...props} initialWikiTab="untranslatedWikis" />);
+    if (visible) {
+      renderDirect();
+      expect(await screen.findByRole("tab", { name: "未翻訳のWiki" })).toHaveAttribute("aria-selected", "true");
+    } else {
+      expect(renderDirect).toThrow("redirect:/admin/wiki/editing");
+    }
+  });
+
   it("shows untranslated wikis after approved wikis and translates them", async () => {
     const listUntranslatedWikis = vi
       .fn()
@@ -3189,11 +3237,11 @@ describe("admin page clients", () => {
         draftImageAdapter={createDraftImageAdapter()}
         draftWikiAdapter={draftWikiAdapter}
         initialIdentity={identity}
-        initialPrincipalState={{ status: "available", principal: wikiPublishPrincipal }}
+        initialPrincipalState={{ status: "available", principal: wikiPublishAndTranslatePrincipal }}
         principalAdapter={createAdapter({
           getCurrentPrincipal: vi.fn().mockResolvedValue({
             status: "available",
-            principal: wikiPublishPrincipal,
+            principal: wikiPublishAndTranslatePrincipal,
           }),
         })}
       />,
@@ -3207,7 +3255,6 @@ describe("admin page clients", () => {
       "未承認の画像",
       "削除申請画像",
       "マイプレイリスト",
-      "これみて動画一覧",
     ]);
     fireEvent.click(screen.getByRole("tab", { name: "未翻訳のWiki" }));
     await waitFor(() =>

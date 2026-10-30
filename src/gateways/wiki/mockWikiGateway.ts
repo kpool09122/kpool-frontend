@@ -75,6 +75,7 @@ const mockPolicyIdentifiers: Record<string, string> = {
   BASIC_EDITING: "77777777-7777-7777-7777-777777777777",
   GROUP_MANAGEMENT: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
   GROUP_PUBLISH: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+  GROUP_TRANSLATE: "dddddddd-dddd-dddd-dddd-dddddddddddd",
   IMAGE_REVIEW: "66666666-6666-6666-6666-666666666666",
 };
 
@@ -105,7 +106,7 @@ const createMockPrincipal = (
   policies,
 });
 
-const mockPrincipalStateByMode: Record<
+export const mockWikiPrincipalStateByMode: Record<
   string,
   Extract<WikiPrincipalState, { status: "available" | "missing" }>
 > = {
@@ -139,6 +140,12 @@ const mockPrincipalStateByMode: Record<
       createMockPolicy("GROUP_PUBLISH", ["PUBLISH"], ["GROUP"]),
     ]),
   },
+  "wiki-translate": {
+    status: "available",
+    principal: createMockPrincipal([
+      createMockPolicy("GROUP_TRANSLATE", ["TRANSLATE"], ["GROUP"]),
+    ]),
+  },
   "image-review": {
     status: "available",
     principal: createMockPrincipal([
@@ -156,5 +163,5 @@ export const getMockWikiPrincipalState = (
 
   const principalMode = getCookieValue(cookieHeader, mockWikiPrincipalCookieName);
 
-  return principalMode ? mockPrincipalStateByMode[principalMode] ?? null : null;
+  return principalMode ? mockWikiPrincipalStateByMode[principalMode] ?? null : null;
 };

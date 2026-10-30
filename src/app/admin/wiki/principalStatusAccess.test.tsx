@@ -19,6 +19,7 @@ describe("stopped Wiki URL access", () => {
       };
       render(
         <WikiLayoutClient
+          canViewOfficialVideoInbox
           state={{ status: "available", principal }}
           selectedWikiTab="editingWikis"
           isAuthenticated

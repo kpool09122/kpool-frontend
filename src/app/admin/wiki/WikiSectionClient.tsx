@@ -44,6 +44,7 @@ import {
 import {
   canAutoCreateWikiDraftWikiResourceType,
   canPublishWikiDraftWikis,
+  canTranslateWikis,
   canManageOfficialCertifications,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
@@ -64,6 +65,7 @@ import {
   CreateDraftWikiDialog,
 } from "./WikiContentClient";
 import { canShowWikiPrincipalGroupManagement } from "../principalGroupVisibility";
+import { useOfficialVideoWikis } from "@/gateways/wiki/useOfficialVideoWikis";
 import { WikiLayoutClient } from "./WikiLayoutClient";
 import { WikiSectionProvider } from "./WikiSectionProvider";
 
@@ -171,6 +173,10 @@ export function WikiSectionClient({
     onPrincipalReady: handlePrincipalReady,
     refreshIdentity,
   });
+  const { canViewOfficialVideoInbox } = useOfficialVideoWikis({
+    active: principalState.status === "available" && principalState.principal.status === "active",
+    initialIdentity: currentIdentity,
+  });
   const autoCreatableResourceTypes = useMemo(
     () =>
       principalState.status === "available"
@@ -202,6 +208,7 @@ export function WikiSectionClient({
     const canReviewDraftWikis = canReviewWikiDraftWikis(principalState.principal);
     const canReviewOfficialCertificationRequests = canReviewOfficialCertifications(principalState.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(principalState.principal);
+    const canTranslate = canTranslateWikis(principalState.principal);
     const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(principalState.principal);
     const isAllowed =
       activeWikiTab === "watchRequests" ||
@@ -211,7 +218,8 @@ export function WikiSectionClient({
       (activeWikiTab === "officialCertificationRequest" && canManageOfficialCertifications(principalState.principal)) ||
       (activeWikiTab === "unapprovedWikis" && canReviewDraftWikis) ||
       (activeWikiTab === "officialCertificationReview" && canReviewOfficialCertificationRequests) ||
-      ((activeWikiTab === "approvedWikis" || activeWikiTab === "untranslatedWikis") && canPublishDraftWikis) ||
+      (activeWikiTab === "approvedWikis" && canPublishDraftWikis) ||
+      (activeWikiTab === "untranslatedWikis" && canTranslate) ||
       (activeWikiTab === "draftImages" && canReviewDraftImages) ||
       (activeWikiTab === "imageDeletionRequests" && canReviewImageDeletionRequests) ||
       (activeWikiTab === "principalGroupManagement" && canManagePrincipalGroups);
@@ -278,6 +286,7 @@ export function WikiSectionClient({
   return (
     <>
       <WikiLayoutClient
+        canViewOfficialVideoInbox={canViewOfficialVideoInbox}
         isAuthenticated={currentIdentity !== null}
         isPending={isActionPending(principalState)}
         selectedWikiTab={activeWikiTab}

@@ -4,6 +4,7 @@ import {
   canAutoCreateWikiDraftWikis,
   canManageWikiPrincipalGroups,
   canPublishWikiDraftWikis,
+  canTranslateWikis,
   canManageOfficialCertifications,
   getOfficialCertificationPermissions,
   canReviewOfficialCertifications,
@@ -600,6 +601,21 @@ describe("wiki principal helpers", () => {
         ],
       }),
     ).toBe(false);
+  });
+
+  it.each(["AGENCY", "GROUP", "SONG", "TALENT", "*", "ALL"])("allows translation for %s independently of publishing", (resourceType) => {
+    const translator = { ...principal, policies: [policy({ actions: ["translate"], resourceTypes: [resourceType] })] };
+    expect(canTranslateWikis(translator)).toBe(true);
+    expect(canPublishWikiDraftWikis(translator)).toBe(false);
+  });
+  it("does not treat publishing as translation permission", () => {
+    expect(canTranslateWikis({ ...principal, policies: [policy({ actions: ["PUBLISH"], resourceTypes: ["TALENT"] })] })).toBe(false);
+  });
+  it("rejects translation without a grant, for inactive principals, or with a matching denial", () => {
+    const grant = policy({ actions: ["TRANSLATE"], resourceTypes: ["TALENT"] });
+    expect(canTranslateWikis(principal)).toBe(false);
+    expect(canTranslateWikis({ ...principal, status: "suspended", policies: [grant] })).toBe(false);
+    expect(canTranslateWikis({ ...principal, policies: [grant, policy({ actions: ["TRANSLATE"], resourceTypes: ["TALENT"], effect: "deny" })] })).toBe(false);
   });
 
   it("allows draft wiki publishing when publish is allowed for a wiki resource type", () => {

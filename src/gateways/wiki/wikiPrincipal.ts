@@ -43,6 +43,7 @@ type WikiPolicyAction =
   | "RELATED_WIKI_LIST"
   | "PRINCIPAL_GROUP_MANAGE"
   | "PUBLISH"
+  | "TRANSLATE"
   | "REJECT";
 type WikiPolicyResourceType = "AGENCY" | "GROUP" | "IMAGE" | "PRINCIPAL_GROUP" | "SONG" | "TALENT";
 type OfficialCertificationResourceType = "agency" | "talent";
@@ -237,6 +238,11 @@ export const canManageOfficialCertifications = (principal: WikiPrincipalSummary)
 export const canPublishWikiDraftWikis = (principal: WikiPrincipalSummary): boolean =>
   draftWikiReviewResourceTypes.some((resourceType) =>
     isAllowedWithoutDeny(principal, "PUBLISH", resourceType),
+  );
+
+export const canTranslateWikis = (principal: WikiPrincipalSummary): boolean =>
+  draftWikiReviewResourceTypes.some((resourceType) =>
+    isAllowedWithoutDeny(principal, "TRANSLATE", resourceType),
   );
 
 export const canAutoCreateWikiDraftWikiResourceType = (

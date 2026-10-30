@@ -62,7 +62,7 @@ describe("principal group menu tabs", () => {
     expect(Boolean(screen.queryByRole("tab", { name: "ユーザー権限管理" }))).toBe(count >= 2);
   });
   it.each([1, 2])("shows Wiki permissions only with at least two Wiki principals: %s", (count) => {
-    render(<WikiLayoutClient isAuthenticated isPending={false} selectedWikiTab="editingWikis" state={{ status: "available", principal: { ...principal, accountPrincipalCount: count } }} t={dictionaries.ja.admin} onActivate={vi.fn()} onRetry={vi.fn()} onOpenCreateDraftWiki={vi.fn()}>{() => null}</WikiLayoutClient>);
+    render(<WikiLayoutClient canViewOfficialVideoInbox={false} isAuthenticated isPending={false} selectedWikiTab="editingWikis" state={{ status: "available", principal: { ...principal, accountPrincipalCount: count } }} t={dictionaries.ja.admin} onActivate={vi.fn()} onRetry={vi.fn()} onOpenCreateDraftWiki={vi.fn()}>{() => null}</WikiLayoutClient>);
     expect(Boolean(screen.queryByRole("tab", { name: "ユーザー権限管理" }))).toBe(count >= 2);
   });
 });
