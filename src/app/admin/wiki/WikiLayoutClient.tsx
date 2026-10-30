@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import {
   canPublishWikiDraftWikis,
+  canTranslateWikis,
   canManageOfficialCertifications,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
@@ -25,6 +26,7 @@ const createWikiTab = (id: AdminWikiTab, label: string): { id: AdminWikiTab; lab
 });
 
 type WikiLayoutClientProps = {
+  canViewOfficialVideoInbox: boolean;
   children: (activeWikiTab: AdminWikiTab) => ReactNode;
   isAuthenticated: boolean;
   isPending: boolean;
@@ -37,6 +39,7 @@ type WikiLayoutClientProps = {
 };
 
 export function WikiLayoutClient({
+  canViewOfficialVideoInbox,
   children,
   isAuthenticated,
   isPending,
@@ -71,6 +74,7 @@ export function WikiLayoutClient({
     const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(state.principal);
     const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
     const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
+    const canTranslate = canTranslateWikis(state.principal);
     const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(state.principal);
     const canRequestOfficialCertification = canManageOfficialCertifications(state.principal);
 
@@ -79,13 +83,13 @@ export function WikiLayoutClient({
       createWikiTab("submittedWikis", t.submittedWikisTab),
       ...(canReviewDraftWikis ? [createWikiTab("unapprovedWikis", t.unapprovedWikisTab)] : []),
       ...(canPublishDraftWikis ? [createWikiTab("approvedWikis", t.approvedWikisTab)] : []),
-      ...(canPublishDraftWikis ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
+      ...(canTranslate ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
       ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
       ...(canReviewImageDeletionRequests ? [createWikiTab("imageDeletionRequests", t.imageDeletionRequestsTab)] : []),
       ...(canRequestOfficialCertification ? [createWikiTab("officialCertificationRequest", t.officialCertificationRequestTab)] : []),
       ...(canReviewOfficialCertifications(state.principal) ? [createWikiTab("officialCertificationReview", t.officialCertificationReviewTab)] : []),
       createWikiTab("playlists", t.playlists.title),
-      createWikiTab("watchRequests", t.officialVideoInbox.title),
+      ...(canViewOfficialVideoInbox ? [createWikiTab("watchRequests", t.officialVideoInbox.title)] : []),
       ...(canManagePrincipalGroups ? [createWikiTab("principalGroupManagement", t.wikiPrincipalGroupManagementTab)] : []),
     ];
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)
