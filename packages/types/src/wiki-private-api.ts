@@ -570,6 +570,20 @@ const RoleSummary = z
 const AttachPolicyToRoleRequestBody = z
   .object({ policyIdentifier: KPool_Common_Uuid })
   .passthrough();
+const SitemapWiki = z
+  .object({
+    slug: z.string(),
+    language: z.string(),
+    resourceType: z.enum(["agency", "group", "talent", "song"]),
+    lastModifiedAt: z.string().datetime({ offset: true }).nullable(),
+  })
+  .passthrough();
+const ListSitemapWikisResponseBody = z
+  .object({
+    wikis: z.array(SitemapWiki).max(1000),
+    nextCursor: KPool_Common_Uuid.nullable(),
+  })
+  .passthrough();
 const CreateVideoLinkRequestBody = z
   .object({
     resourceType: z.enum(["agency", "group", "song", "talent"]),
@@ -1136,6 +1150,8 @@ export const schemas = {
   CreateRoleRequestBody,
   RoleSummary,
   AttachPolicyToRoleRequestBody,
+  SitemapWiki,
+  ListSitemapWikisResponseBody,
   CreateVideoLinkRequestBody,
   TranslationSetMasterSearchWikiItem,
   TranslationSetMasterSearchItem,
@@ -3507,6 +3523,48 @@ const endpoints = makeApi([
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/sitemap/wikis",
+    alias: "SitemapWikiOperations_listSitemapWikis",
+    description: `Enumerate published agency/group/talent/song wikis in all languages, ordered by immutable wiki UUID ascending. No authentication is required; the existing screen/query IP rate limit applies (default 300 requests/minute, also subject to the global query limit). Fetch the first page without cursor, then repeat using nextCursor until null. Deleted cursor rows remain valid boundaries. No cross-request snapshot is guaranteed: concurrent publications below an already visited cursor appear on the next enumeration started without cursor. Drafts and history are never included. Only sitemap fields are returned; no content, images or basic information is loaded.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(1000).nullish(),
+      },
+      {
+        name: "cursor",
+        type: "Query",
+        schema: translationSetIdentifier,
+      },
+    ],
+    response: ListSitemapWikisResponseBody,
+    errors: [
       {
         status: 422,
         description: `Client error`,
