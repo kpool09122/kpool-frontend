@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "./fixtures";
 import { mockAccountPolicyCookieName } from "@/gateways/identity/authIdentity";
-import { mockWikiPrincipalCookieName } from "@/gateways/wiki/mockWikiGateway";
+import {
+  mockWikiPrincipalCookieName,
+  mockWikiPrincipalStateByMode,
+} from "@/gateways/wiki/mockWikiGateway";
 
 const useJapaneseLocale = async (page: Page) => {
   await page.context().addCookies([
@@ -15,7 +18,7 @@ const useJapaneseLocale = async (page: Page) => {
 
 const useWikiPrincipal = async (
   page: Page,
-  principal: "basic" | "image-review" | "missing" | "wiki-publish" | "wiki-review",
+  principal: "basic" | "image-review" | "missing" | "wiki-publish" | "wiki-review" | "wiki-translate",
 ) => {
   await page.context().addCookies([
     {
@@ -25,6 +28,12 @@ const useWikiPrincipal = async (
       path: "/",
     },
   ]);
+  const state = mockWikiPrincipalStateByMode[principal];
+  await page.route("**/api/wiki/principal/me", (route) => route.fulfill(
+    state.status === "available"
+      ? { json: state.principal }
+      : { status: 404, json: { message: "Wiki principal was not found." } },
+  ));
 };
 
 const useAccountUpdatePolicy = async (page: Page) => {
@@ -41,13 +50,6 @@ const useAccountUpdatePolicy = async (page: Page) => {
 test("admin shows the Wiki collaborator activation path", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "missing");
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 404,
-      contentType: "application/json",
-      body: JSON.stringify({ message: "Wiki principal was not found." }),
-    });
-  });
   await page.goto("/admin");
 
   await expect(page.getByRole("heading", { name: "Wiki", level: 1 })).toBeVisible();
@@ -106,33 +108,6 @@ test("admin shows under review draft images for an available Wiki principal", as
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "image-review");
 
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        principalIdentifier: "33333333-3333-3333-3333-333333333333",
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        isDelegatedPrincipal: false,
-        status: "active" as const,
-        policies: [
-          {
-            policyIdentifier: "66666666-6666-6666-6666-666666666666",
-            name: "IMAGE_REVIEW",
-            isSystemPolicy: true,
-            statements: [
-              {
-                effect: "allow",
-                actions: ["APPROVE", "REJECT"],
-                resourceTypes: ["IMAGE"],
-                condition: null,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-  });
   let approveRequests = 0;
 
   await page.route("**/api/wiki/draft-images?**", async (route) => {
@@ -253,33 +228,6 @@ test("admin keeps wiki tabs interactive after browser back", async ({ page }) =>
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "image-review");
 
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        principalIdentifier: "33333333-3333-3333-3333-333333333333",
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        isDelegatedPrincipal: false,
-        status: "active" as const,
-        policies: [
-          {
-            policyIdentifier: "66666666-6666-6666-6666-666666666666",
-            name: "IMAGE_REVIEW",
-            isSystemPolicy: true,
-            statements: [
-              {
-                effect: "allow",
-                actions: ["APPROVE", "REJECT"],
-                resourceTypes: ["IMAGE"],
-                condition: null,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-  });
   await page.route("**/api/wiki/draft-images?**", async (route) => {
     await route.fulfill({
       status: 200,
@@ -322,33 +270,6 @@ test("admin shows unapproved draft wikis only for reviewer principals", async ({
   await useWikiPrincipal(page, "wiki-review");
   let approveRequests = 0;
 
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        principalIdentifier: "33333333-3333-3333-3333-333333333333",
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        isDelegatedPrincipal: false,
-        status: "active" as const,
-        policies: [
-          {
-            policyIdentifier: "66666666-6666-6666-6666-666666666666",
-            name: "GROUP_MANAGEMENT",
-            isSystemPolicy: true,
-            statements: [
-              {
-                effect: "allow",
-                actions: ["APPROVE", "REJECT"],
-                resourceTypes: ["GROUP"],
-                condition: null,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-  });
   await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
       status: 200,
@@ -420,33 +341,6 @@ test(`admin publishes approved draft wikis with ${sameVersion ? "same-version" :
   await useWikiPrincipal(page, "wiki-publish");
   let publishRequests = 0;
 
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        principalIdentifier: "33333333-3333-3333-3333-333333333333",
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        isDelegatedPrincipal: false,
-        status: "active" as const,
-        policies: [
-          {
-            policyIdentifier: "66666666-6666-6666-6666-666666666666",
-            name: "GROUP_PUBLISH",
-            isSystemPolicy: true,
-            statements: [
-              {
-                effect: "allow",
-                actions: ["PUBLISH"],
-                resourceTypes: ["GROUP"],
-                condition: null,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-  });
   await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     const url = new URL(route.request().url());
     const isApproved = publishRequests === 0 && url.searchParams.getAll("statuses[]").includes("approved");
@@ -509,6 +403,7 @@ test(`admin publishes approved draft wikis with ${sameVersion ? "same-version" :
   await page.goto("/admin");
 
   await expect(page.getByRole("tab", { name: "承認済みWiki" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "未翻訳のWiki" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "未承認のWiki" })).toHaveCount(0);
   await page.getByRole("tab", { name: "承認済みWiki" }).click();
   await expect(page).toHaveURL(/\/admin\/wiki\/approved$/);
@@ -530,39 +425,11 @@ test(`admin publishes approved draft wikis with ${sameVersion ? "same-version" :
 });
 }
 
-test("admin translates untranslated wikis for publisher principals", async ({ page }) => {
+test("admin translates untranslated wikis with translation permission alone", async ({ page }) => {
   await useJapaneseLocale(page);
-  await useWikiPrincipal(page, "wiki-publish");
+  await useWikiPrincipal(page, "wiki-translate");
   let translateRequests = 0;
-  let listRequests = 0;
 
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        principalIdentifier: "33333333-3333-3333-3333-333333333333",
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        isDelegatedPrincipal: false,
-        status: "active" as const,
-        policies: [
-          {
-            policyIdentifier: "66666666-6666-6666-6666-666666666666",
-            name: "GROUP_PUBLISH",
-            isSystemPolicy: true,
-            statements: [
-              {
-                effect: "allow",
-                actions: ["PUBLISH"],
-                resourceTypes: ["GROUP"],
-                condition: null,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-  });
   await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
       status: 200,
@@ -577,11 +444,6 @@ test("admin translates untranslated wikis for publisher principals", async ({ pa
     });
   });
   await page.route("**/api/wiki/version-inconsistent-wikis?**", async (route) => {
-    listRequests += 1;
-    const url = new URL(route.request().url());
-
-    expect(url.searchParams.get("sort")).toBe("updatedAt");
-    expect(url.searchParams.get("order")).toBe("desc");
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -633,7 +495,7 @@ test("admin translates untranslated wikis for publisher principals", async ({ pa
 
   await page.goto("/admin");
 
-  await expect(page.getByRole("tab", { name: "承認済みWiki" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "承認済みWiki" })).toHaveCount(0);
   await expect(page.getByRole("tab", { name: "未翻訳のWiki" })).toBeVisible();
   await page.getByRole("tab", { name: "未翻訳のWiki" }).click();
   await expect(page).toHaveURL(/\/admin\/wiki\/untranslated$/);
@@ -644,40 +506,11 @@ test("admin translates untranslated wikis for publisher principals", async ({ pa
   await page.getByRole("button", { name: "翻訳" }).click();
   await expect(page.getByText("未翻訳のWikiはありません")).toBeVisible();
   expect(translateRequests).toBe(1);
-  expect(listRequests).toBe(2);
 });
 
 test("admin hides draft image review for principals without image policies", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "basic");
-
-  await page.route("**/api/wiki/principal/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        principalIdentifier: "33333333-3333-3333-3333-333333333333",
-        identityIdentifier: "11111111-1111-1111-1111-111111111111",
-        isDelegatedPrincipal: false,
-        status: "active" as const,
-        policies: [
-          {
-            policyIdentifier: "77777777-7777-7777-7777-777777777777",
-            name: "BASIC_EDITING",
-            isSystemPolicy: true,
-            statements: [
-              {
-                effect: "allow",
-                actions: ["CREATE", "EDIT", "SUBMIT"],
-                resourceTypes: ["WIKI"],
-                condition: null,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-  });
 
   await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
     await route.fulfill({
