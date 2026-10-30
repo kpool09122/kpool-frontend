@@ -1,6 +1,7 @@
 import { buildWikiPath } from "@kpool/wiki";
 import { getPublicSiteOrigin } from "@/config/publicSite";
 import type { SitemapWiki } from "@/gateways/wiki/sitemapWikis";
+import type { SitemapAnnouncement } from "@/gateways/site-management/sitemapAnnouncements";
 import { supportedLocales } from "@/i18n/locales";
 
 export const sitemapMaxUrls = 50_000;
@@ -23,13 +24,24 @@ export const escapeSitemapXml = (value: string): string =>
       })[char]!,
   );
 
-export const buildSitemapDocuments = (wikis: readonly SitemapWiki[]) => {
+export const buildSitemapDocuments = (
+  wikis: readonly SitemapWiki[],
+  announcements: readonly SitemapAnnouncement[] = [],
+) => {
   const origin = getPublicSiteOrigin();
   if (!origin) return { status: "error" } as const;
   const entries = new Map<string, string | null>();
+  for (const path of ["/contact", "/login", "/signup"])
+    entries.set(`${origin}${path}`, null);
   for (const language of supportedLocales) {
-    for (const suffix of ["", "/terms", "/privacy"])
+    for (const suffix of ["", "/terms", "/privacy", "/wiki", "/announcements"])
       entries.set(`${origin}/${language}${suffix}`, null);
+  }
+  for (const announcement of announcements) {
+    entries.set(
+      `${origin}/${announcement.language}/announcements/${encodeURIComponent(announcement.identifier)}`,
+      null,
+    );
   }
   for (const wiki of wikis) {
     const url = `${origin}${buildWikiPath(wiki.language, wiki.slug)}`;

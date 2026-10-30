@@ -9,6 +9,26 @@ import { getPublicSiteOrigin } from "@/config/publicSite";
 
 afterEach(() => vi.unstubAllEnvs());
 describe("public sitemap XML", () => {
+  it("includes public entry pages and localized announcement details without duplicates", () => {
+    const identifier = "019b0000-0000-7000-8000-000000000001";
+    const result = buildSitemapDocuments([], [
+      { language: "ja", identifier },
+      { language: "ja", identifier },
+      { language: "ko", identifier },
+    ]);
+    expect(result.status).toBe("success");
+    if (result.status !== "success") return;
+    const xml = new DOMParser().parseFromString(result.documents[0], "text/xml");
+    const paths = [...xml.querySelectorAll("loc")].map((loc) => new URL(loc.textContent!).pathname);
+    expect(paths).toHaveLength(20);
+    expect(paths).toEqual(expect.arrayContaining([
+      "/contact", "/login", "/signup",
+      `/ja/announcements/${identifier}`, `/ko/announcements/${identifier}`,
+    ]));
+    expect(paths).not.toContain(`/en/announcements/${identifier}`);
+    expect(paths).not.toContain("/");
+    expect(xml.querySelector("lastmod")).toBeNull();
+  });
   it("splits after 50,000 URLs and creates an XML sitemap index", () => {
     const result = buildSitemapDocuments(
       Array.from({ length: 50_000 }, (_, id) => ({
@@ -22,7 +42,7 @@ describe("public sitemap XML", () => {
     if (result.status !== "success") return;
     expect(result.documents).toHaveLength(2);
     expect(result.documents[0].match(/<url>/g)).toHaveLength(50_000);
-    expect(result.documents[1].match(/<url>/g)).toHaveLength(9);
+    expect(result.documents[1].match(/<url>/g)).toHaveLength(18);
     const index = new DOMParser().parseFromString(
       buildSitemapIndex(2),
       "text/xml",
@@ -57,7 +77,7 @@ describe("public sitemap XML", () => {
         (total, xml) => total + (xml.match(/<url>/g)?.length ?? 0),
         0,
       ),
-    ).toBe(28_009);
+    ).toBe(28_018);
   });
   it("escapes XML metacharacters", () => {
     const xml = `<loc>${escapeSitemapXml('https://k-pool.app/a?a=1&b=<"value">\'')}</loc>`;
@@ -102,9 +122,9 @@ describe("public sitemap XML", () => {
     );
     expect(xml.querySelector("parsererror")).toBeNull();
     const urls = [...xml.querySelectorAll("url")];
-    expect(urls).toHaveLength(11);
+    expect(urls).toHaveLength(20);
     for (const language of ["ja", "en", "ko"]) {
-      for (const path of ["", "/terms", "/privacy"]) {
+      for (const path of ["", "/terms", "/privacy", "/wiki", "/announcements"]) {
         expect(
           urls.some(
             (url) =>

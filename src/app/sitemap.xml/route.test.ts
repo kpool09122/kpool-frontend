@@ -1,14 +1,36 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { loadSitemapWikis } from "@/gateways/wiki/sitemapWikis";
+import { loadSitemapAnnouncements } from "@/gateways/site-management/sitemapAnnouncements";
 import { GET } from "./route";
 import { GET as getPart } from "../sitemaps/[file]/route";
 import robots from "../robots";
 vi.mock("@/gateways/wiki/sitemapWikis", () => ({ loadSitemapWikis: vi.fn() }));
+vi.mock("@/gateways/site-management/sitemapAnnouncements", () => ({ loadSitemapAnnouncements: vi.fn() }));
+beforeEach(() => {
+  vi.mocked(loadSitemapAnnouncements).mockResolvedValue({ status: "success", announcements: [] });
+});
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
 describe("public sitemap routes", () => {
+  it("includes the public announcement URLs", async () => {
+    vi.mocked(loadSitemapWikis).mockResolvedValue({ status: "success", wikis: [] });
+    vi.mocked(loadSitemapAnnouncements).mockResolvedValue({
+      status: "success",
+      announcements: [{ language: "en", identifier: "019b0000-0000-7000-8000-000000000001" }],
+    });
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("https://k-pool.app/en/announcements/019b0000-0000-7000-8000-000000000001");
+  });
+  it("returns an uncached 503 when announcement enumeration fails", async () => {
+    vi.mocked(loadSitemapWikis).mockResolvedValue({ status: "success", wikis: [] });
+    vi.mocked(loadSitemapAnnouncements).mockResolvedValue({ status: "error" });
+    const response = await GET();
+    expect(response.status).toBe(503);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
   it("serves XML without login, advertises a bounded cache and exposes robots discovery", async () => {
     vi.mocked(loadSitemapWikis).mockResolvedValue({
       status: "success",
@@ -22,7 +44,7 @@ describe("public sitemap routes", () => {
     expect(response.headers.get("cache-control")).toBe(
       "public, max-age=300, must-revalidate",
     );
-    expect((await response.text()).match(/<url>/g)).toHaveLength(9);
+    expect((await response.text()).match(/<url>/g)).toHaveLength(18);
     expect(robots().sitemap).toBe("https://k-pool.app/sitemap.xml");
   });
   it("fails closed with no caching on upstream failure", async () => {
@@ -50,7 +72,7 @@ describe("public sitemap routes", () => {
       params: Promise.resolve({ file: "1.xml" }),
     });
     expect(part.status).toBe(200);
-    expect((await part.text()).match(/<url>/g)).toHaveLength(9);
+    expect((await part.text()).match(/<url>/g)).toHaveLength(18);
   });
   it("does not reuse a cached enumeration after publication, updates or deletion", async () => {
     const wiki = {

@@ -38,6 +38,29 @@ const requests = [];
 let scenario = "published";
 const upstream = createServer(async (request, response) => {
   const url = new URL(request.url, "http://fixture");
+  if (url.pathname === "/api/v1/site-management/announcements") {
+    assert.equal(request.headers.cookie, undefined);
+    if (scenario === "live") {
+      const result = await fetch(
+        `${process.env.KPOOL_SITEMAP_SMOKE_LIVE_API_URL}${url.pathname}${url.search}`,
+      );
+      response.writeHead(result.status, { "Content-Type": "application/json" });
+      response.end(await result.text());
+      return;
+    }
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({
+      announcements: [{
+        announcement_id: "019b0000-0000-7000-8000-000000000001",
+        category_name: "NEWS",
+        title: "Public announcement",
+        content: "Smoke fixture",
+        published_date: "2026-10-01T00:00:00Z",
+      }],
+      current_page: 1, last_page: 1, total: 1, per_page: 20,
+    }));
+    return;
+  }
   if (url.pathname !== "/api/v1/wiki/sitemap/wikis") {
     response.writeHead(404).end();
     return;
@@ -160,7 +183,14 @@ try {
     "public, max-age=300, must-revalidate",
   );
   const urls = parseXml(await first.text());
-  assert.equal(urls.length, 13);
+  assert.equal(urls.length, 25);
+  for (const language of ["ja", "en", "ko"]) {
+    assert.ok(urls.some((url) => url.loc ===
+      `https://k-pool.app/${language}/announcements/019b0000-0000-7000-8000-000000000001`));
+  }
+  for (const path of ["/contact", "/login", "/signup"]) {
+    assert.ok(urls.some((url) => url.loc === `https://k-pool.app${path}`));
+  }
   assert.ok(
     urls.some((url) => url.loc === "https://k-pool.app/ja/wiki/gr-A%26B"),
   );
@@ -177,9 +207,9 @@ try {
     ),
   );
   scenario = "deleted";
-  assert.equal(parseXml(await (await requestSitemap()).text()).length, 9);
+  assert.equal(parseXml(await (await requestSitemap()).text()).length, 21);
   scenario = "published";
-  assert.equal(parseXml(await (await requestSitemap()).text()).length, 13);
+  assert.equal(parseXml(await (await requestSitemap()).text()).length, 25);
   scenario = "failure";
   const failure = await requestSitemap();
   assert.equal(failure.status, 503);
@@ -205,6 +235,26 @@ try {
       expected.push(...body.wikis);
       nextCursor = body.nextCursor;
     } while (nextCursor);
+    const expectedAnnouncementUrls = new Set();
+    for (const language of ["ja", "en", "ko"]) {
+      let page = 1;
+      let lastPage = 1;
+      do {
+        const query = new URLSearchParams({ language, page: String(page), perPage: "20", sort: "published_date", order: "desc" });
+        const response = await fetch(
+          `${process.env.KPOOL_SITEMAP_SMOKE_LIVE_API_URL}/api/v1/site-management/announcements?${query}`,
+        );
+        assert.equal(response.status, 200);
+        const body = await response.json();
+        assert.equal(body.current_page, page);
+        assert.ok(body.last_page >= page);
+        for (const item of body.announcements) {
+          expectedAnnouncementUrls.add(`https://k-pool.app/${language}/announcements/${encodeURIComponent(item.announcement_id)}`);
+        }
+        lastPage = body.last_page;
+        page += 1;
+      } while (page <= lastPage);
+    }
     scenario = "live";
     const response = await requestSitemap();
     assert.equal(response.status, 200);
@@ -215,11 +265,11 @@ try {
           `https://k-pool.app/${encodeURIComponent(wiki.language)}/wiki/${encodeURIComponent(wiki.slug)}`,
       ),
     );
-    assert.equal(actual.length, expectedUrls.size + 9);
-    for (const url of expectedUrls)
+    assert.equal(actual.length, expectedUrls.size + expectedAnnouncementUrls.size + 18);
+    for (const url of [...expectedUrls, ...expectedAnnouncementUrls])
       assert.ok(actual.some((item) => item.loc === url));
     console.log(
-      `PASS read-only live backend via workerd: ${expectedUrls.size} published Wiki URLs plus 9 fixed pages; no backend mutations.`,
+      `PASS read-only live backend via workerd: ${expectedUrls.size} published Wiki URLs, ${expectedAnnouncementUrls.size} announcement URLs plus 18 fixed pages; no backend mutations.`,
     );
   }
 } finally {

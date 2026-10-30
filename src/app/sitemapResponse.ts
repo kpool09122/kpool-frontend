@@ -1,4 +1,5 @@
 import { loadSitemapWikis } from "@/gateways/wiki/sitemapWikis";
+import { loadSitemapAnnouncements } from "@/gateways/site-management/sitemapAnnouncements";
 import {
   buildSitemapDocuments,
   buildSitemapIndex,
@@ -12,9 +13,13 @@ const unavailable = () =>
   });
 
 export const createSitemapResponse = async (part?: number) => {
-  const result = await loadSitemapWikis();
-  if (result.status !== "success") return unavailable();
-  const sitemap = buildSitemapDocuments(result.wikis);
+  const [result, announcements] = await Promise.all([
+    loadSitemapWikis(),
+    loadSitemapAnnouncements(),
+  ]);
+  if (result.status !== "success" || announcements.status !== "success")
+    return unavailable();
+  const sitemap = buildSitemapDocuments(result.wikis, announcements.announcements);
   if (sitemap.status !== "success") return unavailable();
   const xml =
     part === undefined
