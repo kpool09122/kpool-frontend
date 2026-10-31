@@ -49,7 +49,7 @@ const savedReply: SiteManagementContactDetail["replies"][number] = {
   createdAt: "2026-10-09T00:00:00+00:00",
 };
 const text = dictionaries.ja.admin.siteManagementContacts;
-const listUrl = "/api/site-management/contacts?lastReplyByMe=0&page=1&perPage=50";
+const listUrl = "/api/site-management/contacts?replyStatus=pending&page=1&perPage=50";
 const detailUrl = `/api/site-management/contacts/${identifier}`;
 const replyUrl = `${detailUrl}/replies`;
 const page = (contacts = [contact]) => ({ contacts, current_page: 1, last_page: 1, total: contacts.length, per_page: 50 });
@@ -75,7 +75,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     const answered = { ...contact, name: "Answered sender", contactIdentifier: "019a1234-5678-7000-8000-222222222222", replyIdentifiers: [identifier], replies: [{ ...savedReply, principalIdentifier: "019a1234-5678-7000-8000-666666666666" }] };
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const params = new URL(String(input), window.location.origin).searchParams;
-      const filtered = params.get("lastReplyByMe") === "0";
+      const filtered = params.get("replyStatus") === "pending";
       return Response.json({ ...page(filtered ? [contact] : [contact, answered]), current_page: Number(params.get("page")), last_page: 2, total: 51 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -421,7 +421,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     fireEvent.click(screen.getByRole("button", { name: text.nextPage }));
     expect(await screen.findByText(text.page(2, 2))).toBeInTheDocument();
     expect(screen.getByRole("button", { name: text.nextPage })).toBeDisabled();
-    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?lastReplyByMe=0&page=2&perPage=50", expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?replyStatus=pending&page=2&perPage=50", expect.anything());
     fireEvent.click(screen.getByRole("button", { name: text.previousPage }));
     await waitFor(() => expect(screen.getByRole("button", { name: text.previousPage })).toBeDisabled());
     client.clear();

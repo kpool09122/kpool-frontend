@@ -52,7 +52,7 @@ export const fetchSiteManagementContacts = async ({
   unansweredOnly?: boolean;
   fetchAdapter?: typeof fetch;
 }): Promise<SiteManagementContactsPage> => {
-  const filter = unansweredOnly ? "lastReplyByMe=0&" : "";
+  const filter = unansweredOnly ? "replyStatus=pending&" : "";
   const response = await fetchAdapter(`/api/site-management/contacts?${filter}page=${page}&perPage=${perPage}`, {
     cache: "no-store",
     credentials: "include",

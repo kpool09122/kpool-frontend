@@ -528,9 +528,9 @@ const endpoints = makeApi([
         schema: principalIdentifier,
       },
       {
-        name: "hasReply",
+        name: "replyStatus",
         type: "Query",
-        schema: z.enum(["0", "1"]).nullish(),
+        schema: z.enum(["pending", "replied"]).optional(),
       },
       {
         name: "perPage",

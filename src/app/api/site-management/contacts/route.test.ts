@@ -10,10 +10,10 @@ describe("site-management contacts list BFF", () => {
     vi.stubEnv("KPOOL_SITE_MANAGEMENT_API_BASE_URL", "http://backend.test");
     const fetchMock = vi.fn().mockResolvedValue(Response.json({ contacts: [], current_page: 2, last_page: 2, total: 51, per_page: 50 }));
     vi.stubGlobal("fetch", fetchMock);
-    const response = await GET(new NextRequest("http://localhost/api/site-management/contacts?lastReplyByMe=0&page=2&perPage=50&principalIdentifier=untrusted", { headers: { Cookie: "session=test", "Accept-Language": "ja" } }));
+    const response = await GET(new NextRequest("http://localhost/api/site-management/contacts?replyStatus=pending&page=2&perPage=50&hasReply=1&principalIdentifier=untrusted", { headers: { Cookie: "session=test", "Accept-Language": "ja" } }));
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ total: 51 });
-    expect(fetchMock).toHaveBeenCalledWith("http://backend.test/api/v1/site-management/contacts?lastReplyByMe=0&page=2&perPage=50", expect.objectContaining({ headers: expect.objectContaining({ Cookie: "session=test", "Accept-Language": "ja" }) }));
+    expect(fetchMock).toHaveBeenCalledWith("http://backend.test/api/v1/site-management/contacts?replyStatus=pending&page=2&perPage=50", expect.objectContaining({ headers: expect.objectContaining({ Cookie: "session=test", "Accept-Language": "ja" }) }));
   });
 
   it("preserves the backend localized ProblemDetails explanation", async () => {

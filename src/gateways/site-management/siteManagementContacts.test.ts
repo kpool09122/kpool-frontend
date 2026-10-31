@@ -21,7 +21,7 @@ describe("site-management contacts gateway", () => {
   it("requests only unanswered contacts with explicit pagination", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ contacts: [contact], current_page: 2, last_page: 2, total: 51, per_page: 50 }));
     await expect(fetchSiteManagementContacts({ page: 2, fetchAdapter })).resolves.toMatchObject({ current_page: 2 });
-    expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?lastReplyByMe=0&page=2&perPage=50", expect.objectContaining({ cache: "no-store", credentials: "include" }));
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?replyStatus=pending&page=2&perPage=50", expect.objectContaining({ cache: "no-store", credentials: "include" }));
   });
 
   it("omits the reply filter when requesting all inquiries", async () => {
