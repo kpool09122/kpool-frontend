@@ -32,6 +32,17 @@ export type SubmitContactResponse = z.infer<typeof submitContactResponseSchema>;
 export type MyContactSummary = z.infer<typeof siteManagementPublicApiTypes.schemas.MyContactSummary>;
 export type MyContactDetail = z.infer<typeof siteManagementPublicApiTypes.schemas.ContactDetail>;
 
+export const hasLatestSupportReply = (contact: MyContactSummary): boolean => {
+  const latest = contact.replies.reduce<MyContactSummary["replies"][number] | undefined>(
+    (current, reply) => !current || reply.replyNumber > current.replyNumber ? reply : current,
+    undefined,
+  );
+  return !!contact.principalIdentifier && !!latest?.principalIdentifier &&
+    latest.principalIdentifier !== contact.principalIdentifier;
+};
+
+export const replyToMyContactRequestSchema = z.object({ content: z.string().trim().min(1) }).strict();
+
 type ContactApiEnv = Record<string, string | undefined>;
 
 const trimTrailingSlashes = (value: string): string => value.replace(/\/+$/, "");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAccessSiteManagement, canManageSiteManagementPrincipalGroups, canReplyToSiteManagementContacts, canViewSiteManagementContacts } from "./siteManagementPolicy";
+import { canAccessSiteManagement, canManageSiteManagementPrincipalGroups, canReplyToSiteManagementContacts, canReplyToMyContacts, canViewSiteManagementContacts } from "./siteManagementPolicy";
 
 const identity = { accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const, language: "ja", identityIdentifier: "actor", identityName: "admin", email: "a@example.test", accountIdentifier: "account", account: { status: "active" }, siteManagementPrincipalIdentifier: "principal" };
 const statement: { effect: string; actions: string[]; resourceTypes: string[]; condition: string | null } = { effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null };
@@ -24,6 +24,16 @@ describe("SiteManagement authorization", () => {
     expect(allowed({ ...actor, siteManagementPolicies: [policy([{ ...contact, condition: "own_contact" }])] })).toBe(false);
     expect(allowed({ ...actor, siteManagementPolicies: [policy([{ ...contact, actions: ["*"] }])] })).toBe(false);
   });
+  it("allows submitter replies through own-contact viewing permission with applicable denies first", () => {
+    const viewOwn = { ...statement, actions: ["contact:view"], resourceTypes: ["contact"], condition: "own_contact" };
+    const actor = { ...identity, siteManagementPolicies: [policy([viewOwn])] };
+    expect(canReplyToMyContacts(actor)).toBe(true);
+    expect(canReplyToSiteManagementContacts(actor)).toBe(false);
+    expect(canReplyToMyContacts({ ...actor, siteManagementPolicies: [policy([viewOwn, { ...viewOwn, effect: "deny" }])] })).toBe(false);
+    expect(canReplyToMyContacts({ ...actor, siteManagementPrincipalStatus: "suspended" })).toBe(false);
+    expect(canReplyToMyContacts({ ...actor, siteManagementPolicies: [] })).toBe(false);
+  });
+
   it("separates section permission from principal count and tab availability", () => {
     expect(canAccessSiteManagement({ ...identity, siteManagementPrincipalCount: 1, siteManagementPolicies: [policy()] })).toBe(true);
     expect(canAccessSiteManagement(identity)).toBe(false);

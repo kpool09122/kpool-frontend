@@ -9,7 +9,7 @@ export const readResponseBody = async (response: Response): Promise<unknown> => 
   }
 };
 
-export const getForwardHeaders = (request: NextRequest): HeadersInit => {
+export const getForwardHeaders = (request: NextRequest): Record<string, string> => {
   const acceptLanguage = request.headers.get("accept-language");
   const cookie = request.headers.get("cookie");
   return {
