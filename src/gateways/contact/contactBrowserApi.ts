@@ -92,3 +92,19 @@ export const fetchMyContactDetail = async ({
   if (!response.ok) throw getRouteError(response, body, fallbackErrorMessage);
   return parseMyContactDetailResponse(body);
 };
+
+export const replyToMyContact = async ({
+  contactIdentifier,
+  content,
+  locale,
+  fallbackErrorMessage,
+  fetchAdapter = browserApiFetch,
+}: FetchOptions & { contactIdentifier: string; content: string; locale: string }): Promise<void> => {
+  const response = await fetchAdapter(`/api/site-management/contact/me/${encodeURIComponent(contactIdentifier)}/replies`, {
+    method: "POST",
+    credentials: "include",
+    headers: { Accept: "application/json", "Content-Type": "application/json", "Accept-Language": locale },
+    body: JSON.stringify({ content }),
+  });
+  if (!response.ok) throw getRouteError(response, await readResponseBody(response), fallbackErrorMessage);
+};

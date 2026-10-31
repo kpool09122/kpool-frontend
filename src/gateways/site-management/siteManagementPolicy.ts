@@ -25,6 +25,10 @@ export const canViewSiteManagementContacts = (identity: AuthenticatedIdentitySum
 export const canReplyToSiteManagementContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
   hasPermission(identity, "contact:reply", "contact");
 
+/** Submitters reply through their own-contact viewing permission, without operator reply permission. */
+export const canReplyToMyContacts = (identity: AuthenticatedIdentitySummary | null): boolean =>
+  hasPermission(identity, "contact:view", "contact", true);
+
 /** Section access depends on permissions, independently of tab visibility and member count. */
 export const canAccessSiteManagement = (identity: AuthenticatedIdentitySummary | null): boolean =>
   canManageSiteManagementPrincipalGroups(identity) ||

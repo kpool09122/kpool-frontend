@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchSiteManagementContactDetail,
   fetchSiteManagementContacts,
+  hasLatestReplyFromPrincipal,
   parseSiteManagementContactsPage,
   replyToSiteManagementContact,
   type SiteManagementContactDetail,
@@ -20,7 +21,7 @@ describe("site-management contacts gateway", () => {
   it("requests only unanswered contacts with explicit pagination", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ contacts: [contact], current_page: 2, last_page: 2, total: 51, per_page: 50 }));
     await expect(fetchSiteManagementContacts({ page: 2, fetchAdapter })).resolves.toMatchObject({ current_page: 2 });
-    expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?hasReply=0&page=2&perPage=50", expect.objectContaining({ cache: "no-store", credentials: "include" }));
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?lastReplyByMe=0&page=2&perPage=50", expect.objectContaining({ cache: "no-store", credentials: "include" }));
   });
 
   it("omits the reply filter when requesting all inquiries", async () => {
@@ -45,5 +46,18 @@ describe("site-management contacts gateway", () => {
     const fetchAdapter = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     await expect(replyToSiteManagementContact({ contactIdentifier: identifier, content: "Reply", fetchAdapter })).resolves.toBeUndefined();
     expect(fetchAdapter).toHaveBeenCalledWith(`/api/site-management/contacts/${identifier}/replies`, expect.objectContaining({ method: "POST", body: '{"content":"Reply"}' }));
+  });
+});
+
+describe("latest reply status", () => {
+  const mine = "019a1234-5678-7000-8000-666666666666";
+  const reply = (replyNumber: number, principalIdentifier: string | null) => ({ replyIdentifier: identifier, replyNumber, principalIdentifier, name: null, content: "Reply", sentAt: null, createdAt: contact.createdAt });
+
+  it("uses reply sequence and author even when mail has not been delivered", () => {
+    expect(hasLatestReplyFromPrincipal({ replies: [reply(2, mine), reply(1, identifier)] }, mine)).toBe(true);
+    expect(hasLatestReplyFromPrincipal({ replies: [reply(1, mine), reply(2, identifier)] }, mine)).toBe(false);
+    expect(hasLatestReplyFromPrincipal({ replies: [reply(1, mine), reply(2, null)] }, mine)).toBe(false);
+    expect(hasLatestReplyFromPrincipal({ replies: [] }, mine)).toBe(false);
+    expect(hasLatestReplyFromPrincipal({ replies: [reply(1, null)] }, null)).toBe(false);
   });
 });

@@ -10,11 +10,18 @@ vi.mock("../../AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: { id
 
 const contact = {
   contactIdentifier: "11111111-1111-4111-8111-111111111111",
-  principalIdentifier: null,
+  principalIdentifier: "33333333-3333-4333-8333-333333333333",
   category: 1,
   name: "問い合わせ太郎",
   replyIdentifiers: [],
+  replies: [],
   createdAt: "2026-08-27T12:00:00+00:00",
+};
+
+const supportReply = {
+  replyIdentifier: "44444444-4444-4444-8444-444444444444", replyNumber: 1,
+  principalIdentifier: "55555555-5555-4555-8555-555555555555", content: "Support reply",
+  name: "Support", sentAt: null, createdAt: contact.createdAt,
 };
 
 describe("MyContactsClient content preview", () => {
@@ -24,7 +31,7 @@ describe("MyContactsClient content preview", () => {
     const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
     client.setQueryData(["myContacts", "identity"], [
       { ...contact, content: "Awaiting a reply" },
-      { ...contact, contactIdentifier: "22222222-2222-4222-8222-222222222222", content: "Already replied", replyIdentifiers: ["reply"] },
+      { ...contact, contactIdentifier: "22222222-2222-4222-8222-222222222222", content: "Already replied", replyIdentifiers: [supportReply.replyIdentifier], replies: [supportReply] },
     ]);
     render(<QueryClientProvider client={client}><MyContactsClient /></QueryClientProvider>);
     const filter = screen.getByRole("checkbox", { name: "返信ありのみ" });
@@ -38,6 +45,22 @@ describe("MyContactsClient content preview", () => {
     fireEvent.click(filter);
     expect(screen.getByText("Awaiting a reply")).toBeInTheDocument();
     expect(screen.getByText("Already replied")).toBeInTheDocument();
+    client.clear();
+  });
+
+  it("returns to no reply after the owner responds and uses the same status for filtering", () => {
+    const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+    client.setQueryData(["myContacts", "identity"], [{
+      ...contact, content: "Waiting for support again", replyIdentifiers: [supportReply.replyIdentifier, "owner-reply"],
+      replies: [
+        { ...supportReply, replyIdentifier: "owner-reply", replyNumber: 2, principalIdentifier: contact.principalIdentifier },
+        supportReply,
+      ],
+    }]);
+    render(<QueryClientProvider client={client}><MyContactsClient /></QueryClientProvider>);
+    expect(screen.getByRole("button", { expanded: false })).toHaveTextContent(dictionaries.ja.admin.myContacts.awaitingReply);
+    fireEvent.click(screen.getByRole("checkbox", { name: dictionaries.ja.admin.myContacts.repliedOnly }));
+    expect(screen.queryByText("Waiting for support again")).not.toBeInTheDocument();
     client.clear();
   });
 

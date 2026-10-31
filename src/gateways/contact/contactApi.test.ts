@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getSiteManagementApiBaseUrl,
+  hasLatestSupportReply,
   parseMyContactDetailResponse,
   parseMyContactsResponse,
   withSiteManagementApiPrefix,
@@ -18,6 +19,7 @@ const contact = {
   identityIdentifier,
   name: "Kpool User",
   replyIdentifiers: [replyIdentifier],
+  replies: [],
   content: "問い合わせ本文",
 };
 
@@ -55,6 +57,23 @@ describe("contact API helpers", () => {
       contactIdentifier,
       replies: [{ replyIdentifier }],
     });
+  });
+
+  it("preserves saved replies and author metadata when notification delivery is pending", () => {
+    const reply = { replyIdentifier, replyNumber: 1, principalIdentifier: identityIdentifier, name: "Member", content: "Follow-up", sentAt: null, createdAt: contact.createdAt };
+    expect(parseMyContactDetailResponse({ ...contact, principalIdentifier: identityIdentifier, replies: [reply] }))
+      .toMatchObject({ principalIdentifier: identityIdentifier, replies: [reply] });
+  });
+
+  it("uses the latest reply author for support reply status, independently of delivery", () => {
+    const ownPrincipal = identityIdentifier;
+    const supportPrincipal = "44444444-4444-4444-8444-444444444444";
+    const reply = (replyNumber: number, principalIdentifier: string | null) => ({ replyIdentifier, replyNumber, principalIdentifier, content: "Reply", sentAt: null, createdAt: contact.createdAt });
+    const summary = parseMyContactsResponse([{ ...contact, principalIdentifier: ownPrincipal }])[0];
+    expect(hasLatestSupportReply({ ...summary, replies: [] })).toBe(false);
+    expect(hasLatestSupportReply({ ...summary, replies: [reply(2, supportPrincipal), reply(1, ownPrincipal)] })).toBe(true);
+    expect(hasLatestSupportReply({ ...summary, replies: [reply(1, supportPrincipal), reply(2, ownPrincipal)] })).toBe(false);
+    expect(hasLatestSupportReply({ ...summary, replies: [reply(1, supportPrincipal), reply(2, null)] })).toBe(false);
   });
 
   it("rejects malformed contact responses", () => {

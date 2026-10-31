@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   const input = request.nextUrl.searchParams;
   const params = new URLSearchParams();
-  for (const key of ["hasReply", "page", "perPage"]) {
+  for (const key of ["hasReply", "lastReplyByMe", "page", "perPage"]) {
     const value = input.get(key);
     if (value !== null) params.set(key, value);
   }

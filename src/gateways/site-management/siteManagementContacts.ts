@@ -4,17 +4,31 @@ import { z } from "zod";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 
-// Backend #747 includes submitter replies without a mail sentAt timestamp.
-// Keep the generated contract untouched and accept both deployed reply formats.
-const contactDetailSchema = siteManagementApiTypes.schemas.ContactDetail.extend({
-  replies: z.array(siteManagementApiTypes.schemas.ContactReplyDetail.extend({
-    sentAt: z.string().nullable(),
-    createdAt: z.string().optional(),
-  })),
+// Reply author and sequence metadata determine who last responded, independently of mail delivery.
+const contactReplySchema = siteManagementApiTypes.schemas.ContactReplyDetail.extend({
+  replyNumber: z.number().int().positive(),
+  principalIdentifier: z.string().nullable(),
+  name: z.string().nullable(),
+  sentAt: z.string().nullable(),
+  createdAt: z.string(),
 });
+const contactDetailSchema = siteManagementApiTypes.schemas.ContactDetail.extend({ replies: z.array(contactReplySchema) });
+const contactSummarySchema = siteManagementApiTypes.schemas.MyContactSummary.extend({ replies: z.array(contactReplySchema) });
+const contactsPageSchema = siteManagementApiTypes.schemas.ListContactsPage.extend({ contacts: z.array(contactSummarySchema) });
 
 export type SiteManagementContactDetail = z.infer<typeof contactDetailSchema>;
-export type SiteManagementContactsPage = z.infer<typeof siteManagementApiTypes.schemas.ListContactsPage>;
+export type SiteManagementContactsPage = z.infer<typeof contactsPageSchema>;
+
+export const hasLatestReplyFromPrincipal = (
+  contact: Pick<SiteManagementContactsPage["contacts"][number], "replies">,
+  principalIdentifier: string | null | undefined,
+): boolean => {
+  const latest = contact.replies.reduce<z.infer<typeof contactReplySchema> | null>(
+    (current, item) => !current || item.replyNumber > current.replyNumber ? item : current,
+    null,
+  );
+  return !!principalIdentifier && latest?.principalIdentifier === principalIdentifier;
+};
 
 export const siteManagementContactsUnavailableMessage = "SiteManagement contacts are unavailable.";
 
@@ -22,7 +36,7 @@ const contactError = (status: number): Error & { status: number } =>
   Object.assign(new Error(siteManagementContactsUnavailableMessage), { status });
 
 export const parseSiteManagementContactsPage = (body: unknown): SiteManagementContactsPage =>
-  parseWithSchemaLog("site management contacts", siteManagementApiTypes.schemas.ListContactsPage, body);
+  parseWithSchemaLog("site management contacts", contactsPageSchema, body);
 
 export const parseSiteManagementContactDetail = (body: unknown): SiteManagementContactDetail =>
   parseWithSchemaLog("site management contact detail", contactDetailSchema, body);
@@ -38,7 +52,7 @@ export const fetchSiteManagementContacts = async ({
   unansweredOnly?: boolean;
   fetchAdapter?: typeof fetch;
 }): Promise<SiteManagementContactsPage> => {
-  const filter = unansweredOnly ? "hasReply=0&" : "";
+  const filter = unansweredOnly ? "lastReplyByMe=0&" : "";
   const response = await fetchAdapter(`/api/site-management/contacts?${filter}page=${page}&perPage=${perPage}`, {
     cache: "no-store",
     credentials: "include",

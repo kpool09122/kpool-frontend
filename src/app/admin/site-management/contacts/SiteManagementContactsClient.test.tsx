@@ -17,7 +17,7 @@ vi.mock("../../AdminProvider", () => ({
       accountPrincipalStatus: "active",
       siteManagementPrincipalStatus: "active",
       account: { status: "active" },
-      siteManagementPrincipalIdentifier: "operator-principal",
+      siteManagementPrincipalIdentifier: "019a1234-5678-7000-8000-666666666666",
       siteManagementPolicies: [{
         name: "Operator",
         policyIdentifier: "policy",
@@ -49,7 +49,7 @@ const savedReply: SiteManagementContactDetail["replies"][number] = {
   createdAt: "2026-10-09T00:00:00+00:00",
 };
 const text = dictionaries.ja.admin.siteManagementContacts;
-const listUrl = "/api/site-management/contacts?hasReply=0&page=1&perPage=50";
+const listUrl = "/api/site-management/contacts?lastReplyByMe=0&page=1&perPage=50";
 const detailUrl = `/api/site-management/contacts/${identifier}`;
 const replyUrl = `${detailUrl}/replies`;
 const page = (contacts = [contact]) => ({ contacts, current_page: 1, last_page: 1, total: contacts.length, per_page: 50 });
@@ -72,10 +72,10 @@ afterEach(() => {
 
 describe("site-management contacts anonymous inquiry path", () => {
   it("defaults to unanswered inquiries and resets pagination when toggling the filter", async () => {
-    const answered = { ...contact, name: "Answered sender", contactIdentifier: "019a1234-5678-7000-8000-222222222222", replyIdentifiers: [identifier] };
+    const answered = { ...contact, name: "Answered sender", contactIdentifier: "019a1234-5678-7000-8000-222222222222", replyIdentifiers: [identifier], replies: [{ ...savedReply, principalIdentifier: "019a1234-5678-7000-8000-666666666666" }] };
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const params = new URL(String(input), window.location.origin).searchParams;
-      const filtered = params.get("hasReply") === "0";
+      const filtered = params.get("lastReplyByMe") === "0";
       return Response.json({ ...page(filtered ? [contact] : [contact, answered]), current_page: Number(params.get("page")), last_page: 2, total: 51 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -97,8 +97,21 @@ describe("site-management contacts anonymous inquiry path", () => {
     client.clear();
   });
 
+  it.each(["019a1234-5678-7000-8000-777777777777", null])("shows pending when the latest reply is from another or unknown author: %s", async (latestAuthor) => {
+    const replies = [
+      { ...savedReply, replyNumber: 1, principalIdentifier: "019a1234-5678-7000-8000-666666666666" },
+      { ...savedReply, replyNumber: 2, principalIdentifier: latestAuthor },
+    ];
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json(page([{ ...contact, replies, replyIdentifiers: [identifier] }]))));
+    const { client } = renderContacts();
+    const summary = await screen.findByRole("button", { name: /Anonymous sender/ });
+    expect(summary).toHaveTextContent(text.awaitingReply);
+    expect(summary).not.toHaveTextContent(text.replied);
+    client.clear();
+  });
+
   it("distinguishes inquiries from the same sender by content, date and reply status", async () => {
-    const other = { ...contact, contactIdentifier: "019a1234-5678-7000-8000-333333333333", content: "A different inquiry from the same sender", createdAt: "2026-10-09T00:00:00+00:00", replyIdentifiers: [identifier] };
+    const other = { ...contact, contactIdentifier: "019a1234-5678-7000-8000-333333333333", content: "A different inquiry from the same sender", createdAt: "2026-10-09T00:00:00+00:00", replyIdentifiers: [identifier], replies: [{ ...savedReply, principalIdentifier: "019a1234-5678-7000-8000-666666666666" }] };
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).includes("?")) return Response.json(page([contact, other]));
       return Response.json({ ...other, replies: [] });
@@ -121,12 +134,13 @@ describe("site-management contacts anonymous inquiry path", () => {
 
   it("keeps the conversation open in the full list after sending and identifies both sides", async () => {
     let replied = false;
+    const owner = "019a1234-5678-7000-8000-444444444444";
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       if (input === replyUrl) { replied = true; return new Response(null, { status: 204 }); }
       if (String(input).includes("?")) return Response.json(page());
-      return Response.json({ ...detail, replies: [
-        { ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "More details from the sender", replyType: "submitter", sentAt: null, createdAt: "2026-10-09T00:00:00+00:00" },
-        ...(replied ? [{ ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-333333333333", replyNumber: 2, createdAt: "2026-10-10T00:00:00+00:00", content: "Thanks, we will check", replyType: "operator", sentAt: "2026-10-10T00:00:00+00:00" }] : []),
+      return Response.json({ ...detail, principalIdentifier: owner, replies: [
+        { ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "More details from the sender", principalIdentifier: owner, sentAt: null, createdAt: "2026-10-09T00:00:00+00:00" },
+        ...(replied ? [{ ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-333333333333", replyNumber: 2, createdAt: "2026-10-10T00:00:00+00:00", content: "Thanks, we will check", principalIdentifier: "019a1234-5678-7000-8000-555555555555", sentAt: "2026-10-10T00:00:00+00:00" }] : []),
       ] });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -275,8 +289,8 @@ describe("site-management contacts anonymous inquiry path", () => {
     fireEvent.change(await screen.findByRole("textbox", { name: text.replyContent }), { target: { value: "Reply" } });
     fireEvent.click(screen.getByRole("button", { name: text.reply }));
     await waitFor(() => expect(screen.queryByRole("textbox", { name: text.replyContent })).not.toBeInTheDocument());
-    await waitFor(() => expect(client.getQueryCache().find({ queryKey: ["admin", "siteManagement", "contacts", "operator", 2, true] })?.getObserversCount()).toBe(0));
-    await waitFor(() => expect(client.getQueryData<{ current_page: number }>(["admin", "siteManagement", "contacts", "operator", 1, true])?.current_page).toBe(1));
+    await waitFor(() => expect(client.getQueryCache().find({ queryKey: ["admin", "siteManagement", "contacts", "operator", 2, true, "019a1234-5678-7000-8000-666666666666"] })?.getObserversCount()).toBe(0));
+    await waitFor(() => expect(client.getQueryData<{ current_page: number }>(["admin", "siteManagement", "contacts", "operator", 1, true, "019a1234-5678-7000-8000-666666666666"])?.current_page).toBe(1));
     await waitFor(() => expect(screen.queryByText(text.empty)).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: /Anonymous sender|Other sender/ })).toBeInTheDocument();
     client.clear();
@@ -407,7 +421,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     fireEvent.click(screen.getByRole("button", { name: text.nextPage }));
     expect(await screen.findByText(text.page(2, 2))).toBeInTheDocument();
     expect(screen.getByRole("button", { name: text.nextPage })).toBeDisabled();
-    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?hasReply=0&page=2&perPage=50", expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith("/api/site-management/contacts?lastReplyByMe=0&page=2&perPage=50", expect.anything());
     fireEvent.click(screen.getByRole("button", { name: text.previousPage }));
     await waitFor(() => expect(screen.getByRole("button", { name: text.previousPage })).toBeDisabled());
     client.clear();

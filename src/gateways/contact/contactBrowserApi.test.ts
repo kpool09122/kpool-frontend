@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchMyContactDetail, fetchMyContacts, submitContact } from "./contactBrowserApi";
+import { fetchMyContactDetail, fetchMyContacts, replyToMyContact, submitContact } from "./contactBrowserApi";
 
 const requestBody = {
   category: 1 as const,
@@ -26,12 +26,14 @@ const contact = {
   identityIdentifier,
   name: "Kpool User",
   replyIdentifiers: [replyIdentifier],
+  replies: [],
   content: "問い合わせ本文",
 };
 
 describe("contact browser API", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("posts the inquiry to the BFF with the current locale and credentials", async () => {
@@ -85,6 +87,22 @@ describe("contact browser API", () => {
     ));
 
     await expect(submitContact({ locale: "ja", requestBody })).resolves.toEqual({ ok: false });
+  });
+
+  it("posts a submitter reply to the own-contact endpoint with CSRF and only content", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await replyToMyContact({ contactIdentifier, content: "Follow-up", locale: "ja", fallbackErrorMessage: "failed" });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/site-management/contact/me/${contactIdentifier}/replies`, expect.objectContaining({
+      method: "POST", credentials: "include", body: JSON.stringify({ content: "Follow-up" }),
+      headers: expect.objectContaining({ "X-XSRF-TOKEN": "test-csrf-token", "Accept-Language": "ja" }),
+    }));
+  });
+
+  it("preserves reply failure status so callers can reconcile saved history", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ message: "Notification failed" }, { status: 500 }));
+    await expect(replyToMyContact({ contactIdentifier, content: "Follow-up", locale: "ja", fallbackErrorMessage: "failed", fetchAdapter }))
+      .rejects.toMatchObject({ contactRouteStatus: 500, message: "Notification failed" });
   });
 
   it("fetches the signed-in user's contacts with credentials", async () => {
