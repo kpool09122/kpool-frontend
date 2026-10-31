@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { SiteManagementContactDetail, SiteManagementContactsPage } from "@/gateways/site-management/siteManagementContacts";
 import { dictionaries } from "@/i18n/dictionaries";
 import { SiteManagementContactsClient } from "./SiteManagementContactsClient";
 
@@ -27,16 +28,26 @@ vi.mock("../../AdminProvider", () => ({
 }));
 
 const identifier = "019a1234-5678-7000-8000-111111111111";
-const contact = {
+const contact: SiteManagementContactsPage["contacts"][number] = {
   contactIdentifier: identifier,
   principalIdentifier: null,
   category: 1,
   name: "Anonymous sender",
   content: "Anonymous inquiry",
-  replyIdentifiers: [] as string[],
+  replyIdentifiers: [],
+  replies: [],
   createdAt: "2026-10-08T00:00:00+00:00",
 };
-const detail = { ...contact, content: "Anonymous inquiry", replies: [] };
+const detail: SiteManagementContactDetail = { ...contact, content: "Anonymous inquiry", replies: [] };
+const savedReply: SiteManagementContactDetail["replies"][number] = {
+  replyIdentifier: identifier,
+  replyNumber: 1,
+  principalIdentifier: null,
+  name: null,
+  content: "Reply",
+  sentAt: "2026-10-09T00:00:00+00:00",
+  createdAt: "2026-10-09T00:00:00+00:00",
+};
 const text = dictionaries.ja.admin.siteManagementContacts;
 const listUrl = "/api/site-management/contacts?hasReply=0&page=1&perPage=50";
 const detailUrl = `/api/site-management/contacts/${identifier}`;
@@ -114,8 +125,8 @@ describe("site-management contacts anonymous inquiry path", () => {
       if (input === replyUrl) { replied = true; return new Response(null, { status: 204 }); }
       if (String(input).includes("?")) return Response.json(page());
       return Response.json({ ...detail, replies: [
-        { replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "More details from the sender", replyType: "submitter", sentAt: null, createdAt: "2026-10-09T00:00:00+00:00" },
-        ...(replied ? [{ replyIdentifier: "019a1234-5678-7000-8000-333333333333", content: "Thanks, we will check", replyType: "operator", sentAt: "2026-10-10T00:00:00+00:00" }] : []),
+        { ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "More details from the sender", replyType: "submitter", sentAt: null, createdAt: "2026-10-09T00:00:00+00:00" },
+        ...(replied ? [{ ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-333333333333", replyNumber: 2, createdAt: "2026-10-10T00:00:00+00:00", content: "Thanks, we will check", replyType: "operator", sentAt: "2026-10-10T00:00:00+00:00" }] : []),
       ] });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -144,7 +155,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     const createdAt = "2026-10-10T12:00:00+00:00";
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => Response.json(input === listUrl ? page() : {
       ...detail,
-      replies: [{ replyIdentifier: identifier, content: "Additional information", sentAt: null, replyType: "submitter", createdAt }],
+      replies: [{ ...savedReply, replyIdentifier: identifier, content: "Additional information", sentAt: null, replyType: "submitter", createdAt }],
     })));
     const { client } = renderContacts();
     fireEvent.click(await screen.findByRole("button", { name: /Anonymous sender|Other sender/ }));
@@ -310,7 +321,7 @@ describe("site-management contacts anonymous inquiry path", () => {
     mocks.actions = ["contact:view"];
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       if (input === listUrl) return Response.json(page());
-      if (input === detailUrl) return Response.json({ ...detail, replies: [{ replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "Earlier sent reply", sentAt: "2026-10-09T00:00:00+00:00" }] });
+      if (input === detailUrl) return Response.json({ ...detail, replies: [{ ...savedReply, replyIdentifier: "019a1234-5678-7000-8000-222222222222", content: "Earlier sent reply", sentAt: "2026-10-09T00:00:00+00:00" }] });
       throw new Error(`Unexpected request: ${String(input)}`);
     });
     vi.stubGlobal("fetch", fetchMock);

@@ -5,10 +5,12 @@ import {
   fetchSiteManagementContacts,
   parseSiteManagementContactsPage,
   replyToSiteManagementContact,
+  type SiteManagementContactDetail,
+  type SiteManagementContactsPage,
 } from "./siteManagementContacts";
 
 const identifier = "019a1234-5678-7000-8000-111111111111";
-const contact = { contactIdentifier: identifier, principalIdentifier: identifier, category: 1, name: "Sender", content: "Inquiry", replyIdentifiers: [], createdAt: "2026-10-08T00:00:00+00:00" };
+const contact: SiteManagementContactsPage["contacts"][number] = { contactIdentifier: identifier, principalIdentifier: identifier, category: 1, name: "Sender", content: "Inquiry", replyIdentifiers: [], replies: [], createdAt: "2026-10-08T00:00:00+00:00" };
 
 describe("site-management contacts gateway", () => {
   it("parses the paginated backend list contract", () => {
@@ -34,7 +36,7 @@ describe("site-management contacts gateway", () => {
   });
 
   it("accepts a submitter reply with nullable sentAt from backend #747", async () => {
-    const reply = { replyIdentifier: identifier, content: "Additional information", sentAt: null, replyType: "submitter", createdAt: contact.createdAt };
+    const reply: SiteManagementContactDetail["replies"][number] = { replyIdentifier: identifier, replyNumber: 1, principalIdentifier: identifier, name: "Sender", content: "Additional information", sentAt: null, replyType: "submitter", createdAt: contact.createdAt };
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ ...contact, principalIdentifier: null, replies: [reply] }));
     await expect(fetchSiteManagementContactDetail({ contactIdentifier: identifier, fetchAdapter })).resolves.toMatchObject({ principalIdentifier: null, replies: [reply] });
   });
