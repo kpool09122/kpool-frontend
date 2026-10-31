@@ -225,8 +225,8 @@ importers:
         version: 5.0.16(@types/react@19.3.0)(react@19.3.1)(use-sync-external-store@1.6.0(react@19.3.1))
     devDependencies:
       '@opennextjs/cloudflare':
-        specifier: 1.20.13
-        version: 1.20.13(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)(wrangler@4.154.0(@types/node@25.9.9))
+        specifier: 1.20.14
+        version: 1.20.14(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)(wrangler@4.154.0(@types/node@25.9.9))
       '@playwright/test':
         specifier: ^1.59.1
         version: 1.64.1
@@ -1313,14 +1313,18 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@opennextjs/aws@4.1.12':
-    resolution: {integrity: sha512-tZm1rBTRY6MVOOPCxvx0oZIg3b2Z5u0TzDm9D4Wy1cZpMp8Rjfex20gRQeEn0o6dsXpVQCE8q65TjsCFJA5Fpw==}
+  '@opennextjs/aws@4.1.13':
+    resolution: {integrity: sha512-uqTOoSFbYEY3NJTU/0gTL7ndY+GHYdC8qUb3bvPOpsfqLrjLvFDprngG2FqgJTIzQUxOlpnoodbjUf2jadJTXg==}
     hasBin: true
     peerDependencies:
+      diff: ^9.0.0
       next: '>=15.5.28 <16 || >=16.4.1'
+    peerDependenciesMeta:
+      diff:
+        optional: true
 
-  '@opennextjs/cloudflare@1.20.13':
-    resolution: {integrity: sha512-Rhcvsx/PlQzOslleCBttG+r2o16lOFazKbULxiN33CYexm8S1Fd00mn3tU2w76PIaqO9evzgVKInOpR/fTMc0Q==}
+  '@opennextjs/cloudflare@1.20.14':
+    resolution: {integrity: sha512-Grcok/L8iOuWXNtro/FjCExNYnoG+jUTD8Mp/AQI4Z6iMWD1q/xl+tx+NR354EsoUsQRAGmV0OfB7HH7wfdrbg==}
     hasBin: true
     peerDependencies:
       next: '>=15.5.28 <16 || >=16.4.1'
@@ -1713,6 +1717,7 @@ packages:
   '@smithy/core@3.35.1':
     resolution: {integrity: sha512-i4YPS4B6ts7bjn7UwLnGjiZdprOvHvgGobFZsYK3GIY3E5hIqtj0rReU69BcTpGp+fvtraSNXeG1l+jtJvF55w==}
     engines: {node: '>=18.0.0'}
+    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}
@@ -6583,7 +6588,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@opennextjs/aws@4.1.12(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)':
+  '@opennextjs/aws@4.1.13(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)':
     dependencies:
       '@ast-grep/napi': 0.45.3
       '@aws-sdk/client-cloudfront': 3.984.0
@@ -6606,11 +6611,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opennextjs/cloudflare@1.20.13(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)(wrangler@4.154.0(@types/node@25.9.9))':
+  '@opennextjs/cloudflare@1.20.14(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)(wrangler@4.154.0(@types/node@25.9.9))':
     dependencies:
       '@ast-grep/napi': 0.45.3
       '@dotenvx/dotenvx': 2.34.1
-      '@opennextjs/aws': 4.1.12(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)
+      '@opennextjs/aws': 4.1.13(next@16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.64.1)(@types/node@25.9.9)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(supports-color@7.2.0)
       ci-info: 4.4.0
       cloudflare: 4.5.0
       comment-json: 4.6.2
@@ -6621,6 +6626,7 @@ snapshots:
       wrangler: 4.154.0(@types/node@25.9.9)
       yargs: 18.2.0
     transitivePeerDependencies:
+      - diff
       - encoding
       - supports-color
 
