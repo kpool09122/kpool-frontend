@@ -30,16 +30,42 @@ describe("SiteManagement navigation", () => {
     mocks.identity = { ...identity, siteManagementPrincipalCount: 1, siteManagementPolicies: [{ name: "General", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: "own_contact" }] }] };
     render(<AdminShellClient><SiteManagementPageClient activeTab="contacts"><p>My contacts</p></SiteManagementPageClient></AdminShellClient>);
     expect(screen.getByRole("link", { name: "サイト管理" })).toHaveAttribute("href", "/admin/site-management/contacts");
-    expect(screen.getByRole("tab", { name: "お問い合わせ" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "お問い合わせ履歴" })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "お問い合わせ履歴" })).toHaveAttribute("href", "/admin/site-management/contacts");
     expect(screen.getByText("My contacts")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "お問い合わせ管理" })).not.toBeInTheDocument();
   });
   it("keeps both tabs reachable with group management permission", () => {
     mocks.identity = identity;
     render(<SiteManagementPageClient activeTab="contacts"><p>My contacts</p></SiteManagementPageClient>);
-    expect(screen.getByRole("tab", { name: "お問い合わせ" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "お問い合わせ履歴" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "ユーザー権限管理" })).toHaveAttribute("aria-selected", "false");
     expect(screen.getByRole("tab", { name: "ユーザー権限管理" })).toHaveAttribute("href", "/admin/site-management/principal-groups");
   });
 
+  it("shows both contact tabs to a contact viewer without requiring principal-group management", () => {
+    mocks.pathname = "/admin/site-management/contacts";
+    mocks.identity = { ...identity, siteManagementPrincipalCount: 1, siteManagementPolicies: [{ name: "Contact viewer", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: null }] }] };
+    render(<AdminShellClient><SiteManagementPageClient activeTab="contacts"><p>contacts</p></SiteManagementPageClient></AdminShellClient>);
+    expect(screen.getByRole("link", { name: "サイト管理" })).toHaveAttribute("href", "/admin/site-management/contacts");
+    expect(screen.getByRole("tab", { name: "お問い合わせ履歴" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "お問い合わせ管理" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tab", { name: "お問い合わせ管理" })).toHaveAttribute("href", "/admin/site-management/contact-management");
+    expect(screen.queryByRole("tab", { name: "ユーザー権限管理" })).not.toBeInTheDocument();
+  });
+  it("visually distinguishes the active site-management tab", () => {
+    mocks.pathname = "/admin/site-management/contacts";
+    mocks.identity = {
+      ...identity,
+      siteManagementPolicies: [
+        ...identity.siteManagementPolicies,
+        { name: "Contact viewer", policyIdentifier: "contact-policy", statements: [{ effect: "allow", actions: ["contact:view"], resourceTypes: ["contact"], condition: null }] },
+      ],
+    };
+    render(<AdminShellClient><SiteManagementPageClient activeTab="contactManagement"><p>contacts</p></SiteManagementPageClient></AdminShellClient>);
+    expect(screen.getByRole("tab", { name: "お問い合わせ履歴" })).toHaveClass("border-transparent", "text-text-muted");
+    expect(screen.getByRole("tab", { name: "お問い合わせ管理" })).toHaveClass("border-brand-primary", "text-text-strong");
+    expect(screen.getByRole("tab", { name: "ユーザー権限管理" })).toHaveClass("border-transparent", "text-text-muted");
+  });
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import { ContactConversation } from "@/components/Contact/ContactConversation";
+import { ContactCard } from "@/components/Contact/ContactCard";
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -9,14 +11,12 @@ import { fetchMyContactDetail, fetchMyContacts } from "@/gateways/contact/contac
 import { useI18n } from "../../../../i18n/I18nProvider";
 import { useAdmin } from "../../AdminProvider";
 
-type StatusFilter = "all" | "replied" | "awaitingReply";
-
 export function MyContactsClient() {
   const { dictionary } = useI18n();
   const { currentIdentity } = useAdmin();
   const t = dictionary.admin.myContacts;
   const identityIdentifier = currentIdentity.identityIdentifier;
-  const [status, setStatus] = useState<StatusFilter>("all");
+  const [repliedOnly, setRepliedOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = useQuery({
     queryKey: ["myContacts", identityIdentifier],
@@ -31,24 +31,21 @@ export function MyContactsClient() {
     }),
   });
   const contacts = (list.data ?? []).filter((contact) =>
-    status === "all" || (status === "replied"
-      ? contact.replyIdentifiers.length > 0
-      : contact.replyIdentifiers.length === 0));
+    !repliedOnly || contact.replyIdentifiers.length > 0);
 
   return (
-    <UserSettingsPanel description={t.description} title={t.title}>
+    <UserSettingsPanel title={t.title}>
       <div className="mt-5 grid gap-4">
-        <label className="grid gap-2 text-sm font-semibold">
-          {t.filter}
-          <select
-            className="rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2"
-            value={status}
-            onChange={(event) => setStatus(event.currentTarget.value as StatusFilter)}
-          >
-            <option value="all">{t.all}</option>
-            <option value="awaitingReply">{t.awaitingReply}</option>
-            <option value="replied">{t.replied}</option>
-          </select>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={repliedOnly}
+            onChange={(event) => {
+              setRepliedOnly(event.currentTarget.checked);
+              setSelectedId(null);
+            }}
+          />
+          {t.repliedOnly}
         </label>
         {list.isLoading ? <UserStatusMessage variant="warning">{t.loading}</UserStatusMessage> : null}
         {list.error ? <UserStatusMessage variant="error">{list.error.message}</UserStatusMessage> : null}
@@ -59,53 +56,34 @@ export function MyContactsClient() {
           const isSelected = selectedId === contact.contactIdentifier;
 
           return (
-            <article className="overflow-hidden rounded-xl border border-stroke-subtle bg-surface-raised" key={contact.contactIdentifier}>
-              <button
-                aria-expanded={isSelected}
-                className="w-full p-4 text-left transition hover:border-brand-primary hover:bg-brand-highlight/10"
-                onClick={() => setSelectedId(isSelected ? null : contact.contactIdentifier)}
-                type="button"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-                    <span className="w-full shrink-0 text-sm text-text-muted sm:w-auto"><LocalizedDateTime value={contact.createdAt} /></span>
-                    <span className="shrink-0 rounded-full bg-sky-100 px-2 py-1 text-xs font-semibold text-sky-900">
-                      {t.category(contact.category)}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-text-muted">
-                      {contact.content}
-                    </span>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${
-                    contact.replyIdentifiers.length
-                      ? "bg-emerald-100 text-emerald-900"
-                      : "bg-amber-100 text-amber-900"
-                  }`}>
-                    {contact.replyIdentifiers.length ? t.replied : t.awaitingReply}
-                  </span>
-                </div>
-              </button>
-              {isSelected ? (
-                <section className="border-t border-stroke-subtle bg-white p-4">
-                  {detail.isLoading ? <p>{t.detailLoading}</p> : null}
-                  {detail.error ? <UserStatusMessage variant="error">{detail.error.message}</UserStatusMessage> : null}
-                  {detail.data ? (
-                    <div className="grid gap-4">
-                      <p className="whitespace-pre-wrap">{detail.data.content}</p>
-                      <div className="relative ml-3 grid gap-3 pl-5">
-                        <span aria-hidden="true" className="absolute left-0 top-0 h-5 w-3 border-b border-l border-stroke-subtle" />
-                        {detail.data.replies.length ? detail.data.replies.map((reply) => (
-                          <article className="relative border-l-4 border-brand-highlight bg-surface-raised py-3 pl-4 pr-3" key={reply.replyIdentifier}>
-                            <p className="whitespace-pre-wrap">{reply.content}</p>
-                            <p className="mt-2 text-xs text-text-muted"><LocalizedDateTime value={reply.sentAt} /></p>
-                          </article>
-                        )) : <p className="text-sm text-text-muted">{t.noReplies}</p>}
-                      </div>
-                    </div>
-                  ) : null}
-                </section>
+            <ContactCard
+              key={contact.contactIdentifier}
+              date={<LocalizedDateTime value={contact.createdAt} />}
+              category={t.category(contact.category)}
+              content={contact.content}
+              replied={contact.replyIdentifiers.length > 0}
+              statusLabel={contact.replyIdentifiers.length ? t.replied : t.awaitingReply}
+              expanded={isSelected}
+              onToggle={() => setSelectedId(isSelected ? null : contact.contactIdentifier)}
+            >
+              {detail.isLoading ? <p>{t.detailLoading}</p> : null}
+              {detail.error ? <UserStatusMessage variant="error">{detail.error.message}</UserStatusMessage> : null}
+              {!detail.error && detail.data ? (
+                <ContactConversation
+                  label={dictionary.admin.contactConversation.label}
+                  perspective="submitter"
+                  submitterName={dictionary.admin.contactConversation.you}
+                  operatorLabel={dictionary.admin.contactConversation.operator}
+                  initialMessage={{ content: detail.data.content, date: <LocalizedDateTime value={detail.data.createdAt} /> }}
+                  replies={detail.data.replies.map((reply) => ({
+                    id: reply.replyIdentifier,
+                    content: reply.content,
+                    date: <LocalizedDateTime value={reply.sentAt} />,
+                    fromSubmitter: reply.replyType === "submitter",
+                  }))}
+                />
               ) : null}
-            </article>
+            </ContactCard>
           );
         })}
       </div>
