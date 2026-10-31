@@ -18,6 +18,7 @@ import { AccountPrincipalGroupsClient } from "../account/principal-groups/Accoun
 import { AccountNotificationsClient } from "../account/notification-settings/AccountNotificationsClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
+import { SiteManagementContactsClient as OperatorContactsClient } from "../site-management/contacts/SiteManagementContactsClient";
 import { SiteManagementContactsClient } from "../site-management/SiteManagementContactsClient";
 import { AdminRouteProvider } from "../AdminRouteProvider";
 import type { AdminRouteData } from "../adminTypes";
@@ -56,6 +57,7 @@ export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
 type AdminClientPage = "accountAffiliations"
   | "siteManagementPrincipalGroups"
   | "siteManagementAnnouncements"
+  | "siteManagementContactManagement"
   | "accountDelegations"
   | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
@@ -85,6 +87,7 @@ type AdminClientPage = "accountAffiliations"
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
   if (pathname?.startsWith("/admin/site-management")) {
+    if (pathname.endsWith("/contact-management")) return "siteManagementContactManagement";
     if (pathname.endsWith("/announcements")) return "siteManagementAnnouncements";
     return pathname.endsWith("/principal-groups")
       ? "siteManagementPrincipalGroups"
@@ -187,6 +190,7 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "siteManagementContactManagement") return <SiteManagementPageClient activeTab="contactManagement"><OperatorContactsClient /></SiteManagementPageClient>;
   if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;
   if (page === "siteManagementPrincipalGroups") {
     return (

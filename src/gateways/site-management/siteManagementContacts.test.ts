@@ -21,6 +21,12 @@ describe("site-management contacts gateway", () => {
     expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?hasReply=0&page=2&perPage=50", expect.objectContaining({ cache: "no-store", credentials: "include" }));
   });
 
+  it("omits the reply filter when requesting all inquiries", async () => {
+    const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ contacts: [contact], current_page: 1, last_page: 1, total: 1, per_page: 50 }));
+    await fetchSiteManagementContacts({ page: 1, unansweredOnly: false, fetchAdapter });
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/contacts?page=1&perPage=50", expect.anything());
+  });
+
   it("gets an anonymous contact detail by contact identifier only", async () => {
     const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ ...contact, principalIdentifier: null, content: "Inquiry", replies: [] }));
     await expect(fetchSiteManagementContactDetail({ contactIdentifier: identifier, fetchAdapter })).resolves.toMatchObject({ principalIdentifier: null, content: "Inquiry" });

@@ -30,13 +30,16 @@ export const parseSiteManagementContactDetail = (body: unknown): SiteManagementC
 export const fetchSiteManagementContacts = async ({
   page,
   perPage = 50,
+  unansweredOnly = true,
   fetchAdapter = browserApiFetch,
 }: {
   page: number;
   perPage?: number;
+  unansweredOnly?: boolean;
   fetchAdapter?: typeof fetch;
 }): Promise<SiteManagementContactsPage> => {
-  const response = await fetchAdapter(`/api/site-management/contacts?hasReply=0&page=${page}&perPage=${perPage}`, {
+  const filter = unansweredOnly ? "hasReply=0&" : "";
+  const response = await fetchAdapter(`/api/site-management/contacts?${filter}page=${page}&perPage=${perPage}`, {
     cache: "no-store",
     credentials: "include",
     headers: { Accept: "application/json" },

@@ -11,7 +11,7 @@ import { useAdmin } from "../AdminProvider";
 
 export function SiteManagementPageClient({ children, activeTab = "principalGroups" }: {
   children: ReactNode;
-  activeTab?: "contacts" | "principalGroups" | "announcements";
+  activeTab?: "contacts" | "contactManagement" | "principalGroups" | "announcements";
 }) {
   const { currentIdentity, t, locale } = useAdmin();
   const canShowManagement = canShowSiteManagementPrincipalGroupManagement(currentIdentity);
@@ -33,8 +33,16 @@ export function SiteManagementPageClient({ children, activeTab = "principalGroup
             href="/admin/site-management/contacts"
             role="tab"
           >
-            {canViewContacts ? t.siteManagementContacts.tab : t.myContacts.tab}
+            {t.myContacts.tab}
           </Link>
+          {canViewContacts ? <Link
+            aria-selected={activeTab === "contactManagement"}
+            className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "contactManagement" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}
+            href="/admin/site-management/contact-management"
+            role="tab"
+          >
+            {t.siteManagementContacts.tab}
+          </Link> : null}
           {canUseAnnouncements(currentIdentity, "view-draft") ? <Link role="tab" aria-selected={activeTab === "announcements"} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "announcements" ? "border-brand-primary" : "border-transparent"}`} href="/admin/site-management/announcements">{dictionaries[locale].announcements.management}</Link> : null}
           {canShowManagement ? <Link
             aria-selected={activeTab === "principalGroups"}
