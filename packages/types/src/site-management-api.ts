@@ -36,25 +36,16 @@ const KPool_Common_ProblemDetails = z
   .passthrough();
 const KPool_Common_Uuid = z.string();
 const KPool_Common_Timestamp = z.string();
-const MyContactSummary = z
-  .object({
-    contactIdentifier: KPool_Common_Uuid,
-    principalIdentifier: KPool_Common_Uuid.nullish(),
-    category: z.number().int(),
-    name: z.string(),
-    replyIdentifiers: z.array(KPool_Common_Uuid),
-    createdAt: KPool_Common_Timestamp,
-    content: z.string(),
-  })
-  .passthrough();
-const ContactReplyDetail = z
+const ContactReplyDetailWithAuthor = z
   .object({
     replyIdentifier: KPool_Common_Uuid.uuid(),
     content: z.string(),
     sentAt: KPool_Common_Timestamp,
+    principalIdentifier: KPool_Common_Uuid.nullable(),
+    name: z.string().nullable(),
   })
   .passthrough();
-const ContactDetail = z
+const ContactDetailWithReplyAuthors = z
   .object({
     contactIdentifier: KPool_Common_Uuid.uuid(),
     principalIdentifier: KPool_Common_Uuid.nullish(),
@@ -62,7 +53,7 @@ const ContactDetail = z
     name: z.string(),
     createdAt: KPool_Common_Timestamp,
     content: z.string(),
-    replies: z.array(ContactReplyDetail),
+    replies: z.array(ContactReplyDetailWithAuthor),
   })
   .passthrough();
 const ContactCategory = z.union([
@@ -90,6 +81,17 @@ const ContactSummary = z
   })
   .passthrough();
 const principalIdentifier = KPool_Common_Uuid.nullish();
+const MyContactSummary = z
+  .object({
+    contactIdentifier: KPool_Common_Uuid,
+    principalIdentifier: KPool_Common_Uuid.nullish(),
+    category: z.number().int(),
+    name: z.string(),
+    replyIdentifiers: z.array(KPool_Common_Uuid),
+    createdAt: KPool_Common_Timestamp,
+    content: z.string(),
+  })
+  .passthrough();
 const ListContactsPage = z
   .object({
     contacts: z.array(MyContactSummary),
@@ -183,6 +185,24 @@ const PublishAnnouncementResponse = z
 const TranslateAnnouncementResponse = z
   .object({ announcements: z.array(DraftAnnouncement).min(1).max(1) })
   .passthrough();
+const ContactReplyDetail = z
+  .object({
+    replyIdentifier: KPool_Common_Uuid.uuid(),
+    content: z.string(),
+    sentAt: KPool_Common_Timestamp,
+  })
+  .passthrough();
+const ContactDetail = z
+  .object({
+    contactIdentifier: KPool_Common_Uuid.uuid(),
+    principalIdentifier: KPool_Common_Uuid.nullish(),
+    category: z.number().int(),
+    name: z.string(),
+    createdAt: KPool_Common_Timestamp,
+    content: z.string(),
+    replies: z.array(ContactReplyDetail),
+  })
+  .passthrough();
 const KPool_Common_PrincipalStatus = z.enum([
   "active",
   "suspended",
@@ -258,13 +278,13 @@ export const schemas = {
   KPool_Common_ProblemDetails,
   KPool_Common_Uuid,
   KPool_Common_Timestamp,
-  MyContactSummary,
-  ContactReplyDetail,
-  ContactDetail,
+  ContactReplyDetailWithAuthor,
+  ContactDetailWithReplyAuthors,
   ContactCategory,
   SubmitContactRequestBody,
   ContactSummary,
   principalIdentifier,
+  MyContactSummary,
   ListContactsPage,
   ReplyContactRequestBody,
   AnnouncementCategory,
@@ -279,6 +299,8 @@ export const schemas = {
   PublishedAnnouncement,
   PublishAnnouncementResponse,
   TranslateAnnouncementResponse,
+  ContactReplyDetail,
+  ContactDetail,
   KPool_Common_PrincipalStatus,
   PrincipalGroupMember,
   PrincipalGroup,
@@ -418,51 +440,9 @@ const endpoints = makeApi([
   },
   {
     method: "get",
-    path: "/contact/principals/:principalIdentifier",
-    alias: "ContactOperations_listContactsByPrincipal",
-    description: `List contact inquiries for the specified principal. Requires a site-management Operator.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "principalIdentifier",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-    ],
-    response: z.array(MyContactSummary),
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 403,
-        description: `Access is forbidden.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 429,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 503,
-        description: `Service unavailable.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "get",
     path: "/contact/principals/:principalIdentifier/:contactIdentifier",
     alias: "ContactOperations_getContactDetail",
-    description: `Get the specified contact inquiry for a principal. Uses the same contact:reply policy checks as replying: evaluate without an owner before lookup, then against the persisted owner. No Operator role is required independently of this policy; General contact:view permission alone does not grant access, even to the caller&#x27;s own inquiry. An ownerless denial returns 403 before lookup; a missing inquiry or principal mismatch returns 404 after that check succeeds.`,
+    description: `Get the specified contact inquiry for a principal. Uses the same contact:reply policy checks as replying: evaluate without an owner before lookup, then against the persisted owner. No Operator role is required independently of this policy; General contact:view permission alone does not grant access, even to the caller&#x27;s own inquiry. An ownerless denial returns 403 before lookup; a missing inquiry or principal mismatch returns 404 after that check succeeds. Reply author information is included for every authorized caller.`,
     requestFormat: "json",
     parameters: [
       {
@@ -476,7 +456,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ContactDetail,
+    response: ContactDetailWithReplyAuthors,
     errors: [
       {
         status: 401,
@@ -613,7 +593,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/contacts/:contactIdentifier",
     alias: "ContactListOperations_getContactDetailByIdentifier",
-    description: `Get a contact inquiry by identifier, including anonymous submissions. Uses the same contact:reply policy checks as replying: evaluate without an owner before lookup, then against the persisted nullable owner. No Operator role is required independently of this policy. An ownerless denial returns 403 before lookup; a missing inquiry returns 404 after that check succeeds. Returns the existing detail without an email address.`,
+    description: `Get a contact inquiry by identifier, including anonymous submissions. Uses the same contact:reply policy checks as replying: evaluate without an owner before lookup, then against the persisted nullable owner. No Operator role is required independently of this policy. An ownerless denial returns 403 before lookup; a missing inquiry returns 404 after that check succeeds. Reply author information is included for every authorized caller. No email addresses are returned.`,
     requestFormat: "json",
     parameters: [
       {
@@ -622,7 +602,7 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: ContactDetail,
+    response: ContactDetailWithReplyAuthors,
     errors: [
       {
         status: 401,
