@@ -135,6 +135,7 @@ function VideoCard({
 
 type WikiVideoPanelProps = WikiVideoIdentity & {
   wikiIdentifier?: string;
+  isOfficial?: boolean;
   officialInboxWikiIdentifier?: string;
   officialInboxUnwatchedOnly?: boolean;
   wikiTitle: string;
@@ -149,6 +150,7 @@ export function WikiVideoPanel(props: WikiVideoPanelProps) {
 
 function WikiVideoPanelContent({
   wikiIdentifier,
+  isOfficial = false,
   officialInboxWikiIdentifier,
   officialInboxUnwatchedOnly = true,
   wikiTitle,
@@ -175,15 +177,16 @@ function WikiVideoPanelContent({
         />
       ) : null}
       {officialInboxWikiIdentifier ? <VideoList key={officialInboxWikiIdentifier} identity={identity} wikiTitle={wikiTitle} filter={{ recentWatchRequestsOnly: true, sortByWatchRequests: true }} officialInboxWikiIdentifier={officialInboxWikiIdentifier} unwatchedOnly={officialInboxUnwatchedOnly} /> : <VideoSearch
-        key={`${identity.language}:${identity.resourceType}:${identity.slug}`}
+        key={`${identity.language}:${identity.resourceType}:${identity.slug}:${isOfficial}`}
         identity={identity}
+        isOfficial={isOfficial}
         wikiTitle={wikiTitle}
       />}
     </>
   );
 }
 
-function VideoSearch({ identity, wikiTitle }: { identity: WikiVideoIdentity; wikiTitle: string }) {
+function VideoSearch({ identity, isOfficial, wikiTitle }: { identity: WikiVideoIdentity; isOfficial: boolean; wikiTitle: string }) {
   const [{ filter, generation }, setSearch] = useState<{
     filter: DurationFilter;
     generation: number;
@@ -192,6 +195,7 @@ function VideoSearch({ identity, wikiTitle }: { identity: WikiVideoIdentity; wik
     <>
       <WikiVideoDurationFilter
         wikiTitle={wikiTitle}
+        canMatchWatchRequestList={isOfficial && identity.resourceType === "talent"}
         onSearch={(filter) =>
           setSearch(({ generation }) => ({
             filter,

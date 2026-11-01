@@ -6,9 +6,11 @@ import { useI18n } from "@/i18n/I18nProvider";
 
 export function WikiVideoDurationFilter({
   wikiTitle,
+  canMatchWatchRequestList,
   onSearch,
 }: {
   wikiTitle: string;
+  canMatchWatchRequestList: boolean;
   onSearch: (filter: WikiVideoDurationFilter) => void;
 }) {
   const { dictionary } = useI18n();
@@ -26,7 +28,7 @@ export function WikiVideoDurationFilter({
       onSubmit={(event) => {
         event.preventDefault();
         onSearch({
-          ...(matchWatchRequestList
+          ...(canMatchWatchRequestList && matchWatchRequestList
             ? { recentWatchRequestsOnly: true, sortByWatchRequests: true }
             : {}),
           ...(minimum > 0 ? { minDurationSeconds: minimum * 60 } : {}),
@@ -73,14 +75,14 @@ export function WikiVideoDurationFilter({
           {[0, 10, 20, 30, "40+"].map((tick) => <span key={tick}>{tick}</span>)}
         </div>
       </fieldset>
-      <label className="flex min-h-11 items-center gap-2">
+      {canMatchWatchRequestList ? <label className="flex min-h-11 items-center gap-2">
         <input
           type="checkbox"
           checked={matchWatchRequestList}
           onChange={(event) => setMatchWatchRequestList(event.target.checked)}
         />
         {watch.matchList.replace("{title}", () => wikiTitle)}
-      </label>
+      </label> : null}
       <button type="submit" className="rounded-lg bg-brand-primary px-4 py-2 font-semibold text-on-primary">{t.search}</button>
     </form>
   );
