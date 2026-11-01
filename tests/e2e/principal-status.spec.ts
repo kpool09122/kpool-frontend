@@ -119,6 +119,7 @@ const group = {
   description: "Manages users",
   isDefault: false,
   roleIdentifiers: [],
+  isMembershipEditable: true,
   members: [],
 };
 for (const context of ["account", "wiki", "site-management"] as const) {

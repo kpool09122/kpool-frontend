@@ -255,7 +255,7 @@ function EditUserGroupsDialog({
               name={group.name}
               description={group.description}
               checked={selectedGroupIdentifiers.has(group.principalGroupIdentifier)}
-              disabled={isBusy}
+              disabled={isBusy || !group.isMembershipEditable}
               onChange={() => toggleGroup(group.principalGroupIdentifier)}
             />
           ))}

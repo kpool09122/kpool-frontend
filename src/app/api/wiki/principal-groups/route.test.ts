@@ -10,6 +10,7 @@ const responseBody = {
       accountIdentifier: "22222222-2222-4222-8222-222222222222",
       name: "Wiki Editors",
       roleIdentifiers: [],
+      isMembershipEditable: true,
       isDefault: false,
       members: [],
     },
