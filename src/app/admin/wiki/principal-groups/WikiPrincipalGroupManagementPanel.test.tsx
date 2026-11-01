@@ -12,6 +12,7 @@ const groupA = {
   accountIdentifier: "22222222-2222-4222-8222-222222222222",
   name: "Wiki Editors",
   description: "Creates and edits Wiki drafts and submits them for review.",
+  isMembershipEditable: true,
   roleIdentifiers: [],
   isDefault: false,
   members: [],
@@ -21,6 +22,7 @@ const groupB = {
   principalGroupIdentifier: "44444444-4444-4444-8444-444444444444",
   accountIdentifier: "22222222-2222-4222-8222-222222222222",
   name: "Wiki Reviewers",
+  isMembershipEditable: true,
   roleIdentifiers: [],
   isDefault: false,
   members: [],
@@ -126,4 +128,23 @@ it("stages status from the user row without saving or opening the group dialog",
   expect(within(screen.getByRole("dialog")).queryByRole("switch")).not.toBeInTheDocument();
   rerender(<WikiPrincipalGroupManagementPanel canManage={false} principalGroups={principalGroups} t={t} />);
   expect(toggle).toBeDisabled();
+});
+
+
+it("shows system-managed memberships but disables both joining and leaving them", () => {
+  const principalGroups = createPrincipalGroups();
+  principalGroups.state.groups = [
+    { ...groupA, name: "Collaborator", isMembershipEditable: false },
+    { ...groupB, name: "Senior Collaborator", isMembershipEditable: false },
+    { ...groupB, principalGroupIdentifier: "editable", name: "Administrators" },
+  ];
+  render(<WikiPrincipalGroupManagementPanel canManage principalGroups={principalGroups} t={t} />);
+  expect(screen.getByText("Collaborator")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: t.wikiPrincipalGroupEditUserGroups }));
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByRole("checkbox", { name: "Collaborator" })).toBeChecked();
+  expect(dialog.getByRole("checkbox", { name: "Collaborator" })).toBeDisabled();
+  expect(dialog.getByRole("checkbox", { name: "Senior Collaborator" })).not.toBeChecked();
+  expect(dialog.getByRole("checkbox", { name: "Senior Collaborator" })).toBeDisabled();
+  expect(dialog.getByRole("checkbox", { name: "Administrators" })).toBeEnabled();
 });

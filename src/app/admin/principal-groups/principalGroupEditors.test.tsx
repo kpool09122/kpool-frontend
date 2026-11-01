@@ -52,6 +52,7 @@ const group = {
   accountIdentifier: "a",
   name: "Managers",
   isDefault: false,
+  isMembershipEditable: true,
   roleIdentifiers: [],
   members: [],
 };
@@ -399,3 +400,32 @@ for (const [context, useEditor] of Object.entries(hooks))
       expect(api.access).not.toHaveBeenCalled();
     });
   });
+
+
+it("preserves Wiki system-managed memberships in the draft and omits them from saves", async () => {
+  const managedGroup = { ...group, principalGroupIdentifier: "managed", name: "Senior Collaborator", isMembershipEditable: false, members: [users[0]] };
+  api.groups.mockResolvedValue({ ...list, principalGroups: [group, managedGroup] });
+  const { result } = renderHook(() => useWikiPrincipalGroups(base), { wrapper: Wrapper });
+  await waitFor(() => expect(result.current.isBusy).toBe(false));
+  act(() => result.current.updateUserGroups("u0", ["g"]));
+  expect(result.current.state.membershipByGroup.managed).toEqual(["u0"]);
+  expect(result.current.state.membershipByGroup.g).toEqual(["u0"]);
+  await act(() => result.current.save());
+  const payload = api.save.mock.calls[0][0].requestBody;
+  expect(payload.principalGroups).not.toEqual(expect.arrayContaining([expect.objectContaining({ principalGroupIdentifier: "managed" })]));
+  expect(payload.principalGroups).toContainEqual({ principalGroupIdentifier: "g", principalIdentifiers: ["u0"] });
+});
+
+it("can save Wiki user status when all visible groups are system-managed", async () => {
+  api.groups.mockResolvedValue({ ...list, principalGroups: [{ ...group, isMembershipEditable: false, members: users }] });
+  const { result } = renderHook(() => useWikiPrincipalGroups(base), { wrapper: Wrapper });
+  await waitFor(() => expect(result.current.isBusy).toBe(false));
+  act(() => result.current.updateUserGroups("u0", []));
+  expect(result.current.hasUnsavedChanges).toBe(false);
+  act(() => result.current.updateUserStatus("u0", "suspended"));
+  await act(() => result.current.save());
+  expect(api.save.mock.calls[0][0].requestBody).toEqual(expect.objectContaining({
+    principalGroups: [],
+    principalStatuses: expect.arrayContaining([{ principalIdentifier: "u0", status: "suspended" }]),
+  }));
+});

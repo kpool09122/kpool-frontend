@@ -100,6 +100,7 @@ export function WikiDetailPage({
             videoPanel={
               <WikiVideoPanel
                 wikiIdentifier={data.wikiIdentifier}
+                isOfficial={data.isOfficial === true}
                 wikiTitle={data.basic.name}
                 language={data.language}
                 resourceType={data.resourceType}

@@ -495,6 +495,7 @@ const PrincipalGroupManagementSummary = z
     description: z.string().max(256).nullish(),
     roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
+    isMembershipEditable: z.boolean(),
     members: z.array(PrincipalGroupMemberSummary),
   })
   .passthrough();

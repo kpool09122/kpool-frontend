@@ -62,6 +62,7 @@ describe("getWikiDetailState", () => {
       status: "success",
       data: {
         slug: "tl-nayeon-twice",
+        isOfficial: true,
         basic: {
           name: "나연",
         },

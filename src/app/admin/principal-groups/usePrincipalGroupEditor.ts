@@ -14,6 +14,7 @@ import type {
 type Memberships = Readonly<Record<string, readonly string[]>>;
 type User = { principalIdentifier: string; status: PrincipalStatus };
 type Group = {
+  isMembershipEditable?: boolean;
   principalGroupIdentifier: string;
   members: readonly { principalIdentifier: string }[];
 };
@@ -197,6 +198,9 @@ export function usePrincipalGroupEditor<G extends Group, U extends User>({
       );
       const memberships = Object.fromEntries(
         Object.entries(baseline).map(([id, members]) => {
+          if (latest.groups.find((group) => group.principalGroupIdentifier === id)?.isMembershipEditable === false) {
+            return [id, members];
+          }
           const before = current.baseline[id] ?? [];
           const edited = current.memberships[id] ?? before;
           const removed = new Set(
@@ -293,9 +297,11 @@ export function usePrincipalGroupEditor<G extends Group, U extends User>({
         memberships: Object.fromEntries(
           Object.entries(current.memberships).map(([id, members]) => [
             id,
-            selected.has(id)
-              ? [...new Set([...members, principalIdentifier])]
-              : members.filter((member) => member !== principalIdentifier),
+            groups.find((group) => group.principalGroupIdentifier === id)?.isMembershipEditable === false
+              ? members
+              : selected.has(id)
+                ? [...new Set([...members, principalIdentifier])]
+                : members.filter((member) => member !== principalIdentifier),
           ]),
         ),
       }));
@@ -328,7 +334,7 @@ export function usePrincipalGroupEditor<G extends Group, U extends User>({
       setRefreshError(null);
       setCommitted(false);
       await saveList({
-        principalGroups: groups.map((group) => ({
+        principalGroups: groups.filter((group) => group.isMembershipEditable !== false).map((group) => ({
           principalGroupIdentifier: group.principalGroupIdentifier,
           principalIdentifiers: [
             ...(memberships[group.principalGroupIdentifier] ?? []),

@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WikiVideoPanel } from "./index";
+import type { WikiVideoIdentity } from "@/gateways/wiki/wikiVideos";
 // These tests exercise playback/deletion. Like behavior has its own gateway/UI suite.
 vi.mock("@/gateways/wiki/wikiVideoLikes", async (original) => ({
   ...(await original<typeof import("@/gateways/wiki/wikiVideoLikes")>()),
@@ -63,10 +64,10 @@ const video = {
   likeCount: 0, hasOfficialOwnerLike: false,
   videoUsage: "youtube_auto_view_count",
 };
-const wrap = (client: QueryClient, slug = identity.slug) => (
+const wrap = (client: QueryClient, slug = identity.slug, isOfficial = false, resourceType: WikiVideoIdentity["resourceType"] = identity.resourceType) => (
   <QueryClientProvider client={client}>
     <I18nProvider initialLocale="en">
-      <WikiVideoPanel wikiTitle="Momo" {...identity} slug={slug} />
+      <WikiVideoPanel wikiTitle="Momo" {...identity} slug={slug} isOfficial={isOfficial} resourceType={resourceType} />
     </I18nProvider>
   </QueryClientProvider>
 );
@@ -549,6 +550,46 @@ describe("WikiVideoPanel", () => {
     await screen.findByText("No videos yet.");
     expect(deleted).toBe(true);
   });
+  it.each([
+    ["agency", false], ["agency", true],
+    ["group", false], ["group", true],
+    ["song", false], ["song", true],
+    ["talent", false],
+  ] as const)("keeps duration filtering without watch request filters for %s (official: %s)", async (resourceType, isOfficial) => {
+    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ videos: [video] })));
+    vi.stubGlobal("fetch", fetcher);
+    render(wrap(client(), identity.slug, isOfficial, resourceType));
+    await screen.findByText(video.title);
+    expect(screen.queryByRole("checkbox", { name: "Match Momo’s watch request list" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("slider", { name: "Maximum duration (minutes)" }), { target: { value: "20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    const url = new URL(fetcher.mock.calls[1][0], "http://localhost");
+    expect(url.searchParams.get("maxDurationSeconds")).toBe("1200");
+    expect(url.searchParams.has("recentWatchRequestsOnly")).toBe(false);
+    expect(url.searchParams.has("sortByWatchRequests")).toBe(false);
+  });
+
+  it("discards watch request filtering when a Wiki loses its certification", async () => {
+    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(Response.json({ videos: [video] })));
+    vi.stubGlobal("fetch", fetcher);
+    const queryClient = client();
+    const view = render(wrap(queryClient, identity.slug, true, "talent"));
+    await screen.findByText(video.title);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Match Momo’s watch request list" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    expect(new URL(fetcher.mock.calls[1][0], "http://localhost").searchParams.get("recentWatchRequestsOnly")).toBe("true");
+    view.rerender(wrap(queryClient, identity.slug, false, "talent"));
+    expect(screen.queryByRole("checkbox", { name: "Match Momo’s watch request list" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("slider", { name: "Maximum duration (minutes)" }), { target: { value: "20" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply filter" }));
+    await waitFor(() => expect(fetcher.mock.calls.length).toBeGreaterThan(2));
+    const url = new URL(fetcher.mock.calls.at(-1)![0], "http://localhost");
+    expect(url.searchParams.has("recentWatchRequestsOnly")).toBe(false);
+    expect(url.searchParams.has("sortByWatchRequests")).toBe(false);
+  });
+
   it("combines duration bounds with the named wiki watch request view only on search", async () => {
     const fetcher = vi.fn().mockImplementation((url: string) =>
       Promise.resolve(
@@ -558,7 +599,7 @@ describe("WikiVideoPanel", () => {
       ),
     );
     vi.stubGlobal("fetch", fetcher);
-    render(wrap(client()));
+    render(wrap(client(), identity.slug, true, "talent"));
     await screen.findByText(video.title);
     fireEvent.change(
       screen.getByRole("slider", { name: "Minimum duration (minutes)" }),

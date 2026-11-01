@@ -11,6 +11,7 @@ const listResponse = { principals: [],
       principalGroupIdentifier: "33333333-3333-4333-8333-333333333333",
       accountIdentifier: "22222222-2222-4222-8222-222222222222",
       name: "Wiki Editors",
+      isMembershipEditable: true,
       roleIdentifiers: [],
       isDefault: false,
       members: [

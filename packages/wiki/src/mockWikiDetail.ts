@@ -363,6 +363,7 @@ export const createMockWikiDetail = (
     slug: normalizedSlug,
     language: "ja",
     resourceType: twiceMember ? "talent" : "group",
+    isOfficial: normalizedSlug === "tl-nayeon-twice",
     version: 3,
     themeColor: options?.themeColor ?? null,
     fontStyle: options?.fontStyle ?? null,
