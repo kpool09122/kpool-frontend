@@ -43,7 +43,7 @@ export function MyContactsClient() {
           />
           {t.repliedOnly}
         </label>
-        {list.isLoading ? <UserStatusMessage variant="warning">{t.loading}</UserStatusMessage> : null}
+        {list.isLoading ? <p role="status" className="text-sm text-text-muted">{t.loading}</p> : null}
         {list.error ? <UserStatusMessage variant="error">{list.error.message}</UserStatusMessage> : null}
         {!list.isLoading && !list.error && contacts.length === 0 ? (
           <AccountStatusMessage variant="empty">{t.empty}</AccountStatusMessage>
