@@ -495,8 +495,8 @@ const PrincipalGroupManagementSummary = z
     description: z.string().max(256).nullish(),
     roleIdentifiers: z.array(KPool_Common_Uuid),
     isDefault: z.boolean(),
-    isMembershipEditable: z.boolean(),
     members: z.array(PrincipalGroupMemberSummary),
+    isMembershipEditable: z.boolean(),
   })
   .passthrough();
 const ListPrincipalGroupsResponseBody = z
@@ -3166,7 +3166,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/principal-groups",
     alias: "PrincipalOperations_listPrincipalGroups",
-    description: `List Wiki principal groups for management. Excludes every group containing the system Operator role, including mixed-role groups.`,
+    description: `List Wiki principal groups for management. Includes Collaborator and SeniorCollaborator groups with isMembershipEditable&#x3D;false. Excludes every group containing the system Operator role, including mixed-role groups.`,
     requestFormat: "json",
     parameters: [
       {
@@ -3208,7 +3208,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/principal-groups/members",
     alias: "PrincipalOperations_updatePrincipalGroupMembers",
-    description: `Atomically save specified group memberships and Principal statuses while preserving omitted groups and statuses. The final combined state must retain a reachable active permission manager; an active replacement and suspension of the old manager can be saved together. Duplicate status identifiers return 422; missing or out-of-scope Principals return 404; insufficient permission or protected Operator groups return 403. An unchanged forced_stop is accepted. A forbidden status change returns 409 code principal_status_change_forbidden; losing the last active manager returns 409 code last_active_manager. Both roll back the entire save. Success returns only the submitted groups and Principal statuses; clients refetch management lists separately. Status restrictions take effect on the next request even for logged-in cached sessions.`,
+    description: `Atomically save specified group memberships and Principal statuses while preserving omitted groups and statuses. The final combined state must retain a reachable active permission manager; an active replacement and suspension of the old manager can be saved together. Duplicate status identifiers return 422; missing or out-of-scope Principals return 404; insufficient permission or protected Operator, Collaborator, or SeniorCollaborator groups return 403. An unchanged forced_stop is accepted. A forbidden status change returns 409 code principal_status_change_forbidden; losing the last active manager returns 409 code last_active_manager. Both roll back the entire save. Success returns only the submitted groups and Principal statuses; clients refetch management lists separately. Status restrictions take effect on the next request even for logged-in cached sessions.`,
     requestFormat: "json",
     parameters: [
       {
