@@ -101,6 +101,7 @@ test("fresh mobile public Wiki session sends with CSRF, refreshes restrictions, 
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/wiki/ja/tl-nayeon-twice?tab=video");
+  await expect(page.getByRole("img", { name: "Officially certified wiki", exact: true })).toBeVisible();
   const card = page
     .getByRole("listitem")
     .filter({
