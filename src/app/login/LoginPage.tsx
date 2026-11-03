@@ -187,6 +187,20 @@ export function LoginPage({
             })}
           </div>
 
+          <div className="space-y-1 text-sm leading-6 text-text-muted">
+            <p>{t.socialPrivacyNotice}</p>
+            <p>
+              {t.privacyLead}
+              <Link
+                href={`/${locale}/privacy`}
+                className="rounded-sm font-semibold text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-highlight"
+              >
+                {dictionary.footer.privacy}
+              </Link>
+              {t.privacyFollowing}
+            </p>
+          </div>
+
           <div className="flex items-center gap-3 text-xs text-text-muted" aria-hidden="true">
             <span className="h-px flex-1 bg-stroke-subtle" />
             <span>{t.alternative}</span>
@@ -218,8 +232,7 @@ export function LoginPage({
             </p>
           ) : null}
 
-          <div className="space-y-1 text-left text-sm text-text-muted sm:text-center">
-            <p>{t.ssoSignupNotice}</p>
+          <div className="space-y-1 text-left text-sm text-text-muted">
             <p>
               {t.signupLead}{" "}
               <Link href="/signup" className="font-semibold text-brand-primary underline-offset-4 hover:underline">

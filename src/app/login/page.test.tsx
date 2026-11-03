@@ -18,7 +18,6 @@ describe("LoginPage", () => {
     expect(screen.queryByText("SSOでのログインをおすすめします。SSOを利用できない場合はパスキーを使用できます。")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "SSOでログイン" })).not.toBeInTheDocument();
     expect(screen.queryByText("普段お使いのサービスを選択してください。")).not.toBeInTheDocument();
-    expect(screen.getByText("SSOで初めてログインすると、アカウントが自動で作成されます。")).toBeInTheDocument();
     expect(screen.getByText(/パスキーでアカウント登録する方は/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "アカウント登録へ" })).toHaveAttribute("href", "/signup");
     const buttons = screen.getAllByRole("button");
