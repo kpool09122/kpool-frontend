@@ -4,17 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const hideDelay = 3000;
 
-export function useFullscreenControls(fullscreen: boolean) {
+export function usePlayerControls(autoHide: boolean) {
   const [hidden, setHidden] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const hovering = useRef(false);
   const focused = useRef(false);
   const scheduleHide = useCallback(() => {
     clearTimeout(timer.current);
-    if (fullscreen && !hovering.current && !focused.current) {
+    if (autoHide && !hovering.current && !focused.current) {
       timer.current = setTimeout(() => setHidden(true), hideDelay);
     }
-  }, [fullscreen]);
+  }, [autoHide]);
   const reveal = useCallback(() => {
     setHidden(false);
     scheduleHide();
@@ -31,7 +31,7 @@ export function useFullscreenControls(fullscreen: boolean) {
   }, [scheduleHide]);
 
   return {
-    visible: !fullscreen || !hidden,
+    visible: !autoHide || !hidden,
     reveal,
     barProps: {
       onPointerEnter: (event: React.PointerEvent) => {

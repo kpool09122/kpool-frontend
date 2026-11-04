@@ -12,7 +12,13 @@ export function fitPlayerWidth(width: number, viewport: Viewport, chrome: Player
     viewport.width - 32,
     (viewport.height - 32 - chrome.height) / videoAspectRatio + chrome.width,
   ));
-  return Math.max(Math.min(280, maximum), Math.min(width, maximum));
+  const minimum = viewport.width < 640 ? 200 : 280;
+  return Math.max(Math.min(minimum, maximum), Math.min(width, maximum));
+}
+
+export function initialPlayerWidth(viewport: Viewport, chrome: PlayerChrome) {
+  const fitted = fitPlayerWidth(defaultPlayerWidth, viewport, chrome);
+  return viewport.width < 640 ? fitted * 2 / 3 : fitted;
 }
 
 export function playerHeight(width: number, chrome: PlayerChrome) {

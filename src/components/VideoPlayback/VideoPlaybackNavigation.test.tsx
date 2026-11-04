@@ -197,3 +197,86 @@ it("keeps the fullscreen bar visible during hover and keyboard focus, then resum
   act(() => vi.advanceTimersByTime(3000));
   expect(bar).toHaveAttribute("inert");
 });
+
+it("hides the mobile mini player bar after three seconds, reveals it on tap and keeps desktop controls visible", () => {
+  vi.useFakeTimers();
+  let mobile = true;
+  const listeners = new Set<() => void>();
+  vi.stubGlobal("matchMedia", () => ({
+    matches: mobile,
+    addEventListener: (_event: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_event: string, listener: () => void) => listeners.delete(listener),
+  }));
+  setup();
+  act(() => {
+    store.getState().start("playlist", tracks, "queue");
+    store.getState().detach();
+  });
+  const host = screen.getByRole("region", { name: "Mini player" });
+  const player = screen.getByTestId("player");
+  const bar = host.querySelector('[data-mini-player-bar="top"]')!;
+  act(() => vi.advanceTimersByTime(2999));
+  expect(bar).not.toHaveAttribute("inert");
+  act(() => vi.advanceTimersByTime(1));
+  expect(bar).toHaveAttribute("inert");
+  expect(bar).toHaveClass("opacity-0");
+  fireEvent.click(screen.getByRole("button", { name: "Show playback controls" }));
+  expect(bar).not.toHaveAttribute("inert");
+  expect(bar).toHaveClass("opacity-100");
+  act(() => vi.advanceTimersByTime(3000));
+  expect(bar).toHaveAttribute("inert");
+  act(() => { mobile = false; listeners.forEach((listener) => listener()); });
+  expect(bar).not.toHaveAttribute("inert");
+  expect(screen.queryByRole("button", { name: "Show playback controls" })).toBeNull();
+  act(() => vi.advanceTimersByTime(5000));
+  expect(bar).not.toHaveAttribute("inert");
+  expect(screen.getByTestId("player")).toBe(player);
+  expect(store.getState().floating).toBe(true);
+});
+
+it.each(["queue", "single"] as const)("defaults mobile fullscreen to landscape, toggles orientation and preserves %s playback", (kind) => {
+  vi.stubGlobal("innerWidth", 390);
+  vi.stubGlobal("innerHeight", 844);
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} }));
+  setup();
+  act(() => {
+    store.getState().start("playlist", tracks, kind);
+    store.getState().detach();
+  });
+  const host = screen.getByRole("region", { name: "Mini player" });
+  const player = screen.getByTestId("player");
+  const surface = host.querySelector<HTMLElement>("[data-player-surface]")!;
+  expect(screen.queryByRole("button", { name: "Switch to portrait" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+  expect(surface.style.transform).toContain("rotate(90deg)");
+  const buttons = host.querySelector('[data-fullscreen-bar="top"]')!.querySelectorAll("button");
+  expect([...buttons].slice(-3).map((button) => button.getAttribute("aria-label")))
+    .toEqual(["Exit fullscreen", "Switch to portrait", "Stop playback"]);
+  fireEvent.click(screen.getByRole("button", { name: "Switch to portrait" }));
+  expect(surface.style.transform).toBe("");
+  fireEvent.click(screen.getByRole("button", { name: "Switch to landscape" }));
+  expect(surface.style.transform).toContain("rotate(90deg)");
+  act(() => {
+    vi.stubGlobal("innerWidth", 844);
+    vi.stubGlobal("innerHeight", 390);
+    window.dispatchEvent(new Event("resize"));
+  });
+  expect(surface.style.transform).toBe("");
+  expect(screen.getByRole("button", { name: "Switch to portrait" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Switch to portrait" }));
+  expect(surface.style.transform).toContain("rotate(90deg)");
+  fireEvent.click(screen.getByRole("button", { name: "Exit fullscreen" }));
+  expect(surface.style.transform).toBe("");
+  fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+  expect(screen.getByRole("button", { name: "Switch to portrait" })).toBeInTheDocument();
+  expect(surface.style.transform).toBe("");
+  expect(screen.getByTestId("player")).toBe(player);
+  expect(store.getState().session?.queue.position).toBe(0);
+});
+
+it("keeps orientation controls out of desktop fullscreen", () => {
+  setup();
+  act(() => store.getState().start("playlist", tracks, "queue"));
+  fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
+  expect(screen.queryByRole("button", { name: /Switch to (portrait|landscape)/ })).toBeNull();
+});

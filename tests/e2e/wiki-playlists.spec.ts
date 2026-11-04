@@ -371,6 +371,10 @@ for (const width of [1280, 390])
     await player.getByRole("button", { name: "Continue in mini player" }).click();
     await expect(page.getByRole("button", { name: "Edit", exact: true })).toHaveCount(0);
     const mini = page.getByRole("region", { name: "Mini player", exact: true });
+    if (width < 640) {
+      await expect(mini.getByRole("button", { name: "Loop playback" })).toHaveCount(0);
+      await mini.getByRole("button", { name: "Play in fullscreen" }).click();
+    }
     await expect(
       mini.getByRole("button", { name: "Loop playback" }),
     ).toHaveAttribute("aria-pressed", "true");

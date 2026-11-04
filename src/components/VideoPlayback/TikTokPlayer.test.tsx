@@ -25,7 +25,7 @@ it("keeps autoplay rejection recoverable through native player controls", () => 
   const { send, error, ended } = mount();
   send("onPlayerReady");
   send("onPlayerError", { errorCode: 3002, errorType: "AUTOPLAY_ERROR" });
-  expect(screen.getByRole("status")).toHaveTextContent("Use the play button inside the player");
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(error).not.toHaveBeenCalled();
   send("onStateChange", 1); send("onStateChange", 0);

@@ -97,6 +97,69 @@ async function setupPlayback(page: Page) {
   await page.goto("/wiki/ja/gr-aurora-echo?tab=video");
 }
 
+for (const provider of ["youtube", "tiktok"] as const) {
+  test(`mobile mini player has no frame and only two overlay controls (${provider})`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await setupPlayback(page);
+    if (provider === "tiktok") {
+      await installTikTokPlayerMock(page);
+      await page.route("**/api/wiki/*/*/videos?*", (route) => route.fulfill({ json: { videos: [
+        { ...videos[0], provider, externalVideoId: "6718335390845095173", url: "https://www.tiktok.com/@scout2015/video/6718335390845095173" },
+        videos[1],
+      ] } }));
+      await page.reload();
+    }
+    await page.getByRole("button", { name: "Play all", exact: true }).click();
+    await page.getByRole("button", { name: "Continue in mini player" }).click();
+    const mini = page.getByRole("region", { name: "Mini player" });
+    const frame = mini.locator("iframe");
+    await frame.evaluate((node) => node.setAttribute("data-mobile-player", "original"));
+    await expect(mini).toHaveCSS("padding", "0px");
+    await expect(mini).toHaveCSS("border-top-width", "0px");
+    await expect(mini).toHaveCSS("border-radius", "0px");
+    await expect(frame.locator("..")).toHaveCSS("border-radius", "0px");
+    await expect(mini.locator('[data-mini-player-bar="top"]')).toHaveCSS("position", "absolute");
+    await expect(mini.getByRole("button")).toHaveCount(2);
+    await expect(mini.getByRole("button", { name: "Play in fullscreen" })).toBeVisible();
+    await expect(mini.getByRole("button", { name: "Stop playback" })).toBeVisible();
+    await expect(mini.getByRole("status")).toHaveCount(0);
+    const miniBox = (await mini.boundingBox())!;
+    const frameBox = (await frame.boundingBox())!;
+    expect(miniBox.width).toBeCloseTo((390 - 32) * 2 / 3, 0);
+    expect(Math.abs(miniBox.width - frameBox.width)).toBeLessThan(1);
+    expect(Math.abs(miniBox.height - frameBox.height)).toBeLessThan(1);
+    const bar = mini.locator('[data-mini-player-bar="top"]');
+    await page.mouse.move(0, 0);
+    await expect(bar).toHaveAttribute("inert", "");
+    await expect(bar).toHaveCSS("opacity", "0");
+    const showControls = mini.getByRole("button", { name: "Show playback controls" });
+    const touch = await page.context().newCDPSession(page);
+    const overlay = (await showControls.boundingBox())!;
+    await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: overlay.x + overlay.width / 2, y: overlay.y + overlay.height / 2 }] });
+    await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await touch.detach();
+    await expect(bar).not.toHaveAttribute("inert");
+    await expect(mini.getByRole("button", { name: "Play in fullscreen" })).toBeVisible();
+    await expect(frame).toHaveAttribute("data-mobile-player", "original");
+    await mini.getByRole("button", { name: "Play in fullscreen" }).click();
+    await expect(mini.getByRole("button", { name: "Next video" })).toBeVisible();
+    await mini.getByRole("button", { name: "Exit fullscreen" }).click();
+    await expect(mini.getByRole("button")).toHaveCount(2);
+    await expect(frame).toHaveAttribute("data-mobile-player", "original");
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(mini).toHaveCSS("border-top-width", "1px");
+    await expect.poll(async () => (await mini.boundingBox())!.width).toBe(480);
+    await expect(mini.getByRole("button", { name: "Next video" })).toBeVisible();
+    await expect(mini.getByRole("status")).toBeVisible();
+    await expect(frame).toHaveAttribute("data-mobile-player", "original");
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(3200);
+    await expect(mini.getByRole("button", { name: "Stop playback" })).toBeVisible();
+    await mini.getByRole("button", { name: "Stop playback" }).click();
+    await expect(mini).toHaveCount(0);
+  });
+}
+
 for (const source of ["body", "single", "queue"] as const) {
   test(`detached ${source} playback leaves a black placeholder in its original location`, async ({ page }, testInfo) => {
     await setupPlayback(page);
@@ -187,6 +250,66 @@ test("admin language changes preserve the mini player and its playback queue", a
   })).toBe(true);
 });
 
+test.describe("mobile fullscreen orientation", () => {
+  test.use({ isMobile: true, hasTouch: true });
+
+  for (const fallback of [false, true]) {
+    test(`defaults to landscape and toggles portrait with ${fallback ? "iPhone-style page fullscreen" : "native fullscreen"}`, async ({ page }, testInfo) => {
+      test.setTimeout(90_000);
+      if (fallback) {
+        await page.addInitScript(() => Object.defineProperty(document, "fullscreenEnabled", { get: () => false, configurable: true }));
+      }
+      await setupPlayback(page);
+      await page.getByRole("button", { name: "Play all", exact: true }).click();
+      const host = page.getByRole("region", { name: "Now playing" });
+      const frame = host.locator("iframe");
+      await frame.evaluate((node) => node.setAttribute("data-orientation-player", "original"));
+      await host.getByRole("button", { name: "Play in fullscreen" }).click();
+      const surface = host.locator("[data-player-surface]");
+      const bar = host.locator('[data-fullscreen-bar="top"]');
+      await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      await expect(surface).toHaveCSS("width", "844px");
+      await expect(surface).toHaveCSS("height", "390px");
+      await expect(host.getByRole("button", { name: "Switch to portrait" })).toBeVisible();
+      expect(await bar.locator("button").evaluateAll((buttons) => buttons.slice(-3).map((button) => button.getAttribute("aria-label"))))
+        .toEqual(["Exit fullscreen", "Switch to portrait", "Stop playback"]);
+      expect(await frame.evaluate((node) => node.clientWidth > node.clientHeight)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath("mobile-fullscreen-landscape.png"), animations: "disabled" });
+
+      await host.getByRole("button", { name: "Switch to portrait" }).click();
+      await expect(surface).toHaveCSS("transform", "none");
+      expect(await frame.evaluate((node) => node.clientWidth < node.clientHeight)).toBe(true);
+      await host.getByRole("button", { name: "Switch to landscape" }).click();
+      await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      await host.getByRole("button", { name: "Next video" }).click();
+      await expect(host).toContainText("Second video (2/2)");
+      await expect(frame).toHaveAttribute("data-orientation-player", "original");
+
+      // Chromium cannot resize its native fullscreen window. Exercise physical
+      // rotation through the page fullscreen path used when native APIs are absent.
+      if (fallback) {
+        await page.setViewportSize({ width: 844, height: 390 });
+        await expect(surface).toHaveCSS("transform", "none");
+        await expect(host.getByRole("button", { name: "Switch to portrait" })).toBeVisible();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      }
+      await page.mouse.move(0, 0);
+      await expect(bar).toHaveAttribute("inert", "");
+      await host.getByRole("button", { name: "Show playback controls" }).tap();
+      await expect(host.getByRole("button", { name: "Switch to portrait" })).toBeVisible();
+      await host.getByRole("button", { name: "Switch to portrait" }).click();
+      await host.getByRole("button", { name: "Exit fullscreen" }).click();
+      await expect(surface).toHaveCSS("transform", "none");
+      await expect(host.getByRole("button", { name: /Switch to (portrait|landscape)/ })).toHaveCount(0);
+      await host.getByRole("button", { name: "Play in fullscreen" }).click();
+      await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      await expect(frame).toHaveAttribute("data-orientation-player", "original");
+      if (fallback) expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
+    });
+  }
+});
+
 for (const mini of [false, true]) {
   test(`K-Pool fullscreen survives the next video and restores ${mini ? "mini player" : "inline playback"}`, async ({ page }, testInfo) => {
     await setupPlayback(page);
@@ -225,7 +348,7 @@ for (const mini of [false, true]) {
   });
 }
 
-test("mobile keyboard playback progresses, resumes blocked autoplay, stops and tears down on tab exit", async ({
+test("mobile keyboard playback progresses, preserves blocked playback, stops and tears down on tab exit", async ({
   page,
 }, testInfo) => {
   await setupPlayback(page);
@@ -324,18 +447,8 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
   await expect(page.locator("iframe")).toHaveAttribute("title", "Second video");
   await event("block");
   const resume = page.getByRole("button", { name: "Resume playback" });
-  await resume.focus();
-  await resume.press("Enter");
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (
-            window as unknown as { queueTest: { players: { plays: number }[] } }
-          ).queueTest.players.at(-1)!.plays,
-      ),
-    )
-    .toBe(2);
+  await expect(resume).toHaveCount(0);
+  await expect(page.getByText("Autoplay was blocked.", { exact: false })).toHaveCount(0);
   await event("play");
   await expect(resume).toHaveCount(0);
   await region.scrollIntoViewIfNeeded();
@@ -526,9 +639,10 @@ test("mini player preserves the iframe across navigation, dragging and video tak
   const touch = await page.context().newCDPSession(page);
   await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 2 });
   const pinch = async (startDistance: number, endDistance: number) => {
-    const title = (await mini.getByRole("status").boundingBox())!;
-    const center = { x: title.x + title.width / 2, y: title.y + title.height / 2 };
-    const start = Math.min(startDistance, title.width - 16);
+    const bar = (await mini.locator('[data-mini-player-bar="top"]').boundingBox())!;
+    const dragWidth = bar.width - 96;
+    const center = { x: bar.x + dragWidth / 2, y: bar.y + bar.height / 2 };
+    const start = Math.min(startDistance, dragWidth - 16);
     const points = (distance: number) => [
       { id: 1, x: center.x - distance / 2, y: center.y },
       { id: 2, x: center.x + distance / 2, y: center.y },

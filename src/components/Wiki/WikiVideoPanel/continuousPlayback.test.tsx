@@ -664,16 +664,16 @@ describe("continuous playback", () => {
     if (kind === "queue") expectCurrentVideo(first, 1, 2);
     expect(requests[0].destroy).not.toHaveBeenCalled();
   });
-  it("offers manual resume when the next video is blocked without skipping the item", async () => {
+  it("leaves blocked continuation to the embedded player without skipping the item", async () => {
     mount();
     await start();
     blockAutoplay = true;
     act(() => requests[0].options.events.onStateChange({ data: 0 }));
     expectCurrentVideo(second, 2, 2);
-    expect(screen.getByText(/Autoplay was blocked/)).toBeInTheDocument();
+    expect(screen.queryByText(/Autoplay was blocked/)).not.toBeInTheDocument();
     blockAutoplay = false;
-    fireEvent.click(screen.getByRole("button", { name: "Resume playback" }));
-    expect(requests[0].playVideo).toHaveBeenCalledTimes(3);
+    act(() => requests[0].options.events.onStateChange({ data: 1 }));
+    expectCurrentVideo(second, 2, 2);
     expect(
       screen.queryByRole("button", { name: "Resume playback" }),
     ).not.toBeInTheDocument();
