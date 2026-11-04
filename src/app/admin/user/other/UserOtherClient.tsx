@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
-import { performRecentAuthentication } from "@/gateways/auth/recentAuthentication";
+import { RecentAuthenticationDialog } from "@/components/User/RecentAuthenticationDialog";
+import { performRecentAuthentication, type RecentAuthenticationMethod } from "@/gateways/auth/recentAuthentication";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { webAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
@@ -23,6 +24,7 @@ export function UserOtherClient() {
   const authenticatedIdentity = currentIdentity && "authenticationMethods" in currentIdentity
     ? currentIdentity as AuthenticatedIdentitySummary
     : null;
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmationIdentityName, setConfirmationIdentityName] = useState("");
   const [isComposing, setIsComposing] = useState(false);
@@ -92,41 +94,46 @@ export function UserOtherClient() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleReauthentication = async () => {
+  const handleReauthentication = async (method: RecentAuthenticationMethod) => {
     if (processingRef.current || !authenticatedIdentity) return;
 
     processingRef.current = true;
+    setVerificationDialogOpen(false);
     setIsProcessing(true);
     setError(null);
-    const result = await performRecentAuthentication({
-      api: passkeyBrowserApi,
-      linkedSocialProviders: authenticatedIdentity.authenticationMethods?.linkedSocialProviders ?? [],
-      passkeyCount: authenticatedIdentity.authenticationMethods?.passkeyCount ?? 0,
-      returnTo: "withdrawal",
-      webAuthnAdapter: webAuthnBrowserAdapter,
-    });
+    await Promise.resolve().then(async () => {
+      const result = await performRecentAuthentication({
+        api: passkeyBrowserApi,
+        method,
+        returnTo: "withdrawal",
+        webAuthnAdapter: webAuthnBrowserAdapter,
+      });
 
-    if (result.status === "verified") {
-      await verificationQuery.refetch();
-      setReauthenticationRequired(false);
-      requestAnimationFrame(() => startButtonRef.current?.focus());
-    } else if (result.status === "redirect") {
-      window.location.assign(result.url);
-    } else {
-      setError(
-        result.kind === "unavailable"
-          ? t.withdrawalVerificationUnavailable
-          : result.kind === "cancelled"
-            ? t.withdrawalVerificationCancelled
-            : result.kind === "unsupported"
-              ? t.passkeyUnsupported
-              : result.kind === "expired"
-                ? t.passkeyVerificationExpired
-                : result.message ?? t.withdrawalVerificationFailed,
-      );
-    }
-    processingRef.current = false;
-    setIsProcessing(false);
+      if (result.status === "verified") {
+        await verificationQuery.refetch();
+        setReauthenticationRequired(false);
+        requestAnimationFrame(() => startButtonRef.current?.focus());
+      } else if (result.status === "redirect") {
+        window.location.assign(result.url);
+      } else {
+        setError(
+          result.kind === "unavailable"
+            ? t.withdrawalVerificationUnavailable
+            : result.kind === "cancelled"
+              ? t.withdrawalVerificationCancelled
+              : result.kind === "unsupported"
+                ? t.passkeyUnsupported
+                : result.kind === "expired"
+                  ? t.passkeyVerificationExpired
+                  : result.message ?? t.withdrawalVerificationFailed,
+        );
+      }
+    }).catch(() => {
+      setError(t.withdrawalVerificationFailed);
+    }).finally(() => {
+      processingRef.current = false;
+      setIsProcessing(false);
+    });
   };
 
   const handleWithdraw = async () => {
@@ -189,7 +196,7 @@ export function UserOtherClient() {
             <button
               className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-60"
               disabled={isProcessing || verificationQuery.isFetching}
-              onClick={() => void handleReauthentication()}
+              onClick={() => setVerificationDialogOpen(true)}
               ref={verifyButtonRef}
               type="button"
             >
@@ -238,6 +245,12 @@ export function UserOtherClient() {
         {(!withdrawalUnavailable || needsReauthentication) && !isDialogOpen && (error || verificationError) ? <UserStatusMessage variant="error">{error ?? verificationError}</UserStatusMessage> : null}
       </div>
 
+      {verificationDialogOpen ? (
+        <RecentAuthenticationDialog
+          passkeyCount={authenticatedIdentity?.authenticationMethods?.passkeyCount ?? 0}
+          linkedSocialProviders={authenticatedIdentity?.authenticationMethods?.linkedSocialProviders ?? []}
+          onClose={() => setVerificationDialogOpen(false)} onSelect={(method) => void handleReauthentication(method)} />
+      ) : null}
       {isDialogOpen && !withdrawalUnavailable && !needsReauthentication ? (
         <div aria-labelledby="withdrawal-dialog-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" ref={attachDialog} role="dialog">
           <div className="w-full max-w-xl space-y-5 rounded-xl bg-surface-raised p-6 text-text-strong shadow-xl">

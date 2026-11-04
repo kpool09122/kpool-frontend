@@ -1,7 +1,14 @@
 import type { WebAuthnBrowserAdapter } from "@/gateways/auth/webAuthnBrowserAdapter";
 import type { PasskeyBrowserApi } from "@/gateways/identity/passkeyBrowserApi";
 
-type SocialProvider = "google" | "line" | "kakao";
+export type SocialProvider = "google" | "line" | "kakao";
+
+export type RecentAuthenticationMethod = "passkey" | SocialProvider;
+
+export const getRecentAuthenticationMethods = (passkeyCount: number, linkedSocialProviders: string[]): RecentAuthenticationMethod[] => [
+  ...(passkeyCount > 0 ? ["passkey" as const] : []),
+  ...Array.from(new Set(linkedSocialProviders.filter(isSocialProvider))),
+];
 
 export type RecentAuthenticationResult =
   | { status: "verified" }
@@ -13,25 +20,17 @@ const isSocialProvider = (value: string): value is SocialProvider =>
 
 export const performRecentAuthentication = async ({
   api,
-  linkedSocialProviders,
-  passkeyCount,
+  method,
   returnTo,
   webAuthnAdapter,
 }: {
   api: Pick<PasskeyBrowserApi, "completeStepUpWithPasskey" | "createStepUpPasskeyOptions" | "createStepUpSocialRedirect">;
-  linkedSocialProviders: string[];
-  passkeyCount: number;
+  method: RecentAuthenticationMethod;
   returnTo: "passkeys" | "withdrawal";
   webAuthnAdapter: WebAuthnBrowserAdapter;
 }): Promise<RecentAuthenticationResult> => {
-  if (passkeyCount === 0) {
-    const provider = linkedSocialProviders.find(isSocialProvider);
-
-    if (!provider) {
-      return { status: "error", kind: "unavailable" };
-    }
-
-    const redirectResult = await api.createStepUpSocialRedirect(provider, returnTo);
+  if (method !== "passkey") {
+    const redirectResult = await api.createStepUpSocialRedirect(method, returnTo);
 
     return redirectResult.ok
       ? { status: "redirect", url: redirectResult.data.redirectUrl }

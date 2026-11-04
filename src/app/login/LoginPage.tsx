@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { PasskeyAuthenticationButton, SocialAuthenticationButton } from "@/components/auth/AuthenticationMethodButtons";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import {
@@ -32,12 +32,6 @@ type PendingAction =
   | { type: "passkey" }
   | { type: "social"; provider: IdentityProvider["id"] }
   | null;
-
-const getSocialButtonClassName = (provider: IdentityProvider): string =>
-  [
-    "flex min-h-12 items-center justify-center gap-3 rounded-lg px-5 py-0 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70",
-    provider.buttonClassName,
-  ].join(" ");
 
 const defaultNavigate = (url: string): void => {
   window.location.assign(url);
@@ -165,24 +159,14 @@ export function LoginPage({
               const isPending = pendingAction?.type === "social" && pendingAction.provider === provider.id;
 
               return (
-                <button
+                <SocialAuthenticationButton
                   key={provider.id}
-                  type="button"
-                  className={getSocialButtonClassName(provider)}
+                  provider={provider}
                   disabled={pendingAction !== null}
                   onClick={() => void handleSocialLogin(provider.id)}
                 >
-                  <span className="inline-flex h-12 w-12 items-center justify-center" aria-hidden="true">
-                    <Image
-                      src={provider.iconSrc}
-                      alt=""
-                      width={provider.iconSize}
-                      height={provider.iconSize}
-                      className={`${provider.iconClassName} object-contain`}
-                    />
-                  </span>
                   {isPending ? t.socialPending : `${provider.label}${t.socialSuffix}`}
-                </button>
+                </SocialAuthenticationButton>
               );
             })}
           </div>
@@ -211,14 +195,12 @@ export function LoginPage({
             {isWebAuthnSupported === false ? (
               <p className="text-sm leading-6 text-text-muted">{t.passkeyUnsupported}</p>
             ) : null}
-            <button
-              type="button"
-              className="flex min-h-12 w-full items-center justify-center rounded-lg border border-brand-primary bg-surface-base px-5 py-3 text-sm font-semibold text-brand-primary transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:opacity-70"
+            <PasskeyAuthenticationButton
               disabled={pendingAction !== null || isWebAuthnSupported !== true}
               onClick={() => void handlePasskeyLogin()}
             >
               {pendingAction?.type === "passkey" ? t.passkeyPending : t.passkeyButton}
-            </button>
+            </PasskeyAuthenticationButton>
           </div>
 
           {noticeMessage ? (

@@ -14,13 +14,15 @@ const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   searchParams: new URLSearchParams(),
   withdraw: vi.fn(),
+  linkedSocialProviders: [] as string[],
 }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mocks.replace, refresh: mocks.refresh }),
   useSearchParams: () => mocks.searchParams,
 }));
-vi.mock("@/gateways/auth/recentAuthentication", () => ({
+vi.mock("@/gateways/auth/recentAuthentication", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/gateways/auth/recentAuthentication")>(),
   performRecentAuthentication: mocks.performRecentAuthentication,
 }));
 vi.mock("@/gateways/identity/passkeyBrowserApi", () => ({
@@ -37,7 +39,7 @@ vi.mock("../UserSectionContext", () => ({
       identityName: "Member",
       email: "member@example.com",
       language: "ja",
-      authenticationMethods: { passkeyCount: 1, linkedSocialProviders: [] },
+      authenticationMethods: { passkeyCount: 1, linkedSocialProviders: mocks.linkedSocialProviders },
     },
     t: dictionaries.ja.admin,
   }),
@@ -58,6 +60,11 @@ const renderPage = (queryClient = new QueryClient({ defaultOptions: { queries: {
   return queryClient;
 };
 
+const verifyIdentity = async () => {
+  fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+  fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
+};
+
 const renderVerifiedPage = async () => {
   mocks.listPasskeys.mockResolvedValue({ ok: true, data: { passkeys: [] } });
   const queryClient = renderPage();
@@ -75,6 +82,7 @@ const openDialog = (confirmationName: string | null = "Member") => {
 
 describe("UserOtherClient", () => {
   beforeEach(() => {
+    mocks.linkedSocialProviders = [];
     mocks.getWithdrawalEligibility.mockReset().mockResolvedValue({ ok: true, data: { canWithdraw: true } });
     mocks.listPasskeys.mockReset().mockResolvedValue({ ok: false, status: 401, code: "recent_authentication_required", message: "Recent authentication required" });
   });
@@ -97,6 +105,7 @@ describe("UserOtherClient", () => {
     expect(mocks.getWithdrawalEligibility).not.toHaveBeenCalled();
     expect(screen.queryByRole("link", { name: "運営に問い合わせる" })).not.toBeInTheDocument();
     fireEvent.click(verify);
+    fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
     expect(await screen.findByRole("link", { name: "運営に問い合わせる" })).toHaveAttribute("href", "/contact");
     expect(screen.queryByText(dictionaries.ja.admin.withdrawalDescription)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
@@ -124,13 +133,13 @@ describe("UserOtherClient", () => {
     expect(await screen.findByText("退会手続きを行うには追加の本人確認が必要です。")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+    await verifyIdentity();
 
     expect(await screen.findByRole("button", { name: "退会手続きへ" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "本人確認を行う" })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(mocks.performRecentAuthentication).toHaveBeenCalledWith(
-      expect.objectContaining({ returnTo: "withdrawal", passkeyCount: 1 }),
+      expect.objectContaining({ returnTo: "withdrawal", method: "passkey" }),
     );
     expect(mocks.withdraw).not.toHaveBeenCalled();
     openDialog();
@@ -140,7 +149,7 @@ describe("UserOtherClient", () => {
   it.each(["cancelled", "failed", "unavailable"])("keeps withdrawal masked when verification is %s", async (kind) => {
     mocks.performRecentAuthentication.mockResolvedValue({ status: "error", kind });
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+    await verifyIdentity();
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "本人確認を行う" })).toBeEnabled();
@@ -155,7 +164,7 @@ describe("UserOtherClient", () => {
   ])("explains why verification is %s while keeping withdrawal masked", async (kind, message) => {
     mocks.performRecentAuthentication.mockResolvedValue({ status: "error", kind, message: "upstream" });
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+    await verifyIdentity();
 
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
     expect(screen.getByRole("button", { name: "本人確認を行う" })).toBeEnabled();
@@ -247,10 +256,12 @@ describe("UserOtherClient", () => {
     renderPage();
     const verify = await screen.findByRole("button", { name: "本人確認を行う" });
     fireEvent.click(verify);
+    const method = screen.getByRole("button", { name: "パスキーで本人確認" });
+    fireEvent.click(method);
     fireEvent.click(verify);
 
     expect(screen.getByRole("button", { name: "本人確認中" })).toBeDisabled();
-    expect(mocks.performRecentAuthentication).toHaveBeenCalledOnce();
+    await waitFor(() => expect(mocks.performRecentAuthentication).toHaveBeenCalledOnce());
     expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
     mocks.listPasskeys.mockResolvedValue({ ok: true, data: { passkeys: [] } });
     completeVerification?.({ status: "verified" });
@@ -369,7 +380,7 @@ describe("UserOtherClient", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
 
-    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+    await verifyIdentity();
     expect(await screen.findByRole("button", { name: "退会手続きへ" })).toBeInTheDocument();
     expect(mocks.performRecentAuthentication).toHaveBeenCalledWith(
       expect.objectContaining({ returnTo: "withdrawal" }),
@@ -427,4 +438,31 @@ describe("UserOtherClient", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
     expect(mocks.replace).not.toHaveBeenCalled();
   });
+  it("allows choosing linked SSO even when a passkey exists and never auto-withdraws", async () => {
+    mocks.linkedSocialProviders = ["google", "line"];
+    mocks.performRecentAuthentication.mockResolvedValue({ status: "error", kind: "failed" });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+    expect(screen.getByRole("button", { name: "パスキーで本人確認" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Googleで本人確認" })).toBeInTheDocument();
+    expect(mocks.performRecentAuthentication).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "LINEで本人確認" }));
+    await screen.findByRole("alert");
+    expect(mocks.performRecentAuthentication).toHaveBeenCalledWith(expect.objectContaining({ method: "line", returnTo: "withdrawal" }));
+    expect(mocks.withdraw).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "退会手続きへ" })).not.toBeInTheDocument();
+  });
+
+  it("closes the method dialog without verifying or withdrawing on Escape", async () => {
+    renderPage();
+    const trigger = await screen.findByRole("button", { name: "本人確認を行う" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(mocks.performRecentAuthentication).not.toHaveBeenCalled();
+    expect(mocks.withdraw).not.toHaveBeenCalled();
+  });
+
 });
