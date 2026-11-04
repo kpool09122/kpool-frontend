@@ -7,12 +7,14 @@ import { useI18n } from "@/i18n/I18nProvider";
 const origin = "https://www.tiktok.com";
 // One mount per playback request, not per presentation mode. Old frames cannot
 // report into a subsequent request (including repeat-one of the same video).
-export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError = true, autoplay = true, onPlaying, onEnded, onError }: {
+export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError = true, autoplay = true, onPlaying, onEnded, onError, startSeconds = 0, onProgress }: {
   videoId: string;
   title: string;
   expanded?: boolean;
   advanceOnError?: boolean;
   autoplay?: boolean;
+  startSeconds?: number;
+  onProgress?: (seconds: number) => void;
   onPlaying?: () => void;
   onEnded: () => void;
   onError: () => void;
@@ -20,17 +22,20 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
   const frame = useRef<HTMLIFrameElement>(null);
   const [guidance, setGuidance] = useState<"tiktokBlocked" | "tiktokUnavailable" | "tiktokRestricted" | null>(null);
   const ready = useRef(false);
+  const [initialSeconds] = useState(startSeconds);
   const { dictionary } = useI18n();
   const t = dictionary.wiki.videos.continuous;
   const reportPlaying = useEffectEvent(() => onPlaying?.());
   const reportEnded = useEffectEvent(onEnded);
   const reportError = useEffectEvent(onError);
+  const reportProgress = useEffectEvent((seconds: number) => onProgress?.(seconds));
   useEffect(() => {
     const element = frame.current;
     let disposed = false, started = false, finished = false;
     let muted: boolean | undefined;
-    const command = (type: "unMute" | "play" | "pause") => {
-      element?.contentWindow?.postMessage({ "x-tiktok-player": true, type }, origin);
+    let pendingSeek = initialSeconds;
+    const command = (type: "unMute" | "play" | "pause" | "seekTo", value?: number) => {
+      element?.contentWindow?.postMessage({ "x-tiktok-player": true, type, ...(value === undefined ? {} : { value }) }, origin);
     };
     ready.current = false;
     const timeout = window.setTimeout(() => {
@@ -53,10 +58,17 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
       if (!data || typeof data !== "object" || !("x-tiktok-player" in data) || data["x-tiktok-player"] !== true || !("type" in data)) return;
       const value = "value" in data ? data.value : undefined;
       if (data.type === "onPlayerReady") {
+        if (ready.current) return;
         ready.current = true;
         window.clearTimeout(timeout);
         command("unMute");
+        if (initialSeconds > 0) command("seekTo", initialSeconds);
         if (autoplay) command("play");
+      } else if (data.type === "onCurrentTime" && ready.current && started && value && typeof value === "object" && "currentTime" in value && typeof value.currentTime === "number") {
+        const seconds = value.currentTime;
+        if (!Number.isFinite(seconds) || seconds < 0 || (pendingSeek > 0 && seconds < pendingSeek - 1)) return;
+        pendingSeek = 0;
+        reportProgress(seconds);
       } else if (data.type === "onMute" && typeof value === "boolean") {
         muted = value;
       } else if (data.type === "onStateChange" && typeof value === "number") {
@@ -84,7 +96,7 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
       window.removeEventListener("message", receive);
       command("pause");
     };
-  }, [videoId, advanceOnError, autoplay]);
+  }, [videoId, advanceOnError, autoplay, initialSeconds]);
   return <div className={expanded ? "flex h-full min-h-0 flex-col gap-3" : "space-y-3"}>
     <div className={expanded ? "min-h-0 w-full flex-1 bg-black" : "aspect-video w-full overflow-hidden rounded-xl bg-black"}>
       <iframe ref={frame} title={title} src={isVideoId("tiktok", videoId) ? `${origin}/player/v1/${videoId}?loop=0&autoplay=${autoplay ? 1 : 0}&controls=1&muted=0` : undefined}

@@ -14,13 +14,15 @@ const serverOrigin = () => null;
 // React owns the iframe and its attributes. The API attaches to that existing
 // iframe; subsequent video requests must never replace it or change its src.
 export function YouTubePlayer({
-  videoId, playbackKey = videoId, title, className, ref,
+  videoId, playbackKey = videoId, title, className, ref, startSeconds = 0, onProgress,
   onLoad, onStateChange, onError, onAutoplayBlocked, onUnavailable,
 }: {
   videoId: string;
   playbackKey?: string | number;
   title: string;
   className?: string;
+  startSeconds?: number;
+  onProgress?: (seconds: number, videoId: string) => void;
   ref?: Ref<YouTubePlayerHandle>;
   onLoad?: (request: VideoPlaybackRequest) => void;
   onStateChange?: (state: VideoPlaybackState) => void;
@@ -33,9 +35,11 @@ export function YouTubePlayer({
   const loadRequest = useRef<((request: VideoPlaybackRequest) => void) | null>(null);
   const origin = useSyncExternalStore(subscribeToOrigin, browserOrigin, serverOrigin);
   const [initialRequest] = useState(() => ({ videoId, key: playbackKey }));
+  const [initialSeconds] = useState(startSeconds);
   const latestRequest = useEffectEvent(() => ({ videoId, key: playbackKey }));
   const reportLoad = useEffectEvent((request: VideoPlaybackRequest) => onLoad?.(request));
   const reportState = useEffectEvent((state: VideoPlaybackState) => onStateChange?.(state));
+  const reportProgress = useEffectEvent((seconds: number, id: string) => onProgress?.(seconds, id));
   const reportError = useEffectEvent(() => onError?.());
   const reportBlocked = useEffectEvent(() => onAutoplayBlocked?.());
   const reportUnavailable = useEffectEvent(onUnavailable);
@@ -52,6 +56,7 @@ export function YouTubePlayer({
     let unavailable = false;
     let creating = false;
     let ready = false;
+    let pendingSeek = 0;
     let player: YouTubePlayerInstance | undefined;
     let loaded: VideoPlaybackRequest | undefined;
     let playbackInterval: number | undefined;
@@ -75,9 +80,15 @@ export function YouTubePlayer({
         return;
       }
       loaded = next;
+      if (!initial) pendingSeek = 0;
       if (!initial) reportLoad(next);
-      if (initial) player.playVideo();
-      else player.loadVideoById(next.videoId);
+      if (initial) {
+        if (initialSeconds > 0 && player.seekTo) {
+          pendingSeek = initialSeconds;
+          player.seekTo(initialSeconds, true);
+        }
+        player.playVideo();
+      } else player.loadVideoById(next.videoId);
     };
     const reportPlayback = (state: number | undefined) => {
       if (disposed || unavailable || state === undefined) return;
@@ -86,6 +97,14 @@ export function YouTubePlayer({
         actualState: player?.getPlayerState?.(),
         videoId: getYouTubeVideoId(player?.getVideoUrl?.() ?? "") ?? undefined,
       });
+      if (state !== 1 && state !== 2) return;
+      const id = getYouTubeVideoId(player?.getVideoUrl?.() ?? "");
+      const seconds = player?.getCurrentTime?.();
+      if (!id || seconds === undefined || !Number.isFinite(seconds) || seconds < 0) return;
+      // Ignore the pre-seek timestamp while the restored position is applied.
+      if (pendingSeek > 0 && seconds < pendingSeek - 1) return;
+      pendingSeek = 0;
+      reportProgress(seconds, id);
     };
     loadRequest.current = load;
     const script = loadYouTubeIframeApi();
@@ -136,7 +155,7 @@ export function YouTubePlayer({
       playerRef.current = undefined;
       player?.destroy();
     };
-  }, [origin, initialRequest]);
+  }, [origin, initialRequest, initialSeconds]);
 
   const src = origin && getYouTubeVideoId(initialRequest.videoId) === initialRequest.videoId
     ? `https://www.youtube-nocookie.com/embed/${initialRequest.videoId}?${new URLSearchParams({ enablejsapi: "1", origin, playsinline: "1" })}`

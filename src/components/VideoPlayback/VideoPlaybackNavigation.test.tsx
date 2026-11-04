@@ -24,7 +24,34 @@ const tracks = [
   { identifier: "third", videoId: "zyxwvutsrqp", title: "Third" },
 ];
 const setup = () => render(<VideoPlaybackProvider><CaptureStore /></VideoPlaybackProvider>);
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+it("restores the mini player after remount and clears saved playback when closed", () => {
+  const values = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+    removeItem: (key: string) => { values.delete(key); },
+  });
+  const view = setup();
+  act(() => {
+    store.getState().start("playlist", tracks, "queue");
+    store.getState().detach();
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next video" }));
+  const previousStore = store;
+  view.unmount();
+  setup();
+  expect(store).not.toBe(previousStore);
+  expect(screen.getByRole("region", { name: "Mini player" })).toBeInTheDocument();
+  expect(screen.getByTestId("player")).toHaveTextContent(tracks[1].videoId);
+  fireEvent.click(screen.getByRole("button", { name: "Next video" }));
+  expect(screen.getByTestId("player")).toHaveTextContent(tracks[2].videoId);
+  fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+  cleanup();
+  setup();
+  expect(screen.queryByRole("region", { name: "Mini player" })).toBeNull();
+});
 
 it("shows navigation below the floating queue player and preserves the player when switching videos", () => {
   setup();

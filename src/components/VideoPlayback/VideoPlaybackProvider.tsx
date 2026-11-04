@@ -14,6 +14,7 @@ import {
 } from "react";
 import { useStore } from "zustand";
 import { useAuthStore } from "@/gateways/auth/authStore";
+import { createJsonStorage } from "@/gateways/support/jsonStorage";
 import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, ShuffleIcon, TrackNextIcon, TrackPreviousIcon } from "@radix-ui/react-icons";
 import { adjacentPlaybackIndex, nextLoopMode } from "./playbackQueue";
 import { LoopPlaybackButton } from "./LoopPlaybackButton";
@@ -25,6 +26,7 @@ import { useFloatingPosition } from "./useFloatingPosition";
 import { usePlayerFullscreen } from "./usePlayerFullscreen";
 import { useFullscreenControls } from "./useFullscreenControls";
 import { MiniPlayerPlaceholder } from "./MiniPlayerPlaceholder";
+import { isPrivatePlayback, persistMiniPlayer } from "./playbackPersistence";
 
 type Anchor = { owner: string; node: HTMLDivElement };
 const PlaybackContext = createContext<{
@@ -37,12 +39,25 @@ export const useVideoPlayback = () => useContext(PlaybackContext);
 
 export function VideoPlaybackProvider({ children }: { children: ReactNode }) {
   const [store] = useState(createPlaybackStore);
-  useEffect(() => useAuthStore.subscribe((next, previous) => {
-    const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
-    const state = store.getState();
-    const isPrivate = (owner: string | undefined) => owner?.startsWith("private-playlist:") || owner?.startsWith("private-wiki-inbox:");
-    if (scope(next) !== scope(previous) && (isPrivate(state.session?.owner) || isPrivate(state.notice?.owner))) state.stop();
-  }), [store]);
+  useEffect(() => {
+    const persistence = persistMiniPlayer(store, createJsonStorage(), () => {
+      const { status, identity } = useAuthStore.getState();
+      if (status === "loading") return undefined;
+      return status === "authenticated" && identity
+        ? JSON.stringify([identity.identityIdentifier, identity.accountIdentifier, identity.accountPrincipalIdentifier])
+        : null;
+    });
+    const unsubscribe = useAuthStore.subscribe((next, previous) => {
+      const scope = (state: typeof next) => [state.status, state.identity?.identityIdentifier, state.identity?.accountIdentifier, state.identity?.accountPrincipalIdentifier, state.sessionVersion].join(":");
+      const state = store.getState();
+      if (scope(next) !== scope(previous) && (isPrivatePlayback(state.session?.owner) || isPrivatePlayback(state.notice?.owner))) state.stop();
+      persistence.synchronizeAuth();
+    });
+    // Public pages do not otherwise initialize the browser auth store. A private
+    // snapshot must initiate its own identity check instead of waiting for My Playlists.
+    if (persistence.waitingForAuth()) void useAuthStore.getState().refreshIdentity();
+    return () => { unsubscribe(); persistence.dispose(); };
+  }, [store]);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [height, setHeight] = useState(0);
   const register = useCallback((owner: string, node: HTMLDivElement | null) => {
@@ -226,6 +241,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         {requested.provider === "tiktok" ? <TikTokPlayer
           key={`${session.id}:tiktok:${queue.sequence}`}
           videoId={requested.videoId} title={active.title} expanded={fullscreen}
+          startSeconds={session.seconds}
+          onProgress={(seconds) => store.getState().updateProgress(session.id, seconds, requested.videoId, "tiktok", queue.sequence)}
           advanceOnError={session.kind === "queue"}
           onEnded={() => store.getState().advance(session.id, false, requested.videoId, "tiktok", queue.sequence)}
           onError={() => store.getState().advance(session.id, true, requested.videoId, "tiktok", queue.sequence)}
@@ -234,6 +251,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           expanded={fullscreen}
           playbackKey={queue.sequence}
           videoId={requested.videoId}
+          startSeconds={session.seconds}
+          onProgress={(seconds, id) => store.getState().updateProgress(session.id, seconds, id, "youtube", queue.sequence)}
           title={active.title}
           onVideoChange={(id) => store.getState().synchronize(session.id, id, "youtube", queue.sequence)}
           onEnded={(id) => store.getState().advance(session.id, false, id, "youtube", queue.sequence)}
