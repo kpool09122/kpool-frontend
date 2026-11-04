@@ -162,6 +162,7 @@ describe("PasskeyManagementPanel", () => {
     expect(deletePasskey).toHaveBeenCalledOnce();
 
     fireEvent.click(screen.getByRole("button", { name: "再度本人確認する" }));
+    fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
     await waitFor(() => expect(api.completeStepUpWithPasskey).toHaveBeenCalledOnce());
     expect(deletePasskey).toHaveBeenCalledOnce();
     expect(screen.queryByRole("button", { name: "再度本人確認する" })).not.toBeInTheDocument();
@@ -211,6 +212,7 @@ describe("PasskeyManagementPanel", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+    fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
 
     expect(await screen.findByText("MacBook")).toBeInTheDocument();
     expect(adapter.get).toHaveBeenCalledWith(authenticationOptions);
@@ -231,6 +233,7 @@ describe("PasskeyManagementPanel", () => {
     });
     await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+    fireEvent.click(screen.getByRole("button", { name: "Googleで本人確認" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth"));
     expect(api.createStepUpSocialRedirect).toHaveBeenCalledWith("google", "passkeys");
     expect(api.createAdditionOptions).not.toHaveBeenCalled();
@@ -265,6 +268,7 @@ describe("PasskeyManagementPanel", () => {
     const cancelled = renderPanel({ api: verificationRequired, getResult: { ok: false, reason: "cancelled" }, passkeyCount: 1 });
     await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+    fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("本人確認をキャンセルしました");
     expect(cancelled.api.completeStepUpWithPasskey).not.toHaveBeenCalled();
     cleanup();
@@ -272,12 +276,14 @@ describe("PasskeyManagementPanel", () => {
     renderPanel({ api: { ...verificationRequired, completeStepUpWithPasskey: vi.fn().mockResolvedValue({ ok: false, status: 401, message: "Unauthorized" }) }, passkeyCount: 1 });
     await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+    fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("有効期限が切れました");
     cleanup();
 
     renderPanel({ api: verificationRequired, passkeyCount: 1, supported: false });
     await screen.findByText("パスキーを管理するには追加の本人確認が必要です。");
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+    fireEvent.click(screen.getByRole("button", { name: "パスキーで本人確認" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("このブラウザーではパスキーを利用できません");
     cleanup();
 
@@ -286,4 +292,34 @@ describe("PasskeyManagementPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("本人確認に利用できるパスキーまたは連携済みSSOがありません");
   });
+  it("lets a user with existing passkeys choose any linked SSO without using a passkey", async () => {
+    const { api, adapter, navigate } = renderPanel({
+      api: { list: vi.fn().mockResolvedValue({ ok: false, status: 401, message: "Verify" }) },
+      passkeyCount: 1, linkedSocialProviders: ["google", "line"], supported: false,
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "本人確認を行う" }));
+    expect(screen.getByRole("dialog", { name: "本人確認" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "パスキーで本人確認" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Googleで本人確認" })).toBeInTheDocument();
+    expect(api.createStepUpPasskeyOptions).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "LINEで本人確認" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://accounts.example.test/reauth"));
+    expect(api.createStepUpSocialRedirect).toHaveBeenCalledWith("line", "passkeys");
+    expect(adapter.get).not.toHaveBeenCalled();
+    expect(api.add).not.toHaveBeenCalled();
+  });
+
+  it("does not authenticate or add a passkey when the method dialog is cancelled", async () => {
+    const { api } = renderPanel({ api: { list: vi.fn().mockResolvedValue({ ok: false, status: 401, message: "Verify" }) } });
+    const trigger = await screen.findByRole("button", { name: "本人確認を行う" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(api.createStepUpPasskeyOptions).not.toHaveBeenCalled();
+    expect(api.createStepUpSocialRedirect).not.toHaveBeenCalled();
+    expect(api.add).not.toHaveBeenCalled();
+  });
+
 });

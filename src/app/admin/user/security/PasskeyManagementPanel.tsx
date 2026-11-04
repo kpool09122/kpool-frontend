@@ -4,14 +4,15 @@ import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useQuery } from "@tanstack/react-query";
 import { Pencil1Icon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import {
   webAuthnBrowserAdapter,
   type WebAuthnBrowserAdapter,
 } from "@/gateways/auth/webAuthnBrowserAdapter";
-import { performRecentAuthentication } from "@/gateways/auth/recentAuthentication";
+import { RecentAuthenticationDialog } from "@/components/User/RecentAuthenticationDialog";
+import { performRecentAuthentication, type RecentAuthenticationMethod } from "@/gateways/auth/recentAuthentication";
 import type { PasskeySummary } from "@/gateways/identity/identityApi";
 import {
   passkeyBrowserApi,
@@ -46,6 +47,8 @@ export function PasskeyManagementPanel({
 }: PasskeyManagementPanelProps) {
   const { locale, dictionary } = useI18n();
   const t = dictionary.admin;
+  const verificationInFlight = useRef(false);
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [editingPasskeyIdentifier, setEditingPasskeyIdentifier] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,11 +85,10 @@ export function PasskeyManagementPanel({
     return true;
   };
 
-  const requireAdditionalVerification = async () => {
+  const requireAdditionalVerification = async (method: RecentAuthenticationMethod) => {
     const result = await performRecentAuthentication({
       api,
-      linkedSocialProviders,
-      passkeyCount,
+      method,
       returnTo: "passkeys",
       webAuthnAdapter,
     });
@@ -115,20 +117,27 @@ export function PasskeyManagementPanel({
     return false;
   };
 
-  const handleVerify = async () => {
-    if (busyAction) {
+  const handleVerify = async (method: RecentAuthenticationMethod) => {
+    if (busyAction || verificationInFlight.current) {
       return;
     }
 
+    verificationInFlight.current = true;
+    setVerificationDialogOpen(false);
     setBusyAction("verify");
     clearMessages();
 
-    if (await requireAdditionalVerification()) {
-      setReauthenticationRequired(false);
-      await passkeyQuery.refetch();
-    }
-
-    setBusyAction(null);
+    await Promise.resolve().then(async () => {
+      if (await requireAdditionalVerification(method)) {
+        setReauthenticationRequired(false);
+        await passkeyQuery.refetch();
+      }
+    }).catch(() => {
+      setError(t.passkeyVerificationFailed);
+    }).finally(() => {
+      verificationInFlight.current = false;
+      setBusyAction(null);
+    });
   };
 
   const handleAdd = async () => {
@@ -252,7 +261,7 @@ export function PasskeyManagementPanel({
             <div>
               <p className="text-sm leading-6 text-text-muted">{t.passkeyVerificationRequired}</p>
             </div>
-            <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
+            <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => setVerificationDialogOpen(true)}>
               {busyAction === "verify" ? t.passkeyVerifying : t.passkeyVerify}
             </button>
           </div>
@@ -309,7 +318,7 @@ export function PasskeyManagementPanel({
           <UserStatusMessage variant="error">
             <span>{error ?? listError}</span>
             {reauthenticationRequired ? (
-              <button className="ml-3 rounded-lg border border-status-danger px-3 py-1.5 text-sm font-semibold disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => void handleVerify()}>
+              <button className="ml-3 rounded-lg border border-status-danger px-3 py-1.5 text-sm font-semibold disabled:opacity-60" type="button" disabled={busyAction !== null} onClick={() => setVerificationDialogOpen(true)}>
                 {busyAction === "verify" ? t.passkeyVerifying : t.passkeyVerifyAgain}
               </button>
             ) : null}
@@ -317,6 +326,10 @@ export function PasskeyManagementPanel({
         ) : null}
         {notice ? <UserStatusMessage variant="success">{notice}</UserStatusMessage> : null}
       </div>
+      {verificationDialogOpen ? (
+        <RecentAuthenticationDialog passkeyCount={passkeyCount} linkedSocialProviders={linkedSocialProviders}
+          onClose={() => setVerificationDialogOpen(false)} onSelect={(method) => void handleVerify(method)} />
+      ) : null}
     </UserSettingsPanel>
   );
 }
