@@ -225,7 +225,7 @@ for (const mini of [false, true]) {
   });
 }
 
-test("mobile keyboard playback progresses, resumes blocked autoplay, stops and tears down on tab exit", async ({
+test("mobile keyboard playback progresses, preserves blocked playback, stops and tears down on tab exit", async ({
   page,
 }, testInfo) => {
   await setupPlayback(page);
@@ -324,18 +324,8 @@ test("mobile keyboard playback progresses, resumes blocked autoplay, stops and t
   await expect(page.locator("iframe")).toHaveAttribute("title", "Second video");
   await event("block");
   const resume = page.getByRole("button", { name: "Resume playback" });
-  await resume.focus();
-  await resume.press("Enter");
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (
-            window as unknown as { queueTest: { players: { plays: number }[] } }
-          ).queueTest.players.at(-1)!.plays,
-      ),
-    )
-    .toBe(2);
+  await expect(resume).toHaveCount(0);
+  await expect(page.getByText("Autoplay was blocked.", { exact: false })).toHaveCount(0);
   await event("play");
   await expect(resume).toHaveCount(0);
   await region.scrollIntoViewIfNeeded();

@@ -82,7 +82,7 @@ it("restores YouTube progress once, ignores pre-seek time and starts the next vi
   expect(restored.seekTo).toHaveBeenCalledTimes(1);
 });
 
-it("offers a resume button if autoplay of restored YouTube playback is blocked", async () => {
+it("keeps restored YouTube playback ready for native controls when autoplay is blocked", async () => {
   const view = mount();
   act(() => {
     store.getState().start("public", [{ identifier: "one", videoId: "abcdefghijk", title: "First" }], "queue");
@@ -94,9 +94,13 @@ it("offers a resume button if autoplay of restored YouTube playback is blocked",
   mount();
   await flush();
   act(() => players[1].options.events.onAutoplayBlocked());
-  const plays = players[1].playVideo.mock.calls.length;
-  fireEvent.click(screen.getByRole("button", { name: "Resume playback" }));
-  expect(players[1].playVideo).toHaveBeenCalledTimes(plays + 1);
+  expect(screen.queryByText(/Autoplay was blocked/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Resume playback" })).not.toBeInTheDocument();
+  expect(snapshot().session.seconds).toBe(42);
+  expect(players[1].destroy).not.toHaveBeenCalled();
+  players[1].getCurrentTime.mockReturnValue(48);
+  act(() => players[1].options.events.onStateChange({ data: 1 }));
+  expect(snapshot().session.seconds).toBe(48);
 });
 
 it("restores TikTok progress after ready and resets it on a one-video loop", async () => {

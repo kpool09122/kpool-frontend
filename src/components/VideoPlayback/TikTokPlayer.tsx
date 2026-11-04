@@ -20,7 +20,7 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
   onError: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
-  const [guidance, setGuidance] = useState<"tiktokBlocked" | "tiktokUnavailable" | "tiktokRestricted" | null>(null);
+  const [guidance, setGuidance] = useState<"tiktokUnavailable" | "tiktokRestricted" | null>(null);
   const ready = useRef(false);
   const [initialSeconds] = useState(startSeconds);
   const { dictionary } = useI18n();
@@ -82,8 +82,7 @@ export function TikTokPlayer({ videoId, title, expanded = false, advanceOnError 
         }
         if (value === 0 && started) { finished = true; reportEnded(); }
       } else if (data.type === "onPlayerError" && value && typeof value === "object" && "errorCode" in value && typeof value.errorCode === "number" && "errorType" in value && typeof value.errorType === "string") {
-        if (value.errorCode === 3002) setGuidance("tiktokBlocked");
-        else fail([1001, 1002].includes(value.errorCode));
+        if (value.errorCode !== 3002) fail([1001, 1002].includes(value.errorCode));
       } else if (data.type === "onError" && typeof value === "number" && [1, 2, 3, 4].includes(value)) {
         // TikTok emits legacy code 1 before the detailed onPlayerError event.
         if (value !== 1) fail();
