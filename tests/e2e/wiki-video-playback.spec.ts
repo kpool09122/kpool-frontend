@@ -250,6 +250,66 @@ test("admin language changes preserve the mini player and its playback queue", a
   })).toBe(true);
 });
 
+test.describe("mobile fullscreen orientation", () => {
+  test.use({ isMobile: true, hasTouch: true });
+
+  for (const fallback of [false, true]) {
+    test(`defaults to landscape and toggles portrait with ${fallback ? "iPhone-style page fullscreen" : "native fullscreen"}`, async ({ page }, testInfo) => {
+      test.setTimeout(90_000);
+      if (fallback) {
+        await page.addInitScript(() => Object.defineProperty(document, "fullscreenEnabled", { get: () => false, configurable: true }));
+      }
+      await setupPlayback(page);
+      await page.getByRole("button", { name: "Play all", exact: true }).click();
+      const host = page.getByRole("region", { name: "Now playing" });
+      const frame = host.locator("iframe");
+      await frame.evaluate((node) => node.setAttribute("data-orientation-player", "original"));
+      await host.getByRole("button", { name: "Play in fullscreen" }).click();
+      const surface = host.locator("[data-player-surface]");
+      const bar = host.locator('[data-fullscreen-bar="top"]');
+      await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      await expect(surface).toHaveCSS("width", "844px");
+      await expect(surface).toHaveCSS("height", "390px");
+      await expect(host.getByRole("button", { name: "Switch to portrait" })).toBeVisible();
+      expect(await bar.locator("button").evaluateAll((buttons) => buttons.slice(-3).map((button) => button.getAttribute("aria-label"))))
+        .toEqual(["Exit fullscreen", "Switch to portrait", "Stop playback"]);
+      expect(await frame.evaluate((node) => node.clientWidth > node.clientHeight)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath("mobile-fullscreen-landscape.png"), animations: "disabled" });
+
+      await host.getByRole("button", { name: "Switch to portrait" }).click();
+      await expect(surface).toHaveCSS("transform", "none");
+      expect(await frame.evaluate((node) => node.clientWidth < node.clientHeight)).toBe(true);
+      await host.getByRole("button", { name: "Switch to landscape" }).click();
+      await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      await host.getByRole("button", { name: "Next video" }).click();
+      await expect(host).toContainText("Second video (2/2)");
+      await expect(frame).toHaveAttribute("data-orientation-player", "original");
+
+      // Chromium cannot resize its native fullscreen window. Exercise physical
+      // rotation through the page fullscreen path used when native APIs are absent.
+      if (fallback) {
+        await page.setViewportSize({ width: 844, height: 390 });
+        await expect(surface).toHaveCSS("transform", "none");
+        await expect(host.getByRole("button", { name: "Switch to portrait" })).toBeVisible();
+        await page.setViewportSize({ width: 390, height: 844 });
+        await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      }
+      await page.mouse.move(0, 0);
+      await expect(bar).toHaveAttribute("inert", "");
+      await host.getByRole("button", { name: "Show playback controls" }).tap();
+      await expect(host.getByRole("button", { name: "Switch to portrait" })).toBeVisible();
+      await host.getByRole("button", { name: "Switch to portrait" }).click();
+      await host.getByRole("button", { name: "Exit fullscreen" }).click();
+      await expect(surface).toHaveCSS("transform", "none");
+      await expect(host.getByRole("button", { name: /Switch to (portrait|landscape)/ })).toHaveCount(0);
+      await host.getByRole("button", { name: "Play in fullscreen" }).click();
+      await expect(surface).toHaveCSS("transform", /matrix\(0, 1, -1, 0,/);
+      await expect(frame).toHaveAttribute("data-orientation-player", "original");
+      if (fallback) expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
+    });
+  }
+});
+
 for (const mini of [false, true]) {
   test(`K-Pool fullscreen survives the next video and restores ${mini ? "mini player" : "inline playback"}`, async ({ page }, testInfo) => {
     await setupPlayback(page);

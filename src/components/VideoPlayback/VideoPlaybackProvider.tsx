@@ -16,7 +16,7 @@ import {
 import { useStore } from "zustand";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { createJsonStorage } from "@/gateways/support/jsonStorage";
-import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, ShuffleIcon, TrackNextIcon, TrackPreviousIcon } from "@radix-ui/react-icons";
+import { Cross2Icon, EnterFullScreenIcon, ExitFullScreenIcon, ExternalLinkIcon, RotateCounterClockwiseIcon, ShuffleIcon, TrackNextIcon, TrackPreviousIcon } from "@radix-ui/react-icons";
 import { adjacentPlaybackIndex, nextLoopMode } from "./playbackQueue";
 import { LoopPlaybackButton } from "./LoopPlaybackButton";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -26,6 +26,7 @@ import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
 import { useFloatingPosition } from "./useFloatingPosition";
 import { usePlayerFullscreen } from "./usePlayerFullscreen";
 import { usePlayerControls } from "./usePlayerControls";
+import { useFullscreenOrientation } from "./useFullscreenOrientation";
 import { MiniPlayerPlaceholder } from "./MiniPlayerPlaceholder";
 import { isPrivatePlayback, persistMiniPlayer } from "./playbackPersistence";
 
@@ -149,6 +150,7 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
     wasFloating.current = floating;
   }, [floating]);
   const { fullscreen, failed: fullscreenFailed, toggle: toggleFullscreen } = usePlayerFullscreen(root);
+  const orientation = useFullscreenOrientation(fullscreen);
   const mobile = useSyncExternalStore(subscribeToMobileViewport, isMobileViewport, serverMobileViewport);
   const autoHideControls = fullscreen || (floating && mobile);
   const controls = usePlayerControls(autoHideControls);
@@ -237,62 +239,79 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         : "z-10 space-y-3 text-text-strong"}
     >
       {movable ? <span id={moveHintId} className="sr-only">{t.moveHint}</span> : null}
-      <div
-        {...(autoHideControls ? controls.barProps : {})}
-        inert={autoHideControls && !controls.visible}
-        aria-hidden={autoHideControls && !controls.visible ? true : undefined}
-        data-fullscreen-bar={fullscreen ? "top" : undefined}
-        data-mini-player-bar={movable ? "top" : undefined}
-        className={`flex shrink-0 items-center gap-1${barVisibilityClass}${movable ? " absolute inset-x-0 top-0 z-20 justify-end bg-black/50 p-1 backdrop-blur-sm [&_button]:text-white/85 [&_button:hover]:text-white sm:static sm:justify-start sm:bg-transparent sm:p-0 sm:pb-2 sm:backdrop-blur-none sm:[&_button]:text-text-muted sm:[&_button:hover]:text-text-strong" : ""}${fullscreen ? ` ${fullscreenBarClass} top-0 flex-wrap pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]` : ""}`}>
-        <p role="status" title={active.title} className={fullscreen ? "w-full min-w-0 truncate font-semibold sm:w-auto sm:flex-1" : `${floating ? "hidden sm:block " : ""}min-w-0 flex-1 truncate font-semibold`}>
-          {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
-        </p>
-        {fullscreen && session.kind === "queue" ? queueControls : null}
-        {active.controls ? <div className={movable ? "hidden sm:contents" : "contents"}>{active.controls}</div> : null}
-        <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>
-          {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
-        </button>
-        {!floating && !fullscreen ? (
-          <button type="button" aria-label={t.detach} title={t.detach} className={iconClass} onClick={() => store.getState().detach()}><ExternalLinkIcon aria-hidden="true" className="h-5 w-5" /></button>
-        ) : (
-          <button type="button" aria-label={t.stop} title={t.stop} className={iconClass} onClick={() => store.getState().stop()}><Cross2Icon aria-hidden="true" className="h-5 w-5" /></button>
-        )}
-      </div>
-      {fullscreenFailed ? <p role="status" className={fullscreen ? "absolute inset-x-0 bottom-24 z-30 bg-black/60 p-3" : undefined}>{t.fullscreenFailed}</p> : null}
-      <div data-player-interactive className={`touch-auto cursor-auto${fullscreen ? " absolute inset-0" : ""}`}>
-        {requested.provider === "tiktok" ? <TikTokPlayer
-          key={`${session.id}:tiktok:${queue.sequence}`}
-          videoId={requested.videoId} title={active.title} expanded={fullscreen}
-          startSeconds={session.seconds}
-          onProgress={(seconds) => store.getState().updateProgress(session.id, seconds, requested.videoId, "tiktok", queue.sequence)}
-          advanceOnError={session.kind === "queue"}
-          onEnded={() => store.getState().advance(session.id, false, requested.videoId, "tiktok", queue.sequence)}
-          onError={() => store.getState().advance(session.id, true, requested.videoId, "tiktok", queue.sequence)}
-        /> : <YouTubeQueuePlayer
-          key={`${session.id}:youtube`}
-          expanded={fullscreen}
-          playbackKey={queue.sequence}
-          videoId={requested.videoId}
-          startSeconds={session.seconds}
-          onProgress={(seconds, id) => store.getState().updateProgress(session.id, seconds, id, "youtube", queue.sequence)}
-          title={active.title}
-          onVideoChange={(id) => store.getState().synchronize(session.id, id, "youtube", queue.sequence)}
-          onEnded={(id) => store.getState().advance(session.id, false, id, "youtube", queue.sequence)}
-          onError={() => store.getState().advance(session.id, true, requested.videoId, "youtube", queue.sequence)}
-          onUnavailable={() => store.getState().unavailable(session.id)}
-        />}
-      </div>
-      {autoHideControls && !controls.visible ? (
-        <button type="button" aria-label={t.showControls}
-          className="absolute inset-0 z-10 cursor-default bg-transparent focus-visible:outline-2 focus-visible:outline-white"
-          onClick={controls.reveal} onFocus={controls.reveal} />
-      ) : null}
-      {floating && !fullscreen && session.kind === "queue" ? (
-        <div className="hidden shrink-0 items-center justify-center gap-4 pt-2 sm:flex">
-          {queueControls}
+      <div data-player-surface className={fullscreen ? "absolute inset-0" : "contents"} style={orientation.style}>
+        <div
+          {...(autoHideControls ? controls.barProps : {})}
+          inert={autoHideControls && !controls.visible}
+          aria-hidden={autoHideControls && !controls.visible ? true : undefined}
+          data-fullscreen-bar={fullscreen ? "top" : undefined}
+          data-mini-player-bar={movable ? "top" : undefined}
+          style={orientation.rotated ? {
+            paddingTop: "max(0.75rem, env(safe-area-inset-right))",
+            paddingLeft: "max(0.75rem, env(safe-area-inset-top))",
+            paddingRight: "max(0.75rem, env(safe-area-inset-bottom))",
+          } : undefined}
+          className={`flex shrink-0 items-center gap-1${barVisibilityClass}${movable ? " absolute inset-x-0 top-0 z-20 justify-end bg-black/50 p-1 backdrop-blur-sm [&_button]:text-white/85 [&_button:hover]:text-white sm:static sm:justify-start sm:bg-transparent sm:p-0 sm:pb-2 sm:backdrop-blur-none sm:[&_button]:text-text-muted sm:[&_button:hover]:text-text-strong" : ""}${fullscreen ? ` ${fullscreenBarClass} top-0 flex-wrap pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]` : ""}`}>
+          <p role="status" title={active.title} className={fullscreen ? "w-full min-w-0 truncate font-semibold sm:w-auto sm:flex-1" : `${floating ? "hidden sm:block " : ""}min-w-0 flex-1 truncate font-semibold`}>
+            {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
+          </p>
+          {fullscreen && session.kind === "queue" ? queueControls : null}
+          {active.controls ? <div className={movable ? "hidden sm:contents" : "contents"}>{active.controls}</div> : null}
+          <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => {
+            if (!fullscreen) orientation.reset();
+            void toggleFullscreen();
+          }}>
+            {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
+          </button>
+          {fullscreen && orientation.mobile ? (
+            <button type="button" aria-label={orientation.landscape ? t.rotatePortrait : t.rotateLandscape}
+              title={orientation.landscape ? t.rotatePortrait : t.rotateLandscape}
+              className={iconClass} onClick={() => { orientation.toggle(); controls.reveal(); }}>
+              <RotateCounterClockwiseIcon aria-hidden="true" className={orientation.rotated ? "" : "-scale-x-100"} />
+            </button>
+          ) : null}
+          {!floating && !fullscreen ? (
+            <button type="button" aria-label={t.detach} title={t.detach} className={iconClass} onClick={() => store.getState().detach()}><ExternalLinkIcon aria-hidden="true" className="h-5 w-5" /></button>
+          ) : (
+            <button type="button" aria-label={t.stop} title={t.stop} className={iconClass} onClick={() => store.getState().stop()}><Cross2Icon aria-hidden="true" className="h-5 w-5" /></button>
+          )}
         </div>
-      ) : null}
-      {floating && notice?.owner === session.owner ? <p role="status" className={fullscreen ? "absolute inset-x-0 bottom-24 z-30 bg-black/60 p-3" : undefined}>{t[notice.kind]}{notice.title ? `: ${notice.title}` : ""}</p> : null}
+        {fullscreenFailed ? <p role="status" className={fullscreen ? "absolute inset-x-0 bottom-24 z-30 bg-black/60 p-3" : undefined}>{t.fullscreenFailed}</p> : null}
+        <div data-player-interactive className={`touch-auto cursor-auto${fullscreen ? " absolute inset-0" : ""}`}>
+          {requested.provider === "tiktok" ? <TikTokPlayer
+            key={`${session.id}:tiktok:${queue.sequence}`}
+            videoId={requested.videoId} title={active.title} expanded={fullscreen}
+            startSeconds={session.seconds}
+            onProgress={(seconds) => store.getState().updateProgress(session.id, seconds, requested.videoId, "tiktok", queue.sequence)}
+            advanceOnError={session.kind === "queue"}
+            onEnded={() => store.getState().advance(session.id, false, requested.videoId, "tiktok", queue.sequence)}
+            onError={() => store.getState().advance(session.id, true, requested.videoId, "tiktok", queue.sequence)}
+          /> : <YouTubeQueuePlayer
+            key={`${session.id}:youtube`}
+            expanded={fullscreen}
+            playbackKey={queue.sequence}
+            videoId={requested.videoId}
+            startSeconds={session.seconds}
+            onProgress={(seconds, id) => store.getState().updateProgress(session.id, seconds, id, "youtube", queue.sequence)}
+            title={active.title}
+            onVideoChange={(id) => store.getState().synchronize(session.id, id, "youtube", queue.sequence)}
+            onEnded={(id) => store.getState().advance(session.id, false, id, "youtube", queue.sequence)}
+            onError={() => store.getState().advance(session.id, true, requested.videoId, "youtube", queue.sequence)}
+            onUnavailable={() => store.getState().unavailable(session.id)}
+          />}
+        </div>
+        {autoHideControls && !controls.visible ? (
+          <button type="button" aria-label={t.showControls}
+            className="absolute inset-0 z-10 cursor-default bg-transparent focus-visible:outline-2 focus-visible:outline-white"
+            onClick={controls.reveal} onFocus={controls.reveal} />
+        ) : null}
+        {floating && !fullscreen && session.kind === "queue" ? (
+          <div className="hidden shrink-0 items-center justify-center gap-4 pt-2 sm:flex">
+            {queueControls}
+          </div>
+        ) : null}
+        {floating && notice?.owner === session.owner ? <p role="status" className={fullscreen ? "absolute inset-x-0 bottom-24 z-30 bg-black/60 p-3" : undefined}>{t[notice.kind]}{notice.title ? `: ${notice.title}` : ""}</p> : null}
+      </div>
       {movable ? Object.entries(resizeHandles).map(([edge, className]) => (
         <div key={edge} aria-hidden="true" data-player-resize={edge} className={`absolute z-20 touch-none ${className}`} />
       )) : null}
