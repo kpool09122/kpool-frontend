@@ -197,3 +197,39 @@ it("keeps the fullscreen bar visible during hover and keyboard focus, then resum
   act(() => vi.advanceTimersByTime(3000));
   expect(bar).toHaveAttribute("inert");
 });
+
+it("hides the mobile mini player bar after three seconds, reveals it on tap and keeps desktop controls visible", () => {
+  vi.useFakeTimers();
+  let mobile = true;
+  const listeners = new Set<() => void>();
+  vi.stubGlobal("matchMedia", () => ({
+    matches: mobile,
+    addEventListener: (_event: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_event: string, listener: () => void) => listeners.delete(listener),
+  }));
+  setup();
+  act(() => {
+    store.getState().start("playlist", tracks, "queue");
+    store.getState().detach();
+  });
+  const host = screen.getByRole("region", { name: "Mini player" });
+  const player = screen.getByTestId("player");
+  const bar = host.querySelector('[data-mini-player-bar="top"]')!;
+  act(() => vi.advanceTimersByTime(2999));
+  expect(bar).not.toHaveAttribute("inert");
+  act(() => vi.advanceTimersByTime(1));
+  expect(bar).toHaveAttribute("inert");
+  expect(bar).toHaveClass("opacity-0");
+  fireEvent.click(screen.getByRole("button", { name: "Show playback controls" }));
+  expect(bar).not.toHaveAttribute("inert");
+  expect(bar).toHaveClass("opacity-100");
+  act(() => vi.advanceTimersByTime(3000));
+  expect(bar).toHaveAttribute("inert");
+  act(() => { mobile = false; listeners.forEach((listener) => listener()); });
+  expect(bar).not.toHaveAttribute("inert");
+  expect(screen.queryByRole("button", { name: "Show playback controls" })).toBeNull();
+  act(() => vi.advanceTimersByTime(5000));
+  expect(bar).not.toHaveAttribute("inert");
+  expect(screen.getByTestId("player")).toBe(player);
+  expect(store.getState().floating).toBe(true);
+});

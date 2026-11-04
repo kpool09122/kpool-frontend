@@ -1,11 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { fitPlayerWidth, pinchPlayer, playerHeight, resizePlayer, type ResizeEdge } from "./floatingGeometry";
+import { fitPlayerWidth, initialPlayerWidth, pinchPlayer, playerHeight, resizePlayer, type ResizeEdge } from "./floatingGeometry";
 
 const viewport = { width: 1200, height: 900 };
 const chrome = { width: 26, height: 106 };
 const origin = { x: 400, y: 300, width: 480, height: playerHeight(480, chrome) };
 
 describe("floating player geometry", () => {
+  it.each([360, 390, 430])("starts a %s px mobile player at two thirds of the previous fitted width and still allows enlargement", (width) => {
+    const mobile = { width, height: 844 };
+    const frameless = { width: 0, height: 0 };
+    const initial = fitPlayerWidth(initialPlayerWidth(mobile, frameless), mobile, frameless);
+    expect(initial).toBeCloseTo((width - 32) * 2 / 3);
+    expect(fitPlayerWidth(480, mobile, frameless)).toBe(width - 32);
+  });
+  it("keeps the desktop default and fits small viewports when sizing manually", () => {
+    expect(initialPlayerWidth(viewport, chrome)).toBe(480);
+    expect(fitPlayerWidth(1, { width: 320, height: 700 }, { width: 0, height: 0 })).toBe(200);
+    const small = { width: 240, height: 200 };
+    const width = fitPlayerWidth(initialPlayerWidth(small, chrome), small, chrome);
+    expect(width).toBeLessThanOrEqual(small.width - 32);
+    expect(playerHeight(width, chrome)).toBeLessThanOrEqual(small.height - 32);
+  });
   it("fits both viewport dimensions while preserving the video aspect ratio", () => {
     const small = { width: 390, height: 300 };
     const width = fitPlayerWidth(800, small, chrome);

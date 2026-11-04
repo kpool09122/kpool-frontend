@@ -9,6 +9,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -24,11 +25,19 @@ import { TikTokPlayer } from "./TikTokPlayer";
 import { YouTubeQueuePlayer } from "./YouTubeQueuePlayer";
 import { useFloatingPosition } from "./useFloatingPosition";
 import { usePlayerFullscreen } from "./usePlayerFullscreen";
-import { useFullscreenControls } from "./useFullscreenControls";
+import { usePlayerControls } from "./usePlayerControls";
 import { MiniPlayerPlaceholder } from "./MiniPlayerPlaceholder";
 import { isPrivatePlayback, persistMiniPlayer } from "./playbackPersistence";
 
 type Anchor = { owner: string; node: HTMLDivElement };
+const mobileQuery = "(width < 40rem)";
+const isMobileViewport = () => window.matchMedia?.(mobileQuery).matches ?? false;
+const serverMobileViewport = () => false;
+const subscribeToMobileViewport = (listener: () => void) => {
+  const query = window.matchMedia?.(mobileQuery);
+  query?.addEventListener("change", listener);
+  return () => query?.removeEventListener("change", listener);
+};
 const PlaybackContext = createContext<{
   store: PlaybackStore;
   register: (owner: string, node: HTMLDivElement | null) => void;
@@ -140,8 +149,11 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
     wasFloating.current = floating;
   }, [floating]);
   const { fullscreen, failed: fullscreenFailed, toggle: toggleFullscreen } = usePlayerFullscreen(root);
-  const controls = useFullscreenControls(fullscreen);
-  const fullscreenBarClass = `absolute inset-x-0 z-20 bg-black/50 px-3 backdrop-blur-sm transition-opacity duration-200 motion-reduce:transition-none [&_button]:text-white/85 [&_button:hover]:text-white ${controls.visible ? "opacity-100" : "pointer-events-none opacity-0"}`;
+  const mobile = useSyncExternalStore(subscribeToMobileViewport, isMobileViewport, serverMobileViewport);
+  const autoHideControls = fullscreen || (floating && mobile);
+  const controls = usePlayerControls(autoHideControls);
+  const fullscreenBarClass = "absolute inset-x-0 z-20 bg-black/50 px-3 backdrop-blur-sm [&_button]:text-white/85 [&_button:hover]:text-white";
+  const barVisibilityClass = autoHideControls ? ` transition-opacity duration-200 motion-reduce:transition-none ${controls.visible ? "opacity-100" : "pointer-events-none opacity-0"}` : "";
   const moveHintId = useId();
   const [inlineStyle, setInlineStyle] = useState<CSSProperties>({});
   const movable = floating && !fullscreen;
@@ -201,10 +213,19 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
       ref={root}
       tabIndex={movable ? 0 : -1}
       {...(movable ? { ...dragProps, ...keyboardProps } : {})}
-      {...(fullscreen ? {
-        onPointerMove: controls.reveal,
-        onPointerDown: controls.reveal,
-        onKeyDown: controls.reveal,
+      {...(autoHideControls ? {
+        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+          if (movable) dragProps.onPointerMove(event);
+          controls.reveal();
+        },
+        onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
+          if (movable) dragProps.onPointerDown(event);
+          controls.reveal();
+        },
+        onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+          if (movable) keyboardProps.onKeyDown(event);
+          controls.reveal();
+        },
       } : {})}
       aria-label={floating ? t.miniPlayer : t.nowPlaying}
       aria-describedby={movable ? moveHintId : undefined}
@@ -212,21 +233,22 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
       className={fullscreen
         ? "z-50 overflow-hidden overscroll-none bg-black text-white"
         : floating
-        ? "z-50 max-h-[calc(100dvh-2rem)] touch-none cursor-grab select-none overflow-auto rounded-2xl border border-stroke-subtle bg-surface-raised p-3 text-text-strong shadow-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary active:cursor-grabbing"
+        ? "z-50 max-h-[calc(100dvh-2rem)] touch-none cursor-grab select-none overflow-hidden bg-black text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary active:cursor-grabbing [&_[data-player-interactive]_.aspect-video]:rounded-none sm:overflow-auto sm:rounded-2xl sm:border sm:border-stroke-subtle sm:bg-surface-raised sm:p-3 sm:text-text-strong sm:shadow-soft sm:[&_[data-player-interactive]_.aspect-video]:rounded-xl"
         : "z-10 space-y-3 text-text-strong"}
     >
       {movable ? <span id={moveHintId} className="sr-only">{t.moveHint}</span> : null}
       <div
-        {...(fullscreen ? controls.barProps : {})}
-        inert={fullscreen && !controls.visible}
-        aria-hidden={fullscreen && !controls.visible ? true : undefined}
+        {...(autoHideControls ? controls.barProps : {})}
+        inert={autoHideControls && !controls.visible}
+        aria-hidden={autoHideControls && !controls.visible ? true : undefined}
         data-fullscreen-bar={fullscreen ? "top" : undefined}
-        className={`flex shrink-0 items-center gap-1${floating && !fullscreen ? " pb-2" : ""}${fullscreen ? ` ${fullscreenBarClass} top-0 flex-wrap pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]` : ""}`}>
-        <p role="status" title={active.title} className={fullscreen ? "w-full min-w-0 truncate font-semibold sm:w-auto sm:flex-1" : "min-w-0 flex-1 truncate font-semibold"}>
+        data-mini-player-bar={movable ? "top" : undefined}
+        className={`flex shrink-0 items-center gap-1${barVisibilityClass}${movable ? " absolute inset-x-0 top-0 z-20 justify-end bg-black/50 p-1 backdrop-blur-sm [&_button]:text-white/85 [&_button:hover]:text-white sm:static sm:justify-start sm:bg-transparent sm:p-0 sm:pb-2 sm:backdrop-blur-none sm:[&_button]:text-text-muted sm:[&_button:hover]:text-text-strong" : ""}${fullscreen ? ` ${fullscreenBarClass} top-0 flex-wrap pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]` : ""}`}>
+        <p role="status" title={active.title} className={fullscreen ? "w-full min-w-0 truncate font-semibold sm:w-auto sm:flex-1" : `${floating ? "hidden sm:block " : ""}min-w-0 flex-1 truncate font-semibold`}>
           {active.title}{session.kind === "queue" ? ` (${queue.position + 1}/${queue.order.length})` : ""}
         </p>
         {fullscreen && session.kind === "queue" ? queueControls : null}
-        {active.controls}
+        {active.controls ? <div className={movable ? "hidden sm:contents" : "contents"}>{active.controls}</div> : null}
         <button type="button" aria-label={fullscreen ? t.exitFullscreen : t.enterFullscreen} title={fullscreen ? t.exitFullscreen : t.enterFullscreen} aria-pressed={fullscreen} className={iconClass} onClick={() => void toggleFullscreen()}>
           {fullscreen ? <ExitFullScreenIcon aria-hidden="true" className="h-5 w-5" /> : <EnterFullScreenIcon aria-hidden="true" className="h-5 w-5" />}
         </button>
@@ -260,13 +282,13 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           onUnavailable={() => store.getState().unavailable(session.id)}
         />}
       </div>
-      {fullscreen && !controls.visible ? (
+      {autoHideControls && !controls.visible ? (
         <button type="button" aria-label={t.showControls}
           className="absolute inset-0 z-10 cursor-default bg-transparent focus-visible:outline-2 focus-visible:outline-white"
           onClick={controls.reveal} onFocus={controls.reveal} />
       ) : null}
       {floating && !fullscreen && session.kind === "queue" ? (
-        <div className="flex shrink-0 items-center justify-center gap-4 pt-2">
+        <div className="hidden shrink-0 items-center justify-center gap-4 pt-2 sm:flex">
           {queueControls}
         </div>
       ) : null}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import {
-  defaultPlayerWidth, fitPlayerPosition, fitPlayerWidth, pinchPlayer, playerHeight,
+  initialPlayerWidth, fitPlayerPosition, fitPlayerWidth, pinchPlayer, playerHeight,
   resizePlayer, type Frame, type PlayerChrome, type Point, type ResizeEdge,
 } from "./floatingGeometry";
 
@@ -21,12 +21,12 @@ const midpoint = (a: Point, b: Point) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) /
 
 export function useFloatingPosition(root: { current: HTMLElement | null }, floating: boolean) {
   const [position, setPosition] = useState<Point | null>(null);
-  const [preferredWidth, setPreferredWidth] = useState(defaultPlayerWidth);
+  const [preferredWidth, setPreferredWidth] = useState<number | null>(null);
   const [viewport, setViewport] = useState(viewportSize);
   const [chrome, setChrome] = useState<PlayerChrome>({ width: 26, height: 106 });
   const interaction = useRef<Interaction | null>(null);
   const touches = useRef(new Map<number, Point>());
-  const width = fitPlayerWidth(preferredWidth, viewport, chrome);
+  const width = fitPlayerWidth(preferredWidth ?? initialPlayerWidth(viewport, chrome), viewport, chrome);
   const size = { width, height: playerHeight(width, chrome) };
   const fittedPosition = position ? fitPlayerPosition(position, size, viewport) : null;
 
