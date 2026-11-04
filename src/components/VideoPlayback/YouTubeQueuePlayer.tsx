@@ -8,12 +8,14 @@ import { YouTubePlayer, type VideoPlaybackRequest, type VideoPlaybackState, type
 // the iframe and API connection, keeping both alive across video changes.
 export function YouTubeQueuePlayer({
   videoId, playbackKey = videoId, expanded = false, title,
-  onVideoChange, onEnded, onError, onUnavailable,
+  onVideoChange, onEnded, onError, onUnavailable, startSeconds = 0, onProgress,
 }: {
   videoId: string;
   playbackKey?: string | number;
   expanded?: boolean;
   title: string;
+  startSeconds?: number;
+  onProgress?: (seconds: number, videoId: string) => void;
   onVideoChange?: (videoId: string) => void;
   onEnded: (videoId?: string) => void;
   onError: () => void;
@@ -70,12 +72,17 @@ export function YouTubeQueuePlayer({
   return (
     <div className={expanded ? "flex h-full min-h-0 flex-col gap-3" : "space-y-3"}>
       <YouTubePlayer ref={player} videoId={videoId} playbackKey={playbackKey} title={title}
+        startSeconds={startSeconds}
+        onProgress={(seconds, id) => {
+          const current = playback.current;
+          if (!current.finished && !current.awaitingPlayback && current.loaded?.key === playbackKey) onProgress?.(seconds, id);
+        }}
         className={expanded ? "min-h-0 w-full flex-1 overflow-hidden bg-black" : "aspect-video w-full overflow-hidden rounded-xl bg-surface-muted"}
         onLoad={onLoad} onStateChange={onStateChange} onError={() => finish("error")}
         onUnavailable={onUnavailable}
         onAutoplayBlocked={() => {
           const current = playback.current;
-          if (!current.finished && current.loaded?.key === playbackKey && current.continuation) setBlocked(true);
+          if (!current.finished && current.loaded?.key === playbackKey && (current.continuation || startSeconds > 0)) setBlocked(true);
         }} />
       {blocked ? (
         <div>

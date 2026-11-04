@@ -241,6 +241,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
         {requested.provider === "tiktok" ? <TikTokPlayer
           key={`${session.id}:tiktok:${queue.sequence}`}
           videoId={requested.videoId} title={active.title} expanded={fullscreen}
+          startSeconds={session.seconds}
+          onProgress={(seconds) => store.getState().updateProgress(session.id, seconds, requested.videoId, "tiktok", queue.sequence)}
           advanceOnError={session.kind === "queue"}
           onEnded={() => store.getState().advance(session.id, false, requested.videoId, "tiktok", queue.sequence)}
           onError={() => store.getState().advance(session.id, true, requested.videoId, "tiktok", queue.sequence)}
@@ -249,6 +251,8 @@ function PlayerSurface({ session, store, anchor, onHeight }: {
           expanded={fullscreen}
           playbackKey={queue.sequence}
           videoId={requested.videoId}
+          startSeconds={session.seconds}
+          onProgress={(seconds, id) => store.getState().updateProgress(session.id, seconds, id, "youtube", queue.sequence)}
           title={active.title}
           onVideoChange={(id) => store.getState().synchronize(session.id, id, "youtube", queue.sequence)}
           onEnded={(id) => store.getState().advance(session.id, false, id, "youtube", queue.sequence)}

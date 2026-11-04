@@ -25,6 +25,7 @@ it("persists only floating playback and restores the active video, order and set
   store.getState().detach();
   store.getState().selectTrack(1, "third");
   store.getState().setLoop("one");
+  store.getState().updateProgress(1, 42.7, tracks[2].videoId, "youtube", store.getState().session!.queue.sequence);
   const session = store.getState().session!;
   connection.dispose();
 
@@ -32,13 +33,29 @@ it("persists only floating playback and restores the active video, order and set
   const restored = persistMiniPlayer(reloaded, storage, () => null);
   expect(reloaded.getState().floating).toBe(true);
   expect(reloaded.getState().session).toMatchObject({
-    owner: "public", loop: "one", random: true,
+    owner: "public", loop: "one", random: true, seconds: 42,
     queue: { order: session.queue.order, position: session.queue.position, playerIndex: 2 },
   });
   expect(reloaded.getState().session!.tracks[0]).not.toHaveProperty("controls");
   expect(reloaded.getState().session!.tracks[0]).not.toHaveProperty("onEnded");
   reloaded.getState().advance(reloaded.getState().session!.id);
   expect(reloaded.getState().session!.queue.sequence).toBe(1);
+  expect(reloaded.getState().session!.seconds).toBe(0);
+  restored.dispose();
+});
+
+it("restores older snapshots without a timestamp from the beginning", () => {
+  const store = createPlaybackStore();
+  const connection = persistMiniPlayer(store, storage, () => null);
+  store.getState().start("public", tracks, "queue");
+  store.getState().detach();
+  connection.dispose();
+  const snapshot = JSON.parse(localStorage.getItem(miniPlayerStorageKey)!);
+  delete snapshot.session.seconds;
+  localStorage.setItem(miniPlayerStorageKey, JSON.stringify(snapshot));
+  const reloaded = createPlaybackStore();
+  const restored = persistMiniPlayer(reloaded, storage, () => null);
+  expect(reloaded.getState().session!.seconds).toBe(0);
   restored.dispose();
 });
 

@@ -21,6 +21,7 @@ const snapshotSchema = z.object({
     })).min(1),
     loop: z.enum(["off", "all", "one"]),
     random: z.boolean(),
+    seconds: z.number().finite().nonnegative().default(0),
     queue: z.object({
       mode: z.literal("continuous"),
       order: z.array(indexSchema).min(1),
@@ -59,11 +60,11 @@ export function persistMiniPlayer(
       return;
     }
     // Persist data explicitly: page controls and callbacks belong to the current mount.
-    const { owner, kind, loop, random, queue } = session;
+    const { owner, kind, loop, random, queue, seconds } = session;
     const tracks = session.tracks.map(({ identifier, videoId, provider, title }) => ({ identifier, videoId, provider, title }));
     storage.write(miniPlayerStorageKey, {
       version: 1, privateScope,
-      session: { owner, kind, loop, random, tracks, queue: {
+      session: { owner, kind, loop, random, tracks, seconds, queue: {
         mode: queue.mode, order: queue.order, position: queue.position, failed: queue.failed,
       } },
     });

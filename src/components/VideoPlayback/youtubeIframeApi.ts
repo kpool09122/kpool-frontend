@@ -4,6 +4,8 @@ export type YouTubePlayerInstance = {
   destroy: () => void;
   getVideoUrl?: () => string;
   getPlayerState?: () => number;
+  getCurrentTime?: () => number;
+  seekTo?: (seconds: number, allowSeekAhead: boolean) => void;
 };
 export type YouTubePlayerOptions = {
   videoId: string;

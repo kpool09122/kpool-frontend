@@ -1,6 +1,34 @@
 import { describe, expect, it, vi } from "vitest";
 import { createPlaybackStore } from "./playbackStore";
 
+it("checkpoints progress and rejects stale or invalid timestamps across track changes and loops", () => {
+  const store = createPlaybackStore();
+  const tracks = [
+    { identifier: "one", videoId: "abcdefghijk", title: "First" },
+    { identifier: "two", videoId: "6718335390845095173", provider: "tiktok" as const, title: "Second" },
+  ];
+  store.getState().start("public", tracks, "queue", "one");
+  const progress = (seconds: number, id = 1, videoId = tracks[0].videoId, provider: "youtube" | "tiktok" = "youtube", sequence = 0) => store.getState().updateProgress(id, seconds, videoId, provider, sequence);
+  progress(12.5);
+  expect(store.getState().session!.seconds).toBe(12);
+  for (const seconds of [13, -1, NaN, Infinity]) progress(seconds);
+  progress(30, 999);
+  progress(30, 1, tracks[1].videoId, "tiktok");
+  expect(store.getState().session!.seconds).toBe(12);
+  progress(3);
+  expect(store.getState().session!.seconds).toBe(3);
+  store.getState().advance(1);
+  expect(store.getState().session!.seconds).toBe(0);
+  progress(99);
+  expect(store.getState().session!.seconds).toBe(0);
+  progress(24, 1, tracks[0].videoId, "youtube", 1);
+  store.getState().selectTrack(1, "two");
+  expect(store.getState().session!.seconds).toBe(0);
+  progress(99, 1, tracks[0].videoId, "youtube", 1);
+  progress(15, 1, tracks[1].videoId, "tiktok", 2);
+  expect(store.getState().session!.seconds).toBe(15);
+});
+
 const tracks = [
   { identifier: "first", videoId: "abcdefghijk", title: "First" },
   { identifier: "second", videoId: "lmnopqrstuv", title: "Second" },

@@ -11,6 +11,7 @@ export type PlaybackSession = {
   queue: PlaybackQueue;
   loop: LoopMode;
   random: boolean;
+  seconds: number;
 };
 type Notice = {
   owner: string;
@@ -30,6 +31,7 @@ type PlaybackState = {
   release: (owner: string) => void;
   setLoop: (mode: LoopMode) => void;
   setRandom: (enabled: boolean) => void;
+  updateProgress: (sessionId: number, seconds: number, videoId: string, provider: "youtube" | "tiktok", sequence: number) => void;
   advance: (sessionId: number, failed?: boolean, videoId?: string, provider?: "youtube" | "tiktok", sequence?: number) => void;
   selectTrack: (sessionId: number, identifier: string) => void;
   synchronize: (sessionId: number, videoId: string, provider?: "youtube" | "tiktok", sequence?: number) => void;
@@ -66,7 +68,7 @@ export function createPlaybackStore() {
         floating: state.session !== null && state.floating,
         notice: null,
         session: {
-          id, owner, kind, tracks, loop, random,
+          id, owner, kind, tracks, loop, random, seconds: 0,
           queue: { mode: "continuous", order, position, playerIndex: order[position], sequence: 0, failed: [] },
         },
       });
@@ -98,6 +100,15 @@ export function createPlaybackStore() {
         order: [...queue.order.slice(0, queue.position + 1), ...playbackOrder(remaining, random)],
       } } });
     },
+    updateProgress: (sessionId, seconds, videoId, provider, sequence) => {
+      const session = get().session;
+      if (!session || session.id !== sessionId || session.queue.sequence !== sequence || !Number.isFinite(seconds) || seconds < 0) return;
+      const active = session.tracks[session.queue.order[session.queue.position]];
+      if (active.videoId !== videoId || (active.provider ?? "youtube") !== provider) return;
+      // Save checkpoints about every three seconds, including backward seeks.
+      if (Math.abs(seconds - session.seconds) < 3) return;
+      set({ session: { ...session, seconds: Math.floor(seconds) } });
+    },
     advance: (sessionId, failed = false, videoId, provider, sequence) => {
       const state = get();
       const session = state.session;
@@ -111,7 +122,7 @@ export function createPlaybackStore() {
         loop: session.loop, random: session.random, failed,
       });
       set({
-        session: queue ? { ...session, queue } : null,
+        session: queue ? { ...session, queue, seconds: 0 } : null,
         floating: queue !== null && state.floating,
         notice: failed ? {
           owner: session.owner, floating: state.floating, kind: "skipped",
@@ -128,7 +139,7 @@ export function createPlaybackStore() {
       const playerIndex = queue.order[position];
       set({
         notice: null,
-        session: { ...session, queue: {
+        session: { ...session, seconds: 0, queue: {
           ...queue,
           position,
           playerIndex,
@@ -148,7 +159,7 @@ export function createPlaybackStore() {
         set({ session: null, floating: false, notice: {
           owner: session.owner, floating: state.floating, kind: "outsideQueue",
         } });
-      } else if (queue !== session.queue) set({ session: { ...session, queue } });
+      } else if (queue !== session.queue) set({ session: { ...session, queue, seconds: 0 } });
     },
     unavailable: (sessionId) => {
       const state = get();
