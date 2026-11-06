@@ -230,6 +230,15 @@ export function WikiEditSidebar({
               </div>
             </fieldset>
 
+            <label className="grid gap-2 text-sm font-semibold text-text-strong">
+              Slug
+              <input
+                className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2 disabled:cursor-not-allowed disabled:text-text-muted"
+                disabled
+                value={slug}
+              />
+            </label>
+
             <fieldset className="grid gap-3">
               <legend className="text-sm font-semibold text-text-strong">{t.themeColor}</legend>
               <div className="grid grid-cols-4 gap-2">

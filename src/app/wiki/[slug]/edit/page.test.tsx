@@ -149,7 +149,8 @@ describe("WikiEditPage", () => {
     expect(screen.getByRole("button", { name: "gui" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "code" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Slug")).toHaveValue("gr-aurora-echo");
+    expect(screen.getByLabelText("Slug")).toBeDisabled();
     expect(screen.getByRole("group", { name: "Preview mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Theme color" })).toBeInTheDocument();
@@ -1442,11 +1443,12 @@ describe("WikiEditPage", () => {
     );
   });
 
-  it("does not show resource type or slug controls in the sidebar", () => {
+  it("shows the current slug disabled in the sidebar", () => {
     renderPage();
 
     expect(screen.queryByLabelText("Resource type")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Slug")).toHaveValue("gr-aurora-echo");
+    expect(screen.getByLabelText("Slug")).toBeDisabled();
   });
 
   it("renders error and empty states", () => {
