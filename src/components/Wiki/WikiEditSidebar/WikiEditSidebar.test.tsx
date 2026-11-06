@@ -51,7 +51,8 @@ describe("WikiEditSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "code" }));
     fireEvent.click(screen.getByRole("button", { name: "Dark" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse editor sidebar" }));
-    expect(screen.queryByLabelText("Slug")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Slug")).toHaveValue(wikiStoryDetail.slug);
+    expect(screen.getByLabelText("Slug")).toBeDisabled();
     const fontStyleSelect = screen.getByLabelText("Font style");
     expect(fontStyleSelect).toHaveValue("ja_gothic");
     expect(screen.getByRole("option", { name: "Default font" })).toBeInTheDocument();
