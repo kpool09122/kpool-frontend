@@ -146,7 +146,8 @@ test("wiki edit page supports inline edits and nested content controls", async (
   await expect(page.getByRole("button", { name: "Save wiki changes" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Submit wiki for review" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Clear wiki changes" })).toBeVisible();
-  await expect(page.getByLabel("Slug")).toHaveCount(0);
+  await expect(page.getByLabel("Slug")).toHaveValue("gr-aurora-echo");
+  await expect(page.getByLabel("Slug")).toBeDisabled();
   await expect(page.getByRole("group", { name: "Preview mode" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Default" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Theme color" })).toBeVisible();
