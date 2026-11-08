@@ -273,7 +273,7 @@ for (const status of ["suspended", "forced_stop"])
       await page.goto(`/admin/${context}/principal-groups`);
       const destination = context === "account"
         ? "/admin/user/profile"
-        : context === "wiki" ? "/admin/site-management/contacts" : "/admin/wiki/editing";
+        : context === "wiki" ? "/admin/analyze" : "/admin/wiki/editing";
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
       const sidebar = page.getByRole("complementary", { name: "管理画面メニュー" });
       const stoppedMenu = context === "account" ? "アカウント設定" : context === "wiki" ? "Wiki" : "サイト管理";

@@ -8,7 +8,7 @@ import type { ImageDeletionRequestListState } from "./useAdminImageDeletionReque
 
 export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings" | "otherSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountNotifications" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
-export type AdminSection = "wiki" | "siteManagement" | "accountSettings" | "settings";
+export type AdminSection = "analyze" | "wiki" | "siteManagement" | "accountSettings" | "settings";
 export type AdminWikiTab = AdminDraftWikiActionTab | "watchRequests" | "playlists" | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
 
 export type AdminRouteContext = {
@@ -67,6 +67,7 @@ export const adminSectionRoutes: Record<AdminSection, string> = {
   accountSettings: "/admin/account/profile",
   settings: "/admin/user/profile",
   siteManagement: "/admin/site-management/contacts",
+  analyze: "/admin/analyze",
   wiki: "/admin/wiki/editing",
 };
 

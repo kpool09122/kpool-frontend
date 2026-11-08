@@ -174,14 +174,14 @@ it.each(["suspended", "forced_stop"] as const)("blocks a direct Wiki page when W
   render(await renderAdminLayout({ children: <div>Wikiの管理機能</div> }));
   expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument();
   expect(screen.queryByText("Wikiの管理機能")).not.toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent("redirect:/admin/user/profile");
-  expect(mocks.redirect).toHaveBeenCalledWith("/admin/user/profile");
+  expect(screen.getByRole("status")).toHaveTextContent("redirect:/admin/analyze");
+  expect(mocks.redirect).toHaveBeenCalledWith("/admin/analyze");
 });
 
 it.each([
-  ["site", "/admin/site-management/contacts"],
-  ["account", "/admin/account/profile"],
-  ["user", "/admin/user/profile"],
+  ["site", "/admin/analyze"],
+  ["account", "/admin/analyze"],
+  ["user", "/admin/analyze"],
 ])("leaves a stopped Wiki for the first visible %s section", async (permissions, destination) => {
   const accountPolicies = [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }];
   mocks.loadAdminIdentity.mockResolvedValue({

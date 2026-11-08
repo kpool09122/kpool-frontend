@@ -26,7 +26,7 @@ import { resolveAdminDestination } from "./adminNavigation";
 export const dynamic = "force-dynamic";
 
 type AdminRouteDataTarget =
-  | { section: "account" | "user" | "site-management" }
+  | { section: "analyze" | "account" | "user" | "site-management" }
   | { section: "wiki"; tab: AdminWikiTab };
 
 export async function loadAdminRouteContext(
@@ -94,6 +94,7 @@ export async function loadAdminRouteContext(
 }
 
 const resolveAdminRouteDataTarget = (slug: string[] | undefined): AdminRouteDataTarget => {
+  if (slug?.[0] === "analyze") return { section: "analyze" };
   if (slug?.[0] === "site-management") return { section: "site-management" };
   if (slug?.[0] === "account") {
     return { section: "account" };

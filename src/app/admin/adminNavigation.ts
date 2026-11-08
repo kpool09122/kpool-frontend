@@ -8,7 +8,7 @@ import { adminSectionRoutes, type AdminSection } from "./adminTypes";
 export type AdminNavigationItem = {
   section: AdminSection;
   href: string;
-  labelKey: "wikiMenu" | "siteManagementMenu" | "accountSettingsMenu" | "settingsMenu";
+  labelKey: "analyzeMenu" | "wikiMenu" | "siteManagementMenu" | "accountSettingsMenu" | "settingsMenu";
 };
 
 /** The sidebar order also determines the default landing page. */
@@ -19,6 +19,7 @@ export function getAdminNavigation(identity: AuthenticatedIdentitySummary, princ
   const wikiStopped = principalState.status === "available" && principalState.principal.status !== "active";
   return [
     ...(accountAvailable && !wikiStopped ? [{ section: "wiki" as const, href: adminSectionRoutes.wiki, labelKey: "wikiMenu" as const }] : []),
+    ...(accountAvailable ? [{ section: "analyze" as const, href: adminSectionRoutes.analyze, labelKey: "analyzeMenu" as const }] : []),
     ...(canAccessSiteManagement(identity) ? [{ section: "siteManagement" as const, href: adminSectionRoutes.siteManagement, labelKey: "siteManagementMenu" as const }] : []),
     ...(accountAvailable && getAccountIdentifierFromIdentity(identity) && hasAccountPolicy(identity) ? [{ section: "accountSettings" as const, href: adminSectionRoutes.accountSettings, labelKey: "accountSettingsMenu" as const }] : []),
     { section: "settings", href: adminSectionRoutes.settings, labelKey: "settingsMenu" },
@@ -30,6 +31,7 @@ export function getAdminInitialRoute(identity: AuthenticatedIdentitySummary, pri
 }
 
 export function resolveAdminSection(pathname: string | null): AdminSection {
+  if (pathname === "/admin/analyze" || pathname?.startsWith("/admin/analyze/")) return "analyze";
   if (pathname?.startsWith("/admin/account")) return "accountSettings";
   if (pathname?.startsWith("/admin/user")) return "settings";
   if (pathname?.startsWith("/admin/site-management")) return "siteManagement";
