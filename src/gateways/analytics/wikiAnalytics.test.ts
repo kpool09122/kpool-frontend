@@ -9,7 +9,9 @@ const path = "/ja/wiki/gr-example";
 const setup = () => {
   const browser = { location: `https://kpool.test${path}?utm_source=newsletter`, referrer: "https://search.test/" };
   const send = vi.fn();
-  return { browser, send, tracker: createWikiAnalytics(() => browser, send) };
+  return { browser, send, tracker: createWikiAnalytics(() => browser, (event) => {
+    if (event.event === "wiki_page_view" || event.event === "wiki_link_click") send(event);
+  }) };
 };
 
 describe("Wiki analytics", () => {
@@ -31,7 +33,7 @@ describe("Wiki analytics", () => {
     expect(send).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
       event: "wiki_page_view", wiki_id: "wiki-ja", wiki_translation_set_id: "group-translation-set",
-      wiki_type: "group", wiki_language: "ja", page_location: browser.location,
+      wiki_type: "group", wiki_language: "ja", page_location: browser.location.split("?")[0],
       page_referrer: "https://search.test/", page_title: "Example", target_wiki_id: null,
     }));
   });
@@ -98,7 +100,7 @@ describe("Wiki analytics", () => {
   it("queues events when the external script is blocked", () => {
     window.history.replaceState({}, "", path);
     createBrowserWikiAnalytics().pageView(path, wiki);
-    expect((window as Window & { dataLayer?: unknown[] }).dataLayer).toEqual([expect.objectContaining({ event: "wiki_page_view" })]);
+    expect((window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer?.filter((event) => event.event === "wiki_page_view")).toEqual([expect.objectContaining({ event: "wiki_page_view" })]);
   });
   it("does not break the application if the dataLayer rejects writes", () => {
     window.history.replaceState({}, "", path);
