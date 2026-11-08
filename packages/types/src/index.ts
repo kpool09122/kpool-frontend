@@ -1,3 +1,4 @@
+export * as analyzeApiTypes from "./analyze-api";
 export * as accountApiTypes from "./account-api";
 export * as identityApiTypes from "./identity-api";
 export * as siteManagementApiTypes from "./site-management-api";

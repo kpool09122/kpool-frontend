@@ -16,10 +16,10 @@ const principalState = (status: WikiPrincipalSummary["status"]): WikiPrincipalSt
 
 describe("admin navigation and initial destination", () => {
   it.each([
-    [{}, "active", ["wiki", "siteManagement", "accountSettings", "settings"], "/admin/wiki/editing"],
-    [{}, "suspended", ["siteManagement", "accountSettings", "settings"], "/admin/site-management/contacts"],
-    [{ siteManagementPrincipalStatus: "suspended" }, "forced_stop", ["accountSettings", "settings"], "/admin/account/profile"],
-    [{ siteManagementPrincipalStatus: "forced_stop", accountPolicies: [] }, "suspended", ["settings"], "/admin/user/profile"],
+    [{}, "active", ["wiki", "analyze", "siteManagement", "accountSettings", "settings"], "/admin/wiki/editing"],
+    [{}, "suspended", ["analyze", "siteManagement", "accountSettings", "settings"], "/admin/analyze"],
+    [{ siteManagementPrincipalStatus: "suspended" }, "forced_stop", ["analyze", "accountSettings", "settings"], "/admin/analyze"],
+    [{ siteManagementPrincipalStatus: "forced_stop", accountPolicies: [] }, "suspended", ["analyze", "settings"], "/admin/analyze"],
     [{ accountPrincipalStatus: "suspended" }, "active", ["settings"], "/admin/user/profile"],
     [{ account: { status: "suspended" } }, "active", ["settings"], "/admin/user/profile"],
   ] as const)("uses the first visible section for %j / Wiki %s", (overrides, status, sections, route) => {
@@ -37,7 +37,7 @@ describe("admin navigation and initial destination", () => {
 
   it("skips a hidden return destination while preserving visible deep links and public pages", () => {
     const state = principalState("suspended");
-    expect(resolveAdminDestination(identity, "/admin/wiki/submitted", state)).toBe("/admin/site-management/contacts");
+    expect(resolveAdminDestination(identity, "/admin/wiki/submitted", state)).toBe("/admin/analyze");
     expect(resolveAdminDestination(identity, "/admin/account/documents?page=2", state)).toBe("/admin/account/documents?page=2");
     expect(resolveAdminDestination(identity, "/admin/user/security?step=1", state)).toBe("/admin/user/security?step=1");
     expect(resolveAdminDestination(identity, "/admin?returnTo=%2Fja%2Fwiki%2Fexample", state)).toBe("/admin?returnTo=%2Fja%2Fwiki%2Fexample");

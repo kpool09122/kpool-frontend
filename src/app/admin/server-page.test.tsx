@@ -266,9 +266,9 @@ describe("first visible admin section", () => {
   });
 
   it.each([
-    [{ siteManagementPrincipalStatus: "active", siteManagementPrincipalIdentifier: "site-user", siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Site", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] }, "/admin/site-management/contacts"],
-    [{ accountPolicies: [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }] }, "/admin/account/profile"],
-    [{}, "/admin/user/profile"],
+    [{ siteManagementPrincipalStatus: "active", siteManagementPrincipalIdentifier: "site-user", siteManagementPolicies: [{ policyIdentifier: "site-policy", name: "Site", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] }, "/admin/analyze"],
+    [{ accountPolicies: [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }] }, "/admin/analyze"],
+    [{}, "/admin/analyze"],
   ])("skips hidden Wiki for entry and saved Wiki routes: %j", async (permissions, destination) => {
     mocks.fetchAuthenticatedIdentity.mockResolvedValue({
       identityIdentifier: "identity-1", account: { status: "active" }, accountIdentifier: "account",

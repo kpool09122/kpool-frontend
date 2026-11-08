@@ -1,5 +1,6 @@
 "use client";
 
+import { AnalyzeClient } from "../analyze/AnalyzeClient";
 import { OfficialVideoInboxClient } from "../wiki/watch-requests/OfficialVideoInboxClient";
 import { usePathname } from "next/navigation";
 import { WikiPlaylistsClient } from "../wiki/playlists/WikiPlaylistsClient";
@@ -54,7 +55,7 @@ export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
   );
 }
 
-type AdminClientPage = "accountAffiliations"
+type AdminClientPage = "analyze" | "accountAffiliations"
   | "siteManagementPrincipalGroups"
   | "siteManagementAnnouncements"
   | "siteManagementContactManagement"
@@ -86,6 +87,7 @@ type AdminClientPage = "accountAffiliations"
   | "wikiUntranslated";
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
+  if (pathname === "/admin/analyze" || pathname?.startsWith("/admin/analyze/")) return "analyze";
   if (pathname?.startsWith("/admin/site-management")) {
     if (pathname.endsWith("/contact-management")) return "siteManagementContactManagement";
     if (pathname.endsWith("/announcements")) return "siteManagementAnnouncements";
@@ -190,6 +192,7 @@ function AdminResolvedPage({
   page: AdminClientPage;
   returnTo: string | null;
 }) {
+  if (page === "analyze") return <AnalyzeClient />;
   if (page === "siteManagementContactManagement") return <SiteManagementPageClient activeTab="contactManagement"><OperatorContactsClient /></SiteManagementPageClient>;
   if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;
   if (page === "siteManagementPrincipalGroups") {
