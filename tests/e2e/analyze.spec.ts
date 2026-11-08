@@ -90,7 +90,7 @@ async function setup(page: Page) {
 for (const mobile of [false, true])
   test(`Analyze direct load and activation retry ${mobile ? "mobile" : "desktop"}`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     await setup(page);
     let enabled = false;
@@ -165,7 +165,7 @@ for (const mobile of [false, true])
       ),
     ).toBe(true);
     await page.screenshot({
-      path: `/private/tmp/kpool-574-${mobile ? "mobile" : "desktop"}.png`,
+      path: testInfo.outputPath(`analyze-${mobile ? "mobile" : "desktop"}.png`),
       fullPage: true,
     });
   });
