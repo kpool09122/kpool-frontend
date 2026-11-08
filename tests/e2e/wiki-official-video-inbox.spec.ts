@@ -166,6 +166,7 @@ for (const width of [1280, 390])
     await expect(playing).toContainText("Most requested (1/3)");
     if (width < 640) {
       await expect(playing.getByRole("button", { name: "Like: Most requested", exact: true })).toHaveCount(0);
+      await playing.getByRole("button", { name: "Show playback controls" }).click();
       await playing.getByRole("button", { name: "Play in fullscreen" }).click();
     }
     const like = playing.getByRole("button", {

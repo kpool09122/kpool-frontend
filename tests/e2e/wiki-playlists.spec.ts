@@ -373,6 +373,7 @@ for (const width of [1280, 390])
     const mini = page.getByRole("region", { name: "Mini player", exact: true });
     if (width < 640) {
       await expect(mini.getByRole("button", { name: "Loop playback" })).toHaveCount(0);
+      await mini.getByRole("button", { name: "Show playback controls" }).click();
       await mini.getByRole("button", { name: "Play in fullscreen" }).click();
     }
     await expect(
