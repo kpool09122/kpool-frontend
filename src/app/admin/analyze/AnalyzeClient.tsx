@@ -10,6 +10,9 @@ import {
 import { useAdmin } from "../AdminProvider";
 import { getAdminAccountScope } from "../accountScope";
 
+const statusErrorClassName =
+  "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
+
 export function AnalyzeClient() {
   const { currentIdentity, refreshIdentity, t } = useAdmin();
   const auth = useAuthStore();
@@ -136,14 +139,13 @@ function AnalyzeWorkspace({
   return (
     <section
       aria-label={t.title}
-      className="space-y-4 rounded-xl border border-stroke-subtle bg-surface-raised p-6 shadow-soft"
+      className="space-y-4"
       aria-busy={busy || principal.isFetching}
     >
-      <h2 className="text-xl font-semibold">{t.title}</h2>
       {!state || principal.isPending ? <p role="status">{t.loading}</p> : null}
       {feedback === "duplicate" ? <p role="status">{t.duplicate}</p> : null}
       {forbidden || stopped || denied ? (
-        <p role="alert">
+        <p role="alert" className={statusErrorClassName}>
           {stopped
             ? state?.status === "available" &&
               state.principal.status === "forced_stop"
@@ -152,24 +154,21 @@ function AnalyzeWorkspace({
             : t.forbidden}
         </p>
       ) : error ? (
-        <p role="alert">
+        <p role="alert" className={statusErrorClassName}>
           {feedback === "refreshError" ? t.refreshError : t.error}
         </p>
       ) : null}
       {state?.status === "missing" &&
       !forbidden &&
       feedback !== "refreshError" ? (
-        <>
-          <p>{t.intro}</p>
-          <button
-            type="button"
-            disabled={busy || principal.isFetching}
-            onClick={() => void activate()}
-            className="rounded-lg bg-brand-primary px-4 py-3 font-semibold text-white disabled:opacity-50"
-          >
-            {busy ? t.enabling : t.enable}
-          </button>
-        </>
+        <button
+          type="button"
+          disabled={busy || principal.isFetching}
+          onClick={() => void activate()}
+          className="rounded-lg bg-brand-primary px-4 py-3 font-semibold text-white disabled:opacity-50"
+        >
+          {busy ? t.enabling : t.enable}
+        </button>
       ) : null}
       {state?.status === "available" &&
       !stopped &&
@@ -191,7 +190,6 @@ function AnalyzeWorkspace({
           {t.retry}
         </button>
       ) : null}
-      <p className="text-sm text-text-muted">{t.retention}</p>
     </section>
   );
 }

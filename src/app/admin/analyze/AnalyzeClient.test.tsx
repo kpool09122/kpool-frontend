@@ -91,7 +91,7 @@ describe("Analyze enrollment", () => {
       .mockImplementation(async () => Response.json(principal));
     renderPage();
     fireEvent.click(
-      await screen.findByRole("button", { name: "分析の利用を開始" }),
+      await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByText("分析を利用できます。");
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
@@ -139,7 +139,7 @@ describe("Analyze enrollment", () => {
       renderPage();
       await screen.findByRole("alert");
       expect(
-        screen.queryByRole("button", { name: "分析の利用を開始" }),
+        screen.queryByRole("button", { name: "分析サービスの利用を開始" }),
       ).not.toBeInTheDocument();
       expect(mocks.fetch).toHaveBeenCalledTimes(1);
     },
@@ -151,13 +151,13 @@ describe("Analyze enrollment", () => {
       .mockResolvedValue(Response.json({ ...principal, policies: [] }));
     renderPage();
     fireEvent.click(
-      await screen.findByRole("button", { name: "分析の利用を開始" }),
+      await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByText(
       "すでに有効化されています。現在の権限を確認しました。",
     );
     expect(
-      screen.queryByRole("button", { name: "分析の利用を開始" }),
+      screen.queryByRole("button", { name: "分析サービスの利用を開始" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("権限");
   });
@@ -169,10 +169,10 @@ describe("Analyze enrollment", () => {
       .mockImplementation(async () => Response.json(principal));
     renderPage();
     fireEvent.click(
-      await screen.findByRole("button", { name: "分析の利用を開始" }),
+      await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByRole("alert");
-    fireEvent.click(screen.getByRole("button", { name: "分析の利用を開始" }));
+    fireEvent.click(screen.getByRole("button", { name: "分析サービスの利用を開始" }));
     await screen.findByText("分析を利用できます。");
   });
   it("ignores a late activation result after account switch", async () => {
@@ -187,7 +187,7 @@ describe("Analyze enrollment", () => {
       );
     renderPage();
     fireEvent.click(
-      await screen.findByRole("button", { name: "分析の利用を開始" }),
+      await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     useAuthStore.setState({
       identity: { ...mocks.identity, accountIdentifier: "account-b" },
@@ -227,13 +227,13 @@ describe("Analyze enrollment", () => {
       .mockImplementation(async () => Response.json(principal));
     renderPage();
     fireEvent.click(
-      await screen.findByRole("button", { name: "分析の利用を開始" }),
+      await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "有効化の処理後",
     );
     expect(
-      screen.queryByRole("button", { name: "分析の利用を開始" }),
+      screen.queryByRole("button", { name: "分析サービスの利用を開始" }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "状態を再取得" }));
     await screen.findByText("分析を利用できます。");
@@ -251,7 +251,7 @@ describe("Analyze enrollment", () => {
       .mockImplementation(async () => Response.json(principal));
     renderPage();
     fireEvent.click(
-      await screen.findByRole("button", { name: "分析の利用を開始" }),
+      await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByRole("alert");
     expect(screen.queryByText("分析を利用できます。")).not.toBeInTheDocument();
@@ -268,7 +268,7 @@ describe("Analyze enrollment", () => {
     const previous = mocks.identity;
     mocks.identity = { ...previous, accountIdentifier: "account-b" };
     useAuthStore.setState({ identity: mocks.identity });
-    await screen.findByRole("button", { name: "分析の利用を開始" });
+    await screen.findByRole("button", { name: "分析サービスの利用を開始" });
     expect(screen.queryByText("分析を利用できます。")).not.toBeInTheDocument();
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
     mocks.identity = previous;

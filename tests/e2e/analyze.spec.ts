@@ -132,13 +132,13 @@ for (const mobile of [false, true])
         .getByRole("button", { name: "管理画面メニューを閉じる" })
         .click();
     await page
-      .getByRole("button", { name: "分析の利用を開始", exact: true })
+      .getByRole("button", { name: "分析サービスの利用を開始", exact: true })
       .click();
     await expect(
       page.getByRole("region", { name: "分析の利用" }).getByRole("alert"),
     ).toContainText("失敗");
     await page
-      .getByRole("button", { name: "分析の利用を開始", exact: true })
+      .getByRole("button", { name: "分析サービスの利用を開始", exact: true })
       .click();
     await expect(
       page.getByText("分析を利用できます。", { exact: true }),
@@ -184,7 +184,7 @@ test("Analyze 403 is never offered re-enrollment", async ({ page }) => {
     page.getByRole("region", { name: "分析の利用" }).getByRole("alert"),
   ).toContainText("権限");
   await expect(
-    page.getByRole("button", { name: "分析の利用を開始", exact: true }),
+    page.getByRole("button", { name: "分析サービスの利用を開始", exact: true }),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "状態を再取得" }).click();
   await expect(
