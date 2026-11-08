@@ -51,6 +51,7 @@ for (const width of [1280, 390]) test(`mixed providers keep one host and resume 
   const mini = page.getByRole("region", { name: "Mini player" });
   await expect(mini).toContainText("TikTok one (2/4)");
   await expect(frame).toHaveAttribute("data-persistent", "true");
+  await revealMiniControls(page);
   await mini.getByRole("button", { name: "Play in fullscreen" }).click();
   await expect(mini.getByRole("button", { name: "Exit fullscreen" })).toBeVisible();
   await expect(frame).toHaveAttribute("data-persistent", "true");
@@ -68,6 +69,11 @@ for (const width of [1280, 390]) test(`mixed providers keep one host and resume 
   await expect(frame).toHaveCount(0);
   await expect(page.locator('iframe[src*="youtube-nocookie"]')).toHaveCount(1);
 });
+
+async function revealMiniControls(page: Page) {
+  const layer = page.locator("[data-player-move-surface]");
+  if (await layer.isVisible()) await layer.click();
+}
 
 async function setupPlayback(page: Page) {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -98,7 +104,7 @@ async function setupPlayback(page: Page) {
 }
 
 for (const provider of ["youtube", "tiktok"] as const) {
-  test(`mobile mini player has no frame and only two overlay controls (${provider})`, async ({ page }) => {
+  test(`mobile mini player has no frame and only two overlay controls (${provider})`, async ({ page }, testInfo) => {
     test.setTimeout(90_000);
     await setupPlayback(page);
     if (provider === "tiktok") {
@@ -118,7 +124,18 @@ for (const provider of ["youtube", "tiktok"] as const) {
     await expect(mini).toHaveCSS("border-top-width", "0px");
     await expect(mini).toHaveCSS("border-radius", "0px");
     await expect(frame.locator("..")).toHaveCSS("border-radius", "0px");
-    await expect(mini.locator('[data-mini-player-bar="top"]')).toHaveCSS("position", "absolute");
+    await expect(mini.locator("[data-mini-player-bar]")).toHaveCount(0);
+    await expect(mini.locator("[data-player-resize]")).toHaveCount(0);
+    await expect(mini.getByRole("button", { name: "Show playback controls" })).toBeVisible();
+    await expect(mini.getByRole("button", { name: "Play in fullscreen" })).toBeHidden();
+    await revealMiniControls(page);
+    await expect(mini.locator("[data-mini-player-icons]")).toHaveCSS("position", "absolute");
+    await expect(mini.locator("[data-mini-player-icons]")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    const close = mini.getByRole("button", { name: "Stop playback" });
+    await expect(close).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(close).toHaveCSS("background-color", /0\.65/);
+    await expect(close).toHaveCSS("width", "44px");
+    await mini.screenshot({ path: testInfo.outputPath(`mobile-mini-icons-${provider}.png`), animations: "disabled" });
     await expect(mini.getByRole("button")).toHaveCount(2);
     await expect(mini.getByRole("button", { name: "Play in fullscreen" })).toBeVisible();
     await expect(mini.getByRole("button", { name: "Stop playback" })).toBeVisible();
@@ -128,7 +145,7 @@ for (const provider of ["youtube", "tiktok"] as const) {
     expect(miniBox.width).toBeCloseTo((390 - 32) * 2 / 3, 0);
     expect(Math.abs(miniBox.width - frameBox.width)).toBeLessThan(1);
     expect(Math.abs(miniBox.height - frameBox.height)).toBeLessThan(1);
-    const bar = mini.locator('[data-mini-player-bar="top"]');
+    const bar = mini.locator("[data-mini-player-icons]");
     await page.mouse.move(0, 0);
     await expect(bar).toHaveAttribute("inert", "");
     await expect(bar).toHaveCSS("opacity", "0");
@@ -141,9 +158,11 @@ for (const provider of ["youtube", "tiktok"] as const) {
     await expect(bar).not.toHaveAttribute("inert");
     await expect(mini.getByRole("button", { name: "Play in fullscreen" })).toBeVisible();
     await expect(frame).toHaveAttribute("data-mobile-player", "original");
+    await revealMiniControls(page);
     await mini.getByRole("button", { name: "Play in fullscreen" }).click();
     await expect(mini.getByRole("button", { name: "Next video" })).toBeVisible();
     await mini.getByRole("button", { name: "Exit fullscreen" }).click();
+    await revealMiniControls(page);
     await expect(mini.getByRole("button")).toHaveCount(2);
     await expect(frame).toHaveAttribute("data-mobile-player", "original");
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -196,6 +215,7 @@ for (const source of ["body", "single", "queue"] as const) {
     await expect(frame).toHaveAttribute("data-original-player", "true");
     await expect(frame).toHaveCount(1);
     await page.getByRole("button", { name: "Continue in mini player" }).click();
+    await revealMiniControls(page);
     await page.getByRole("region", { name: "Mini player" }).getByRole("button", { name: "Stop playback" }).click();
     await expect(placeholder).toHaveCount(0);
     await expect(frame).toHaveCount(0);
@@ -319,6 +339,7 @@ for (const mini of [false, true]) {
     await expect(host).toContainText("First video (1/2)");
     await page.locator("iframe").evaluate((frame) => frame.setAttribute("data-persisted-player", "true"));
     const original = (await host.boundingBox())!;
+    await revealMiniControls(page);
     await host.getByRole("button", { name: "Play in fullscreen" }).click();
     await expect.poll(() => host.evaluate((element) => document.fullscreenElement === element)).toBe(true);
     await expect(host.getByRole("button", { name: "Exit fullscreen" })).toBeVisible();
@@ -337,10 +358,12 @@ for (const mini of [false, true]) {
     await page.screenshot({ path: testInfo.outputPath("kpool-fullscreen.png") });
     await host.getByRole("button", { name: "Exit fullscreen" }).click();
     await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+    await revealMiniControls(page);
     await expect(host.getByRole("button", { name: "Play in fullscreen" })).toBeVisible();
     await expect.poll(async () => Math.abs((await host.boundingBox())!.width - original.width)).toBeLessThan(2);
     await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
     // Ending the session removes its fullscreen element and exits fullscreen.
+    await revealMiniControls(page);
     await host.getByRole("button", { name: "Play in fullscreen" }).click();
     await host.getByRole("button", { name: "Stop playback" }).click();
     await expect(host).toHaveCount(0);
@@ -639,9 +662,9 @@ test("mini player preserves the iframe across navigation, dragging and video tak
   const touch = await page.context().newCDPSession(page);
   await touch.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 2 });
   const pinch = async (startDistance: number, endDistance: number) => {
-    const bar = (await mini.locator('[data-mini-player-bar="top"]').boundingBox())!;
-    const dragWidth = bar.width - 96;
-    const center = { x: bar.x + dragWidth / 2, y: bar.y + bar.height / 2 };
+    const layer = (await mini.locator("[data-player-move-surface]").boundingBox())!;
+    const dragWidth = layer.width;
+    const center = { x: layer.x + dragWidth / 2, y: layer.y + layer.height / 2 };
     const start = Math.min(startDistance, dragWidth - 16);
     const points = (distance: number) => [
       { id: 1, x: center.x - distance / 2, y: center.y },
@@ -651,6 +674,13 @@ test("mini player preserves the iframe across navigation, dragging and video tak
     await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points(start * endDistance / startDistance) });
     await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   };
+  const beforeDrag = (await mini.boundingBox())!;
+  const dragPoint = { x: beforeDrag.x + beforeDrag.width / 2, y: beforeDrag.y + beforeDrag.height / 2 };
+  await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [dragPoint] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: dragPoint.x + 30, y: dragPoint.y - 60 }] });
+  await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await expect.poll(async () => (await mini.boundingBox())!.y).toBeLessThan(beforeDrag.y - 30);
+  await expect(mini.getByRole("button", { name: "Show playback controls" })).toBeVisible();
   const beforePinch = (await mini.boundingBox())!;
   await pinch(160, 112);
   await expect.poll(async () => (await mini.boundingBox())!.width).toBeLessThan(beforePinch.width - 30);
@@ -658,6 +688,7 @@ test("mini player preserves the iframe across navigation, dragging and video tak
   await pinch(120, 180);
   await expect.poll(async () => (await mini.boundingBox())!.width).toBeGreaterThan(shrunk.width + 30);
   await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+  await expect(mini.getByRole("button", { name: "Show playback controls" })).toBeVisible();
   const fitted = (await mini.boundingBox())!;
   expect(fitted.x + fitted.width).toBeLessThanOrEqual(390);
   expect(fitted.y + fitted.height).toBeLessThanOrEqual(700);

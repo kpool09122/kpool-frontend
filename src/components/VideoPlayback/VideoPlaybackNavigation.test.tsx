@@ -198,7 +198,7 @@ it("keeps the fullscreen bar visible during hover and keyboard focus, then resum
   expect(bar).toHaveAttribute("inert");
 });
 
-it("hides the mobile mini player bar after three seconds, reveals it on tap and keeps desktop controls visible", () => {
+it("starts mobile mini playback behind a move layer, restores it after three seconds and keeps desktop controls visible", () => {
   vi.useFakeTimers();
   let mobile = true;
   const listeners = new Set<() => void>();
@@ -214,16 +214,18 @@ it("hides the mobile mini player bar after three seconds, reveals it on tap and 
   });
   const host = screen.getByRole("region", { name: "Mini player" });
   const player = screen.getByTestId("player");
-  const bar = host.querySelector('[data-mini-player-bar="top"]')!;
-  act(() => vi.advanceTimersByTime(2999));
-  expect(bar).not.toHaveAttribute("inert");
-  act(() => vi.advanceTimersByTime(1));
+  expect(host.querySelector("[data-mini-player-bar]")).toBeNull();
+  expect(host.querySelector("[data-player-resize]")).toBeNull();
+  const bar = host.querySelector("[data-mini-player-icons]")!;
   expect(bar).toHaveAttribute("inert");
   expect(bar).toHaveClass("opacity-0");
   fireEvent.click(screen.getByRole("button", { name: "Show playback controls" }));
   expect(bar).not.toHaveAttribute("inert");
   expect(bar).toHaveClass("opacity-100");
-  act(() => vi.advanceTimersByTime(3000));
+  expect(screen.queryByRole("button", { name: "Show playback controls" })).toBeNull();
+  act(() => vi.advanceTimersByTime(2999));
+  expect(bar).not.toHaveAttribute("inert");
+  act(() => vi.advanceTimersByTime(1));
   expect(bar).toHaveAttribute("inert");
   act(() => { mobile = false; listeners.forEach((listener) => listener()); });
   expect(bar).not.toHaveAttribute("inert");
@@ -247,6 +249,7 @@ it.each(["queue", "single"] as const)("defaults mobile fullscreen to landscape, 
   const player = screen.getByTestId("player");
   const surface = host.querySelector<HTMLElement>("[data-player-surface]")!;
   expect(screen.queryByRole("button", { name: "Switch to portrait" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Show playback controls" }));
   fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
   expect(surface.style.transform).toContain("rotate(90deg)");
   const buttons = host.querySelector('[data-fullscreen-bar="top"]')!.querySelectorAll("button");
@@ -267,6 +270,7 @@ it.each(["queue", "single"] as const)("defaults mobile fullscreen to landscape, 
   expect(surface.style.transform).toContain("rotate(90deg)");
   fireEvent.click(screen.getByRole("button", { name: "Exit fullscreen" }));
   expect(surface.style.transform).toBe("");
+  fireEvent.click(screen.getByRole("button", { name: "Show playback controls" }));
   fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
   expect(screen.getByRole("button", { name: "Switch to portrait" })).toBeInTheDocument();
   expect(surface.style.transform).toBe("");
@@ -279,4 +283,56 @@ it("keeps orientation controls out of desktop fullscreen", () => {
   act(() => store.getState().start("playlist", tracks, "queue"));
   fireEvent.click(screen.getByRole("button", { name: "Play in fullscreen" }));
   expect(screen.queryByRole("button", { name: /Switch to (portrait|landscape)/ })).toBeNull();
+});
+
+
+it("moves and pinches across the mobile video surface without revealing controls, and only unlocks on a tap", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("innerWidth", 390);
+  vi.stubGlobal("innerHeight", 844);
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} }));
+  vi.stubGlobal("PointerEvent", function (type: string, init: PointerEventInit) {
+    return Object.assign(new MouseEvent(type, init), {
+      pointerId: init.pointerId ?? 0,
+      pointerType: init.pointerType ?? "touch",
+    });
+  });
+  setup();
+  act(() => {
+    store.getState().start("playlist", tracks, "queue");
+    store.getState().detach();
+  });
+  const host = screen.getByRole("region", { name: "Mini player" });
+  host.setPointerCapture = vi.fn();
+  const layer = screen.getByRole("button", { name: "Show playback controls" });
+  const player = screen.getByTestId("player");
+  const pointer = (pointerId: number, clientX: number, clientY = 500) => ({ pointerId, pointerType: "touch", button: 0, clientX, clientY });
+  const initialLeft = host.style.left;
+  fireEvent.pointerDown(layer, pointer(1, 200));
+  fireEvent.pointerMove(host, pointer(1, 120, 400));
+  fireEvent.pointerUp(host, pointer(1, 120, 400));
+  expect(host.style.left).not.toBe(initialLeft);
+  expect(layer).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Play in fullscreen" })).toBeNull();
+  const initialWidth = parseFloat(host.style.width);
+  fireEvent.pointerDown(layer, pointer(2, 100));
+  fireEvent.pointerDown(layer, pointer(3, 200));
+  fireEvent.pointerMove(host, pointer(3, 300));
+  fireEvent.pointerUp(host, pointer(2, 100));
+  fireEvent.pointerUp(host, pointer(3, 300));
+  expect(parseFloat(host.style.width)).toBeGreaterThan(initialWidth);
+  expect(layer).toBeInTheDocument();
+  fireEvent.pointerDown(layer, pointer(4, 200));
+  fireEvent.pointerCancel(host, pointer(4, 200));
+  expect(layer).toBeInTheDocument();
+  fireEvent.pointerDown(layer, pointer(5, 200));
+  fireEvent.pointerUp(host, pointer(5, 200));
+  expect(screen.queryByRole("button", { name: "Show playback controls" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Play in fullscreen" })).toBeInTheDocument();
+  act(() => vi.advanceTimersByTime(3000));
+  expect(screen.getByRole("button", { name: "Show playback controls" })).toBeInTheDocument();
+  expect(screen.getByTestId("player")).toBe(player);
+  fireEvent.keyDown(screen.getByRole("button", { name: "Show playback controls" }), { key: "Enter" });
+  fireEvent.click(screen.getByRole("button", { name: "Stop playback" }));
+  expect(screen.queryByRole("region", { name: "Mini player" })).toBeNull();
 });
