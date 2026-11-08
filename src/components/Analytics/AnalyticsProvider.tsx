@@ -27,6 +27,22 @@ function AnalyticsNavigationObserver({ pathname, tracker }: {
   useEffect(() => {
     tracker.observeNavigation(pathname);
   }, [pathname, searchParams, tracker]);
+  useEffect(() => {
+    const visibility = () => {
+      if (document.visibilityState === "hidden") tracker.suspend();
+      else tracker.resume();
+    };
+    const hide = () => tracker.suspend();
+    const show = () => tracker.resume();
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("pagehide", hide);
+    window.addEventListener("pageshow", show);
+    return () => {
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("pagehide", hide);
+      window.removeEventListener("pageshow", show);
+    };
+  }, [tracker]);
   return null;
 }
 

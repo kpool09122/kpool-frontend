@@ -18,7 +18,7 @@ test("public Wiki views survive client navigation and exclude editing while GTM 
     wiki_id: "gr-twice", wiki_translation_set_id: "translation-set-gr-twice",
     wiki_language: "ja", wiki_type: "group",
   });
-  expect((await wikiEvents(page))[0].page_location).toContain("utm_source=analytics-e2e");
+  expect((await wikiEvents(page))[0].page_location).not.toContain("?");
 
   // Opening content rerenders the page but is not another view.
   await page.getByTestId("section-toggle-sec-twice-overview").click();
@@ -27,6 +27,13 @@ test("public Wiki views survive client navigation and exclude editing while GTM 
 
   await page.getByRole("link", { name: "セクションを編集: Overview" }).click();
   await expect(page).toHaveURL(/\/wiki\/gr-twice\/edit\?resourceType=group$/);
+  await expect.poll(() => page.evaluate(() => (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer?.filter((event) => event.event === "app_page_view").length ?? 0)).toBe(1);
+  const boundary = await page.evaluate(() => (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? []);
+  const end = boundary.findIndex((event) => event.event === "analytics_page_end" && event.wiki_id === "gr-twice");
+  const editor = boundary.findIndex((event) => event.event === "app_page_view");
+  expect(end).toBeGreaterThan(-1);
+  expect(editor).toBeGreaterThan(end);
+  expect(boundary[editor]).toMatchObject({ wiki_id: null, wiki_translation_set_id: null, wiki_language: null, page_title: "k-pool" });
   expect((await wikiEvents(page)).filter((event) => event.event === "wiki_page_view")).toHaveLength(1);
   await page.goBack();
   await expect.poll(async () => (await wikiEvents(page)).filter((event) => event.event === "wiki_page_view").length).toBe(2);

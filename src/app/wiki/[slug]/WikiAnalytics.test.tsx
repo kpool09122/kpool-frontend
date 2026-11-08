@@ -18,6 +18,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("next/script", () => ({ default: () => null }));
 const wiki = { ...createMockWikiDetail("gr-example"), language: "ja" };
 const events = () => (window as Window & { dataLayer?: Array<Record<string, unknown>> }).dataLayer ?? [];
+const views = () => events().filter((event) => event.event === "wiki_page_view");
 
 afterEach(() => {
   cleanup();
@@ -27,6 +28,21 @@ afterEach(() => {
 });
 
 describe("public Wiki measurement boundary", () => {
+  it("flushes background and pagehide once and resumes on pageshow", () => {
+    window.history.replaceState({}, "", navigation.pathname);
+    const { unmount } = render(<AnalyticsProvider containerId="GTM-TEST"><PublicWikiAnalytics wiki={wiki}><span>Wiki</span></PublicWikiAnalytics></AnalyticsProvider>);
+    const ends = () => events().filter((event) => event.event === "analytics_page_end" && event.wiki_id === wiki.wikiIdentifier);
+    fireEvent(window, new Event("pagehide"));
+    fireEvent(window, new Event("pagehide"));
+    expect(ends()).toHaveLength(1);
+    fireEvent(window, new Event("pageshow"));
+    fireEvent(window, new Event("pagehide"));
+    expect(ends()).toHaveLength(2);
+    unmount();
+    fireEvent(window, new Event("pageshow"));
+    fireEvent(window, new Event("pagehide"));
+    expect(ends()).toHaveLength(2);
+  });
   it("tracks query-only navigation as the latest referrer without counting another Wiki view", () => {
     const navigate = (url: string) => {
       window.history.replaceState({}, "", url);
@@ -42,18 +58,18 @@ describe("public Wiki measurement boundary", () => {
     rerender(ui());
     navigate("/ja/wiki/gr-example");
     rerender(ui());
-    expect(events()).toHaveLength(1);
-    expect(events()[0]).toMatchObject({ event: "wiki_page_view", page_referrer: `${window.location.origin}/ja?source=new` });
+    expect(views()).toHaveLength(1);
+    expect(views()[0]).toMatchObject({ event: "wiki_page_view", page_referrer: `${window.location.origin}/ja` });
 
     navigate("/ja/wiki/gr-example?tab=overview");
     rerender(ui());
-    expect(events()).toHaveLength(1);
+    expect(views()).toHaveLength(1);
     navigate("/ja");
     rerender(ui());
     navigate("/ja/wiki/gr-example?tab=overview");
     rerender(ui());
-    expect(events()).toHaveLength(2);
-    expect(events()[1]).toMatchObject({ event: "wiki_page_view", page_referrer: `${window.location.origin}/ja` });
+    expect(views()).toHaveLength(2);
+    expect(views()[1]).toMatchObject({ event: "wiki_page_view", page_referrer: `${window.location.origin}/ja` });
   });
 
   it("counts one successful view in StrictMode and measures keyboard/modified/middle clicks without changing navigation", () => {
@@ -87,6 +103,7 @@ describe("public Wiki measurement boundary", () => {
       <WikiDetailPage language="ja" slug={wiki.slug} wikiState={{ status: "loading" }} />
       <WikiDetailPage language="ja" slug={wiki.slug} wikiState={{ status: "error", message: "failure" }} />
     </I18nProvider></AnalyticsProvider>);
-    expect(events()).toEqual([]);
+    expect(views()).toEqual([]);
+    expect(events().at(-1)).toMatchObject({ event: "analytics_context", wiki_id: null });
   });
 });
