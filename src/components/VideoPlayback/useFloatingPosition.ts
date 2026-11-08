@@ -19,12 +19,13 @@ const viewportSize = () => ({
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const midpoint = (a: Point, b: Point) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-export function useFloatingPosition(root: { current: HTMLElement | null }, floating: boolean) {
+export function useFloatingPosition(root: { current: HTMLElement | null }, floating: boolean, onTap?: () => void) {
   const [position, setPosition] = useState<Point | null>(null);
   const [preferredWidth, setPreferredWidth] = useState<number | null>(null);
   const [viewport, setViewport] = useState(viewportSize);
   const [chrome, setChrome] = useState<PlayerChrome>({ width: 26, height: 106 });
   const interaction = useRef<Interaction | null>(null);
+  const tap = useRef<{ pointerId: number; start: Point } | null>(null);
   const touches = useRef(new Map<number, Point>());
   const width = fitPlayerWidth(preferredWidth ?? initialPlayerWidth(viewport, chrome), viewport, chrome);
   const size = { width, height: playerHeight(width, chrome) };
@@ -51,6 +52,7 @@ export function useFloatingPosition(root: { current: HTMLElement | null }, float
     window.addEventListener("resize", measure);
     return () => {
       interaction.current = null;
+      tap.current = null;
       activeTouches.clear();
       observer?.disconnect();
       window.removeEventListener("resize", measure);
@@ -71,12 +73,15 @@ export function useFloatingPosition(root: { current: HTMLElement | null }, float
     setPosition({ x: frame.x, y: frame.y });
   };
   const finishPointer = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    const tapped = event.type === "pointerup" && tap.current?.pointerId === event.pointerId;
+    tap.current = null;
     touches.current.delete(event.pointerId);
     const current = interaction.current;
     if (current?.kind === "pinch" || (current && current.pointerId === event.pointerId)) {
       interaction.current = null;
     }
-  }, []);
+    if (tapped) onTap?.();
+  }, [onTap]);
 
   return {
     style: {
@@ -87,8 +92,11 @@ export function useFloatingPosition(root: { current: HTMLElement | null }, float
       onPointerDown: (event: React.PointerEvent<HTMLElement>) => {
         if (event.button !== 0 || !(event.target instanceof Element)) return;
         const target = event.target;
-        if (target.closest("[data-player-interactive], button, a, input, select, textarea, [role='button']")) return;
+        const moveSurface = target.closest("[data-player-move-surface]");
+        if (!moveSurface && target.closest("[data-player-interactive], button, a, input, select, textarea, [role='button']")) return;
         const point = { x: event.clientX, y: event.clientY };
+        tap.current = moveSurface && !interaction.current && !touches.current.size
+          ? { pointerId: event.pointerId, start: point } : null;
         if (event.pointerType === "touch") {
           if (touches.current.size >= 2) return;
           touches.current.set(event.pointerId, point);
@@ -113,6 +121,7 @@ export function useFloatingPosition(root: { current: HTMLElement | null }, float
       },
       onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
         const point = { x: event.clientX, y: event.clientY };
+        if (tap.current && distance(tap.current.start, point) > 8) tap.current = null;
         if (touches.current.has(event.pointerId)) touches.current.set(event.pointerId, point);
         const current = interaction.current;
         if (!current) return;

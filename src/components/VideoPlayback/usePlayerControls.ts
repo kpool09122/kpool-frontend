@@ -4,8 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const hideDelay = 3000;
 
-export function usePlayerControls(autoHide: boolean) {
-  const [hidden, setHidden] = useState(false);
+export function usePlayerControls(autoHide: boolean, startHidden = false) {
+  const [hidden, setHidden] = useState(startHidden);
+  const [mode, setMode] = useState({ autoHide, startHidden });
+  if (mode.autoHide !== autoHide || mode.startHidden !== startHidden) {
+    setMode({ autoHide, startHidden });
+    setHidden(startHidden);
+  }
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const hovering = useRef(false);
   const focused = useRef(false);
@@ -26,7 +31,6 @@ export function usePlayerControls(autoHide: boolean) {
       clearTimeout(timer.current);
       hovering.current = false;
       focused.current = false;
-      setHidden(false);
     };
   }, [scheduleHide]);
 
