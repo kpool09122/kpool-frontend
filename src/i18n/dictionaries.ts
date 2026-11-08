@@ -1,4 +1,5 @@
 import type { Locale } from "./locales";
+import { analyzeReportDictionaries } from "./analyzeReports";
 
 const ja = {
   announcements: {
@@ -374,6 +375,7 @@ const ja = {
     expandSidebar: "管理画面メニューを開く",
     analyzeMenu: "分析",
     analyze: {
+      report: analyzeReportDictionaries.ja,
       title: "分析の利用",
       loading: "分析の状態を確認しています…",
       enable: "分析サービスの利用を開始",
@@ -1941,6 +1943,7 @@ const en: typeof ja = {
     expandSidebar: "Expand admin menu",
     analyzeMenu: "Analytics",
     analyze: {
+      report: analyzeReportDictionaries.en,
       title: "Use analytics",
       loading: "Checking analytics status…",
       enable: "Start using the analytics service",
@@ -3509,6 +3512,7 @@ const ko: typeof ja = {
     expandSidebar: "관리자 화면 메뉴 열기",
     analyzeMenu: "분석",
     analyze: {
+      report: analyzeReportDictionaries.ko,
       title: "분석 이용",
       loading: "분석 상태를 확인하고 있습니다…",
       enable: "분석 서비스 이용 시작",

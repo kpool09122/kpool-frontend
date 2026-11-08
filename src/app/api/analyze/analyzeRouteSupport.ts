@@ -6,11 +6,13 @@ import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
 export async function forwardAnalyzePrincipal(
   request: NextRequest,
   method: "get" | "post",
+  reportPath?: "/app/daily-summary" | "/wiki/daily-summary",
 ) {
   const endpoint = analyzeApiTypes.analyzeApi.api.find(
     (item) =>
       item.method === method &&
-      item.path === (method === "get" ? "/principal/me" : "/principals"),
+      item.path ===
+        (reportPath ?? (method === "get" ? "/principal/me" : "/principals")),
   )!;
   const cookies: string[] = [];
   const respond = (body: unknown, status: number) => {
@@ -38,7 +40,15 @@ export async function forwardAnalyzePrincipal(
   if (language) headers["Accept-Language"] = language;
   try {
     // Never forward caller-supplied identity/account or registration bodies.
-    const upstream = await fetch(`${base}${endpoint.path}`, {
+    const query = new URLSearchParams();
+    if (reportPath && "parameters" in endpoint) {
+      for (const parameter of endpoint.parameters) {
+        const value = request.nextUrl.searchParams.get(parameter.name);
+        if (value !== null) query.set(parameter.name, value);
+      }
+    }
+    const suffix = query.size ? `?${query}` : "";
+    const upstream = await fetch(`${base}${endpoint.path}${suffix}`, {
       method: method.toUpperCase(),
       headers,
       cache: "no-store",

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures";
+import { appReport, wikiReport } from "../fixtures/analyzeReports";
 const identity = {
   identityIdentifier: "11111111-1111-1111-1111-111111111111",
   identityName: "member",
@@ -70,16 +71,14 @@ async function setup(page: Page) {
       path: "/",
     },
   ]);
-  await page
-    .context()
-    .addCookies([
-      {
-        name: "kpool-e2e-site-management",
-        value: "administrator",
-        domain: "127.0.0.1",
-        path: "/",
-      },
-    ]);
+  await page.context().addCookies([
+    {
+      name: "kpool-e2e-site-management",
+      value: "administrator",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
   await page.route("**/api/identity/auth/me", (route) =>
     route.fulfill({ json: identity }),
   );
@@ -169,6 +168,139 @@ for (const mobile of [false, true])
       fullPage: true,
     });
   });
+test.describe("Analyze reports", () => {
+  test.use({ hasTouch: true });
+  for (const mobile of [false, true])
+    test(`report filters, map, table and revoked access ${mobile ? "mobile" : "desktop"}`, async ({
+      page,
+    }, testInfo) => {
+      if (mobile) await page.setViewportSize({ width: 390, height: 844 });
+      await setup(page);
+      await page.route("**/api/analyze/principal/me", (route) =>
+        route.fulfill({ json: principal }),
+      );
+      let denied = false;
+      const queries: URL[] = [];
+      await page.route(/\/api\/analyze\/(app|wiki)\/daily-summary/, (route) => {
+        const url = new URL(route.request().url());
+        queries.push(url);
+        return route.fulfill({
+          status: denied ? 403 : 200,
+          json: denied
+            ? {}
+            : url.pathname.includes("/app/")
+              ? appReport
+              : wikiReport,
+        });
+      });
+      await page.goto("/admin/analyze");
+      const dashboard = page.getByRole("region", {
+        name: "分析レポート",
+        exact: true,
+      });
+      const views = dashboard.getByRole("region", {
+        name: "閲覧回数",
+        exact: true,
+      });
+      await expect(views.getByTestId("metric-total")).toHaveText(
+        "9,007,199,254,740,993",
+      );
+      await expect(
+        dashboard
+          .getByRole("region", { name: "提出回数", exact: true })
+          .getByTestId("metric-actors"),
+      ).toHaveText("3");
+      const korea = views.locator('path[data-country="KR"]');
+      await korea.scrollIntoViewIfNeeded();
+      await korea.hover();
+      await expect(views.getByTestId("country-detail")).toContainText(
+        "(KR): 12",
+      );
+      const japan = views.locator('path[data-country="JP"]');
+      await japan.focus();
+      await page.keyboard.press("Enter");
+      await expect(views.getByTestId("country-detail")).toContainText(
+        "(JP): 0",
+      );
+      await page.keyboard.press("ArrowRight");
+      await expect(japan).not.toBeFocused();
+      await views.getByRole("button", { name: "国不明", exact: true }).tap();
+      await expect(views.getByTestId("country-detail")).toContainText(
+        "国不明: 4",
+      );
+      await views.locator("summary").filter({ hasText: "国別詳細" }).click();
+      await expect(views.getByRole("row", { name: /国不明/ })).toContainText(
+        "4",
+      );
+      await expect(
+        views.getByRole("cell", { name: "未取得", exact: true }),
+      ).toBeVisible();
+      await dashboard
+        .getByLabel("UTC開始日", { exact: true })
+        .fill("2020-01-01");
+      await dashboard
+        .getByLabel("UTC終了日", { exact: true })
+        .fill("2020-01-04");
+      await dashboard
+        .getByLabel("翻訳セットID（空欄はALL）")
+        .fill("11111111-1111-4111-8111-111111111111");
+      await dashboard
+        .getByRole("combobox", { name: "言語", exact: true })
+        .selectOption("ko");
+      await dashboard.getByLabel("国", { exact: true }).fill("unknown");
+      await page
+        .getByRole("button", { name: "分析を取得", exact: true })
+        .click();
+      await expect(
+        dashboard.getByText("2020-01-01 – 2020-01-04", { exact: true }),
+      ).toBeVisible();
+      await expect
+        .poll(
+          () =>
+            queries.filter(
+              (url) => url.searchParams.get("from") === "2020-01-01",
+            ).length,
+        )
+        .toBe(2);
+      const appQuery = queries
+        .filter((url) => url.pathname.includes("/app/"))
+        .at(-1)!;
+      expect(Array.from(appQuery.searchParams.keys())).toEqual(["from", "to"]);
+      const wikiQuery = queries
+        .filter((url) => url.pathname.includes("/wiki/"))
+        .at(-1)!;
+      expect(wikiQuery.searchParams.get("country")).toBe("unknown");
+      expect(wikiQuery.searchParams.get("language")).toBe("ko");
+      expect(wikiQuery.searchParams.get("translationSetIdentifier")).toBe(
+        "11111111-1111-4111-8111-111111111111",
+      );
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await views.scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `reports-${mobile ? "mobile" : "desktop"}.png`,
+        ),
+        fullPage: false,
+      });
+      denied = true;
+      await page
+        .getByRole("button", { name: "レポートを再取得", exact: true })
+        .click();
+      await expect(dashboard.getByRole("alert")).toContainText("権限");
+      await expect(views).toHaveCount(0);
+      await expect(
+        page.getByRole("button", {
+          name: "分析サービスの利用を開始",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+    });
+});
+
 test("Analyze 403 is never offered re-enrollment", async ({ page }) => {
   await setup(page);
   let creates = 0;

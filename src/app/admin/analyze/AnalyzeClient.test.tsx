@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dictionaries } from "@/i18n/dictionaries";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { AnalyzeClient } from "./AnalyzeClient";
+vi.mock("./AnalyzeDashboard", () => ({ AnalyzeDashboard: () => null }));
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   fetch: vi.fn(),
@@ -172,7 +173,9 @@ describe("Analyze enrollment", () => {
       await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByRole("alert");
-    fireEvent.click(screen.getByRole("button", { name: "分析サービスの利用を開始" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "分析サービスの利用を開始" }),
+    );
     await screen.findByText("分析を利用できます。");
   });
   it("ignores a late activation result after account switch", async () => {

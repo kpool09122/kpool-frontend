@@ -9,6 +9,7 @@ import {
 } from "@/gateways/analyze/analyzePrincipal";
 import { useAdmin } from "../AdminProvider";
 import { getAdminAccountScope } from "../accountScope";
+import { AnalyzeDashboard } from "./AnalyzeDashboard";
 
 const statusErrorClassName =
   "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
@@ -176,7 +177,10 @@ function AnalyzeWorkspace({
       !forbidden &&
       !error &&
       !busy ? (
-        <p role="status">{t.ready}</p>
+        <>
+          <p role="status">{t.ready}</p>
+          <AnalyzeDashboard scope={scope} version={version} />
+        </>
       ) : null}
       {(state && state.status !== "missing") ||
       feedback === "refreshError" ||
