@@ -6,27 +6,27 @@ export const metric = {
     version: "v1",
   },
   revision: "r1",
-  total: "9007199254740993",
+  total: "9007199254740993.000000000",
   denominator: null,
   actorCount: "3",
   countries: [
     {
       country: "JP",
-      value: "0",
+      value: "0.000000000",
       denominator: null,
       actorCount: "2",
       quality: [],
     },
     {
       country: "KR",
-      value: "12",
+      value: "12.000000000",
       denominator: null,
       actorCount: "2",
-      quality: ["partial"],
+      quality: ["partial", "metric_definition_missing"],
     },
     {
       country: null,
-      value: "4",
+      value: "4.000000000",
       denominator: null,
       actorCount: "1",
       quality: [],
@@ -36,7 +36,7 @@ export const metric = {
     {
       day: "2020-01-01",
       availability: "measured",
-      value: "0",
+      value: "0.000000000",
       denominator: null,
       actorCount: "2",
       quality: [],
@@ -63,7 +63,7 @@ export const metric = {
     {
       day: "2020-01-04",
       availability: "incomplete",
-      value: "12",
+      value: "12.000000000",
       denominator: 10,
       actorCount: "2",
       quality: ["partial"],
@@ -78,7 +78,23 @@ export const appReport = {
 export const wikiReport = {
   views: metric,
   viewers: metric,
-  engagementTime: { ...metric, total: "12.3456" },
+  engagementTime: {
+    ...metric,
+    definition: { ...metric.definition, metric: "engagement_seconds" },
+    total: "120",
+    denominator: 8,
+    countries: [
+      { ...metric.countries[0], value: "0.000000000", denominator: 2 },
+      { ...metric.countries[1], value: "80", denominator: 4 },
+      { ...metric.countries[2], value: "40", denominator: 2 },
+    ],
+    days: [
+      { ...metric.days[0], value: "0.000000000", denominator: 2 },
+      metric.days[1],
+      metric.days[2],
+      { ...metric.days[3], value: "120", denominator: 6 },
+    ],
+  },
   submissions: {
     ...metric,
     days: metric.days.map((day) => ({ ...day, updatedAt: null })),

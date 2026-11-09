@@ -122,7 +122,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/app/daily-summary",
     alias: "AnalysisOperations_getAppDailySummaryReport",
-    description: `Get all App metrics for an inclusive UTC period of at most one calendar year ending no later than UTC D-3. Stored historical periods have no age cutoff. Requires active Account/Account principal and enrolled active Analyze principal with analysis:view. General grants all analyses; explicit Deny wins. Authorization is re-evaluated on every request. Never returns individual viewer/actor identifiers. Invalid period: 400; invalid query format: 422.`,
+    description: `Get all App metrics for an inclusive UTC period of at most one calendar year ending no later than UTC D-3. Stored historical periods have no age cutoff. Requires active Account/Account principal and enrolled active Analyze principal with analysis:view. General grants all analyses; explicit Deny wins. Authorization is re-evaluated on every request. country&#x3D;unknown selects unknown; omitted/null selects all. Country breakdowns are unavailable for imports predating country collection. Never returns individual viewer/actor identifiers. Invalid period: 400; invalid query format: 422.`,
     requestFormat: "json",
     parameters: [
       {
@@ -134,6 +134,11 @@ const endpoints = makeApi([
         name: "to",
         type: "Query",
         schema: z.string(),
+      },
+      {
+        name: "country",
+        type: "Query",
+        schema: z.string().nullish(),
       },
     ],
     response: AppDailySummaryReport,

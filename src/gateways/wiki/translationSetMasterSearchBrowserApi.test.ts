@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchTranslationSetMasterSearch } from "./translationSetMasterSearchBrowserApi";
+import { fetchAllTranslationSetMasterSearch, fetchTranslationSetMasterSearch } from "./translationSetMasterSearchBrowserApi";
 
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -122,4 +122,28 @@ describe("translationSetMasterSearchBrowserApi", () => {
       }),
     ).rejects.toThrow("検索エラー");
   });
+  it("searches all resource types and combines candidates", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      const resourceType = new URL(url, "http://localhost").searchParams.get("resourceType");
+      return jsonResponse({ translationSetMasters: [{
+        translationSetIdentifier: "11111111-1111-4111-8111-111111111111",
+        resourceType,
+        wikis: [{ wikiIdentifier: "22222222-2222-4222-8222-222222222222", language: "ja", name: resourceType, slug: resourceType }],
+      }] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchAllTranslationSetMasterSearch({ keyword: "test", locale: "ja", fallbackErrorMessage: "Failed" });
+    expect(result.translationSetMasters.map((item) => item.resourceType)).toEqual(["agency", "group", "song", "talent"]);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it("forwards cancellation to every resource request", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => jsonResponse({ translationSetMasters: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = new AbortController();
+    await fetchAllTranslationSetMasterSearch({ keyword: "test", locale: "ja", fallbackErrorMessage: "Failed", signal: controller.signal });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    for (const call of fetchMock.mock.calls) expect(call[1]).toEqual({ signal: controller.signal });
+  });
+
 });

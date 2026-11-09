@@ -140,7 +140,7 @@ for (const mobile of [false, true])
       .getByRole("button", { name: "分析サービスの利用を開始", exact: true })
       .click();
     await expect(
-      page.getByText("分析を利用できます。", { exact: true }),
+      page.getByRole("region", { name: "分析レポート", exact: true }),
     ).toBeVisible();
     expect(attempts).toBe(2);
     await expect
@@ -180,10 +180,14 @@ test.describe("Analyze reports", () => {
         route.fulfill({ json: principal }),
       );
       let denied = false;
+      let holdCountry = false;
+      let releaseCountry = () => {};
+      const countryGate = new Promise<void>((resolve) => { releaseCountry = resolve; });
       const queries: URL[] = [];
-      await page.route(/\/api\/analyze\/(app|wiki)\/daily-summary/, (route) => {
+      await page.route(/\/api\/analyze\/(app|wiki)\/daily-summary/, async (route) => {
         const url = new URL(route.request().url());
         queries.push(url);
+        if (holdCountry && url.searchParams.has("country")) await countryGate;
         return route.fulfill({
           status: denied ? 403 : 200,
           json: denied
@@ -208,57 +212,145 @@ test.describe("Analyze reports", () => {
       await expect(
         dashboard
           .getByRole("region", { name: "提出回数", exact: true })
-          .getByTestId("metric-actors"),
+          .getByTestId("metric-submitters"),
       ).toHaveText("3");
-      const korea = views.locator('path[data-country="KR"]');
+      await views.locator("summary").filter({ hasText: /^詳細$/ }).click();
+      const map = dashboard.getByRole("region", { name: "国別の地球儀", exact: true });
+      const korea = map.locator('path[data-country="KR"]');
       await korea.scrollIntoViewIfNeeded();
       await korea.hover();
-      await expect(views.getByTestId("country-detail")).toContainText(
-        "(KR): 12",
-      );
-      const japan = views.locator('path[data-country="JP"]');
+      await expect(map.getByTestId("country-detail")).toContainText("(KR)");
+      await expect(map.getByTestId("country-detail")).toContainText("20 秒");
+      const japan = map.locator('path[data-country="JP"]');
       await japan.focus();
+      const beforeCountry = (await map.boundingBox())!;
+      holdCountry = true;
       await page.keyboard.press("Enter");
-      await expect(views.getByTestId("country-detail")).toContainText(
-        "(JP): 0",
-      );
+      await expect.poll(() => queries.filter((url) => url.searchParams.get("country") === "JP").length).toBe(2);
+      await expect(views).toBeAttached();
+      await expect(views.locator("details").first()).toHaveAttribute("open", "");
+      await expect(dashboard.getByText("レポートを取得しています…", { exact: true })).toHaveCount(0);
+      const duringCountry = (await map.boundingBox())!;
+      expect(Math.abs(duringCountry.y - beforeCountry.y)).toBeLessThan(1);
+      expect(Math.abs(duringCountry.height - beforeCountry.height)).toBeLessThan(1);
+      holdCountry = false;
+      releaseCountry();
+      await expect(dashboard.getByRole("heading", { name: "Wiki分析", level: 3 }).locator("..")).toHaveAttribute("aria-busy", "false");
+      await expect(map.getByTestId("country-detail")).toContainText("日本 (JP)");
+      await expect(map.getByTestId("country-detail")).toContainText("0 秒");
+      await expect(map.getByTestId("country-detail").getByText("2位", { exact: true })).toHaveCount(7);
+      await korea.hover();
+      await expect(map.getByTestId("country-detail")).toContainText("日本 (JP)");
+      const globeBounds = (await map.getByRole("group", { name: "国別の地球儀", exact: true }).boundingBox())!;
+      const summaryBounds = (await map.getByRole("region", { name: "国別サマリー", exact: true }).boundingBox())!;
+      expect(
+        summaryBounds.x >= globeBounds.x + globeBounds.width ||
+        summaryBounds.y >= globeBounds.y + globeBounds.height,
+      ).toBe(true);
+      await map.evaluate((element) => element.scrollIntoView({ block: "start" }));
+      await page.screenshot({ path: testInfo.outputPath(`reports-tooltip-${mobile ? "mobile" : "desktop"}.png`), fullPage: false });
       await page.keyboard.press("ArrowRight");
       await expect(japan).not.toBeFocused();
-      await views.getByRole("button", { name: "国不明", exact: true }).tap();
-      await expect(views.getByTestId("country-detail")).toContainText(
-        "国不明: 4",
-      );
-      await views.locator("summary").filter({ hasText: "国別詳細" }).click();
-      await expect(views.getByRole("row", { name: /国不明/ })).toContainText(
+      await expect(map.getByRole("button", { name: "国不明", exact: true })).toHaveCount(0);
+      await korea.tap();
+      await expect(map.getByTestId("country-detail")).toContainText("(KR)");
+      await expect(map.getByTestId("country-detail")).toContainText("20 秒");
+      await map.getByRole("button", { name: "表示をリセット", exact: true }).click();
+      const globe = map.getByRole("group", { name: "国別の地球儀", exact: true });
+      await globe.scrollIntoViewIfNeeded();
+      const originalRotation = await globe.getAttribute("data-rotation");
+      const requestsBeforeRotation = queries.length;
+      const bounds = (await globe.boundingBox())!;
+      const start = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+      if (mobile) {
+        const touch = await page.context().newCDPSession(page);
+        await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
+        for (let step = 1; step <= 6; step++)
+          await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: start.x + step * 12, y: start.y + step * 3 }] });
+        await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+        await touch.detach();
+      } else {
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        await page.mouse.move(start.x + 100, start.y + 20, { steps: 8 });
+        await page.mouse.up();
+      }
+      await expect(globe).not.toHaveAttribute("data-rotation", originalRotation!);
+      await expect(map.getByTestId("country-detail")).toHaveCount(0);
+      await map.getByRole("button", { name: "表示をリセット", exact: true }).click();
+      await expect(globe).toHaveAttribute("data-rotation", originalRotation!);
+      await expect(map.locator('path[data-country="JP"]')).toBeVisible();
+      expect(queries).toHaveLength(requestsBeforeRotation);
+      await map.screenshot({ path: testInfo.outputPath(`globe-${mobile ? "mobile" : "desktop"}.png`) });
+      await expect(views.locator("details").first()).toHaveAttribute("open", "");
+      await expect(views.getByRole("button", { name: /国不明/ })).toContainText(
         "4",
       );
-      await expect(
-        views.getByRole("cell", { name: "未取得", exact: true }),
-      ).toBeVisible();
+      const countryChart = views.getByRole("region", { name: "閲覧回数: 国別詳細" });
+      await countryChart.locator(".recharts-wrapper").hover({ position: { x: 228, y: 120 } });
+      await expect(countryChart.getByRole("button", { name: /\(KR\)/ })).toHaveAttribute("aria-pressed", "true");
+      await expect(countryChart.locator(".recharts-tooltip-wrapper")).toHaveCount(0);
+      await views.getByRole("region", { name: "閲覧回数: 日別推移" }).getByRole("application").focus();
+      await expect(views.getByText("2020-01-01", { exact: true })).toBeVisible();
+      await page.keyboard.press("ArrowRight");
+      await expect(views.getByRole("combobox")).toHaveCount(0);
+      await expect(views.getByText("2020-01-02", { exact: true })).toBeVisible();
+      await expect(views.getByTestId("daily-detail")).toHaveCount(0);
+      await expect(views.locator(".recharts-pie-sector").first()).toBeVisible();
+      await views.screenshot({ path: testInfo.outputPath(`charts-${mobile ? "mobile" : "desktop"}.png`) });
       await dashboard
-        .getByLabel("UTC開始日", { exact: true })
+        .getByLabel("開始日", { exact: true })
         .fill("2020-01-01");
       await dashboard
-        .getByLabel("UTC終了日", { exact: true })
+        .getByLabel("終了日", { exact: true })
         .fill("2020-01-04");
-      await dashboard
-        .getByLabel("翻訳セットID（空欄はALL）")
-        .fill("11111111-1111-4111-8111-111111111111");
+      let releaseWikiSearch = () => {};
+      const wikiSearchGate = new Promise<void>((resolve) => { releaseWikiSearch = resolve; });
+      let wikiSearchRequests = 0;
+      await page.route("**/api/wiki/translation-set-master-search?**", async (route) => {
+        wikiSearchRequests++;
+        await wikiSearchGate;
+        const resourceType = new URL(route.request().url()).searchParams.get("resourceType");
+        return route.fulfill({ json: { translationSetMasters: resourceType === "group" ? [{
+          translationSetIdentifier: "11111111-1111-4111-8111-111111111111",
+          resourceType: "group",
+          wikis: [{
+            wikiIdentifier: "22222222-2222-4222-8222-222222222222",
+            name: "TWICE", slug: "gr-twice", language: "ja",
+          }],
+        }] : [] } });
+      });
+      await dashboard.getByLabel("Wiki", { exact: true }).fill("twice");
+      const formHeight = await dashboard.locator("form").evaluate((element) => element.getBoundingClientRect().height);
+      const globeTop = await map.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+      await dashboard.getByRole("button", { name: "検索", exact: true }).click();
+      await expect.poll(() => wikiSearchRequests).toBe(4);
+      expect(await dashboard.locator("form").evaluate((element) => element.getBoundingClientRect().height)).toBe(formHeight);
+      expect(await map.evaluate((element) => element.getBoundingClientRect().top + window.scrollY)).toBe(globeTop);
+      releaseWikiSearch();
+      await expect(dashboard.getByRole("option", { name: "TWICE gr-twice" })).toBeVisible();
+      expect(await dashboard.locator("form").evaluate((element) => element.getBoundingClientRect().height)).toBe(formHeight);
+      await page.screenshot({ path: testInfo.outputPath(`search-form-${mobile ? "mobile" : "desktop"}.png`) });
+      await dashboard.getByRole("option", { name: "TWICE gr-twice" }).click();
+      expect(await dashboard.locator("form").evaluate((element) => element.getBoundingClientRect().height)).toBe(formHeight);
+      expect(await map.evaluate((element) => element.getBoundingClientRect().top + window.scrollY)).toBe(globeTop);
       await dashboard
         .getByRole("combobox", { name: "言語", exact: true })
         .selectOption("ko");
-      await dashboard.getByLabel("国", { exact: true }).fill("unknown");
       await page
         .getByRole("button", { name: "分析を取得", exact: true })
         .click();
-      await expect(
-        dashboard.getByText("2020-01-01 – 2020-01-04", { exact: true }),
-      ).toBeVisible();
+      const expectedPeriod = await page.evaluate(() => ({
+        from: new Date(2020, 0, 1).toISOString().slice(0, 10),
+        to: new Date(2020, 0, 4).toISOString().slice(0, 10),
+      }));
       await expect
         .poll(
           () =>
             queries.filter(
-              (url) => url.searchParams.get("from") === "2020-01-01",
+              (url) =>
+                url.searchParams.get("from") === expectedPeriod.from &&
+                url.searchParams.get("to") === expectedPeriod.to,
             ).length,
         )
         .toBe(2);
@@ -269,7 +361,7 @@ test.describe("Analyze reports", () => {
       const wikiQuery = queries
         .filter((url) => url.pathname.includes("/wiki/"))
         .at(-1)!;
-      expect(wikiQuery.searchParams.get("country")).toBe("unknown");
+      expect(wikiQuery.searchParams.has("country")).toBe(false);
       expect(wikiQuery.searchParams.get("language")).toBe("ko");
       expect(wikiQuery.searchParams.get("translationSetIdentifier")).toBe(
         "11111111-1111-4111-8111-111111111111",
@@ -279,7 +371,7 @@ test.describe("Analyze reports", () => {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true);
-      await views.scrollIntoViewIfNeeded();
+      await map.scrollIntoViewIfNeeded();
       await page.screenshot({
         path: testInfo.outputPath(
           `reports-${mobile ? "mobile" : "desktop"}.png`,
@@ -288,7 +380,7 @@ test.describe("Analyze reports", () => {
       });
       denied = true;
       await page
-        .getByRole("button", { name: "レポートを再取得", exact: true })
+        .getByRole("button", { name: "分析を取得", exact: true })
         .click();
       await expect(dashboard.getByRole("alert")).toContainText("権限");
       await expect(views).toHaveCount(0);
@@ -318,7 +410,7 @@ test("Analyze 403 is never offered re-enrollment", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "分析サービスの利用を開始", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "状態を再取得" }).click();
+  await page.reload();
   await expect(
     page.getByRole("region", { name: "分析の利用" }).getByRole("alert"),
   ).toContainText("権限");

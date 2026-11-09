@@ -1,36 +1,40 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AccountStatusMessage } from "@/components/Account";
 import { getAnalyzeReport } from "@/gateways/analyze/analyzeReports";
 import { useAdmin } from "../AdminProvider";
-import { latestReportingDay, validReportingPeriod } from "./reportingPeriod";
+import {
+  defaultReportingPeriod,
+  latestLocalReportingDay,
+  toUtcReportingDay,
+  validReportingPeriod,
+} from "./reportingPeriod";
+import { AnalyzeWikiSelect } from "./AnalyzeWikiSelect";
+import { CountryGlobe } from "./CountryGlobe";
+import type { CountryGlobeMetric } from "./countryColorScale";
 import { MetricCard } from "./MetricCard";
+import { useCountryReport } from "./useCountryReport";
 
 type Conditions = {
   from: string;
   to: string;
   translationSetIdentifier: string;
   language: string;
-  country: string;
 };
-const defaults = (): Conditions => {
-  const to = latestReportingDay();
-  const from = new Date(to);
-  from.setUTCDate(from.getUTCDate() - 27);
-  return {
-    from: from.toISOString().slice(0, 10),
-    to,
-    translationSetIdentifier: "",
-    language: "",
-    country: "",
-  };
-};
+const defaults = (): Conditions => ({
+  ...defaultReportingPeriod(),
+  translationSetIdentifier: "",
+  language: "",
+});
 export function AnalyzeDashboard({
   scope,
   version,
+  initialCountry = null,
 }: {
   scope: string;
   version: number;
+  initialCountry?: string | null;
 }) {
   const {
     locale,
@@ -40,18 +44,18 @@ export function AnalyzeDashboard({
   } = useAdmin();
   const [conditions, setConditions] = useState(defaults);
   const [invalid, setInvalid] = useState(false);
+  const [countrySelection, setCountrySelection] = useState<{ query: string; country: string | null }>();
   const appQuery = new URLSearchParams({
-    from: conditions.from,
-    to: conditions.to,
+    from: toUtcReportingDay(conditions.from),
+    to: toUtcReportingDay(conditions.to),
   }).toString();
   const wikiParams = new URLSearchParams({
-    from: conditions.from,
-    to: conditions.to,
+    from: toUtcReportingDay(conditions.from),
+    to: toUtcReportingDay(conditions.to),
   });
   for (const key of [
     "translationSetIdentifier",
     "language",
-    "country",
   ] as const)
     if (conditions[key]) wikiParams.set(key, conditions[key]);
   const wikiQuery = wikiParams.toString();
@@ -71,19 +75,53 @@ export function AnalyzeDashboard({
     queryKey: ["admin", "analyze", "wiki", scope, version, wikiQuery],
     queryFn: ({ signal }) => getAnalyzeReport("wiki", wikiQuery, signal),
   });
-  const forbidden = [app.data, wiki.data].some(
+  const selectedCountry = countrySelection?.query === wikiQuery ? countrySelection.country : undefined;
+  const countryWiki = useCountryReport({ kind: "wiki", query: wikiQuery, scope, version, country: selectedCountry, globalResult: wiki.data });
+  const countryApp = useCountryReport({ kind: "app", query: appQuery, scope, version, country: selectedCountry, globalResult: app.data });
+  const detailApp = selectedCountry === undefined ? app.data : countryApp.data?.result;
+  const detailWiki = selectedCountry === undefined ? wiki.data : countryWiki.data?.result;
+  const appCountry = selectedCountry === undefined ? undefined : countryApp.data?.country;
+  const wikiCountry = selectedCountry === undefined ? undefined : countryWiki.data?.country;
+  const selectCountry = useCallback((country: string | null | undefined) => {
+    setCountrySelection((current) => {
+      if (country === undefined) return undefined;
+      return current?.query === wikiQuery && current.country === country ? current : { query: wikiQuery, country };
+    });
+  }, [wikiQuery]);
+  const forbidden = [app.data, wiki.data, detailApp, detailWiki].some(
     (result) => result?.status === "error" && result.httpStatus === 403,
   );
-  const unauthorized = [app.data, wiki.data].some(
+  const unauthorized = [app.data, wiki.data, detailApp, detailWiki].some(
     (result) => result?.status === "error" && result.httpStatus === 401,
   );
   const appReport = app.data?.status === "available" ? app.data.report : null;
   const wikiReport =
     wiki.data?.status === "available" ? wiki.data.report : null;
-  const busy = app.isFetching || wiki.isFetching;
+  const appDetailReport = detailApp?.status === "available" ? detailApp.report : null;
+  const wikiDetailReport = detailWiki?.status === "available" ? detailWiki.report : null;
+  const mapMetrics = useMemo<CountryGlobeMetric[]>(() => [
+    ...(appReport ? (["applicationUsers", "registeredUsers"] as const).map((key) => ({
+      key,
+      name: t[key],
+      group: t.app,
+      report: appReport[key],
+    })) : []),
+    ...(wikiReport ? (["views", "viewers", "engagementTime", "submissions", "publications"] as const).map((key) => ({
+      key,
+      name: t[key],
+      group: t.wiki,
+      report: wikiReport[key],
+      averageTime: key === "engagementTime",
+    })) : []),
+  ], [appReport, wikiReport, t]);
+  const busy = app.isFetching || wiki.isFetching || countryWiki.isFetching || countryApp.isFetching;
   const refresh = () => {
     void app.refetch();
     void wiki.refetch();
+    if (selectedCountry !== undefined) {
+      void countryWiki.refetch();
+      void countryApp.refetch();
+    }
   };
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -93,35 +131,34 @@ export function AnalyzeDashboard({
       to: String(data.get("to")),
       translationSetIdentifier: String(data.get("target") ?? "").trim(),
       language: String(data.get("language") ?? ""),
-      country: String(data.get("country") ?? "").trim(),
     };
-    next.country =
-      next.country.toLowerCase() === "unknown"
-        ? "unknown"
-        : next.country.toUpperCase();
     const valid =
-      validReportingPeriod(next.from, next.to) &&
+      validReportingPeriod(
+        toUtcReportingDay(next.from),
+        toUtcReportingDay(next.to),
+      ) &&
       (!next.translationSetIdentifier ||
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
           next.translationSetIdentifier,
-        )) &&
-      (!next.country || /^(?:[A-Z]{2}|unknown)$/.test(next.country));
+        ));
     setInvalid(!valid);
     if (!valid) return;
     if (JSON.stringify(next) === JSON.stringify(conditions)) refresh();
-    else setConditions(next);
+    else {
+      setCountrySelection(undefined);
+      setConditions(next);
+    }
   };
   const inputClass =
-    "mt-1 w-full rounded border border-stroke-subtle bg-surface-base p-2";
+    "mt-1 h-9 w-full min-w-0 rounded border border-stroke-subtle bg-surface-base px-2 py-1.5 text-sm";
   return (
     <section aria-label={t.title} className="min-w-0 space-y-5">
       <h2 className="text-xl font-semibold">{t.title}</h2>
-      <p className="text-sm">{t.periodRule}</p>
       <form
         onSubmit={submit}
-        className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid min-w-0 grid-cols-2 items-end gap-x-3 gap-y-2 xl:grid-cols-[9.5rem_9.5rem_minmax(12rem,1fr)_7rem_auto]"
       >
-        <label>
+        <label className="min-w-0 text-xs">
           {t.from}
           <input
             className={inputClass}
@@ -129,10 +166,10 @@ export function AnalyzeDashboard({
             type="date"
             required
             defaultValue={conditions.from}
-            max={latestReportingDay()}
+            max={latestLocalReportingDay()}
           />
         </label>
-        <label>
+        <label className="min-w-0 text-xs">
           {t.to}
           <input
             className={inputClass}
@@ -140,19 +177,11 @@ export function AnalyzeDashboard({
             type="date"
             required
             defaultValue={conditions.to}
-            max={latestReportingDay()}
+            max={latestLocalReportingDay()}
           />
         </label>
-        <label className="min-w-0">
-          {t.target}
-          <input
-            className={inputClass}
-            name="target"
-            defaultValue={conditions.translationSetIdentifier}
-            placeholder="UUID"
-          />
-        </label>
-        <label>
+        <AnalyzeWikiSelect label={t.target} disabled={busy} />
+        <label className="min-w-0 text-xs">
           {t.language}
           <select
             className={inputClass}
@@ -165,69 +194,48 @@ export function AnalyzeDashboard({
             <option value="ko">한국어</option>
           </select>
         </label>
-        <label>
-          {t.country}
-          <input
-            className={inputClass}
-            name="country"
-            defaultValue={conditions.country}
-            list="analyze-country-options"
-            placeholder="JP / KR / unknown"
-          />
-        </label>
-        <datalist id="analyze-country-options">
-          <option value="unknown">{t.unknown}</option>
-          <option value="JP" />
-          <option value="KR" />
-          <option value="US" />
-        </datalist>
         <button
           type="submit"
           disabled={busy}
-          className="self-end rounded-lg bg-brand-primary px-4 py-2 font-semibold text-white disabled:opacity-50"
+          className="h-9 self-end whitespace-nowrap rounded-lg bg-brand-primary px-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {t.apply}
         </button>
       </form>
-      {invalid ? <p role="alert">{t.invalid}</p> : null}
-      <p className="text-sm">{t.scopeNote}</p>
-      <p>
-        {conditions.from} – {conditions.to}
-      </p>
-      <button
-        type="button"
-        onClick={refresh}
-        disabled={busy}
-        className="rounded border border-stroke-subtle px-4 py-2 disabled:opacity-50"
-      >
-        {t.refresh}
-      </button>
-      {busy ? <p role="status">{t.loading}</p> : null}
+      {invalid ? <AccountStatusMessage variant="error">{t.invalid}</AccountStatusMessage> : null}
+      {app.isFetching || wiki.isFetching ? <p role="status">{t.loading}</p> : null}
       {forbidden || unauthorized ? (
-        <p role="alert">{unauthorized ? t.unauthorized : t.forbidden}</p>
+        <AccountStatusMessage variant="error">{unauthorized ? t.unauthorized : t.forbidden}</AccountStatusMessage>
       ) : (
         <>
-          <p className="text-sm text-text-muted">{t.partial}</p>
-          <p className="text-sm text-text-muted">{t.nullNote}</p>
-          <section aria-label={t.app} className="min-w-0 space-y-3">
-            <h3 className="text-xl font-semibold">{t.app}</h3>
-            <p className="text-sm">{t.appDefinition}</p>
-            {app.data?.status === "error" ? (
-              <p role="alert">
-                {t.httpError} ({app.data.httpStatus}){" "}
-                {[400, 422].includes(app.data.httpStatus)
-                  ? t.invalidRequest
-                  : ""}
-              </p>
+          {mapMetrics.length ? (
+            <CountryGlobe
+              key={`${appQuery}:${wikiQuery}`}
+              metrics={mapMetrics}
+              initialCountry={initialCountry}
+              onCountryChange={selectCountry}
+              t={t}
+              locale={locale}
+            />
+          ) : null}
+          <section aria-label={t.app} aria-busy={selectedCountry !== undefined && countryApp.isFetching} className="min-w-0 space-y-3">
+            <h3 className="text-xl font-semibold">
+              {t.app}
+            </h3>
+            {detailApp?.status === "error" ? (
+              <AccountStatusMessage variant="error">
+                {[400, 422].includes(detailApp.httpStatus) ? t.invalidRequest : t.httpError}
+              </AccountStatusMessage>
             ) : null}
-            {appReport ? (
+            {appDetailReport ? (
               <div className="grid min-w-0 gap-4 xl:grid-cols-2">
                 {(["applicationUsers", "registeredUsers"] as const).map(
                   (key) => (
                     <MetricCard
                       key={`${appQuery}:${key}`}
                       name={t[key]}
-                      report={appReport[key]}
+                      report={appDetailReport[key]}
+                      country={appCountry}
                       totalLabel={
                         key === "registeredUsers" ? t.registeredUsers : t.total
                       }
@@ -239,18 +247,16 @@ export function AnalyzeDashboard({
               </div>
             ) : null}
           </section>
-          <section aria-label={t.wiki} className="min-w-0 space-y-3">
-            <h3 className="text-xl font-semibold">{t.wiki}</h3>
-            <p className="text-sm">{t.wikiDefinition}</p>
-            {wiki.data?.status === "error" ? (
-              <p role="alert">
-                {t.httpError} ({wiki.data.httpStatus}){" "}
-                {[400, 422].includes(wiki.data.httpStatus)
-                  ? t.invalidRequest
-                  : ""}
-              </p>
+          <section aria-label={t.wiki} aria-busy={selectedCountry !== undefined && countryWiki.isFetching} className="min-w-0 space-y-3">
+            <h3 className="text-xl font-semibold">
+              {t.wiki}
+            </h3>
+            {detailWiki?.status === "error" ? (
+              <AccountStatusMessage variant="error">
+                {[400, 422].includes(detailWiki.httpStatus) ? t.invalidRequest : t.httpError}
+              </AccountStatusMessage>
             ) : null}
-            {wikiReport ? (
+            {wikiDetailReport ? (
               <div className="grid min-w-0 gap-4 xl:grid-cols-2">
                 {(
                   [
@@ -264,11 +270,12 @@ export function AnalyzeDashboard({
                   <MetricCard
                     key={`${wikiQuery}:${key}`}
                     name={t[key]}
-                    report={wikiReport[key]}
+                    report={wikiDetailReport[key]}
+                    country={wikiCountry}
                     t={t}
                     locale={locale}
-                    time={key === "engagementTime"}
-                    actors={key === "submissions" || key === "publications"}
+                    averageTime={key === "engagementTime"}
+                    showSubmitters={key === "submissions"}
                   />
                 ))}
               </div>

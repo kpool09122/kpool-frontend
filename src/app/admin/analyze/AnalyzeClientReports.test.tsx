@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -119,7 +120,7 @@ it("cancels in-flight reports on Account switch and ignores their late results",
   mocks.identity = previous;
   client.clear();
 });
-it("shows retained success timestamps without claiming a subsequent import failure", async () => {
+it("shows stored metrics without inferring an import failure from timestamps", async () => {
   mocks.fetch.mockImplementation(async (url: string) =>
     Response.json(
       url.includes("/principal/me")
@@ -137,6 +138,25 @@ it("shows retained success timestamps without claiming a subsequent import failu
   const views = await screen.findByRole("region", {
     name: "閲覧回数",
   });
-  expect(within(views).getAllByText("2026-11-01T01:00:00Z")).toHaveLength(3);
+  expect(within(views).getByTestId("metric-total")).toHaveTextContent("9,007,199,254,740,993");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("starts and resets the globe facing the visitor country", async () => {
+  mocks.fetch.mockImplementation(async (url: string) => Response.json(
+    url.includes("/principal/me") ? principal : url.includes("/app/") ? appReport : wikiReport,
+  ));
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <AnalyzeClient initialCountry="BR" />
+    </QueryClientProvider>,
+  );
+  const globe = await screen.findByRole("group", { name: "国別の地球儀" });
+  expect(within(globe).getByRole("button", { name: /\(BR\):/ })).toBeInTheDocument();
+  expect(within(globe).queryByRole("button", { name: /\(JP\):/ })).not.toBeInTheDocument();
+  const original = globe.getAttribute("data-rotation");
+  fireEvent.keyDown(globe, { key: "ArrowRight" });
+  expect(globe.getAttribute("data-rotation")).not.toBe(original);
+  fireEvent.click(screen.getByRole("button", { name: "表示をリセット" }));
+  expect(globe).toHaveAttribute("data-rotation", original);
 });

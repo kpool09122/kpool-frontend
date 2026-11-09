@@ -5,6 +5,7 @@ import {
   type TranslationSetMasterSearchWikiItem,
   type WikiResourceType,
   translationSetMasterSearchResponseSchema,
+  wikiResourceTypes,
 } from "@kpool/wiki";
 
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
@@ -38,12 +39,14 @@ export const fetchTranslationSetMasterSearch = async ({
   limit = 20,
   locale,
   resourceType,
+  signal,
 }: {
   fallbackErrorMessage: string;
   keyword: string;
   limit?: number;
   locale: string;
   resourceType: WikiResourceType;
+  signal?: AbortSignal;
 }): Promise<TranslationSetMasterSearchDisplayResponse> => {
   const trimmedKeyword = keyword.trim();
 
@@ -57,7 +60,8 @@ export const fetchTranslationSetMasterSearch = async ({
   url.searchParams.set("keyword", trimmedKeyword);
   url.searchParams.set("limit", String(limit));
 
-  const response = await fetch(`${url.pathname}${url.search}`);
+  const path = `${url.pathname}${url.search}`;
+  const response = signal ? await fetch(path, { signal }) : await fetch(path);
   const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
 
   if (!response.ok) {
@@ -72,4 +76,17 @@ export const fetchTranslationSetMasterSearch = async ({
     ),
     locale,
   );
+};
+
+export const fetchAllTranslationSetMasterSearch = async (
+  options: Omit<Parameters<typeof fetchTranslationSetMasterSearch>[0], "resourceType">,
+): Promise<TranslationSetMasterSearchDisplayResponse> => {
+  const responses = await Promise.all(
+    wikiResourceTypes.map((resourceType) =>
+      fetchTranslationSetMasterSearch({ ...options, resourceType }),
+    ),
+  );
+  return {
+    translationSetMasters: responses.flatMap((response) => response.translationSetMasters),
+  };
 };

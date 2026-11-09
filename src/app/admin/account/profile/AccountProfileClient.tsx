@@ -5,12 +5,8 @@ import { useMemo } from "react";
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { useI18n } from "../../../../i18n/I18nProvider";
 import { useAccountSection } from "../AccountSectionContext";
-import {
-  countryCodes,
-  getAdministrativeAreaOptions,
-  getCountryLabel,
-  isCountryCodeOption,
-} from "./accountAddressOptions";
+import { getAdministrativeAreaOptions } from "./accountAddressOptions";
+import { countryCodes, getCountryLabel, isCountryCodeOption } from "@/utils/countryOptions";
 import { useAccountProfile } from "./useAccountProfile";
 
 export function AccountProfileClient() {

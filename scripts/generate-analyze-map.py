@@ -1,4 +1,4 @@
-"""Generate bundled equirectangular country paths; no browser network or runtime dependency.
+"""Generate bundled geographic country rings; no browser network or runtime dependency.
 Source: datasets/geo-countries (Natural Earth), public domain.
 https://www.naturalearthdata.com/about/terms-of-use/
 Run: python3 scripts/generate-analyze-map.py
@@ -30,22 +30,22 @@ def simplify(points, tolerance=0.15):
 def main():
     with urllib.request.urlopen(SOURCE) as response:
         data = json.load(response)
-    paths = []
+    countries = []
     for feature in data["features"]:
         geometry = feature["geometry"]
         polygons = geometry["coordinates"] if geometry["type"] == "MultiPolygon" else [geometry["coordinates"]]
-        commands = []
+        rings = []
         for polygon in polygons:
-            # Outer rings only; tiny islands remain accessible in the country table.
+            # Outer rings only; tiny islands remain accessible in the country selector.
             ring = simplify(polygon[0])
             if len(ring) < 4:
                 continue
-            commands.append("M" + "L".join(f"{(p[0]+180)*2:.1f},{(90-p[1])*2:.1f}" for p in ring) + "Z")
+            rings.append([[round(p[0], 2), round(p[1], 2)] for p in ring])
         code = feature["properties"]["ISO3166-1-Alpha-2"]
-        paths.append({"code": None if code == "-99" else code, "name": feature["properties"]["name"], "path": "".join(commands)})
+        countries.append({"code": None if code == "-99" else code, "name": feature["properties"]["name"], "rings": rings})
     output = pathlib.Path(__file__).resolve().parents[1] / "src/app/admin/analyze/worldCountries.json"
-    output.write_text(json.dumps(paths, ensure_ascii=False, separators=(",", ":")) + "\n")
-    print(f"Generated {len(paths)} country/territory shapes: {output}")
+    output.write_text(json.dumps(countries, ensure_ascii=False, separators=(",", ":")) + "\n")
+    print(f"Generated {len(countries)} country/territory shapes: {output}")
 
 
 if __name__ == "__main__":

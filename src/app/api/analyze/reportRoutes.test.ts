@@ -51,7 +51,7 @@ describe("Analyze report BFF", () => {
         kind === "wiki" ? "ja" : null,
       );
       expect(url.searchParams.get("country")).toBe(
-        kind === "wiki" ? "unknown" : null,
+        "unknown",
       );
       expect(fetch.mock.calls[0][1]).toMatchObject({
         cache: "no-store",
