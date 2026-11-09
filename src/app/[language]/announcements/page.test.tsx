@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import AnnouncementList from "./page";
-import AnnouncementDetail from "./[announcementIdentifier]/page";
+import AnnouncementDetail, { generateMetadata as detailMetadata } from "./[announcementIdentifier]/page";
 const mocks = vi.hoisted(() => ({
   load: vi.fn(),
   notFound: vi.fn(() => {
@@ -98,4 +98,12 @@ it("renders Markdown without executing HTML and resolves missing details to 404"
   expect(container.querySelector("strong")).toHaveTextContent("重要");
   mocks.load.mockResolvedValueOnce({ ok: false, status: 404 });
   await expect(AnnouncementDetail({ params })).rejects.toThrow("NOT_FOUND");
+});
+
+it("uses the published announcement title in metadata and handles missing details", async () => {
+  const props = { params: Promise.resolve({ language: "ja", announcementIdentifier: "019b0000-0000-7000-8000-000000000001" }) };
+  mocks.load.mockResolvedValueOnce({ ok: true, detail: { title: "サービス更新のお知らせ" } });
+  await expect(detailMetadata(props)).resolves.toMatchObject({ title: "サービス更新のお知らせ | k-pool", description: expect.stringContaining("k-pool") });
+  mocks.load.mockResolvedValueOnce({ ok: false, status: 404 });
+  await expect(detailMetadata(props)).rejects.toThrow("NOT_FOUND");
 });

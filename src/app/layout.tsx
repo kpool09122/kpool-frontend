@@ -1,22 +1,13 @@
-import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
-
 import "@fontsource/gowun-dodum/korean.css";
 import "@fontsource/nanum-pen-script/korean.css";
 import "@fontsource/pretendard/400.css";
 import "react-image-crop/dist/ReactCrop.css";
 import "./globals.css";
-import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { I18nProvider } from "../i18n/I18nProvider";
-import {
-  appCountryHeaderName,
-  appRouteLocaleHeaderName,
-  localeCookieName,
-  resolveLocale,
-} from "../i18n/locales";
-import { siteTitle } from "./metadata";
+import { buildPageMetadata } from "./metadata";
+import { getRequestContext } from "./requestContext";
 import { QueryProvider } from "./QueryProvider";
 import { ThemeInitializer } from "./ThemeInitializer";
 import { themeBootstrapScript } from "./themeMode";
@@ -24,32 +15,23 @@ import { AnalyticsProvider } from "@/components/Analytics/AnalyticsProvider";
 import { resolveGtmContainerId } from "@/gateways/analytics/wikiAnalytics";
 import { VideoPlaybackProvider } from "@/components/VideoPlayback/VideoPlaybackProvider";
 
-export const metadata: Metadata = {
-  title: siteTitle,
-  description:
-    "Brand color tokens and a minimal palette preview for the k-pool frontend.",
-  icons: {
-    icon: "/kpool.ico",
-    shortcut: "/kpool.ico",
-  },
-};
+export async function generateMetadata() {
+  const { locale } = await getRequestContext();
+  return {
+    ...buildPageMetadata(locale, "home"),
+    icons: {
+      icon: "/kpool.ico",
+      shortcut: "/kpool.ico",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const authenticatedIdentity = await fetchAuthenticatedIdentity({
-    cookieHeader: cookieStore.toString(),
-  });
-  const locale = resolveLocale({
-    routeLocale: headerStore.get(appRouteLocaleHeaderName),
-    identityLanguage: authenticatedIdentity?.language,
-    savedLocale: cookieStore.get(localeCookieName)?.value,
-    country: headerStore.get(appCountryHeaderName),
-  });
+  const { locale, authenticatedIdentity } = await getRequestContext();
 
   return (
     <html lang={locale} suppressHydrationWarning>

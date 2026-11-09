@@ -1,3 +1,6 @@
+import { buildPageMetadata } from "../metadata";
+import { getRequestContext } from "../requestContext";
+
 import { cookies } from "next/headers";
 
 import { fetchAuthenticatedIdentity } from "@/gateways/identity/authIdentity";
@@ -17,4 +20,9 @@ export default async function Page() {
       initialName={identity?.identityName ?? ""}
     />
   );
+}
+
+export async function generateMetadata() {
+  const { locale } = await getRequestContext();
+  return buildPageMetadata(locale, "contact");
 }

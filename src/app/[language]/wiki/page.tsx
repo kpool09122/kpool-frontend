@@ -15,7 +15,7 @@ import {
 import { AutoSubmitSelect } from "../AutoSubmitSelect";
 import { PublicWikiCard } from "../WikiListCard";
 import { firstQueryValue, toResourceType } from "../wikiListQuery";
-import { siteTitle } from "../../metadata";
+import { buildPageMetadata } from "../../metadata";
 
 type WikiListPageProps = {
   params: Promise<{ language: string }>;
@@ -24,11 +24,7 @@ type WikiListPageProps = {
 
 export async function generateMetadata({ params }: WikiListPageProps): Promise<Metadata> {
   const { language } = await params;
-  const locale = normalizeLocale(language) ?? fallbackLocale;
-
-  return {
-    title: `${dictionaries[locale].home.listTitle} | ${siteTitle}`,
-  };
+  return buildPageMetadata(language, "wiki");
 }
 
 const pageSizes = [10, 30, 50] as const;

@@ -1,3 +1,5 @@
+import { buildPageMetadata } from "../../metadata";
+
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import Link from "next/link";
 import { AnnouncementCategoryBadge } from "@/components/Announcement/AnnouncementCategoryBadge";
@@ -84,4 +86,12 @@ export default async function AnnouncementList({
       )}
     </main>
   );
+}
+
+export async function generateMetadata({ params }: {
+  params: Promise<{ language: string }>;
+}) {
+  const { language } = await params;
+  if (!isSupportedLocale(language)) notFound();
+  return buildPageMetadata(language, "announcements");
 }
