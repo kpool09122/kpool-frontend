@@ -46,6 +46,3 @@ export const formatMetricValue = (
   return average === null ? "—"
     : `${average.toLocaleString(locale, { maximumFractionDigits: 2 })} ${seconds}`;
 };
-
-export const formatMetricQuality = (quality: readonly string[], t: AnalyzeReportDictionary) =>
-  quality.map((code) => code === "metric_definition_missing" ? t.metricDefinitionMissing : code).join(", ") || "—";

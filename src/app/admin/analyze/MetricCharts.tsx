@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { MetricReport } from "@/gateways/analyze/analyzeReports";
 import type { AnalyzeReportDictionary } from "@/i18n/analyzeReports";
-import { countryName, formatMetricQuality, formatMetricValue, metricValue } from "./reportPresentation";
+import { countryName, formatMetricValue, metricValue } from "./reportPresentation";
 import { chartColors, chartValue, trendDomain } from "./chartPresentation";
 
 type ChartProps = {
@@ -68,10 +68,9 @@ export function CountryMetricChart({ name, report, t, locale, averageTime, showS
           </button>
         </li>)}
       </ul>
-      {current && (showSubmitters || current.quality.length > 0) ? <div role="status" className="text-sm text-text-muted">
-        {showSubmitters ? <p>{t.submitters}: {metricValue(current.actorCount, locale)}</p> : null}
-        {current.quality.length ? <p>{formatMetricQuality(current.quality, t)}</p> : null}
-      </div> : null}
+      {current && showSubmitters ? <p role="status" className="text-sm text-text-muted">
+        {t.submitters}: {metricValue(current.actorCount, locale)}
+      </p> : null}
     </div>
   );
 }
