@@ -57,7 +57,10 @@ describe("wiki localized page metadata", () => {
       title: "Aurora Echo SEO | k-pool",
       description: "Aurora Echo meta description.",
       keywords: ["aurora", "echo"],
-      alternates: { canonical: "https://k-pool.app/ja/wiki/gr-aurora-echo" },
+      alternates: {
+        canonical: "https://k-pool.app/ja/wiki/gr-aurora-echo",
+        languages: { ja: "https://k-pool.app/ja/wiki/gr-aurora-echo" },
+      },
     });
   });
 
@@ -139,4 +142,28 @@ it("keeps the API failure page available through the detail layout", async () =>
   await expect(PublicWikiLayout({
     ...routeParams(), children: "Wiki content",
   })).resolves.toBe("Wiki content");
+});
+
+it.each([generateMetadata, canonicalMetadata])("advertises only the published translations with canonical URLs", async (metadata) => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({
+    status: "success",
+    data: { ...createMockWikiDetail("gr-aurora-echo"), availableLanguages: ["ja", "en", "en", "unsupported"] },
+  });
+  await expect(metadata(routeParams("gr-previous-name"))).resolves.toMatchObject({
+    alternates: {
+      canonical: "https://k-pool.app/ja/wiki/gr-aurora-echo",
+      languages: {
+        ja: "https://k-pool.app/ja/wiki/gr-aurora-echo",
+        en: "https://k-pool.app/en/wiki/gr-aurora-echo",
+      },
+    },
+  });
+  const result = await metadata(routeParams());
+  expect(result.alternates?.languages).not.toHaveProperty("ko");
+  expect(result.alternates?.languages).not.toHaveProperty("unsupported");
+});
+it("advertises only itself if an older API does not provide available languages", async () => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({ status: "success", data: createMockWikiDetail("gr-aurora-echo") });
+  const result = await generateMetadata(routeParams());
+  expect(result.alternates?.languages).toEqual({ ja: "https://k-pool.app/ja/wiki/gr-aurora-echo" });
 });

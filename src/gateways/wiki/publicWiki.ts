@@ -25,6 +25,7 @@ type PublicWikiHeroImage = {
 };
 
 export type PublicWikiApiResponse = {
+  availableLanguages?: string[];
   [key: string]: unknown;
   wikiIdentifier: string;
   slug: string;

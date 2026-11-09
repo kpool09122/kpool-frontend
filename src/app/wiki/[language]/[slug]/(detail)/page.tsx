@@ -1,3 +1,4 @@
+import { isSupportedLocale } from "@/i18n/locales";
 import { WikiDetailPage } from "../../../[slug]/WikiDetailPage";
 import { loadPublicWikiRouteState } from "../../../publicWikiRoute";
 import type { Metadata } from "next";
@@ -35,7 +36,16 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
     title: `${title} | ${siteTitle}`,
     description: wiki.metaDescription?.trim() || buildWikiDescription(language, wiki.basic.name),
     keywords: wiki.keywords ?? undefined,
-    ...(origin ? { alternates: { canonical: `${origin}${buildWikiPath(language, wiki.slug)}` } } : {}),
+    ...(origin ? {
+      alternates: {
+        canonical: `${origin}${buildWikiPath(language, wiki.slug)}`,
+        languages: Object.fromEntries(
+          [...new Set([language, ...(wiki.availableLanguages ?? [])])]
+            .filter(isSupportedLocale)
+            .map((locale) => [locale, `${origin}${buildWikiPath(locale, wiki.slug)}`]),
+        ),
+      },
+    } : {}),
   };
 }
 

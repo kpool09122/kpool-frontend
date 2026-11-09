@@ -56,6 +56,7 @@ export const getWikiDetailState = (
     data: {
       ...createMockWikiDetail(slug, { themeColor: options?.themeColor }),
       language: options?.language ?? "ja",
+      availableLanguages: ["ja", "en", "ko"],
     },
   };
 };
