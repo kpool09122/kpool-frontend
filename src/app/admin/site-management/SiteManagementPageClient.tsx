@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AdminNavigationLink } from "../AdminNavigationLink";
 import { canUseAnnouncements, canViewSiteManagementContacts } from "@/gateways/site-management/siteManagementPolicy";
 import { dictionaries } from "@/i18n/dictionaries";
 import type { ReactNode } from "react";
@@ -27,31 +27,31 @@ export function SiteManagementPageClient({ children, activeTab = "principalGroup
     <section className="space-y-5">
       <div className="overflow-x-auto border-b border-stroke-subtle">
         <div aria-label={t.siteManagementTabsLabel} className="-mb-px flex gap-1" role="tablist">
-          <Link
+          <AdminNavigationLink
             aria-selected={activeTab === "contacts"}
             className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "contacts" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}
             href="/admin/site-management/contacts"
             role="tab"
           >
             {t.myContacts.tab}
-          </Link>
-          {canViewContacts ? <Link
+          </AdminNavigationLink>
+          {canViewContacts ? <AdminNavigationLink
             aria-selected={activeTab === "contactManagement"}
             className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "contactManagement" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}
             href="/admin/site-management/contact-management"
             role="tab"
           >
             {t.siteManagementContacts.tab}
-          </Link> : null}
-          {canUseAnnouncements(currentIdentity, "view-draft") ? <Link role="tab" aria-selected={activeTab === "announcements"} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "announcements" ? "border-brand-primary" : "border-transparent"}`} href="/admin/site-management/announcements">{dictionaries[locale].announcements.management}</Link> : null}
-          {canShowManagement ? <Link
+          </AdminNavigationLink> : null}
+          {canUseAnnouncements(currentIdentity, "view-draft") ? <AdminNavigationLink role="tab" aria-selected={activeTab === "announcements"} className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold ${activeTab === "announcements" ? "border-brand-primary" : "border-transparent"}`} href="/admin/site-management/announcements">{dictionaries[locale].announcements.management}</AdminNavigationLink> : null}
+          {canShowManagement ? <AdminNavigationLink
             aria-selected={activeTab === "principalGroups"}
             className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "principalGroups" ? "border-brand-primary text-text-strong" : "border-transparent text-text-muted"}`}
             href="/admin/site-management/principal-groups"
             role="tab"
           >
             {t.siteManagementPrincipalGroups.title}
-          </Link> : null}
+          </AdminNavigationLink> : null}
         </div>
       </div>
       {children}

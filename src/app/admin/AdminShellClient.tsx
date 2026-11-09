@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
-import Link from "next/link";
+import { AdminNavigationLink } from "./AdminNavigationLink";
 import { redirect, usePathname, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState, useSyncExternalStore } from "react";
@@ -39,6 +39,8 @@ export function AdminShellClient({
   const activeSection = resolveAdminSection(pathname);
   const isUserSettings = activeSection === "settings";
   const navigation = getAdminNavigation(currentIdentity, principalState);
+  const showAnalyzeMenu = searchParams.get("test") === "true";
+  const sidebarNavigation = navigation.filter((item) => item.section !== "analyze" || showAnalyzeMenu);
   const fallbackRoute = navigation[0].href;
   const hiddenSection = !navigation.some((item) => item.section === activeSection);
   const shouldRedirect = hiddenSection && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
@@ -106,7 +108,7 @@ export function AdminShellClient({
         <div className="relative h-full overflow-y-auto border border-l-0 border-stroke-subtle bg-surface-raised p-4 shadow-soft">
           <div className={sidebarOverride === null ? "pointer-events-none invisible lg:pointer-events-auto lg:visible" : isSidebarOpen ? "block" : "pointer-events-none invisible"}>
             <nav className="grid gap-2">
-              {navigation.map((item) => (
+              {sidebarNavigation.map((item) => (
                 <AdminSectionLink href={item.href} isSelected={activeSection === item.section} label={t[item.labelKey]} key={item.section} />
               ))}
             </nav>
@@ -141,7 +143,7 @@ function AdminSectionLink({
   label: string;
 }) {
   return (
-    <Link
+    <AdminNavigationLink
       className={`rounded-lg px-4 py-3 text-left text-sm font-semibold transition ${
         isSelected
           ? selectedSectionClass
@@ -151,6 +153,6 @@ function AdminSectionLink({
       href={href}
     >
       {label}
-    </Link>
+    </AdminNavigationLink>
   );
 }
