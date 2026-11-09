@@ -10,15 +10,27 @@ const valid = () => ({
   vars: Object.fromEntries([
     "KPOOL_WIKI_PRIVATE_API_BASE_URL", "KPOOL_IDENTITY_API_BASE_URL",
     "KPOOL_ACCOUNT_API_BASE_URL", "KPOOL_SITE_MANAGEMENT_API_BASE_URL",
+    "KPOOL_ANALYZE_API_BASE_URL",
   ].map((key) => [key, "https://api.example.org"])),
 });
 
 describe("Workers deployment gate", () => {
+  it("rejects a missing Analyze API URL", () => {
+    const config = valid();
+    delete config.vars.KPOOL_ANALYZE_API_BASE_URL;
+    expect(validateDeploymentConfig(config)).toContain("KPOOL_ANALYZE_API_BASE_URL requires a credential-free public HTTPS base URL");
+  });
+  it.each(["http://localhost:8080", "https://api.example.org/api/v1/wiki"])("rejects invalid Analyze API URL %s", (url) => {
+    const config = valid();
+    config.vars.KPOOL_ANALYZE_API_BASE_URL = url;
+    expect(validateDeploymentConfig(config).some((error) => error.startsWith("KPOOL_ANALYZE_API_BASE_URL "))).toBe(true);
+  });
   it.each([
     ["KPOOL_IDENTITY_API_BASE_URL", "identity"],
     ["KPOOL_ACCOUNT_API_BASE_URL", "account"],
     ["KPOOL_WIKI_PRIVATE_API_BASE_URL", "wiki"],
     ["KPOOL_SITE_MANAGEMENT_API_BASE_URL", "site-management"],
+    ["KPOOL_ANALYZE_API_BASE_URL", "analyze"],
   ])("accepts the matching full v1 prefix for %s", (key, context) => {
     const config = valid();
     config.vars[key] = `https://api.example.org/api/v1/${context}/`;

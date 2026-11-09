@@ -50,6 +50,7 @@ config.assets.directory = resolve(config.assets.directory);
 config.vars = Object.fromEntries([
   "KPOOL_WIKI_PRIVATE_API_BASE_URL", "KPOOL_IDENTITY_API_BASE_URL",
   "KPOOL_ACCOUNT_API_BASE_URL", "KPOOL_SITE_MANAGEMENT_API_BASE_URL",
+  "KPOOL_ANALYZE_API_BASE_URL",
 ].map((key) => [key, upstreamUrl]));
 const visitorSecret = "workers-smoke-only-secret-32-characters";
 config.vars.WIKI_VISITOR_LOCATION_SECRET = visitorSecret;

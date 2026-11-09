@@ -35,7 +35,7 @@ public/legal の6 HTMLは build/dev 時に `scripts/generate-legal-documents.mjs
 - `name`: 承認済みWorker名。
 - `services[WORKER_SELF_REFERENCE].service`: 同じWorker名。
 - `r2_buckets[NEXT_INC_CACHE_R2_BUCKET].bucket_name`: 管理者が作成・確認したcache専用bucket。
-- `vars`: 下記4 API URL（非秘密）。`IMAGES`、DO binding/migration、Node互換flagを維持。
+- `vars`: 下記5 API URL（非秘密）。`IMAGES`、DO binding/migration、Node互換flagを維持。
 - custom domain / route / workers.dev方針とaccountは管理者台帳から明示設定。Cloudflare resourceの作成・変更は別途承認。
 
 ```sh
@@ -60,7 +60,7 @@ KPOOL_WORKERS_DEPLOY_CONFIG=wrangler.deploy.json pnpm workers:deploy
 
 `open-next.config.ts` は R2 cache とDO queueを選択。公開Wikiの `next.revalidate=60` を維持し、認証APIの `no-store` を変更しない。現在 `revalidateTag/revalidatePath` は使っていないためD1/tag cache/purge tokenは導入しない。将来導入時はtag cacheを別途設計する。deploy/preview はOpenNextのcache初期値投入も行うため、raw Wrangler deployへ置き換えない。
 
-## 4 API URLの注入契約
+## 5 API URLの注入契約
 
 | 非秘密変数 | バックエンドv1のprefix |
 | --- | --- |
@@ -68,8 +68,9 @@ KPOOL_WORKERS_DEPLOY_CONFIG=wrangler.deploy.json pnpm workers:deploy
 | KPOOL_IDENTITY_API_BASE_URL | `/api/v1/identity` |
 | KPOOL_ACCOUNT_API_BASE_URL | `/api/v1/account` |
 | KPOOL_SITE_MANAGEMENT_API_BASE_URL | `/api/v1/site-management` |
+| KPOOL_ANALYZE_API_BASE_URL | `/api/v1/analyze` |
 
-runtime `ApiUrl` を管理者/Pipelineが解決し、各base URLへ渡す。originまたは対応prefix付きURLを既存gatewayが扱う。URLにtoken/userinfo/query/fragmentを含めない。4変数は `NEXT_PUBLIC_*` や next.config.env にせずブラウザへの埋め込みを避ける。
+runtime `ApiUrl` を管理者/Pipelineが解決し、各base URLへ渡す。originまたは対応prefix付きURLを既存gatewayが扱う。URLにtoken/userinfo/query/fragmentを含めない。5変数は `NEXT_PUBLIC_*` や next.config.env にせずブラウザへの埋め込みを避ける。
 
 - build: コミット済みの `.env.production` をNext.jsが自動で読み込む。API URLと `NEXT_PUBLIC_ANALYTICS_ENABLED` / `NEXT_PUBLIC_GTM_ID` はこのファイルで設定し、公開変数の変更時は再buildする。shell環境での明示指定はファイルより優先される。本番のAPI URLは承認済みWrangler configの設定と揃える。
 - runtime: 承認済みWrangler configの `vars` に4値を設定する。OpenNextがWorkers envをprocess.envへ初期化し、既存gatewayを使う。値変更で再buildは不要だが、古いcacheの扱いを確認し、origin切替と配備を明示管理する。
