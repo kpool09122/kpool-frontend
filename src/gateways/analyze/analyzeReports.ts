@@ -37,3 +37,20 @@ export async function getAnalyzeReport<K extends "app" | "wiki">(
     return { status: "error", httpStatus: 502 };
   }
 }
+
+export type RegionalMetricReport = z.infer<typeof analyzeApiTypes.schemas.RegionalMetricReport>;
+export type AppRegionalReport = z.infer<typeof analyzeApiTypes.schemas.AppRegionalDailySummaryReport>;
+export type WikiRegionalReport = z.infer<typeof analyzeApiTypes.schemas.WikiRegionalDailySummaryReport>;
+export async function getAnalyzeRegionalReport<K extends "app" | "wiki">(
+  kind: K, query: string, signal?: AbortSignal,
+): Promise<ReportResult<K extends "app" ? AppRegionalReport : WikiRegionalReport>> {
+  try {
+    const response = await browserApiFetch(`/api/analyze/${kind}/regional-daily-summary?${query}`, { credentials: "include", cache: "no-store", signal });
+    if (!response.ok) return { status: "error", httpStatus: response.status };
+    const schema = kind === "app" ? analyzeApiTypes.schemas.AppRegionalDailySummaryReport : analyzeApiTypes.schemas.WikiRegionalDailySummaryReport;
+    const parsed = schema.safeParse(await response.json());
+    return parsed.success ? { status: "available", report: parsed.data as K extends "app" ? AppRegionalReport : WikiRegionalReport } : { status: "error", httpStatus: 502 };
+  } catch {
+    return { status: "error", httpStatus: 502 };
+  }
+}

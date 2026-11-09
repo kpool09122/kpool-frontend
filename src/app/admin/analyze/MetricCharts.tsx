@@ -75,7 +75,7 @@ export function CountryMetricChart({ name, report, t, locale, averageTime, showS
   );
 }
 
-export function DailyMetricChart({ name, report, t, locale, averageTime }: ChartProps) {
+export function DailyMetricChart({ name, report, t, locale, averageTime }: Omit<ChartProps, "report"> & { report: Pick<MetricReport, "days"> }) {
   const rows = report.days.map((row) => ({ ...row, number: chartValue(row.value, row.denominator, averageTime) }));
   if (!rows.length) return <p className="py-4 text-sm text-text-muted">{t.noDays}</p>;
   const domain = trendDomain(rows.map((row) => row.number), averageTime);

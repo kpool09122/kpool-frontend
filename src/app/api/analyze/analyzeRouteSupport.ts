@@ -6,7 +6,7 @@ import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
 export async function forwardAnalyzePrincipal(
   request: NextRequest,
   method: "get" | "post",
-  reportPath?: "/app/daily-summary" | "/wiki/daily-summary",
+  reportPath?: "/app/daily-summary" | "/wiki/daily-summary" | "/app/regional-daily-summary" | "/wiki/regional-daily-summary",
 ) {
   const endpoint = analyzeApiTypes.analyzeApi.api.find(
     (item) =>
