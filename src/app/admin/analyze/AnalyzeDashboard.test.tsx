@@ -477,7 +477,7 @@ it("lazily enters domestic reports, selects/clears a region and restores the glo
   await waitFor(() => expect(within(screen.getByRole("region", { name: "閲覧回数" })).getByTestId("metric-total")).toHaveTextContent(/^42$/));
   const queries = mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional")).map(([url]) => new URL(String(url), "http://localhost"));
   expect(queries.slice(-2).map(url => url.searchParams.get("region"))).toEqual(["JP-13", "JP-13"]);
-  fireEvent.click(screen.getByRole("button", { name: "地域選択を解除" }));
+  fireEvent.click(screen.getByRole("button", { name: "表示をリセット" }));
   await waitFor(() => expect(mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional"))).toHaveLength(6));
   fireEvent.click(screen.getByRole("button", { name: "地球儀に戻る" }));
   expect(screen.getByRole("group", { name: "国別の地球儀" })).toHaveAttribute("data-rotation", rotation);

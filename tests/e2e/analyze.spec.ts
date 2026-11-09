@@ -476,7 +476,7 @@ for (const mobile of [false, true]) test(`domestic drilldown and restore ${mobil
   await domestic.scrollIntoViewIfNeeded();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:testInfo.outputPath(`domestic-${mobile?"mobile":"desktop"}.png`),fullPage:true});
-  await page.getByRole("button",{name:"地域選択を解除"}).click();
+  await page.getByRole("button",{name:"表示をリセット"}).click();
   await expect.poll(()=>queries.length).toBe(6);
   await page.getByRole("button",{name:"地球儀に戻る"}).click();
   await expect(globe).toBeVisible();await expect(globe).toHaveAttribute("data-rotation",rotation!);

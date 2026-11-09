@@ -83,19 +83,8 @@ export function DomesticMap({
   return (
     <section
       aria-label={t.domesticMap}
-      className="min-w-0 space-y-3 rounded-xl border border-stroke-subtle p-3"
+      className="min-w-0 space-y-3"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold">{countryName(country, locale, t)}</h3>
-        <button
-          ref={backButton}
-          type="button"
-          onClick={onBack}
-          className="rounded border border-stroke-subtle p-2 text-sm"
-        >
-          {t.backToGlobe}
-        </button>
-      </div>
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           {country === "PH" ? (
@@ -188,29 +177,16 @@ export function DomesticMap({
               );
             })}
           </svg>
-          <p className="text-xs text-text-muted">{t.regionalNote}</p>
-          <details className="mt-2 text-xs text-text-muted">
-            <summary>{t.mapSource}</summary>
-            <p>
-              Natural Earth (public domain), ©{" "}
-              <a
-                href="https://www.openstreetmap.org/copyright"
-                target="_blank"
-                rel="noreferrer"
-              >
-                OpenStreetMap contributors
-              </a>{" "}
-              ·{" "}
-              <a
-                href="https://opendatacommons.org/licenses/odbl/1-0/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                ODbL 1.0
-              </a>
-              . {t.mapNotice}
-            </p>
-          </details>
+          <p className="mt-2 text-xs text-text-muted">
+            ©{" "}
+            <a
+              href="https://www.openstreetmap.org/copyright"
+              target="_blank"
+              rel="noreferrer"
+            >
+              OpenStreetMap contributors
+            </a>
+          </p>
         </div>
         <div className="min-w-0 space-y-3">
           <select
@@ -245,15 +221,27 @@ export function DomesticMap({
                 </div>
               ))}
             </dl>
+            <div className="min-h-[54px]">
+              <button
+                ref={backButton}
+                type="button"
+                onClick={onBack}
+                className="mt-4 rounded-lg border border-stroke-subtle p-2 text-sm focus-visible:outline-2 focus-visible:outline-brand-primary"
+              >
+                {t.backToGlobe}
+              </button>
+            </div>
           </section>
           {region !== undefined ? (
-            <button
-              type="button"
-              onClick={() => onSelect(undefined)}
-              className="rounded border border-stroke-subtle p-2 text-sm"
-            >
-              {t.clearRegion}
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onSelect(undefined)}
+                className="rounded border border-stroke-subtle px-3 py-2 text-sm"
+              >
+                {t.resetView}
+              </button>
+            </div>
           ) : null}
         </div>
       </div>
