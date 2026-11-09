@@ -12,6 +12,7 @@
     "build": "node scripts/generate-legal-documents.mjs && next build",
     "start": "next start",
     "lint": "eslint",
+    "generate:analyze-map": "node scripts/generate-analyze-map.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "pnpm test:unit && pnpm test:e2e",
