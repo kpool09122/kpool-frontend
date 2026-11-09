@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AdminNavigationLink } from "../AdminNavigationLink";
 import type { ReactNode } from "react";
 
 import {
@@ -110,7 +110,7 @@ export function WikiLayoutClient({
         <div className="overflow-x-auto border-b border-stroke-subtle">
           <div aria-label={t.wikiTabsLabel} className="-mb-px flex gap-1" role="tablist">
             {tabs.map((tab) => (
-              <Link
+              <AdminNavigationLink
                 aria-selected={activeWikiTab === tab.id}
                 className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
                   activeWikiTab === tab.id
@@ -122,7 +122,7 @@ export function WikiLayoutClient({
                 role="tab"
               >
                 {tab.label}
-              </Link>
+              </AdminNavigationLink>
             ))}
           </div>
         </div>

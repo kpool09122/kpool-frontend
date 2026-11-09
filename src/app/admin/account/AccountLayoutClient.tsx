@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { AdminNavigationLink } from "../AdminNavigationLink";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -85,7 +85,7 @@ export function AccountLayoutClient({
       <div className="overflow-x-auto border-b border-stroke-subtle">
         <div aria-label={t.accountSettingsTabsLabel} className="-mb-px flex gap-1" role="tablist">
           {tabs.map((tab) => (
-            <Link
+            <AdminNavigationLink
               aria-selected={activeTab === tab.id}
               className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
                 activeTab === tab.id
@@ -97,7 +97,7 @@ export function AccountLayoutClient({
               role="tab"
             >
               {tab.label}
-            </Link>
+            </AdminNavigationLink>
           ))}
         </div>
       </div>

@@ -13,7 +13,7 @@ describe("SiteManagement navigation", () => {
     mocks.identity = identity;
     render(<AdminShellClient><SiteManagementPageClient><p>permissions</p></SiteManagementPageClient></AdminShellClient>);
     const links = screen.getByRole("complementary").querySelectorAll("nav a");
-    expect(Array.from(links, (link) => link.textContent)).toEqual(["Wiki", "分析", "サイト管理", "アカウント設定", "ユーザー設定"]);
+    expect(Array.from(links, (link) => link.textContent)).toEqual(["Wiki", "サイト管理", "アカウント設定", "ユーザー設定"]);
     expect(screen.getByRole("link", { name: "サイト管理" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("サイト管理");
     expect(screen.getByRole("tablist", { name: "サイト管理タブ" })).toBeInTheDocument();

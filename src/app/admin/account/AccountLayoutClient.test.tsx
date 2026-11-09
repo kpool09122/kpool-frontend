@@ -6,7 +6,7 @@ import { dictionaries } from "../../../i18n/dictionaries";
 import { AccountLayoutClient } from "./AccountLayoutClient";
 
 const navigationMocks = vi.hoisted(() => ({ redirect: vi.fn((path: string) => { throw new Error(`redirect:${path}`); }) }));
-vi.mock("next/navigation", () => ({ redirect: navigationMocks.redirect }));
+vi.mock("next/navigation", () => ({ redirect: navigationMocks.redirect, useSearchParams: () => new URLSearchParams() }));
 
 const identity = {
   identityIdentifier: "11111111-1111-4111-8111-111111111111",
