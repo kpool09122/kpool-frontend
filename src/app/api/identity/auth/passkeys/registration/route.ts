@@ -5,6 +5,7 @@ import { forwardIdentityRoute } from "../../routeSupport";
 
 export const POST = (request: NextRequest) => forwardIdentityRoute(request, {
   method: "POST",
+  recordRegistrationCountry: true,
   path: "/auth/passkeys/registration",
   requestSchema: identityApiTypes.schemas.RegisterWithPasskeyRequestBody,
   responseSchema: identityApiTypes.schemas.PasskeyIdentityRegistrationResult,

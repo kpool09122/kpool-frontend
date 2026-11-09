@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getAnalyzeRequestCountry } from "@/gateways/analyze/analyzeRequestCountry";
 
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
 import { getAuthenticatedAccountStatus, isAccountSetupRequired } from "@/gateways/identity/identityApi";
@@ -59,5 +60,5 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
     resolvedParams.slug,
   );
 
-  return <AdminAppClient data={data} returnTo={authReturnTo ?? returnTo} />;
+  return <AdminAppClient data={data} returnTo={authReturnTo ?? returnTo} initialCountry={getAnalyzeRequestCountry()} />;
 }

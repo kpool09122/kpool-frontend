@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { dictionaries } from "@/i18n/dictionaries";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { AnalyzeClient } from "./AnalyzeClient";
+vi.mock("./AnalyzeDashboard", () => ({ AnalyzeDashboard: () => <section aria-label="分析レポート" /> }));
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
   fetch: vi.fn(),
@@ -93,7 +94,7 @@ describe("Analyze enrollment", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
-    await screen.findByText("分析を利用できます。");
+    await screen.findByRole("region", { name: "分析レポート" });
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     expect(mocks.fetch.mock.calls.map(([url]) => url)).toEqual([
       "/api/analyze/principal/me",
@@ -172,8 +173,10 @@ describe("Analyze enrollment", () => {
       await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByRole("alert");
-    fireEvent.click(screen.getByRole("button", { name: "分析サービスの利用を開始" }));
-    await screen.findByText("分析を利用できます。");
+    fireEvent.click(
+      screen.getByRole("button", { name: "分析サービスの利用を開始" }),
+    );
+    await screen.findByRole("region", { name: "分析レポート" });
   });
   it("ignores a late activation result after account switch", async () => {
     let finish: (value: Response) => void = () => {};
@@ -216,7 +219,7 @@ describe("Analyze enrollment", () => {
     });
     mocks.fetch.mockImplementation(async () => Response.json(principal));
     renderPage();
-    await screen.findByText("分析を利用できます。");
+    await screen.findByRole("region", { name: "分析レポート" });
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
   it("does not confuse committed enrollment with a failed status refresh", async () => {
@@ -225,7 +228,7 @@ describe("Analyze enrollment", () => {
       .mockResolvedValueOnce(Response.json(principal, { status: 201 }))
       .mockResolvedValueOnce(Response.json({}, { status: 503 }))
       .mockImplementation(async () => Response.json(principal));
-    renderPage();
+    const view = renderPage();
     fireEvent.click(
       await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
@@ -235,15 +238,16 @@ describe("Analyze enrollment", () => {
     expect(
       screen.queryByRole("button", { name: "分析サービスの利用を開始" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "状態を再取得" }));
-    await screen.findByText("分析を利用できます。");
+    view.unmount();
+    renderPage();
+    await screen.findByRole("region", { name: "分析レポート" });
     expect(
       mocks.fetch.mock.calls.filter(
         ([url]) => url === "/api/analyze/principals",
       ),
     ).toHaveLength(1);
   });
-  it("retries a failed identity refresh without reporting ready or re-enrolling", async () => {
+  it("keeps reports unavailable after a failed identity refresh without re-enrolling", async () => {
     mocks.refresh.mockResolvedValueOnce(null).mockResolvedValue(mocks.identity);
     mocks.fetch
       .mockResolvedValueOnce(Response.json({}, { status: 404 }))
@@ -254,35 +258,34 @@ describe("Analyze enrollment", () => {
       await screen.findByRole("button", { name: "分析サービスの利用を開始" }),
     );
     await screen.findByRole("alert");
-    expect(screen.queryByText("分析を利用できます。")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "状態を再取得" }));
-    await screen.findByText("分析を利用できます。");
-    expect(mocks.refresh).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("region", { name: "分析レポート" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "分析サービスの利用を開始" })).not.toBeInTheDocument();
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
   it("loads the new account enrollment state instead of reusing the old account cache", async () => {
     mocks.fetch
       .mockResolvedValueOnce(Response.json(principal))
       .mockResolvedValueOnce(Response.json({}, { status: 404 }));
     renderPage();
-    await screen.findByText("分析を利用できます。");
+    await screen.findByRole("region", { name: "分析レポート" });
     const previous = mocks.identity;
     mocks.identity = { ...previous, accountIdentifier: "account-b" };
     useAuthStore.setState({ identity: mocks.identity });
     await screen.findByRole("button", { name: "分析サービスの利用を開始" });
-    expect(screen.queryByText("分析を利用できます。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "分析レポート" })).not.toBeInTheDocument();
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
     mocks.identity = previous;
   });
   it("hides previous account data during identity switch", async () => {
     mocks.fetch.mockImplementation(async () => Response.json(principal));
     renderPage();
-    await screen.findByText("分析を利用できます。");
+    await screen.findByRole("region", { name: "分析レポート" });
     useAuthStore.setState({
       identity: { ...mocks.identity, accountIdentifier: "account-b" },
     });
     await waitFor(() =>
       expect(
-        screen.queryByText("分析を利用できます。"),
+        screen.queryByRole("region", { name: "分析レポート" }),
       ).not.toBeInTheDocument(),
     );
   });

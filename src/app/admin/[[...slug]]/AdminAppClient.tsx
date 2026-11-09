@@ -43,14 +43,15 @@ import { WikiPrincipalGroupsClient } from "../wiki/principal-groups/WikiPrincipa
 type AdminAppClientProps = {
   data: AdminRouteData;
   returnTo?: string | null;
+  initialCountry?: string | null;
 };
 
-export function AdminAppClient({ data, returnTo = null }: AdminAppClientProps) {
+export function AdminAppClient({ data, returnTo = null, initialCountry = null }: AdminAppClientProps) {
   const page = resolveAdminClientPage(usePathname());
 
   return (
     <AdminRouteProvider value={data}>
-      <AdminResolvedPage page={page} returnTo={returnTo} />
+      <AdminResolvedPage page={page} returnTo={returnTo} initialCountry={initialCountry} />
     </AdminRouteProvider>
   );
 }
@@ -188,11 +189,13 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
 function AdminResolvedPage({
   page,
   returnTo,
+  initialCountry,
 }: {
   page: AdminClientPage;
   returnTo: string | null;
+  initialCountry: string | null;
 }) {
-  if (page === "analyze") return <AnalyzeClient />;
+  if (page === "analyze") return <AnalyzeClient initialCountry={initialCountry} />;
   if (page === "siteManagementContactManagement") return <SiteManagementPageClient activeTab="contactManagement"><OperatorContactsClient /></SiteManagementPageClient>;
   if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;
   if (page === "siteManagementPrincipalGroups") {

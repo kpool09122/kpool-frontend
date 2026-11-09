@@ -114,6 +114,7 @@ export default defineConfig([
       "tests/**/*.{js,jsx,ts,tsx}",
       "playwright.config.ts",
       "vitest.config.ts",
+      "scripts/generate-analyze-map.mjs",
       "scripts/workers-smoke.mjs",
       "scripts/workers-sitemap-smoke.mjs",
       "scripts/workers-visitor-location-smoke.mjs",

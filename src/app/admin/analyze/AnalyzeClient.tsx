@@ -9,11 +9,12 @@ import {
 } from "@/gateways/analyze/analyzePrincipal";
 import { useAdmin } from "../AdminProvider";
 import { getAdminAccountScope } from "../accountScope";
+import { AnalyzeDashboard } from "./AnalyzeDashboard";
 
 const statusErrorClassName =
   "rounded-lg border border-status-danger bg-status-danger/10 p-3 text-sm font-semibold text-status-danger";
 
-export function AnalyzeClient() {
+export function AnalyzeClient({ initialCountry = null }: { initialCountry?: string | null }) {
   const { currentIdentity, refreshIdentity, t } = useAdmin();
   const auth = useAuthStore();
   const needsAuthentication =
@@ -33,6 +34,7 @@ export function AnalyzeClient() {
       key={`${auth.sessionVersion}:${scope}`}
       scope={scope}
       version={auth.sessionVersion}
+      initialCountry={initialCountry}
     />
   );
 }
@@ -40,9 +42,11 @@ export function AnalyzeClient() {
 function AnalyzeWorkspace({
   scope,
   version,
+  initialCountry,
 }: {
   scope: string;
   version: number;
+  initialCountry: string | null;
 }) {
   const {
     refreshIdentity,
@@ -106,21 +110,6 @@ function AnalyzeWorkspace({
     else if (result.status === "duplicate") setFeedback("duplicate");
     setBusy(false);
   };
-  const refreshStatus = async () => {
-    if (busy || principal.isFetching) return;
-    setBusy(true);
-    const identity =
-      feedback === "refreshError"
-        ? await refreshIdentity({ preserveOnNull: true })
-        : true;
-    if (!isCurrent()) return;
-    const latest = await principal.refetch();
-    if (!isCurrent()) return;
-    setFeedback(
-      !identity || latest.data?.status === "error" ? "refreshError" : null,
-    );
-    setBusy(false);
-  };
   const state = principal.data;
   const forbidden =
     feedback === "forbidden" ||
@@ -176,19 +165,7 @@ function AnalyzeWorkspace({
       !forbidden &&
       !error &&
       !busy ? (
-        <p role="status">{t.ready}</p>
-      ) : null}
-      {(state && state.status !== "missing") ||
-      feedback === "refreshError" ||
-      forbidden ? (
-        <button
-          type="button"
-          disabled={busy || principal.isFetching}
-          onClick={() => void refreshStatus()}
-          className="rounded-lg border border-stroke-subtle px-4 py-2 disabled:opacity-50"
-        >
-          {t.retry}
-        </button>
+        <AnalyzeDashboard scope={scope} version={version} initialCountry={initialCountry} />
       ) : null}
     </section>
   );
