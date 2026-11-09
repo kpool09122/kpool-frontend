@@ -55,7 +55,6 @@ describe("Analyze report BFF", () => {
       );
       expect(fetch.mock.calls[0][1]).toMatchObject({
         cache: "no-store",
-        redirect: "error",
         headers: { Cookie: "session=original", "Accept-Language": "ja" },
       });
       expect(result.status).toBe(200);

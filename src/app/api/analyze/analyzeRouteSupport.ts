@@ -52,7 +52,6 @@ export async function forwardAnalyzePrincipal(
       method: method.toUpperCase(),
       headers,
       cache: "no-store",
-      redirect: "error",
     });
     cookies.push(...upstream.headers.getSetCookie());
     if (!upstream.ok) return unavailable(upstream.status);
