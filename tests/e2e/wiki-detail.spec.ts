@@ -47,10 +47,13 @@ test("wiki detail page shows the public layout and flip interaction", async ({
   ).toBeVisible();
 });
 
-test("wiki detail page shows the empty state", async ({ page }) => {
-  await page.goto("/wiki/ja/empty");
-
-  await expect(page.getByText("No public wiki yet")).toBeVisible();
+test("missing public wiki uses the not-found page and prevents indexing", async ({ page }) => {
+  for (const path of ["/wiki/ja/empty", "/ja/wiki/empty"]) {
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: "404", exact: true })).toBeVisible();
+    await expect(page.locator('meta[name="robots"][content="noindex"]').first()).toBeAttached();
+  }
 });
 
 test("both legacy language edit URLs redirect to the draft ID", async ({ page }) => {
@@ -794,3 +797,11 @@ for (const width of [1280, 390]) {
     await expect.poll(hasLeaveWarning).toBe(false);
   });
 }
+
+test("missing wiki is excluded from search results for crawlers", async ({ request }) => {
+  for (const path of ["/ja/wiki/empty", "/wiki/ja/empty"]) {
+    const response = await request.get(path, { headers: { "User-Agent": "Googlebot" } });
+    expect(response.status()).toBe(404);
+    expect(await response.text()).toContain('name="robots" content="noindex"');
+  }
+});

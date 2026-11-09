@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { isSupportedLocale } from "@/i18n/locales";
+
 import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
 import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
 import type { Metadata } from "next";
@@ -21,7 +24,9 @@ const getThemeColor = (value: string | string[] | undefined): string | undefined
 
 export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "params">): Promise<Metadata> {
   const { language, slug } = await params;
+  if (!isSupportedLocale(language)) notFound();
   const wikiState = await loadPublicWikiState(language, slug);
+  if (wikiState.status === "empty") notFound();
 
   if (wikiState.status !== "success") {
     return { title: siteTitle };
@@ -42,7 +47,9 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
 export default async function Page({ params, searchParams }: WikiDetailRouteProps) {
   const { language, slug } = await params;
   const { themeColor, edit } = await searchParams;
+  if (!isSupportedLocale(language)) notFound();
   const wikiState = await loadPublicWikiState(language, slug);
+  if (wikiState.status === "empty") notFound();
 
   return (
     <WikiDetailPage

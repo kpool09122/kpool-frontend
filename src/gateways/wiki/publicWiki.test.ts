@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   adaptPublicWikiResponse,
@@ -556,5 +556,16 @@ describe("publicWiki", () => {
         },
       }),
     ).toBe("published wiki failed");
+  });
+});
+
+describe("public wiki missing versus unavailable", () => {
+  afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+  it.each([404, 500, 503])("classifies backend status %s", async (status) => {
+    vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "0");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status })));
+    const result = await loadPublicWikiState("ja", "gr-missing");
+    expect(result.status).toBe(status === 404 ? "empty" : "error");
   });
 });

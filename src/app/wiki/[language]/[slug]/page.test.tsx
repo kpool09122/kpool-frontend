@@ -2,8 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createMockWikiDetail } from "@kpool/wiki";
 import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
-import { generateMetadata } from "./page";
+import Page, { generateMetadata } from "./page";
+import CanonicalPage from "../../../[language]/wiki/[slug]/page";
 import { generateMetadata as canonicalMetadata } from "../../../[language]/wiki/[slug]/page";
+
+vi.mock("next/navigation", () => ({
+  notFound: () => { throw new Error("NEXT_HTTP_ERROR_FALLBACK;404"); },
+}));
 
 vi.mock("@/gateways/wiki/publicWiki", () => ({
   loadPublicWikiState: vi.fn(),
@@ -66,13 +71,35 @@ describe("wiki localized page metadata", () => {
     });
   });
 
-  it("returns site metadata when the wiki is unavailable", async () => {
+  it("returns site metadata on an API failure", async () => {
     vi.mocked(loadPublicWikiState).mockResolvedValue({
-      status: "empty",
+      status: "error", message: "Unavailable",
     });
 
     await expect(generateMetadata(routeParams())).resolves.toEqual({
       title: "k-pool",
     });
   });
+});
+
+// Both URL forms share the same framework 404 behavior.
+it.each([Page, CanonicalPage])("interrupts rendering for a missing wiki", async (renderPage) => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({ status: "empty" });
+  await expect(renderPage({ ...routeParams(), searchParams: Promise.resolve({}) })).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+});
+it.each([generateMetadata, canonicalMetadata])("interrupts metadata generation for a missing wiki", async (metadata) => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({ status: "empty" });
+  await expect(metadata(routeParams())).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+});
+it.each([Page, CanonicalPage])("preserves the API failure display instead of treating it as missing", async (renderPage) => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({ status: "error", message: "Unavailable" });
+  const page = await renderPage({ ...routeParams(), searchParams: Promise.resolve({}) });
+  expect(page.props.wikiState).toEqual({ status: "error", message: "Unavailable" });
+});
+it("rejects unsupported wiki languages before requesting the API", async () => {
+  vi.mocked(loadPublicWikiState).mockClear();
+  const props = { params: Promise.resolve({ language: "zh", slug: "gr-aurora-echo" }), searchParams: Promise.resolve({}) };
+  await expect(Page(props)).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+  await expect(generateMetadata(props)).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+  expect(loadPublicWikiState).not.toHaveBeenCalled();
 });
