@@ -1,3 +1,6 @@
+import { buildMarkdownDescription } from "../../../metadataDescription";
+import { buildPageMetadata, siteTitle } from "../../../metadata";
+
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import Link from "next/link";
 import { AnnouncementCategoryBadge } from "@/components/Announcement/AnnouncementCategoryBadge";
@@ -57,4 +60,24 @@ export default async function AnnouncementDetail({
       )}
     </main>
   );
+}
+
+export async function generateMetadata({ params }: {
+  params: Promise<{ language: string; announcementIdentifier: string }>;
+}) {
+  const { language, announcementIdentifier: id } = await params;
+  if (
+    !isSupportedLocale(language) ||
+    !announcementIdentifierSchema.safeParse(id).success
+  ) notFound();
+  const result = await loadPublicAnnouncements(language, 1, id);
+  if (!result.ok && result.status === 404) notFound();
+  const metadata = buildPageMetadata(language, "announcements");
+  return result.ok && result.detail
+    ? {
+        ...metadata,
+        title: `${result.detail.title} | ${siteTitle}`,
+        description: buildMarkdownDescription(result.detail.content) || metadata.description,
+      }
+    : metadata;
 }

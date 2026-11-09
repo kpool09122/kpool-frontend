@@ -136,8 +136,6 @@ export type PublicWikiApiClient = {
   ) => Promise<z.infer<typeof publicWikiListApiResponseSchema>>;
 };
 
-const defaultApiBaseUrl = process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL;
-
 const readResponseBody = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
@@ -191,7 +189,7 @@ export const getPublicWikiListEndpointPath = (
 };
 
 export const createPublicWikiApiClient = (
-  baseUrl: string = defaultApiBaseUrl ?? "",
+  baseUrl: string = process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL ?? "",
 ): PublicWikiApiClient | null => {
   if (!baseUrl) {
     return null;
@@ -346,6 +344,10 @@ export const loadPublicWikiState = async (
 
     return wiki ? { status: "success", data: wiki } : { status: "empty" };
   } catch (error) {
+    const missing = z
+      .object({ response: z.object({ status: z.literal(404) }) })
+      .safeParse(error);
+    if (missing.success) return { status: "empty" };
     return {
       status: "error",
       message: getPublicWikiErrorMessage(error),

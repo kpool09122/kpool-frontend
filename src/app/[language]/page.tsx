@@ -1,3 +1,5 @@
+import { buildPageMetadata } from "../metadata";
+
 import { dictionaries } from "../../i18n/dictionaries";
 import { fallbackLocale, normalizeLocale } from "../../i18n/locales";
 import { loadPublicWikiListState } from "@/gateways/wiki/publicWiki";
@@ -95,4 +97,9 @@ export default async function LanguageHome({ params, searchParams }: LanguageHom
       </div>
     </main>
   );
+}
+
+export async function generateMetadata({ params }: LanguageHomeProps) {
+  const { language } = await params;
+  return buildPageMetadata(language, "home");
 }
