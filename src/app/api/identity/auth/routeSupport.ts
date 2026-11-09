@@ -1,3 +1,4 @@
+import { getVisitorLocationSigner } from "@/app/api/visitorLocation";
 import { getApiErrorBody } from "@/gateways/support/apiError";
 import { getCsrfForwardHeaders } from "@/gateways/support/csrfForwardHeaders";
 
@@ -84,6 +85,7 @@ type ForwardIdentityRouteOptions = {
   path: string;
   requestSchema?: z.ZodType;
   responseSchema: z.ZodType;
+  recordRegistrationCountry?: boolean;
 };
 
 export const forwardIdentityRoute = async (
@@ -106,15 +108,21 @@ export const forwardIdentityRoute = async (
     const requestBody = requestSchema
       ? parseWithSchemaLog(`identity ${path} request`, requestSchema, await request.json())
       : undefined;
-    const apiResponse = await fetch(`${baseUrl}${path}`, {
-      method,
-      headers: {
-        Accept: "application/json",
-        ...getAcceptLanguageForwardHeaders(request),
-        ...(requestBody === undefined ? {} : { "Content-Type": "application/json" }),
-        ...getSessionForwardHeaders(request),
-      },
-      ...(requestBody === undefined ? {} : { body: JSON.stringify(requestBody) }),
+    const url = `${baseUrl}${path}`;
+    const serializedBody = requestBody === undefined ? undefined : JSON.stringify(requestBody);
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...getAcceptLanguageForwardHeaders(request),
+      ...(serializedBody === undefined ? {} : { "Content-Type": "application/json" }),
+      ...getSessionForwardHeaders(request),
+    };
+    if (options.recordRegistrationCountry) {
+      const signer = getVisitorLocationSigner(method);
+      if (signer) Object.assign(headers, await signer(url, serializedBody ?? "", headers));
+    }
+    const apiResponse = await fetch(url, {
+      method, headers,
+      ...(serializedBody === undefined ? {} : { body: serializedBody }),
       cache: "no-store",
     });
     const body = await readIdentityRouteResponseBody(apiResponse);

@@ -1,3 +1,4 @@
+import { getVisitorLocationSigner } from "@/app/api/visitorLocation";
 import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
 import { identityApiTypes } from "@kpool/types";
@@ -50,17 +51,15 @@ export async function GET(request: NextRequest, context: SocialRedirectRouteCont
     }
 
     const query = searchParams.toString();
-    const apiResponse = await fetch(
-      `${baseUrl}/auth/social/${encodeURIComponent(provider)}/redirect${query ? `?${query}` : ""}`,
-        {
-          headers: {
-            Accept: "application/json",
-            ...getAcceptLanguageForwardHeaders(request),
-            ...getSessionForwardHeaders(request),
-          },
-          cache: "no-store",
-        },
-      );
+    const url = `${baseUrl}/auth/social/${encodeURIComponent(provider)}/redirect${query ? `?${query}` : ""}`;
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...getAcceptLanguageForwardHeaders(request),
+      ...getSessionForwardHeaders(request),
+    };
+    const signer = getVisitorLocationSigner("GET");
+    if (signer) Object.assign(headers, await signer(url, "", headers));
+    const apiResponse = await fetch(url, { headers, cache: "no-store" });
     const body = await readIdentityRouteResponseBody(apiResponse);
 
     if (!apiResponse.ok) {
