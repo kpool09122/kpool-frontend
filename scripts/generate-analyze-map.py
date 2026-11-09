@@ -7,9 +7,23 @@ Boundaries are illustrative, not a statement about sovereignty.
 import json
 import math
 import pathlib
+import re
 import urllib.request
 
 SOURCE = "https://raw.githubusercontent.com/datasets/geo-countries/ca3b7150caa5d3cc3fb108a87fc6e3d57bd97d99/data/countries.geojson"
+
+
+# Align source-specific identifiers with the country codes used by the report APIs.
+COUNTRY_CODE_ALIASES = {"CN-TW": "TW"}
+
+
+def normalize_country_code(code):
+    if code == "-99":
+        return None
+    normalized = COUNTRY_CODE_ALIASES.get(code, code)
+    if not re.fullmatch(r"[A-Z]{2}", normalized):
+        raise ValueError(f"Unsupported country code: {code}")
+    return normalized
 
 
 def simplify(points, tolerance=0.15):
@@ -42,7 +56,7 @@ def main():
                 continue
             rings.append([[round(p[0], 2), round(p[1], 2)] for p in ring])
         code = feature["properties"]["ISO3166-1-Alpha-2"]
-        countries.append({"code": None if code == "-99" else code, "name": feature["properties"]["name"], "rings": rings})
+        countries.append({"code": normalize_country_code(code), "name": feature["properties"]["name"], "rings": rings})
     output = pathlib.Path(__file__).resolve().parents[1] / "src/app/admin/analyze/worldCountries.json"
     output.write_text(json.dumps(countries, ensure_ascii=False, separators=(",", ":")) + "\n")
     print(f"Generated {len(countries)} country/territory shapes: {output}")

@@ -120,6 +120,36 @@ describe("Analyze report dashboard", () => {
       within(submissions).queryByText("2026-11-01T01:00:00Z"),
     ).not.toBeInTheDocument();
   });
+  it("colors Taiwan from TW metrics and sends TW when selected", async () => {
+    mocks.fetch.mockImplementation(async (url: string) => {
+      const country = new URL(url, "http://localhost").searchParams.get("country");
+      return Response.json(url.includes("/app/") ? appReport : {
+        ...wikiReport,
+        views: {
+          ...wikiReport.views,
+          total: country === "TW" ? "5" : wikiReport.views.total,
+          countries: [...wikiReport.views.countries,
+            { ...wikiReport.views.countries[0], country: "TW", value: "5" },
+            { ...wikiReport.views.countries[0], country: "CN", value: "15" },
+          ],
+        },
+      });
+    });
+    show();
+    await screen.findByRole("region", { name: "閲覧回数" });
+    const globe = screen.getByRole("region", { name: "国別の地球儀" });
+    fireEvent.change(within(globe).getByRole("combobox", { name: "色分けする指標" }), { target: { value: "views" } });
+    const taiwan = within(globe).getByRole("button", { name: "台湾 (TW): 5" });
+    const china = within(globe).getByRole("button", { name: "中国 (CN): 15" });
+    expect(taiwan).not.toHaveAttribute("fill", "#cbd5e1");
+    expect(taiwan.getAttribute("fill")).not.toBe(china.getAttribute("fill"));
+    fireEvent.click(taiwan);
+    await waitFor(() => expect(within(screen.getByRole("region", { name: "閲覧回数" })).getByTestId("metric-total")).toHaveTextContent(/^5$/));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    const selectedRequests = mocks.fetch.mock.calls.map(([url]) => new URL(String(url), "http://localhost")).filter((url) => url.searchParams.has("country"));
+    expect(selectedRequests.map((url) => url.searchParams.get("country"))).toEqual(["TW", "TW"]);
+    expect(within(globe).getByRole("heading", { name: "台湾 (TW)" })).toBeInTheDocument();
+  });
   it("shows one globe with all country metrics on hover, focus and touch", async () => {
     show();
     const map = await screen.findByRole("region", { name: "国別の地球儀" });

@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
+import countries from "./worldCountries.json";
+import { isCountryCodeOption } from "@/utils/countryOptions";
 import { dragGlobe, getInitialGlobeRotation, initialGlobeRotation, projectGlobe } from "./globeProjection";
 
 describe("globe projection", () => {
+  it("uses supported API country codes and projects Taiwan separately from China", () => {
+    expect(countries.every((country) => country.code === null || isCountryCodeOption(country.code))).toBe(true);
+    const globe = projectGlobe(getInitialGlobeRotation("TW"));
+    const taiwan = globe.countries.find((country) => country.code === "TW");
+    const china = globe.countries.find((country) => country.code === "CN");
+    expect(taiwan?.name).toBe("Taiwan");
+    expect(taiwan?.path).toBeTruthy();
+    expect(china?.path).toBeTruthy();
+    expect(taiwan?.path).not.toBe(china?.path);
+    expect(globe.countries.some((country) => country.code === "CN-TW")).toBe(false);
+  });
   it("clips the back of the globe as it rotates", () => {
     const asia = projectGlobe(initialGlobeRotation);
     expect(asia.countries.some((country) => country.code === "JP")).toBe(true);
