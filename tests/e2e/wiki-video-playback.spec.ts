@@ -548,9 +548,12 @@ test("admin wiki cards preserve the playing mini player when opening the editor"
   await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
   await page.getByRole("link", { name: "編集中 Wiki", exact: true }).click();
   await expect(page).toHaveURL(/\/wiki\/88888888-8888-8888-8888-888888888888\/edit\?resourceType=group$/);
-  await expect(page.getByRole("region", { name: "Mini player" })).toContainText("First video (1/2)");
-  await expect(page.locator("iframe")).toHaveCount(1);
-  await expect(page.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
+  await expect(page.getByRole("heading", { name: "Aurora Echo", exact: true })).toBeVisible();
+  const miniPlayer = page.getByRole("region", { name: "Mini player" });
+  await expect(miniPlayer).toContainText("First video (1/2)");
+  // The editor can also render body embeds; assert the persistent playback host.
+  await expect(miniPlayer.locator("iframe")).toHaveCount(1);
+  await expect(miniPlayer.locator("iframe")).toHaveAttribute("data-persisted-player", "true");
 });
 
 test("wiki list searches and filters preserve the playing mini player", async ({ page }) => {

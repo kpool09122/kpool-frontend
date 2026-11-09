@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createMockWikiDetail } from "@kpool/wiki";
+import { PublicWikiLayout } from "../../PublicWikiLayout";
 import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
-import Page, { generateMetadata } from "./page";
-import CanonicalPage from "../../../[language]/wiki/[slug]/page";
-import { generateMetadata as canonicalMetadata } from "../../../[language]/wiki/[slug]/page";
+import Page, { generateMetadata } from "./(detail)/page";
+import CanonicalPage from "../../../[language]/wiki/[slug]/(detail)/page";
+import { generateMetadata as canonicalMetadata } from "../../../[language]/wiki/[slug]/(detail)/page";
 
 vi.mock("next/navigation", () => ({
   notFound: () => { throw new Error("NEXT_HTTP_ERROR_FALLBACK;404"); },
@@ -124,4 +125,18 @@ it.each([
     data: { ...createMockWikiDetail("gr-aurora-echo"), metaDescription: null },
   });
   await expect(generateMetadata({ params: Promise.resolve({ language, slug: "gr-aurora-echo" }) })).resolves.toMatchObject({ description });
+});
+
+it("rejects missing wikis in the layout before its loading boundary", async () => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({ status: "empty" });
+  await expect(PublicWikiLayout({
+    ...routeParams(), children: "Wiki content",
+  })).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+});
+
+it("keeps the API failure page available through the detail layout", async () => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({ status: "error", message: "Unavailable" });
+  await expect(PublicWikiLayout({
+    ...routeParams(), children: "Wiki content",
+  })).resolves.toBe("Wiki content");
 });
