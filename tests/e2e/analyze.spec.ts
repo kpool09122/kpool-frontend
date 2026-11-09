@@ -112,6 +112,13 @@ for (const mobile of [false, true])
     await expect(
       page.getByRole("heading", { level: 1, name: "分析", exact: true }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("complementary").getByRole("link", { name: "分析", exact: true }),
+    ).toHaveCount(0);
+    await page.goto("/admin/analyze?test=true");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "分析", exact: true }),
+    ).toBeVisible();
     if (mobile)
       await page
         .getByRole("button", { name: "管理画面メニューを開く" })
@@ -167,6 +174,19 @@ for (const mobile of [false, true])
       path: testInfo.outputPath(`analyze-${mobile ? "mobile" : "desktop"}.png`),
       fullPage: true,
     });
+    if (mobile)
+      await page.getByRole("button", { name: "管理画面メニューを開く" }).click();
+    await sidebar.getByRole("link", { name: "ユーザー設定", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/user\/profile\?test=true$/);
+    if (mobile)
+      await page.getByRole("button", { name: "管理画面メニューを閉じる" }).click();
+    await page.getByRole("tab", { name: "言語", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/user\/language\?test=true$/);
+    if (mobile)
+      await page.getByRole("button", { name: "管理画面メニューを開く" }).click();
+    await expect(sidebar.getByRole("link", { name: "分析", exact: true })).toBeVisible();
+    await sidebar.getByRole("link", { name: "分析", exact: true }).click();
+    await expect(page).toHaveURL(/\/admin\/analyze\?test=true$/);
   });
 test.describe("Analyze reports", () => {
   test.use({ hasTouch: true });
