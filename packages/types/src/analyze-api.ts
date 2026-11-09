@@ -59,6 +59,33 @@ const KPool_Common_ProblemDetails = z
   })
   .partial()
   .passthrough();
+const RegionMetric = z
+  .object({
+    region: z.string().nullable(),
+    mapSupported: z.boolean(),
+    value: z.string().nullable(),
+    denominator: z.number().int().nullable(),
+    quality: z.array(z.string()),
+    actorCount: z.string().nullish(),
+  })
+  .passthrough();
+const RegionalMetricReport = z
+  .object({
+    definition: MetricDefinition,
+    revision: z.string().nullable(),
+    days: z.array(MetricDay),
+    total: z.string().nullable(),
+    denominator: z.number().int().nullable(),
+    actorCount: z.string().nullable(),
+    regions: z.array(RegionMetric),
+  })
+  .passthrough();
+const AppRegionalDailySummaryReport = z
+  .object({
+    applicationUsers: RegionalMetricReport,
+    registeredUsers: RegionalMetricReport,
+  })
+  .passthrough();
 const KPool_Common_Uuid = z.string();
 const PolicyStatement = z
   .object({
@@ -98,6 +125,15 @@ const WikiDailySummaryReport = z
     publications: MetricReport,
   })
   .passthrough();
+const WikiRegionalDailySummaryReport = z
+  .object({
+    views: RegionalMetricReport,
+    viewers: RegionalMetricReport,
+    engagementTime: RegionalMetricReport,
+    submissions: RegionalMetricReport,
+    publications: RegionalMetricReport,
+  })
+  .passthrough();
 const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 
 export const schemas = {
@@ -107,6 +143,9 @@ export const schemas = {
   MetricReport,
   AppDailySummaryReport,
   KPool_Common_ProblemDetails,
+  RegionMetric,
+  RegionalMetricReport,
+  AppRegionalDailySummaryReport,
   KPool_Common_Uuid,
   PolicyStatement,
   PolicySummary,
@@ -114,6 +153,7 @@ export const schemas = {
   PrincipalSummary,
   wikiIdentifier,
   WikiDailySummaryReport,
+  WikiRegionalDailySummaryReport,
   KPool_Common_PrincipalStatusConflictProblem,
 };
 
@@ -142,6 +182,73 @@ const endpoints = makeApi([
       },
     ],
     response: AppDailySummaryReport,
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/app/regional-daily-summary",
+    alias: "RegionalAnalysisOperations_getAppRegionalDailySummaryReport",
+    description: `Country required (ISO 3166-1 alpha-2). region omitted/null returns the country trend and exact-region breakdown; region&#x3D;unknown selects unknown, otherwise a complete country-prefixed known subdivision code, e.g. JP-13 or DE-BE (valid even though DE is not in map coverage). Mismatched/invalid codes and missing country return 422. Same inclusive UTC period (at most one calendar year, ending no later than D-3; invalid period 400) and fresh analysis:view authorization as the country endpoint. Registered users are final-day closing balances attributed to immutable verified registration-time region, including archives, never account addresses. Old API remains unchanged. No raw viewer/actor identifiers are returned.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "from",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "to",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "country",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "region",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+    ],
+    response: AppRegionalDailySummaryReport,
     errors: [
       {
         status: 400,
@@ -299,6 +406,88 @@ const endpoints = makeApi([
       },
     ],
     response: WikiDailySummaryReport,
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wiki/regional-daily-summary",
+    alias: "RegionalAnalysisOperations_getWikiRegionalDailySummaryReport",
+    description: `Same country/region/period/authorization contract as the App regional endpoint. Wiki and translation set are mutually exclusive; omit both for ALL. language, target and region apply to every Wiki metric. Views/viewers are additive daily measurements, not globally deduplicated users. Engagement is the summed numerator and denominator (derive weighted average, never average regional averages). Operation actors are distinct Principals across the full selected period; never sum daily/region actor counts. Direct-history measured zero is distinct from missing/uncollected GA4 rows; missing history attribution is incomplete. Existing country endpoint never reads regional projections.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "from",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "to",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "country",
+        type: "Query",
+        schema: z.string(),
+      },
+      {
+        name: "region",
+        type: "Query",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "wikiIdentifier",
+        type: "Query",
+        schema: wikiIdentifier,
+      },
+      {
+        name: "translationSetIdentifier",
+        type: "Query",
+        schema: wikiIdentifier,
+      },
+      {
+        name: "language",
+        type: "Query",
+        schema: z.enum(["ja", "ko", "en"]).nullish(),
+      },
+    ],
+    response: WikiRegionalDailySummaryReport,
     errors: [
       {
         status: 400,
