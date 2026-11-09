@@ -272,3 +272,12 @@ describe("wikiApiModel official colors", () => {
     ]);
   });
 });
+
+describe("published wiki translation languages", () => {
+  it("keeps available languages from the public API", () => {
+    expect(adaptWikiApiResponse({ ...baseApiResponse, version: 1, availableLanguages: ["ja", "en"] }).availableLanguages).toEqual(["ja", "en"]);
+  });
+  it("defaults to the current language for an older API response", () => {
+    expect(adaptWikiApiResponse({ ...baseApiResponse, version: 1 }).availableLanguages).toEqual(["ja"]);
+  });
+});

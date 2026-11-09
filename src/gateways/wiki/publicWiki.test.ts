@@ -444,9 +444,9 @@ describe("publicWiki", () => {
 
     const client = createPublicWikiApiClient("http://127.0.0.1:8080");
 
-    await expect(client?.fetchWiki("ja", "group", "gr-aurora-echo")).resolves.toEqual(
-      publicWikiResponse,
-    );
+    await expect(client?.fetchWiki("ja", "group", "gr-aurora-echo")).resolves.toEqual({
+      ...publicWikiResponse, availableLanguages: [publicWikiResponse.language],
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://127.0.0.1:8080/api/v1/wiki/wiki/ja/group/gr-aurora-echo",
       expect.objectContaining({
@@ -567,5 +567,14 @@ describe("public wiki missing versus unavailable", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status })));
     const result = await loadPublicWikiState("ja", "gr-missing");
     expect(result.status).toBe(status === 404 ? "empty" : "error");
+  });
+});
+
+describe("public wiki language availability", () => {
+  it("preserves published languages through response validation and adaptation", () => {
+    expect(adaptPublicWikiResponse({ ...publicWikiResponse, availableLanguages: ["ja", "en"] }).availableLanguages).toEqual(["ja", "en"]);
+  });
+  it("accepts an older detail response with only its current language", () => {
+    expect(adaptPublicWikiResponse(publicWikiResponse).availableLanguages).toEqual([publicWikiResponse.language]);
   });
 });

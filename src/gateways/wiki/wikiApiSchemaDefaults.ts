@@ -26,6 +26,14 @@ export const withDefaultWikiResponseMetadata = (value: unknown): unknown => {
     }
     nextRecord.fontStyle ??= null;
     nextRecord.isOfficial ??= false;
+    // Older API deployments can safely advertise only the current language.
+    if (
+      "version" in nextRecord &&
+      Array.isArray(nextRecord.sections) &&
+      typeof nextRecord.language === "string"
+    ) {
+      nextRecord.availableLanguages ??= [nextRecord.language];
+    }
   }
 
   if ("wikiIdentifier" in nextRecord && "status" in nextRecord) {

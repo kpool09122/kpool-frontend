@@ -22,3 +22,16 @@ test("wiki descriptions fall back to the wiki name on both public URL forms", as
     }
   }
 });
+
+test("published wiki translations have reciprocal hreflang links on canonical and legacy URLs", async ({ page }) => {
+  for (const language of ["ja", "en", "ko"]) {
+    for (const path of [`/${language}/wiki/gr-aurora-echo`, `/wiki/${language}/gr-aurora-echo`]) {
+      await page.goto(path);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", `https://k-pool.app/${language}/wiki/gr-aurora-echo`);
+      await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(3);
+      for (const alternate of ["ja", "en", "ko"]) {
+        await expect(page.locator(`link[rel="alternate"][hreflang="${alternate}"]`)).toHaveAttribute("href", `https://k-pool.app/${alternate}/wiki/gr-aurora-echo`);
+      }
+    }
+  }
+});

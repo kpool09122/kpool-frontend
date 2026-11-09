@@ -436,6 +436,7 @@ export const wikiDraftDetailSchema = wikiDetailBaseSchema.extend({
 });
 
 export const wikiDetailSchema = wikiDetailBaseSchema.extend({
+  availableLanguages: z.array(z.string()).optional(),
   version: z.number().int(),
 });
 

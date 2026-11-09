@@ -149,6 +149,7 @@ type WikiApiResponseBase = {
 };
 
 type WikiApiResponse = WikiApiResponseBase & {
+  availableLanguages?: string[];
   version: number;
 };
 
@@ -595,6 +596,7 @@ const getHeroImage = (response: WikiApiResponseBase): WikiDraftDetail["heroImage
 
 export const adaptWikiApiResponse = (response: WikiApiResponse): WikiDetail =>
   parseWikiSchema(wikiDetailSchema, {
+    availableLanguages: response.availableLanguages ?? [response.language],
     basic: adaptWikiBasic(response),
     heroImage: getHeroImage(response),
     ...(response.isOfficial === true ? { isOfficial: true } : {}),
