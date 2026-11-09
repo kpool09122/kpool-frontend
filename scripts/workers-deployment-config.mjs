@@ -3,6 +3,7 @@ const apiPrefixes = {
   KPOOL_IDENTITY_API_BASE_URL: "/api/v1/identity",
   KPOOL_ACCOUNT_API_BASE_URL: "/api/v1/account",
   KPOOL_SITE_MANAGEMENT_API_BASE_URL: "/api/v1/site-management",
+  KPOOL_ANALYZE_API_BASE_URL: "/api/v1/analyze",
 };
 
 /**
