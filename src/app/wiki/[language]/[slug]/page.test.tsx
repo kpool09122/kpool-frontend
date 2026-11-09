@@ -103,3 +103,25 @@ it("rejects unsupported wiki languages before requesting the API", async () => {
   await expect(generateMetadata(props)).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
   expect(loadPublicWikiState).not.toHaveBeenCalled();
 });
+
+it.each([null, "", " \n\t"])("fills a missing wiki description (%j) on both URL forms", async (metaDescription) => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({
+    status: "success",
+    data: { ...createMockWikiDetail("gr-aurora-echo"), metaDescription },
+  });
+  for (const metadata of [generateMetadata, canonicalMetadata]) {
+    await expect(metadata(routeParams())).resolves.toMatchObject({
+      description: "Aurora Echoの基本情報や関連情報をまとめたk-poolの公開Wikiです。",
+    });
+  }
+});
+it.each([
+  ["en", "Explore basic information and related content about Aurora Echo on the k-pool public wiki."],
+  ["ko", "Aurora Echo의 기본 정보와 관련 내용을 확인할 수 있는 k-pool 공개 위키입니다."],
+])("uses the %s route language for the description fallback", async (language, description) => {
+  vi.mocked(loadPublicWikiState).mockResolvedValue({
+    status: "success",
+    data: { ...createMockWikiDetail("gr-aurora-echo"), metaDescription: null },
+  });
+  await expect(generateMetadata({ params: Promise.resolve({ language, slug: "gr-aurora-echo" }) })).resolves.toMatchObject({ description });
+});

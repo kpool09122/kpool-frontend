@@ -56,3 +56,13 @@ export function buildPageMetadata(language: string, page: MetadataPage): Metadat
     description,
   };
 }
+
+export function buildWikiDescription(language: string, name: string): string {
+  const locale = normalizeLocale(language) ?? fallbackLocale;
+  const descriptions = {
+    ja: `${name}の基本情報や関連情報をまとめたk-poolの公開Wikiです。`,
+    en: `Explore basic information and related content about ${name} on the k-pool public wiki.`,
+    ko: `${name}의 기본 정보와 관련 내용을 확인할 수 있는 k-pool 공개 위키입니다.`,
+  };
+  return descriptions[locale];
+}

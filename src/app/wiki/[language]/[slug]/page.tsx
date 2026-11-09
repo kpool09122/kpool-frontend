@@ -4,7 +4,7 @@ import { isSupportedLocale } from "@/i18n/locales";
 import { WikiDetailPage } from "../../[slug]/WikiDetailPage";
 import { loadPublicWikiState } from "@/gateways/wiki/publicWiki";
 import type { Metadata } from "next";
-import { siteTitle } from "@/app/metadata";
+import { buildWikiDescription, siteTitle } from "@/app/metadata";
 import { buildWikiPath } from "@kpool/wiki";
 import { getPublicSiteOrigin } from "@/config/publicSite";
 
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
 
   return {
     title: `${title} | ${siteTitle}`,
-    description: wiki.metaDescription ?? undefined,
+    description: wiki.metaDescription?.trim() || buildWikiDescription(language, wiki.basic.name),
     keywords: wiki.keywords ?? undefined,
     ...(origin ? { alternates: { canonical: `${origin}${buildWikiPath(language, wiki.slug)}` } } : {}),
   };

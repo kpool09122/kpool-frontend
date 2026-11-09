@@ -13,3 +13,12 @@ for (const language of ["ja", "en", "ko"]) {
     }
   });
 }
+
+test("wiki descriptions fall back to the wiki name on both public URL forms", async ({ page }) => {
+  for (const language of ["ja", "en", "ko"]) {
+    for (const path of [`/${language}/wiki/gr-aurora-echo`, `/wiki/${language}/gr-aurora-echo`]) {
+      await page.goto(path);
+      await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Aurora Echo/);
+    }
+  }
+});

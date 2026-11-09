@@ -1,3 +1,4 @@
+import { buildMarkdownDescription } from "../../../metadataDescription";
 import { buildPageMetadata, siteTitle } from "../../../metadata";
 
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
@@ -73,6 +74,10 @@ export async function generateMetadata({ params }: {
   if (!result.ok && result.status === 404) notFound();
   const metadata = buildPageMetadata(language, "announcements");
   return result.ok && result.detail
-    ? { ...metadata, title: `${result.detail.title} | ${siteTitle}` }
+    ? {
+        ...metadata,
+        title: `${result.detail.title} | ${siteTitle}`,
+        description: buildMarkdownDescription(result.detail.content) || metadata.description,
+      }
     : metadata;
 }
