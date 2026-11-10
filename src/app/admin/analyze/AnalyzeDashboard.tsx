@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { AccountStatusMessage } from "@/components/Account";
@@ -47,6 +47,13 @@ export function AnalyzeDashboard({
   const conditionsError = invalid ?? applied.error;
   const location = useMemo(() => readAnalyzeLocation(query), [query]);
   const domesticCountry = location.domestic && typeof location.country === "string" ? location.country : undefined;
+  const restoreGlobeFocusRequested = useRef(false);
+  const restoreGlobeFocus = useCallback((element: HTMLDivElement | null) => {
+    if (element && !domesticCountry && restoreGlobeFocusRequested.current) {
+      restoreGlobeFocusRequested.current = false;
+      element.querySelector<HTMLButtonElement>("[data-domestic-entry]")?.focus();
+    }
+  }, [domesticCountry]);
   const [regionalRevision, setRegionalRevision] = useState(0);
   const selectedCountry = location.country;
   const globeSelection = useMemo(() => ({ country: selectedCountry }), [selectedCountry]);
@@ -207,7 +214,7 @@ export function AnalyzeDashboard({
       ) : (
         <>
           {mapMetrics.length ? (
-            <div hidden={!!domesticCountry}>
+            <div ref={restoreGlobeFocus} hidden={!!domesticCountry}>
             <CountryGlobe
               key={`${appQuery}:${wikiQuery}`}
               metrics={mapMetrics}
@@ -232,10 +239,8 @@ export function AnalyzeDashboard({
               version={version}
               revision={regionalRevision}
               onBack={() => {
+                restoreGlobeFocusRequested.current = true;
                 updateLocation({ country: domesticCountry, domestic: false });
-                requestAnimationFrame(() => {
-                  document.querySelector<HTMLButtonElement>("[data-domestic-entry]")?.focus();
-                });
               }}
               locale={locale}
               t={t}
