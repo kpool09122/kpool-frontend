@@ -27,23 +27,24 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
   const { dictionary } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const contents = sortWikiSectionContents(section.contents);
+  const hasSideHeading = section.depth === 1;
 
   return (
     <details
-      className={`section-accordion ${sectionArticleClassName}`}
+      className={`section-accordion flow-root ${sectionArticleClassName}`}
       data-testid={`section-${section.sectionIdentifier}`}
       open={isOpen}
       style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
     >
       <summary
-        className="flex list-none cursor-pointer items-center gap-1 text-left sm:gap-2"
+        className={`flex list-none cursor-pointer items-center gap-1 text-left sm:gap-2${hasSideHeading ? " @min-[56rem]/wiki-content:float-left @min-[56rem]/wiki-content:w-40 @min-[56rem]/wiki-content:flex-wrap" : ""}`}
         data-testid={`section-toggle-${section.sectionIdentifier}`}
         onClick={(event) => {
           event.preventDefault();
           setIsOpen((open) => !open);
         }}
       >
-        <span className={sectionHeadingClassName}>{section.title}</span>
+        <span className={`${sectionHeadingClassName}${hasSideHeading ? " @min-[56rem]/wiki-content:mb-2 @min-[56rem]/wiki-content:basis-full" : ""}`}>{section.title}</span>
         <span className="section-accordion__chevron shrink-0 rounded-lg p-2.5 text-text-muted transition-transform">
           <ChevronIcon />
         </span>
@@ -62,7 +63,7 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
 
       {isOpen ? (
         <div
-          className={`${sectionBodyClassName} space-y-7`}
+          className={`${sectionBodyClassName} min-w-0 space-y-6${hasSideHeading ? " @min-[56rem]/wiki-content:ml-52 @min-[56rem]/wiki-content:max-w-[800px] @min-[56rem]/wiki-content:pt-0" : ""}`}
         >
           {contents.map((content) =>
             isWikiBlock(content) ? (
@@ -70,7 +71,7 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
                 block={content}
                 key={content.blockIdentifier}
                 language={language}
-                textClassName="text-base leading-8 text-text-strong"
+                textClassName="text-base leading-[30px] text-text-strong"
               />
             ) : isWikiSection(content) ? (
               <WikiSectionAccordion

@@ -35,5 +35,5 @@ export const accentBadgeStyle = {
 export const sectionArticleClassName = "wiki-article-section min-w-0 border-t border-stroke-subtle pt-8 first:border-t-0 first:pt-0";
 export const sectionHeadingClassName = "wiki-title min-w-0 flex-1 break-words text-lg font-semibold";
 export const sectionBodyClassName = "pb-2 pt-4 [&>.wiki-article-section]:ml-3 [&>.wiki-article-section]:sm:ml-6";
-export const sectionListClassName = "space-y-10 sm:space-y-12";
+export const sectionListClassName = "@container/wiki-content space-y-10 sm:space-y-12";
 export const youtubeEmbedClassName = "w-full max-w-[640px]";
