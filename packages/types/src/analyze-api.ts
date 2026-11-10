@@ -34,15 +34,32 @@ const CountryMetric = z
     actorCount: z.string().nullish(),
   })
   .passthrough();
-const ComparisonReason = z.enum(["no_previous_data", "no_current_data", "zero_baseline", "invalid_denominator", "not_applicable"]);
-const PeriodComparison = z.object({
-  from: z.string(),
-  to: z.string(),
-  percentageChange: z.string().nullable(),
-  reason: ComparisonReason.nullable(),
-  actorPercentageChange: z.string().nullable(),
-  actorReason: ComparisonReason.nullable(),
-}).passthrough();
+const PeriodComparison = z
+  .object({
+    from: z.string(),
+    to: z.string(),
+    percentageChange: z.string().nullable(),
+    reason: z
+      .enum([
+        "no_previous_data",
+        "no_current_data",
+        "zero_baseline",
+        "invalid_denominator",
+        "not_applicable",
+      ])
+      .nullable(),
+    actorPercentageChange: z.string().nullable(),
+    actorReason: z
+      .enum([
+        "no_previous_data",
+        "no_current_data",
+        "zero_baseline",
+        "invalid_denominator",
+        "not_applicable",
+      ])
+      .nullable(),
+  })
+  .passthrough();
 const MetricReport = z
   .object({
     definition: MetricDefinition,
@@ -148,11 +165,10 @@ const WikiRegionalDailySummaryReport = z
 const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 
 export const schemas = {
-  ComparisonReason,
-  PeriodComparison,
   MetricDefinition,
   MetricDay,
   CountryMetric,
+  PeriodComparison,
   MetricReport,
   AppDailySummaryReport,
   KPool_Common_ProblemDetails,
