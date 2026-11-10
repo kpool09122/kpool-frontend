@@ -1,3 +1,4 @@
+import { regionalize } from "../../../../tests/fixtures/analyzeRegionalReports";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -15,6 +16,7 @@ import {
   wikiReport,
 } from "../../../../tests/fixtures/analyzeReports";
 import { AnalyzeDashboard } from "./AnalyzeDashboard";
+import { toUtcReportingDay } from "./reportingPeriod";
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), search: vi.fn() }));
 vi.mock("@/gateways/wiki/translationSetMasterSearchBrowserApi", () => ({
   fetchAllTranslationSetMasterSearch: (...args: unknown[]) => mocks.search(...args),
@@ -450,4 +452,132 @@ describe("Analyze report dashboard", () => {
     expect(countryQueries.filter((url) => url.pathname.includes("/app/")).map((url) => url.searchParams.get("country"))).toEqual(["JP", "KR"]);
   });
 
+});
+
+it("lazily enters domestic reports, selects/clears a region and restores the globe without regional refetch", async () => {
+  mocks.fetch.mockImplementation(async (url: string) => {
+    const parsed = new URL(url, "http://localhost");
+    const base = url.includes("/app/") ? appReport : wikiReport;
+    const report = regionalize(base);
+    if (parsed.searchParams.has("region")) for (const metric of Object.values(report)) metric.total = "42";
+    return Response.json(url.includes("regional-daily-summary") ? report : base);
+  });
+  show();
+  const globe = await screen.findByRole("group", { name: "国別の地球儀" });
+  fireEvent.keyDown(globe, { key: "ArrowRight" });
+  const rotation = globe.getAttribute("data-rotation");
+  fireEvent.click(within(globe).getByRole("button", { name: /日本 \(JP\):/ }));
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(4));
+  expect(mocks.fetch.mock.calls.some(([url]) => String(url).includes("regional"))).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "都道府県・州・省別のデータを見る" }));
+  const domestic = await screen.findByRole("region", { name: "国内地図" });
+  await waitFor(() => expect(mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional"))).toHaveLength(2));
+  expect(screen.queryByRole("group", { name: "国別の地球儀" })).not.toBeInTheDocument();
+  fireEvent.click(within(domestic).getByRole("button", { name: /東京都 \(JP-13\)/ }));
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "閲覧回数" })).getByTestId("metric-total")).toHaveTextContent(/^42$/));
+  const queries = mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional")).map(([url]) => new URL(String(url), "http://localhost"));
+  expect(queries.slice(-2).map(url => url.searchParams.get("region"))).toEqual(["JP-13", "JP-13"]);
+  fireEvent.click(screen.getByRole("button", { name: "表示をリセット" }));
+  await waitFor(() => expect(mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional"))).toHaveLength(6));
+  fireEvent.click(screen.getByRole("button", { name: "地球儀に戻る" }));
+  expect(screen.getByRole("group", { name: "国別の地球儀" })).toHaveAttribute("data-rotation", rotation);
+  expect(screen.getByRole("region", { name: "国別サマリー" })).toHaveTextContent("日本 (JP)");
+  const count = mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional")).length;
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "分析を取得" })).not.toBeDisabled());
+  expect(mocks.fetch.mock.calls.filter(([url]) => String(url).includes("regional"))).toHaveLength(count);
+});
+
+it("does not offer domestic navigation for unsupported countries", async () => {
+  show();
+  const globe = await screen.findByRole("group", { name: "国別の地球儀" });
+  fireEvent.click(within(globe).getByRole("button", { name: /\(IN\):/ }));
+  expect(screen.queryByRole("button", { name: "都道府県・州・省別のデータを見る" })).not.toBeInTheDocument();
+  expect(mocks.fetch.mock.calls.some(([url]) => String(url).includes("regional"))).toBe(false);
+});
+it("never relabels delayed regional values and cancels domestic requests on return", async () => {
+  const pending: { resolve: (value: Response) => void; signal?: AbortSignal }[] = [];
+  mocks.fetch.mockImplementation(async (url: string, options?: RequestInit) => {
+    if (url.includes("regional") && new URL(url, "http://localhost").searchParams.has("region")) return new Promise<Response>(resolve => pending.push({ resolve, signal: options?.signal ?? undefined }));
+    const base = url.includes("/app/") ? appReport : wikiReport;
+    return Response.json(url.includes("regional") ? regionalize(base) : base);
+  });
+  show();
+  const globe = await screen.findByRole("group", { name: "国別の地球儀" });
+  fireEvent.click(within(globe).getByRole("button", { name: /日本 \(JP\):/ }));
+  fireEvent.click(screen.getByRole("button", { name: "都道府県・州・省別のデータを見る" }));
+  const domestic = await screen.findByRole("region", { name: "国内地図" });
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "地域別サマリー" })).getByText("閲覧回数")).toBeInTheDocument());
+  const viewsCard = screen.getByRole("region", { name: "閲覧回数" });
+  fireEvent.click(within(viewsCard).getByText("詳細"));
+  expect(viewsCard.querySelector("details")).toHaveAttribute("open");
+  fireEvent.click(within(domestic).getByRole("button", { name: /東京都 \(JP-13\)/ }));
+  await waitFor(() => expect(pending).toHaveLength(2));
+  expect(screen.getByRole("region", { name: "地域別サマリー" })).toHaveTextContent("東京都");
+  expect(within(screen.getByRole("region", { name: "地域別サマリー" })).getByText("閲覧回数").parentElement).toHaveTextContent("—");
+  expect(screen.getByRole("region", { name: "閲覧回数" })).toBe(viewsCard);
+  expect(within(viewsCard).getByTestId("metric-total")).toHaveTextContent(/^—$/);
+  expect(viewsCard.querySelector("details")).toHaveAttribute("open");
+  fireEvent.click(within(domestic).getByRole("button", { name: /大阪府 \(JP-27\)/ }));
+  await waitFor(() => expect(pending).toHaveLength(4));
+  expect(pending.slice(0,2).every(p=>p.signal?.aborted)).toBe(true);
+  await act(async () => pending.slice(0,2).forEach(p=>p.resolve(Response.json(regionalize(wikiReport)))));
+  expect(screen.getByRole("region", { name: "地域別サマリー" })).toHaveTextContent("大阪府");
+  expect(within(screen.getByRole("region", { name: "地域別サマリー" })).getByText("閲覧回数").parentElement).toHaveTextContent("—");
+  expect(screen.getByRole("region", { name: "閲覧回数" })).toBe(viewsCard);
+  expect(viewsCard.querySelector("details")).toHaveAttribute("open");
+  fireEvent.click(screen.getByRole("button", { name: "地球儀に戻る" }));
+  await waitFor(() => expect(pending.every(p=>p.signal?.aborted)).toBe(true));
+  await act(async () => pending.forEach(p=>p.resolve(Response.json(regionalize(wikiReport)))));
+  expect(screen.queryByRole("region", { name: "地域別サマリー" })).not.toBeInTheDocument();
+});
+it("transfers applied Wiki/language/period conditions to domestic APIs and resets on condition changes", async () => {
+  mocks.fetch.mockImplementation(async (url: string) => {
+    const base = url.includes("/app/") ? appReport : wikiReport;
+    return Response.json(url.includes("regional") ? regionalize(base) : base);
+  });
+  show();
+  await screen.findByRole("region", { name: "閲覧回数" });
+  fireEvent.change(screen.getByLabelText("開始日"), { target: { value: "2026-01-01" } });
+  fireEvent.change(screen.getByLabelText("終了日"), { target: { value: "2026-01-02" } });
+  fireEvent.change(screen.getByLabelText("言語"), { target: { value: "ko" } });
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "分析を取得" })).not.toBeDisabled());
+  fireEvent.click(screen.getByRole("button", { name: /日本 \(JP\):/ }));
+  fireEvent.click(screen.getByRole("button", { name: "都道府県・州・省別のデータを見る" }));
+  await waitFor(() => expect(mocks.fetch.mock.calls.filter(([url])=>String(url).includes("regional"))).toHaveLength(2));
+  const urls=mocks.fetch.mock.calls.filter(([url])=>String(url).includes("regional")).map(([url])=>new URL(String(url),"http://localhost"));
+  for(const url of urls) { expect(url.searchParams.get("country")).toBe("JP"); expect(url.searchParams.has("region")).toBe(false); expect(url.searchParams.get("from")).toBe(toUtcReportingDay("2026-01-01")); expect(url.searchParams.get("to")).toBe(toUtcReportingDay("2026-01-02")); }
+  expect(urls.find(url=>url.pathname.includes("wiki"))?.searchParams.get("language")).toBe("ko");
+  expect(urls.find(url=>url.pathname.includes("app"))?.searchParams.has("language")).toBe(false);
+  await waitFor(() => expect(screen.getByRole("button", { name: "分析を取得" })).not.toBeDisabled());
+  fireEvent.change(screen.getByLabelText("言語"), { target: { value: "ja" } });
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  expect(screen.queryByRole("region", { name: "国内地図" })).not.toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "国別サマリー" })).toHaveTextContent("すべて");
+});
+
+it.each([401,403,422,500])("clears regional results on HTTP %i and retries without falling back to world values", async status => {
+  let failed=false;
+  mocks.fetch.mockImplementation(async (url:string) => {
+    const base=url.includes("/app/")?appReport:wikiReport;
+    if(url.includes("regional") && failed) return Response.json({}, {status});
+    return Response.json(url.includes("regional")?regionalize(base):base);
+  });
+  show();
+  const globe=await screen.findByRole("group",{name:"国別の地球儀"});
+  fireEvent.click(within(globe).getByRole("button",{name:/日本 \(JP\):/}));
+  fireEvent.click(screen.getByRole("button",{name:"都道府県・州・省別のデータを見る"}));
+  await waitFor(()=>expect(within(screen.getByRole("region",{name:"地域別サマリー"})).getByText("登録者数")).toBeInTheDocument());
+  expect(within(screen.getByRole("region",{name:"登録者数"})).queryByText("期間総計")).not.toBeInTheDocument();
+  failed=true;
+  fireEvent.click(within(screen.getByRole("region",{name:"国内地図"})).getByRole("button",{name:/東京都 \(JP-13\)/}));
+  await screen.findByRole("alert");
+  expect(screen.queryByRole("region",{name:"閲覧回数"})).not.toBeInTheDocument();
+  if([401,403].includes(status)) expect(screen.queryByRole("button",{name:"地球儀に戻る"})).not.toBeInTheDocument();
+  failed=false;
+  await waitFor(()=>expect(screen.getByRole("button",{name:"分析を取得"})).not.toBeDisabled());
+  fireEvent.click(screen.getByRole("button",{name:"分析を取得"}));
+  await screen.findByRole("region",{name:"閲覧回数"});
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });

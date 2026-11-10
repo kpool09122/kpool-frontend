@@ -18,21 +18,43 @@ type ChartProps = {
 const tooltipClass = "rounded-xl border border-stroke-subtle bg-surface-base px-4 py-3 text-sm shadow-lg";
 const tooltipIndex = (value: string | number | null | undefined) => value == null ? null : Number.isInteger(Number(value)) ? Number(value) : null;
 
-export function CountryMetricChart({ name, report, t, locale, averageTime, showSubmitters }: ChartProps) {
+type BreakdownRow = {
+  key: string | null;
+  label: string;
+  value: string | null;
+  denominator: number | null;
+  actorCount?: string | null;
+};
+
+type BreakdownChartProps = Omit<ChartProps, "report"> & {
+  rows: BreakdownRow[];
+  label: string;
+  emptyMessage: string;
+  onSelect?: (key: string | null) => void;
+};
+
+export function CountryMetricChart(props: ChartProps) {
+  const { report, locale, t } = props;
+  return <BreakdownMetricChart {...props}
+    rows={report.countries.map((row) => ({ ...row, key: row.country, label: countryName(row.country, locale, t) }))}
+    label={t.countries} emptyMessage={t.noCountries} />;
+}
+
+export function BreakdownMetricChart({ name, rows: entries, label, emptyMessage, t, locale, averageTime, showSubmitters, onSelect }: BreakdownChartProps) {
   const [selected, setSelected] = useState<number | null>(null);
-  const rows = report.countries.map((row) => ({ ...row, label: countryName(row.country, locale, t), number: chartValue(row.value, row.denominator, averageTime) }))
+  const rows = entries.map((row) => ({ ...row, number: chartValue(row.value, row.denominator, averageTime) }))
     .sort((a, b) => (b.number ?? -1) - (a.number ?? -1))
-    .map((row, index) => ({ ...row, fill: row.country === null ? "#94a3b8" : chartColors[index % chartColors.length] }));
+    .map((row, index) => ({ ...row, fill: row.key === null ? "#94a3b8" : chartColors[index % chartColors.length] }));
   const sum = rows.reduce((total, row) => total + (row.number ?? 0), 0);
   const format = (value: string | null, denominator: number | null) => formatMetricValue(value, locale, { averageTime, denominator, seconds: t.seconds });
-  if (!rows.length) return <p className="py-4 text-sm text-text-muted">{t.noCountries}</p>;
+  if (!rows.length) return <p className="py-4 text-sm text-text-muted">{emptyMessage}</p>;
   const current = selected !== null ? rows[selected] : undefined;
   const tip = (index: string | number | null | undefined) => {
     const row = rows[tooltipIndex(index) ?? -1];
     return row ? <div className={tooltipClass}><p className="text-text-muted">{row.label}</p><p className="mt-1 font-semibold tabular-nums">{format(row.value, row.denominator)}</p></div> : null;
   };
   return (
-    <div className="mt-4 space-y-4" role="region" aria-label={`${name}: ${t.countries}`}>
+    <div className="mt-4 space-y-4" role="region" aria-label={`${name}: ${label}`}>
       {averageTime ? (
         <ResponsiveContainer width="100%" height={Math.max(180, rows.length * 36)} minWidth={0} initialDimension={{ width: 400, height: 240 }}>
           <BarChart data={rows} layout="vertical" margin={{ left: 0, right: 16, top: 8, bottom: 0 }} accessibilityLayer>
@@ -50,7 +72,7 @@ export function CountryMetricChart({ name, report, t, locale, averageTime, showS
               <Pie data={sum > 0 ? rows : [{ number: 1, fill: "#e2e8f0" }]} dataKey="number" nameKey="label"
                 innerRadius={70} outerRadius={98} paddingAngle={sum > 0 && rows.filter((row) => (row.number ?? 0) > 0).length > 1 ? 2 : 0}
                 cornerRadius={3} stroke="none" startAngle={90} endAngle={-270} isAnimationActive={false}
-                onMouseEnter={(_, index) => setSelected(index)} onClick={(_, index) => setSelected(index)} />
+                onMouseEnter={(_, index) => setSelected(index)} onClick={(_, index) => { setSelected(index); onSelect?.(rows[index].key); }} />
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 px-16 text-center">
@@ -60,8 +82,8 @@ export function CountryMetricChart({ name, report, t, locale, averageTime, showS
         </div>
       )}
       <ul className="grid gap-1 sm:grid-cols-2">
-        {rows.map((row, index) => <li key={row.country ?? "unknown"}>
-          <button type="button" onClick={() => setSelected(index)} onPointerEnter={() => setSelected(index)} onFocus={() => setSelected(index)}
+        {rows.map((row, index) => <li key={row.key ?? "unknown"}>
+          <button type="button" onClick={() => { setSelected(index); onSelect?.(row.key); }} onPointerEnter={() => setSelected(index)} onFocus={() => setSelected(index)}
             aria-pressed={selected === index} className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs focus-visible:outline-2 focus-visible:outline-brand-primary ${selected === index ? "bg-surface-raised" : ""}`}>
             <span className="flex min-w-0 items-center gap-2"><span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ background: row.fill }} /><span className="truncate">{row.label}</span></span>
             <span className="shrink-0 font-semibold tabular-nums">{format(row.value, row.denominator)}</span>
@@ -75,7 +97,7 @@ export function CountryMetricChart({ name, report, t, locale, averageTime, showS
   );
 }
 
-export function DailyMetricChart({ name, report, t, locale, averageTime }: ChartProps) {
+export function DailyMetricChart({ name, report, t, locale, averageTime }: Omit<ChartProps, "report"> & { report: Pick<MetricReport, "days"> }) {
   const rows = report.days.map((row) => ({ ...row, number: chartValue(row.value, row.denominator, averageTime) }));
   if (!rows.length) return <p className="py-4 text-sm text-text-muted">{t.noDays}</p>;
   const domain = trendDomain(rows.map((row) => row.number), averageTime);

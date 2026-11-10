@@ -1,8 +1,10 @@
 "use client";
 
 import { memo, useId, useMemo, useRef, useState, type PointerEvent } from "react";
+import { ChevronRightIcon } from "@radix-ui/react-icons";
 import type { AnalyzeReportDictionary } from "@/i18n/analyzeReports";
 import { countryName, formatMetricValue } from "./reportPresentation";
+import { supportedMapCountry } from "./regionalProjection";
 import { createCountryFillScale } from "./countryColorPalette";
 import { createCountryRanks } from "./countryRanks";
 import { createCountryColorScale, overallMetricKey, type CountryGlobeMetric } from "./countryColorScale";
@@ -18,8 +20,9 @@ type Selection = {
   pinned: boolean;
 };
 
-function CountryGlobeView({ metrics, t, locale, initialCountry = null, onCountryChange }: {
+function CountryGlobeView({ metrics, t, locale, initialCountry = null, onCountryChange, onDomesticView }: {
   metrics: CountryGlobeMetric[];
+  onDomesticView?: (country: string) => void;
   initialCountry?: string | null;
   onCountryChange?: (country: string | null | undefined) => void;
   t: AnalyzeReportDictionary;
@@ -267,6 +270,7 @@ function CountryGlobeView({ metrics, t, locale, initialCountry = null, onCountry
                 </section>
               ))}
             </div>
+            {onDomesticView ? <div className="min-h-[54px]">{selection?.pinned && selection.country && supportedMapCountry(selection.country) ? <button data-domestic-entry type="button" className="mt-4 inline-flex items-center gap-1 rounded-lg border border-stroke-subtle p-2 text-sm focus-visible:outline-2 focus-visible:outline-brand-primary" onClick={() => onDomesticView(selection.country!)}>{t.regionalLink}<ChevronRightIcon aria-hidden="true" className="shrink-0" /></button> : null}</div> : null}
           </section>
           <div className="flex justify-end">
             <button

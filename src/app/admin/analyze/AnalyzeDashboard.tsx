@@ -15,6 +15,7 @@ import { CountryGlobe } from "./CountryGlobe";
 import type { CountryGlobeMetric } from "./countryColorScale";
 import { MetricCard } from "./MetricCard";
 import { useCountryReport } from "./useCountryReport";
+import { DomesticAnalysis } from "./DomesticAnalysis";
 
 type Conditions = {
   from: string;
@@ -44,6 +45,8 @@ export function AnalyzeDashboard({
   } = useAdmin();
   const [conditions, setConditions] = useState(defaults);
   const [invalid, setInvalid] = useState(false);
+  const [domesticCountry, setDomesticCountry] = useState<string>();
+  const [regionalRevision, setRegionalRevision] = useState(0);
   const [countrySelection, setCountrySelection] = useState<{ query: string; country: string | null }>();
   const appQuery = new URLSearchParams({
     from: toUtcReportingDay(conditions.from),
@@ -116,6 +119,7 @@ export function AnalyzeDashboard({
   ], [appReport, wikiReport, t]);
   const busy = app.isFetching || wiki.isFetching || countryWiki.isFetching || countryApp.isFetching;
   const refresh = () => {
+    if (domesticCountry) { setRegionalRevision(revision => revision + 1); return; }
     void app.refetch();
     void wiki.refetch();
     if (selectedCountry !== undefined) {
@@ -145,6 +149,7 @@ export function AnalyzeDashboard({
     if (!valid) return;
     if (JSON.stringify(next) === JSON.stringify(conditions)) refresh();
     else {
+      setDomesticCountry(undefined);
       setCountrySelection(undefined);
       setConditions(next);
     }
@@ -203,21 +208,25 @@ export function AnalyzeDashboard({
         </button>
       </form>
       {invalid ? <AccountStatusMessage variant="error">{t.invalid}</AccountStatusMessage> : null}
-      {app.isFetching || wiki.isFetching ? <p role="status">{t.loading}</p> : null}
       {forbidden || unauthorized ? (
         <AccountStatusMessage variant="error">{unauthorized ? t.unauthorized : t.forbidden}</AccountStatusMessage>
       ) : (
         <>
           {mapMetrics.length ? (
+            <div hidden={!!domesticCountry}>
             <CountryGlobe
               key={`${appQuery}:${wikiQuery}`}
               metrics={mapMetrics}
               initialCountry={initialCountry}
               onCountryChange={selectCountry}
+              onDomesticView={setDomesticCountry}
               t={t}
               locale={locale}
             />
+            </div>
           ) : null}
+          {domesticCountry ? <DomesticAnalysis key={`${scope}:${version}:${wikiQuery}:${domesticCountry}`} country={domesticCountry} appQuery={appQuery} wikiQuery={wikiQuery} scope={scope} version={version} revision={regionalRevision} onBack={() => { setDomesticCountry(undefined); requestAnimationFrame(() => { document.querySelector<HTMLButtonElement>("[data-domestic-entry]")?.focus(); }); }} locale={locale} t={t} /> : null}
+          <div hidden={!!domesticCountry} className="space-y-5">
           <section aria-label={t.app} aria-busy={selectedCountry !== undefined && countryApp.isFetching} className="min-w-0 space-y-3">
             <h3 className="text-xl font-semibold">
               {t.app}
@@ -281,6 +290,7 @@ export function AnalyzeDashboard({
               </div>
             ) : null}
           </section>
+          </div>
         </>
       )}
     </section>
