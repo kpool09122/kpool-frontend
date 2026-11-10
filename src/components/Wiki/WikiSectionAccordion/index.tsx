@@ -12,7 +12,7 @@ import {
   type WikiSection,
 } from "@kpool/wiki";
 
-import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
+import { sectionArticleClassName, sectionBodyClassName, sectionHeadingClassName } from "../styles";
 import { ChevronIcon, EditIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 
@@ -27,50 +27,43 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
   const { dictionary } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const contents = sortWikiSectionContents(section.contents);
+  const hasSideHeading = section.depth === 1;
 
   return (
     <details
-      className="section-accordion rounded-[1.75rem] border border-stroke-subtle bg-surface-raised shadow-soft"
+      className={`section-accordion flow-root ${sectionArticleClassName}`}
       data-testid={`section-${section.sectionIdentifier}`}
       open={isOpen}
-      style={cardSurfaceStyle}
+      style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
     >
       <summary
-        className="flex list-none cursor-pointer items-center gap-3 p-5 text-left"
+        className={`flex list-none cursor-pointer items-center gap-1 text-left sm:gap-2${hasSideHeading ? " @min-[56rem]/wiki-content:float-left @min-[56rem]/wiki-content:w-40 @min-[56rem]/wiki-content:flex-wrap" : ""}`}
         data-testid={`section-toggle-${section.sectionIdentifier}`}
         onClick={(event) => {
           event.preventDefault();
           setIsOpen((open) => !open);
         }}
       >
-        <span
-          className="section-accordion__chevron rounded-full border border-stroke-subtle p-2 text-text-muted transition-transform"
-          style={cardSurfaceMutedStyle}
-        >
+        <span className={`${sectionHeadingClassName}${hasSideHeading ? " @min-[56rem]/wiki-content:mb-2 @min-[56rem]/wiki-content:basis-full" : ""}`}>{section.title}</span>
+        <span className="section-accordion__chevron shrink-0 rounded-lg p-2.5 text-text-muted transition-transform">
           <ChevronIcon />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="wiki-title block text-2xl font-semibold tracking-[-0.03em]">
-            {section.title}
-          </span>
         </span>
         {editHref ? (
           <Link
             aria-label={`${dictionary.wiki.ui.editSection}: ${section.title}`}
-            className="rounded-full border border-stroke-subtle p-3 text-text-strong transition group-hover:bg-brand-highlight/30"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-muted"
             href={editHref}
             onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
-            style={cardSurfaceMutedStyle}
           >
             <EditIcon />
+            <span>{dictionary.wiki.ui.editSectionLabel}</span>
           </Link>
         ) : null}
       </summary>
 
       {isOpen ? (
         <div
-          className="space-y-4 border-t border-stroke-subtle px-5 pb-5 pt-4"
-          style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
+          className={`${sectionBodyClassName} min-w-0 space-y-6${hasSideHeading ? " @min-[56rem]/wiki-content:ml-52 @min-[56rem]/wiki-content:max-w-[800px] @min-[56rem]/wiki-content:pt-0" : ""}`}
         >
           {contents.map((content) =>
             isWikiBlock(content) ? (
@@ -78,7 +71,7 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
                 block={content}
                 key={content.blockIdentifier}
                 language={language}
-                textClassName="text-base leading-7 text-text-muted"
+                textClassName="text-base leading-[30px] text-text-strong"
               />
             ) : isWikiSection(content) ? (
               <WikiSectionAccordion

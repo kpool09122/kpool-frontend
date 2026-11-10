@@ -74,7 +74,7 @@ export function WikiDetailPage({
 
   return (
     <main
-      className="wiki-theme-scope wiki-page-theme flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+      className="wiki-theme-scope wiki-page-theme [--wiki-page-gradient-height:750px] flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
       data-testid="wiki-theme-root"
       style={{
         ...themeStyles,

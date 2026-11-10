@@ -10,6 +10,7 @@ import { WikiPublicHeroImage } from "../WikiPublicHeroImage/index";
 import { OfficialCertificationBadge } from "../OfficialCertificationBadge/index";
 import { WikiContentTabs } from "../WikiContentTabs/index";
 import { WikiSectionAccordion } from "../WikiSectionAccordion/index";
+import { sectionListClassName } from "../styles";
 
 import { dictionaries } from "../../../i18n/dictionaries";
 import { normalizeLocale } from "../../../i18n/locales";
@@ -73,7 +74,7 @@ export function WikiDetailContent({
             id: "wiki",
             label: t.contentWikiTab,
             panel: (
-              <div className="space-y-4">
+              <div className={sectionListClassName}>
                 {sections.map((section) => (
                   <WikiSectionAccordion
                     editHref={editHref}

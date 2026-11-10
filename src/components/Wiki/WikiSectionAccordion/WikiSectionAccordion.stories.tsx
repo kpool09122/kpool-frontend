@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { wikiStorySection } from "../storybook/fixtures";
 import { WikiSectionAccordion } from "./index";
+import { sectionListClassName } from "../styles";
 
 const meta = {
   title: "Wiki/WikiSectionAccordion",
@@ -24,7 +25,7 @@ export const Default: Story = {
   args: {},
   render: (args) => (
     <div className="wiki-theme-scope max-w-4xl" data-theme="light">
-      <WikiSectionAccordion {...args} />
+      <div className={sectionListClassName}><WikiSectionAccordion {...args} /></div>
     </div>
   ),
 };

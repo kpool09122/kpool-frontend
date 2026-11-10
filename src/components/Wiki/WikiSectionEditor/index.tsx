@@ -3,16 +3,17 @@
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useI18n } from "@/i18n/I18nProvider";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 import {
   isWikiBlock,
   isWikiSection,
   sortWikiSectionContents,
   type WikiBlock,
-    type WikiBlockType,
-    type WikiContentEditorId,
-    type WikiResourceType,
-    type WikiSection,
+  type WikiBlockType,
+  type WikiContentEditorId,
+  type WikiResourceType,
+  type WikiSection,
 } from "@kpool/wiki";
 
 import { getString } from "../editing";
@@ -20,7 +21,7 @@ import { ChevronIcon, EditIcon, TrashIcon } from "../icons";
 import { WikiAddContentControls } from "../WikiAddContentControls";
 import { WikiBlockEditorItem } from "../WikiBlockEditorItem";
 import { WikiFormActions } from "../WikiFormActions";
-import { cardSurfaceMutedStyle, cardSurfaceStyle } from "../styles";
+import { cardSurfaceStyle, sectionArticleClassName, sectionBodyClassName, sectionHeadingClassName } from "../styles";
 
 type WikiSectionEditorProps = {
   disabled?: boolean;
@@ -88,57 +89,106 @@ export function WikiSectionEditor({
   const { dictionary } = useI18n();
   const t = dictionary.wiki.ui;
   const contents = sortWikiSectionContents(section.contents);
+  const hasSideHeading = section.depth === 1;
   const sectionEditorId: WikiContentEditorId = `section:${section.sectionIdentifier}`;
   const [isOpen, setIsOpen] = useState(true);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement>(null);
+  const actionsId = useId();
+
+  useEffect(() => {
+    if (!isActionsOpen) return;
+    const closeOnOutsidePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !actionsRef.current?.contains(event.target)) {
+        setIsActionsOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointerDown, true);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown, true);
+  }, [isActionsOpen]);
 
   return (
     <article
-      className="section-accordion rounded-[1.75rem] border border-stroke-subtle shadow-soft"
+      className={`${sectionArticleClassName}${hasSideHeading ? " lg:grid lg:grid-cols-[160px_minmax(0,800px)] lg:gap-x-12" : ""}`}
+      style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
       data-testid={`wiki-edit-section-${section.sectionIdentifier}`}
-      style={cardSurfaceStyle}
     >
-      <div className="flex items-center gap-3 p-5 text-left">
+      <div className={`flex items-center gap-1 text-left sm:gap-2${hasSideHeading ? " lg:flex-wrap lg:content-start lg:self-start" : ""}`}>
+        <h2 className={`${sectionHeadingClassName}${hasSideHeading ? " lg:mb-2 lg:basis-full" : ""}`}>
+          {section.title}
+        </h2>
         <button
           aria-expanded={isOpen}
           aria-label={`${t.toggleSection}: ${section.title}`}
-          className="section-accordion__chevron rounded-full border border-stroke-subtle p-2 text-text-muted transition-transform"
+          className="shrink-0 rounded-lg p-2.5 text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-muted"
           onClick={() => setIsOpen((open) => !open)}
-          style={{
-            ...cardSurfaceMutedStyle,
-            transform: isOpen ? "rotate(180deg)" : undefined,
-          }}
           type="button"
         >
-          <ChevronIcon />
+          <span className="block transition-transform" style={{ transform: isOpen ? "rotate(180deg)" : undefined }}>
+            <ChevronIcon />
+          </span>
         </button>
-        <span className="min-w-0 flex-1">
-          <span className="wiki-title block text-2xl font-semibold tracking-[-0.03em]">{section.title}</span>
-        </span>
         <button
           aria-label={`${t.editSection}: ${section.title}`}
-          className="rounded-full border border-stroke-subtle p-3 text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-muted disabled:cursor-not-allowed disabled:opacity-40"
           disabled={disabled}
           onClick={() => {
             setIsOpen(true);
             onEdit(sectionEditorId);
           }}
-          style={cardSurfaceMutedStyle}
           type="button"
         >
           <EditIcon />
+          <span>{t.editSectionLabel}</span>
         </button>
-        <button
-          aria-label={`${t.deleteSection}: ${section.title}`}
-          className="rounded-full border border-status-danger/30 p-3 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted"
-          disabled={disabled}
-          onClick={() => onDeleteContent(section.sectionIdentifier)}
-          type="button"
+        <div
+          className="relative shrink-0"
+          ref={actionsRef}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setIsActionsOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsActionsOpen(false);
+              actionsButtonRef.current?.focus();
+            }
+          }}
         >
-          <TrashIcon />
-        </button>
+          <button
+            aria-controls={actionsId}
+            aria-expanded={isActionsOpen && !disabled}
+            aria-label={`${t.sectionActions}: ${section.title}`}
+            className="rounded-lg p-2.5 text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-muted disabled:cursor-not-allowed disabled:opacity-40"
+            disabled={disabled}
+            onClick={() => setIsActionsOpen((open) => !open)}
+            ref={actionsButtonRef}
+            type="button"
+          >
+            <MoreHorizontal aria-hidden="true" size={18} />
+          </button>
+          {isActionsOpen && !disabled ? (
+            <div className="absolute right-0 z-20 mt-2 min-w-48 rounded-xl border border-stroke-subtle p-1.5 shadow-soft" id={actionsId} style={cardSurfaceStyle}>
+              <button
+                aria-label={`${t.deleteSection}: ${section.title}`}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-status-danger transition hover:bg-status-danger/10 focus-visible:outline-2 focus-visible:outline-status-danger"
+                onClick={() => {
+                  setIsActionsOpen(false);
+                  onDeleteContent(section.sectionIdentifier);
+                }}
+                type="button"
+              >
+                <TrashIcon />
+                {t.deleteSection}
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
       {isOpen ? (
-        <div className="space-y-6 border-t border-stroke-subtle px-5 pb-5 pt-5" style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}>
+        <div
+          className={`${sectionBodyClassName} min-w-0 space-y-6${hasSideHeading ? " lg:pt-0" : ""}`}
+        >
           {editingId === sectionEditorId ? (
             <WikiSectionForm
               onCancel={onCancel}
