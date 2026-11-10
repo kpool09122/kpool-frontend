@@ -7,6 +7,8 @@ import { regionName } from "./regionPresentation";
 import { regionBoundary } from "./regionalProjection";
 import { isSelectableRegion } from "./regionalSelection";
 import { formatMetricValue, metricValue } from "./reportPresentation";
+import { MetricChange } from "./MetricChange";
+
 function RegionalMetricCardView({
   name,
   report,
@@ -66,17 +68,18 @@ function RegionalMetricCardView({
         <div>
           <dt>{totalLabel ?? (averageTime ? t.average : t.total)}</dt>
           <dd
-            data-testid="metric-total"
             className="break-all text-2xl font-semibold"
           >
-            {format(report?.total, report?.denominator ?? null)}
+            <span data-testid="metric-total">{format(report?.total, report?.denominator ?? null)}</span>
+            <MetricChange comparison={report?.comparison} t={t} locale={locale} />
           </dd>
         </div>
         {showSubmitters ? (
           <div>
             <dt>{t.submitters}</dt>
-            <dd data-testid="metric-submitters">
-              {metricValue(report?.actorCount, locale)}
+            <dd>
+              <span data-testid="metric-submitters">{metricValue(report?.actorCount, locale)}</span>
+              <MetricChange comparison={report?.comparison} actorCount t={t} locale={locale} />
             </dd>
           </div>
         ) : null}

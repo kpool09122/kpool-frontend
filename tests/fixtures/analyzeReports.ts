@@ -1,4 +1,5 @@
 export const metric = {
+  comparison: null,
   definition: {
     source: "ga4",
     metric: "views",

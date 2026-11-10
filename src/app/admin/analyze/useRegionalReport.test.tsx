@@ -76,3 +76,18 @@ it("separates region, conditions, kind and authentication scope and cancels stal
   expect(pending.every((p) => p.signal.aborted)).toBe(true);
   client.clear();
 });
+
+it("fetches unknown-region reports independently of country-wide reports", async () => {
+  const client = new QueryClient();
+  const wrapper = ({ children }: PropsWithChildren) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  fetch.mockResolvedValue({ status: "error", httpStatus: 502 });
+  const conditions = { kind: "wiki" as const, query: "from=2026-01-01", scope: "account-a", version: 1, revision: 0, country: "JP" };
+  const hook = renderHook(() => {
+    useRegionalReport(conditions);
+    useRegionalReport({ ...conditions, region: null });
+  }, { wrapper });
+  await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+  expect(fetch.mock.calls.map(([, query]) => new URLSearchParams(query).get("region"))).toEqual([null, "unknown"]);
+  hook.unmount();
+  client.clear();
+});

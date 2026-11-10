@@ -30,7 +30,7 @@ export function useRegionalReport<K extends "app" | "wiki">({
       version,
       query,
       country,
-      region,
+      region === undefined ? "all" : region ?? "unknown",
       revision,
     ],
     queryFn: ({ signal }) =>

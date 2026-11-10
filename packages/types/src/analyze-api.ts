@@ -34,6 +34,15 @@ const CountryMetric = z
     actorCount: z.string().nullish(),
   })
   .passthrough();
+const ComparisonReason = z.enum(["no_previous_data", "no_current_data", "zero_baseline", "invalid_denominator", "not_applicable"]);
+const PeriodComparison = z.object({
+  from: z.string(),
+  to: z.string(),
+  percentageChange: z.string().nullable(),
+  reason: ComparisonReason.nullable(),
+  actorPercentageChange: z.string().nullable(),
+  actorReason: ComparisonReason.nullable(),
+}).passthrough();
 const MetricReport = z
   .object({
     definition: MetricDefinition,
@@ -43,6 +52,7 @@ const MetricReport = z
     denominator: z.number().int().nullable(),
     actorCount: z.string().nullable(),
     countries: z.array(CountryMetric),
+    comparison: PeriodComparison.nullable(),
   })
   .passthrough();
 const AppDailySummaryReport = z
@@ -78,6 +88,7 @@ const RegionalMetricReport = z
     denominator: z.number().int().nullable(),
     actorCount: z.string().nullable(),
     regions: z.array(RegionMetric),
+    comparison: PeriodComparison.nullable(),
   })
   .passthrough();
 const AppRegionalDailySummaryReport = z
@@ -137,6 +148,8 @@ const WikiRegionalDailySummaryReport = z
 const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 
 export const schemas = {
+  ComparisonReason,
+  PeriodComparison,
   MetricDefinition,
   MetricDay,
   CountryMetric,
@@ -162,7 +175,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/app/daily-summary",
     alias: "AnalysisOperations_getAppDailySummaryReport",
-    description: `Get all App metrics for an inclusive UTC period of at most one calendar year ending no later than UTC D-3. Stored historical periods have no age cutoff. Requires active Account/Account principal and enrolled active Analyze principal with analysis:view. General grants all analyses; explicit Deny wins. Authorization is re-evaluated on every request. country&#x3D;unknown selects unknown; omitted/null selects all. Country breakdowns are unavailable for imports predating country collection. Never returns individual viewer/actor identifiers. Invalid period: 400; invalid query format: 422.`,
+    description: `Get all App metrics for an inclusive UTC period of at most six calendar months ending no later than UTC D-3. Stored historical periods have no age cutoff. Requires active Account/Account principal and enrolled active Analyze principal with analysis:view. General grants all analyses; explicit Deny wins. Authorization is re-evaluated on every request. country&#x3D;unknown selects unknown; omitted/null selects all. Country breakdowns are unavailable for imports predating country collection. Never returns individual viewer/actor identifiers. Invalid period: 400; invalid query format: 422.`,
     requestFormat: "json",
     parameters: [
       {
@@ -224,7 +237,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/app/regional-daily-summary",
     alias: "RegionalAnalysisOperations_getAppRegionalDailySummaryReport",
-    description: `Country required (ISO 3166-1 alpha-2). region omitted/null returns the country trend and exact-region breakdown; region&#x3D;unknown selects unknown, otherwise a complete country-prefixed known subdivision code, e.g. JP-13 or DE-BE (valid even though DE is not in map coverage). Mismatched/invalid codes and missing country return 422. Same inclusive UTC period (at most one calendar year, ending no later than D-3; invalid period 400) and fresh analysis:view authorization as the country endpoint. Registered users are final-day closing balances attributed to immutable verified registration-time region, including archives, never account addresses. Old API remains unchanged. No raw viewer/actor identifiers are returned.`,
+    description: `Country required (ISO 3166-1 alpha-2). region omitted/null returns the country trend and exact-region breakdown; region&#x3D;unknown selects unknown, otherwise a complete country-prefixed known subdivision code, e.g. JP-13 or DE-BE (valid even though DE is not in map coverage). Mismatched/invalid codes and missing country return 422. Same inclusive UTC period (at most six calendar months, ending no later than D-3; invalid period 400) and fresh analysis:view authorization as the country endpoint. Registered users are final-day closing balances attributed to immutable verified registration-time region, including archives, never account addresses. Old API remains unchanged. No raw viewer/actor identifiers are returned.`,
     requestFormat: "json",
     parameters: [
       {

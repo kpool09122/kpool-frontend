@@ -20,16 +20,21 @@ type Selection = {
   pinned: boolean;
 };
 
-function CountryGlobeView({ metrics, t, locale, initialCountry = null, onCountryChange, onDomesticView }: {
+function CountryGlobeView({ metrics, t, locale, initialCountry = null, onCountryChange, onDomesticView, countrySelection }: {
   metrics: CountryGlobeMetric[];
   onDomesticView?: (country: string) => void;
   initialCountry?: string | null;
+  countrySelection?: { country: string | null | undefined };
   onCountryChange?: (country: string | null | undefined) => void;
   t: AnalyzeReportDictionary;
   locale: string;
 }) {
   const id = useId();
-  const [selection, setSelection] = useState<Selection | null>(null);
+  const [localSelection, setSelection] = useState<Selection | null>(null);
+  const selection = countrySelection
+    ? countrySelection.country !== undefined ? { country: countrySelection.country, pinned: true }
+      : localSelection?.pinned ? null : localSelection
+    : localSelection;
   const [colorKey, setColorKey] = useState(overallMetricKey);
   const [homeRotation] = useState(() => getInitialGlobeRotation(initialCountry));
   const [rotation, setRotation] = useState<GlobeRotation>(homeRotation);

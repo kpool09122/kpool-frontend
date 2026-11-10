@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET as app } from "./app/daily-summary/route";
 import { GET as wiki } from "./wiki/daily-summary/route";
 const metric = {
+  comparison: null,
   definition: { source: "test", metric: "count", grain: "day", version: "1" },
   revision: null,
   days: [],
@@ -39,7 +40,7 @@ describe("Analyze report BFF", () => {
       vi.stubGlobal("fetch", fetch);
       const result = await get(
         new NextRequest(
-          `https://frontend.test/api/analyze/${kind}/daily-summary?from=2000-01-01&to=2000-12-31&translationSetIdentifier=abc&language=ja&country=unknown&identity=secret`,
+          `https://frontend.test/api/analyze/${kind}/daily-summary?from=2000-01-01&to=2000-06-30&translationSetIdentifier=abc&language=ja&country=unknown&identity=secret`,
           { headers: { cookie: "session=original", "accept-language": "ja" } },
         ),
       );

@@ -3,22 +3,23 @@
 import { useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/i18n/I18nProvider";
-import {
-  fetchAllTranslationSetMasterSearch,
-  type TranslationSetMasterSearchDisplayItem,
-} from "@/gateways/wiki/translationSetMasterSearchBrowserApi";
+import { fetchAllTranslationSetMasterSearch } from "@/gateways/wiki/translationSetMasterSearchBrowserApi";
 
-export function AnalyzeWikiSelect({ label, disabled }: { label: string; disabled: boolean }) {
+export function AnalyzeWikiSelect({ label, disabled, initialSelection }: {
+  label: string;
+  disabled: boolean;
+  initialSelection?: { translationSetIdentifier: string; name: string };
+}) {
   const { locale, dictionary } = useI18n();
   const t = dictionary.wiki.ui;
   const inputId = useId();
   const listId = `${inputId}-results`;
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(initialSelection?.name ?? "");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<TranslationSetMasterSearchDisplayItem | null>(null);
+  const [selected, setSelected] = useState(initialSelection ?? null);
   const results = useQuery({
     queryKey: ["admin", "analyze", "wiki-search", locale, searchKeyword],
     queryFn: ({ signal }) => fetchAllTranslationSetMasterSearch({ keyword: searchKeyword, locale, fallbackErrorMessage: t.searchFailed, signal }),
@@ -66,13 +67,14 @@ export function AnalyzeWikiSelect({ label, disabled }: { label: string; disabled
                 list.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
               }
             }} />
-          {selected ? <button type="button" disabled={disabled} onClick={clear} aria-label={`${t.remove}: ${selected.displayWiki.name}`}
+          {selected ? <button type="button" disabled={disabled} onClick={clear} aria-label={`${t.remove}: ${selected.name}`}
             className="absolute inset-y-0 right-0 w-8 rounded text-text-muted hover:text-brand-primary">×</button> : null}
         </div>
         <button type="button" className="h-9 shrink-0 rounded border border-stroke-subtle px-2.5 text-sm disabled:opacity-50"
           disabled={disabled || !keyword.trim()} aria-busy={results.isFetching} onClick={search}>{t.search}</button>
       </div>
       <input type="hidden" name="target" value={selected?.translationSetIdentifier ?? ""} />
+      <input type="hidden" name="wikiName" value={selected?.name ?? ""} />
       {visible ? <div className="absolute inset-x-0 top-full z-30 mt-1 max-h-64 overflow-y-auto overscroll-contain rounded-lg border border-stroke-subtle bg-surface-base p-1 shadow-lg">
         {results.isFetching ? <p role="status" className="px-2 py-2 text-xs text-text-muted">{t.searchLoading}</p> : null}
         {results.isError ? <p role="alert" className="px-2 py-2 text-sm text-status-danger">{t.searchFailed}</p> : null}
@@ -87,7 +89,7 @@ export function AnalyzeWikiSelect({ label, disabled }: { label: string; disabled
                   const options = list.current?.querySelectorAll<HTMLButtonElement>("button");
                   if (options?.length) options[(index + (event.key === "ArrowDown" ? 1 : -1) + options.length) % options.length].focus({ preventScroll: true });
                 }}
-                onClick={() => { setSelected(item); setKeyword(item.displayWiki.name); setSearchKeyword(""); setOpen(false); input.current?.focus({ preventScroll: true }); }}>
+                onClick={() => { setSelected({ translationSetIdentifier: item.translationSetIdentifier, name: item.displayWiki.name }); setKeyword(item.displayWiki.name); setSearchKeyword(""); setOpen(false); input.current?.focus({ preventScroll: true }); }}>
                 <span className="min-w-0 truncate">{item.displayWiki.name}</span>{" "}
                 <span className="min-w-0 truncate text-xs text-text-muted">{item.displayWiki.slug}</span>
               </button>
