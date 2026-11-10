@@ -1,15 +1,48 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AccountStatusMessage } from "@/components/Account";
 import type { AnalyzeReportDictionary } from "@/i18n/analyzeReports";
 import { useRegionalReport } from "./useRegionalReport";
 import { DomesticMap, type RegionalMapMetric } from "./DomesticMap";
 import { RegionalMetricCard } from "./RegionalMetricCard";
+import { isSelectableRegion } from "./regionalSelection";
 import type {
   AppRegionalReport,
   WikiRegionalReport,
   ReportResult,
 } from "@/gateways/analyze/analyzeReports";
+const metrics = (
+  appResult: ReportResult<AppRegionalReport> | undefined,
+  wikiResult: ReportResult<WikiRegionalReport> | undefined,
+  t: AnalyzeReportDictionary,
+): RegionalMapMetric[] => [
+  ...(appResult?.status === "available"
+    ? (["applicationUsers", "registeredUsers"] as const).map((key) => ({
+        key,
+        name: t[key],
+        group: t.app,
+        report: appResult.report[key],
+      }))
+    : []),
+  ...(wikiResult?.status === "available"
+    ? (
+        [
+          "views",
+          "viewers",
+          "engagementTime",
+          "submissions",
+          "publications",
+        ] as const
+      ).map((key) => ({
+        key,
+        name: t[key],
+        group: t.wiki,
+        report: wikiResult.report[key],
+        averageTime: key === "engagementTime",
+      }))
+    : []),
+];
+
 export function DomesticAnalysis({
   country,
   appQuery,
@@ -69,50 +102,32 @@ export function DomesticAnalysis({
   });
   const detailApp = region === undefined ? app : areaApp;
   const detailWiki = region === undefined ? wiki : areaWiki;
-  const metrics = (
-    appResult?: ReportResult<AppRegionalReport>,
-    wikiResult?: ReportResult<WikiRegionalReport>,
-  ): RegionalMapMetric[] => [
-    ...(appResult?.status === "available"
-      ? (["applicationUsers", "registeredUsers"] as const).map((key) => ({
-          key,
-          name: t[key],
-          group: t.app,
-          report: appResult.report[key],
-        }))
-      : []),
-    ...(wikiResult?.status === "available"
-      ? (
-          [
-            "views",
-            "viewers",
-            "engagementTime",
-            "submissions",
-            "publications",
-          ] as const
-        ).map((key) => ({
-          key,
-          name: t[key],
-          group: t.wiki,
-          report: wikiResult.report[key],
-          averageTime: key === "engagementTime",
-        }))
-      : []),
-  ];
-  const selectedMetrics = metrics(detailApp.data, detailWiki.data);
+  const mapMetrics = useMemo(
+    () => metrics(app.data, wiki.data, t),
+    [app.data, wiki.data, t],
+  );
+  const selectedReports = new Map(
+    metrics(detailApp.data, detailWiki.data, t).map((metric) => [metric.key, metric.report]),
+  );
+  const selectedMetrics = mapMetrics
+    .filter((metric) => (metric.group === t.app ? detailApp.data : detailWiki.data)?.status !== "error")
+    .map((metric) => ({ ...metric, report: selectedReports.get(metric.key) }));
   const errors = [app.data, wiki.data, detailApp.data, detailWiki.data].filter(
     (result) => result?.status === "error",
   );
   const authError = errors.find(
     (result) => result?.httpStatus === 401 || result?.httpStatus === 403,
   );
-  const selectRegion = (next: string | null | undefined) => {
+  const { refetch: refetchApp } = app;
+  const { refetch: refetchWiki } = wiki;
+  const selectRegion = useCallback((next: string | null | undefined) => {
+    if (!isSelectableRegion(country, next)) return;
     setRegion(next);
     if (next === undefined && region !== undefined) {
-      void app.refetch();
-      void wiki.refetch();
+      void refetchApp();
+      void refetchWiki();
     }
-  };
+  }, [country, region, refetchApp, refetchWiki]);
   return (
     <div className="min-w-0 space-y-4">
       {authError ? (
@@ -128,19 +143,13 @@ export function DomesticAnalysis({
             region={region}
             level={level}
             onLevelChange={setLevel}
-            metrics={metrics(app.data, wiki.data)}
+            metrics={mapMetrics}
             summaries={selectedMetrics}
             onSelect={selectRegion}
             onBack={onBack}
             t={t}
             locale={locale}
           />
-          {app.isFetching ||
-          wiki.isFetching ||
-          detailApp.isFetching ||
-          detailWiki.isFetching ? (
-            <p role="status">{t.loading}</p>
-          ) : null}
           {errors.length ? (
             <AccountStatusMessage variant="error">
               {errors.some(
@@ -165,7 +174,7 @@ export function DomesticAnalysis({
                   .filter((metric) => metric.group === group)
                   .map((metric) => (
                     <RegionalMetricCard
-                      key={`${metric.key}:${region}`}
+                      key={metric.key}
                       name={metric.name}
                       report={metric.report}
                       country={country}

@@ -208,7 +208,6 @@ export function AnalyzeDashboard({
         </button>
       </form>
       {invalid ? <AccountStatusMessage variant="error">{t.invalid}</AccountStatusMessage> : null}
-      {app.isFetching || wiki.isFetching ? <p role="status">{t.loading}</p> : null}
       {forbidden || unauthorized ? (
         <AccountStatusMessage variant="error">{unauthorized ? t.unauthorized : t.forbidden}</AccountStatusMessage>
       ) : (

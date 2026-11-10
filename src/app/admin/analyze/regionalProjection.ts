@@ -2,6 +2,7 @@ import { geoArea, geoMercator, geoPath } from "d3-geo";
 import boundaries from "./regionalBoundaries.json";
 import coverage from "./regionalMapCoverage.json";
 import { getInitialGlobeRotation } from "./globeProjection";
+import { isSelectableRegion } from "./regionalSelection";
 export const supportedMapCountry = (country: string) =>
   coverage.codes.some((code) => code.startsWith(`${country}-`));
 export const regionBoundary = (code: string) =>
@@ -11,6 +12,7 @@ export const projectRegions = (country: string, level: string) => {
     .filter(
       (shape) =>
         shape.code.startsWith(`${country}-`) &&
+        isSelectableRegion(country, shape.code) &&
         (country !== "PH" || shape.level === level),
     )
     .map((shape) => ({

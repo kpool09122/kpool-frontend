@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeftIcon } from "@radix-ui/react-icons";
 import type { RegionalMetricReport } from "@/gateways/analyze/analyzeReports";
 import type { AnalyzeReportDictionary } from "@/i18n/analyzeReports";
 import { createCountryColorScale, overallMetricKey } from "./countryColorScale";
@@ -29,7 +30,7 @@ export function DomesticMap({
   country: string;
   region?: string | null;
   metrics: RegionalMapMetric[];
-  summaries: RegionalMapMetric[];
+  summaries: (Omit<RegionalMapMetric, "report"> & { report?: RegionalMetricReport })[];
   level: string;
   onLevelChange: (level: string) => void;
   onSelect: (region: string | null | undefined) => void;
@@ -70,8 +71,19 @@ export function DomesticMap({
     [chartMetrics, colorKey],
   );
   const metric = metrics.find((metric) => metric.key === colorKey);
+  const shapeLabels = useMemo(() => shapes.map((shape) => {
+    const row = metric?.report.regions.find((row) => row.region === shape.code);
+    const value = colorKey === overallMetricKey
+      ? fills.has(shape.code) ? t.overall : t.noData
+      : metric && row ? formatMetricValue(row.value, locale, {
+          averageTime: metric.averageTime,
+          denominator: row.denominator,
+          seconds: t.seconds,
+        }) : t.noData;
+    return `${regionName(shape.code, locale, t)}: ${value}`;
+  }), [shapes, metric, colorKey, fills, locale, t]);
   const format = (
-    metric: RegionalMapMetric,
+    metric: Pick<RegionalMapMetric, "averageTime">,
     value: string | null | undefined,
     denominator: number | null,
   ) =>
@@ -115,10 +127,7 @@ export function DomesticMap({
             }}
           >
             {shapes.map((shape, index) => {
-              const row = metric?.report.regions.find(
-                (row) => row.region === shape.code,
-              );
-              const label = `${regionName(shape.code, locale, t)}: ${colorKey === overallMetricKey ? (fills.has(shape.code) ? t.overall : t.noData) : metric && row ? format(metric, row.value, row.denominator) : t.noData}`;
+              const label = shapeLabels[index];
               return (
                 <path
                   key={shape.code}
@@ -216,7 +225,7 @@ export function DomesticMap({
                 <div key={item.key} className="flex justify-between gap-2">
                   <dt>{item.name}</dt>
                   <dd className="font-semibold tabular-nums">
-                    {format(item, item.report.total, item.report.denominator)}
+                    {item.report ? format(item, item.report.total, item.report.denominator) : "—"}
                   </dd>
                 </div>
               ))}
@@ -226,8 +235,9 @@ export function DomesticMap({
                 ref={backButton}
                 type="button"
                 onClick={onBack}
-                className="mt-4 rounded-lg border border-stroke-subtle p-2 text-sm focus-visible:outline-2 focus-visible:outline-brand-primary"
+                className="mt-4 inline-flex items-center gap-1 rounded-lg border border-stroke-subtle p-2 text-sm focus-visible:outline-2 focus-visible:outline-brand-primary"
               >
+                <ChevronLeftIcon aria-hidden="true" className="shrink-0" />
                 {t.backToGlobe}
               </button>
             </div>

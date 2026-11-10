@@ -43,3 +43,10 @@ it("keeps PH parent regions and provinces on separate map levels, without combin
   );
   expect(supportedMapCountry("DE")).toBe(false);
 });
+
+it("excludes Taiwan from China's regional map while retaining Taiwan's own map", () => {
+  const china = projectRegions("CN", "area");
+  expect(china.some((shape) => shape.code === "CN-11")).toBe(true);
+  expect(china.some((shape) => shape.code === "CN-71")).toBe(false);
+  expect(projectRegions("TW", "area").length).toBeGreaterThan(0);
+});

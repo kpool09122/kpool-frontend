@@ -444,13 +444,15 @@ for (const mobile of [false, true]) test(`domestic drilldown and restore ${mobil
   await page.route("**/api/analyze/principal/me", route=>route.fulfill({json:principal}));
   await page.route(/\/api\/analyze\/(app|wiki)\/daily-summary/, route=>route.fulfill({json:route.request().url().includes("/app/")?appReport:wikiReport}));
   const queries: URL[]=[];
-  await page.route(/\/api\/analyze\/(app|wiki)\/regional-daily-summary/, route=>{
+  const regionalResponses: (() => void)[] = [];
+  await page.route(/\/api\/analyze\/(app|wiki)\/regional-daily-summary/, async route=>{
     const url=new URL(route.request().url());queries.push(url);
     const report=regionalize(url.pathname.includes("/app/")?appReport:wikiReport);
     for(const metric of Object.values(report)) {
       metric.regions.push({region:"JP-01",mapSupported:true,value:"15",denominator:null,quality:[]});
       if(url.searchParams.has("region")) metric.total="42";
     }
+    if (url.searchParams.has("region")) await new Promise<void>(resolve => regionalResponses.push(resolve));
     return route.fulfill({json:report});
   });
   await page.goto("/admin/analyze?test=true");
@@ -469,19 +471,50 @@ for (const mobile of [false, true]) test(`domestic drilldown and restore ${mobil
   await domestic.getByRole("combobox",{name:"色分けする指標"}).selectOption("views");
   const hokkaido=domestic.locator('[data-region="JP-01"]');
   await expect(hokkaido).not.toHaveAttribute("fill","#cbd5e1");
+  const countryViewsCard = page.getByRole("region", { name: "閲覧回数", exact: true });
+  await countryViewsCard.locator("summary").click();
+  await expect(countryViewsCard.locator(".recharts-pie")).toBeVisible();
+  await expect(countryViewsCard.getByRole("button", { name: /北海道 \(JP-01\)/ })).toBeVisible();
+  const viewsCardElement = await countryViewsCard.elementHandle();
   await hokkaido.click();
   await expect.poll(()=>queries.filter(url=>url.searchParams.get("region")==="JP-01").length).toBe(2);
+  await expect(countryViewsCard.getByTestId("metric-total")).toHaveText("—");
+  expect(await viewsCardElement!.evaluate(element => element.isConnected)).toBe(true);
+  await expect(countryViewsCard.locator("details")).toHaveAttribute("open", "");
+  regionalResponses.splice(0).forEach(resolve => resolve());
   await expect(page.getByRole("region",{name:"閲覧回数",exact:true}).getByTestId("metric-total")).toHaveText("42");
   await expect(page.getByRole("region",{name:"地域別サマリー"})).toContainText("北海道 (JP-01)");
+  const viewsCard = page.getByRole("region", { name: "閲覧回数", exact: true });
+  await expect(viewsCard.locator("details")).toHaveAttribute("open", "");
+  const trend = viewsCard.getByRole("region", { name: "閲覧回数: 日別推移", exact: true });
+  await expect(trend.locator(".recharts-surface")).toBeVisible();
+  await expect(trend.locator(".recharts-line-curve")).toHaveAttribute("d", /M/);
+  await expect.poll(async () => {
+    const cardBox = await viewsCard.boundingBox();
+    const chartBox = await trend.locator(".recharts-surface").boundingBox();
+    return !!cardBox && !!chartBox && chartBox.width > 0 &&
+      chartBox.x >= cardBox.x && chartBox.x + chartBox.width <= cardBox.x + cardBox.width + 1;
+  }).toBe(true);
+  const tokyo = domestic.locator('[data-region="JP-13"]');
+  await tokyo.focus();
+  await tokyo.press("Enter");
+  await expect.poll(() => regionalResponses.length).toBe(2);
+  await expect(viewsCard.getByTestId("metric-total")).toHaveText("—");
+  expect(await viewsCardElement!.evaluate(element => element.isConnected)).toBe(true);
+  await expect(viewsCard.locator("details")).toHaveAttribute("open", "");
+  regionalResponses.splice(0).forEach(resolve => resolve());
+  await expect(viewsCard.getByTestId("metric-total")).toHaveText("42");
+  expect(await viewsCardElement!.evaluate(element => element.isConnected)).toBe(true);
+  await expect(viewsCard.locator("details")).toHaveAttribute("open", "");
   await domestic.scrollIntoViewIfNeeded();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:testInfo.outputPath(`domestic-${mobile?"mobile":"desktop"}.png`),fullPage:true});
   await page.getByRole("button",{name:"表示をリセット"}).click();
-  await expect.poll(()=>queries.length).toBe(6);
+  await expect.poll(()=>queries.length).toBe(8);
   await page.getByRole("button",{name:"地球儀に戻る"}).click();
   await expect(globe).toBeVisible();await expect(globe).toHaveAttribute("data-rotation",rotation!);
   await expect(entry).toBeFocused();
   await page.getByRole("button",{name:"分析を取得"}).click();
   await expect(page.getByRole("button",{name:"分析を取得"})).toBeEnabled();
-  expect(queries).toHaveLength(6);
+  expect(queries).toHaveLength(8);
 });
