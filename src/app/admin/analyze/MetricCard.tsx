@@ -4,6 +4,8 @@ import { memo, useId } from "react";
 import type { MetricReport } from "@/gateways/analyze/analyzeReports";
 import type { AnalyzeReportDictionary } from "@/i18n/analyzeReports";
 import { formatMetricValue, metricValue } from "./reportPresentation";
+import { MetricChange } from "./MetricChange";
+import type { ComparisonPeriod } from "./endpointComparison";
 
 function MetricCardView({
   name,
@@ -13,6 +15,7 @@ function MetricCardView({
   averageTime = false,
   showSubmitters = false,
   totalLabel,
+  period,
   country,
 }: {
   name: string;
@@ -22,6 +25,7 @@ function MetricCardView({
   averageTime?: boolean;
   showSubmitters?: boolean;
   totalLabel?: string;
+  period?: ComparisonPeriod;
   country?: string | null;
 }) {
   const id = useId();
@@ -39,17 +43,18 @@ function MetricCardView({
         <div>
           <dt>{totalLabel ?? (averageTime ? t.average : t.total)}</dt>
           <dd
-            data-testid="metric-total"
             className="break-all text-2xl font-semibold"
           >
-            {format(report.total, report.denominator)}
+            <span data-testid="metric-total">{format(report.total, report.denominator)}</span>
+            <MetricChange days={report.days} period={period} averageTime={averageTime} t={t} locale={locale} />
           </dd>
         </div>
         {showSubmitters ? (
           <div>
             <dt>{t.submitters}</dt>
-            <dd data-testid="metric-submitters" className="text-xl">
-              {metricValue(report.actorCount, locale)}
+            <dd className="text-xl">
+              <span data-testid="metric-submitters">{metricValue(report.actorCount, locale)}</span>
+              <MetricChange days={report.days} period={period} actorCount t={t} locale={locale} />
             </dd>
           </div>
         ) : null}

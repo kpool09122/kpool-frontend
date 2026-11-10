@@ -11,6 +11,7 @@ import type {
   WikiRegionalReport,
   ReportResult,
 } from "@/gateways/analyze/analyzeReports";
+import type { ComparisonPeriod } from "./endpointComparison";
 const metrics = (
   appResult: ReportResult<AppRegionalReport> | undefined,
   wikiResult: ReportResult<WikiRegionalReport> | undefined,
@@ -45,6 +46,7 @@ const metrics = (
 
 export function DomesticAnalysis({
   country,
+  period,
   appQuery,
   wikiQuery,
   scope,
@@ -55,6 +57,7 @@ export function DomesticAnalysis({
   t,
 }: {
   country: string;
+  period: ComparisonPeriod;
   appQuery: string;
   wikiQuery: string;
   scope: string;
@@ -174,6 +177,7 @@ export function DomesticAnalysis({
                   .filter((metric) => metric.group === group)
                   .map((metric) => (
                     <RegionalMetricCard
+                      period={period}
                       key={metric.key}
                       name={metric.name}
                       report={metric.report}

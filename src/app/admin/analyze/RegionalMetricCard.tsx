@@ -7,6 +7,9 @@ import { regionName } from "./regionPresentation";
 import { regionBoundary } from "./regionalProjection";
 import { isSelectableRegion } from "./regionalSelection";
 import { formatMetricValue, metricValue } from "./reportPresentation";
+import { MetricChange } from "./MetricChange";
+import type { ComparisonPeriod } from "./endpointComparison";
+
 function RegionalMetricCardView({
   name,
   report,
@@ -19,6 +22,7 @@ function RegionalMetricCardView({
   country,
   level = "area",
   totalLabel,
+  period,
 }: {
   name: string;
   report?: RegionalMetricReport;
@@ -31,6 +35,7 @@ function RegionalMetricCardView({
   country?: string;
   level?: string;
   totalLabel?: string;
+  period?: ComparisonPeriod;
 }) {
   const format = (
     value: string | null | undefined,
@@ -66,17 +71,18 @@ function RegionalMetricCardView({
         <div>
           <dt>{totalLabel ?? (averageTime ? t.average : t.total)}</dt>
           <dd
-            data-testid="metric-total"
             className="break-all text-2xl font-semibold"
           >
-            {format(report?.total, report?.denominator ?? null)}
+            <span data-testid="metric-total">{format(report?.total, report?.denominator ?? null)}</span>
+            <MetricChange days={report?.days} period={period} averageTime={averageTime} t={t} locale={locale} />
           </dd>
         </div>
         {showSubmitters ? (
           <div>
             <dt>{t.submitters}</dt>
-            <dd data-testid="metric-submitters">
-              {metricValue(report?.actorCount, locale)}
+            <dd>
+              <span data-testid="metric-submitters">{metricValue(report?.actorCount, locale)}</span>
+              <MetricChange days={report?.days} period={period} actorCount t={t} locale={locale} />
             </dd>
           </div>
         ) : null}

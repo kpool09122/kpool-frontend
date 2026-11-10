@@ -48,14 +48,12 @@ export function AnalyzeDashboard({
   const [domesticCountry, setDomesticCountry] = useState<string>();
   const [regionalRevision, setRegionalRevision] = useState(0);
   const [countrySelection, setCountrySelection] = useState<{ query: string; country: string | null }>();
-  const appQuery = new URLSearchParams({
+  const period = useMemo(() => ({
     from: toUtcReportingDay(conditions.from),
     to: toUtcReportingDay(conditions.to),
-  }).toString();
-  const wikiParams = new URLSearchParams({
-    from: toUtcReportingDay(conditions.from),
-    to: toUtcReportingDay(conditions.to),
-  });
+  }), [conditions.from, conditions.to]);
+  const appQuery = new URLSearchParams(period).toString();
+  const wikiParams = new URLSearchParams(period);
   for (const key of [
     "translationSetIdentifier",
     "language",
@@ -225,7 +223,7 @@ export function AnalyzeDashboard({
             />
             </div>
           ) : null}
-          {domesticCountry ? <DomesticAnalysis key={`${scope}:${version}:${wikiQuery}:${domesticCountry}`} country={domesticCountry} appQuery={appQuery} wikiQuery={wikiQuery} scope={scope} version={version} revision={regionalRevision} onBack={() => { setDomesticCountry(undefined); requestAnimationFrame(() => { document.querySelector<HTMLButtonElement>("[data-domestic-entry]")?.focus(); }); }} locale={locale} t={t} /> : null}
+          {domesticCountry ? <DomesticAnalysis period={period} key={`${scope}:${version}:${wikiQuery}:${domesticCountry}`} country={domesticCountry} appQuery={appQuery} wikiQuery={wikiQuery} scope={scope} version={version} revision={regionalRevision} onBack={() => { setDomesticCountry(undefined); requestAnimationFrame(() => { document.querySelector<HTMLButtonElement>("[data-domestic-entry]")?.focus(); }); }} locale={locale} t={t} /> : null}
           <div hidden={!!domesticCountry} className="space-y-5">
           <section aria-label={t.app} aria-busy={selectedCountry !== undefined && countryApp.isFetching} className="min-w-0 space-y-3">
             <h3 className="text-xl font-semibold">
@@ -241,6 +239,7 @@ export function AnalyzeDashboard({
                 {(["applicationUsers", "registeredUsers"] as const).map(
                   (key) => (
                     <MetricCard
+                      period={period}
                       key={`${appQuery}:${key}`}
                       name={t[key]}
                       report={appDetailReport[key]}
@@ -277,6 +276,7 @@ export function AnalyzeDashboard({
                   ] as const
                 ).map((key) => (
                   <MetricCard
+                    period={period}
                     key={`${wikiQuery}:${key}`}
                     name={t[key]}
                     report={wikiDetailReport[key]}
