@@ -4,6 +4,8 @@ import { getYouTubeVideoId, getTikTokVideoId, type WikiEmbedBlock } from "@kpool
 import { useVideoPlayback } from "@/components/VideoPlayback/VideoPlaybackProvider";
 import { SharedVideoEmbed } from "@/components/VideoPlayback/SharedVideoEmbed";
 
+import { youtubeEmbedClassName } from "../styles";
+
 const frameSurfaceStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
   borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
@@ -100,7 +102,7 @@ export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
   const videoId = block.provider === "youtube" ? getYouTubeVideoId(block.embedId) : block.provider === "tiktok" ? getTikTokVideoId(block.embedId) : null;
 
   return (
-    <figure className="overflow-hidden rounded-2xl border border-stroke-subtle" style={frameSurfaceStyle}>
+    <figure className={`overflow-hidden rounded-2xl border border-stroke-subtle${block.provider === "youtube" ? ` ${youtubeEmbedClassName}` : ""}`} style={frameSurfaceStyle}>
       {playback && videoId ? (
         <SharedVideoEmbed provider={block.provider === "tiktok" ? "tiktok" : "youtube"} videoId={videoId} title={block.caption || (block.provider === "tiktok" ? "TikTok" : "YouTube")} identifier={block.blockIdentifier} />
       ) : <div className="aspect-video w-full bg-surface-base">

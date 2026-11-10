@@ -1,5 +1,7 @@
 "use client";
 
+import { sectionListClassName } from "@/components/Wiki/styles";
+
 import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
 import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
 import { WikiImageSourceLink } from "@/components/Wiki/WikiImageSourceLink";
@@ -297,7 +299,7 @@ export function WikiEditContent({
   return (
     <main className="flex flex-1 flex-col" data-testid="wiki-edit-root" ref={rootRef}>
       <div
-        className="wiki-theme-scope wiki-page-theme flex-1 px-5 py-6 text-text-strong sm:px-8 sm:py-10"
+        className="wiki-theme-scope wiki-page-theme flex-1 px-5 py-6 text-text-strong [--wiki-page-gradient-height:750px] sm:px-8 sm:py-10"
         data-theme={previewMode}
         data-testid="wiki-edit-preview"
         style={{ ...themeStyles, ...mainBackgroundStyle }}
@@ -430,7 +432,7 @@ export function WikiEditContent({
                     id: "wiki",
                     label: t.contentWikiTab,
                     panel: (
-                      <div className="space-y-5">
+                      <div className={sectionListClassName}>
                         {draft.sections.map((section) => (
                           <WikiSectionEditor
                             editingId={editingId}
@@ -455,10 +457,9 @@ export function WikiEditContent({
                           />
                         ))}
                         <button
-                          className="w-full rounded-[1.5rem] border border-dashed border-stroke-subtle p-5 text-sm font-semibold uppercase tracking-[0.18em] text-text-muted disabled:cursor-not-allowed"
+                          className="rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
                           disabled={isEditLocked}
                           onClick={() => addSection()}
-                          style={cardSurfaceStyle}
                           type="button"
                         >
                           {t.addSection}

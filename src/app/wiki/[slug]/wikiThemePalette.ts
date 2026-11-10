@@ -324,7 +324,7 @@ export const createWikiThemePalette = (
   const textBackgrounds = [cardBackground, cardBackgroundMuted, pageStart, pageEnd];
 
   return {
-    pageBackground: `radial-gradient(circle at top, ${rgbToRgba(hexToRgb(glowColor), mode === "light" ? 0.82 : 0.58)}, transparent 40%), linear-gradient(180deg, ${pageStart} 0%, ${pageEnd} 100%)`,
+    pageBackground: `radial-gradient(circle at top, ${rgbToRgba(hexToRgb(glowColor), mode === "light" ? 0.82 : 0.58)}, transparent var(--wiki-page-gradient-height, 40%)), linear-gradient(180deg, ${pageStart} 0%, ${pageEnd} var(--wiki-page-gradient-height, 100%))`,
     headerBackground,
     headerText: pickReadableText(headerBackground, "#15243b", "#fffaf4"),
     titleText: getReadableThemeTextColor(balancedThemeColor, mode, textBackgrounds),

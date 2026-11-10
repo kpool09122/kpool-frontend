@@ -33,10 +33,39 @@ describe("WikiSectionEditor", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: `Edit section: ${wikiStorySection.title}` }));
+    expect(screen.queryByRole("button", { name: `Delete section: ${wikiStorySection.title}` })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: `Section actions: ${wikiStorySection.title}` }));
     fireEvent.click(screen.getByRole("button", { name: `Delete section: ${wikiStorySection.title}` }));
 
     expect(onEdit).toHaveBeenCalledWith(`section:${wikiStorySection.sectionIdentifier}`);
     expect(onDeleteContent).toHaveBeenCalledWith(wikiStorySection.sectionIdentifier);
+  });
+
+  it("dismisses section actions with Escape or an outside pointer", () => {
+    renderWithI18n(
+      <WikiSectionEditor
+        editingId={null}
+        language="ja"
+        onAddBlock={() => {}}
+        onAddSection={() => {}}
+        onCancel={() => {}}
+        onDeleteContent={() => {}}
+        onEdit={() => {}}
+        onSaveBlock={() => {}}
+        onSaveSection={() => {}}
+        section={wikiStorySection}
+      />,
+    );
+    const actions = screen.getByRole("button", { name: `Section actions: ${wikiStorySection.title}` });
+    fireEvent.click(actions);
+    const deleteButton = screen.getByRole("button", { name: `Delete section: ${wikiStorySection.title}` });
+    fireEvent.keyDown(deleteButton, { key: "Escape" });
+    expect(actions).toHaveAttribute("aria-expanded", "false");
+    expect(actions).toHaveFocus();
+
+    fireEvent.click(actions);
+    fireEvent.pointerDown(document.body);
+    expect(actions).toHaveAttribute("aria-expanded", "false");
   });
 
   it("disables section edit, delete, and add controls", () => {
@@ -60,15 +89,16 @@ describe("WikiSectionEditor", () => {
     );
 
     const editButton = screen.getByRole("button", { name: `Edit section: ${wikiStorySection.title}` });
-    const deleteButton = screen.getByRole("button", { name: `Delete section: ${wikiStorySection.title}` });
+    const actionsButton = screen.getByRole("button", { name: `Section actions: ${wikiStorySection.title}` });
 
     expect(editButton).toBeDisabled();
-    expect(deleteButton).toBeDisabled();
+    expect(actionsButton).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "+ Section" })[0]).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "+ Block" })[0]).toBeDisabled();
 
     fireEvent.click(editButton);
-    fireEvent.click(deleteButton);
+    fireEvent.click(actionsButton);
+    expect(screen.queryByRole("button", { name: `Delete section: ${wikiStorySection.title}` })).not.toBeInTheDocument();
 
     expect(onEdit).not.toHaveBeenCalled();
     expect(onDeleteContent).not.toHaveBeenCalled();

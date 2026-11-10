@@ -213,7 +213,7 @@ describe("WikiEditPage", () => {
     expect(screen.getAllByRole("button", { name: "Edit basic" })[0]).toBeDisabled();
     expect(screen.queryByRole("button", { name: /Open wiki image library|Wiki画像ライブラリを開く/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: `Edit section: Overview` })).toBeDisabled();
-    expect(screen.getByRole("button", { name: `Delete section: Overview` })).toBeDisabled();
+    expect(screen.getByRole("button", { name: `Section actions: Overview` })).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "Edit block: Text" })[0]).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "+ Section" })[0]).toBeDisabled();
     expect(screen.getAllByRole("button", { name: "+ Block" })[0]).toBeDisabled();

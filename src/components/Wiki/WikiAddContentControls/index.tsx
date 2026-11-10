@@ -44,10 +44,10 @@ export function WikiAddContentControls({
   }, [isBlockMenuOpen]);
 
   return (
-    <div className="rounded-2xl border border-dashed border-stroke-subtle p-4" data-testid={`wiki-edit-add-section-${section.sectionIdentifier}`}>
+    <div className="pt-1" data-testid={`wiki-edit-add-section-${section.sectionIdentifier}`}>
       <div className="flex flex-wrap items-start gap-2">
         <button
-          className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+          className="rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
           disabled={disabled || !canAddSection}
           onClick={() => onAddSection(section.sectionIdentifier)}
           title={canAddSection ? t.addSectionTitle : t.maxDepthReached}
@@ -58,7 +58,7 @@ export function WikiAddContentControls({
         <div className="relative" ref={blockMenuRef}>
           <button
             aria-expanded={isBlockMenuOpen}
-            className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:text-text-muted"
+            className="rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
             disabled={disabled}
             onClick={() => setIsBlockMenuOpen((isOpen) => !isOpen)}
             type="button"

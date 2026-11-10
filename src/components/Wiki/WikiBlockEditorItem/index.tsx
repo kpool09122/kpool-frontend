@@ -7,7 +7,7 @@ import { type WikiBlock, type WikiResourceType } from "@kpool/wiki";
 import { EditIcon, TrashIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 import { WikiBlockForm } from "../WikiBlockForm";
-import { cardSurfaceMutedStyle } from "../styles";
+import { cardSurfaceMutedStyle, youtubeEmbedClassName } from "../styles";
 
 type WikiBlockEditorItemProps = {
   block: WikiBlock;
@@ -41,8 +41,8 @@ export function WikiBlockEditorItem({
   const blockLabel = dictionary.wiki.blockTypes[block.blockType];
   const controls = (
     <div className="flex gap-2">
-      <button aria-label={`${t.editBlock}: ${blockLabel}`} className="rounded-full border border-stroke-subtle p-2 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button>
-      <button aria-label={`${t.deleteBlock}: ${blockLabel}`} className="rounded-full border border-status-danger/30 p-2 text-status-danger transition hover:bg-status-danger/10 disabled:cursor-not-allowed disabled:text-text-muted" disabled={disabled} onClick={onDelete} type="button"><TrashIcon /></button>
+      <button aria-label={`${t.editBlock}: ${blockLabel}`} className="rounded-lg p-2 text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button>
+      <button aria-label={`${t.deleteBlock}: ${blockLabel}`} className="rounded-lg p-2 text-text-muted transition hover:bg-status-danger/10 hover:text-status-danger disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled} onClick={onDelete} type="button"><TrashIcon /></button>
     </div>
   );
 
@@ -58,11 +58,19 @@ export function WikiBlockEditorItem({
   }
 
   return (
-    <article className="group relative" data-testid={`wiki-edit-block-${block.blockIdentifier}`}>
-      <div className="absolute right-0 top-0 z-10 flex gap-2 rounded-full bg-surface-raised/90 p-1 shadow-soft opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+    <article
+      className={`group relative${block.blockType === "embed" && block.provider === "youtube" ? ` ${youtubeEmbedClassName}` : ""}`}
+      data-testid={`wiki-edit-block-${block.blockIdentifier}`}
+    >
+      <div className="mb-2 flex justify-end gap-2 transition sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0 sm:rounded-lg sm:bg-surface-raised/95 sm:p-1 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
         {controls}
       </div>
-      <WikiBlockDisplay block={block} language={language} showEditableImageOverlay />
+      <WikiBlockDisplay
+        block={block}
+        language={language}
+        showEditableImageOverlay
+        textClassName="text-base leading-[30px] text-text-strong"
+      />
     </article>
   );
 }
