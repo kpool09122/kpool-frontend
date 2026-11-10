@@ -16,8 +16,21 @@ import {
   wikiReport,
 } from "../../../../tests/fixtures/analyzeReports";
 import { AnalyzeDashboard } from "./AnalyzeDashboard";
-import { toUtcReportingDay } from "./reportingPeriod";
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), search: vi.fn() }));
+vi.mock("next/navigation", async () => {
+  const { useSyncExternalStore } = await vi.importActual<typeof import("react")>("react");
+  return {
+    useSearchParams: () => new URLSearchParams(useSyncExternalStore(
+      (notify) => {
+        window.addEventListener("popstate", notify);
+        return () => window.removeEventListener("popstate", notify);
+      },
+      () => window.location.search,
+      () => "",
+    )),
+  };
+});
+const replaceState = window.history.replaceState.bind(window.history);
 vi.mock("@/gateways/wiki/translationSetMasterSearchBrowserApi", () => ({
   fetchAllTranslationSetMasterSearch: (...args: unknown[]) => mocks.search(...args),
 }));
@@ -40,6 +53,12 @@ const show = () =>
     </QueryClientProvider>,
   );
 beforeEach(() => {
+  replaceState(null, "", "/admin/analyze");
+  // Next's native-history integration notifies useSearchParams without navigation.
+  vi.spyOn(window.history, "replaceState").mockImplementation((data, unused, url) => {
+    replaceState(data, unused, url);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
   mocks.search.mockReset().mockResolvedValue({ translationSetMasters: [candidate] });
   mocks.fetch
     .mockReset()
@@ -47,7 +66,7 @@ beforeEach(() => {
       Response.json(url.includes("/app/") ? appReport : wikiReport),
     );
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); replaceState(null, "", "/"); });
 describe("Analyze report dashboard", () => {
   it.each([401, 403, 400, 422, 503])(
     "reflects HTTP %i after previous success rather than treating it as a measurement",
@@ -88,7 +107,7 @@ describe("Analyze report dashboard", () => {
       target: { value: "2001-01-01" },
     });
     fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("最長暦年1年");
+    expect(await screen.findByRole("alert")).toHaveTextContent("最大6か月");
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
   });
   it("keeps operation histories available when all viewing metrics are not collected", async () => {
@@ -322,8 +341,8 @@ describe("Analyze report dashboard", () => {
     const appUrl = urls.filter((url) => url.includes("/app/")).at(-1)!;
     const wikiUrl = urls.filter((url) => url.includes("/wiki/")).at(-1)!;
     const expectedPeriod = new URLSearchParams({
-      from: new Date(2020, 0, 1).toISOString().slice(0, 10),
-      to: new Date(2020, 0, 4).toISOString().slice(0, 10),
+      from: "2020-01-01",
+      to: "2020-01-04",
     }).toString();
     expect(appUrl).toContain(expectedPeriod);
     expect(wikiUrl).toContain(expectedPeriod);
@@ -547,7 +566,7 @@ it("transfers applied Wiki/language/period conditions to domestic APIs and reset
   fireEvent.click(screen.getByRole("button", { name: "都道府県・州・省別のデータを見る" }));
   await waitFor(() => expect(mocks.fetch.mock.calls.filter(([url])=>String(url).includes("regional"))).toHaveLength(2));
   const urls=mocks.fetch.mock.calls.filter(([url])=>String(url).includes("regional")).map(([url])=>new URL(String(url),"http://localhost"));
-  for(const url of urls) { expect(url.searchParams.get("country")).toBe("JP"); expect(url.searchParams.has("region")).toBe(false); expect(url.searchParams.get("from")).toBe(toUtcReportingDay("2026-01-01")); expect(url.searchParams.get("to")).toBe(toUtcReportingDay("2026-01-02")); }
+  for(const url of urls) { expect(url.searchParams.get("country")).toBe("JP"); expect(url.searchParams.has("region")).toBe(false); expect(url.searchParams.get("from")).toBe("2026-01-01"); expect(url.searchParams.get("to")).toBe("2026-01-02"); }
   expect(urls.find(url=>url.pathname.includes("wiki"))?.searchParams.get("language")).toBe("ko");
   expect(urls.find(url=>url.pathname.includes("app"))?.searchParams.has("language")).toBe(false);
   await waitFor(() => expect(screen.getByRole("button", { name: "分析を取得" })).not.toBeDisabled());
@@ -580,4 +599,189 @@ it.each([401,403,422,500])("clears regional results on HTTP %i and retries witho
   fireEvent.click(screen.getByRole("button",{name:"分析を取得"}));
   await screen.findByRole("region",{name:"閲覧回数"});
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("restores shared conditions before the first reports and preserves the Wiki on resubmission", async () => {
+  replaceState(null, "", `/admin/analyze?test=true&from=2026-01-01&to=2026-01-28&translationSetIdentifier=${candidate.translationSetIdentifier}&wikiName=TWICE&language=ko`);
+  show();
+  await screen.findByRole("region", { name: "閲覧回数" });
+  expect(screen.getByLabelText("開始日")).toHaveValue("2026-01-01");
+  expect(screen.getByLabelText("終了日")).toHaveValue("2026-01-28");
+  expect(screen.getByRole("combobox", { name: "Wiki" })).toHaveValue("TWICE");
+  expect(screen.getByLabelText("言語")).toHaveValue("ko");
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(mocks.search).not.toHaveBeenCalled();
+  const urls = mocks.fetch.mock.calls.map(([url]) => new URL(String(url), "http://localhost"));
+  for (const url of urls) {
+    expect(url.searchParams.get("from")).toBe("2026-01-01");
+    expect(url.searchParams.get("to")).toBe("2026-01-28");
+    expect(url.searchParams.has("wikiName")).toBe(false);
+  }
+  expect(urls.find(url => url.pathname.includes("wiki"))?.searchParams.get("translationSetIdentifier")).toBe(candidate.translationSetIdentifier);
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(4));
+  expect(new URL(window.location.href).searchParams.get("translationSetIdentifier")).toBe(candidate.translationSetIdentifier);
+});
+
+it("writes only applied valid conditions without extra report requests or replacing the dashboard", async () => {
+  replaceState(null, "", "/admin/analyze?test=true#reports");
+  show();
+  const card = await screen.findByRole("region", { name: "延べ利用者数" });
+  fireEvent.change(screen.getByLabelText("開始日"), { target: { value: "2026-01-01" } });
+  fireEvent.change(screen.getByLabelText("終了日"), { target: { value: "2026-01-28" } });
+  expect(window.location.search).toBe("?test=true");
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(4));
+  expect(window.location.search).toBe("?test=true&from=2026-01-01&to=2026-01-28");
+  expect(window.location.hash).toBe("#reports");
+  const appliedCard = await screen.findByRole("region", { name: "延べ利用者数" });
+  fireEvent.change(screen.getByLabelText("言語"), { target: { value: "ko" } });
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(5));
+  await waitFor(() => expect(screen.getByRole("button", { name: "分析を取得" })).not.toBeDisabled());
+  expect(screen.getByRole("region", { name: "延べ利用者数" })).toBe(appliedCard);
+  expect(card).not.toBeInTheDocument();
+  const url = window.location.href;
+  fireEvent.change(screen.getByLabelText("終了日"), { target: { value: "2027-01-01" } });
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  expect(window.location.href).toBe(url);
+  expect(mocks.fetch).toHaveBeenCalledTimes(5);
+});
+
+it("rejects invalid shared filters without sending them to the report APIs", async () => {
+  replaceState(null, "", "/admin/analyze?from=invalid&translationSetIdentifier=invalid&language=xx");
+  show();
+  await screen.findByRole("region", { name: "閲覧回数" });
+  expect(screen.getByRole("alert")).toHaveTextContent("最大6か月");
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  for (const [value] of mocks.fetch.mock.calls) {
+    const url = new URL(String(value), "http://localhost");
+    expect(url.searchParams.has("translationSetIdentifier")).toBe(false);
+    expect(url.searchParams.has("language")).toBe(false);
+    expect(url.searchParams.get("from")).not.toBe("invalid");
+  }
+});
+
+it("restores a pinned country from the URL and writes clicks without resetting globe rotation", async () => {
+  replaceState(null, "", "/admin/analyze?country=JP");
+  show();
+  await screen.findByRole("region", { name: "閲覧回数" });
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(4));
+  const globe = screen.getByRole("group", { name: "国別の地球儀" });
+  expect(screen.getByRole("region", { name: "国別サマリー" })).toHaveTextContent("日本 (JP)");
+  expect(screen.getByRole("button", { name: "都道府県・州・省別のデータを見る" })).toBeInTheDocument();
+  fireEvent.keyDown(globe, { key: "ArrowRight" });
+  const rotation = globe.getAttribute("data-rotation");
+  fireEvent.pointerEnter(within(globe).getByRole("button", { name: /\(KR\):/ }));
+  expect(new URL(window.location.href).searchParams.get("country")).toBe("JP");
+  fireEvent.click(within(globe).getByRole("button", { name: /\(KR\):/ }));
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(6));
+  expect(new URL(window.location.href).searchParams.get("country")).toBe("KR");
+  expect(screen.getByRole("group", { name: "国別の地球儀" })).toBe(globe);
+  expect(globe).toHaveAttribute("data-rotation", rotation);
+  fireEvent.click(screen.getByRole("button", { name: "表示をリセット" }));
+  expect(new URL(window.location.href).searchParams.has("country")).toBe(false);
+});
+
+it.each(["JP-13", "unknown"])("restores a shared region %s and cleans the URL on reset and return", async (region) => {
+  mocks.fetch.mockImplementation(async (url: string) => {
+    const parsed = new URL(url, "http://localhost");
+    const base = url.includes("/app/") ? appReport : wikiReport;
+    const report = regionalize(base);
+    if (parsed.searchParams.has("region")) for (const metric of Object.values(report)) metric.total = "42";
+    return Response.json(url.includes("regional-daily-summary") ? report : base);
+  });
+  replaceState(null, "", `/admin/analyze?test=true&country=JP&region=${region}`);
+  show();
+  const domestic = await screen.findByRole("region", { name: "国内地図" });
+  await waitFor(() => expect(within(screen.getByRole("region", { name: "閲覧回数" })).getByTestId("metric-total")).toHaveTextContent(/^42$/));
+  expect(screen.getByRole("region", { name: "地域別サマリー" })).toHaveTextContent(region === "unknown" ? "地域不明" : "東京都");
+  const selectedQueries = mocks.fetch.mock.calls.map(([url]) => new URL(String(url), "http://localhost")).filter(url => url.searchParams.has("region"));
+  expect(selectedQueries).toHaveLength(2);
+  expect(selectedQueries.every(url => url.searchParams.get("country") === "JP" && url.searchParams.get("region") === region)).toBe(true);
+  fireEvent.click(within(domestic).getByRole("button", { name: /東京都 \(JP-13\)/ }));
+  const params = new URL(window.location.href).searchParams;
+  expect(params.get("country")).toBe("JP");
+  expect(params.get("view")).toBe("regional");
+  expect(params.get("region")).toBe(region === "JP-13" ? null : "JP-13");
+  if (region !== "JP-13") fireEvent.click(within(domestic).getByRole("button", { name: "表示をリセット" }));
+  expect(new URL(window.location.href).searchParams.has("region")).toBe(false);
+  expect(new URL(window.location.href).searchParams.get("view")).toBe("regional");
+  fireEvent.click(screen.getByRole("button", { name: "地球儀に戻る" }));
+  const returned = new URL(window.location.href).searchParams;
+  expect(returned.get("country")).toBe("JP");
+  expect(returned.has("view")).toBe(false);
+  expect(returned.has("region")).toBe(false);
+  expect(returned.get("test")).toBe("true");
+  expect(screen.getByRole("region", { name: "国別サマリー" })).toHaveTextContent("日本 (JP)");
+});
+
+it("sends chosen calendar dates unchanged so the tooltip's previous period ends the day before the selected start", async () => {
+  mocks.fetch.mockImplementation(async (url: string) => {
+    const report = url.includes("/app/") ? appReport : wikiReport;
+    return Response.json(Object.fromEntries(Object.entries(report).map(([key, metric]) => [key, {
+      ...metric,
+      comparison: { from: "2026-09-03", to: "2026-09-30", percentageChange: "25.0", reason: null, actorPercentageChange: null, actorReason: "not_applicable" },
+    }])));
+  });
+  replaceState(null, "", "/admin/analyze?from=2026-10-01&to=2026-10-28");
+  show();
+  await screen.findByRole("region", { name: "閲覧回数" });
+  expect(screen.getByLabelText("開始日")).toHaveValue("2026-10-01");
+  for (const [value] of mocks.fetch.mock.calls) {
+    const params = new URL(String(value), "http://localhost").searchParams;
+    expect(params.get("from")).toBe("2026-10-01");
+    expect(params.get("to")).toBe("2026-10-28");
+  }
+  const tooltip = within(screen.getByRole("region", { name: "閲覧回数" })).getByText("+25%");
+  expect(tooltip).toHaveAttribute("title", expect.stringContaining("2026-09-03 → 2026-09-30"));
+});
+
+it("accepts October 11 through November 7 as a valid UTC reporting period", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-10T05:00:00Z"));
+  try {
+    replaceState(null, "", "/admin/analyze?from=2026-10-11&to=2026-11-07");
+    show();
+    await screen.findByRole("region", { name: "閲覧回数" });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("開始日")).toHaveValue("2026-10-11");
+    expect(screen.getByLabelText("終了日")).toHaveValue("2026-11-07");
+    fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(4));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("keeps an invalid URL end date visible and clears its error after correcting the date", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-10T05:00:00Z"));
+  try {
+    replaceState(null, "", "/admin/analyze?from=2026-10-11&to=2026-11-08");
+    show();
+    await screen.findByRole("region", { name: "閲覧回数" });
+    expect(screen.getByRole("alert")).toHaveTextContent("最大6か月");
+    expect(screen.getByLabelText("終了日")).toHaveValue("2026-11-08");
+    fireEvent.change(screen.getByLabelText("終了日"), { target: { value: "2026-11-07" } });
+    fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+    expect(new URL(window.location.href).searchParams.get("to")).toBe("2026-11-07");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("does not blame valid dates when a shared Wiki identifier is invalid", async () => {
+  replaceState(null, "", "/admin/analyze?from=2026-10-11&to=2026-11-07&translationSetIdentifier=invalid");
+  show();
+  await screen.findByRole("region", { name: "閲覧回数" });
+  expect(screen.getByRole("alert")).toHaveTextContent("期間またはクエリ条件が不正");
+  expect(screen.queryByText(/日付を確認してください/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "削除: 選択したWiki" }));
+  fireEvent.click(screen.getByRole("button", { name: "分析を取得" }));
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  expect(new URL(window.location.href).searchParams.has("translationSetIdentifier")).toBe(false);
 });

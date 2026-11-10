@@ -282,3 +282,21 @@ describe("first visible admin section", () => {
     expect(mocks.loadInitialDraftWikiListForRequest).not.toHaveBeenCalled();
   });
 });
+
+it("preserves shared analysis conditions through login without forwarding unrelated query parameters", async () => {
+  mocks.cookies.mockResolvedValue({ toString: () => "" });
+  mocks.fetchAuthenticatedIdentity.mockResolvedValue(null);
+  const conditions = {
+    from: "2026-01-01", to: "2026-01-28", language: "ko", test: "true",
+    country: "JP", region: "JP-13", view: "regional",
+    translationSetIdentifier: "11111111-1111-4111-8111-111111111111", wikiName: "TWICE & Stage",
+  };
+  const returnTo = `/admin/analyze?${new URLSearchParams(conditions)}`;
+  await expect(Admin({ params: Promise.resolve({ slug: ["analyze"] }), searchParams: Promise.resolve({ ...conditions, ignored: "not-a-filter" }) })).rejects.toThrow("redirect:/login?returnTo=");
+  const redirect = new URL(mocks.redirect.mock.calls.at(-1)![0], "http://localhost");
+  expect(redirect.pathname).toBe("/login");
+  const actual = new URL(redirect.searchParams.get("returnTo")!, "http://localhost");
+  expect(actual.pathname).toBe("/admin/analyze");
+  expect(Object.fromEntries(actual.searchParams)).toEqual(Object.fromEntries(new URL(returnTo, "http://localhost").searchParams));
+  expect(actual.searchParams.has("ignored")).toBe(false);
+});

@@ -9,6 +9,7 @@ import { loadAdminRouteContext } from "../adminRouteContext";
 import { loadAdminWikiPrincipal } from "../adminWikiPrincipal";
 import { loadAdminIdentity } from "../adminIdentity";
 import { getAdminInitialRoute, resolveAdminDestination } from "../adminNavigation";
+import { analyzeConditionKeys, analyzeLocationKeys } from "../analyze/analyzeConditions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +17,7 @@ type AdminProps = {
   params?: Promise<{
     slug?: string[];
   }>;
-  searchParams?: Promise<{
-    authReturnTo?: string | string[];
-    returnTo?: string | string[];
-  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 const getSingleSearchParam = (value: string | string[] | undefined): string | undefined =>
@@ -28,8 +26,16 @@ const getSingleSearchParam = (value: string | string[] | undefined): string | un
 const normalizeOptionalReturnTo = (value: string | undefined): string | null =>
   value ? normalizeReturnTo(value) : null;
 
-const buildLoginReturnTo = (slug: string[] | undefined): string =>
-  slug && slug.length > 0 ? `/admin/${slug.join("/")}` : "/admin";
+const buildLoginReturnTo = (slug: string[] | undefined, searchParams: Record<string, string | string[] | undefined>): string => {
+  const path = slug?.length ? `/admin/${slug.join("/")}` : "/admin";
+  if (slug?.join("/") !== "analyze") return path;
+  const query = new URLSearchParams();
+  for (const key of [...analyzeConditionKeys, ...analyzeLocationKeys, "test"]) {
+    const value = getSingleSearchParam(searchParams[key]);
+    if (value) query.set(key, value);
+  }
+  return query.size ? `${path}?${query}` : path;
+};
 
 export default async function Admin({ params, searchParams }: AdminProps = {}) {
   const resolvedParams = params ? await params : {};
@@ -56,7 +62,7 @@ export default async function Admin({ params, searchParams }: AdminProps = {}) {
   }
 
   const data = await loadAdminRouteContext(
-    buildLoginReturnTo(resolvedParams.slug),
+    buildLoginReturnTo(resolvedParams.slug, resolvedSearchParams),
     resolvedParams.slug,
   );
 

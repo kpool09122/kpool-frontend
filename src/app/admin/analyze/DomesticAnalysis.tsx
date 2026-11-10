@@ -6,12 +6,12 @@ import { useRegionalReport } from "./useRegionalReport";
 import { DomesticMap, type RegionalMapMetric } from "./DomesticMap";
 import { RegionalMetricCard } from "./RegionalMetricCard";
 import { isSelectableRegion } from "./regionalSelection";
+import { regionBoundary } from "./regionalProjection";
 import type {
   AppRegionalReport,
   WikiRegionalReport,
   ReportResult,
 } from "@/gateways/analyze/analyzeReports";
-import type { ComparisonPeriod } from "./endpointComparison";
 const metrics = (
   appResult: ReportResult<AppRegionalReport> | undefined,
   wikiResult: ReportResult<WikiRegionalReport> | undefined,
@@ -46,7 +46,8 @@ const metrics = (
 
 export function DomesticAnalysis({
   country,
-  period,
+  region,
+  onRegionChange,
   appQuery,
   wikiQuery,
   scope,
@@ -57,7 +58,8 @@ export function DomesticAnalysis({
   t,
 }: {
   country: string;
-  period: ComparisonPeriod;
+  region?: string | null;
+  onRegionChange: (region: string | null | undefined) => void;
   appQuery: string;
   wikiQuery: string;
   scope: string;
@@ -67,8 +69,7 @@ export function DomesticAnalysis({
   locale: string;
   t: AnalyzeReportDictionary;
 }) {
-  const [region, setRegion] = useState<string | null | undefined>();
-  const [level, setLevel] = useState("area");
+  const [level, setLevel] = useState(() => region ? regionBoundary(region)?.level ?? "area" : "area");
   const app = useRegionalReport({
     kind: "app",
     query: appQuery,
@@ -125,12 +126,12 @@ export function DomesticAnalysis({
   const { refetch: refetchWiki } = wiki;
   const selectRegion = useCallback((next: string | null | undefined) => {
     if (!isSelectableRegion(country, next)) return;
-    setRegion(next);
+    onRegionChange(next);
     if (next === undefined && region !== undefined) {
       void refetchApp();
       void refetchWiki();
     }
-  }, [country, region, refetchApp, refetchWiki]);
+  }, [country, region, onRegionChange, refetchApp, refetchWiki]);
   return (
     <div className="min-w-0 space-y-4">
       {authError ? (
@@ -177,7 +178,6 @@ export function DomesticAnalysis({
                   .filter((metric) => metric.group === group)
                   .map((metric) => (
                     <RegionalMetricCard
-                      period={period}
                       key={metric.key}
                       name={metric.name}
                       report={metric.report}

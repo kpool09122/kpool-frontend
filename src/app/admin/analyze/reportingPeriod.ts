@@ -1,23 +1,9 @@
-const localDateString = (date: Date) =>
-  `${String(date.getFullYear()).padStart(4, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-// The report API accepts UTC calendar dates, not timestamps.
-export const toUtcReportingDay = (localDay: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(localDay)) return "";
-  const date = new Date(`${localDay}T00:00:00`);
-  if (!Number.isFinite(date.getTime()) || localDateString(date) !== localDay)
-    return "";
-  return date.toISOString().slice(0, 10);
-};
-
-export const latestLocalReportingDay = (now = new Date()) =>
-  localDateString(new Date(`${latestReportingDay(now)}T23:59:59.999Z`));
-
+// Report APIs and date inputs use UTC calendar dates, never local-midnight timestamps.
 export const defaultReportingPeriod = (now = new Date()) => {
-  const to = latestLocalReportingDay(now);
-  const from = new Date(`${to}T00:00:00`);
-  from.setDate(from.getDate() - 27);
-  return { from: localDateString(from), to };
+  const to = latestReportingDay(now);
+  const from = new Date(`${to}T00:00:00Z`);
+  from.setUTCDate(from.getUTCDate() - 27);
+  return { from: from.toISOString().slice(0, 10), to };
 };
 
 export const latestReportingDay = (now = new Date()) => {
@@ -39,8 +25,9 @@ export const validReportingPeriod = (
   if (!valid(from) || !valid(to) || from > to || to > latestReportingDay(now))
     return false;
   const start = new Date(from);
-  const year = start.getUTCFullYear() + 1;
-  const month = start.getUTCMonth();
+  const target = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 6, 1));
+  const year = target.getUTCFullYear();
+  const month = target.getUTCMonth();
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const anniversary = new Date(
     Date.UTC(year, month, Math.min(start.getUTCDate(), lastDay)),
