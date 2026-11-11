@@ -173,6 +173,7 @@ export type WikiTextBlock = {
 };
 
 export type WikiImageBlock = {
+  imageWidth?: number | null;
   blockIdentifier: string;
   blockType: "image";
   displayOrder: number;
@@ -184,6 +185,7 @@ export type WikiImageBlock = {
 };
 
 export type WikiImageGalleryBlock = {
+  imageWidth?: number | null;
   blockIdentifier: string;
   blockType: "image_gallery";
   displayOrder: number;
@@ -268,12 +270,14 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
     blockType: z.literal("image"),
     imageIdentifier: z.string(),
     imageSrc: z.string(),
+    imageWidth: z.number().int().positive().nullable().optional(),
     caption: z.string().nullable(),
     alt: z.string().nullable(),
     isHidden: z.boolean().optional(),
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("image_gallery"),
+    imageWidth: z.number().int().positive().nullable().optional(),
     images: z.array(
       z.object({
         imageIdentifier: z.string(),

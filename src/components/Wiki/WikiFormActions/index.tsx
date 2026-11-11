@@ -5,9 +5,10 @@ import { cardSurfaceStyle } from "../styles";
 
 type WikiFormActionsProps = {
   onCancel: () => void;
+  disabled?: boolean;
 };
 
-export function WikiFormActions({ onCancel }: WikiFormActionsProps) {
+export function WikiFormActions({ onCancel, disabled = false }: WikiFormActionsProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.blockForm;
 
@@ -16,6 +17,7 @@ export function WikiFormActions({ onCancel }: WikiFormActionsProps) {
       <button
         className="rounded-full border border-stroke-subtle px-4 py-2 text-sm font-semibold text-text-strong"
         style={cardSurfaceStyle}
+        disabled={disabled}
         type="submit"
       >
         {t.save}

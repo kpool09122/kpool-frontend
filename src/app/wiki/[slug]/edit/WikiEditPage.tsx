@@ -144,6 +144,7 @@ export function WikiEditContent({
   const mobileBasicRef = useRef<{ getBasic: () => WikiBasic }>(null);
   const desktopBasicRef = useRef<{ getBasic: () => WikiBasic }>(null);
   const basicSource = useRef<"mobile" | "desktop">("desktop");
+  const imageSelection = useRef<((image: WikiUploadedImage) => void) | null>(null);
   const readSearchDraft = () => {
     const basic = (basicSource.current === "mobile" ? mobileBasicRef : desktopBasicRef).current?.getBasic() ?? draft.basic;
     const titleInput = editingId === "title" ? rootRef.current?.querySelector<HTMLInputElement>('input[name="title"]') : null;
@@ -228,17 +229,25 @@ export function WikiEditContent({
       }));
     });
   };
-  const openImageLibrary = (source: "mobile" | "desktop") => {
+  const openImageLibrary = (source: "mobile" | "desktop", onSelect?: (image: WikiUploadedImage) => void) => {
     if (isEditLocked) {
       return;
     }
 
     basicSource.current = source;
+    imageSelection.current = onSelect ?? null;
     materialSearch.prepareContext();
     void loadImageLibraryPage(1);
   };
   const selectImageFromLibrary = (image: WikiUploadedImage) => {
     if (isEditLocked) {
+      return;
+    }
+
+    if (imageSelection.current) {
+      imageSelection.current(image);
+      imageSelection.current = null;
+      setImageLibrary((state) => ({ ...state, isOpen: false }));
       return;
     }
 
@@ -444,6 +453,7 @@ export function WikiEditContent({
                             onDeleteContent={deleteContent}
                             disabled={isEditLocked}
                             onEdit={setEditingId}
+                            onRequestImage={(onSelect) => openImageLibrary(window.innerWidth >= 1024 ? "desktop" : "mobile", onSelect)}
                             onSaveBlock={(blockIdentifier, changes) => {
                               updateBlock(blockIdentifier, changes);
                               closeEditor();
@@ -495,7 +505,10 @@ export function WikiEditContent({
             isOpen={imageLibrary.isOpen}
             isUploading={imageLibrary.isUploading}
             loadError={imageLibrary.loadError}
-            onClose={() => setImageLibrary((state) => ({ ...state, isOpen: false }))}
+            onClose={() => {
+              imageSelection.current = null;
+              setImageLibrary((state) => ({ ...state, isOpen: false }));
+            }}
             onLoadMore={() => {
               if (imageLibrary.pageInfo) {
                 void loadImageLibraryPage(imageLibrary.pageInfo.current_page + 1);

@@ -3,20 +3,21 @@
 import { useI18n } from "@/i18n/I18nProvider";
 
 import { Fragment } from "react";
-import Image from "next/image";
 import { type WikiBlock, type WikiTableCell } from "@kpool/wiki";
 
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
 import { WikiRelatedProfiles } from "../WikiRelatedProfiles";
 import { buildWikiPath } from "@kpool/wiki";
 import { parseInlineMarkdown } from "../editing";
-import { ImageEditableOverlay } from "../icons";
+import { WikiBlockImage } from "../WikiBlockImage";
 
 type WikiBlockDisplayProps = {
   block: WikiBlock;
   language?: string;
   showEditableImageOverlay?: boolean;
   textClassName?: string;
+  onSelectImage?: (imageIndex: number) => void;
+  onImageMaxWidth?: (src: string, width: number) => void;
 };
 
 const textWrapClassName = "min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]";
@@ -28,6 +29,8 @@ export function WikiBlockDisplay({
   block,
   language = "ja",
   showEditableImageOverlay = false,
+  onSelectImage,
+  onImageMaxWidth,
   textClassName = "text-base leading-7 text-text-strong",
 }: WikiBlockDisplayProps) {
   const { dictionary } = useI18n();
@@ -156,15 +159,12 @@ export function WikiBlockDisplay({
 
       return (
         <figure>
-          <div className="relative min-h-64 overflow-hidden rounded-2xl border border-stroke-subtle">
-            <Image alt={block.alt ?? ""} className="object-cover" fill sizes="100vw" src={block.imageSrc} unoptimized />
-            {showEditableImageOverlay ? <ImageEditableOverlay /> : null}
-          </div>
+          <WikiBlockImage alt={block.alt ?? ""} imageWidth={block.imageWidth} src={block.imageSrc} onMaxWidthChange={onImageMaxWidth} onSelect={onSelectImage ? () => onSelectImage(0) : undefined} showEditableOverlay={showEditableImageOverlay} />
           {block.caption ? <figcaption className={captionClassName}>{block.caption}</figcaption> : null}
         </figure>
       );
     case "image_gallery": {
-      const visibleImages = block.images.filter((image) => !image.isHidden);
+      const visibleImages = block.images.map((image, index) => ({ ...image, index })).filter((image) => !image.isHidden);
 
       if (visibleImages.length === 0) {
         return null;
@@ -174,10 +174,7 @@ export function WikiBlockDisplay({
         <figure>
           <div className="grid gap-3 sm:grid-cols-2">
             {visibleImages.map((image) => (
-              <div className="relative min-h-40 overflow-hidden rounded-2xl border border-stroke-subtle" key={image.imageIdentifier}>
-                <Image alt={image.alt ?? ""} className="object-cover" fill sizes="50vw" src={image.imageSrc} unoptimized />
-                {showEditableImageOverlay ? <ImageEditableOverlay /> : null}
-              </div>
+              <WikiBlockImage key={`${image.imageIdentifier}-${image.index}`} alt={image.alt ?? ""} imageWidth={block.imageWidth} src={image.imageSrc} onMaxWidthChange={onImageMaxWidth} onSelect={onSelectImage ? () => onSelectImage(image.index) : undefined} showEditableOverlay={showEditableImageOverlay} />
             ))}
           </div>
           {block.caption ? <figcaption className={captionClassName}>{block.caption}</figcaption> : null}

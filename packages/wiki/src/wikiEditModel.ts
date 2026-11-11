@@ -8,6 +8,7 @@ import type {
   WikiSection,
   WikiSectionContent,
 } from "./types/wiki";
+import { normalizeWikiImageWidth } from "./wikiImageLayout";
 
 export const WIKI_SECTION_MAX_DEPTH = 3;
 
@@ -26,6 +27,7 @@ export type WikiSectionContentPayload =
       content?: string;
       imageIdentifier?: string;
       imageIdentifiers?: string[];
+      imageWidth?: number | null;
       caption?: string | null;
       alt?: string | null;
       provider?: string;
@@ -237,11 +239,13 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
       return serializeCodeMacro("image", [
         `id:${escapeCodeValue(block.imageIdentifier)}`,
         `src:${encodeCodeUri(block.imageSrc)}`,
+        block.imageWidth == null ? null : `width:${normalizeWikiImageWidth(block.imageWidth)}`,
         serializeCodeField("caption", block.caption),
         serializeCodeField("alt", block.alt),
       ].filter((value): value is string => Boolean(value)));
     case "image_gallery":
       return serializeCodeMacro("gallery", [
+        block.imageWidth == null ? null : `width:${normalizeWikiImageWidth(block.imageWidth)}`,
         `images:${block.images
           .map((image) =>
             [
@@ -761,6 +765,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
             caption: macro.fields.caption ? unescapeCodeValue(macro.fields.caption) : null,
             imageIdentifier: unescapeCodeValue(macro.fields.id),
             imageSrc: decodeCodeUri(macro.fields.src),
+            ...(macro.fields.width ? { imageWidth: normalizeWikiImageWidth(macro.fields.width) } : {}),
           });
           cursor += 1;
           continue;
@@ -796,6 +801,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
           addBlock({
             blockType: "image_gallery",
             caption: macro.fields.caption ? unescapeCodeValue(macro.fields.caption) : null,
+            ...(macro.fields.width ? { imageWidth: normalizeWikiImageWidth(macro.fields.width) } : {}),
             images: images.filter((image) => image != null),
           });
           cursor += 1;
@@ -1397,6 +1403,7 @@ const toWikiContentPayload = (
         type: content.blockType,
         displayOrder: content.displayOrder,
         imageIdentifier: content.imageIdentifier,
+        ...(content.imageWidth == null ? {} : { imageWidth: normalizeWikiImageWidth(content.imageWidth) }),
         caption: content.caption,
         alt: content.alt,
       };
@@ -1405,6 +1412,7 @@ const toWikiContentPayload = (
         type: content.blockType,
         displayOrder: content.displayOrder,
         imageIdentifiers: content.images.map((image) => image.imageIdentifier),
+        ...(content.imageWidth == null ? {} : { imageWidth: normalizeWikiImageWidth(content.imageWidth) }),
         caption: content.caption,
       };
     case "embed":
