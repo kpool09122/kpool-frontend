@@ -36,12 +36,15 @@ import { cardSurfaceStyle } from "../styles";
 import { WikiFormActions } from "../WikiFormActions";
 import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
 import { useI18n } from "../../../i18n/I18nProvider";
+import type { WikiImagePicker } from "../WikiImageLibrary/types";
+import { WikiImageBlockForm } from "./WikiImageBlockForm";
 
 type WikiBlockFormProps = {
   block: WikiBlock;
   onCancel: () => void;
   onSave: (changes: Partial<WikiBlock>) => void;
   sourceWiki?: WikiBlockFormSourceWiki;
+  onRequestImage?: WikiImagePicker;
 };
 
 type WikiBlockFormSourceWiki = {
@@ -1258,9 +1261,13 @@ export function WikiBlockForm({
   onCancel,
   onSave,
   sourceWiki,
+  onRequestImage,
 }: WikiBlockFormProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.blockForm;
+  if (onRequestImage && (block.blockType === "image" || block.blockType === "image_gallery")) {
+    return <WikiImageBlockForm block={block} onCancel={onCancel} onSave={onSave} onRequestImage={onRequestImage} />;
+  }
   const submit = (
     event: FormEvent<HTMLFormElement>,
     getChanges: (formData: FormData) => Partial<WikiBlock>,

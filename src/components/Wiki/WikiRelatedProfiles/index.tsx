@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/i18n/I18nProvider";
 
-import Image from "next/image";
+import { WikiProfileImage } from "../WikiProfileImage";
 import Link from "next/link";
 import type { WikiProfileCardListBlock } from "@kpool/wiki";
 import { buildWikiPath, toSafeWikiImageUrl } from "@kpool/wiki";
@@ -58,13 +58,11 @@ export function WikiRelatedProfiles({
             >
               <div className="relative aspect-[2/3] overflow-hidden bg-surface-base">
                 {safeImageUrl ? (
-                  <Image
+                  <WikiProfileImage
                     alt={profile.imageAltText || profile.name}
                     className="object-cover transition duration-300 group-hover:scale-[1.03]"
-                    fill
                     sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     src={safeImageUrl}
-                    unoptimized
                   />
                 ) : (
                   <div aria-hidden="true" className="h-full w-full" style={cardSurfaceStyle} />

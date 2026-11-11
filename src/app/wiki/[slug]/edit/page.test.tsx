@@ -70,6 +70,28 @@ const loadCropperImage = () => {
 };
 
 describe("WikiEditPage", () => {
+  it("selects a library image for a body block without changing the profile image", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({
+      images: [{ imageIdentifier: "selected-body-image", url: "https://images.example.test/body.jpg", resourceType: "group", wikiIdentifier: "gr-aurora-echo", translationSetIdentifier: "translation-set-aurora-echo", displayOrder: 1, sourceUrl: "https://example.test/source", sourceName: "Source", altText: "Selected body photo", isHidden: false, uploadedAt: "2026-11-11T00:00:00Z" }],
+      current_page: 1, last_page: 1, total: 1, per_page: 12,
+    }));
+    renderPage({ status: "success", data: { ...successState.data, sections: [{ ...successState.data.sections[0], contents: [{ blockIdentifier: "body-photo", blockType: "image", displayOrder: 1, imageIdentifier: "original-image", imageSrc: "https://images.example.test/original.jpg", alt: "Body photo", caption: "Preserved caption" }] }] } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open wiki image library: Body photo" }));
+    expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Image usage request" })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Select image: Selected body photo" }));
+
+    expect(screen.queryByTestId("wiki-image-library")).not.toBeInTheDocument();
+    expect(screen.getByAltText("Selected body photo")).toHaveAttribute("src", "https://images.example.test/body.jpg");
+    expect(screen.getByText("Preserved caption")).toBeInTheDocument();
+    expect(screen.getAllByAltText(successState.data.heroImage.alt)).toHaveLength(2);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
+    fireEvent.click(await screen.findByRole("button", { name: "Select image: Selected body photo" }));
+    expect(screen.getAllByAltText("Selected body photo")).toHaveLength(3);
+  });
+
   it("searches with unfinished title input only after clicking search", async () => {
     useAuthStore.setState({ identity: { identityIdentifier: "user", identityName: "User", email: "u@test", language: "en" } });
     vi.spyOn(principalApi, "getCurrentWikiPrincipal").mockResolvedValue({ status: "available", principal: { principalIdentifier: "p", identityIdentifier: "user", status: "active", accountPrincipalCount: 1, isDelegatedPrincipal: false, policies: [{ policyIdentifier: "policy", name: "Search", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["search_free_materials"], resourceTypes: ["image"], condition: null }] }] } });

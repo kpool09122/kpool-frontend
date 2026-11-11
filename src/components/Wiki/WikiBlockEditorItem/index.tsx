@@ -8,6 +8,8 @@ import { EditIcon, TrashIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 import { WikiBlockForm } from "../WikiBlockForm";
 import { cardSurfaceMutedStyle, youtubeEmbedClassName } from "../styles";
+import type { WikiImagePicker } from "../WikiImageLibrary/types";
+import { toBlockImage } from "../WikiImageLibrary/wikiBlockImage";
 
 type WikiBlockEditorItemProps = {
   block: WikiBlock;
@@ -18,6 +20,7 @@ type WikiBlockEditorItemProps = {
   onCancel: () => void;
   onSave: (changes: Partial<WikiBlock>) => void;
   onDelete: () => void;
+  onRequestImage?: WikiImagePicker;
   sourceWiki?: {
     language: string;
     resourceType: WikiResourceType;
@@ -34,6 +37,7 @@ export function WikiBlockEditorItem({
   onCancel,
   onSave,
   onDelete,
+  onRequestImage,
   sourceWiki,
 }: WikiBlockEditorItemProps) {
   const { dictionary } = useI18n();
@@ -52,7 +56,7 @@ export function WikiBlockEditorItem({
         <div className="mb-3 flex justify-end">
           {controls}
         </div>
-        <WikiBlockForm block={block} onCancel={onCancel} onSave={onSave} sourceWiki={sourceWiki} />
+        <WikiBlockForm block={block} onCancel={onCancel} onSave={onSave} onRequestImage={disabled ? undefined : onRequestImage} sourceWiki={sourceWiki} />
       </article>
     );
   }
@@ -69,6 +73,13 @@ export function WikiBlockEditorItem({
         block={block}
         language={language}
         showEditableImageOverlay
+        onSelectImage={!disabled && onRequestImage ? (index) => {
+          onRequestImage((image) => {
+            const selected = toBlockImage(image);
+            if (block.blockType === "image") onSave(selected);
+            if (block.blockType === "image_gallery") onSave({ images: block.images.map((entry, entryIndex) => entryIndex === index ? selected : entry) });
+          });
+        } : undefined}
         textClassName="text-base leading-[30px] text-text-strong"
       />
     </article>

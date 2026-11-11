@@ -16,6 +16,7 @@ import { z } from "zod";
 
 import { getWikiResourceTypeFromSlug } from "./wikiRouting";
 import { toSafeWikiImageUrl } from "./wikiImageModel";
+import { normalizeWikiImageWidth } from "./wikiImageLayout";
 
 const parseWikiSchema = <T>(schema: z.ZodType<T>, body: unknown): T => {
   const result = schema.safeParse(body);
@@ -411,6 +412,7 @@ const adaptWikiBlock = (
         displayOrder,
         imageIdentifier,
         imageSrc: toString(content.imageSrc ?? content.src, imagePlaceholderSrc(imageIdentifier)),
+        imageWidth: normalizeWikiImageWidth(content.imageWidth ?? content.image_width),
         caption: toNullable(content.caption),
         alt: toNullable(content.alt),
         ...toHiddenFlag(content),
@@ -443,6 +445,7 @@ const adaptWikiBlock = (
         blockType,
         displayOrder,
         images,
+        imageWidth: normalizeWikiImageWidth(content.imageWidth ?? content.image_width),
         caption: toNullable(content.caption),
       };
     }

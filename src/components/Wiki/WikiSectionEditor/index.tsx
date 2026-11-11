@@ -22,6 +22,7 @@ import { WikiAddContentControls } from "../WikiAddContentControls";
 import { WikiBlockEditorItem } from "../WikiBlockEditorItem";
 import { WikiFormActions } from "../WikiFormActions";
 import { cardSurfaceStyle, sectionArticleClassName, sectionBodyClassName, sectionHeadingClassName } from "../styles";
+import type { WikiImagePicker } from "../WikiImageLibrary/types";
 
 type WikiSectionEditorProps = {
   disabled?: boolean;
@@ -40,6 +41,7 @@ type WikiSectionEditorProps = {
   onAddSection: (parentSectionIdentifier: string) => void;
   onAddBlock: (sectionIdentifier: string, blockType: WikiBlockType) => void;
   onDeleteContent: (identifier: string) => void;
+  onRequestImage?: WikiImagePicker;
 };
 
 function WikiSectionForm({
@@ -85,6 +87,7 @@ export function WikiSectionEditor({
   onAddSection,
   onAddBlock,
   onDeleteContent,
+  onRequestImage,
 }: WikiSectionEditorProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.ui;
@@ -209,6 +212,7 @@ export function WikiSectionEditor({
                 onDelete={() => onDeleteContent(content.blockIdentifier)}
                 onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
                 onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
+                onRequestImage={onRequestImage}
                 sourceWiki={sourceWiki}
               />
             ) : isWikiSection(content) ? (
@@ -224,6 +228,7 @@ export function WikiSectionEditor({
                 onEdit={onEdit}
                 onSaveBlock={onSaveBlock}
                 onSaveSection={onSaveSection}
+                onRequestImage={onRequestImage}
                 section={content}
                 sourceWiki={sourceWiki}
               />

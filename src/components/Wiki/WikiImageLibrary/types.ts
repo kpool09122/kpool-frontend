@@ -10,6 +10,8 @@ import { type useI18n } from "../../../i18n/I18nProvider";
 
 export type WikiImageLibraryTab = "images" | "request" | "search";
 
+export type WikiImagePicker = (onSelect: (image: WikiUploadedImage) => void) => void;
+
 export type WikiMaterialSearchController = {
   context: WikiMaterialSearchContext;
   result: { context: WikiMaterialSearchContext; sites: WikiMaterialSearchSite[] } | null;

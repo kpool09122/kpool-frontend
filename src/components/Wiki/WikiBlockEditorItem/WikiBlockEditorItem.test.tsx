@@ -2,11 +2,19 @@ import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { wikiStoryTextBlock } from "../storybook/fixtures";
+import { wikiStoryTextBlock, wikiStoryImageBlock } from "../storybook/fixtures";
 import { WikiBlockEditorItem } from "./index";
 
 describe("WikiBlockEditorItem", () => {
   afterEach(() => cleanup());
+
+  it("does not open image selection while editing is locked", () => {
+    const onRequestImage = vi.fn();
+    render(<WikiBlockEditorItem block={wikiStoryImageBlock} disabled isEditing={false} language="ja" onRequestImage={onRequestImage} onCancel={vi.fn()} onDelete={vi.fn()} onEdit={vi.fn()} onSave={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /Wiki画像ライブラリを開く/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("img"));
+    expect(onRequestImage).not.toHaveBeenCalled();
+  });
 
   it("renders view controls", () => {
     render(
