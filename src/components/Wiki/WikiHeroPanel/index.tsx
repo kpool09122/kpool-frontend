@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/i18n/I18nProvider";
 
-import Image from "next/image";
+import { WikiProfileImage } from "../WikiProfileImage";
 import { type WikiDetail } from "@kpool/wiki";
 
 import { ImageEditableOverlay } from "../icons";
@@ -28,13 +28,11 @@ export function WikiHeroPanel({
           type="button"
         />
       ) : null}
-      <Image
+      <WikiProfileImage
         alt={heroImage.alt}
         className="object-cover"
-        fill
         sizes="(min-width: 1024px) 55vw, 100vw"
         src={heroImage.src}
-        unoptimized
       />
       <ImageEditableOverlay />
     </div>

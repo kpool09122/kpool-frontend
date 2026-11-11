@@ -245,18 +245,23 @@ export function Header({
             <div className="group relative">
               <button
                 type="button"
-                className="grid size-11 place-items-center overflow-hidden rounded-full border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none focus:ring-2 focus:ring-brand-highlight"
+                className="relative grid size-11 place-items-center overflow-hidden rounded-full border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none focus:ring-2 focus:ring-brand-highlight"
                 aria-label={profileLabel}
               >
                 {profileImage ? (
-                  <Image
-                    alt=""
-                    className="size-full object-cover"
-                    height={44}
-                    src={profileImage}
-                    unoptimized
-                    width={44}
-                  />
+                  <>
+                    <Image
+                      alt=""
+                      className="size-full object-cover"
+                      draggable={false}
+                      height={44}
+                      src={profileImage}
+                      unoptimized
+                      width={44}
+                    />
+                    {/* Keep pointer interactions on the button rather than the image. */}
+                    <span aria-hidden="true" className="absolute inset-0 select-none" />
+                  </>
                 ) : (
                   <PersonIcon aria-hidden="true" className="size-5" />
                 )}

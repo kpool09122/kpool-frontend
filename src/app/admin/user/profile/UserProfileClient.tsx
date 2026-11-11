@@ -63,14 +63,19 @@ export function UserProfileClient() {
               title={t.profileImageSelect}
             >
               {profileImageSrc ? (
-                <Image
-                  alt={t.profileImagePreviewAlt}
-                  className="size-full object-cover transition group-hover:brightness-90"
-                  height={112}
-                  src={profileImageSrc}
-                  unoptimized
-                  width={112}
-                />
+                <>
+                  <Image
+                    alt={t.profileImagePreviewAlt}
+                    className="size-full object-cover transition group-hover:brightness-90"
+                    draggable={false}
+                    height={112}
+                    src={profileImageSrc}
+                    unoptimized
+                    width={112}
+                  />
+                  {/* The transparent layer still lets the label open the file picker. */}
+                  <span aria-hidden="true" className="absolute inset-0 select-none" />
+                </>
               ) : (
                 <span className="grid size-full place-items-center border border-dashed border-stroke-subtle text-xs text-text-muted">
                   {t.profileImageEmpty}

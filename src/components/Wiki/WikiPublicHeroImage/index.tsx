@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { WikiProfileImage } from "../WikiProfileImage";
 import Link from "next/link";
 import type { MouseEventHandler } from "react";
 import { useState } from "react";
@@ -78,13 +78,11 @@ export function WikiPublicHeroImage({
                   style={cardSurfaceStyle}
                 >
                   <div className="relative h-full w-full">
-                    <Image
+                    <WikiProfileImage
                       alt={heroImage.alt}
                       className="object-cover"
-                      fill
                       sizes="100vw"
                       src={heroImage.src}
-                      unoptimized
                     />
                   </div>
                 </div>
@@ -174,13 +172,11 @@ export function WikiPublicHeroImage({
             style={cardSurfaceStyle}
           >
             <div className="relative h-full min-h-[30rem]">
-              <Image
+              <WikiProfileImage
                 alt={heroImage.alt}
                 className="object-cover"
-                fill
                 sizes="(min-width: 1024px) 55vw, 100vw"
                 src={heroImage.src}
-                unoptimized
               />
             </div>
           </div>
