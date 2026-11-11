@@ -1086,8 +1086,8 @@ describe("WikiEditPage", () => {
     const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview"));
     fireEvent.click(addControls.getByText("+ Block"));
     fireEvent.click(addControls.getByRole("button", { name: "Embed" }));
-    fireEvent.change(screen.getByLabelText("Embed ID"), {
-      target: { value: "ohVNJ2gxsmo" },
+    fireEvent.change(screen.getByLabelText("Embed URL"), {
+      target: { value: "https://youtu.be/ohVNJ2gxsmo" },
     });
 
     expect(screen.getByRole("button", { name: "code" })).toBeDisabled();
@@ -1119,15 +1119,15 @@ describe("WikiEditPage", () => {
     const addControls = within(screen.getByTestId("wiki-edit-add-section-sec-overview-style"));
     fireEvent.click(addControls.getByText("+ Block"));
     fireEvent.click(addControls.getByRole("button", { name: "Embed" }));
-    fireEvent.change(screen.getByLabelText("Embed ID"), {
-      target: { value: "ohVNJ2gxsmo" },
+    fireEvent.change(screen.getByLabelText("Embed URL"), {
+      target: { value: "https://www.tiktok.com/@artist/video/6718335390845095173" },
     });
     fireEvent.click(screen.getAllByRole("button", { name: "Save" }).at(-1)!);
     fireEvent.click(screen.getByRole("button", { name: "code" }));
 
     const code = screen.getByLabelText("Wiki code") as HTMLTextAreaElement;
     expect(code.value).toContain(
-      "[[embed|provider:youtube|id:ohVNJ2gxsmo|caption:New embed caption]]",
+      "[[embed|provider:tiktok|id:6718335390845095173|caption:New embed caption]]",
     );
     expect(code.value).not.toContain("id:new-embed-id");
   });

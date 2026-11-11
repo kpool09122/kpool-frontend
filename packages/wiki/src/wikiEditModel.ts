@@ -8,6 +8,7 @@ import type {
   WikiSection,
   WikiSectionContent,
 } from "./types/wiki";
+import { newWikiEmbedId } from "./wikiEmbedModel";
 import { normalizeWikiImageWidth } from "./wikiImageLayout";
 
 export const WIKI_SECTION_MAX_DEPTH = 3;
@@ -1167,7 +1168,7 @@ export const createWikiBlock = (
         blockType,
         displayOrder,
         provider: "youtube",
-        embedId: "new-embed-id",
+        embedId: newWikiEmbedId,
         caption: "New embed caption",
       };
     case "quote":

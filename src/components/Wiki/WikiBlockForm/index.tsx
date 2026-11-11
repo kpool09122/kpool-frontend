@@ -6,13 +6,15 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import Image from "next/image";
 import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
-import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type MouseEvent, useEffect, useId, useState } from "react";
 import {
   getSelectableRelatedProfileResourceTypes,
+  getWikiEmbedUrlInputValue,
   isWikiResourceType,
+  parseWikiEmbedUrl,
   toSafeWikiImageUrl,
   type WikiBlock,
-  type WikiEmbedProvider,
+  type WikiEmbedBlock,
   type WikiListType,
   type WikiMasterSearchItem,
   type WikiProfileCardSummary,
@@ -1256,6 +1258,64 @@ function WikiProfileCardListBlockForm({
   );
 }
 
+function WikiEmbedBlockForm({
+  block,
+  onCancel,
+  onSave,
+}: Pick<WikiBlockFormProps, "onCancel" | "onSave"> & { block: WikiEmbedBlock }) {
+  const { dictionary } = useI18n();
+  const t = dictionary.wiki.blockForm;
+  const initialUrl = getWikiEmbedUrlInputValue(block);
+  const [invalidUrl, setInvalidUrl] = useState(false);
+  const errorId = useId();
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const url = getString(data, "embedUrl").trim();
+    const caption = getString(data, "caption") || null;
+
+    if (url && url === initialUrl.trim()) {
+      onSave({ caption });
+      return;
+    }
+
+    const embed = parseWikiEmbedUrl(url);
+    if (!embed) {
+      setInvalidUrl(true);
+      return;
+    }
+
+    onSave({ ...embed, caption });
+  };
+
+  return (
+    <LocalizedForm onSubmit={submit}>
+      <div className="grid gap-3">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+          {t.embedUrl}
+          <input
+            aria-describedby={invalidUrl ? errorId : undefined}
+            aria-invalid={invalidUrl}
+            className={textInputClassName}
+            defaultValue={initialUrl}
+            inputMode="url"
+            name="embedUrl"
+            onChange={() => setInvalidUrl(false)}
+            required
+          />
+        </label>
+        {invalidUrl && <p className="text-sm text-status-danger" id={errorId} role="alert">{t.invalidEmbedUrl}</p>}
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+          {t.caption}
+          <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
+        </label>
+      </div>
+      <WikiFormActions onCancel={onCancel} />
+    </LocalizedForm>
+  );
+}
+
 export function WikiBlockForm({
   block,
   onCancel,
@@ -1318,22 +1378,7 @@ export function WikiBlockForm({
         </LocalizedForm>
       );
     case "embed":
-      return (
-        <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ provider: getString(data, "provider") as WikiEmbedProvider, embedId: getString(data, "embedId"), caption: getString(data, "caption") || null }))}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-semibold text-text-strong">{t.provider}<select className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2" defaultValue={block.provider} name="provider"><option value="youtube">youtube</option><option value="spotify">spotify</option><option value="x">x</option><option value="tiktok">tiktok</option></select></label>
-            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
-              {t.embedId}
-              <input className={textInputClassName} defaultValue={block.embedId} name="embedId" />
-            </label>
-            <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong sm:col-span-2">
-              {t.caption}
-              <input className={textInputClassName} defaultValue={block.caption ?? ""} name="caption" />
-            </label>
-          </div>
-          <WikiFormActions onCancel={onCancel} />
-        </LocalizedForm>
-      );
+      return <WikiEmbedBlockForm key={block.blockIdentifier} block={block} onCancel={onCancel} onSave={onSave} />;
     case "quote":
       return (
         <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ content: getString(data, "content"), source: getString(data, "source") || null }))}>

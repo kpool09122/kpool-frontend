@@ -1,15 +1,12 @@
 "use client";
 
-import { getYouTubeVideoId, getTikTokVideoId, type WikiEmbedBlock } from "@kpool/wiki";
+import { getYouTubeVideoId, getTikTokVideoId, parseWikiEmbedUrl, type WikiEmbedBlock } from "@kpool/wiki";
+import type { ReactNode } from "react";
 import { useVideoPlayback } from "@/components/VideoPlayback/VideoPlaybackProvider";
 import { SharedVideoEmbed } from "@/components/VideoPlayback/SharedVideoEmbed";
 
 import { youtubeEmbedClassName } from "../styles";
-
-const frameSurfaceStyle = {
-  backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
-  borderColor: "var(--wiki-card-border, var(--stroke-subtle))",
-};
+import { XPostEmbed } from "./XPostEmbed";
 
 function parseUrl(value: string): URL | null {
   return URL.canParse(value) ? new URL(value) : null;
@@ -33,24 +30,24 @@ function getYoutubeVideoId(value: string): string {
 }
 
 function getSpotifyPath(value: string): string {
+  const embed = parseWikiEmbedUrl(value);
+  if (embed?.provider === "spotify") return embed.embedId;
+
   const url = parseUrl(value);
   const path = url ? url.pathname : value;
 
   return path.replace(/^\/?embed\//, "").replace(/^\//, "");
 }
 
-function getXPostId(value: string): string {
+function getXPostId(value: string): string | null {
   const url = parseUrl(value);
-
-  if (!url) {
-    return value;
-  }
-
-  return getLastPathPart(url.pathname);
+  const id = url ? getLastPathPart(url.pathname) : value.trim();
+  return /^\d+$/.test(id) ? id : null;
 }
 
-function getEmbedFrame(block: WikiEmbedBlock): {
+function getEmbedFrame(block: WikiEmbedBlock & { provider: Exclude<WikiEmbedBlock["provider"], "x"> }): {
   allow: string;
+  height?: number;
   src: string;
   title: string;
 } {
@@ -68,20 +65,13 @@ function getEmbedFrame(block: WikiEmbedBlock): {
     }
     case "spotify": {
       const spotifyPath = getSpotifyPath(block.embedId);
+      const contentType = spotifyPath.split("/")[0];
 
       return {
         allow: "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture",
+        height: ["track", "episode", "show"].includes(contentType) ? 152 : 352,
         src: `https://open.spotify.com/embed/${spotifyPath}`,
         title: `Spotify embed${titleCaption}`,
-      };
-    }
-    case "x": {
-      const postId = encodeURIComponent(getXPostId(block.embedId));
-
-      return {
-        allow: "clipboard-write; encrypted-media",
-        src: `https://platform.twitter.com/embed/Tweet.html?id=${postId}`,
-        title: `X embed${titleCaption}`,
       };
     }
     case "tiktok": {
@@ -96,31 +86,51 @@ function getEmbedFrame(block: WikiEmbedBlock): {
   }
 }
 
+function WikiEmbedFigure({ children, caption, className }: {
+  children: ReactNode;
+  caption: WikiEmbedBlock["caption"];
+  className?: string;
+}) {
+  return (
+    <figure className={className}>
+      {children}
+      {caption && <figcaption className="mt-2 text-sm text-text-muted">{caption}</figcaption>}
+    </figure>
+  );
+}
+
 export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
   const playback = useVideoPlayback();
-  const frame = getEmbedFrame(block);
+  if (block.provider === "x") {
+    const postId = getXPostId(block.embedId);
+    if (!postId) return null;
+
+    return (
+      <WikiEmbedFigure caption={block.caption} className="mr-auto w-full max-w-[480px]">
+        <XPostEmbed key={postId} postId={postId} />
+      </WikiEmbedFigure>
+    );
+  }
+
+  const frame = getEmbedFrame({ ...block, provider: block.provider });
   const videoId = block.provider === "youtube" ? getYouTubeVideoId(block.embedId) : block.provider === "tiktok" ? getTikTokVideoId(block.embedId) : null;
+  const sizingClassName = block.provider === "youtube" ? youtubeEmbedClassName : undefined;
 
   return (
-    <figure className={`overflow-hidden rounded-2xl border border-stroke-subtle${block.provider === "youtube" ? ` ${youtubeEmbedClassName}` : ""}`} style={frameSurfaceStyle}>
+    <WikiEmbedFigure caption={block.caption} className={sizingClassName}>
       {playback && videoId ? (
         <SharedVideoEmbed provider={block.provider === "tiktok" ? "tiktok" : "youtube"} videoId={videoId} title={block.caption || (block.provider === "tiktok" ? "TikTok" : "YouTube")} identifier={block.blockIdentifier} />
-      ) : <div className="aspect-video w-full bg-surface-base">
+      ) : <div className={frame.height ? "w-full" : "aspect-video w-full"} style={frame.height ? { height: frame.height } : undefined}>
         <iframe
           allow={frame.allow}
           allowFullScreen
-          className="h-full w-full"
+          className="block h-full w-full"
           loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
           src={frame.src}
           title={frame.title}
         />
       </div>}
-      {block.caption ? (
-        <figcaption className="border-t border-stroke-subtle px-4 py-3 text-base text-text-muted">
-          {block.caption}
-        </figcaption>
-      ) : null}
-    </figure>
+    </WikiEmbedFigure>
   );
 }
