@@ -4,7 +4,7 @@ This project is managed with `pnpm`.
 
 ## Requirements
 
-- Node.js `26.12.1`
+- Node.js `26.13.1`
 - `pnpm` `12.4.2`
 - `task` `3.x`
 
@@ -47,7 +47,7 @@ KPOOL_WIKI_PRIVATE_API_BASE_URL=http://127.0.0.1:8000
 
 After updating `.env.local`, restart `pnpm dev` or `task dev`.
 
-公開WikiのGTM・GA4計測は既定で無効です。有効化、イベント契約、外部サービスの設定・確認手順は [Wiki計測ガイド](docs/wiki-analytics.md) を参照してください。
+公開WikiのGTM・GA4計測は既定で無効です。
 
 ## Available Tasks
 

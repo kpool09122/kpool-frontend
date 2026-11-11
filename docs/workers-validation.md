@@ -1,6 +1,8 @@
 # Workers ローカル検証記録 (#427)
 
-## 固定sourceと環境
+現在の開発・CIで使用する Node.js のバージョンは [`.node-version`](../.node-version) を参照。
+
+## #427 の検証時点のソースと環境
 
 - 実装source SHA: `46340f9406fd5aae5d5ab68acaf5d6cc8a540efd`
 - base main SHA: `8822097`（取得済み origin/main）
@@ -74,7 +76,10 @@ project-local `.codex/skills/{qa-review,test-review,security-review,architecture
 
 ## Wiki接続元情報 (#440) の検証
 
-base: origin/main `0f155a6`（Next 16.4.0 / OpenNext 1.20.9 / Wrangler 4.148.0）。Node 26.12.1 / pnpm 12.4.2。backend #700 / merged PR #701の `VisitorLocationVerifier` / `VisitorLocation` / `config/wiki.php` をGitHubから直接確認し、HMAC契約を合わせた。配備・秘密鍵変更は実施していない。
+- ベース: origin/main `0f155a6`
+- 検証時の環境: Node.js 26.12.1 / pnpm 12.4.2 / Next 16.4.0 / OpenNext 1.20.9 / Wrangler 4.148.0
+
+backend #700 / merged PR #701の `VisitorLocationVerifier` / `VisitorLocation` / `config/wiki.php` をGitHubから直接確認し、HMAC契約を合わせた。配備・秘密鍵変更は実施していない。
 
 | コマンド | 実結果 |
 | --- | --- |
