@@ -2,7 +2,7 @@ import { isSupportedLocale } from "@/i18n/locales";
 import { WikiDetailPage } from "../../../[slug]/WikiDetailPage";
 import { loadPublicWikiRouteState } from "../../../publicWikiRoute";
 import type { Metadata } from "next";
-import { buildWikiDescription, siteTitle } from "@/app/metadata";
+import { buildShareMetadata, buildWikiDescription, siteTitle } from "@/app/metadata";
 import { buildWikiPath } from "@kpool/wiki";
 import { getPublicSiteOrigin } from "@/config/publicSite";
 
@@ -30,15 +30,23 @@ export async function generateMetadata({ params }: Pick<WikiDetailRouteProps, "p
 
   const wiki = wikiState.data;
   const title = wiki.title ?? wiki.basic.name;
+  const description = wiki.metaDescription?.trim()
+    ? wiki.metaDescription
+    : buildWikiDescription(language, wiki.basic.name);
+  const path = buildWikiPath(language, wiki.slug);
   const origin = getPublicSiteOrigin();
 
   return {
-    title: `${title} | ${siteTitle}`,
-    description: wiki.metaDescription?.trim() || buildWikiDescription(language, wiki.basic.name),
+    ...buildShareMetadata({
+      title: `${title} | ${siteTitle}`,
+      description,
+      path,
+      image: wiki.heroImage.isHidden ? undefined : wiki.heroImage,
+    }),
     keywords: wiki.keywords ?? undefined,
     ...(origin ? {
       alternates: {
-        canonical: `${origin}${buildWikiPath(language, wiki.slug)}`,
+        canonical: `${origin}${path}`,
         languages: Object.fromEntries(
           [...new Set([language, ...(wiki.availableLanguages ?? [])])]
             .filter(isSupportedLocale)

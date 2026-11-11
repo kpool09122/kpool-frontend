@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { buildShareMetadata } from "../../metadata";
 import { dictionaries } from "../../../i18n/dictionaries";
 import { isSupportedLocale } from "../../../i18n/locales";
 import type { LegalDocumentKind } from "./LegalDocument";
@@ -25,9 +26,10 @@ export const buildLegalMetadata = async (
   const locale = await resolveLegalLocale(params);
   const legal = dictionaries[locale].legal;
 
-  return document === "terms"
+  const metadata = document === "terms"
     ? { title: legal.termsTitle, description: legal.termsDescription }
     : { title: legal.privacyTitle, description: legal.privacyDescription };
+  return buildShareMetadata({ ...metadata, path: `/${locale}/${document}` });
 };
 
 export type { LegalPageProps };

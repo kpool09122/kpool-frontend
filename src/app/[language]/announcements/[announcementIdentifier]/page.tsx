@@ -1,5 +1,5 @@
 import { buildMarkdownDescription } from "../../../metadataDescription";
-import { buildPageMetadata, siteTitle } from "../../../metadata";
+import { buildPageMetadata, buildShareMetadata, siteTitle } from "../../../metadata";
 
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import Link from "next/link";
@@ -74,10 +74,10 @@ export async function generateMetadata({ params }: {
   if (!result.ok && result.status === 404) notFound();
   const metadata = buildPageMetadata(language, "announcements");
   return result.ok && result.detail
-    ? {
-        ...metadata,
+    ? buildShareMetadata({
         title: `${result.detail.title} | ${siteTitle}`,
         description: buildMarkdownDescription(result.detail.content) || metadata.description,
-      }
+        path: `/${language}/announcements/${id}`,
+      })
     : metadata;
 }

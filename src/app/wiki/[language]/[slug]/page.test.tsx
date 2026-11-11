@@ -42,21 +42,35 @@ describe("wiki localized page metadata", () => {
       }
     },
   );
-  it("uses SEO title, description, and keywords when present", async () => {
+  it("uses the existing title, full description, and profile image for sharing", async () => {
+    const metaDescription = "あ".repeat(139) + "終";
+    const heroImage = {
+      src: "https://images.k-pool.app/images/aurora-echo.webp",
+      alt: "Aurora Echo",
+    };
     vi.mocked(loadPublicWikiState).mockResolvedValue({
       status: "success",
       data: {
         ...createMockWikiDetail("gr-aurora-echo"),
         title: "Aurora Echo SEO",
-        metaDescription: "Aurora Echo meta description.",
+        metaDescription,
+        heroImage,
         keywords: ["aurora", "echo"],
       },
     });
 
     await expect(generateMetadata(routeParams())).resolves.toEqual({
       title: "Aurora Echo SEO | k-pool",
-      description: "Aurora Echo meta description.",
+      description: metaDescription,
       keywords: ["aurora", "echo"],
+      openGraph: {
+        title: "Aurora Echo SEO | k-pool",
+        description: metaDescription,
+        type: "website",
+        siteName: "k-pool",
+        url: "https://k-pool.app/ja/wiki/gr-aurora-echo",
+        images: [{ url: heroImage.src, alt: heroImage.alt }],
+      },
       alternates: {
         canonical: "https://k-pool.app/ja/wiki/gr-aurora-echo",
         languages: { ja: "https://k-pool.app/ja/wiki/gr-aurora-echo" },
@@ -72,6 +86,9 @@ describe("wiki localized page metadata", () => {
 
     await expect(generateMetadata(routeParams())).resolves.toMatchObject({
       title: "Aurora Echo | k-pool",
+      openGraph: {
+        images: [{ url: "https://k-pool.app/kpool-og.webp", type: "image/webp" }],
+      },
     });
   });
 
