@@ -19,18 +19,14 @@ export function WikiHeroPanel({
 }: WikiHeroPanelProps) {
   const { dictionary } = useI18n();
   return (
-    <div className="relative h-full min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-stroke-subtle" style={cardSurfaceStyle}>
-      {onOpenImageLibrary ? (
-        <button
-          aria-label={dictionary.wiki.ui.openImageLibrary}
-          className="absolute inset-0 z-10 cursor-pointer"
-          onClick={onOpenImageLibrary}
-          type="button"
-        />
-      ) : null}
+    <div className="relative h-full min-h-[30rem] overflow-hidden rounded-[1.75rem] border border-stroke-subtle" style={cardSurfaceStyle}>
       <WikiProfileImage
         alt={heroImage.alt}
         className="object-cover"
+        overlayAction={onOpenImageLibrary ? {
+          label: dictionary.wiki.ui.openImageLibrary,
+          onClick: onOpenImageLibrary,
+        } : undefined}
         sizes="(min-width: 1024px) 55vw, 100vw"
         src={heroImage.src}
       />
