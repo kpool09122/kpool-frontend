@@ -93,7 +93,7 @@ for (const viewport of [
         .click();
     await expect.poll(() => warned(page)).toBe(false);
     await page
-      .getByRole("button", { name: "Open wiki image library" })
+      .getByRole("button", { name: "Open wiki image library", exact: true })
       .filter({ visible: true })
       .click();
     await page.getByRole("tab", { name: "AI material search" }).click();
@@ -122,7 +122,7 @@ for (const viewport of [
     ).toHaveValue(site.siteName);
     await page.getByRole("button", { name: "Close", exact: true }).click();
     await page
-      .getByRole("button", { name: "Open wiki image library" })
+      .getByRole("button", { name: "Open wiki image library", exact: true })
       .filter({ visible: true })
       .click();
     await page.getByRole("tab", { name: "AI material search" }).click();
@@ -158,7 +158,7 @@ for (const viewport of [
         .click();
     await expect.poll(() => warned(page)).toBe(false);
     await page
-      .getByRole("button", { name: "Open wiki image library" })
+      .getByRole("button", { name: "Open wiki image library", exact: true })
       .filter({ visible: true })
       .click();
     await page.getByRole("tab", { name: "AI material search" }).click();
@@ -179,7 +179,7 @@ test("a missing search grant or explicit deny hides the search tab", async ({
     await setup(page, statements);
     await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
     await page
-      .getByRole("button", { name: "Open wiki image library" })
+      .getByRole("button", { name: "Open wiki image library", exact: true })
       .filter({ visible: true })
       .click();
     await expect(
@@ -204,7 +204,7 @@ test("failed searches can retry, and empty results do not enable departure guard
   });
   await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
   await page
-    .getByRole("button", { name: "Open wiki image library" })
+    .getByRole("button", { name: "Open wiki image library", exact: true })
     .filter({ visible: true })
     .click();
   await page.getByRole("tab", { name: "AI material search" }).click();

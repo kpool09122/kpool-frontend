@@ -509,7 +509,10 @@ test("wiki edit page opens the image library and submits an image usage request"
   ]);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
-  await page.getByRole("button", { name: "Wiki画像ライブラリを開く" }).last().click();
+  await page
+    .getByRole("button", { name: "Wiki画像ライブラリを開く", exact: true })
+    .filter({ visible: true })
+    .click();
 
   await expect(page.getByTestId("wiki-image-library")).toBeVisible();
   await expect(page.getByRole("tab", { name: "画像一覧" })).toHaveAttribute("aria-selected", "true");
