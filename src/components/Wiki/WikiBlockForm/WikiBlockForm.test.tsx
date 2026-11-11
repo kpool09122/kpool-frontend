@@ -1,6 +1,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createWikiBlock, type WikiEmbedBlock } from "@kpool/wiki";
 import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryProfileListBlock, wikiStoryTextBlock, wikiStoryTableBlock } from "../storybook/fixtures";
@@ -9,11 +10,65 @@ import { WikiBlockForm } from "./index";
 const renderWithI18n = (ui: React.ReactElement) =>
   render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
+const newEmbed = createWikiBlock("embed", 1) as WikiEmbedBlock;
+
 describe("WikiBlockForm", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ["https://youtu.be/abcdefghijk?t=2", "youtube", "abcdefghijk"],
+    ["https://www.youtube.com/shorts/abcdefghijk", "youtube", "abcdefghijk"],
+    ["https://www.tiktok.com/@artist/video/6718335390845095173", "tiktok", "6718335390845095173"],
+    ["https://open.spotify.com/intl-ja/track/0KGoC1HHJzRTwG1vVcL6Ul?si=share", "spotify", "track/0KGoC1HHJzRTwG1vVcL6Ul"],
+    ["https://twitter.com/artist/status/123456789", "x", "123456789"],
+  ])("infers the provider and embed ID from %s", (url, provider, embedId) => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBlockForm block={newEmbed} onCancel={vi.fn()} onSave={onSave} />);
+
+    const input = screen.getByRole("textbox", { name: "Embed URL" });
+    expect(input).toHaveValue("");
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    fireEvent.change(input, { target: { value: ` ${url} ` } });
+    fireEvent.change(screen.getByLabelText("Caption"), { target: { value: "Example" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith({ provider, embedId, caption: "Example" });
+  });
+
+  it("keeps an existing embed when only the caption changes", () => {
+    const block = { ...newEmbed, embedId: "abcdefghijk" };
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBlockForm block={block} onCancel={vi.fn()} onSave={onSave} />);
+
+    expect(screen.getByLabelText("Embed URL")).toHaveValue("https://www.youtube.com/watch?v=abcdefghijk");
+    fireEvent.change(screen.getByLabelText("Caption"), { target: { value: "Updated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith({ caption: "Updated" });
+  });
+
+  it("rejects an unsupported URL and accepts a replacement from another provider", () => {
+    const block = { ...newEmbed, embedId: "abcdefghijk" };
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBlockForm block={block} onCancel={vi.fn()} onSave={onSave} />);
+
+    const input = screen.getByLabelText("Embed URL");
+    const save = screen.getByRole("button", { name: "Save" });
+    fireEvent.change(input, { target: { value: "https://www.youtube.com.example/watch?v=abcdefghijk" } });
+    fireEvent.click(save);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a YouTube, TikTok video page, Spotify, or X post URL.");
+    expect(onSave).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "https://x.com/artist/status/123456789" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.click(save);
+
+    expect(onSave).toHaveBeenCalledWith({ provider: "x", embedId: "123456789", caption: block.caption });
   });
 
   it("submits text block content", () => {
