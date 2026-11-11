@@ -103,7 +103,16 @@ it("renders Markdown without executing HTML and resolves missing details to 404"
 it("uses the published announcement title in metadata and handles missing details", async () => {
   const props = { params: Promise.resolve({ language: "ja", announcementIdentifier: "019b0000-0000-7000-8000-000000000001" }) };
   mocks.load.mockResolvedValueOnce({ ok: true, detail: { title: "サービス更新のお知らせ", content: "**検索機能**を追加しました。[使い方](https://example.com)をご確認ください。" } });
-  await expect(detailMetadata(props)).resolves.toMatchObject({ title: "サービス更新のお知らせ | k-pool", description: "検索機能を追加しました。使い方をご確認ください。" });
+  await expect(detailMetadata(props)).resolves.toMatchObject({
+    title: "サービス更新のお知らせ | k-pool",
+    description: "検索機能を追加しました。使い方をご確認ください。",
+    openGraph: {
+      title: "サービス更新のお知らせ | k-pool",
+      description: "検索機能を追加しました。使い方をご確認ください。",
+      url: "https://k-pool.app/ja/announcements/019b0000-0000-7000-8000-000000000001",
+      images: [{ url: "https://k-pool.app/kpool-og.webp" }],
+    },
+  });
   mocks.load.mockResolvedValueOnce({ ok: false, status: 404 });
   await expect(detailMetadata(props)).rejects.toThrow("NOT_FOUND");
 });

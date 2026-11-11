@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { getPublicSiteOrigin } from "@/config/publicSite";
 import { dictionaries } from "@/i18n/dictionaries";
 import { fallbackLocale, normalizeLocale, type Locale } from "@/i18n/locales";
 
@@ -36,25 +36,61 @@ type MetadataPage =
   | "signup"
   | "contact";
 
-export function buildPageMetadata(language: string, page: MetadataPage): Metadata {
+type ShareMetadata = {
+  title: string;
+  description: string;
+  path: string;
+  image?: { src: string; alt: string };
+};
+
+export function buildShareMetadata({ title, description, path, image }: ShareMetadata) {
+  const origin = getPublicSiteOrigin();
+  const imageSource = image?.src.trim();
+  const imageUrl = imageSource && URL.canParse(imageSource, origin ?? undefined)
+    ? new URL(imageSource, origin ?? undefined)
+    : null;
+  const shareImage =
+    image && (imageUrl?.protocol === "https:" || imageUrl?.protocol === "http:")
+      ? { url: imageUrl.href, alt: image.alt }
+      : origin
+        ? { url: `${origin}/kpool-og.webp`, alt: siteTitle, width: 1200, height: 630, type: "image/webp" }
+        : undefined;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website" as const,
+      siteName: siteTitle,
+      url: origin ? `${origin}${path}` : undefined,
+      images: shareImage ? [shareImage] : undefined,
+    },
+  };
+}
+
+export function buildPageMetadata(language: string, page: MetadataPage) {
   const locale = normalizeLocale(language) ?? fallbackLocale;
   const t = dictionaries[locale];
-  const titles = {
-    home: siteTitle,
-    wiki: t.home.listTitle,
-    announcements: t.announcements.title,
-    login: t.login.title,
-    signup: t.signup.title,
-    contact: t.contact.title,
+  const pages = {
+    home: { title: siteTitle, path: `/${locale}` },
+    wiki: { title: t.home.listTitle, path: `/${locale}/wiki` },
+    announcements: { title: t.announcements.title, path: `/${locale}/announcements` },
+    login: { title: t.login.title, path: "/login" },
+    signup: { title: t.signup.title, path: "/signup" },
+    contact: { title: t.contact.title, path: "/contact" },
   };
   const description =
     page === "contact" ? t.contact.description
       : page === "login" ? t.login.description
         : descriptions[locale][page];
-  return {
-    title: page === "home" ? siteTitle : `${titles[page]} | ${siteTitle}`,
+  const { title, path } = pages[page];
+  return buildShareMetadata({
+    title: page === "home" ? title : `${title} | ${siteTitle}`,
     description,
-  };
+    path,
+  });
 }
 
 export function buildWikiDescription(language: string, name: string): string {
