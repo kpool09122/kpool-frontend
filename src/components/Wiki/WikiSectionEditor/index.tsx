@@ -12,6 +12,7 @@ import {
   type WikiBlock,
   type WikiBlockType,
   type WikiContentEditorId,
+  type WikiContentMove,
   type WikiResourceType,
   type WikiSection,
 } from "@kpool/wiki";
@@ -21,6 +22,7 @@ import { ChevronIcon, EditIcon, TrashIcon } from "../icons";
 import { WikiAddContentControls } from "../WikiAddContentControls";
 import { WikiBlockEditorItem } from "../WikiBlockEditorItem";
 import { WikiFormActions } from "../WikiFormActions";
+import { WikiReorderList, wikiReorderItemClassName, type WikiReorderItem } from "../WikiReorderList";
 import { cardSurfaceStyle, sectionArticleClassName, sectionBodyClassName, sectionHeadingClassName } from "../styles";
 import type { WikiImagePicker } from "../WikiImageLibrary/types";
 
@@ -41,7 +43,9 @@ type WikiSectionEditorProps = {
   onAddSection: (parentSectionIdentifier: string) => void;
   onAddBlock: (sectionIdentifier: string, blockType: WikiBlockType) => void;
   onDeleteContent: (identifier: string) => void;
+  onMoveContent?: (move: WikiContentMove) => void;
   onRequestImage?: WikiImagePicker;
+  reorder?: WikiReorderItem;
 };
 
 function WikiSectionForm({
@@ -87,7 +91,9 @@ export function WikiSectionEditor({
   onAddSection,
   onAddBlock,
   onDeleteContent,
+  onMoveContent,
   onRequestImage,
+  reorder,
 }: WikiSectionEditorProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.ui;
@@ -113,11 +119,15 @@ export function WikiSectionEditor({
 
   return (
     <article
-      className={`${sectionArticleClassName}${hasSideHeading ? " lg:grid lg:grid-cols-[160px_minmax(0,800px)] lg:gap-x-12" : ""}`}
+      {...reorder?.attributes}
+      className={`${sectionArticleClassName} relative [&:first-child>.wiki-section-reorder-handle]:top-0 ${wikiReorderItemClassName}${hasSideHeading ? " lg:grid lg:grid-cols-[160px_minmax(0,800px)] lg:gap-x-12" : ""}`}
       style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
       data-testid={`wiki-edit-section-${section.sectionIdentifier}`}
     >
-      <div className={`flex items-center gap-1 text-left sm:gap-2${hasSideHeading ? " lg:flex-wrap lg:content-start lg:self-start" : ""}`}>
+      {reorder ? (
+        <div className="wiki-section-reorder-handle absolute right-0 top-8 z-10">{reorder.handle}</div>
+      ) : null}
+      <div className={`flex items-center gap-1 text-left sm:gap-2${reorder ? " pr-11" : ""}${hasSideHeading ? " lg:flex-wrap lg:content-start lg:self-start lg:pr-0" : ""}`}>
         <h2 className={`${sectionHeadingClassName}${hasSideHeading ? " lg:mb-2 lg:basis-full" : ""}`}>
           {section.title}
         </h2>
@@ -200,40 +210,47 @@ export function WikiSectionEditor({
             />
           ) : null}
 
-          {contents.map((content) =>
-            isWikiBlock(content) ? (
-              <WikiBlockEditorItem
-                block={content}
-                disabled={disabled}
-                isEditing={editingId === `block:${content.blockIdentifier}`}
-                key={content.blockIdentifier}
-                language={language}
-                onCancel={onCancel}
-                onDelete={() => onDeleteContent(content.blockIdentifier)}
-                onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
-                onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
-                onRequestImage={onRequestImage}
-                sourceWiki={sourceWiki}
-              />
-            ) : isWikiSection(content) ? (
-              <WikiSectionEditor
-                disabled={disabled}
-                editingId={editingId}
-                key={content.sectionIdentifier}
-                language={language}
-                onAddBlock={onAddBlock}
-                onAddSection={onAddSection}
-                onCancel={onCancel}
-                onDeleteContent={onDeleteContent}
-                onEdit={onEdit}
-                onSaveBlock={onSaveBlock}
-                onSaveSection={onSaveSection}
-                onRequestImage={onRequestImage}
-                section={content}
-                sourceWiki={sourceWiki}
-              />
-            ) : null,
-          )}
+          <WikiReorderList
+            items={contents}
+            onMove={onMoveContent}
+            parentSectionIdentifier={section.sectionIdentifier}
+            renderItem={(content, itemReorder) =>
+              isWikiBlock(content) ? (
+                <WikiBlockEditorItem
+                  block={content}
+                  disabled={disabled}
+                  isEditing={editingId === `block:${content.blockIdentifier}`}
+                  key={content.blockIdentifier}
+                  language={language}
+                  onCancel={onCancel}
+                  onDelete={() => onDeleteContent(content.blockIdentifier)}
+                  onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
+                  onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
+                  onRequestImage={onRequestImage}
+                  reorder={itemReorder}
+                  sourceWiki={sourceWiki}
+                />
+              ) : isWikiSection(content) ? (
+                <WikiSectionEditor
+                  disabled={disabled}
+                  editingId={editingId}
+                  key={content.sectionIdentifier}
+                  language={language}
+                  onAddBlock={onAddBlock}
+                  onAddSection={onAddSection}
+                  onCancel={onCancel}
+                  onDeleteContent={onDeleteContent}
+                  onEdit={onEdit}
+                  onMoveContent={onMoveContent}
+                  onSaveBlock={onSaveBlock}
+                  onSaveSection={onSaveSection}
+                  onRequestImage={onRequestImage}
+                  reorder={itemReorder}
+                  section={content}
+                  sourceWiki={sourceWiki}
+                />
+              ) : null}
+          />
 
           <WikiAddContentControls
             disabled={disabled}

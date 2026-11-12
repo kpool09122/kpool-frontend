@@ -5,6 +5,7 @@ import { sectionListClassName } from "@/components/Wiki/styles";
 import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
 import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
 import { WikiImageSourceLink } from "@/components/Wiki/WikiImageSourceLink";
+import { WikiReorderList } from "@/components/Wiki/WikiReorderList";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -127,6 +128,7 @@ export function WikiEditContent({
     updateSettings,
     updateSection,
     updateBlock,
+    moveContent,
     addSection,
     addBlock,
     deleteContent,
@@ -164,6 +166,7 @@ export function WikiEditContent({
   const isReviewLocked = draft.status === "under_review";
   const isSubmitRefreshPending = isSubmittedReviewLocked && !isReviewLocked;
   const isEditLocked = isReviewLocked || isSubmitRefreshPending || isSubmittedReviewLocked;
+  const reorderContent = !isEditLocked && !editingId && canPersist ? moveContent : undefined;
   const editBasic = () => {
     if (isEditLocked) {
       return;
@@ -442,30 +445,36 @@ export function WikiEditContent({
                     label: t.contentWikiTab,
                     panel: (
                       <div className={sectionListClassName}>
-                        {draft.sections.map((section) => (
-                          <WikiSectionEditor
-                            editingId={editingId}
-                            key={section.sectionIdentifier}
-                            language={language}
-                            onAddBlock={addBlock}
-                            onAddSection={addSection}
-                            onCancel={cancelEditing}
-                            onDeleteContent={deleteContent}
-                            disabled={isEditLocked}
-                            onEdit={setEditingId}
-                            onRequestImage={(onSelect) => openImageLibrary(window.innerWidth >= 1024 ? "desktop" : "mobile", onSelect)}
-                            onSaveBlock={(blockIdentifier, changes) => {
-                              updateBlock(blockIdentifier, changes);
-                              closeEditor();
-                            }}
-                            onSaveSection={(sectionIdentifier, changes) => {
-                              updateSection(sectionIdentifier, changes);
-                              closeEditor();
-                            }}
-                            section={section}
-                            sourceWiki={sourceWiki}
-                          />
-                        ))}
+                        <WikiReorderList
+                          items={draft.sections}
+                          onMove={reorderContent}
+                          renderItem={(section, reorder) => (
+                            <WikiSectionEditor
+                              editingId={editingId}
+                              key={section.sectionIdentifier}
+                              language={language}
+                              onAddBlock={addBlock}
+                              onAddSection={addSection}
+                              onCancel={cancelEditing}
+                              onDeleteContent={deleteContent}
+                              disabled={isEditLocked}
+                              onEdit={setEditingId}
+                              onMoveContent={reorderContent}
+                              onRequestImage={(onSelect) => openImageLibrary(window.innerWidth >= 1024 ? "desktop" : "mobile", onSelect)}
+                              onSaveBlock={(blockIdentifier, changes) => {
+                                updateBlock(blockIdentifier, changes);
+                                closeEditor();
+                              }}
+                              onSaveSection={(sectionIdentifier, changes) => {
+                                updateSection(sectionIdentifier, changes);
+                                closeEditor();
+                              }}
+                              reorder={reorder}
+                              section={section}
+                              sourceWiki={sourceWiki}
+                            />
+                          )}
+                        />
                         <button
                           className="rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
                           disabled={isEditLocked}

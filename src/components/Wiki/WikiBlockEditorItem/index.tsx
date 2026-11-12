@@ -7,6 +7,7 @@ import { type WikiBlock, type WikiResourceType } from "@kpool/wiki";
 import { EditIcon, TrashIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 import { WikiBlockForm } from "../WikiBlockForm";
+import { wikiReorderItemClassName, type WikiReorderItem } from "../WikiReorderList";
 import { cardSurfaceMutedStyle, youtubeEmbedClassName } from "../styles";
 import type { WikiImagePicker } from "../WikiImageLibrary/types";
 import { toBlockImage } from "../WikiImageLibrary/wikiBlockImage";
@@ -21,6 +22,7 @@ type WikiBlockEditorItemProps = {
   onSave: (changes: Partial<WikiBlock>) => void;
   onDelete: () => void;
   onRequestImage?: WikiImagePicker;
+  reorder?: WikiReorderItem;
   sourceWiki?: {
     language: string;
     resourceType: WikiResourceType;
@@ -38,6 +40,7 @@ export function WikiBlockEditorItem({
   onSave,
   onDelete,
   onRequestImage,
+  reorder,
   sourceWiki,
 }: WikiBlockEditorItemProps) {
   const { dictionary } = useI18n();
@@ -61,13 +64,21 @@ export function WikiBlockEditorItem({
     );
   }
 
+  const contentWidthClassName = block.blockType === "embed" && block.provider === "youtube"
+    ? youtubeEmbedClassName
+    : "";
+
   return (
     <article
-      className={`group relative${block.blockType === "embed" && block.provider === "youtube" ? ` ${youtubeEmbedClassName}` : ""}`}
+      {...reorder?.attributes}
+      className={`group relative ${wikiReorderItemClassName} ${reorder ? "sm:pr-12" : contentWidthClassName}`}
       data-testid={`wiki-edit-block-${block.blockIdentifier}`}
     >
-      <div className="mb-2 flex justify-end gap-2 transition sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0 sm:rounded-lg sm:bg-surface-raised/95 sm:p-1 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
-        {controls}
+      <div className="mb-2 flex items-center justify-end gap-1 sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0">
+        <div className="transition sm:rounded-lg sm:bg-surface-raised/95 sm:p-1 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+          {controls}
+        </div>
+        {reorder?.handle}
       </div>
       <WikiBlockDisplay
         block={block}
