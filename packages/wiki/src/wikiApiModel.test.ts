@@ -69,6 +69,20 @@ describe("wikiApiModel SEO metadata", () => {
   });
 });
 
+describe("wikiApiModel history", () => {
+  it("adapts stored history entries for draft and published Wikis", () => {
+    const entries = [{ year: 2024, title: "Debut", detail: null }];
+    const response = {
+      ...baseApiResponse,
+      sections: [{ type: "section", title: "History", contents: [{ block_type: "history", entries }] }],
+    };
+    const sections = [{ contents: [{ blockType: "history", entries }] }];
+
+    expect(adaptDraftWikiApiResponse(response)).toMatchObject({ sections });
+    expect(adaptWikiApiResponse({ ...response, version: 1 })).toMatchObject({ sections });
+  });
+});
+
 describe("wikiApiModel hero images", () => {
   it("retains source attribution for published and draft hero images", () => {
     const heroImage = { ...baseApiResponse.heroImage, sourceUrl: "https://example.com/original", sourceName: "Original source" };

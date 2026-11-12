@@ -34,6 +34,29 @@ describe("WikiBlockDisplay", () => {
     expect(screen.getByText("Second item")).toBeInTheDocument();
   });
 
+  it("groups history entries by year, newest first, preserving order within a year", () => {
+    render(
+      <WikiBlockDisplay
+        block={{
+          blockIdentifier: "history-1",
+          blockType: "history",
+          displayOrder: 10,
+          entries: [
+            { year: 2023, title: "Debut", detail: null },
+            { year: 2024, title: "Concert", detail: "Seoul" },
+            { year: 2024, title: "Award", detail: null },
+          ],
+        }}
+      />,
+    );
+
+    const [newer, older] = screen.getAllByRole("group");
+    expect(newer).toHaveAccessibleName("2024");
+    expect(older).toHaveAccessibleName("2023");
+    expect(within(newer).getAllByRole("listitem").map((item) => item.textContent)).toEqual(["ConcertSeoul", "Award"]);
+    expect(within(older).getByText("Debut")).toBeInTheDocument();
+  });
+
   it("renders table blocks", () => {
     const { container } = render(
       <WikiBlockDisplay

@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWikiBlock, type WikiEmbedBlock } from "@kpool/wiki";
 import { I18nProvider } from "../../../i18n/I18nProvider";
@@ -69,6 +69,114 @@ describe("WikiBlockForm", () => {
     fireEvent.click(save);
 
     expect(onSave).toHaveBeenCalledWith({ provider: "x", embedId: "123456789", caption: block.caption });
+  });
+
+  it("edits, adds, and removes entries in a history block", () => {
+    const onSave = vi.fn();
+    renderWithI18n(
+      <WikiBlockForm
+        block={{
+          blockIdentifier: "history-1",
+          blockType: "history",
+          displayOrder: 10,
+          entries: [{ year: 2024, title: "Debut", detail: null }],
+        }}
+        onCancel={vi.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Item" }));
+    const [, year] = screen.getAllByLabelText("Year");
+    const [, title] = screen.getAllByLabelText("Event");
+    const [, detail] = screen.getAllByLabelText("Details");
+    fireEvent.change(year, { target: { value: "2025" } });
+    fireEvent.change(title, { target: { value: "Concert" } });
+    fireEvent.change(detail, { target: { value: "Seoul" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove item" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(onSave).toHaveBeenCalledWith({ entries: [{ year: 2025, title: "Concert", detail: "Seoul" }] });
+  });
+
+  it("sorts history rows after leaving the year field and preserves their text", () => {
+    const onSave = vi.fn();
+    renderWithI18n(
+      <WikiBlockForm
+        block={{
+          blockIdentifier: "history-1",
+          blockType: "history",
+          displayOrder: 10,
+          entries: [
+            { year: 2023, title: "Debut", detail: null },
+            { year: 2024, title: "First award", detail: null },
+            { year: 2024, title: "Second award", detail: null },
+          ],
+        }}
+        onCancel={vi.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    const titles = () => screen.getAllByLabelText<HTMLInputElement>("Event").map((input) => input.value);
+    expect(titles()).toEqual(["First award", "Second award", "Debut"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Item" }));
+    const year = screen.getAllByLabelText("Year")[3];
+    fireEvent.change(screen.getAllByLabelText("Event")[3], { target: { value: "Concert" } });
+    fireEvent.change(screen.getAllByLabelText("Details")[3], { target: { value: "Seoul\nEncore" } });
+    fireEvent.change(year, { target: { value: "2025" } });
+    expect(titles()).toEqual(["First award", "Second award", "Debut", "Concert"]);
+
+    fireEvent.blur(year);
+    expect(titles()).toEqual(["Concert", "First award", "Second award", "Debut"]);
+    expect(screen.getAllByLabelText("Details")[0]).toHaveValue("Seoul\nEncore");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ entries: [
+      { year: 2025, title: "Concert", detail: "Seoul\nEncore" },
+      { year: 2024, title: "First award", detail: null },
+      { year: 2024, title: "Second award", detail: null },
+      { year: 2023, title: "Debut", detail: null },
+    ] });
+  });
+
+  it("moves history entries only within their year and saves the new order", () => {
+    const onSave = vi.fn();
+    const concert = { year: 2025, title: "Concert", detail: null };
+    const firstAward = { year: 2024, title: "First award", detail: null };
+    const secondAward = { year: 2024, title: "Second award", detail: null };
+    const thirdAward = { year: 2024, title: "Third award", detail: null };
+    const debut = { year: 2023, title: "Debut", detail: null };
+    renderWithI18n(
+      <WikiBlockForm
+        block={{
+          blockIdentifier: "history-1",
+          blockType: "history",
+          displayOrder: 10,
+          entries: [concert, firstAward, secondAward, thirdAward, debut],
+        }}
+        onCancel={vi.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    const row = (position: number) => within(screen.getByRole("group", { name: `Item ${position}` }));
+    expect(row(1).queryByRole("button", { name: "Move item down" })).toBeNull();
+    expect(row(2).getByRole("button", { name: "Move item up" })).toBeDisabled();
+    expect(row(4).getByRole("button", { name: "Move item down" })).toBeDisabled();
+
+    fireEvent.change(row(2).getByLabelText("Details"), { target: { value: "Seoul" } });
+    fireEvent.click(row(2).getByRole("button", { name: "Move item down" }));
+    expect(row(3).getByLabelText("Event")).toHaveValue(firstAward.title);
+    fireEvent.click(row(4).getByRole("button", { name: "Move item up" }));
+    expect(row(3).getByLabelText("Event")).toHaveValue(thirdAward.title);
+    expect(row(4).getByLabelText("Details")).toHaveValue("Seoul");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({
+      entries: [concert, secondAward, thirdAward, { ...firstAward, detail: "Seoul" }, debut],
+    });
   });
 
   it("submits text block content", () => {

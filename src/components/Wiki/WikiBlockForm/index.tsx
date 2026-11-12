@@ -39,6 +39,7 @@ import { WikiFormActions } from "../WikiFormActions";
 import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
 import { useI18n } from "../../../i18n/I18nProvider";
 import type { WikiImagePicker } from "../WikiImageLibrary/types";
+import { WikiHistoryBlockForm } from "./WikiHistoryBlockForm";
 import { WikiImageBlockForm } from "./WikiImageBlockForm";
 
 type WikiBlockFormProps = {
@@ -1393,6 +1394,8 @@ export function WikiBlockForm({
           <WikiFormActions onCancel={onCancel} />
         </LocalizedForm>
       );
+    case "history":
+      return <WikiHistoryBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "list":
       return <WikiListBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "table":

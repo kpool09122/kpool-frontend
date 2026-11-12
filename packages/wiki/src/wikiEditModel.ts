@@ -4,10 +4,12 @@ import type {
   WikiDraftDetail,
   WikiEmbedBlock,
   WikiEmbedProvider,
+  WikiHistoryEntry,
   WikiProfileCardListBlock,
   WikiSection,
   WikiSectionContent,
 } from "./types/wiki";
+import { wikiHistoryEntrySchema } from "./types/wiki";
 import { newWikiEmbedId } from "./wikiEmbedModel";
 import { normalizeWikiImageWidth } from "./wikiImageLayout";
 
@@ -36,6 +38,7 @@ export type WikiSectionContentPayload =
       source?: string | null;
       listType?: string;
       items?: string[];
+      entries?: WikiHistoryEntry[];
       rows?: string[][];
       headers?: string[] | null;
       rowCells?: Array<Array<{ content: string; colspan?: number }>>;
@@ -195,6 +198,13 @@ const serializeCodeMacro = (name: string, values: string[]): string =>
 const serializeCodeField = (key: string, value: string | null | undefined): string | null =>
   value == null ? null : `${key}:${escapeCodeValue(value)}`;
 
+// Keep each history block on one code line while preserving text line breaks.
+const serializeHistoryCodeText = (value: string): string =>
+  escapeCodeValue(value.replace(/[%\r\n]/g, encodeURIComponent));
+
+const parseHistoryCodeText = (value: string): string =>
+  value.replace(/%(?:25|0D|0A)/g, decodeURIComponent);
+
 const serializeTableCell = (
   cell: { content: string; colspan?: number },
   options?: { isHeader?: boolean; tableWidth?: number | null },
@@ -275,6 +285,15 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
           block.listType === "numbered" ? `${index + 1}. ${item}` : `* ${item}`,
         )
         .join("\n");
+    case "history":
+      return serializeCodeMacro("history", block.entries.flatMap(({ year, title, detail }, index) => {
+        const row = index + 1;
+        return [
+          `year${row}:${year}`,
+          `title${row}:${serializeHistoryCodeText(title)}`,
+          ...(detail == null ? [] : [`detail${row}:${serializeHistoryCodeText(detail)}`]),
+        ];
+      }));
     case "table":
       return [
         ...(block.headers
@@ -422,17 +441,15 @@ const createParseSuccess = (
   warnings,
 });
 
-const parseCodeField = (part: string): [string, string] | null => {
+const parseCodeField = (part: string, preserveWhitespace: boolean): [string, string] | null => {
   const dividerIndex = part.indexOf(":");
 
   if (dividerIndex <= 0) {
     return null;
   }
 
-  return [
-    part.slice(0, dividerIndex).trim(),
-    part.slice(dividerIndex + 1).trim(),
-  ];
+  const value = part.slice(dividerIndex + 1);
+  return [part.slice(0, dividerIndex).trim(), preserveWhitespace ? value : value.trim()];
 };
 
 const parseCodeMacro = (
@@ -446,10 +463,10 @@ const parseCodeMacro = (
     return { name: "__invalid__", fields: {} };
   }
 
-  const rawContent = line.slice(2, -2).trim();
-  const [name, ...parts] = splitEscaped(rawContent, "|");
+  const [rawName, ...parts] = splitEscaped(line.slice(2, -2), "|");
+  const name = rawName.trim();
   const fields = parts.reduce<Record<string, string>>((result, part) => {
-    const field = parseCodeField(part);
+    const field = parseCodeField(part, name === "history");
 
     if (!field) {
       return result;
@@ -459,7 +476,7 @@ const parseCodeMacro = (
     return result;
   }, {});
 
-  return { name: name.trim(), fields };
+  return { name, fields };
 };
 
 const parseNamuIncludeMacro = (
@@ -520,7 +537,29 @@ const createBlockParseError = (code: WikiCodeErrorCode): WikiCodeBlocksParseResu
 });
 
 const isSupportedCodeMacro = (name: string): boolean =>
-  ["image", "gallery", "embed", "profiles"].includes(name);
+  ["image", "gallery", "embed", "profiles", "history"].includes(name);
+
+const parseHistoryCodeEntries = (fields: Record<string, string>): WikiHistoryEntry[] | null => {
+  const entries: WikiHistoryEntry[] = [];
+  const rows = new Set(Object.keys(fields).map((key) => key.match(/^(?:year|title|detail)([1-9][0-9]*)$/)?.[1]));
+
+  if (rows.has(undefined)) return null;
+
+  for (let row = 1; row <= rows.size; row += 1) {
+    const year = fields[`year${row}`]?.trim() ?? "";
+    const detail = fields[`detail${row}`];
+    const entry = wikiHistoryEntrySchema.safeParse({
+      year: /^[1-9][0-9]{3}$/.test(year) ? Number(year) : null,
+      title: parseHistoryCodeText(fields[`title${row}`] ?? ""),
+      detail: detail === undefined ? null : parseHistoryCodeText(detail),
+    });
+
+    if (!entry.success) return null;
+    entries.push(entry.data);
+  }
+
+  return entries;
+};
 
 const isListLine = (line: string): boolean =>
   /^\*\s+/.test(line.trim()) || /^\d+\.\s+/.test(line.trim());
@@ -820,6 +859,15 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
             embedId: unescapeCodeValue(macro.fields.id),
             provider: unescapeCodeValue(macro.fields.provider) as WikiEmbedProvider,
           });
+          cursor += 1;
+          continue;
+        }
+
+        if (macro.name === "history") {
+          const entries = parseHistoryCodeEntries(macro.fields);
+          if (!entries) return createBlockParseError("invalidMacro");
+
+          addBlock({ blockType: "history", entries });
           cursor += 1;
           continue;
         }
@@ -1187,6 +1235,8 @@ export const createWikiBlock = (
         listType: "bullet",
         items: ["New item"],
       };
+    case "history":
+      return { blockIdentifier, blockType, displayOrder, entries: [] };
     case "table":
       return {
         blockIdentifier,
@@ -1485,6 +1535,12 @@ const toWikiContentPayload = (
         displayOrder: content.displayOrder,
         listType: content.listType,
         items: content.items,
+      };
+    case "history":
+      return {
+        type: content.blockType,
+        displayOrder: content.displayOrder,
+        entries: content.entries,
       };
     case "table":
       return {

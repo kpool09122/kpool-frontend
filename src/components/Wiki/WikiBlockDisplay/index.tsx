@@ -202,6 +202,39 @@ export function WikiBlockDisplay({
           {block.items.map((item) => <li className={textWrapClassName} key={item}>{renderInlineTokens(item)}</li>)}
         </ul>
       );
+    case "history": {
+      const entriesByYear = new Map<number, typeof block.entries>();
+      for (const entry of block.entries) {
+        const entries = entriesByYear.get(entry.year);
+        if (entries) entries.push(entry);
+        else entriesByYear.set(entry.year, [entry]);
+      }
+
+      const yearGroups = [...entriesByYear].sort(([left], [right]) => right - left);
+
+      return entriesByYear.size > 0 ? (
+        <div className="min-w-0 space-y-3">
+          {yearGroups.map(([year, entries]) => (
+            <div key={year} role="group" aria-label={String(year)}>
+              <div aria-hidden="true" className="flex items-center gap-2">
+                <time className="rounded-lg bg-text-strong/5 px-2 py-1 text-sm font-semibold tabular-nums text-text-strong" dateTime={String(year)}>
+                  {year}
+                </time>
+                <span className="h-px flex-1 bg-stroke-subtle" />
+              </div>
+              <ul className="divide-y divide-stroke-subtle">
+                {entries.map(({ title, detail }, index) => (
+                  <li className={`${textWrapClassName} px-2 py-3`} key={index}>
+                    <p className={`${textClassName} font-semibold`}>{renderInlineTokens(title)}</p>
+                    {detail ? <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-text-muted">{renderInlineTokens(detail)}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ) : null;
+    }
     case "table":
       const headerCells: WikiTableCell[] | null =
         block.headerCells ?? block.headers?.map((header) => ({ content: header })) ?? null;
