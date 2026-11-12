@@ -442,6 +442,7 @@ describe("WikiBlockForm", () => {
 
     const resourceTypeSelect = screen.getByLabelText("Resource type") as HTMLSelectElement;
 
+    expect(within(resourceTypeSelect).getByRole("option", { name: "Talent" })).toHaveValue("talent");
     expect([...resourceTypeSelect.options].map((option) => option.value)).not.toContain("group");
     fireEvent.change(resourceTypeSelect, {
       target: { value: "talent" },
@@ -462,11 +463,16 @@ describe("WikiBlockForm", () => {
       "/api/wiki/ja/gr-twice/related-profiles?resourceType=talent",
     );
 
+    const cardShape = screen.getByLabelText("Card shape");
+    expect(cardShape).toHaveValue("portrait");
+    fireEvent.change(cardShape, { target: { value: "landscape" } });
+    expect(screen.getByRole("img", { name: "SANA profile" }).parentElement).toHaveClass("aspect-video");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
+          cardShape: "landscape",
           relatedResourceType: "talent",
           profiles: [
             expect.objectContaining({
@@ -546,19 +552,25 @@ describe("WikiBlockForm", () => {
       ],
     } as typeof wikiStoryProfileListBlock;
 
-    renderWithI18n(
-      <WikiBlockForm
-        block={block}
-        onCancel={() => {}}
-        onSave={onSave}
-        sourceWiki={{ language: "ja", resourceType: "group", slug: "gr-twice" }}
-      />,
+    render(
+      <I18nProvider initialLocale="ja">
+        <WikiBlockForm
+          block={block}
+          onCancel={() => {}}
+          onSave={onSave}
+          sourceWiki={{ language: "ja", resourceType: "group", slug: "gr-twice" }}
+        />
+      </I18nProvider>,
     );
 
-    fireEvent.change(screen.getByLabelText("Resource type"), {
-      target: { value: "agency" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    const resourceTypeSelect = screen.getByLabelText("リソース種別");
+    const agencyOption = within(resourceTypeSelect).getByRole<HTMLOptionElement>("option", { name: "事務所" });
+    expect(agencyOption).toHaveValue("agency");
+    expect(within(resourceTypeSelect).getByRole("option", { name: "楽曲" })).toHaveValue("song");
+    expect(within(resourceTypeSelect).getByRole("option", { name: "タレント" })).toHaveValue("talent");
+
+    fireEvent.change(resourceTypeSelect, { target: { value: agencyOption.value } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({

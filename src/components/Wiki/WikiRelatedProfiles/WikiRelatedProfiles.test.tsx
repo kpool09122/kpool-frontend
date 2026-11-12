@@ -1,16 +1,23 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import type { WikiProfileCardListBlock } from "@kpool/wiki";
 
 import { WikiRelatedProfiles } from ".";
 
 describe("WikiRelatedProfiles", () => {
-  it("renders saved related profile summaries without resolving mock detail data", () => {
+  afterEach(cleanup);
+
+  it.each([
+    [undefined, "aspect-[2/3]"],
+    ["square", "aspect-square"],
+    ["landscape", "aspect-video"],
+  ] as const)("renders saved related profile summaries with shape %s", (cardShape, aspectClass) => {
     const block: WikiProfileCardListBlock = {
       blockIdentifier: "related-profiles",
       blockType: "profile_card_list",
       displayOrder: 1,
+      cardShape,
       profiles: [
         {
           wikiIdentifier: "momo-wiki",
@@ -43,6 +50,7 @@ describe("WikiRelatedProfiles", () => {
 
     render(<WikiRelatedProfiles block={block} language="ko" />);
 
+    expect(screen.getByRole("img", { name: "MOMO top image" }).parentElement).toHaveClass(aspectClass);
     expect(screen.getByRole("img", { name: "MOMO top image" })).toHaveAttribute(
       "src",
       "https://upload.wikimedia.org/wikipedia/commons/example/momo.jpg",

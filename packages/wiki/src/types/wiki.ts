@@ -250,10 +250,15 @@ export type WikiTableBlock = {
   tableWidth?: number | null;
 };
 
+export const wikiProfileCardShapeSchema = z.enum(["portrait", "square", "landscape"]);
+
+export type WikiProfileCardShape = z.infer<typeof wikiProfileCardShapeSchema>;
+
 export type WikiProfileCardListBlock = {
   blockIdentifier: string;
   blockType: "profile_card_list";
   displayOrder: number;
+  cardShape?: WikiProfileCardShape;
   relatedResourceType?: WikiResourceType | null;
   profiles?: WikiProfileCardSummary[];
   wikiIdentifiers: string[];
@@ -352,6 +357,7 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("profile_card_list"),
+    cardShape: wikiProfileCardShapeSchema.optional(),
     relatedResourceType: wikiResourceTypeSchema.nullable().optional(),
     profiles: z.array(wikiProfileCardSummarySchema).optional(),
     wikiIdentifiers: z.array(z.string()),

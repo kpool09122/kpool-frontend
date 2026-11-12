@@ -10,6 +10,7 @@ import {
   type WikiSectionContent,
   wikiDetailSchema,
   wikiHistoryEntrySchema,
+  wikiProfileCardShapeSchema,
   type WikiResourceType,
   wikiDraftDetailSchema,
 } from "./types/wiki";
@@ -512,11 +513,13 @@ const adaptWikiBlock = (
     }
     case "profile_card_list": {
       const profiles = toProfileCardSummaries(content.profiles);
+      const cardShape = wikiProfileCardShapeSchema.safeParse(content.cardShape ?? content.card_shape);
 
       return {
         blockIdentifier,
         blockType,
         displayOrder,
+        ...(cardShape.success ? { cardShape: cardShape.data } : {}),
         relatedResourceType: toNullable(content.relatedResourceType ?? content.related_resource_type) as WikiResourceType | null,
         profiles,
         wikiIdentifiers: toStringList(content.wikiIdentifiers ?? content.wiki_identifiers),

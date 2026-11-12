@@ -297,7 +297,7 @@ describe("publicWiki", () => {
     expect(decodeURIComponent(wiki.heroImage.src)).not.toContain("hero-image-1");
   });
 
-  it("keeps profile_card_list summaries from the public wiki response", () => {
+  it("keeps profile_card_list summaries and card shape from the public wiki response", () => {
     const wiki = adaptPublicWikiResponse({
       ...publicWikiResponse,
       sections: [
@@ -309,6 +309,7 @@ describe("publicWiki", () => {
               id: "members-profiles",
               type: "profile_card_list",
               displayOrder: 10,
+              cardShape: "square",
               relatedResourceType: "talent",
               title: "Related profiles",
               wikiIdentifiers: ["11111111-1111-1111-1111-111111111111"],
@@ -336,6 +337,7 @@ describe("publicWiki", () => {
         blockIdentifier: "members-profiles",
         blockType: "profile_card_list",
         displayOrder: 10,
+        cardShape: "square",
         profiles: [
           {
             wikiIdentifier: "11111111-1111-1111-1111-111111111111",
