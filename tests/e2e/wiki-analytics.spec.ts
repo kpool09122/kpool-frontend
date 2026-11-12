@@ -6,6 +6,7 @@ const wikiEvents = (page: Page) => page.evaluate(() => {
 });
 
 test("public Wiki views survive client navigation and exclude editing while GTM is blocked", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   const url = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
   await page.context().addCookies([
     { name: "kpool-mock-account-status", value: "active", url },
@@ -46,7 +47,6 @@ test("public Wiki views survive client navigation and exclude editing while GTM 
 test("a body Wiki link records the source and preserves its new-tab behavior", async ({ page, context }) => {
   await page.goto("/ja/wiki/gr-twice");
   await expect.poll(async () => (await wikiEvents(page)).length).toBe(1);
-  await page.getByTestId("section-toggle-sec-twice-overview").click();
   const link = page.locator('a[data-wiki-link-placement="body"]').first();
   const path = new URL((await link.getAttribute("href"))!, page.url()).pathname;
   await expect(link).toHaveAttribute("target", "_blank");

@@ -80,7 +80,11 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open wiki image library: Body photo" }));
     expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Image usage request" })).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("button", { name: "Select image: Selected body photo" }));
+    const thumbnail = await screen.findByRole("img", { name: "Selected body photo" });
+    const overlay = thumbnail.nextElementSibling!;
+    expect(thumbnail).toHaveAttribute("draggable", "false");
+    expect(overlay).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(overlay);
 
     expect(screen.queryByTestId("wiki-image-library")).not.toBeInTheDocument();
     expect(screen.getByAltText("Selected body photo")).toHaveAttribute("src", "https://images.example.test/body.jpg");

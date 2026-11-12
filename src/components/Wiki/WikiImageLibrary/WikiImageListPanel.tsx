@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { ImageIcon, ReloadIcon } from "@radix-ui/react-icons";
 
 import { type WikiUploadedImage } from "@kpool/wiki";
+import { WikiProfileImage } from "../WikiProfileImage";
 import { type WikiImageLibraryDictionary } from "./types";
 
 export function WikiImageListPanel({
@@ -55,13 +55,11 @@ export function WikiImageListPanel({
                 type="button"
               >
                 <span className="relative block aspect-[4/3] bg-black/10">
-                  <Image
+                  <WikiProfileImage
                     alt={image.altText || image.sourceName || image.imageIdentifier}
                     className="object-cover"
-                    fill
                     sizes="(min-width: 1024px) 28vw, (min-width: 640px) 45vw, 90vw"
                     src={image.url}
-                    unoptimized
                   />
                 </span>
                 <span className="grid gap-2 p-4 text-sm">

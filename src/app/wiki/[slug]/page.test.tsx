@@ -1,6 +1,6 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { WikiDetailPage } from "./WikiDetailPage";
@@ -97,7 +97,34 @@ const renderWithI18n = (ui: React.ReactElement) =>
   render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
 
 describe("WikiDetailPage", () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens nested public wiki sections on desktop and lets readers close them", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(min-width: 64rem)",
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    renderWithI18n(
+      <WikiDetailPage
+        language="ja"
+        slug="gr-aurora-echo"
+        wikiState={{ status: "success", data: createMockWikiDetail("gr-aurora-echo") }}
+      />,
+    );
+
+    const overview = screen.getByTestId("section-sec-overview");
+    const style = screen.getByTestId("section-sec-overview-style");
+    expect(overview).toHaveAttribute("open");
+    expect(style).toHaveAttribute("open");
+
+    fireEvent.click(screen.getByTestId("section-toggle-sec-overview-style"));
+    expect(style).not.toHaveAttribute("open");
+    expect(overview).toHaveAttribute("open");
+  });
 
   it("renders the public wiki detail view", () => {
     renderWithI18n(

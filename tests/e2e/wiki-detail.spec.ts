@@ -40,11 +40,31 @@ test("wiki detail page shows the public layout and flip interaction", async ({
   await expect(overviewSection).not.toHaveAttribute("open", "");
   await overviewToggle.click({ force: true });
   await expect(overviewSection).toHaveAttribute("open", "");
+  await expect(page.getByTestId("section-sec-overview-style")).not.toHaveAttribute("open", "");
   await expect(
     page.getByText(
       /Aurora Echo debuted with a performance style built around fluid formations/i,
     ),
   ).toBeVisible();
+});
+
+test("public wiki opens parent and nested sections by default on desktop", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/wiki/ja/gr-aurora-echo");
+
+  const overview = page.getByTestId("section-sec-overview");
+  const style = page.getByTestId("section-sec-overview-style");
+  const styleToggle = page.getByTestId("section-toggle-sec-overview-style");
+  const styleBody = style.getByText(/The visual direction mixes marine tailoring/i);
+  await expect(overview).toHaveAttribute("open", "");
+  await expect(style).toHaveAttribute("open", "");
+  await expect(styleBody).toBeVisible();
+
+  await styleToggle.press("Enter");
+  await expect(styleBody).toBeHidden();
+  await expect(overview).toHaveAttribute("open", "");
+  await styleToggle.press("Enter");
+  await expect(styleBody).toBeVisible();
 });
 
 test("missing public wiki uses the not-found page and prevents indexing", async ({ page }) => {

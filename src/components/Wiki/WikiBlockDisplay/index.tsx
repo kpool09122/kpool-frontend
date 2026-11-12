@@ -128,6 +128,8 @@ export function WikiBlockDisplay({
               {t.includedFrom} {token.target}
             </span>
           );
+        case "escapedCharacter":
+          return token.text;
         case "text":
           return (
             <Fragment key={`text-${index}`}>

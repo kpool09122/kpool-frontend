@@ -20,12 +20,20 @@ type WikiSectionAccordionProps = {
   editHref?: string;
   onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
+  openByDefault?: boolean;
   section: WikiSection;
 };
 
-export function WikiSectionAccordion({ editHref, onEdit, language, section }: WikiSectionAccordionProps) {
+export function WikiSectionAccordion({
+  editHref,
+  onEdit,
+  language,
+  openByDefault = false,
+  section,
+}: WikiSectionAccordionProps) {
   const { dictionary } = useI18n();
-  const [isOpen, setIsOpen] = useState(false);
+  const [openOverride, setOpenOverride] = useState<boolean>();
+  const isOpen = openOverride ?? openByDefault;
   const contents = sortWikiSectionContents(section.contents);
   const hasSideHeading = section.depth === 1;
 
@@ -41,7 +49,7 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
         data-testid={`section-toggle-${section.sectionIdentifier}`}
         onClick={(event) => {
           event.preventDefault();
-          setIsOpen((open) => !open);
+          setOpenOverride(!isOpen);
         }}
       >
         <span className={`${sectionHeadingClassName}${hasSideHeading ? " @min-[56rem]/wiki-content:mb-2 @min-[56rem]/wiki-content:basis-full" : ""}`}>{section.title}</span>
@@ -79,6 +87,7 @@ export function WikiSectionAccordion({ editHref, onEdit, language, section }: Wi
                 onEdit={onEdit}
                 key={content.sectionIdentifier}
                 language={language}
+                openByDefault={openByDefault}
                 section={content}
               />
             ) : null,

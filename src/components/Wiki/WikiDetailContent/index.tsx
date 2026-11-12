@@ -21,6 +21,7 @@ type WikiDetailContentProps = {
   editHref?: string;
   onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
+  sectionsOpenByDefault?: boolean;
   videoPanel?: ReactNode;
   activeTabId?: string;
   onTabChange?: (tabId: string) => void;
@@ -31,6 +32,7 @@ export function WikiDetailContent({
   editHref,
   onEdit,
   language,
+  sectionsOpenByDefault,
   videoPanel,
   activeTabId,
   onTabChange,
@@ -81,6 +83,7 @@ export function WikiDetailContent({
                     onEdit={onEdit}
                     key={section.sectionIdentifier}
                     language={language}
+                    openByDefault={sectionsOpenByDefault}
                     section={section}
                   />
                 ))}
