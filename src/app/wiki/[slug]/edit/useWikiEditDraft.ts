@@ -6,6 +6,7 @@ import {
   deleteWikiContent,
   normalizeWikiSectionsForEditing,
   parseWikiSectionsFromCode,
+  reorderWikiContent,
   serializeWikiSectionsToCode,
   toWikiEditPayload,
   updateWikiBlock,
@@ -13,6 +14,7 @@ import {
   type WikiBlock,
   type WikiBlockType,
   type WikiContentEditorId,
+  type WikiContentMove,
   type WikiDraftDetail,
   type WikiDraftStatus,
   type WikiEditPayload,
@@ -372,6 +374,11 @@ export const useWikiEditDraft = (
       if (editingId === newContentEditorId) {
         setNewContentEditorId(null);
       }
+    },
+    moveContent: (move: WikiContentMove) => {
+      const currentDraft = getCurrentDraft();
+      const sections = reorderWikiContent(currentDraft.sections, move);
+      if (sections !== currentDraft.sections) commitDraft({ ...currentDraft, sections });
     },
     addSection: (parentSectionIdentifier?: string) => {
       const currentDraft = getCurrentDraft();

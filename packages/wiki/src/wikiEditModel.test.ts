@@ -8,6 +8,7 @@ import {
   getWikiContentEditorId,
   isWikiSection,
   parseWikiSectionsFromCode,
+  reorderWikiContent,
   serializeWikiSectionsToCode,
   toWikiEditRequestPayload,
   toWikiEditPayload,
@@ -81,6 +82,34 @@ describe("wikiEditModel", () => {
       }),
     );
     expect(editId).toMatch(/^block:/);
+  });
+
+  it("reorders sibling blocks without changing the position of nested sections", () => {
+    const first = { ...createWikiBlock("text", 5), blockIdentifier: "first" };
+    const last = { ...createWikiBlock("quote", 90), blockIdentifier: "last" };
+    const child = createSection({
+      sectionIdentifier: "child",
+      depth: 2,
+      displayOrder: 40,
+    });
+    const sections = [createSection({ contents: [last, child, first] })];
+
+    const updated = reorderWikiContent(sections, {
+      parentSectionIdentifier: "sec-root",
+      source: "block:last",
+      target: "block:first",
+    });
+
+    expect(updated[0].contents).toEqual([
+      { ...last, displayOrder: 5 },
+      child,
+      { ...first, displayOrder: 90 },
+    ]);
+    expect(reorderWikiContent(updated, {
+      parentSectionIdentifier: "sec-root",
+      source: "block:last",
+      target: "section:child",
+    })).toBe(updated);
   });
 
   it("adds one editable block to a nested section with contents as the canonical edit tree", () => {

@@ -1322,6 +1322,54 @@ export const updateWikiBlock = (
     ),
   }));
 
+export type WikiContentMove = {
+  parentSectionIdentifier?: string;
+  source: WikiContentEditorId;
+  target: WikiContentEditorId;
+};
+
+export const reorderWikiContent = (
+  sections: WikiSection[],
+  { parentSectionIdentifier, source, target }: WikiContentMove,
+): WikiSection[] => {
+  if (source === target) return sections;
+  const movingSection = source.startsWith("section:");
+  const isMovable = (content: WikiSectionContent) => isWikiSection(content) === movingSection;
+
+  const reorderSiblings = <T extends WikiSectionContent>(siblings: T[]): T[] => {
+    const ordered = [...siblings].sort((left, right) => left.displayOrder - right.displayOrder);
+    const movable = ordered.filter(isMovable);
+    const sourceIndex = movable.findIndex((content) => getWikiContentEditorId(content) === source);
+    const targetIndex = movable.findIndex((content) => getWikiContentEditorId(content) === target);
+    if (sourceIndex < 0 || targetIndex < 0) return siblings;
+
+    const [moved] = movable.splice(sourceIndex, 1);
+    movable.splice(targetIndex, 0, moved);
+    const hasDuplicateOrder = ordered.some((content, index) => content.displayOrder === ordered[index - 1]?.displayOrder);
+    let nextIndex = 0;
+    return ordered.map((content, index) => {
+      const reordered = isMovable(content) ? movable[nextIndex++] : content;
+      const displayOrder = hasDuplicateOrder ? (index + 1) * DISPLAY_ORDER_STEP : content.displayOrder;
+      return reordered.displayOrder === displayOrder ? reordered : { ...reordered, displayOrder };
+    });
+  };
+
+  if (parentSectionIdentifier === undefined) return reorderSiblings(sections);
+
+  const visit = <T extends WikiSectionContent>(contents: T[]): T[] => {
+    const updated = contents.map((content) => {
+      if (!isWikiSection(content)) return content;
+      const children = content.sectionIdentifier === parentSectionIdentifier
+        ? reorderSiblings(content.contents)
+        : visit(content.contents);
+      return children === content.contents ? content : { ...content, contents: children };
+    });
+    return updated.some((content, index) => content !== contents[index]) ? updated : contents;
+  };
+
+  return visit(sections);
+};
+
 export const deleteWikiContent = (
   sections: WikiSection[],
   identifier: string,

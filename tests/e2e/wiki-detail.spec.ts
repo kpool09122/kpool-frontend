@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, test, type Page } from "./fixtures";
 import { expectYouTubePlayerSource, installYouTubePlayerMock } from "./youtube-player";
 
 const e2eBaseUrl = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
@@ -122,6 +122,91 @@ test("anonymous edit returns through the public detail before resolving a draft"
   await expect(page).toHaveURL(/\/ko\/wiki\/gr-twice\?themeColor=%234c5cff$/);
   await expect(page.getByRole("link", { name: "섹션 편집: Overview", exact: true })).toBeVisible();
 });
+
+async function dragWikiContent(page: Page, from: string, to: string, touch: boolean) {
+  const source = page.getByRole("button", { name: `Reorder: ${from}`, exact: true });
+  const target = page.getByRole("button", { name: `Reorder: ${to}`, exact: true });
+  await target.evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+  await source.click({ trial: true });
+  const sourceBox = await source.boundingBox();
+  const targetBox = await target.boundingBox();
+  if (!sourceBox || !targetBox) throw new Error("Wiki reorder handles are missing");
+  const start = { x: sourceBox.x + sourceBox.width / 2, y: sourceBox.y + sourceBox.height / 2 };
+  const end = { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 };
+
+  if (!touch) {
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(end.x, end.y, { steps: 8 });
+    await page.mouse.up();
+    return;
+  }
+
+  const session = await page.context().newCDPSession(page);
+  await session.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+  await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
+  for (let step = 1; step <= 8; step++) {
+    await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{
+      x: start.x + (end.x - start.x) * step / 8,
+      y: start.y + (end.y - start.y) * step / 8,
+    }] });
+  }
+  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await session.detach();
+}
+
+for (const touch of [false, true]) {
+  test(`Wiki editor reorders content with ${touch ? "touch" : "mouse"}`, async ({ page }) => {
+    await page.setViewportSize({ width: touch ? 390 : 1280, height: 900 });
+    await installYouTubePlayerMock(page);
+    await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
+
+    const embedHandle = page.getByTestId("wiki-edit-block-block-discography-embed").getByRole("button", { name: "Reorder: Embed", exact: true });
+    const quoteHandle = page.getByTestId("wiki-edit-block-block-discography-quote").getByRole("button", { name: "Reorder: Quote", exact: true });
+    await expect(embedHandle).toBeVisible();
+    await expect(quoteHandle).toBeVisible();
+    expect((await embedHandle.boundingBox())?.x).toBeCloseTo((await quoteHandle.boundingBox())!.x);
+
+    await page.getByRole("button", { name: "code", exact: true }).click();
+    const code = page.getByLabel("Wiki code");
+    await code.fill("== First ==\n\nText block.\n\n> Quoted block.\n\n=== Child A ===\n\n=== Child B ===\n\n== Second ==");
+    await page.getByRole("button", { name: "gui", exact: true }).click();
+    await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+
+    await dragWikiContent(page, "Quote", "Text", touch);
+    await expect(page.getByRole("button", { name: /^Reorder: (Quote|Text)$/ }).first()).toHaveAccessibleName("Reorder: Quote");
+    const child = page.getByRole("button", { name: "Reorder: Child B", exact: true });
+    await child.press("ArrowUp");
+    await expect(child).toBeFocused();
+    await page.getByRole("button", { name: "Toggle section: First", exact: true }).click();
+    await dragWikiContent(page, "Second", "First", touch);
+
+    await page.getByRole("button", { name: "Expand editor sidebar" }).click();
+    await page.getByRole("button", { name: "code", exact: true }).click();
+    await expect(code).toHaveValue("== Second ==\n\n== First ==\n\n> Quoted block.\n\nText block.\n\n=== Child B ===\n\n=== Child A ===");
+
+    await page.route("**/api/wiki/drafts/*", (route) => route.fulfill({
+      status: 200,
+      json: { language: "ja", name: "Aurora Echo", resourceType: "group", status: "draft", wikiIdentifier: "88888888-8888-4888-8888-888888888888" },
+    }));
+    const saveRequest = page.waitForRequest((request) => request.url().includes("/api/wiki/drafts/") && request.method() === "POST");
+    await page.getByRole("button", { name: "Save wiki changes", exact: true }).click();
+    expect((await saveRequest).postDataJSON().sections).toMatchObject([
+      { title: "Second", displayOrder: 10 },
+      {
+        title: "First",
+        displayOrder: 20,
+        contents: [
+          { type: "quote", displayOrder: 10 },
+          { type: "text", displayOrder: 20 },
+          { title: "Child B", displayOrder: 30 },
+          { title: "Child A", displayOrder: 40 },
+        ],
+      },
+    ]);
+    await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Saved");
+  });
+}
 
 test("wiki edit page supports inline edits and nested content controls", async ({
   page,
