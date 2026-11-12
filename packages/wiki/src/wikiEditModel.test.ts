@@ -37,6 +37,29 @@ const createSection = (overrides?: Partial<WikiSection>): WikiSection => ({
 });
 
 describe("wikiEditModel", () => {
+  it("preserves a history block through code editing and save serialization", () => {
+    const entries = [
+      { year: 2024, title: "Concert | Seoul", detail: "50%\n\nEncore \\ [[Tour|details]]" },
+      { year: 2024, title: "Debut", detail: "  First stage  " },
+      { year: 2025, title: "Concert", detail: null },
+    ];
+    const section = createSection({
+      contents: [{ blockType: "history", blockIdentifier: "history-1", displayOrder: 10, entries }],
+    });
+    const parsed = parseWikiSectionsFromCode(serializeWikiSectionsToCode([section]));
+
+    expect(parsed).toMatchObject({ ok: true, sections: [{ contents: [{ blockType: "history", entries }] }] });
+    if (parsed.ok) {
+      expect(toWikiSectionContentPayload(parsed.sections)).toMatchObject([
+        { type: "section", contents: [{ type: "history", entries }] },
+      ]);
+    }
+    expect(parseWikiSectionsFromCode("== Root ==\n\n[[history|year1:24|title1:Debut]]")).toEqual({
+      ok: false,
+      code: "invalidMacro",
+    });
+  });
+
   it("includes font style in edit payloads", () => {
     const wiki = createMockWikiDetail("gr-aurora-echo", { fontStyle: "en_serif" });
 

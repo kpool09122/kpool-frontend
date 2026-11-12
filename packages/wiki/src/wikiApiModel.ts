@@ -9,6 +9,7 @@ import {
   type WikiProfileCardSummary,
   type WikiSectionContent,
   wikiDetailSchema,
+  wikiHistoryEntrySchema,
   type WikiResourceType,
   wikiDraftDetailSchema,
 } from "./types/wiki";
@@ -379,6 +380,7 @@ const getBlockType = (content: Record<string, unknown>): WikiBlockType | null =>
     "embed",
     "quote",
     "list",
+    "history",
     "table",
     "profile_card_list",
   ].includes(rawType)
@@ -473,6 +475,19 @@ const adaptWikiBlock = (
         displayOrder,
         listType: toString(content.listType ?? content.list_type, "bullet") === "numbered" ? "numbered" : "bullet",
         items: toStringList(content.items),
+      };
+    case "history":
+      return {
+        blockIdentifier,
+        blockType,
+        displayOrder,
+        entries: Array.isArray(content.entries)
+          ? content.entries.flatMap((value) => {
+              const record = toRecord(value);
+              const entry = wikiHistoryEntrySchema.safeParse({ ...record, detail: record.detail ?? null });
+              return entry.success ? [entry.data] : [];
+            })
+          : [],
       };
     case "table": {
       const rowCells = toTableCells(content.rowCells ?? content.row_cells);

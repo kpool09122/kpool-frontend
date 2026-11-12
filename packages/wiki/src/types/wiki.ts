@@ -16,6 +16,7 @@ export type WikiBlockType =
   | "embed"
   | "quote"
   | "list"
+  | "history"
   | "table"
   | "profile_card_list";
 
@@ -223,6 +224,21 @@ export type WikiListBlock = {
   items: string[];
 };
 
+export const wikiHistoryEntrySchema = z.object({
+  year: z.number().int().min(1000).max(9999),
+  title: z.string().refine((title) => title.trim().length > 0),
+  detail: z.string().nullable(),
+});
+
+export type WikiHistoryEntry = z.infer<typeof wikiHistoryEntrySchema>;
+
+export type WikiHistoryBlock = {
+  blockIdentifier: string;
+  blockType: "history";
+  displayOrder: number;
+  entries: WikiHistoryEntry[];
+};
+
 export type WikiTableBlock = {
   blockIdentifier: string;
   blockType: "table";
@@ -251,6 +267,7 @@ export type WikiBlock =
   | WikiEmbedBlock
   | WikiQuoteBlock
   | WikiListBlock
+  | WikiHistoryBlock
   | WikiTableBlock
   | WikiProfileCardListBlock;
 
@@ -303,6 +320,10 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
     blockType: z.literal("list"),
     listType: z.enum(["bullet", "numbered"]),
     items: z.array(z.string()),
+  }),
+  wikiBlockBaseSchema.extend({
+    blockType: z.literal("history"),
+    entries: z.array(wikiHistoryEntrySchema),
   }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("table"),

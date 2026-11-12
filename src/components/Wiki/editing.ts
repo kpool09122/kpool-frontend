@@ -10,6 +10,7 @@ export const blockTypes: WikiBlockType[] = [
   "embed",
   "quote",
   "list",
+  "history",
   "table",
   "profile_card_list",
 ];
