@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useSyncExternalStore } from "react";
 
 import {
   type WikiDetailState,
@@ -19,6 +20,16 @@ import { PublicWikiAnalytics } from "@/components/Analytics/PublicWikiAnalytics"
 
 import { useWikiEditEntry } from "./useWikiEditEntry";
 
+// Match the public Wiki layout's Tailwind lg breakpoint.
+const desktopQuery = "(min-width: 64rem)";
+const subscribeToDesktopViewport = (onChange: () => void) => {
+  const media = window.matchMedia?.(desktopQuery);
+  media?.addEventListener("change", onChange);
+  return () => media?.removeEventListener("change", onChange);
+};
+const getDesktopSnapshot = () => window.matchMedia?.(desktopQuery).matches ?? false;
+const getServerDesktopSnapshot = () => false;
+
 type WikiDetailPageProps = {
   language: string;
   slug: string;
@@ -36,6 +47,11 @@ export function WikiDetailPage({
 }: WikiDetailPageProps) {
   const { dictionary } = useI18n();
   const searchParams = useSearchParams();
+  const isDesktop = useSyncExternalStore(
+    subscribeToDesktopViewport,
+    getDesktopSnapshot,
+    getServerDesktopSnapshot,
+  );
   const t = dictionary.wiki;
   const editEntry = useWikiEditEntry({ language, slug, themeColor }, resumeEditing && wikiState.status === "success");
 
@@ -88,6 +104,7 @@ export function WikiDetailPage({
           <WikiDetailContent
             key={`${data.language}:${data.resourceType}:${data.slug}`}
             data={data}
+            sectionsOpenByDefault={isDesktop}
             activeTabId={searchParams.get("tab") === "video" ? "video" : "wiki"}
             onTabChange={(tabId) => {
               const url = new URL(window.location.href);
