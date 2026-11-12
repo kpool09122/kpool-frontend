@@ -471,14 +471,8 @@ function VideoPlaybackList({
             likeControl={!ownerInbox ? <WikiVideoLikeControl video={video} wikiTitle={wikiTitle} likes={likes} /> : undefined}
             deleteControl={
               !ownerInbox && access.principalIdentifier &&
-              ([
-                "youtube_auto_view_count",
-                "youtube_auto_like_count",
-                "youtube_auto_recent_popular",
-              ].includes(video.videoUsage) ||
-                (video.creatorPrincipalIdentifier !== null &&
-                  video.creatorPrincipalIdentifier ===
-                    access.principalIdentifier)) ? (
+              (video.creatorPrincipalIdentifier === null ||
+                video.creatorPrincipalIdentifier === access.principalIdentifier) ? (
                 <WikiVideoDeleteButton
                   key={access.sessionKey}
                   video={video}

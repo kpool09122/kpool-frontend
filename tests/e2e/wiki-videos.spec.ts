@@ -13,7 +13,6 @@ const video = {
       creatorPrincipalIdentifier: null,
       creatorIdentityName: null,
   likeCount: 0, hasOfficialOwnerLike: false,
-  videoUsage: "youtube_auto_view_count",
 } satisfies WikiVideo;
 
 test("anonymous mobile viewer loads videos only on selection, plays inline, and caches switches", async ({

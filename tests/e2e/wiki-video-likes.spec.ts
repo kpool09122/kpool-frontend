@@ -11,7 +11,6 @@ const video = {
   durationSeconds: 120,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
-  videoUsage: "youtube_auto_recent_popular",
 };
 const baseURL = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
 test("collaborator adds and removes with keyboard, does not refetch, restores saved state on reload", async ({
@@ -45,7 +44,7 @@ test("collaborator adds and removes with keyboard, does not refetch, restores sa
             ...video,
             videoLinkIdentifier: "00000000-0000-4000-8000-000000000002",
             title: "Manual video",
-            videoUsage: "music_video",
+            creatorPrincipalIdentifier: "11111111-1111-4111-8111-111111111111",
             likeCount: 0, hasOfficialOwnerLike: false,
           },
         ],

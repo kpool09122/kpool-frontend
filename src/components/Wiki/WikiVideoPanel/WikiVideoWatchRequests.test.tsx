@@ -28,7 +28,6 @@ const video: WikiVideo = {
   durationSeconds: 30,
   creatorPrincipalIdentifier: id,
   creatorIdentityName: "Fan",
-  videoUsage: "short",
 };
 const identity = {
   language: "en",
@@ -344,7 +343,7 @@ it("mini-player has no send control and respects personal unlike restriction", a
 it.each([
   { guest: true },
   { denied: true },
-  { video: { videoUsage: "youtube_auto_recent_popular" as const } },
+  { video: { creatorPrincipalIdentifier: null } },
 ])(
   "never enables send for guest, denied or automatic targets (%j)",
   async (options) => {

@@ -18,8 +18,6 @@ export function WikiVideoCreateForm({ onCreated, ...identity }: Props) {
   const t = dictionary.wiki.videos.create;
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
-  const [videoUsage, setVideoUsage] =
-    useState<WikiVideoCreateRequest["videoUsage"]>("music_video");
   const [duration, setDuration] = useState<number | null>(null);
   const [tikTokPlaybackConfirmed, setTikTokPlaybackConfirmed] = useState(false);
   const [playerFailed, setPlayerFailed] = useState(false);
@@ -41,7 +39,6 @@ export function WikiVideoCreateForm({ onCreated, ...identity }: Props) {
       ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
       : null,
     title,
-    videoUsage,
     durationSeconds: duration,
   };
   const parsed = wikiVideoCreateSchema.safeParse(payload);
@@ -168,24 +165,6 @@ export function WikiVideoCreateForm({ onCreated, ...identity }: Props) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-        </label>
-        <label className="block">
-          {t.usage}
-          <select
-            className={field}
-            value={videoUsage}
-            onChange={(e) =>
-              setVideoUsage(
-                e.target.value as WikiVideoCreateRequest["videoUsage"],
-              )
-            }
-          >
-            {Object.entries(t.usages).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
         </label>
         <button
           className="rounded-lg bg-brand-primary px-4 py-2 text-white disabled:opacity-50"

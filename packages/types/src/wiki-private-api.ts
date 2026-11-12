@@ -590,16 +590,6 @@ const CreateVideoLinkRequestBody = z
     resourceType: z.enum(["agency", "group", "song", "talent"]),
     wikiIdentifier: KPool_Common_Uuid.uuid(),
     url: z.string().max(255),
-    videoUsage: z.enum([
-      "music_video",
-      "live",
-      "interview",
-      "behind_the_scenes",
-      "cover",
-      "collaboration",
-      "short",
-      "other",
-    ]),
     title: z.string().max(255),
     durationSeconds: z.number().int().gte(0).nullish(),
     thumbnailUrl: z.string().nullish(),
@@ -988,19 +978,6 @@ const Video = z
     durationSeconds: z.number().int().gte(0).nullable(),
     creatorPrincipalIdentifier: KPool_Common_Uuid.nullable(),
     creatorIdentityName: z.string().nullable(),
-    videoUsage: z.enum([
-      "music_video",
-      "live",
-      "interview",
-      "behind_the_scenes",
-      "cover",
-      "collaboration",
-      "short",
-      "other",
-      "youtube_auto_view_count",
-      "youtube_auto_like_count",
-      "youtube_auto_recent_popular",
-    ]),
   })
   .passthrough();
 const RelatedProfileItem = z
@@ -3782,7 +3759,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/video-link/:videoLinkId/watch-requests",
     alias: "VideoWatchRequestOperations_sendVideoWatchRequest",
-    description: `A video already watched by its current official owner returns 409 video_already_watched. Send a persistent watch request as an active authenticated Wiki collaborator with SEND_VIDEO_WATCH_REQUEST permission. The video must belong directly to an officially certified talent wiki and be user-created, liked by the caller, and confirmed to be at most 30 seconds (30 inclusive). The send policy requires a talent video on an officially certified talent wiki and user-created usage; policy rejection returns 403. Unknown/long stored durations are rejected with 409. Sender and target wiki are determined on the server. Eligibility uses durationSeconds stored in the database for both YouTube and TikTok; a missing stored duration is ineligible. No external duration lookup is performed. Sender, exact target wiki/video and server timestamp are stored permanently. Maximum three requests per caller/talent translation set across all languages in the last 168 hours; same-video resend, own unlike and any deletion are blocked for 168 hours, expiring exactly at that boundary. Success 204. A missing target wiki returns 409 video_watch_request_target_not_eligible. Other eligibility/limit failures return 409 video_watch_request_duration_not_eligible, video_watch_request_like_required, video_watch_request_resend_not_available or video_watch_request_weekly_limit_reached. Other callers&#x27; histories are never returned.`,
+    description: `A video already watched by its current official owner returns 409 video_already_watched. Send a persistent watch request as an active authenticated Wiki collaborator with SEND_VIDEO_WATCH_REQUEST permission. The video must belong directly to an officially certified talent wiki and be user-created, liked by the caller, and confirmed to be at most 30 seconds (30 inclusive). The send policy requires a talent video on an officially certified talent wiki and a manually added video; policy rejection returns 403. Unknown/long stored durations are rejected with 409. Sender and target wiki are determined on the server. Eligibility uses durationSeconds stored in the database for both YouTube and TikTok; a missing stored duration is ineligible. No external duration lookup is performed. Sender, exact target wiki/video and server timestamp are stored permanently. Maximum three requests per caller/talent translation set across all languages in the last 168 hours; same-video resend, own unlike and any deletion are blocked for 168 hours, expiring exactly at that boundary. Success 204. A missing target wiki returns 409 video_watch_request_target_not_eligible. Other eligibility/limit failures return 409 video_watch_request_duration_not_eligible, video_watch_request_like_required, video_watch_request_resend_not_available or video_watch_request_weekly_limit_reached. Other callers&#x27; histories are never returned.`,
     requestFormat: "json",
     parameters: [
       {

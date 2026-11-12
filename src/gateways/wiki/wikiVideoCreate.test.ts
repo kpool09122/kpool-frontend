@@ -9,7 +9,6 @@ const body = {
   wikiIdentifier: "11111111-1111-4111-8111-111111111111",
   url: "https://youtu.be/Os_heh8vPfs?list=ignore",
   thumbnailUrl: "https://i.ytimg.com/vi/Os_heh8vPfs/hqdefault.jpg",
-  videoUsage: "live" as const,
   title: "Title",
   durationSeconds: 200,
 };

@@ -29,11 +29,10 @@ const video = {
   thumbnailUrl: null,
   publishedAt: null,
   durationSeconds: 30,
-  creatorPrincipalIdentifier: null,
+  creatorPrincipalIdentifier: "11111111-1111-4111-8111-111111111111",
   creatorIdentityName: "Fan",
   likeCount: 1,
   hasOfficialOwnerLike: false,
-  videoUsage: "short",
 };
 async function setup(page: Page) {
   await page.context().clearCookies();

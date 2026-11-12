@@ -29,7 +29,7 @@ export function WikiVideoWatchRequestControl({
   if (
     !state ||
     state.reason === "target_not_eligible" ||
-    video.videoUsage.startsWith("youtube_auto_")
+    video.creatorPrincipalIdentifier === null
   )
     return null;
 

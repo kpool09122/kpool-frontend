@@ -30,7 +30,6 @@ const first: WikiVideo = {
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
   likeCount: 0, hasOfficialOwnerLike: false,
-  videoUsage: "youtube_auto_view_count",
 };
 const second: WikiVideo = {
   ...first, externalVideoId: "lmnopqrstuv",
