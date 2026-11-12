@@ -9,7 +9,7 @@ import type {
   WikiSection,
   WikiSectionContent,
 } from "./types/wiki";
-import { wikiHistoryEntrySchema } from "./types/wiki";
+import { wikiHistoryEntrySchema, wikiProfileCardShapeSchema } from "./types/wiki";
 import { newWikiEmbedId } from "./wikiEmbedModel";
 import { normalizeWikiImageWidth } from "./wikiImageLayout";
 
@@ -45,6 +45,7 @@ export type WikiSectionContentPayload =
       headerCells?: Array<{ content: string; colspan?: number }> | null;
       tableWidth?: number | null;
       relatedResourceType?: WikiDraftDetail["resourceType"] | null;
+      cardShape?: WikiProfileCardListBlock["cardShape"];
       profiles?: WikiProfileCardListBlock["profiles"];
       wikiIdentifiers?: string[];
       title?: string | null;
@@ -314,6 +315,7 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
       return serializeCodeMacro("profiles", [
         `ids:${block.wikiIdentifiers.map(escapeCodeValue).join(",")}`,
         serializeCodeField("resourceType", block.relatedResourceType),
+        serializeCodeField("shape", block.cardShape),
         serializeCodeField("title", block.title),
       ].filter((value): value is string => Boolean(value)));
   }
@@ -876,9 +878,12 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
           .split(",")
           .map(unescapeCodeValue)
           .filter(Boolean);
+        const cardShape = wikiProfileCardShapeSchema.optional().safeParse(macro.fields.shape);
+        if (!cardShape.success) return createBlockParseError("invalidMacro");
 
         addBlock({
           blockType: "profile_card_list",
+          ...(cardShape.data ? { cardShape: cardShape.data } : {}),
           relatedResourceType: macro.fields.resourceType
             ? (unescapeCodeValue(macro.fields.resourceType) as WikiDraftDetail["resourceType"])
             : null,
@@ -1556,6 +1561,7 @@ const toWikiContentPayload = (
       return {
         type: content.blockType,
         displayOrder: content.displayOrder,
+        ...(content.cardShape ? { cardShape: content.cardShape } : {}),
         relatedResourceType: content.relatedResourceType ?? null,
         profiles: content.profiles ?? [],
         wikiIdentifiers: content.wikiIdentifiers,

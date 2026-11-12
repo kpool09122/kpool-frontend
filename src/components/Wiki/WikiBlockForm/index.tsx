@@ -17,6 +17,7 @@ import {
   type WikiEmbedBlock,
   type WikiListType,
   type WikiMasterSearchItem,
+  type WikiProfileCardShape,
   type WikiProfileCardSummary,
   type WikiProfileCardListBlock,
   type WikiRelatedProfile,
@@ -24,6 +25,7 @@ import {
   type WikiTableBlock,
   type WikiTableCell,
   type WikiTextBlock,
+  wikiProfileCardShapeSchema,
   wikiResourceTypes,
 } from "@kpool/wiki";
 
@@ -37,6 +39,7 @@ import {
 import { cardSurfaceStyle } from "../styles";
 import { WikiFormActions } from "../WikiFormActions";
 import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
+import { profileCardAspectClasses, profileCardGridClasses } from "../WikiRelatedProfiles/layout";
 import { useI18n } from "../../../i18n/I18nProvider";
 import type { WikiImagePicker } from "../WikiImageLibrary/types";
 import { WikiHistoryBlockForm } from "./WikiHistoryBlockForm";
@@ -161,13 +164,19 @@ const masterSearchItemToProfile = (
   imageAltText: null,
 });
 
-function WikiRelatedProfilePreviewCard({ profile }: { profile: WikiProfileCardSummary }) {
+function WikiRelatedProfilePreviewCard({
+  cardShape,
+  profile,
+}: {
+  cardShape: WikiProfileCardShape;
+  profile: WikiProfileCardSummary;
+}) {
   const label = getProfileCardLabel(profile);
   const safeImageUrl = toSafeWikiImageUrl(profile.imageUrl);
 
   return (
     <div className="overflow-hidden rounded-xl border border-stroke-subtle bg-surface-base">
-      <div className="relative aspect-[2/3] bg-surface-muted">
+      <div className={`relative bg-surface-muted ${profileCardAspectClasses[cardShape]}`}>
         {safeImageUrl ? (
           <Image
             alt={profile.imageAltText || label}
@@ -1100,6 +1109,7 @@ function WikiProfileCardListBlockForm({
       : selectableResourceTypes[0] ?? "talent";
   const [title, setTitle] = useState(block.title ?? "");
   const [wikiIdentifiers, setWikiIdentifiers] = useState(block.wikiIdentifiers);
+  const [cardShape, setCardShape] = useState<WikiProfileCardShape>(block.cardShape ?? "portrait");
   const [relatedResourceType, setRelatedResourceType] =
     useState<WikiResourceType>(initialResourceType);
   const [profiles, setProfiles] = useState<WikiProfileCardSummary[] | null>(block.profiles ?? null);
@@ -1154,6 +1164,7 @@ function WikiProfileCardListBlockForm({
       onSubmit={(event) => {
         event.preventDefault();
         onSave({
+          cardShape,
           relatedResourceType,
           profiles: profiles ?? [],
           title: title.trim() || null,
@@ -1161,48 +1172,68 @@ function WikiProfileCardListBlockForm({
         });
       }}
     >
-      <label className="grid gap-2 text-sm font-semibold text-text-strong">
-        {t.title}
-        <input
-          className={textInputClassName}
-          name="title"
-          onChange={(event) => setTitle(event.target.value)}
-          value={title}
-        />
-      </label>
-      <label className="mt-3 grid gap-2 text-sm font-semibold text-text-strong">
-        {t.resourceType}
-        <select
-          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
-          disabled={!canLoadRelatedProfiles || loadState.status === "loading"}
-          name="relatedResourceType"
-          onChange={(event) => {
-            const nextResourceType = selectableResourceTypes.find(
-              (resourceType) => resourceType === event.target.value,
-            );
+      <div className="grid grid-cols-[minmax(0,3fr)_repeat(2,minmax(0,2fr))] items-end gap-2 sm:gap-3">
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+          {t.title}
+          <input
+            className={textInputClassName}
+            name="title"
+            onChange={(event) => setTitle(event.target.value)}
+            value={title}
+          />
+        </label>
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+          {t.resourceType}
+          <select
+            className="w-full min-w-0 rounded-xl border border-stroke-subtle bg-surface-base px-2 py-2 sm:px-3"
+            disabled={!canLoadRelatedProfiles || loadState.status === "loading"}
+            name="relatedResourceType"
+            onChange={(event) => {
+              const nextResourceType = selectableResourceTypes.find(
+                (resourceType) => resourceType === event.target.value,
+              );
 
-            if (!nextResourceType) {
-              setLoadState({
-                status: "error",
-                message: t.invalidRelatedProfileType,
-              });
-              return;
-            }
+              if (!nextResourceType) {
+                setLoadState({
+                  status: "error",
+                  message: t.invalidRelatedProfileType,
+                });
+                return;
+              }
 
-            setRelatedResourceType(nextResourceType);
-            setProfiles([]);
-            setWikiIdentifiers([]);
-            setLoadState({ status: "idle" });
-          }}
-          value={relatedResourceType}
-        >
-          {selectableResourceTypes.map((resourceType) => (
-            <option key={resourceType} value={resourceType}>
-              {resourceType}
-            </option>
-          ))}
-        </select>
-      </label>
+              setRelatedResourceType(nextResourceType);
+              setProfiles([]);
+              setWikiIdentifiers([]);
+              setLoadState({ status: "idle" });
+            }}
+            value={relatedResourceType}
+          >
+            {selectableResourceTypes.map((resourceType) => (
+              <option key={resourceType} value={resourceType}>
+                {dictionary.admin.draftWikiResourceLabels[resourceType]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+          {t.profileCardShape}
+          <select
+            className="w-full min-w-0 rounded-xl border border-stroke-subtle bg-surface-base px-2 py-2 sm:px-3"
+            name="cardShape"
+            onChange={(event) => {
+              const shape = wikiProfileCardShapeSchema.safeParse(event.target.value);
+              if (shape.success) setCardShape(shape.data);
+            }}
+            value={cardShape}
+          >
+            {wikiProfileCardShapeSchema.options.map((shape) => (
+              <option key={shape} value={shape}>
+                {t.profileCardShapes[shape]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       {canLoadRelatedProfiles ? (
         <button
           className="mt-3 rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-60"
@@ -1248,9 +1279,9 @@ function WikiProfileCardListBlockForm({
         </p>
       ) : null}
       {profiles && profiles.length > 0 ? (
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className={`mt-3 grid gap-3 ${profileCardGridClasses[cardShape]}`}>
           {profiles.map((profile) => (
-            <WikiRelatedProfilePreviewCard key={profile.slug} profile={profile} />
+            <WikiRelatedProfilePreviewCard cardShape={cardShape} key={profile.wikiIdentifier} profile={profile} />
           ))}
         </div>
       ) : null}

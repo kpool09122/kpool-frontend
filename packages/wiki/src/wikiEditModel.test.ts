@@ -477,13 +477,15 @@ describe("wikiEditModel", () => {
     ]);
   });
 
-  it("round-trips profile card list related resource type through code and payload", () => {
+  it.each([undefined, "square", "landscape"])("round-trips profile cards with shape %s", (cardShape) => {
     const momoWikiIdentifier = "11111111-1111-1111-1111-111111111111";
     const sanaWikiIdentifier = "22222222-2222-2222-2222-222222222222";
+    const shapeField = cardShape ? `|shape:${cardShape}` : "";
+    const macro = `[[profiles|ids:${momoWikiIdentifier},${sanaWikiIdentifier}|resourceType:talent${shapeField}|title:TWICE Members]]`;
     const parsed = parseWikiSectionsFromCode([
       "== Members ==",
       "",
-      `[[profiles|ids:${momoWikiIdentifier},${sanaWikiIdentifier}|resourceType:talent|title:TWICE Members]]`,
+      macro,
     ].join("\n"));
 
     expect(parsed.ok).toBe(true);
@@ -501,6 +503,7 @@ describe("wikiEditModel", () => {
           {
             type: "profile_card_list",
             displayOrder: 10,
+            ...(cardShape ? { cardShape } : {}),
             relatedResourceType: "talent",
             profiles: [],
             title: "TWICE Members",
@@ -509,9 +512,7 @@ describe("wikiEditModel", () => {
         ],
       },
     ]);
-    expect(serializeWikiSectionsToCode(parsed.sections)).toContain(
-      `[[profiles|ids:${momoWikiIdentifier},${sanaWikiIdentifier}|resourceType:talent|title:TWICE Members]]`,
-    );
+    expect(serializeWikiSectionsToCode(parsed.sections)).toContain(macro);
   });
 
   it("parses supported table width and colspan syntax into structured table cells", () => {

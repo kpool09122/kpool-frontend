@@ -8,6 +8,7 @@ import type { WikiProfileCardListBlock } from "@kpool/wiki";
 import { buildWikiPath, toSafeWikiImageUrl } from "@kpool/wiki";
 
 import { cardSurfaceStyle } from "../styles";
+import { profileCardAspectClasses, profileCardGridClasses } from "./layout";
 
 const profileCardStyle = {
   backgroundColor: "var(--wiki-card-background-muted, var(--surface-base))",
@@ -23,6 +24,7 @@ export function WikiRelatedProfiles({
 }) {
   const { dictionary } = useI18n();
   const profiles = block.profiles ?? [];
+  const cardShape = block.cardShape ?? "portrait";
 
   if (profiles.length === 0) {
     return (
@@ -42,7 +44,7 @@ export function WikiRelatedProfiles({
       {block.title ? (
         <h3 className="wiki-title text-lg font-semibold">{block.title}</h3>
       ) : null}
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className={`mt-3 grid gap-3 ${profileCardGridClasses[cardShape]} ${cardShape === "landscape" ? "" : "xl:grid-cols-5"}`}>
         {profiles.map((profile) => {
           const safeImageUrl = profile.isHidden ? null : toSafeWikiImageUrl(profile.imageUrl);
 
@@ -56,12 +58,14 @@ export function WikiRelatedProfiles({
               key={profile.wikiIdentifier}
               style={profileCardStyle}
             >
-              <div className="relative aspect-[2/3] overflow-hidden bg-surface-base">
+              <div className={`relative overflow-hidden bg-surface-base ${profileCardAspectClasses[cardShape]}`}>
                 {safeImageUrl ? (
                   <WikiProfileImage
                     alt={profile.imageAltText || profile.name}
                     className="object-cover transition duration-300 group-hover:scale-[1.03]"
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    sizes={cardShape === "landscape"
+                      ? "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      : "(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"}
                     src={safeImageUrl}
                   />
                 ) : (
