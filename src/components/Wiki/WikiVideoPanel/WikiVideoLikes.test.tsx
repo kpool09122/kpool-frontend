@@ -33,7 +33,6 @@ const video: WikiVideo = {
   durationSeconds: 120,
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
-  videoUsage: "youtube_auto_view_count",
 };
 const key = ["public-wiki-videos", "ja", "group", "gr-test"];
 const setup = (

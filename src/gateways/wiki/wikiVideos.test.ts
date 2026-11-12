@@ -12,10 +12,9 @@ describe("public wiki videos", () => {
       thumbnailUrl: null,
       publishedAt: null,
       durationSeconds: 253,
-      creatorPrincipalIdentifier: null,
+      creatorPrincipalIdentifier: n === 2 ? "11111111-1111-4111-8111-111111111111" : null,
       creatorIdentityName: null,
       likeCount: 0, hasOfficialOwnerLike: false,
-      videoUsage: n === 2 ? "music_video" : "youtube_auto_view_count",
     }));
     const fetcher = vi.fn().mockResolvedValue(Response.json({ videos }));
     vi.stubGlobal("fetch", fetcher);

@@ -62,7 +62,6 @@ const video = {
   creatorPrincipalIdentifier: null,
   creatorIdentityName: null,
   likeCount: 0, hasOfficialOwnerLike: false,
-  videoUsage: "youtube_auto_view_count",
 };
 const wrap = (client: QueryClient, slug = identity.slug, isOfficial = false, resourceType: WikiVideoIdentity["resourceType"] = identity.resourceType) => (
   <QueryClientProvider client={client}>
@@ -235,15 +234,12 @@ describe("WikiVideoPanel", () => {
     expect(useAuthStore.getState().status).toBe("authenticated");
   });
   it.each([
-    ["music_video", "wiki-me", true],
-    ["music_video", "other", false],
-    ["music_video", null, false],
-    ["youtube_auto_view_count", null, true],
-    ["youtube_auto_like_count", null, true],
-    ["youtube_auto_recent_popular", null, true],
+    ["wiki-me", true],
+    ["other", false],
+    [null, true],
   ])(
-    "checks creator Wiki principal and usage: %s / %s",
-    async (videoUsage, creatorPrincipalIdentifier, visible) => {
+    "checks deletion access for creator Wiki principal %s",
+    async (creatorPrincipalIdentifier, visible) => {
       useAuthStore.setState({ status: "authenticated" });
       vi.stubGlobal(
         "fetch",
@@ -256,9 +252,8 @@ describe("WikiVideoPanel", () => {
                     videos: [
                       {
                         ...video,
-                        videoUsage,
                         creatorPrincipalIdentifier,
-                        creatorIdentityName: "wiki-me",
+                        creatorIdentityName: creatorPrincipalIdentifier === null ? null : "wiki-me",
                       },
                     ],
                   },

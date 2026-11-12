@@ -41,7 +41,6 @@ test("fresh mobile public Wiki session sends with CSRF, refreshes restrictions, 
     durationSeconds: 30,
     creatorPrincipalIdentifier: id,
     creatorIdentityName: "Fan",
-    videoUsage: "short",
   };
   const other = {
     ...video,

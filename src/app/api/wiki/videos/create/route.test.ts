@@ -8,7 +8,6 @@ const body = {
   url: "https://www.youtube.com/watch?v=Os_heh8vPfs&list=ignored",
   thumbnailUrl: "https://i.ytimg.com/vi/Os_heh8vPfs/hqdefault.jpg",
   title: "Video",
-  videoUsage: "music_video",
   durationSeconds: 123,
 };
 const request = (payload: unknown = body, headers = {}) =>

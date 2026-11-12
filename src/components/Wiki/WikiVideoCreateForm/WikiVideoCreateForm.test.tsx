@@ -94,7 +94,6 @@ describe("single video form", () => {
       url: "https://www.youtube.com/watch?v=Os_heh8vPfs",
       thumbnailUrl: "https://i.ytimg.com/vi/Os_heh8vPfs/hqdefault.jpg",
       title: "My video",
-      videoUsage: "music_video",
       durationSeconds: 124,
     });
     expect(screen.getByLabelText("YouTube / TikTok URL")).toBeDisabled();

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { wikiVideoCreateSchema } from "./wikiVideoCreateModel";
 import { aggregateLikedVideos, playlistSaveSchema, type LikedVideo } from "./wikiPlaylists";
 const id = "6718335390845095173";
-const body = { resourceType: "talent", wikiIdentifier: "11111111-1111-4111-8111-111111111111", title: "Video", videoUsage: "short" };
+const body = { resourceType: "talent", wikiIdentifier: "11111111-1111-4111-8111-111111111111", title: "Video" };
 describe("mixed-provider API boundaries", () => {
   it("accepts TikTok canonical and share URLs without browser metadata", () => {
     for (const url of [`https://www.tiktok.com/@scout2015/video/${id}`, "https://vm.tiktok.com/AbCd123/", "https://vt.tiktok.com/AbCd123/"]) expect(wikiVideoCreateSchema.safeParse({ ...body, url }).success).toBe(true);

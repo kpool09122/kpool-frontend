@@ -125,7 +125,7 @@ export function useWikiVideoWatchRequests(
         )?.canSend ||
         client.isMutating({ mutationKey }) ||
         wikiVideoSessionKey() !== sessionKey ||
-        video.videoUsage.startsWith("youtube_auto_") ||
+        video.creatorPrincipalIdentifier === null ||
         video.durationSeconds === null ||
         video.durationSeconds > 30
       )
