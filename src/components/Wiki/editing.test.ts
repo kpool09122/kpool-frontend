@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyInlineMarkdownFormat,
+  inlineMarkdownToTiptapHtml,
   parseInlineMarkdown,
+  serializeTiptapJsonToInlineMarkdown,
 } from "./editing";
 
 describe("applyInlineMarkdownFormat", () => {
@@ -67,6 +69,20 @@ describe("applyInlineMarkdownFormat", () => {
       selectionStart: 10,
     });
   });
+});
+
+it("preserves square brackets in an external link label saved by the rich text editor", () => {
+  const href = "https://example.com";
+  const markdown = serializeTiptapJsonToInlineMarkdown({
+    type: "text",
+    text: "[Mamamoo]",
+    marks: [{ type: "link", attrs: { href } }],
+  });
+
+  expect(markdown).toBe(String.raw`[\[Mamamoo\]](https://example.com)`);
+  expect(inlineMarkdownToTiptapHtml(markdown)).toBe(
+    '<p><a href="https://example.com">[Mamamoo]</a></p>',
+  );
 });
 
 describe("parseInlineMarkdown", () => {

@@ -94,6 +94,7 @@ type ApplyInlineMarkdownFormatInput = {
 
 export type InlineMarkdownToken =
   | { kind: "text"; text: string }
+  | { kind: "escapedCharacter"; text: string }
   | { kind: "strong"; children: InlineMarkdownToken[] }
   | { kind: "emphasis"; children: InlineMarkdownToken[] }
   | { kind: "strikethrough"; children: InlineMarkdownToken[] }
@@ -174,8 +175,35 @@ export const applyInlineMarkdownFormat = ({
 const findClosingMarker = (content: string, marker: string, fromIndex: number): number =>
   content.indexOf(marker, fromIndex);
 
+const escapedLinkLabelCharacter = (content: string, index: number): string | undefined => {
+  if (content[index] !== "\\") {
+    return undefined;
+  }
+
+  const next = content[index + 1];
+  return next === "[" || next === "]" || next === "\\" ? next : undefined;
+};
+
+const findLinkLabelEnd = (content: string, marker: "]" | "]]", startIndex: number): number => {
+  let end = content.indexOf(marker, startIndex);
+  while (end >= 0) {
+    let escapeStart = end;
+    while (escapeStart > startIndex && content[escapeStart - 1] === "\\") {
+      escapeStart -= 1;
+    }
+
+    if ((end - escapeStart) % 2 === 0) {
+      return end;
+    }
+
+    end = content.indexOf(marker, end + 1);
+  }
+
+  return -1;
+};
+
 const parseLinkToken = (content: string, startIndex: number): { node: InlineMarkdownToken; nextIndex: number } | null => {
-  const textEnd = content.indexOf("]", startIndex + 1);
+  const textEnd = findLinkLabelEnd(content, "]", startIndex + 1);
 
   if (textEnd < 0 || content[textEnd + 1] !== "(") {
     return null;
@@ -198,7 +226,7 @@ const parseLinkToken = (content: string, startIndex: number): { node: InlineMark
   return {
     nextIndex: hrefEnd + 1,
     node: {
-      children: parseInlineMarkdown(text),
+      children: parseInlineTokens(text, true),
       href,
       kind: "link",
     },
@@ -213,13 +241,23 @@ const parseNamuLinkToken = (
     return null;
   }
 
-  const endIndex = content.indexOf("]]", startIndex + 2);
+  const targetStart = startIndex + 2;
+  const firstEndIndex = content.indexOf("]]", targetStart);
+  if (firstEndIndex < 0) {
+    return null;
+  }
+
+  const labelSeparator = content.slice(targetStart, firstEndIndex).indexOf("|");
+  const hasLabel = labelSeparator >= 0;
+  const endIndex = hasLabel
+    ? findLinkLabelEnd(content, "]]", targetStart + labelSeparator + 1)
+    : firstEndIndex;
 
   if (endIndex < 0) {
     return null;
   }
 
-  const rawValue = content.slice(startIndex + 2, endIndex).trim();
+  const rawValue = content.slice(targetStart, endIndex).trim();
 
   if (!rawValue || rawValue.startsWith("분류:") || rawValue.startsWith("파일:")) {
     return null;
@@ -234,7 +272,7 @@ const parseNamuLinkToken = (
   return {
     nextIndex: endIndex + 2,
     node: {
-      children: parseInlineMarkdown(display.trim()),
+      children: parseInlineTokens(display.trim(), hasLabel),
       href: `/wiki/${encodeURIComponent(target.trim())}`,
       kind: "link",
     },
@@ -304,6 +342,7 @@ const parseWrappedToken = (
   startIndex: number,
   marker: string,
   kind: Extract<InlineMarkdownToken["kind"], "strong" | "emphasis" | "strikethrough">,
+  inLinkLabel: boolean,
 ): { node: InlineMarkdownToken; nextIndex: number } | null => {
   const contentStart = startIndex + marker.length;
   const closingIndex = findClosingMarker(content, marker, contentStart);
@@ -315,13 +354,13 @@ const parseWrappedToken = (
   return {
     nextIndex: closingIndex + marker.length,
     node: {
-      children: parseInlineMarkdown(content.slice(contentStart, closingIndex)),
+      children: parseInlineTokens(content.slice(contentStart, closingIndex), inLinkLabel),
       kind,
     },
   };
 };
 
-export const parseInlineMarkdown = (content: string): InlineMarkdownToken[] => {
+const parseInlineTokens = (content: string, inLinkLabel: boolean): InlineMarkdownToken[] => {
   const tokens: InlineMarkdownToken[] = [];
   let cursor = 0;
   let textBuffer = "";
@@ -336,6 +375,14 @@ export const parseInlineMarkdown = (content: string): InlineMarkdownToken[] => {
   };
 
   while (cursor < content.length) {
+    const escaped = inLinkLabel ? escapedLinkLabelCharacter(content, cursor) : undefined;
+    if (escaped !== undefined) {
+      flushText();
+      tokens.push({ kind: "escapedCharacter", text: escaped });
+      cursor += 2;
+      continue;
+    }
+
     const slice = content.slice(cursor);
     const token =
       (slice.startsWith("[[") && parseNamuLinkToken(content, cursor)) ||
@@ -348,9 +395,9 @@ export const parseInlineMarkdown = (content: string): InlineMarkdownToken[] => {
           text: "\n",
         },
       }) ||
-      (slice.startsWith("**") && parseWrappedToken(content, cursor, "**", "strong")) ||
-      (slice.startsWith("~~") && parseWrappedToken(content, cursor, "~~", "strikethrough")) ||
-      (slice.startsWith("_") && parseWrappedToken(content, cursor, "_", "emphasis")) ||
+      (slice.startsWith("**") && parseWrappedToken(content, cursor, "**", "strong", inLinkLabel)) ||
+      (slice.startsWith("~~") && parseWrappedToken(content, cursor, "~~", "strikethrough", inLinkLabel)) ||
+      (slice.startsWith("_") && parseWrappedToken(content, cursor, "_", "emphasis", inLinkLabel)) ||
       (slice.startsWith("[") && parseLinkToken(content, cursor));
 
     if (token) {
@@ -368,6 +415,9 @@ export const parseInlineMarkdown = (content: string): InlineMarkdownToken[] => {
 
   return tokens;
 };
+
+export const parseInlineMarkdown = (content: string): InlineMarkdownToken[] =>
+  parseInlineTokens(content, false);
 
 type TiptapMark = {
   attrs?: {
@@ -394,6 +444,7 @@ const inlineTokensToHtml = (tokens: InlineMarkdownToken[]): string =>
     .map((token) => {
       switch (token.kind) {
         case "text":
+        case "escapedCharacter":
           return escapeHtml(token.text).replaceAll("\n", "<br>");
         case "strong":
           return `<strong>${inlineTokensToHtml(token.children)}</strong>`;
@@ -414,6 +465,8 @@ const inlineTokensToHtml = (tokens: InlineMarkdownToken[]): string =>
 export const inlineMarkdownToTiptapHtml = (content: string): string =>
   `<p>${inlineTokensToHtml(parseInlineMarkdown(content))}</p>`;
 
+const escapeLinkLabel = (text: string): string => text.replace(/[\\[\]]/g, "\\$&");
+
 const applyMarksToText = (text: string, marks: TiptapMark[] = []): string =>
   marks.reduce((current, mark) => {
     switch (mark.type) {
@@ -424,7 +477,7 @@ const applyMarksToText = (text: string, marks: TiptapMark[] = []): string =>
       case "strike":
         return `~~${current}~~`;
       case "link":
-        return `[${current}](${mark.attrs?.href ?? ""})`;
+        return `[${escapeLinkLabel(current)}](${mark.attrs?.href ?? ""})`;
       default:
         return current;
     }

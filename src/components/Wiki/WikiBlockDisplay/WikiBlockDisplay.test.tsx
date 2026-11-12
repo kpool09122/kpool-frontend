@@ -118,6 +118,23 @@ describe("WikiBlockDisplay", () => {
     expect(screen.getByRole("link", { name: "site" })).toHaveAttribute("data-wiki-link-placement", "body");
   });
 
+  it.each([
+    [String.raw`[\[Mamamoo\]](https://example.com)`, "https://example.com", "[Mamamoo]"],
+    [String.raw`[[gr-mamamoo|\[Mamamoo\]]]`, "/ko/wiki/gr-mamamoo", "[Mamamoo]"],
+    [String.raw`[[gr-mamamoo|\[\[Mamamoo\]\]]]`, "/ko/wiki/gr-mamamoo", "[[Mamamoo]]"],
+  ])("keeps the full escaped label inside %s", (content, href, label) => {
+    const { container } = render(
+      <WikiBlockDisplay
+        block={{ blockIdentifier: "escaped-link", blockType: "text", content, displayOrder: 10 }}
+        language="ko"
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: label })).toHaveAttribute("href", href);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(container.textContent).toBe(label);
+  });
+
   it("renders supported inline markdown inside list items", () => {
     const { container } = render(
       <WikiBlockDisplay
