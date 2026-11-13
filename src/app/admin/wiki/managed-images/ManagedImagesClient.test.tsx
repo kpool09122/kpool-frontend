@@ -1,7 +1,8 @@
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
-import { ManagedImageWorkspace, ImageMetadataForm } from "./ManagedImagesClient";
+import { ManagedImageWorkspace } from "./ManagedImagesClient";
+import { ImageMetadataForm } from "./ImageMetadataDialog";
 import { dictionaries } from "@/i18n/dictionaries";
 import * as api from "@/gateways/wiki/managedImageBrowserApi";
 import type { ManagedImage } from "@kpool/wiki";
@@ -30,11 +31,14 @@ it("loads approved management images, hides status and refreshes after saving", 
   render(<QueryClientProvider client={client}><ManagedImageWorkspace scope="actor" locale="en" t={dictionaries.en.admin} /></QueryClientProvider>);
   await screen.findByRole("link", { name: "Artist" });
   expect(screen.queryByText("approved")).toBeNull();
+  expect(screen.queryByRole("textbox")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  expect(screen.getByRole("dialog", { name: "Edit" })).toBeInTheDocument();
   fireEvent.change(screen.getByRole("textbox", { name: dictionaries.en.admin.imageAuthorLabel }), { target: { value: "New author" } });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await screen.findByRole("status");
   await waitFor(() => expect(api.fetchManagedImages).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(api.updateImageMetadata).toHaveBeenCalledWith(image.imageIdentifier, expect.objectContaining({ author: "New author" }), dictionaries.en.admin.managedImages.saveFailed);
   client.clear();
 });
@@ -46,5 +50,26 @@ it("displays an image without a linked Wiki without rendering an empty link", as
   await screen.findByRole("button", { name: "Edit" });
   expect(screen.getAllByRole("link")).toHaveLength(1);
   expect(screen.getByRole("link", { name: "Source" }).getAttribute("href")).toBe(image.sourceUrl);
+  client.clear();
+});
+
+it("closes the dialog without saving and returns focus to the edit button", async () => {
+  vi.mocked(api.fetchManagedImages).mockResolvedValue({ images: [image], current_page: 1, last_page: 1, per_page: 12, total: 1 });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><ManagedImageWorkspace scope="cancel" locale="en" t={dictionaries.en.admin} /></QueryClientProvider>);
+  const edit = await screen.findByRole("button", { name: "Edit" });
+  edit.focus();
+  fireEvent.click(edit);
+  expect(screen.getByRole("textbox", { name: dictionaries.en.admin.draftImageSourceNameLabel })).toHaveFocus();
+  fireEvent.change(screen.getByRole("textbox", { name: dictionaries.en.admin.draftImageSourceNameLabel }), { target: { value: "Unsaved source" } });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(api.updateImageMetadata).not.toHaveBeenCalled();
+  expect(edit).toHaveFocus();
+  expect(document.body.style.overflow).toBe("");
+  fireEvent.click(edit);
+  expect(screen.getByRole("textbox", { name: dictionaries.en.admin.draftImageSourceNameLabel })).toHaveValue("Source");
+  fireEvent(screen.getByRole("dialog"), new Event("cancel", { bubbles: true, cancelable: true }));
+  expect(screen.queryByRole("dialog")).toBeNull();
   client.clear();
 });
