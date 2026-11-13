@@ -29,6 +29,7 @@ import { UserPageClient } from "../user/UserPageClient";
 import { UserProfileClient } from "../user/profile/UserProfileClient";
 import { UserSecurityClient } from "../user/security/UserSecurityClient";
 import { ApprovedWikisClient } from "../wiki/approved/ApprovedWikisClient";
+import { ManagedImagesClient } from "../wiki/managed-images/ManagedImagesClient";
 import { DraftImagesClient } from "../wiki/draft-images/DraftImagesClient";
 import { EditingWikisClient } from "../wiki/editing/EditingWikisClient";
 import { ImageDeletionRequestsClient } from "../wiki/image-deletion-requests/ImageDeletionRequestsClient";
@@ -77,6 +78,7 @@ type AdminClientPage = "analyze" | "accountAffiliations"
   | "wikiWatchRequests"
   | "wikiPlaylists"
   | "wikiApproved"
+  | "wikiManagedImages"
   | "wikiDraftImages"
   | "wikiEditing"
   | "wikiImageDeletionRequests"
@@ -162,6 +164,8 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
   if (pathname?.endsWith("/untranslated")) {
     return "wikiUntranslated";
   }
+
+  if (pathname?.endsWith("/managed-images")) return "wikiManagedImages";
 
   if (pathname?.endsWith("/draft-images")) {
     return "wikiDraftImages";
@@ -324,6 +328,8 @@ function AdminResolvedPage({
         <UnapprovedWikisClient />
       ) : page === "wikiUntranslated" ? (
         <UntranslatedWikisClient />
+      ) : page === "wikiManagedImages" ? (
+        <ManagedImagesClient />
       ) : page === "wikiDraftImages" ? (
         <DraftImagesClient />
       ) : page === "wikiImageDeletionRequests" ? (

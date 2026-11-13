@@ -9,6 +9,7 @@ import {
   getOfficialCertificationPermissions,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
+  canManageWikiImages,
   canSearchWikiFreeMaterials,
   canReviewWikiDraftWikis,
   createWikiPrincipal,
@@ -64,6 +65,14 @@ const policy = ({
 });
 
 describe("wiki principal helpers", () => {
+  it("requires both image management permissions and respects deny and inactive status", () => {
+    const grant = policy({ actions: ["list_managed_images", "update_image_metadata"], resourceTypes: ["image"] });
+    expect(canManageWikiImages(principal)).toBe(false);
+    expect(canManageWikiImages({ ...principal, policies: [grant] })).toBe(true);
+    expect(canManageWikiImages({ ...principal, policies: [policy({ actions: ["list_managed_images"], resourceTypes: ["image"] })] })).toBe(false);
+    expect(canManageWikiImages({ ...principal, status: "suspended", policies: [grant] })).toBe(false);
+    expect(canManageWikiImages({ ...principal, policies: [grant, policy({ actions: ["update_image_metadata"], resourceTypes: ["image"], effect: "deny" })] })).toBe(false);
+  });
   it("uses image search policy, deny precedence and empty IMAGE resource conditions", () => {
     const grant = policy({ actions: ["search_free_materials"], resourceTypes: ["image"] });
     expect(canSearchWikiFreeMaterials(principal)).toBe(false);

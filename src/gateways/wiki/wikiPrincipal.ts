@@ -174,6 +174,15 @@ export const getWikiVideoLikePermissions = (principal: WikiPrincipalSummary, res
   return { canLike: allowed("like_video_link"), canUnlike: allowed("unlike_video_link") };
 };
 
+export const canManageWikiImages = (principal: WikiPrincipalSummary): boolean =>
+  ["list_managed_images", "update_image_metadata"].every((action) => {
+    const statements = principal.policies.flatMap((policy) => policy.statements).filter((statement) =>
+      valueMatches(statement.actions, action) && valueMatches(statement.resourceTypes, "image"));
+    return principal.status === "active"
+      && !statements.some((statement) => normalizePolicyValue(statement.effect) === "DENY" && emptyWikiResourceConditionMatches(statement) !== false)
+      && statements.some((statement) => normalizePolicyValue(statement.effect) === "ALLOW" && emptyWikiResourceConditionMatches(statement) === true);
+  });
+
 export const canReviewWikiDraftImages = (principal: WikiPrincipalSummary): boolean =>
   isAllowedWithoutDeny(principal, "APPROVE", "IMAGE") &&
   isAllowedWithoutDeny(principal, "REJECT", "IMAGE");
