@@ -27,6 +27,8 @@ const imageListResponse = () => ({
       displayOrder: 1,
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Hero.png",
       sourceName: "Wikimedia Commons",
+      author: null,
+      license: null,
       altText: "Hero image",
       isHidden: false,
       uploadedAt: null,

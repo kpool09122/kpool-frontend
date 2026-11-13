@@ -35,8 +35,8 @@ export const wikiImageDeletionRequestRejectionRequestSchema = wikiPrivateApiType
 });
 export const wikiImageDeletionRequestRejectionResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionRejectionSummary;
 export const wikiImageAuthorMaxLength = 255;
-export const wikiImageLicenseOptions = wikiPrivateApiTypes.schemas.ImageLicense.options;
-export type WikiImageLicense = z.infer<typeof wikiPrivateApiTypes.schemas.ImageLicense>;
+export const wikiImageLicenseOptions = wikiPrivateApiTypes.schemas.UploadImageRequestBody.shape.license.options;
+export type WikiImageLicense = z.infer<typeof wikiPrivateApiTypes.schemas.UploadImageRequestBody.shape.license>;
 
 export const formatWikiImageLicense = (license: WikiImageLicense): string =>
   license.replace(/^CC-/, "CC ").replace(/-(?=\d)/, " ");

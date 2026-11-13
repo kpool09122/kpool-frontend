@@ -45,6 +45,8 @@ export const withDefaultWikiResponseMetadata = (value: unknown): unknown => {
       imageIdentifier: null,
       src: null,
       alt: null,
+      author: null,
+      license: null,
       isHidden: false,
     };
   } else if (isRecord(nextRecord.heroImage)) {
@@ -52,6 +54,8 @@ export const withDefaultWikiResponseMetadata = (value: unknown): unknown => {
       imageIdentifier: null,
       src: null,
       alt: null,
+      author: null,
+      license: null,
       isHidden: false,
       ...nextRecord.heroImage,
     };

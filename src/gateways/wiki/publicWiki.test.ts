@@ -45,6 +45,8 @@ const publicWikiResponse = {
   },
   heroImage: {
     alt: "Aurora Echo public image",
+    author: null,
+    license: null,
     imageIdentifier: null,
     isHidden: false,
     src: "https://cdn.example.com/aurora-echo.webp",
@@ -125,6 +127,8 @@ describe("publicWiki", () => {
       },
       heroImage: {
         alt: "Aurora Echo public image",
+        author: null,
+        license: null,
         isHidden: false,
         src: "https://cdn.example.com/aurora-echo.webp",
       },
