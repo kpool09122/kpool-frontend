@@ -231,6 +231,8 @@ describe("wikiImages", () => {
         displayOrder: 1,
         sourceUrl: "https://source.example.test/image.webp",
         sourceName: "Source",
+        author: null,
+        license: null,
         altText: "Alt",
         isHidden: true,
         uploadedAt: "2026-05-09T00:00:00Z",

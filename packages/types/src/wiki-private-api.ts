@@ -196,6 +196,23 @@ const ImageDraftSummary = z
 const ImageDeletionApprovalSummary = z
   .object({ imageIdentifier: KPool_Common_Uuid, isHidden: z.boolean() })
   .passthrough();
+const UpdateImageMetadataRequestBody = z
+  .object({
+    sourceName: z.string().min(1).max(255),
+    author: z.string().min(1).max(255),
+    license: z.enum([
+      "CC-BY-4.0",
+      "CC-BY-SA-4.0",
+      "CC-BY-ND-4.0",
+      "CC-BY-NC-4.0",
+      "CC-BY-NC-SA-4.0",
+      "CC-BY-NC-ND-4.0",
+      "CC0-1.0",
+    ]),
+    altText: z.string().max(512).nullable(),
+    displayOrder: z.number().int().gte(0),
+  })
+  .passthrough();
 const ImageSummary = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
@@ -293,6 +310,43 @@ const FreeMaterialSite = z
   .passthrough();
 const SearchFreeMaterialsResponseBody = z
   .object({ sites: z.array(FreeMaterialSite).max(3) })
+  .passthrough();
+const ManagedImageListItem = z
+  .object({
+    imageIdentifier: KPool_Common_Uuid,
+    url: z.string(),
+    resourceType: z.string(),
+    translationSetIdentifier: KPool_Common_Uuid,
+    displayOrder: z.number().int(),
+    sourceUrl: z.string(),
+    sourceName: z.string(),
+    author: z.string().nullable(),
+    license: z
+      .enum([
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-ND-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-ND-4.0",
+        "CC0-1.0",
+      ])
+      .nullable(),
+    altText: z.string(),
+    isHidden: z.boolean(),
+    uploadedAt: z.string().nullable(),
+    wiki: DraftImageWikiDisplayInformation,
+    status: DraftImageStatus,
+  })
+  .passthrough();
+const ListManagedImagesResponseBody = z
+  .object({
+    images: z.array(ManagedImageListItem),
+    current_page: z.number().int(),
+    last_page: z.number().int(),
+    total: z.number().int(),
+    per_page: z.number().int(),
+  })
   .passthrough();
 const OfficialCertificationOwnerAccount = z
   .object({
@@ -1148,6 +1202,7 @@ export const schemas = {
   UploadImageRequestBody,
   ImageDraftSummary,
   ImageDeletionApprovalSummary,
+  UpdateImageMetadataRequestBody,
   ImageSummary,
   RejectImageDeletionRequestBody,
   ImageDeletionRejectionSummary,
@@ -1160,6 +1215,8 @@ export const schemas = {
   SearchFreeMaterialsRequestBody,
   FreeMaterialSite,
   SearchFreeMaterialsResponseBody,
+  ManagedImageListItem,
+  ListManagedImagesResponseBody,
   OfficialCertificationOwnerAccount,
   WikiListItem,
   OfficialCertificationListItem,
@@ -1584,6 +1641,58 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "patch",
+    path: "/image/:imageId/metadata",
+    alias: "ImageMetadataOperations_updateImageMetadata",
+    description: `Update published image metadata immediately for operators. Preserves image file, source URL, approval and visibility.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdateImageMetadataRequestBody,
+      },
+      {
+        name: "imageId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: ImageSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/image/:imageId/reject",
     alias: "ImageOperations_rejectImage",
@@ -1953,6 +2062,78 @@ const endpoints = makeApi([
       {
         status: 503,
         description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/managed-images",
+    alias: "ManagedImageListOperations_listManagedImages",
+    description: `List images across all Wikis for operators, including hidden published images. Approved selects published images; other statuses select drafts.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "status",
+        type: "Query",
+        schema: z.enum(["approved", "pending", "rejected", "under_review"]),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().gte(1).lte(100).nullish(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).nullish(),
+      },
+      {
+        name: "license",
+        type: "Query",
+        schema: z
+          .enum([
+            "CC-BY-4.0",
+            "CC-BY-SA-4.0",
+            "CC-BY-ND-4.0",
+            "CC-BY-NC-4.0",
+            "CC-BY-NC-SA-4.0",
+            "CC-BY-NC-ND-4.0",
+            "CC0-1.0",
+          ])
+          .nullish(),
+      },
+      {
+        name: "authorMissing",
+        type: "Query",
+        schema: z.boolean().nullish(),
+      },
+      {
+        name: "licenseMissing",
+        type: "Query",
+        schema: z.boolean().nullish(),
+      },
+    ],
+    response: ListManagedImagesResponseBody,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
         schema: KPool_Common_ProblemDetails,
       },
     ],

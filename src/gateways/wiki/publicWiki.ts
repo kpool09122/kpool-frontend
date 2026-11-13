@@ -1,3 +1,4 @@
+import { publicWikiCacheTag } from "./publicWikiCache";
 import { getWikiDetailState, type WikiDetail, type WikiDetailState } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
@@ -208,6 +209,7 @@ export const createPublicWikiApiClient = (
           },
           next: {
             revalidate: 60,
+            tags: [publicWikiCacheTag],
           },
         },
       );
@@ -233,6 +235,7 @@ export const createPublicWikiApiClient = (
           },
           next: {
             revalidate: 60,
+            tags: [publicWikiCacheTag],
           },
         },
       );

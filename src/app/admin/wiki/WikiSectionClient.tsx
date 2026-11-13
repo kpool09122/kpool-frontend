@@ -48,6 +48,7 @@ import {
   canManageOfficialCertifications,
   canReviewOfficialCertifications,
   canReviewWikiDraftImages,
+  canManageWikiImages,
   canReviewWikiDraftWikis,
   canReviewWikiImageDeletionRequests,
   createWikiPrincipal,
@@ -220,6 +221,7 @@ export function WikiSectionClient({
       (activeWikiTab === "officialCertificationReview" && canReviewOfficialCertificationRequests) ||
       (activeWikiTab === "approvedWikis" && canPublishDraftWikis) ||
       (activeWikiTab === "untranslatedWikis" && canTranslate) ||
+      (activeWikiTab === "managedImages" && canManageWikiImages(principalState.principal)) ||
       (activeWikiTab === "draftImages" && canReviewDraftImages) ||
       (activeWikiTab === "imageDeletionRequests" && canReviewImageDeletionRequests) ||
       (activeWikiTab === "principalGroupManagement" && canManagePrincipalGroups);
@@ -342,6 +344,8 @@ const resolveActiveWikiTab = (pathname: string | null): AdminWikiTab => {
   if (pathname?.endsWith("/untranslated")) {
     return "untranslatedWikis";
   }
+
+  if (pathname?.endsWith("/managed-images")) return "managedImages";
 
   if (pathname?.endsWith("/draft-images")) {
     return "draftImages";

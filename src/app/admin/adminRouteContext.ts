@@ -130,6 +130,8 @@ const resolveAdminWikiTab = (slug: string[] | undefined): AdminWikiTab => {
     return "untranslatedWikis";
   }
 
+  if (wikiPage === "managed-images") return "managedImages";
+
   if (wikiPage === "draft-images") {
     return "draftImages";
   }
@@ -146,7 +148,7 @@ const resolveAdminWikiTab = (slug: string[] | undefined): AdminWikiTab => {
 };
 
 const isDraftWikiInitialDataTab = (tab: AdminWikiTab): tab is InitialDraftWikiListTab =>
-  tab !== "draftImages" && tab !== "imageDeletionRequests" && tab !== "principalGroupManagement";
+  tab !== "managedImages" && tab !== "draftImages" && tab !== "imageDeletionRequests" && tab !== "principalGroupManagement";
 
 const createInitialDraftImageListState = (): DraftImageListState => ({
   images: [],

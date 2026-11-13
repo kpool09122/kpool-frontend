@@ -9,7 +9,7 @@ import type { ImageDeletionRequestListState } from "./useAdminImageDeletionReque
 export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings" | "otherSettings";
 export type AdminAccountSettingsTab = "accountProfile" | "accountInvitations" | "accountDocuments" | "accountNotifications" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "analyze" | "wiki" | "siteManagement" | "accountSettings" | "settings";
-export type AdminWikiTab = AdminDraftWikiActionTab | "watchRequests" | "playlists" | "draftImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
+export type AdminWikiTab = AdminDraftWikiActionTab | "watchRequests" | "playlists" | "draftImages" | "managedImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
 
 export type AdminRouteContext = {
   accountScope: string;
@@ -80,6 +80,7 @@ export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
   approvedWikis: "/admin/wiki/approved",
   untranslatedWikis: "/admin/wiki/untranslated",
   draftImages: "/admin/wiki/draft-images",
+  managedImages: "/admin/wiki/managed-images",
   imageDeletionRequests: "/admin/wiki/image-deletion-requests",
   officialCertificationRequest: "/admin/wiki/official-certification",
   officialCertificationReview: "/admin/wiki/official-certification/review",

@@ -1,3 +1,4 @@
+import { publicWikiCacheTag } from "./publicWikiCache";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -45,6 +46,8 @@ const publicWikiResponse = {
   },
   heroImage: {
     alt: "Aurora Echo public image",
+    author: null,
+    license: null,
     imageIdentifier: null,
     isHidden: false,
     src: "https://cdn.example.com/aurora-echo.webp",
@@ -125,6 +128,8 @@ describe("publicWiki", () => {
       },
       heroImage: {
         alt: "Aurora Echo public image",
+        author: null,
+        license: null,
         isHidden: false,
         src: "https://cdn.example.com/aurora-echo.webp",
       },
@@ -455,8 +460,16 @@ describe("publicWiki", () => {
         headers: {
           accept: "application/json",
         },
+        next: { revalidate: 60, tags: [publicWikiCacheTag] },
       }),
     );
+  });
+
+  it("tags public list requests for immediate image metadata invalidation", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: vi.fn().mockResolvedValue(publicWikiListResponse) });
+    vi.stubGlobal("fetch", fetchMock);
+    await createPublicWikiApiClient("https://api.example.test")?.fetchWikiList("ja", {});
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ next: { revalidate: 60, tags: [publicWikiCacheTag] } }));
   });
 
   it("fetches and adapts the public wiki list", async () => {

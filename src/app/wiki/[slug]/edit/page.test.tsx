@@ -72,7 +72,7 @@ const loadCropperImage = () => {
 describe("WikiEditPage", () => {
   it("selects a library image for a body block without changing the profile image", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({
-      images: [{ imageIdentifier: "selected-body-image", url: "https://images.example.test/body.jpg", resourceType: "group", wikiIdentifier: "gr-aurora-echo", translationSetIdentifier: "translation-set-aurora-echo", displayOrder: 1, sourceUrl: "https://example.test/source", sourceName: "Source", altText: "Selected body photo", isHidden: false, uploadedAt: "2026-11-11T00:00:00Z" }],
+      images: [{ imageIdentifier: "selected-body-image", url: "https://images.example.test/body.jpg", resourceType: "group", wikiIdentifier: "gr-aurora-echo", translationSetIdentifier: "translation-set-aurora-echo", displayOrder: 1, sourceUrl: "https://example.test/source", sourceName: "Source", author: null, license: null, altText: "Selected body photo", isHidden: false, uploadedAt: "2026-11-11T00:00:00Z" }],
       current_page: 1, last_page: 1, total: 1, per_page: 12,
     }));
     renderPage({ status: "success", data: { ...successState.data, sections: [{ ...successState.data.sections[0], contents: [{ blockIdentifier: "body-photo", blockType: "image", displayOrder: 1, imageIdentifier: "original-image", imageSrc: "https://images.example.test/original.jpg", alt: "Body photo", caption: "Preserved caption" }] }] } });
@@ -323,6 +323,8 @@ describe("WikiEditPage", () => {
                 displayOrder: 1,
                 sourceUrl: "https://source.example.test/image-1",
                 sourceName: "cover.jpg",
+                author: null,
+                license: null,
                 altText: "Cover image",
                 isHidden: false,
                 uploadedAt: "2026-05-09T00:00:00Z",
@@ -349,6 +351,8 @@ describe("WikiEditPage", () => {
                 displayOrder: 2,
                 sourceUrl: "https://source.example.test/image-2",
                 sourceName: "stage.webp",
+                author: null,
+                license: null,
                 altText: "Stage image",
                 isHidden: false,
                 uploadedAt: "2026-05-09T00:00:00Z",
@@ -423,6 +427,8 @@ describe("WikiEditPage", () => {
               displayOrder: 1,
               sourceUrl: "https://source.example.test/image-1",
               sourceName: "cover.jpg",
+              author: null,
+              license: null,
               altText: "Cover image",
               isHidden: false,
               uploadedAt: "2026-05-09T00:00:00Z",
@@ -533,6 +539,8 @@ describe("WikiEditPage", () => {
                 displayOrder: 1,
                 sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
                 sourceName: "Wikimedia Commons",
+                author: null,
+                license: null,
                 altText: "Stage upload",
                 isHidden: false,
                 uploadedAt: "2026-05-09T00:00:00Z",

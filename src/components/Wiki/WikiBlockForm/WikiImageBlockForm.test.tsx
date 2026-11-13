@@ -11,7 +11,7 @@ const block: WikiImageBlock = {
 const selected: WikiUploadedImage = {
   imageIdentifier: "new-image", url: "https://images.example.test/new.jpg", altText: "New photo",
   resourceType: "talent", wikiIdentifier: "wiki", translationSetIdentifier: "translation", displayOrder: 1,
-  sourceUrl: "https://example.test/source", sourceName: "Source", isHidden: false, uploadedAt: "2026-11-11T00:00:00Z",
+  sourceUrl: "https://example.test/source", sourceName: "Source", author: null, license: null, isHidden: false, uploadedAt: "2026-11-11T00:00:00Z",
 };
 const pickImage: WikiImagePicker = (onSelect) => onSelect(selected);
 
