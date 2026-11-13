@@ -16,10 +16,10 @@ it("forwards combined license and missing-author filters", async () => {
   vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
   const fetch = vi.fn().mockResolvedValue(Response.json({ images: [], current_page: 1, last_page: 1, per_page: 12, total: 0 }));
   vi.stubGlobal("fetch", fetch);
-  const result = await GET(new NextRequest("https://app.example.test/api/wiki/managed-images?license=CC-BY-4.0&authorMissing=true"));
+  const result = await GET(new NextRequest("https://app.example.test/api/wiki/managed-images?license=CC-BY-ND-NC-1.0&authorMissing=true"));
   expect(result.status).toBe(200);
   const url = new URL(String(fetch.mock.calls[0][0]));
-  expect(url.searchParams.get("license")).toBe("CC-BY-4.0");
+  expect(url.searchParams.get("license")).toBe("CC-BY-ND-NC-1.0");
   expect(url.searchParams.get("authorMissing")).toBe("true");
   expect(url.searchParams.get("status")).toBe("approved");
 });

@@ -20,9 +20,9 @@ it("edits only metadata and preserves explicitly chosen license for a legacy ima
   expect(screen.queryByLabelText(/URL/i)).toBeNull();
   expect(document.querySelector('input[type="file"]')).toBeNull();
   fireEvent.change(screen.getByRole("textbox", { name: dictionaries.en.admin.imageAuthorLabel }), { target: { value: "Photographer" } });
-  fireEvent.change(screen.getByRole("combobox"), { target: { value: "CC-BY-4.0" } });
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: "CC-BY-2.5" } });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(save).toHaveBeenCalledWith({ sourceName: "Source", author: "Photographer", license: "CC-BY-4.0", altText: "Photo", displayOrder: 0 });
+  expect(save).toHaveBeenCalledWith({ sourceName: "Source", author: "Photographer", license: "CC-BY-2.5", altText: "Photo", displayOrder: 0 });
 });
 it("loads approved management images, hides status and refreshes after saving", async () => {
   vi.mocked(api.fetchManagedImages).mockResolvedValue({ images: [{ ...image, author: "Author", license: "CC-BY-4.0" }], current_page: 1, last_page: 1, per_page: 12, total: 1 });

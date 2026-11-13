@@ -610,7 +610,7 @@ describe("WikiEditPage", () => {
     expect(submitButton).toBeDisabled();
     fireEvent.change(screen.getByLabelText("著作者"), { target: { value: "  Photo Author  " } });
     expect(submitButton).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("ライセンス"), { target: { value: "CC-BY-SA-4.0" } });
+    fireEvent.change(screen.getByLabelText("ライセンス"), { target: { value: "CC-BY-SA-3.0" } });
     fireEvent.click(submitButton);
 
     expect(
@@ -634,7 +634,7 @@ describe("WikiEditPage", () => {
       expect.objectContaining({
         altText: "Stage upload",
         author: "Photo Author",
-        license: "CC-BY-SA-4.0",
+        license: "CC-BY-SA-3.0",
         rightsConfirmationAgreed: true,
         sourceName: "Wikimedia Commons",
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
