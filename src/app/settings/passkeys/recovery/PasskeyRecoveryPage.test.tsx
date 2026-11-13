@@ -179,15 +179,17 @@ describe("PasskeyRecoveryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("確認コードを送信できませんでした");
     expect(screen.queryByText("private email error")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "確認コードを送信" })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: "確認コードを送信" }));
+    const send = screen.getByRole("button", { name: "確認コードを送信" });
+    await waitFor(() => expect(send).toBeEnabled());
+    fireEvent.click(send);
     await screen.findByLabelText("確認コード");
 
     const resend = screen.getByRole("button", { name: "同じメールアドレスへ確認コードを再送" });
+    await waitFor(() => expect(resend).toBeEnabled());
     fireEvent.click(resend);
     expect(await screen.findByRole("alert")).toHaveTextContent("確認コードを送信できませんでした");
     expect(screen.queryByText("private resend error")).not.toBeInTheDocument();
-    expect(resend).toBeEnabled();
+    await waitFor(() => expect(resend).toBeEnabled());
     fireEvent.click(resend);
     await waitFor(() => expect(resend).toBeEnabled());
     expect(sendRecoveryEmail).toHaveBeenCalledTimes(4);
