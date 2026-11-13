@@ -1644,7 +1644,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/image/:imageId/metadata",
     alias: "ImageMetadataOperations_updateImageMetadata",
-    description: `Update published image metadata immediately for operators. Preserves image file, source URL, approval and visibility. Saves the previous image as a snapshot.`,
+    description: `Update published image metadata immediately for operators. Preserves image file, source URL, approval and visibility.`,
     requestFormat: "json",
     parameters: [
       {
