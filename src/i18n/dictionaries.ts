@@ -1065,6 +1065,7 @@ const ja = {
     identitySettingsSyncFailed: "保存後のログイン中ユーザー再取得に失敗しました。時間をおいて再読み込みしてください。",
     managedImages: {
       "allLicenses": "すべてのライセンス",
+      "sourceUrl": "参照元URL",
       "licenseMissing": "未選択",
       "authorMissing": "著作者未入力のみ",
       "title": "画像管理",
@@ -2661,6 +2662,7 @@ const en: typeof ja = {
     identitySettingsSyncFailed: "Signed-in user refresh after save failed. Reload again later.",
     managedImages: {
       "allLicenses": "All licenses",
+      "sourceUrl": "Source URL",
       "licenseMissing": "Not selected",
       "authorMissing": "Missing author only",
       "title": "Image management",
@@ -4256,6 +4258,7 @@ const ko: typeof ja = {
     identitySettingsSyncFailed: "저장 후 로그인한 사용자를 다시 가져오지 못했습니다. 잠시 후 새로고침하세요.",
     managedImages: {
       "allLicenses": "모든 라이선스",
+      "sourceUrl": "참조 URL",
       "licenseMissing": "미선택",
       "authorMissing": "작성자 미입력만",
       "title": "이미지 관리",

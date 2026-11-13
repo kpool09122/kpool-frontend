@@ -273,6 +273,7 @@ const ImageDeletionApprovalSummary = z
   .passthrough();
 const UpdateImageMetadataRequestBody = z
   .object({
+    sourceUrl: z.string().max(512).nullable(),
     sourceName: z.string().min(1).max(255),
     author: z.string().min(1).max(255),
     license: z.enum([
@@ -1844,7 +1845,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/image/:imageId/metadata",
     alias: "ImageMetadataOperations_updateImageMetadata",
-    description: `Update published image metadata immediately for operators. Preserves image file, source URL, approval and visibility.`,
+    description: `Update published image metadata immediately for operators. Preserves image file, approval and visibility.`,
     requestFormat: "json",
     parameters: [
       {

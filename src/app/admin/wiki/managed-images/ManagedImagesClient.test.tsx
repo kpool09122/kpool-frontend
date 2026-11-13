@@ -15,21 +15,24 @@ const image: ManagedImage = {
 };
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 it.each([
-  ["CC BY 2.5", "CC-BY-2.5"],
-  ["Public Domain", "PUBLIC-DOMAIN"],
-])("saves %s in the image metadata form", (label, license) => {
+  ["CC BY 2.5", "CC-BY-2.5", image.sourceUrl],
+  ["Public Domain", "PUBLIC-DOMAIN", ""],
+])("saves %s together with the current source URL", (label, license, sourceUrl) => {
   const save = vi.fn();
-  render(<ImageMetadataForm image={image} t={dictionaries.en.admin} busy={false} error={null} onSave={save} onCancel={vi.fn()} />);
-  expect(screen.queryByLabelText(/URL/i)).toBeNull();
+  render(<ImageMetadataForm image={{ ...image, sourceUrl }} t={dictionaries.en.admin} busy={false} error={null} onSave={save} onCancel={vi.fn()} />);
+  expect(screen.getByRole("textbox", { name: dictionaries.en.admin.managedImages.sourceUrl })).toHaveValue(sourceUrl);
   expect(document.querySelector('input[type="file"]')).toBeNull();
   fireEvent.change(screen.getByRole("textbox", { name: dictionaries.en.admin.imageAuthorLabel }), { target: { value: "Photographer" } });
   expect(screen.getByRole("option", { name: label })).toHaveValue(license);
   fireEvent.change(screen.getByRole("combobox"), { target: { value: license } });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(save).toHaveBeenCalledWith({ sourceName: "Source", author: "Photographer", license, altText: "Photo", displayOrder: 0 });
+  expect(save).toHaveBeenCalledWith({ sourceUrl, sourceName: "Source", author: "Photographer", license, altText: "Photo", displayOrder: 0 });
 });
-it("loads approved management images, hides status and refreshes after saving", async () => {
-  vi.mocked(api.fetchManagedImages).mockResolvedValue({ images: [{ ...image, author: "Author", license: "CC-BY-4.0" }], current_page: 1, last_page: 1, per_page: 12, total: 1 });
+it("saves the source URL and refreshes the source link", async () => {
+  const sourceUrl = "https://example.org/new-source";
+  const approvedImage = { ...image, author: "Author", license: "CC-BY-4.0" as const };
+  const page = { images: [approvedImage], current_page: 1, last_page: 1, per_page: 12, total: 1 };
+  vi.mocked(api.fetchManagedImages).mockResolvedValueOnce(page).mockResolvedValue({ ...page, images: [{ ...approvedImage, sourceUrl }] });
   vi.mocked(api.updateImageMetadata).mockResolvedValue({ imageIdentifier: image.imageIdentifier, resourceType: "talent", isHidden: false });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><ManagedImageWorkspace scope="actor" locale="en" t={dictionaries.en.admin} /></QueryClientProvider>);
@@ -38,12 +41,16 @@ it("loads approved management images, hides status and refreshes after saving", 
   expect(screen.queryByRole("textbox")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
   expect(screen.getByRole("dialog", { name: "Edit" })).toBeInTheDocument();
+  const sourceInput = screen.getByRole("textbox", { name: dictionaries.en.admin.managedImages.sourceUrl });
+  expect(sourceInput).toHaveValue(image.sourceUrl);
+  fireEvent.change(sourceInput, { target: { value: sourceUrl } });
   fireEvent.change(screen.getByRole("textbox", { name: dictionaries.en.admin.imageAuthorLabel }), { target: { value: "New author" } });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
   await screen.findByRole("status");
   await waitFor(() => expect(api.fetchManagedImages).toHaveBeenCalledTimes(2));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-  expect(api.updateImageMetadata).toHaveBeenCalledWith(image.imageIdentifier, expect.objectContaining({ author: "New author" }), dictionaries.en.admin.managedImages.saveFailed);
+  expect(api.updateImageMetadata).toHaveBeenCalledWith(image.imageIdentifier, expect.objectContaining({ author: "New author", sourceUrl }), dictionaries.en.admin.managedImages.saveFailed);
+  expect(screen.getByRole("link", { name: image.sourceName })).toHaveAttribute("href", sourceUrl);
   client.clear();
 });
 

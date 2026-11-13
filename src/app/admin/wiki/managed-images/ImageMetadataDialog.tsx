@@ -64,6 +64,7 @@ export function ImageMetadataForm({ image, t, busy, error, onCancel, onSave }: F
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const metadata = imageMetadataSchema.safeParse({
+      sourceUrl: data.get("sourceUrl"),
       sourceName: data.get("sourceName"),
       author: data.get("author"),
       license: data.get("license"),
@@ -76,6 +77,9 @@ export function ImageMetadataForm({ image, t, busy, error, onCancel, onSave }: F
   return (
     <form onSubmit={submit}>
       <fieldset disabled={busy} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className={`${labelClass} sm:col-span-2`}>{t.managedImages.sourceUrl}
+          <input className={inputClass} name="sourceUrl" inputMode="url" defaultValue={image.sourceUrl} maxLength={512} />
+        </label>
         <label className={labelClass}>{t.draftImageSourceNameLabel}<input className={inputClass} name="sourceName" defaultValue={image.sourceName} maxLength={255} required /></label>
         <label className={labelClass}>{t.imageAuthorLabel}<input className={inputClass} name="author" defaultValue={image.author ?? ""} maxLength={255} required /></label>
         <label className={labelClass}>{t.imageLicenseLabel}
