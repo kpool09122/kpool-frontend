@@ -1,5 +1,5 @@
 import type { WikiBasic, WikiOfficialColor, WikiResourceType, WikiSection } from "./types/wiki";
-import { isWikiSection, sortWikiSectionContents } from "./wikiEditModel";
+import { isWikiSection, sortWikiSectionContents } from "./wikiSectionModel";
 import { buildWikiPath } from "./wikiRouting";
 
 export type WikiBasicFieldLink = {
