@@ -39,7 +39,7 @@ export const wikiImageLicenseOptions = wikiPrivateApiTypes.schemas.UploadImageRe
 export type WikiImageLicense = z.infer<typeof wikiPrivateApiTypes.schemas.UploadImageRequestBody.shape.license>;
 
 export const formatWikiImageLicense = (license: WikiImageLicense): string =>
-  license.replace(/^CC-/, "CC ").replace(/-(?=\d)/, " ");
+  license === "PUBLIC-DOMAIN" ? "Public Domain" : license.replace(/^CC-/, "CC ").replace(/-(?=\d)/, " ");
 
 export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),

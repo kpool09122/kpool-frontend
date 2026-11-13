@@ -14,15 +14,19 @@ const image: ManagedImage = {
   wiki: { names: { en: "Artist" }, slug: "artist" }, status: "approved",
 };
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
-it("edits only metadata and preserves explicitly chosen license for a legacy image", () => {
+it.each([
+  ["CC BY 2.5", "CC-BY-2.5"],
+  ["Public Domain", "PUBLIC-DOMAIN"],
+])("saves %s in the image metadata form", (label, license) => {
   const save = vi.fn();
   render(<ImageMetadataForm image={image} t={dictionaries.en.admin} busy={false} error={null} onSave={save} onCancel={vi.fn()} />);
   expect(screen.queryByLabelText(/URL/i)).toBeNull();
   expect(document.querySelector('input[type="file"]')).toBeNull();
   fireEvent.change(screen.getByRole("textbox", { name: dictionaries.en.admin.imageAuthorLabel }), { target: { value: "Photographer" } });
-  fireEvent.change(screen.getByRole("combobox"), { target: { value: "CC-BY-2.5" } });
+  expect(screen.getByRole("option", { name: label })).toHaveValue(license);
+  fireEvent.change(screen.getByRole("combobox"), { target: { value: license } });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  expect(save).toHaveBeenCalledWith({ sourceName: "Source", author: "Photographer", license: "CC-BY-2.5", altText: "Photo", displayOrder: 0 });
+  expect(save).toHaveBeenCalledWith({ sourceName: "Source", author: "Photographer", license, altText: "Photo", displayOrder: 0 });
 });
 it("loads approved management images, hides status and refreshes after saving", async () => {
   vi.mocked(api.fetchManagedImages).mockResolvedValue({ images: [{ ...image, author: "Author", license: "CC-BY-4.0" }], current_page: 1, last_page: 1, per_page: 12, total: 1 });
