@@ -1,10 +1,14 @@
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
-import { managedImageListSchema, imageMetadataSchema, wikiImageReviewResponseSchema, wikiDraftImageReviewCsrfHeaderName, wikiDraftImageReviewCsrfHeaderValue, type ImageMetadata } from "@kpool/wiki";
+import { managedImageListSchema, imageMetadataSchema, wikiImageReviewResponseSchema, wikiDraftImageReviewCsrfHeaderName, wikiDraftImageReviewCsrfHeaderValue, type ImageMetadata, type ManagedImageFilters } from "@kpool/wiki";
 import { getWikiRouteErrorMessage, readWikiRouteJsonResponse } from "./wikiBrowserRouteSupport";
 
-export async function fetchManagedImages(page: number, fallbackErrorMessage: string) {
-  const response = await browserApiFetch(`/api/wiki/managed-images?status=approved&perPage=12&page=${page}`);
+export async function fetchManagedImages(page: number, fallbackErrorMessage: string, filters: ManagedImageFilters = {}) {
+  const params = new URLSearchParams({ status: "approved", perPage: "12", page: String(page) });
+  if (filters.license) params.set("license", filters.license);
+  if (filters.licenseMissing) params.set("licenseMissing", "true");
+  if (filters.authorMissing) params.set("authorMissing", "true");
+  const response = await browserApiFetch(`/api/wiki/managed-images?${params}`);
   const body = await readWikiRouteJsonResponse(response, fallbackErrorMessage);
   if (!response.ok) throw new Error(getWikiRouteErrorMessage(body, fallbackErrorMessage));
   return parseWithSchemaLog("managed images", managedImageListSchema, body);

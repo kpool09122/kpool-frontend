@@ -12,3 +12,9 @@ export const imageMetadataSchema = wikiPrivateApiTypes.schemas.UpdateImageMetada
 export type ManagedImage = z.infer<typeof managedImageSchema>;
 export type ManagedImageList = z.infer<typeof managedImageListSchema>;
 export type ImageMetadata = z.infer<typeof imageMetadataSchema>;
+
+export type ManagedImageFilters = {
+  license?: ImageMetadata["license"];
+  authorMissing?: boolean;
+  licenseMissing?: boolean;
+};

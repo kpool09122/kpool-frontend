@@ -2088,6 +2088,31 @@ const endpoints = makeApi([
         type: "Query",
         schema: z.number().int().gte(1).nullish(),
       },
+      {
+        name: "license",
+        type: "Query",
+        schema: z
+          .enum([
+            "CC-BY-4.0",
+            "CC-BY-SA-4.0",
+            "CC-BY-ND-4.0",
+            "CC-BY-NC-4.0",
+            "CC-BY-NC-SA-4.0",
+            "CC-BY-NC-ND-4.0",
+            "CC0-1.0",
+          ])
+          .nullish(),
+      },
+      {
+        name: "authorMissing",
+        type: "Query",
+        schema: z.boolean().nullish(),
+      },
+      {
+        name: "licenseMissing",
+        type: "Query",
+        schema: z.boolean().nullish(),
+      },
     ],
     response: ListManagedImagesResponseBody,
     errors: [

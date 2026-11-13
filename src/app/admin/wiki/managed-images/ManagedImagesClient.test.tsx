@@ -73,3 +73,24 @@ it("closes the dialog without saving and returns focus to the edit button", asyn
   expect(screen.queryByRole("dialog")).toBeNull();
   client.clear();
 });
+
+it("restarts pagination when license or missing-author filters change and combines them", async () => {
+  vi.mocked(api.fetchManagedImages).mockImplementation(async (page, _message, filters) => ({
+    images: [{ ...image, imageIdentifier: page === 1 ? image.imageIdentifier : "33333333-3333-4333-8333-333333333333" }],
+    current_page: page, last_page: filters?.authorMissing ? 1 : 2, per_page: 12, total: filters?.authorMissing ? 1 : 13,
+  }));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><ManagedImageWorkspace scope="filters" locale="en" t={dictionaries.en.admin} /></QueryClientProvider>);
+  await screen.findByRole("button", { name: "Edit" });
+  fireEvent.click(screen.getByRole("button", { name: dictionaries.en.admin.managedImages.more }));
+  await waitFor(() => expect(api.fetchManagedImages).toHaveBeenLastCalledWith(2, expect.any(String), { license: undefined, authorMissing: false, licenseMissing: false }));
+  fireEvent.change(screen.getByRole("combobox", { name: dictionaries.en.admin.imageLicenseLabel }), { target: { value: "CC-BY-4.0" } });
+  await waitFor(() => expect(api.fetchManagedImages).toHaveBeenLastCalledWith(1, expect.any(String), { license: "CC-BY-4.0", authorMissing: false, licenseMissing: false }));
+  fireEvent.click(screen.getByRole("checkbox", { name: dictionaries.en.admin.managedImages.authorMissing }));
+  await waitFor(() => expect(api.fetchManagedImages).toHaveBeenLastCalledWith(1, expect.any(String), { license: "CC-BY-4.0", authorMissing: true, licenseMissing: false }));
+  await waitFor(() => expect(screen.queryByRole("button", { name: dictionaries.en.admin.managedImages.more })).toBeNull());
+  fireEvent.change(screen.getByRole("combobox", { name: dictionaries.en.admin.imageLicenseLabel }), { target: { value: "unselected" } });
+  await waitFor(() => expect(api.fetchManagedImages).toHaveBeenLastCalledWith(1, expect.any(String), { license: undefined, authorMissing: true, licenseMissing: true }));
+
+  client.clear();
+});

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { buildWikiPath, formatWikiImageLicense, isSafeWikiSourceUrl, type ManagedImage, type ImageMetadata } from "@kpool/wiki";
+import { buildWikiPath, formatWikiImageLicense, isSafeWikiSourceUrl, wikiImageLicenseOptions, type WikiImageLicense, type ManagedImage, type ImageMetadata } from "@kpool/wiki";
 import { fetchManagedImages, updateImageMetadata } from "@/gateways/wiki/managedImageBrowserApi";
 import { canManageWikiImages } from "@/gateways/wiki/wikiPrincipal";
 import { useAuthStore } from "@/gateways/auth/authStore";
@@ -27,28 +27,46 @@ export function ManagedImagesClient() {
 
 export function ManagedImageWorkspace({ scope, locale, t }: { scope: string; locale: ReturnType<typeof useAdmin>["locale"]; t: AdminText }) {
   const queryClient = useQueryClient();
-  const queryKey = ["admin", "managedImages", scope, "approved"];
+  const [license, setLicense] = useState<WikiImageLicense | "" | "unselected">("");
+  const [authorMissing, setAuthorMissing] = useState(false);
+  const imageQueryKey = ["admin", "managedImages", scope];
+  const queryKey = [...imageQueryKey, "approved", license, authorMissing];
   const text = t.managedImages;
   const [editing, setEditing] = useState<ManagedImage | null>(null);
   const query = useInfiniteQuery({
     queryKey,
     initialPageParam: 1,
-    queryFn: ({ pageParam }) => fetchManagedImages(pageParam, text.loadFailed),
+    queryFn: ({ pageParam }) => fetchManagedImages(pageParam, text.loadFailed, { license: license === "unselected" ? undefined : license || undefined, authorMissing, licenseMissing: license === "unselected" }),
     getNextPageParam: (page) => page.current_page < page.last_page ? page.current_page + 1 : undefined,
     retry: false,
   });
   const mutation = useMutation({
     mutationFn: ({ image, metadata }: { image: ManagedImage; metadata: ImageMetadata }) => updateImageMetadata(image.imageIdentifier, metadata, text.saveFailed),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey });
+      await queryClient.invalidateQueries({ queryKey: imageQueryKey });
       setEditing(null);
     },
   });
   const images = query.data?.pages.flatMap((page) => page.images) ?? [];
   return <section className="space-y-5" aria-label={text.title}>
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="text-xl font-semibold">{text.title}</h2>
-      {query.data ? <p className="text-sm text-text-muted">{text.total}: {query.data.pages[0].total}</p> : null}
+    <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <label className="block text-xs font-semibold text-text-muted">
+        {t.imageLicenseLabel}
+        <select
+          className="mt-1 block rounded-md border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong"
+          value={license}
+          onChange={(event) => setLicense(event.target.value === "unselected" ? "unselected" : wikiImageLicenseOptions.find((option) => option === event.target.value) ?? "")}
+        >
+          <option value="">{text.allLicenses}</option>
+          <option value="unselected">{text.licenseMissing}</option>
+          {wikiImageLicenseOptions.map((option) => <option key={option} value={option}>{formatWikiImageLicense(option)}</option>)}
+        </select>
+      </label>
+      <label className="flex min-h-10 items-center gap-2 text-sm">
+        <input type="checkbox" checked={authorMissing} onChange={(event) => setAuthorMissing(event.target.checked)} className="size-4 accent-brand-primary" />
+        {text.authorMissing}
+      </label>
+      {query.data ? <p className="ml-auto flex min-h-10 items-center text-sm text-text-muted">{text.total}: {query.data.pages[0].total}</p> : null}
     </div>
     {mutation.isSuccess ? <p role="status">{text.saved}</p> : null}
     {query.isPending ? <p role="status">{text.loading}</p> : null}
