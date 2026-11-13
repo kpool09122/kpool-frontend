@@ -12,15 +12,6 @@ const DraftImageStatus = z.enum([
   "rejected",
   "under_review",
 ]);
-const ImageLicense = z.enum([
-  "CC-BY-4.0",
-  "CC-BY-SA-4.0",
-  "CC-BY-ND-4.0",
-  "CC-BY-NC-4.0",
-  "CC-BY-NC-SA-4.0",
-  "CC-BY-NC-ND-4.0",
-  "CC0-1.0",
-]);
 const DraftImageListItem = z
   .object({
     imageIdentifier: KPool_Common_Uuid,
@@ -31,8 +22,18 @@ const DraftImageListItem = z
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
     sourceName: z.string(),
-    author: z.string().nullish(),
-    license: ImageLicense.nullish(),
+    author: z.string().nullable(),
+    license: z
+      .enum([
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-ND-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-ND-4.0",
+        "CC0-1.0",
+      ])
+      .nullable(),
     altText: z.string(),
     wiki: DraftImageWikiDisplayInformation,
     status: DraftImageStatus,
@@ -132,8 +133,18 @@ const ImageDeletionRequestListItem = z
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
     sourceName: z.string(),
-    author: z.string().nullish(),
-    license: ImageLicense.nullish(),
+    author: z.string().nullable(),
+    license: z
+      .enum([
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-ND-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-ND-4.0",
+        "CC0-1.0",
+      ])
+      .nullable(),
     altText: z.string(),
     isHidden: z.boolean(),
     uploadedAt: z.string().nullable(),
@@ -161,7 +172,15 @@ const UploadImageRequestBody = z
     sourceUrl: z.string(),
     sourceName: z.string(),
     author: z.string().min(1).max(255),
-    license: ImageLicense,
+    license: z.enum([
+      "CC-BY-4.0",
+      "CC-BY-SA-4.0",
+      "CC-BY-ND-4.0",
+      "CC-BY-NC-4.0",
+      "CC-BY-NC-SA-4.0",
+      "CC-BY-NC-ND-4.0",
+      "CC0-1.0",
+    ]),
     altText: z.string(),
     agreedToTermsAt: z.string(),
     rightsConfirmationAgreed: z.boolean(),
@@ -219,8 +238,18 @@ const UploadedImageListItem = z
     displayOrder: z.number().int(),
     sourceUrl: z.string(),
     sourceName: z.string(),
-    author: z.string().nullish(),
-    license: ImageLicense.nullish(),
+    author: z.string().nullable(),
+    license: z
+      .enum([
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-ND-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-ND-4.0",
+        "CC0-1.0",
+      ])
+      .nullable(),
     altText: z.string(),
     isHidden: z.boolean(),
     uploadedAt: z.string().nullable(),
@@ -638,8 +667,18 @@ const DraftWikiHeroImage = z
     alt: z.string().nullable(),
     sourceUrl: z.string().nullish(),
     sourceName: z.string().nullish(),
-    author: z.string().nullish(),
-    license: ImageLicense.nullish(),
+    author: z.string().nullable(),
+    license: z
+      .enum([
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-ND-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-ND-4.0",
+        "CC0-1.0",
+      ])
+      .nullable(),
     isHidden: z.boolean().nullable(),
   })
   .passthrough();
@@ -899,8 +938,18 @@ const WikiHeroImage = z
     alt: z.string().nullable(),
     sourceUrl: z.string().nullish(),
     sourceName: z.string().nullish(),
-    author: z.string().nullish(),
-    license: ImageLicense.nullish(),
+    author: z.string().nullable(),
+    license: z
+      .enum([
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC-BY-ND-4.0",
+        "CC-BY-NC-4.0",
+        "CC-BY-NC-SA-4.0",
+        "CC-BY-NC-ND-4.0",
+        "CC0-1.0",
+      ])
+      .nullable(),
     isHidden: z.boolean().nullable(),
   })
   .passthrough();
@@ -1082,7 +1131,6 @@ export const schemas = {
   translationSetIdentifier,
   DraftImageWikiDisplayInformation,
   DraftImageStatus,
-  ImageLicense,
   DraftImageListItem,
   ListDraftImagesResponseBody,
   KPool_Common_ProblemDetails,
