@@ -13,7 +13,7 @@ type FormProps = {
   error: string | null;
   onSave: (metadata: ImageMetadata) => void;
 };
-const inputClass = "mt-1 w-full rounded-md border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal";
+const inputClass = "mt-1 w-full rounded-md border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal text-text-strong";
 const labelClass = "block min-w-0 text-xs font-semibold text-text-muted";
 const buttonClass = "rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60";
 
