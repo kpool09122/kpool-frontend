@@ -11,7 +11,7 @@ const image = {
   sourceName: "Wikimedia Commons",
 };
 
-const show = (overrides = {}) => render(
+const show = (overrides: Partial<Parameters<typeof WikiImageSourceLink>[0]["image"]> = {}) => render(
   <I18nProvider initialLocale="en"><WikiImageSourceLink image={{ ...image, ...overrides }} /></I18nProvider>,
 );
 
@@ -24,6 +24,17 @@ describe("WikiImageSourceLink", () => {
     expect(link).toHaveAttribute("href", image.sourceUrl);
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it.each([
+    { author: " Photo Author ", license: "CC-BY-SA-4.0", credits: " / Photo Author / CC BY-SA 4.0" },
+    { author: "Photo Author", license: null, credits: " / Photo Author" },
+    { author: " ", license: "CC0-1.0", credits: " / CC0 1.0" },
+    { author: null, license: null, credits: "" },
+  ] as const)("renders only the available credits ($credits)", ({ author, license, credits }) => {
+    show({ author, license });
+    const link = screen.getByRole("link", { name: "Wikimedia Commons" });
+    expect(link.parentElement?.textContent?.endsWith(`Wikimedia Commons${credits}`)).toBe(true);
   });
 
   it("links to the source even when the site name is missing", () => {

@@ -34,8 +34,16 @@ export const wikiImageDeletionRequestRejectionRequestSchema = wikiPrivateApiType
   rejectReason: z.string().trim().min(1),
 });
 export const wikiImageDeletionRequestRejectionResponseSchema = wikiPrivateApiTypes.schemas.ImageDeletionRejectionSummary;
+export const wikiImageAuthorMaxLength = 255;
+export const wikiImageLicenseOptions = wikiPrivateApiTypes.schemas.ImageLicense.options;
+export type WikiImageLicense = z.infer<typeof wikiPrivateApiTypes.schemas.ImageLicense>;
+
+export const formatWikiImageLicense = (license: WikiImageLicense): string =>
+  license.replace(/^CC-/, "CC ").replace(/-(?=\d)/, " ");
+
 export const wikiImageUploadRequestSchema = wikiPrivateApiTypes.schemas.UploadImageRequestBody.extend({
   base64EncodedImage: z.string().max(wikiImageMaxBase64Length),
+  author: z.string().trim().min(1).max(wikiImageAuthorMaxLength),
 });
 export const wikiImageReviewResponseSchema = z.union([
   wikiPrivateApiTypes.schemas.ImageDraftSummary,
@@ -157,19 +165,23 @@ export const stripDataUrlPrefix = (value: string): string => {
 
 export const createWikiImageUploadRequest = ({
   altText,
+  author,
   base64EncodedImage,
   displayOrder,
   fileName,
   imageAssociation,
+  license,
   rightsConfirmationAgreed,
   sourceName,
   sourceUrl,
 }: {
   altText: string;
+  author: string;
   base64EncodedImage: string;
   displayOrder: number;
   fileName: string;
   imageAssociation: WikiImageAssociationInput;
+  license: WikiImageLicense;
   rightsConfirmationAgreed: boolean;
   sourceName: string;
   sourceUrl: string;
@@ -181,6 +193,8 @@ export const createWikiImageUploadRequest = ({
     displayOrder,
     sourceUrl: isSafeWikiSourceUrl(sourceUrl) ? sourceUrl.trim() : "",
     sourceName: sourceName.trim(),
+    author: author.trim(),
+    license,
     altText: altText.trim() || fileName,
     agreedToTermsAt: new Date().toISOString(),
     rightsConfirmationAgreed,

@@ -218,6 +218,8 @@ describe("wikiImageBrowserApi", () => {
       },
       rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",
+      author: "Photo Author",
+      license: "CC-BY-SA-4.0",
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
     });
     const fetchMock = vi.fn().mockResolvedValue(

@@ -1,3 +1,4 @@
+import { wikiPrivateApiTypes } from "@kpool/types";
 import { z } from "zod";
 
 export type WikiSection = {
@@ -448,6 +449,8 @@ const wikiDetailBaseSchema = z.object({
     alt: z.string(),
     sourceUrl: z.string().nullable().optional(),
     sourceName: z.string().nullable().optional(),
+    author: z.string().nullish(),
+    license: wikiPrivateApiTypes.schemas.ImageLicense.nullish(),
     isHidden: z.boolean().optional(),
   }),
   isOfficial: z.boolean().optional(),

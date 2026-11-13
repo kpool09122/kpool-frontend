@@ -1,6 +1,7 @@
 import { type Dispatch, type RefObject, type SetStateAction } from "react";
 
 import {
+  type WikiImageLicense,
   type WikiImageListResponse,
   type WikiUploadedImage,
   type WikiMaterialSearchContext,
@@ -25,6 +26,8 @@ export type WikiImageUsageRequestInput = {
   base64Image: string;
   sourceUrl: string;
   sourceName: string;
+  author: string;
+  license: WikiImageLicense;
   altText: string;
   rightsConfirmationAgreed: boolean;
 };
@@ -32,6 +35,8 @@ export type WikiImageUsageRequestInput = {
 export type WikiImageRequestFormState = {
   sourceUrl: string;
   sourceName: string;
+  author: string;
+  license: WikiImageLicense | "";
   altText: string;
   rightsConfirmed: boolean;
 };

@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import {
   buildWikiPath,
+  formatWikiImageLicense,
   isSafeWikiSourceUrl,
   type WikiDraftImage,
 } from "@kpool/wiki";
@@ -155,6 +156,10 @@ function DraftImageListPanel({
                     sourceName={image.sourceName}
                     sourceUrl={image.sourceUrl}
                   />
+                  {image.author ? <DraftImageMeta label={t.imageAuthorLabel} value={image.author} /> : null}
+                  {image.license ? (
+                    <DraftImageMeta label={t.imageLicenseLabel} value={formatWikiImageLicense(image.license)} />
+                  ) : null}
                   <DraftImageMeta label={t.draftImageAltTextLabel} value={image.altText || t.draftImageNoAltText} />
                   <DraftImageWikiMeta
                     href={wiki.href}

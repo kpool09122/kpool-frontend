@@ -5,6 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import {
+  formatWikiImageLicense,
   isSafeWikiSourceUrl,
   toSafeWikiImageUrl,
   type WikiImageDeletionRequestListItem,
@@ -218,6 +219,10 @@ function ImageDeletionRequestCard({
             sourceName={image.sourceName}
             sourceUrl={image.sourceUrl}
           />
+          {image.author ? <ImageDeletionRequestMeta label={t.imageAuthorLabel} value={image.author} /> : null}
+          {image.license ? (
+            <ImageDeletionRequestMeta label={t.imageLicenseLabel} value={formatWikiImageLicense(image.license)} />
+          ) : null}
           <ImageDeletionRequestMeta label={t.draftImageAltTextLabel} value={image.altText || t.draftImageNoAltText} />
           <ImageDeletionRequestMeta
             label={t.draftImageUploadedAtLabel}

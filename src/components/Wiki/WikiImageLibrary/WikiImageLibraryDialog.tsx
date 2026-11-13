@@ -82,18 +82,18 @@ export function WikiImageLibraryDialog({
     <section
       aria-labelledby="wiki-image-library-title"
       aria-modal="true"
-      className="fixed inset-0 z-50 grid place-items-stretch bg-black/55 p-4 sm:p-6"
+      className="fixed inset-0 z-50 grid grid-rows-[minmax(0,1fr)] place-items-stretch bg-black/55 p-4 sm:p-6"
       data-testid="wiki-image-library"
       onKeyDown={handleDialogKeyDown}
       role="dialog"
     >
       <div
-        className="mx-auto flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-stroke-subtle bg-surface-raised text-text-strong shadow-soft"
+        className={`mx-auto flex max-h-full min-h-0 w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-stroke-subtle bg-surface-raised text-text-strong shadow-soft ${activeTab === "request" ? "self-center" : ""}`}
         ref={dialogRef}
         style={cardSurfaceStyle}
       >
-        <div className="flex items-start justify-between gap-4 p-5">
-          <h2 className="text-2xl font-semibold" id="wiki-image-library-title">
+        <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
+          <h2 className="text-xl font-semibold" id="wiki-image-library-title">
             {t.title}
           </h2>
           <button
@@ -106,7 +106,7 @@ export function WikiImageLibraryDialog({
           </button>
         </div>
 
-        <div className="overflow-x-auto border-b border-stroke-subtle px-5">
+        <div className="shrink-0 overflow-x-auto border-b border-stroke-subtle px-4 sm:px-6">
           <div aria-label={t.tabsLabel} className="-mb-px flex gap-1" role="tablist" onKeyDown={handleTabKeyDown}>
             {tabs.map((tab) => <button
               key={tab}
@@ -122,7 +122,7 @@ export function WikiImageLibraryDialog({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
           {activeTab === "images" ? (
             <WikiImageListPanel
               canLoadMore={canLoadMore}

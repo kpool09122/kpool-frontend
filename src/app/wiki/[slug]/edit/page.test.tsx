@@ -578,7 +578,7 @@ describe("WikiEditPage", () => {
     loadCropperImage();
     fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
 
-    expect(await screen.findByText(`選択中: upload.${extension}`)).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "選択中の画像プレビュー" })).toBeInTheDocument();
     expect(screen.queryByText("画像を選択またはここにドロップ")).not.toBeInTheDocument();
     expect(screen.getByAltText("選択中の画像プレビュー")).toHaveAttribute(
       "src",
@@ -598,7 +598,12 @@ describe("WikiEditPage", () => {
       screen.getByLabelText("著作権や肖像権に問題がないことを確認しました。"),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "利用申請を送信" }));
+    const submitButton = screen.getByRole("button", { name: "利用申請を送信" });
+    expect(submitButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("著作者"), { target: { value: "  Photo Author  " } });
+    expect(submitButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("ライセンス"), { target: { value: "CC-BY-SA-4.0" } });
+    fireEvent.click(submitButton);
 
     expect(
       await screen.findByText("申請を送信しました。申請内容を確認しますので、しばらくお待ちください。"),
@@ -620,6 +625,8 @@ describe("WikiEditPage", () => {
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual(
       expect.objectContaining({
         altText: "Stage upload",
+        author: "Photo Author",
+        license: "CC-BY-SA-4.0",
         rightsConfirmationAgreed: true,
         sourceName: "Wikimedia Commons",
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
@@ -689,6 +696,8 @@ describe("WikiEditPage", () => {
       target: { value: "Stage upload" },
     });
 
+    fireEvent.change(screen.getByLabelText("著作者"), { target: { value: "Photo Author" } });
+    fireEvent.change(screen.getByLabelText("ライセンス"), { target: { value: "CC-BY-SA-4.0" } });
     expect(submitButton).toBeDisabled();
     fireEvent.click(
       screen.getByLabelText("著作権や肖像権に問題がないことを確認しました。"),
@@ -819,7 +828,7 @@ describe("WikiEditPage", () => {
     expect(
       await screen.findByText("画像は5MB以下のファイルを選択してください。"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("選択中: oversized-crop.png")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "選択中の画像プレビュー" })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -853,10 +862,10 @@ describe("WikiEditPage", () => {
     loadCropperImage();
     fireEvent.click(screen.getByRole("button", { name: "切り取りを確定" }));
 
-    expect(await screen.findByText("選択中: remove-me.webp")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "選択中の画像プレビュー" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "選択を解除" }));
 
-    expect(screen.queryByText("選択中: remove-me.webp")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "選択中の画像プレビュー" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

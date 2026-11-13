@@ -125,6 +125,8 @@ test("admin shows under review draft images for an available Wiki principal", as
             displayOrder: 1,
             sourceUrl: "https://source.example.test/review.png",
             sourceName: "k-pool archive",
+            author: "Photo Author",
+            license: "CC-BY-SA-4.0",
             altText: "Review image",
             wiki: {
               names: {
@@ -218,6 +220,8 @@ test("admin shows under review draft images for an available Wiki principal", as
     "href",
     "/ja/wiki/review-wiki",
   );
+  await expect(page.getByText("Photo Author")).toBeVisible();
+  await expect(page.getByText("CC BY-SA 4.0")).toBeVisible();
   await expect(page.getByText("under_review")).toHaveCount(0);
   await page.getByRole("button", { name: "承認" }).click();
   await expect(page.getByText("未承認の画像はありません")).toBeVisible();
