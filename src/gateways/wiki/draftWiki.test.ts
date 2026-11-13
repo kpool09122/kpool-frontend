@@ -134,7 +134,7 @@ describe("draftWiki", () => {
     ]);
   });
 
-  it("uses backend hero image src and alt for the initial top image", () => {
+  it("uses backend hero image and credits for the initial top image", () => {
     const wiki = adaptDraftWikiFixtureResponse({
       basic: {
         name: "Aurora Echo",
@@ -146,6 +146,8 @@ describe("draftWiki", () => {
         alt: "Aurora Echo official hero",
         sourceUrl: "https://example.com/original",
         sourceName: "Original source",
+        author: "Photo Author",
+        license: "CC-BY-SA-4.0",
       },
       language: "ja",
       resourceType: "group",
@@ -163,6 +165,8 @@ describe("draftWiki", () => {
       alt: "Aurora Echo official hero",
       sourceUrl: "https://example.com/original",
       sourceName: "Original source",
+      author: "Photo Author",
+      license: "CC-BY-SA-4.0",
     });
   });
 

@@ -26,6 +26,8 @@ const createUploadBody = () => ({
   displayOrder: 1,
   sourceUrl: "https://commons.wikimedia.org/wiki/File:Upload.png",
   sourceName: "Wikimedia Commons",
+  author: "Photo Author",
+  license: "CC-BY-SA-4.0",
   altText: "Stage upload",
   agreedToTermsAt: "2026-05-09T00:00:00.000Z",
   rightsConfirmationAgreed: true,

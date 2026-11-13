@@ -6,6 +6,7 @@ import {
   isSafeWikiSourceUrl,
   isWikiImageFileSizeAllowed,
   stripDataUrlPrefix,
+  wikiImageAuthorMaxLength,
   wikiImageMaxBase64Length,
 } from "@kpool/wiki";
 import {
@@ -18,22 +19,42 @@ import {
 const emptyRequestForm: WikiImageRequestFormState = {
   sourceUrl: "",
   sourceName: "",
+  author: "",
+  license: "",
   altText: "",
   rightsConfirmed: false,
 };
 
-const hasCompleteRequestForm = (
-  selectedFile: File | null,
-  selectedFileDataUrl: string | null,
+const getRequestInput = (
+  file: File | null,
+  base64Image: string | null,
   form: WikiImageRequestFormState,
-): selectedFile is File =>
-  Boolean(selectedFile) &&
-  Boolean(selectedFileDataUrl) &&
-  form.sourceUrl.trim().length > 0 &&
-  isSafeWikiSourceUrl(form.sourceUrl) &&
-  form.sourceName.trim().length > 0 &&
-  form.altText.trim().length > 0 &&
-  form.rightsConfirmed;
+): WikiImageUsageRequestInput | null => {
+  const sourceUrl = form.sourceUrl.trim();
+  const sourceName = form.sourceName.trim();
+  const author = form.author.trim();
+  const altText = form.altText.trim();
+
+  if (
+    !file || !base64Image ||
+    !isSafeWikiSourceUrl(sourceUrl) || !sourceName ||
+    !author || author.length > wikiImageAuthorMaxLength || !form.license ||
+    !altText || !form.rightsConfirmed
+  ) {
+    return null;
+  }
+
+  return {
+    file,
+    base64Image,
+    sourceUrl,
+    sourceName,
+    author,
+    license: form.license,
+    altText,
+    rightsConfirmationAgreed: form.rightsConfirmed,
+  };
+};
 
 export const useWikiImageRequestForm = ({
   isBusy,
@@ -54,7 +75,8 @@ export const useWikiImageRequestForm = ({
   const [cropState, setCropState] = useState<{ file: File; sourceDataUrl: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [requestForm, setRequestForm] = useState<WikiImageRequestFormState>(emptyRequestForm);
-  const canSubmitRequest = hasCompleteRequestForm(selectedFile, selectedFileDataUrl, requestForm) && !cropState && !isBusy;
+  const requestInput = getRequestInput(selectedFile, selectedFileDataUrl, requestForm);
+  const canSubmitRequest = requestInput !== null && !cropState && !isBusy;
   const errorMessage = localError ?? uploadError;
 
   const selectFile = (file: File) => {
@@ -140,21 +162,14 @@ export const useWikiImageRequestForm = ({
   };
 
   const submitRequest = () => {
-    if (!hasCompleteRequestForm(selectedFile, selectedFileDataUrl, requestForm)) {
+    if (!requestInput) {
       setLocalError(t.requiredFields);
       return;
     }
 
     setLocalError(null);
 
-    void Promise.resolve(onUpload({
-      file: selectedFile,
-      base64Image: selectedFileDataUrl ?? "",
-      sourceUrl: requestForm.sourceUrl.trim(),
-      sourceName: requestForm.sourceName.trim(),
-      altText: requestForm.altText.trim(),
-      rightsConfirmationAgreed: requestForm.rightsConfirmed,
-    })).then(() => {
+    void Promise.resolve(onUpload(requestInput)).then(() => {
       setSelectedFile(null);
       setSelectedFileDataUrl(null);
       setCropState(null);

@@ -260,6 +260,8 @@ export function WikiEditContent({
       src: image.url,
       sourceUrl: image.sourceUrl,
       sourceName: image.sourceName,
+      author: image.author,
+      license: image.license,
     });
     setImageLibrary((state) => ({ ...state, isOpen: false }));
   };
@@ -282,10 +284,12 @@ export function WikiEditContent({
       fallbackErrorMessage: t.imageLibrary.uploadFailed,
       requestBody: createWikiImageUploadRequest({
         altText: input.altText,
+        author: input.author,
         base64EncodedImage: input.base64Image,
         displayOrder: imageLibrary.images.length + 1,
         fileName: input.file.name,
         imageAssociation,
+        license: input.license,
         rightsConfirmationAgreed: input.rightsConfirmationAgreed,
         sourceName: input.sourceName,
         sourceUrl: input.sourceUrl,

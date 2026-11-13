@@ -632,11 +632,13 @@ test("wiki edit page opens the image library and submits an image usage request"
     buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1kAAAAASUVORK5CYII=", "base64"),
   });
   await page.getByRole("button", { name: "切り取りを確定" }).click();
-  await expect(page.getByText("選択中: upload.png")).toBeVisible();
+  await expect(page.getByRole("img", { name: "選択中の画像プレビュー" })).toBeVisible();
   await expect.poll(() => uploadRequestBody).toBeNull();
   await expect(page.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
   await page.getByLabel("参照元URL").fill("https://commons.wikimedia.org/wiki/File:Upload.png");
   await page.getByLabel("参照元サイト名").fill("Wikimedia Commons");
+  await page.getByLabel("著作者").fill("Photo Author");
+  await page.getByLabel("ライセンス").selectOption("CC-BY-SA-4.0");
   await page.getByLabel("altテキスト").fill("Stage upload");
   await expect(page.getByRole("button", { name: "利用申請を送信" })).toBeDisabled();
   await page.getByLabel("著作権や肖像権に問題がないことを確認しました。").check();
@@ -650,6 +652,8 @@ test("wiki edit page opens the image library and submits an image usage request"
   await expect.poll(() => uploadRequestBody).toEqual(
     expect.objectContaining({
       altText: "Stage upload",
+      author: "Photo Author",
+      license: "CC-BY-SA-4.0",
       resourceType: "group",
       rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",

@@ -63,6 +63,8 @@ describe("wikiImages", () => {
       }),
       rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",
+      author: "  Photo Author  ",
+      license: "CC-BY-SA-4.0",
       sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
     });
 
@@ -74,11 +76,16 @@ describe("wikiImages", () => {
         resourceType: "group",
         rightsConfirmationAgreed: true,
         sourceName: "Wikimedia Commons",
+        author: "Photo Author",
+        license: "CC-BY-SA-4.0",
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
         translationSetIdentifier: "translation-set-1",
       }),
     );
     expect(request.agreedToTermsAt).toEqual(expect.any(String));
+    expect(wikiImageUploadRequestSchema.safeParse({ ...request, author: " " }).success).toBe(false);
+    expect(wikiImageUploadRequestSchema.safeParse({ ...request, author: "a".repeat(256) }).success).toBe(false);
+    expect(wikiImageUploadRequestSchema.safeParse({ ...request, license: "unknown" }).success).toBe(false);
   });
 
   it("allows only trusted wiki image delivery URLs for rendered images", () => {
@@ -120,6 +127,8 @@ describe("wikiImages", () => {
       }),
       rightsConfirmationAgreed: true,
       sourceName: "Wikimedia Commons",
+      author: "  Photo Author  ",
+      license: "CC-BY-SA-4.0",
       sourceUrl: "javascript:alert(1)",
     });
 
@@ -134,6 +143,8 @@ describe("wikiImages", () => {
         displayOrder: 3,
         sourceUrl: "https://commons.wikimedia.org/wiki/File:Stage.webp",
         sourceName: "Wikimedia Commons",
+        author: "Photo Author",
+        license: "CC-BY-SA-4.0",
         altText: "Stage performance",
         agreedToTermsAt: "2026-05-09T00:00:00.000Z",
         rightsConfirmationAgreed: true,

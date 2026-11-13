@@ -306,6 +306,8 @@ const draftImage = {
   displayOrder: 1,
   sourceUrl: "https://source.example.test/review.png",
   sourceName: "k-pool archive",
+  author: "Photo Author",
+  license: "CC-BY-SA-4.0" as const,
   altText: "Review image",
   wiki: {
     names: {
@@ -955,6 +957,8 @@ describe("admin page clients", () => {
 
     expect(await screen.findByRole("tab", { name: "未承認の画像", selected: true })).toBeInTheDocument();
     expect(await screen.findByText("Review image")).toBeInTheDocument();
+    expect(screen.getByText("Photo Author")).toBeInTheDocument();
+    expect(screen.getByText("CC BY-SA 4.0")).toBeInTheDocument();
     expect(draftImageAdapter.listDraftImages).toHaveBeenCalledWith({
       fallbackErrorMessage: "未承認の画像一覧を読み込めませんでした。",
       page: 1,

@@ -17,7 +17,7 @@ import {
 import { z } from "zod";
 
 import { getWikiResourceTypeFromSlug } from "./wikiRouting";
-import { toSafeWikiImageUrl } from "./wikiImageModel";
+import { toSafeWikiImageUrl, type WikiImageLicense } from "./wikiImageModel";
 import { normalizeWikiImageWidth } from "./wikiImageLayout";
 
 const parseWikiSchema = <T>(schema: z.ZodType<T>, body: unknown): T => {
@@ -133,6 +133,8 @@ type WikiApiResponseBase = {
     alt?: string | null;
     sourceUrl?: string | null;
     sourceName?: string | null;
+    author?: string | null;
+    license?: WikiImageLicense | null;
     isHidden?: boolean | null;
     is_hidden?: boolean | null;
   } | null;
@@ -602,6 +604,8 @@ const getHeroImage = (response: WikiApiResponseBase): WikiDraftDetail["heroImage
       src: response.heroImage.src,
       sourceUrl: response.heroImage.sourceUrl ?? null,
       sourceName: response.heroImage.sourceName ?? null,
+      author: response.heroImage.author,
+      license: response.heroImage.license,
     };
   }
 
