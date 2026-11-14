@@ -121,7 +121,7 @@ describe("wiki image upload route", () => {
     expect(JSON.stringify(consoleError.mock.calls)).not.toContain(body.base64EncodedImage);
   });
 
-  it("forwards valid uploads to the backend image upload endpoint", async () => {
+  it.each(["CC-BY-SA-4.0", "PUBLIC-DOMAIN"])("forwards uploads licensed under %s to the backend", async (license) => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(
@@ -135,7 +135,7 @@ describe("wiki image upload route", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const body = createUploadBody();
+    const body = { ...createUploadBody(), license };
     const response = await POST(
       createRequest(body, { "content-length": String(JSON.stringify(body).length) }),
     );

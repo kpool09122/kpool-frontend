@@ -56,6 +56,7 @@ const DraftImageListItem = z
         "CC-BY-NC-SA-1.0",
         "CC-BY-ND-NC-1.0",
         "CC0-1.0",
+        "PUBLIC-DOMAIN",
       ])
       .nullable(),
     altText: z.string(),
@@ -191,6 +192,7 @@ const ImageDeletionRequestListItem = z
         "CC-BY-NC-SA-1.0",
         "CC-BY-ND-NC-1.0",
         "CC0-1.0",
+        "PUBLIC-DOMAIN",
       ])
       .nullable(),
     altText: z.string(),
@@ -252,6 +254,7 @@ const UploadImageRequestBody = z
       "CC-BY-NC-SA-1.0",
       "CC-BY-ND-NC-1.0",
       "CC0-1.0",
+      "PUBLIC-DOMAIN",
     ]),
     altText: z.string(),
     agreedToTermsAt: z.string(),
@@ -270,6 +273,7 @@ const ImageDeletionApprovalSummary = z
   .passthrough();
 const UpdateImageMetadataRequestBody = z
   .object({
+    sourceUrl: z.string().max(512).nullable(),
     sourceName: z.string().min(1).max(255),
     author: z.string().min(1).max(255),
     license: z.enum([
@@ -304,6 +308,7 @@ const UpdateImageMetadataRequestBody = z
       "CC-BY-NC-SA-1.0",
       "CC-BY-ND-NC-1.0",
       "CC0-1.0",
+      "PUBLIC-DOMAIN",
     ]),
     altText: z.string().max(512).nullable(),
     displayOrder: z.number().int().gte(0),
@@ -385,6 +390,7 @@ const UploadedImageListItem = z
         "CC-BY-NC-SA-1.0",
         "CC-BY-ND-NC-1.0",
         "CC0-1.0",
+        "PUBLIC-DOMAIN",
       ])
       .nullable(),
     altText: z.string(),
@@ -474,6 +480,7 @@ const ManagedImageListItem = z
         "CC-BY-NC-SA-1.0",
         "CC-BY-ND-NC-1.0",
         "CC0-1.0",
+        "PUBLIC-DOMAIN",
       ])
       .nullable(),
     altText: z.string(),
@@ -899,6 +906,7 @@ const DraftWikiHeroImage = z
         "CC-BY-NC-SA-1.0",
         "CC-BY-ND-NC-1.0",
         "CC0-1.0",
+        "PUBLIC-DOMAIN",
       ])
       .nullable(),
     isHidden: z.boolean().nullable(),
@@ -1194,6 +1202,7 @@ const WikiHeroImage = z
         "CC-BY-NC-SA-1.0",
         "CC-BY-ND-NC-1.0",
         "CC0-1.0",
+        "PUBLIC-DOMAIN",
       ])
       .nullable(),
     isHidden: z.boolean().nullable(),
@@ -1836,7 +1845,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/image/:imageId/metadata",
     alias: "ImageMetadataOperations_updateImageMetadata",
-    description: `Update published image metadata immediately for operators. Preserves image file, source URL, approval and visibility.`,
+    description: `Update published image metadata immediately for operators. Preserves image file, approval and visibility.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2316,6 +2325,7 @@ const endpoints = makeApi([
             "CC-BY-NC-SA-1.0",
             "CC-BY-ND-NC-1.0",
             "CC0-1.0",
+            "PUBLIC-DOMAIN",
           ])
           .nullish(),
       },
