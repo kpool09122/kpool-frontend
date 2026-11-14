@@ -4,7 +4,10 @@ import { ExternalLinkIcon } from "@radix-ui/react-icons";
 import { formatWikiImageLicense, isSafeWikiSourceUrl, type WikiDetail } from "@kpool/wiki";
 import { useI18n } from "@/i18n/I18nProvider";
 
-export function WikiImageSourceLink({ image }: { image: WikiDetail["heroImage"] }) {
+export function WikiImageSourceLink({ image, className = "text-center" }: {
+  image: WikiDetail["heroImage"];
+  className?: string;
+}) {
   const { dictionary } = useI18n();
   if (image.isHidden || !image.sourceUrl || !isSafeWikiSourceUrl(image.sourceUrl)) return null;
 
@@ -14,7 +17,7 @@ export function WikiImageSourceLink({ image }: { image: WikiDetail["heroImage"] 
   const license = image.license ? formatWikiImageLicense(image.license) : null;
 
   return (
-    <p className="min-w-0 text-center text-xs text-text-muted [overflow-wrap:anywhere]">
+    <p className={`min-w-0 text-xs text-text-muted [overflow-wrap:anywhere] ${className}`}>
       {dictionary.wiki.heroCard.imageSource}:{" "}
       <a
         className="inline-flex max-w-full items-center gap-1 align-bottom underline underline-offset-4 hover:text-text-strong"

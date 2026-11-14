@@ -1,6 +1,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createPlaceholderHeroImage } from "@kpool/wiki";
 
 import { wikiStoryHeroImage } from "../storybook/fixtures";
 import { WikiHeroPanel } from "./index";
@@ -31,6 +32,20 @@ describe("WikiHeroPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Wiki画像ライブラリを開く" }));
 
+    expect(onOpenImageLibrary).toHaveBeenCalledTimes(1);
+  });
+
+  it("prompts the editor to choose an image when the placeholder is displayed", () => {
+    const onOpenImageLibrary = vi.fn();
+    render(
+      <WikiHeroPanel
+        heroImage={createPlaceholderHeroImage("Aurora Echo", "group")}
+        onOpenImageLibrary={onOpenImageLibrary}
+      />,
+    );
+
+    expect(screen.queryByText("選択中の画像")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("画像を選択"));
     expect(onOpenImageLibrary).toHaveBeenCalledTimes(1);
   });
 });

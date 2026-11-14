@@ -11,6 +11,25 @@ test.beforeEach(async ({ page }) => {
   ]);
 });
 
+test("Wiki header blends into the page at the top and regains its background on scroll", async ({ page }) => {
+  for (const path of ["/wiki/ja/gr-aurora-echo", "/wiki/gr-aurora-echo/edit?resourceType=group"]) {
+    await page.goto(path);
+    const header = page.getByRole("banner");
+    const wiki = page.locator(".wiki-header-background");
+    const backgroundOpacity = () => header.evaluate((element) => getComputedStyle(element, "::before").opacity);
+    await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect.poll(backgroundOpacity).toBe("0");
+    expect((await wiki.boundingBox())?.y).toBeLessThanOrEqual(0);
+
+    await page.evaluate(() => window.scrollTo(0, 48));
+    await expect(header).toHaveCSS("top", "0px");
+    await expect.poll(backgroundOpacity).toBe("1");
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(backgroundOpacity).toBe("0");
+  }
+});
+
 test("wiki detail page shows the public layout and flip interaction", async ({
   page,
 }) => {
@@ -46,6 +65,77 @@ test("wiki detail page shows the public layout and flip interaction", async ({
       /Aurora Echo debuted with a performance style built around fluid formations/i,
     ),
   ).toBeVisible();
+});
+
+test("public Wiki and edit preview fit their photo frames to landscape and portrait images", async ({ page }) => {
+  for (const { path, cardId } of [
+    { path: "/wiki/ja/gr-aurora-echo", cardId: "wiki-flip" },
+    { path: "/wiki/gr-aurora-echo/edit?resourceType=group", cardId: "wiki-edit-flip" },
+  ]) {
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+      await page.setViewportSize(viewport);
+      if (cardId === "wiki-edit-flip") {
+        const sidebarToggle = page.getByRole("button", { name: /^(Collapse|Expand) editor sidebar$/ });
+        await expect(sidebarToggle).toBeVisible();
+        if (await sidebarToggle.getAttribute("aria-expanded") === "true") await sidebarToggle.click();
+      }
+      const photo = page.getByRole("img", { name: "Stage lights washing over a concert crowd in blue and gold", exact: true }).first();
+      await expect.poll(() => photo.evaluate(async (image) => {
+        await (image as HTMLImageElement).decode();
+        return image.getBoundingClientRect().height;
+      })).toBeGreaterThan(0);
+
+      for (const [width, height] of [[1600, 600], [600, 1600]]) {
+        await expect.poll(() => photo.evaluate(async (image, dimensions) => {
+          const { width, height, viewportHeight } = dimensions;
+          const img = image as HTMLImageElement;
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"/>`;
+          const src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+          if (img.src !== src) img.src = src;
+          await img.decode();
+
+          const bounds = img.getBoundingClientRect();
+          const frame = img.parentElement!.getBoundingClientRect();
+          return {
+            preservesRatio: bounds.width > 0 && Math.abs(bounds.width - bounds.height * width / height) < 1,
+            frameFitsImage: Math.abs(frame.width - bounds.width - 2) < 1
+              && Math.abs(frame.height - bounds.height - 2) < 1,
+            fitsViewport: frame.left >= 0 && frame.right <= window.innerWidth && frame.height <= window.innerHeight,
+            fitsHeightCap: bounds.height <= Math.min(viewportHeight * 0.6, 480) + 1,
+          };
+        }, { width, height, viewportHeight: viewport.height })).toEqual({
+          preservesRatio: true,
+          frameFitsImage: true,
+          fitsViewport: true,
+          fitsHeightCap: true,
+        });
+      }
+
+      const card = page.getByTestId(`${cardId}-card`);
+      const title = page.getByRole("heading", { name: "Aurora Echo", exact: true, level: 1 });
+      const centerX = (element: Element) => {
+        const bounds = element.getBoundingClientRect();
+        return (bounds.left + bounds.right) / 2;
+      };
+      await expect.poll(async () => Math.abs(await title.evaluate(centerX) - await card.evaluate(centerX))).toBeLessThan(1);
+      const size = () => card.evaluate((element) => [element.clientWidth, element.clientHeight]);
+      const frontSize = await size();
+      await expect.poll(() => card.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const region = element.closest("section")!.getBoundingClientRect();
+        return Math.abs((bounds.left + bounds.right) / 2 - (region.left + region.right) / 2);
+      })).toBeLessThan(1);
+      await page.getByTestId(`${cardId}-front-toggle`).click({ timeout: 5_000 });
+      const flipInput = page.getByTestId(`${cardId}-input`);
+      await expect(flipInput).toBeChecked();
+      expect(await size()).toEqual(frontSize);
+      await expect(card.getByRole("heading", { name: "プロフィール", exact: true })).toBeVisible();
+      await flipInput.press("Space");
+      await expect(flipInput).not.toBeChecked();
+      await expect(card).toHaveCSS("transform", "none");
+    }
+  }
 });
 
 test("public wiki opens parent and nested sections by default on desktop", async ({ page }) => {
@@ -704,6 +794,7 @@ test("editor UI language changes preserve basic input and local validation messa
   await page.goto("/wiki/ko--gr-twice/edit?resourceType=group");
   const url = page.url();
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+  await page.getByTestId("wiki-edit-flip-front-toggle").click();
   await page.getByRole("button", { name: "Edit basic", exact: true }).click();
   await page.getByRole("textbox", { name: "Fandom Name", exact: true }).fill("Unsaved fandom");
   await page.getByRole("banner").getByRole("combobox").selectOption("ja");
@@ -728,6 +819,7 @@ test("unsaved Wiki edits warn on links, browser back and reload, and stop after 
   await expect(page).toHaveURL(/\/wiki\/en--gr-aurora-echo\/edit\?resourceType=group$/);
   const editorUrl = page.url();
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+  await page.getByTestId("wiki-edit-flip-front-toggle").click();
   await page.getByRole("button", { name: "Edit basic", exact: true }).click();
   await page.getByRole("textbox", { name: "Fandom Name", exact: true }).fill("Unsaved fandom");
   const warning = "You have unsaved changes. Leaving without saving will lose your edits. Leave this page?";
@@ -778,6 +870,7 @@ test("restoring Wiki data and unfinished form inputs clears unsaved warnings", a
   });
   await expect.poll(hasLeaveWarning).toBe(false);
   await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
+  await page.getByTestId("wiki-edit-flip-front-toggle").click();
   await page.getByRole("button", { name: "Edit basic", exact: true }).click();
   const fandom = page.getByRole("textbox", { name: "Fandom Name", exact: true });
   const originalFandom = await fandom.inputValue();
@@ -814,7 +907,7 @@ for (const viewport of [{ name: "desktop", width: 1280, height: 900 }, { name: "
     await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
     const editorUrl = page.url();
     await page.getByRole("button", { name: "Collapse editor sidebar" }).click();
-    if (viewport.name === "mobile") await page.getByTestId("wiki-edit-flip-front-toggle").click();
+    await page.getByTestId("wiki-edit-flip-front-toggle").click();
     await page.getByRole("button", { name: "Edit basic", exact: true }).click();
     const fandom = page.getByRole("textbox", { name: "Fandom Name", exact: true });
     await fandom.fill("Unsaved fandom");
@@ -848,9 +941,7 @@ for (const width of [1280, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/wiki/gr-aurora-echo/edit?resourceType=group");
     await page.getByRole("button", { name: "Collapse editor sidebar", exact: true }).click();
-    if (width < 1024) {
-      await page.getByTestId("wiki-edit-flip-front-toggle").click();
-    }
+    await page.getByTestId("wiki-edit-flip-front-toggle").click();
 
     await page.getByRole("button", { name: "Edit basic", exact: true }).click();
     const colorName = page.locator('input[name="officialColorLabel"]:visible').first();

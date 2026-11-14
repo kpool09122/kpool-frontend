@@ -45,27 +45,27 @@ export function WikiDetailContent({
 
   return (
     <div className="flex flex-col gap-8">
-      <header>
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="wiki-title flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-4xl font-semibold lg:text-5xl">
-            <span>{data.basic.name}</span>
+      <div className="grid gap-7 sm:gap-8">
+        <header className="mx-auto w-full max-w-3xl text-center">
+          <h1 className="wiki-title text-4xl font-bold [overflow-wrap:anywhere] lg:text-5xl">
+            {data.basic.name}
             {data.isOfficial === true ? (
-              <OfficialCertificationBadge className="h-10 w-10 lg:h-11 lg:w-11" />
+              <OfficialCertificationBadge className="ms-3 h-10 w-10 lg:h-11 lg:w-11" />
             ) : null}
           </h1>
-        </div>
-      </header>
+        </header>
 
-      <WikiPublicHeroImage
-        basic={data.basic}
-        editHref={editHref}
-        onEdit={onEdit}
-        flipCardId={flipCardId}
-        heroImage={data.heroImage}
-        language={language}
-        profileLabel={contentDictionary.wiki.profileLabel}
-        translationSetIdentifier={data.translationSetIdentifier}
-      />
+        <WikiPublicHeroImage
+          basic={data.basic}
+          editHref={editHref}
+          onEdit={onEdit}
+          flipCardId={flipCardId}
+          heroImage={data.heroImage}
+          language={language}
+          profileLabel={contentDictionary.wiki.profileLabel}
+          translationSetIdentifier={data.translationSetIdentifier}
+        />
+      </div>
 
       <WikiContentTabs
         ariaLabel={t.contentTabsLabel}

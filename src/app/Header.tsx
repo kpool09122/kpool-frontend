@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PersonIcon } from "@radix-ui/react-icons";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isWikiEditPath } from "@kpool/wiki";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -31,6 +31,13 @@ const guestNavigation = {
   href: "/login",
 };
 const mobileNavigationId = "mobile-navigation";
+
+const subscribeToScroll = (onChange: () => void) => {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+};
+const getHasScrolled = () => window.scrollY > 0;
+const getServerHasScrolled = () => false;
 
 export const buildLocaleChangePath = ({
   nextLocale,
@@ -78,6 +85,7 @@ export function Header({
   const { locale, dictionary, setLocale } = useI18n();
   const currentLocale = locale;
   const headerRef = useRef<HTMLElement>(null);
+  const hasScrolled = useSyncExternalStore(subscribeToScroll, getHasScrolled, getServerHasScrolled);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileView, setMobileView] = useState<"menu" | "language" | "account" | "theme">("menu");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -222,7 +230,11 @@ export function Header({
   );
 
   return (
-    <header ref={headerRef} className="sticky top-0 z-40 border-b border-stroke-subtle bg-surface-raised/95 text-text-strong shadow-[0_8px_30px_rgba(29,47,73,0.06)] backdrop-blur">
+    <header
+      ref={headerRef}
+      className="site-header sticky top-0 z-40 border-b text-text-strong"
+      data-scrolled={hasScrolled || undefined}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10 lg:px-16">
         <Link
           className="inline-flex items-center rounded-lg bg-white/88 px-2 py-1 ring-1 ring-stroke-subtle transition hover:bg-white"

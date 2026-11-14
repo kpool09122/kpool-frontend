@@ -25,7 +25,7 @@ type WikiBasicFieldsListProps = {
   basic: WikiBasic;
   className: string;
   itemClassName: string;
-  itemStyle: CSSProperties;
+  itemStyle?: CSSProperties;
   language?: string;
 };
 
