@@ -89,11 +89,11 @@ describe("WikiEditPage", () => {
     expect(screen.queryByTestId("wiki-image-library")).not.toBeInTheDocument();
     expect(screen.getByAltText("Selected body photo")).toHaveAttribute("src", "https://images.example.test/body.jpg");
     expect(screen.getByText("Preserved caption")).toBeInTheDocument();
-    expect(screen.getAllByAltText(successState.data.heroImage.alt)).toHaveLength(2);
+    expect(screen.getByAltText(successState.data.heroImage.alt)).toHaveAttribute("src", successState.data.heroImage.src);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open wiki image library" })[0]);
     fireEvent.click(await screen.findByRole("button", { name: "Select image: Selected body photo" }));
-    expect(screen.getAllByAltText("Selected body photo")).toHaveLength(3);
+    expect(screen.getAllByAltText("Selected body photo")).toHaveLength(2);
   });
 
   it("searches with unfinished title input only after clicking search", async () => {
@@ -385,14 +385,12 @@ describe("WikiEditPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "画像を選択: Stage image" }));
 
     expect(screen.queryByTestId("wiki-image-library")).not.toBeInTheDocument();
-    expect(screen.getAllByAltText("Stage image")).toHaveLength(2);
-    const sourceLinks = screen.getAllByRole("link", { name: "stage.webp" });
-    expect(sourceLinks).toHaveLength(2);
-    expect(sourceLinks[0]).toHaveAttribute("href", "https://source.example.test/image-2");
-    expect(screen.getAllByAltText("Stage image")[0]).toHaveAttribute(
+    expect(screen.getByAltText("Stage image")).toHaveAttribute(
       "src",
       "https://images.example.test/image-2.webp",
     );
+    fireEvent.click(screen.getByTestId("wiki-edit-flip-input"));
+    expect(screen.getByRole("link", { name: "stage.webp" })).toHaveAttribute("href", "https://source.example.test/image-2");
     expect(screen.getByText(/Unsaved changes|未保存の変更があります/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Wikiの変更を保存" }));
     await waitFor(() => expect(saveAdapter).toHaveBeenCalled());

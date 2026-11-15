@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+body:not(:has(.wiki-header-background)) .site-header,
+body:has(.wiki-header-background) .site-header::before {
+  @apply border-stroke-subtle bg-surface-raised/95 shadow-[0_8px_30px_rgba(29,47,73,0.06)] backdrop-blur;
+}
+
+body:has(.wiki-header-background) .site-header {
+  border-color: transparent;
+}
+
+body:has(.wiki-header-background) .site-header::before {
+  @apply pointer-events-none absolute inset-0 -bottom-px -z-10 border-b opacity-0 transition-opacity duration-300 ease-out motion-reduce:transition-none;
+  content: "";
+}
+
+body:has(.wiki-header-background) .site-header[data-scrolled]::before {
+  opacity: 1;
+}
+
+/* Extend the Wiki background behind the sticky header without moving the content. */
+.wiki-header-background {
+  --wiki-header-bleed: 6rem;
+  margin-top: calc(-1 * var(--wiki-header-bleed));
+  padding-top: calc(var(--wiki-header-bleed) + --spacing(6));
+}
+
+@media (width >= 40rem) {
+  .wiki-header-background {
+    padding-top: calc(var(--wiki-header-bleed) + --spacing(10));
+  }
+}
+
 :root {
   --background: #fffbf7;
   --foreground: #28456b;

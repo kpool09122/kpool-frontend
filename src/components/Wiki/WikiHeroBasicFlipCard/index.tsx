@@ -3,7 +3,7 @@
 import { type Ref } from "react";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
-import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
+import { WikiProfileCardDetails } from "../WikiProfileCardDetails";
 import { WikiBasicPanel } from "../WikiBasicPanel";
 import { WikiImageSourceLink } from "../WikiImageSourceLink";
 import { WikiHeroPanel } from "../WikiHeroPanel";
@@ -52,13 +52,15 @@ export function WikiHeroBasicFlipCard({
   const resolvedProfileLabel = profileLabel ?? contentDictionary.wiki.heroCard.basicProfile;
 
   return (
-    <div className="grid gap-4 lg:hidden">
+    <div className="grid gap-4">
       <input
         checked={isFlipped}
         className="sr-only"
         data-testid="wiki-edit-flip-input"
         id={flipCardId}
-        onChange={(event) => onFlipChange(event.currentTarget.checked)}
+        onChange={(event) => {
+          if (!isBasicEditing) onFlipChange(event.currentTarget.checked);
+        }}
         type="checkbox"
       />
       <div
@@ -67,32 +69,33 @@ export function WikiHeroBasicFlipCard({
         data-testid="wiki-edit-flip-trigger"
         role="group"
       >
-        <div className="relative h-[34rem] [perspective:1400px]">
+        <div className={`mx-auto max-w-[min(100%,48rem)] [perspective:1400px] ${heroImage.isPlaceholder ? "w-full" : "w-fit"}`}>
           <div
-            className={`relative h-full rounded-[2rem] shadow-soft transition duration-700 [transform-style:preserve-3d] ${
+            className={`relative rounded-[2rem] shadow-soft transition duration-700 [transform-style:preserve-3d] ${
               isFlipped ? "[transform:rotateY(180deg)]" : ""
             }`}
             data-testid="wiki-edit-flip-card"
           >
-            <div className="absolute inset-0 overflow-hidden rounded-[2rem] [backface-visibility:hidden]">
+            <div className="relative [backface-visibility:hidden]" inert={isFlipped}>
               <WikiHeroPanel
                 heroImage={heroImage}
                 onOpenImageLibrary={disabled ? undefined : onOpenImageLibrary}
               />
+              <label
+                aria-label={t.flipEditCardToBasic}
+                className={`absolute inset-x-0 bottom-0 z-20 h-[min(35%,6rem)] rounded-b-[1.75rem] ${
+                  isFlipped ? "pointer-events-none" : "cursor-pointer"
+                }`}
+                data-testid="wiki-edit-flip-front-toggle"
+                htmlFor={flipCardId}
+              />
             </div>
-            <label
-              aria-label={t.flipEditCardToBasic}
-              className={`absolute bottom-0 left-0 right-0 z-20 h-24 rounded-b-[1.75rem] ${
-                isFlipped ? "pointer-events-none" : "cursor-pointer"
-              }`}
-              data-testid="wiki-edit-flip-front-toggle"
-              htmlFor={flipCardId}
-            />
 
             <div
-              className={`absolute inset-0 z-20 flex h-full flex-col overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
+              className={`absolute inset-0 z-20 overflow-y-auto rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
                 isFlipped ? "pointer-events-auto" : "pointer-events-none"
               }`}
+              inert={!isFlipped}
               onClick={() => {
                 if (!isBasicEditing) {
                   onFlipChange(false);
@@ -102,7 +105,7 @@ export function WikiHeroBasicFlipCard({
             >
               {isBasicEditing ? (
                 <div
-                  className="min-h-0 flex-1 overflow-y-auto pr-1"
+                  className="pr-1"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <WikiBasicPanel
@@ -118,55 +121,46 @@ export function WikiHeroBasicFlipCard({
                   />
                 </div>
               ) : (
-                <>
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                        {contentDictionary.wiki.heroCard.basic}
-                      </p>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                        {resolvedProfileLabel}
-                      </p>
-                    </div>
+                <WikiProfileCardDetails
+                  basic={basic}
+                  language={language}
+                  title={resolvedProfileLabel}
+                  action={
                     <button
                       aria-label={t.editBasic}
-                      className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+                      className="rounded-full p-2 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
                       disabled={disabled}
                       onClick={(event) => {
                         event.stopPropagation();
                         onEditBasic();
                       }}
-                      style={cardSurfaceStyle}
                       type="button"
                     >
                       <EditIcon />
                     </button>
-                  </div>
-                  <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
-                    <WikiBasicFieldsList
-                      basic={basic}
-                      className="grid gap-4"
-                      itemClassName="rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-3"
-                      itemStyle={cardSurfaceStyle}
-                      language={language}
-                    />
-                  </div>
-                </>
+                  }
+                />
               )}
+              {!isBasicEditing && heroImage.sourceUrl && !heroImage.isHidden ? (
+                <div className="pt-4" onClick={(event) => event.stopPropagation()}>
+                  <WikiImageSourceLink className="text-start" image={heroImage} />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
 
-      <p className="text-center text-sm text-text-muted">
-        <span className={isFlipped ? "hidden" : ""}>
-          {t.editCoverHint}
-        </span>
-        <span className={isFlipped ? "inline" : "hidden"}>
-          {t.editBasicHint}
-        </span>
-      </p>
-      <WikiImageSourceLink image={heroImage} />
+      <div className="text-center">
+        <button
+          className="text-sm text-text-muted underline underline-offset-4 hover:text-text-strong disabled:opacity-60"
+          disabled={isBasicEditing}
+          onClick={() => onFlipChange(!isFlipped)}
+          type="button"
+        >
+          {isFlipped ? t.editBasicHint : t.editCoverHint}
+        </button>
+      </div>
     </div>
   );
 }

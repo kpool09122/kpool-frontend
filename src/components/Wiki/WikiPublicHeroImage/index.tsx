@@ -1,6 +1,6 @@
 "use client";
 
-import { WikiProfileImage } from "../WikiProfileImage";
+import { ReloadIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import type { MouseEventHandler } from "react";
 import { useState } from "react";
@@ -8,9 +8,9 @@ import { WikiImageDeletionRequestDialog } from "../WikiImageDeletionRequestDialo
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiImageSourceLink } from "../WikiImageSourceLink";
-import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
+import { WikiHeroPanel } from "../WikiHeroPanel";
+import { WikiProfileCardDetails } from "../WikiProfileCardDetails";
 import {
-  cardSurfaceMutedStyle,
   cardSurfaceStyle,
   transparentFrameStyle,
 } from "../styles";
@@ -50,185 +50,91 @@ export function WikiPublicHeroImage({
   const canRequestDeletion = Boolean(heroImage.imageIdentifier && translationSetIdentifier && !isHeroImageHidden);
 
   return (
-    <section className="lg:rounded-[2rem]" style={transparentFrameStyle}>
-      <div className="grid gap-5 lg:hidden">
-        <div className="space-y-4">
-          <input
-            className="sr-only"
-            data-testid="wiki-flip-input"
-            id={flipCardId}
-            onChange={(event) => setIsFlipped(event.currentTarget.checked)}
-            type="checkbox"
-          />
-          <div
-            aria-label={t.flipPublicCard}
-            className="block"
-            data-testid="wiki-flip-trigger"
-            role="group"
-          >
-            <div className="relative h-[34rem] [perspective:1400px]">
-              <div
-                className={`relative h-full rounded-[2rem] shadow-soft transition duration-700 [transform-style:preserve-3d] ${
-                  isFlipped ? "[transform:rotateY(180deg)]" : ""
+    <section style={transparentFrameStyle}>
+      <div className="space-y-4">
+        <input
+          checked={isFlipped}
+          className="sr-only"
+          data-testid="wiki-flip-input"
+          id={flipCardId}
+          onChange={(event) => setIsFlipped(event.currentTarget.checked)}
+          type="checkbox"
+        />
+        <div
+          aria-label={t.flipPublicCard}
+          className="block"
+          data-testid="wiki-flip-trigger"
+          role="group"
+        >
+          <div className={`mx-auto max-w-[min(100%,48rem)] [perspective:1400px] ${heroImage.isPlaceholder ? "w-full" : "w-fit"}`}>
+            <div
+              className={`relative rounded-[2rem] shadow-soft transition duration-700 [transform-style:preserve-3d] ${
+                isFlipped ? "[transform:rotateY(180deg)]" : ""
+              }`}
+              data-testid="wiki-flip-card"
+            >
+              <div className="pointer-events-none [backface-visibility:hidden]" inert={isFlipped}>
+                <WikiHeroPanel heroImage={heroImage} />
+              </div>
+              <label
+                aria-label={t.flipPublicCardToBasic}
+                className={`absolute inset-0 z-30 rounded-[2rem] ${
+                  isFlipped ? "pointer-events-none" : "cursor-pointer"
                 }`}
-                data-testid="wiki-flip-card"
-              >
-                <div
-                  className="pointer-events-none absolute inset-0 overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised [backface-visibility:hidden]"
-                  style={cardSurfaceStyle}
-                >
-                  <div className="relative h-full w-full">
-                    <WikiProfileImage
-                      alt={heroImage.alt}
-                      className="object-cover"
-                      sizes="100vw"
-                      src={heroImage.src}
-                    />
-                  </div>
-                </div>
-                <label
-                  aria-label={t.flipPublicCardToBasic}
-                  className={`absolute inset-0 z-30 rounded-[2rem] ${
-                    isFlipped ? "pointer-events-none" : "cursor-pointer"
-                  }`}
-                  data-testid="wiki-flip-front-toggle"
-                  htmlFor={flipCardId}
-                />
+                data-testid="wiki-flip-front-toggle"
+                htmlFor={flipCardId}
+              />
 
-                <div
-                  className={`absolute inset-0 z-20 flex flex-col overflow-hidden rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
-                    isFlipped ? "pointer-events-auto" : "pointer-events-none"
-                  }`}
-                  onClick={() => setIsFlipped(false)}
-                  style={cardSurfaceStyle}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                        {contentDictionary.wiki.heroCard.basic}
-                      </p>
-                      <p className="wiki-title mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                        {resolvedProfileLabel}
-                      </p>
-                    </div>
-                    {editHref ? (
-                      <Link
-                        aria-label={t.editBasic}
-                        className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
-                        href={editHref}
-                        onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
-                        style={cardSurfaceStyle}
-                      >
-                        <EditIcon />
-                      </Link>
-                    ) : null}
-                  </div>
-                  <div
-                    className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <WikiBasicFieldsList
-                      basic={basic}
-                      className="grid gap-4"
-                      itemClassName="rounded-2xl border border-stroke-subtle bg-surface-base px-4 py-3"
-                      itemStyle={cardSurfaceMutedStyle}
-                      language={language}
-                    />
-                  </div>
+              <div
+                className={`absolute inset-0 z-20 overflow-y-auto rounded-[2rem] border border-stroke-subtle bg-surface-raised p-5 [backface-visibility:hidden] [transform:rotateY(180deg)] ${
+                  isFlipped ? "pointer-events-auto" : "pointer-events-none"
+                }`}
+                inert={!isFlipped}
+                onClick={() => setIsFlipped(false)}
+                style={cardSurfaceStyle}
+              >
+                <WikiProfileCardDetails
+                  basic={basic}
+                  language={language}
+                  title={resolvedProfileLabel}
+                  action={editHref ? (
+                    <Link
+                      aria-label={t.editBasic}
+                      className="rounded-full p-2 text-text-strong transition hover:bg-brand-highlight/30"
+                      href={editHref}
+                      onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
+                    >
+                      <EditIcon />
+                    </Link>
+                  ) : null}
+                />
+                <div className="grid justify-items-start gap-2 pt-4 text-start" onClick={(event) => event.stopPropagation()}>
+                  <WikiImageSourceLink className="text-start" image={heroImage} />
+                  {canRequestDeletion ? (
+                    <button
+                      className="text-xs text-text-muted underline underline-offset-4 hover:text-text-strong"
+                      onClick={() => setIsDeletionRequestOpen(true)}
+                      type="button"
+                    >
+                      {t.requestImageDeletion}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
           </div>
-
-          <WikiImageSourceLink image={heroImage} />
-
-          <p className="text-center text-sm text-text-muted">
-            <span className={isFlipped ? "hidden" : ""}>
-              {t.publicCoverHint}
-            </span>
-            <span className={isFlipped ? "inline" : "hidden"}>
-              {t.publicBasicHint}
-            </span>
-          </p>
-
-          {canRequestDeletion && translationSetIdentifier ? (
-            <div className="text-center">
-              <button
-                className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
-                onClick={() => setIsDeletionRequestOpen(true)}
-                type="button"
-              >
-                {t.requestImageDeletion}
-              </button>
-            </div>
-          ) : null}
         </div>
-      </div>
-
-      <div className="hidden gap-6 py-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="flex h-full flex-col">
-          <div
-            className="min-h-0 flex-1 overflow-hidden rounded-[1.75rem] border border-stroke-subtle"
-            style={cardSurfaceStyle}
+        <div className="text-center">
+          <button
+            className="inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs text-text-muted transition hover:bg-brand-highlight/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+            onClick={() => setIsFlipped((flipped) => !flipped)}
+            type="button"
           >
-            <div className="relative h-full min-h-[30rem]">
-              <WikiProfileImage
-                alt={heroImage.alt}
-                className="object-cover"
-                sizes="(min-width: 1024px) 55vw, 100vw"
-                src={heroImage.src}
-              />
-            </div>
-          </div>
-
-          <div className="mt-3"><WikiImageSourceLink image={heroImage} /></div>
-
-          {canRequestDeletion && translationSetIdentifier ? (
-            <div className="mt-3 text-center">
-              <button
-                className="text-xs font-semibold text-text-muted underline underline-offset-4 transition hover:text-text-strong"
-                onClick={() => setIsDeletionRequestOpen(true)}
-                type="button"
-              >
-                {t.requestImageDeletion}
-              </button>
-            </div>
-          ) : null}
+            <ReloadIcon aria-hidden="true" />
+            {isFlipped ? t.publicShowPhoto : t.publicShowBasic}
+          </button>
         </div>
 
-        <div
-          className="rounded-[1.75rem] border border-stroke-subtle bg-surface-base p-6"
-          style={cardSurfaceMutedStyle}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
-                {contentDictionary.wiki.heroCard.basic}
-              </p>
-              <p className="wiki-title mt-2 text-2xl font-semibold tracking-[-0.03em]">
-                {resolvedProfileLabel}
-              </p>
-            </div>
-            {editHref ? (
-              <Link
-                aria-label={t.editBasic}
-                className="rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30"
-                href={editHref}
-                onClick={onEdit}
-                style={cardSurfaceStyle}
-              >
-                <EditIcon />
-              </Link>
-            ) : null}
-          </div>
-          <WikiBasicFieldsList
-            basic={basic}
-            className="mt-6 grid gap-4 sm:grid-cols-2"
-            itemClassName="rounded-2xl border border-stroke-subtle bg-surface-raised px-4 py-3"
-            itemStyle={cardSurfaceStyle}
-            language={language}
-          />
-        </div>
       </div>
       {canRequestDeletion && translationSetIdentifier && isDeletionRequestOpen ? (
         <WikiImageDeletionRequestDialog

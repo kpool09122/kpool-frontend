@@ -187,6 +187,7 @@ export const createPlaceholderHeroImage = (
   imageIdentifier?: string | null,
 ): WikiDetail["heroImage"] => ({
   imageIdentifier: imageIdentifier ?? null,
+  isPlaceholder: true,
   alt: `${name} hero image`,
   src:
     "data:image/svg+xml;utf8," +

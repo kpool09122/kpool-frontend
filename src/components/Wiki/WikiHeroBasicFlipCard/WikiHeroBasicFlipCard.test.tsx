@@ -18,6 +18,7 @@ describe("WikiHeroBasicFlipCard", () => {
     renderWithI18n(
       <WikiHeroBasicFlipCard
         basic={wikiStoryBasic}
+        profileLabel="プロフィール"
         flipCardId="test-flip-card"
         heroImage={wikiStoryHeroImage}
         isBasicEditing={false}
@@ -29,8 +30,7 @@ describe("WikiHeroBasicFlipCard", () => {
       />,
     );
 
-    expect(screen.getAllByText("基本情報").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Basic")).not.toBeInTheDocument();
+    expect(screen.getByText("プロフィール", { exact: true })).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("wiki-edit-flip-front-toggle"));
     fireEvent.click(screen.getByTestId("wiki-edit-flip-input"));

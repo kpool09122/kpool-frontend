@@ -4,7 +4,6 @@ import { sectionListClassName } from "@/components/Wiki/styles";
 
 import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
 import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsavedChangesGuard";
-import { WikiImageSourceLink } from "@/components/Wiki/WikiImageSourceLink";
 import { WikiReorderList } from "@/components/Wiki/WikiReorderList";
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { useId, useMemo, useRef, useState } from "react";
@@ -14,12 +13,10 @@ import { type WikiBasic, type WikiDraftDetail } from "@kpool/wiki";
 import {
   type WikiEditorMode,
   type WikiPreviewMode,
-  WikiBasicPanel,
   WikiCodeEditor,
   WikiContentTabs,
   WikiEditSidebar,
   WikiHeroBasicFlipCard,
-  WikiHeroPanel,
   WikiImageLibrary,
   WikiSectionEditor,
   WikiStatePanel,
@@ -143,12 +140,10 @@ export function WikiEditContent({
     submitAdapter,
   });
   const { rootRef, hasPendingChanges } = usePendingFormChanges(editingId);
-  const mobileBasicRef = useRef<{ getBasic: () => WikiBasic }>(null);
-  const desktopBasicRef = useRef<{ getBasic: () => WikiBasic }>(null);
-  const basicSource = useRef<"mobile" | "desktop">("desktop");
+  const basicRef = useRef<{ getBasic: () => WikiBasic }>(null);
   const imageSelection = useRef<((image: WikiUploadedImage) => void) | null>(null);
   const readSearchDraft = () => {
-    const basic = (basicSource.current === "mobile" ? mobileBasicRef : desktopBasicRef).current?.getBasic() ?? draft.basic;
+    const basic = basicRef.current?.getBasic() ?? draft.basic;
     const titleInput = editingId === "title" ? rootRef.current?.querySelector<HTMLInputElement>('input[name="title"]') : null;
     return { ...draft, basic: titleInput ? { ...basic, name: titleInput.value } : basic };
   };
@@ -232,12 +227,11 @@ export function WikiEditContent({
       }));
     });
   };
-  const openImageLibrary = (source: "mobile" | "desktop", onSelect?: (image: WikiUploadedImage) => void) => {
+  const openImageLibrary = (onSelect?: (image: WikiUploadedImage) => void) => {
     if (isEditLocked) {
       return;
     }
 
-    basicSource.current = source;
     imageSelection.current = onSelect ?? null;
     materialSearch.prepareContext();
     void loadImageLibraryPage(1);
@@ -315,17 +309,17 @@ export function WikiEditContent({
   return (
     <main className="flex flex-1 flex-col" data-testid="wiki-edit-root" ref={rootRef}>
       <div
-        className="wiki-theme-scope wiki-page-theme flex-1 px-5 py-6 text-text-strong [--wiki-page-gradient-height:750px] sm:px-8 sm:py-10"
+        className="wiki-theme-scope wiki-page-theme wiki-header-background flex-1 px-5 pb-6 text-text-strong [--wiki-page-gradient-height:750px] sm:px-8 sm:pb-10"
         data-theme={previewMode}
         data-testid="wiki-edit-preview"
         style={{ ...themeStyles, ...mainBackgroundStyle }}
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-7 sm:gap-8">
           <header>
-            <div className="max-w-3xl">
+            <div className="mx-auto max-w-3xl text-center">
               {editingId === "title" ? (
                 <LocalizedForm
-                  className="grid gap-3"
+                  className="mx-auto grid max-w-xl gap-3"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const formData = new FormData(event.currentTarget);
@@ -347,7 +341,7 @@ export function WikiEditContent({
                       name="title"
                     />
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap justify-center gap-2">
                     <button
                       className="rounded-full border border-stroke-subtle px-5 py-2 text-sm font-semibold text-text-strong"
                       style={cardSurfaceStyle}
@@ -366,13 +360,13 @@ export function WikiEditContent({
                   </div>
                 </LocalizedForm>
               ) : (
-                <div className="flex items-start gap-3">
-                  <h1 className="wiki-title min-w-0 text-4xl font-semibold lg:text-5xl">
+                <div className="mx-auto grid w-fit max-w-full grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+                  <h1 className="wiki-title col-start-2 text-4xl font-bold [overflow-wrap:anywhere] lg:text-5xl">
                     {draft.basic.name}
                   </h1>
                   <button
                     aria-label={t.editPage.editTitle}
-                    className="mt-1 rounded-full border border-stroke-subtle p-3 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+                    className="grid size-10 place-items-center rounded-full border border-stroke-subtle text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
                     disabled={isEditLocked}
                     onClick={editTitle}
                     style={cardSurfaceStyle}
@@ -406,38 +400,14 @@ export function WikiEditContent({
                 onCancel={closeEditor}
                 onEditBasic={editBasic}
                 onFlipChange={setIsBasicFlipped}
-                searchContextRef={mobileBasicRef}
-                onOpenImageLibrary={() => openImageLibrary("mobile")}
+                searchContextRef={basicRef}
+                onOpenImageLibrary={() => openImageLibrary()}
                 onSaveBasic={(basic) => {
                   updateBasic(basic);
                   closeEditor();
                 }}
                 profileLabel={contentDictionary.wiki.profileLabel}
               />
-              <div className="hidden gap-6 lg:grid lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="flex min-w-0 flex-col gap-3">
-                  <div className="flex-1">
-                    <WikiHeroPanel
-                      heroImage={draft.heroImage}
-                      onOpenImageLibrary={isEditLocked ? undefined : () => openImageLibrary("desktop")}
-                    />
-                  </div>
-                  <WikiImageSourceLink image={draft.heroImage} />
-                </div>
-                <WikiBasicPanel
-                  searchContextRef={desktopBasicRef}
-                  basic={draft.basic}
-                  disabled={isEditLocked}
-                  isEditing={editingId === "basic"}
-                  language={language}
-                  onCancel={closeEditor}
-                  onEdit={editBasic}
-                  onSave={(basic) => {
-                    updateBasic(basic);
-                    closeEditor();
-                  }}
-                />
-              </div>
             </section>
 
             {editorMode === "gui" ? (
@@ -464,7 +434,7 @@ export function WikiEditContent({
                               disabled={isEditLocked}
                               onEdit={setEditingId}
                               onMoveContent={reorderContent}
-                              onRequestImage={(onSelect) => openImageLibrary(window.innerWidth >= 1024 ? "desktop" : "mobile", onSelect)}
+                              onRequestImage={openImageLibrary}
                               onSaveBlock={(blockIdentifier, changes) => {
                                 updateBlock(blockIdentifier, changes);
                                 closeEditor();

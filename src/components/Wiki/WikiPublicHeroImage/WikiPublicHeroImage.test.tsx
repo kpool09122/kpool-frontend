@@ -63,23 +63,23 @@ describe("WikiPublicHeroImage", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders the mobile flip helper copy outside the card", () => {
+  it("renders the flip helper copy outside the card", () => {
     renderWithI18n(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
+        profileLabel="プロフィール"
         flipCardId="public-flip-card"
         heroImage={wikiStoryHeroImage}
       />,
     );
 
-    expect(screen.getAllByText("基本情報").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Basic")).not.toBeInTheDocument();
+    expect(screen.getByText("プロフィール", { exact: true })).toBeInTheDocument();
 
-    expect(screen.getByText("Tap anywhere on the card to flip to the basic details.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View basic details" })).toBeInTheDocument();
     expect(screen.queryByText("Flip to reveal the basic profile")).not.toBeInTheDocument();
   });
 
-  it("renders source links below the mobile and desktop profile images", () => {
+  it("shows the image source on the profile side", () => {
     renderWithI18n(
       <WikiPublicHeroImage basic={wikiStoryBasic} flipCardId="source-card" heroImage={{
         ...wikiStoryHeroImage,
@@ -87,12 +87,13 @@ describe("WikiPublicHeroImage", () => {
         sourceName: "Wikimedia Commons",
       }} />,
     );
-    const links = screen.getAllByRole("link", { name: "Wikimedia Commons" });
-    expect(links).toHaveLength(2);
-    expect(links[0]).toHaveAttribute("href", "https://commons.wikimedia.org/wiki/File:Hero.png");
+    expect(screen.getByText("Wikimedia Commons").closest("[inert]")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("wiki-flip-input"));
+    expect(screen.getByText("Wikimedia Commons").closest("[inert]")).toBeNull();
+    expect(screen.getByRole("link", { name: "Wikimedia Commons" })).toHaveAttribute("href", "https://commons.wikimedia.org/wiki/File:Hero.png");
   });
 
-  it("toggles the mobile helper copy when flipped", () => {
+  it("flips the card in both directions with the button", () => {
     renderWithI18n(
       <WikiPublicHeroImage
         basic={wikiStoryBasic}
@@ -101,9 +102,11 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByTestId("wiki-flip-input")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "View basic details" }));
 
-    expect(screen.getByText("Tap the card again to return to the cover image.")).toBeInTheDocument();
+    expect(screen.getByTestId("wiki-flip-input")).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Back to photo" }));
+    expect(screen.getByTestId("wiki-flip-input")).not.toBeChecked();
   });
 
   it("shows the deletion request link only when image and translation set identifiers are available", () => {
@@ -116,7 +119,10 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    expect(screen.getAllByRole("button", { name: "Request image deletion" })).toHaveLength(2);
+    const requestButton = screen.getByText("Request image deletion");
+    expect(requestButton.closest("[inert]")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("wiki-flip-input"));
+    expect(requestButton.closest("[inert]")).toBeNull();
 
     cleanup();
 
@@ -144,14 +150,8 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    expect(screen.getAllByRole("img", { name: wikiStoryHeroImage.alt })).toEqual([
-      expect.objectContaining({
-        src: expect.stringContaining("data:image/svg+xml"),
-      }),
-      expect.objectContaining({
-        src: expect.stringContaining("data:image/svg+xml"),
-      }),
-    ]);
+    expect(screen.getByRole("img", { name: wikiStoryHeroImage.alt }).getAttribute("src"))
+      .toContain("data:image/svg+xml");
     expect(screen.queryByRole("button", { name: "Request image deletion" })).not.toBeInTheDocument();
   });
 
@@ -183,7 +183,8 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
+    fireEvent.click(screen.getByTestId("wiki-flip-input"));
+    fireEvent.click(screen.getByRole("button", { name: "Request image deletion" }));
 
     expect(await screen.findByRole("dialog", { name: "Request image deletion" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Submit deletion request" })).not.toBeInTheDocument();
@@ -258,7 +259,8 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
+    fireEvent.click(screen.getByTestId("wiki-flip-input"));
+    fireEvent.click(screen.getByRole("button", { name: "Request image deletion" }));
     fireEvent.click(await screen.findByRole("button", { name: "Load more images" }));
 
     expect(await screen.findByText("Alt text: Second image")).toBeInTheDocument();
@@ -294,7 +296,8 @@ describe("WikiPublicHeroImage", () => {
       />,
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Request image deletion" })[0]);
+    fireEvent.click(screen.getByTestId("wiki-flip-input"));
+    fireEvent.click(screen.getByRole("button", { name: "Request image deletion" }));
     await clickImageCard("Hero image");
     expect(screen.getByText("Selected: Hero image")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Requester name"), { target: { value: "k-pool User" } });

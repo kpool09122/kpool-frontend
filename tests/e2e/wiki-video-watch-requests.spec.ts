@@ -130,7 +130,7 @@ test("fresh mobile public Wiki session sends with CSRF, refreshes restrictions, 
       exact: true,
     }),
   ).toBeEnabled();
-  const wikiTitle = await page.locator(".wiki-title > span").first().innerText();
+  const wikiTitle = await page.getByRole("heading", { level: 1 }).innerText();
   await expect(card.getByText(`Liked by ${wikiTitle}`, { exact: true })).toBeVisible();
   expect(writes).toBe(1);
   expect(personalReads).toBeGreaterThan(1);

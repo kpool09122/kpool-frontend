@@ -452,6 +452,7 @@ const wikiDetailBaseSchema = z.object({
     author: z.string().nullish(),
     license: wikiPrivateApiTypes.schemas.UploadImageRequestBody.shape.license.nullish(),
     isHidden: z.boolean().optional(),
+    isPlaceholder: z.boolean().optional(),
   }),
   isOfficial: z.boolean().optional(),
   basic: wikiBasicSchema,
