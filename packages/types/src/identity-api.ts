@@ -237,6 +237,46 @@ const UpdateIdentityRequestBody = z
 const WithdrawalEligibility = z
   .object({ canWithdraw: z.boolean() })
   .passthrough();
+const ConsentScope = z.enum([
+  "wiki:read",
+  "wiki-drafts:read",
+  "wiki-drafts:write",
+  "wiki-drafts:submit",
+  "wiki-images:read",
+  "wiki-images:write",
+]);
+const CreateAuthorizationRequestBody = z
+  .object({
+    clientIdentifier: KPool_Common_Uuid.uuid(),
+    redirectUri: z.string(),
+    scopes: z.array(ConsentScope),
+    resource: z.string(),
+    codeChallenge: z.string(),
+    codeChallengeMethod: z.literal("S256"),
+    responseType: z.literal("code"),
+    state: z.string(),
+  })
+  .passthrough();
+const PendingAuthorizationResult = z
+  .object({ requestIdentifier: z.string(), expiresAt: KPool_Common_Timestamp })
+  .passthrough();
+const AuthorizationRequestResult = PendingAuthorizationResult;
+const AuthorizationTargetChoice = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    delegationIdentifier: KPool_Common_Uuid.nullish(),
+  })
+  .passthrough();
+const ApproveAuthorizationBody = z
+  .object({
+    scopes: z.array(ConsentScope),
+    targets: z.array(AuthorizationTargetChoice),
+    initialAccountIdentifier: KPool_Common_Uuid,
+  })
+  .passthrough();
+const AuthorizationContinuationResult = z
+  .object({ redirectUri: z.string() })
+  .passthrough();
 const AccountPolicyConditionClause = z
   .object({
     field: z.string(),
@@ -294,6 +334,13 @@ const AuthenticationMethodsSummary = z
   .object({
     passkeyCount: z.number().int(),
     linkedSocialProviders: z.array(z.string()),
+  })
+  .passthrough();
+const AuthorizationAccountChoice = z
+  .object({
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    delegationIdentifier: KPool_Common_Uuid.nullable(),
+    name: z.string(),
   })
   .passthrough();
 const KPool_Common_PrincipalStatus = z.enum([
@@ -372,6 +419,13 @@ export const schemas = {
   WithdrawFromServiceRequestBody,
   UpdateIdentityRequestBody,
   WithdrawalEligibility,
+  ConsentScope,
+  CreateAuthorizationRequestBody,
+  PendingAuthorizationResult,
+  AuthorizationRequestResult,
+  AuthorizationTargetChoice,
+  ApproveAuthorizationBody,
+  AuthorizationContinuationResult,
   AccountPolicyConditionClause,
   AccountPolicyCondition,
   AccountPolicyStatement,
@@ -380,6 +434,7 @@ export const schemas = {
   AuthenticatedAccountReferenceSummary,
   AuthenticatedAccountSummary,
   AuthenticationMethodsSummary,
+  AuthorizationAccountChoice,
   KPool_Common_PrincipalStatus,
   KPool_Common_PrincipalStatusConflictProblem,
   SiteManagementPolicyStatement,
@@ -1737,6 +1792,249 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/oauth/requests",
+    alias: "OAuthConsent_createAuthorizationRequest",
+    description: `Validate and save the request for the signed-in Identity, replacing any previous request in the same browser session. If login is required, set the frontend login page&#x27;s returnTo to the local consent-page URL, preserving the original OAuth query. Use the OAuth client&#x27;s redirect_uri only when returning the authorization result. After login, obtain a fresh token from /auth/csrf-token and forward the session cookies. Create the request, then GET its details.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: CreateAuthorizationRequestBody,
+      },
+    ],
+    response: PendingAuthorizationResult,
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/oauth/requests/:requestIdentifier",
+    alias: "OAuthConsent_getAuthorizationRequest",
+    description: `Read consent-screen details for the Identity and session that created the request. Scope and account candidates are freshly validated. Scope ceilings do not grant business permissions.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestIdentifier",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: AuthorizationRequestResult,
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/oauth/requests/:requestIdentifier/approve",
+    alias: "OAuthConsent_approveAuthorization",
+    description: `Revalidate membership, approved delegation pairs, active statuses and switch policy; persist consent and issue code in one DB transaction. Failure rolls back consent and leaves the request retryable. Only server-stored Client/redirect/resource/PKCE/state and an approved subset of stored scopes reach code issuance.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: ApproveAuthorizationBody,
+      },
+      {
+        name: "requestIdentifier",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.object({ redirectUri: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/oauth/requests/:requestIdentifier/deny",
+    alias: "OAuthConsent_denyAuthorization",
+    description: `Reject without storing consent or issuing a code; complete the request and return access_denied to the freshly validated registered redirect URI.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestIdentifier",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.object({ redirectUri: z.string() }).passthrough(),
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
