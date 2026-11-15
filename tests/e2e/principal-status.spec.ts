@@ -101,6 +101,11 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test.afterEach(async ({ page }) => {
+  // Let in-flight route handlers finish reading cookies before the page is torn down.
+  await page.unrouteAll({ behavior: "wait" });
+});
+
 // Browser contract tests; backend transactions require a separate live integration environment.
 const account = "22222222-2222-2222-2222-222222222222";
 const groupId = "66666666-6666-4666-8666-666666666666";
