@@ -32,6 +32,28 @@ const IdentitySummary = z
   })
   .passthrough();
 const AuthenticatedIdentitySummary = IdentitySummary;
+const AuthenticatedAccountReferenceSummary = z
+  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
+  .passthrough();
+const AuthorizedAccountCandidate = z
+  .object({
+    delegationIdentifier: KPool_Common_Uuid.nullable(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    account: AuthenticatedAccountReferenceSummary,
+    isCurrent: z.boolean(),
+  })
+  .passthrough();
+const AuthorizedAccountSelectionSummary = z
+  .object({
+    identityIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.nullable(),
+    accountPrincipalIdentifier: KPool_Common_Uuid.nullable(),
+    account: AuthenticatedAccountReferenceSummary.nullable(),
+    delegationIdentifier: KPool_Common_Uuid.nullable(),
+    originalAccount: AuthenticatedAccountReferenceSummary.nullable(),
+    switchableAccounts: z.array(AuthorizedAccountCandidate),
+  })
+  .passthrough();
 const KPool_Common_Timestamp = z.string();
 const PasskeySummary = z
   .object({
@@ -261,18 +283,8 @@ const PendingAuthorizationResult = z
   .object({ requestIdentifier: z.string(), expiresAt: KPool_Common_Timestamp })
   .passthrough();
 const AuthorizationRequestResult = PendingAuthorizationResult;
-const AuthorizationTargetChoice = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid.uuid(),
-    delegationIdentifier: KPool_Common_Uuid.nullish(),
-  })
-  .passthrough();
 const ApproveAuthorizationBody = z
-  .object({
-    scopes: z.array(ConsentScope),
-    targets: z.array(AuthorizationTargetChoice),
-    initialAccountIdentifier: KPool_Common_Uuid,
-  })
+  .object({ scopes: z.array(ConsentScope) })
   .passthrough();
 const AuthorizationContinuationResult = z
   .object({ redirectUri: z.string() })
@@ -315,9 +327,6 @@ const AuthenticatedAccountAddressSummary = z
   })
   .partial()
   .passthrough();
-const AuthenticatedAccountReferenceSummary = z
-  .object({ accountIdentifier: KPool_Common_Uuid, name: z.string() })
-  .passthrough();
 const AuthenticatedAccountSummary = z
   .object({
     accountIdentifier: KPool_Common_Uuid,
@@ -334,13 +343,6 @@ const AuthenticationMethodsSummary = z
   .object({
     passkeyCount: z.number().int(),
     linkedSocialProviders: z.array(z.string()),
-  })
-  .passthrough();
-const AuthorizationAccountChoice = z
-  .object({
-    accountIdentifier: KPool_Common_Uuid.uuid(),
-    delegationIdentifier: KPool_Common_Uuid.nullable(),
-    name: z.string(),
   })
   .passthrough();
 const KPool_Common_PrincipalStatus = z.enum([
@@ -380,6 +382,9 @@ export const schemas = {
   EmptyJsonArray,
   IdentitySummary,
   AuthenticatedIdentitySummary,
+  AuthenticatedAccountReferenceSummary,
+  AuthorizedAccountCandidate,
+  AuthorizedAccountSelectionSummary,
   KPool_Common_Timestamp,
   PasskeySummary,
   PasskeyListResult,
@@ -423,7 +428,6 @@ export const schemas = {
   CreateAuthorizationRequestBody,
   PendingAuthorizationResult,
   AuthorizationRequestResult,
-  AuthorizationTargetChoice,
   ApproveAuthorizationBody,
   AuthorizationContinuationResult,
   AccountPolicyConditionClause,
@@ -431,10 +435,8 @@ export const schemas = {
   AccountPolicyStatement,
   AccountEffectivePolicySummary,
   AuthenticatedAccountAddressSummary,
-  AuthenticatedAccountReferenceSummary,
   AuthenticatedAccountSummary,
   AuthenticationMethodsSummary,
-  AuthorizationAccountChoice,
   KPool_Common_PrincipalStatus,
   KPool_Common_PrincipalStatusConflictProblem,
   SiteManagementPolicyStatement,
@@ -556,7 +558,10 @@ const endpoints = makeApi([
     alias: "IdentityAuthOperations_getAuthenticatedIdentity",
     description: `Get the current authenticated identity. Internal API Bearer is an Account-selection helper with no additional scope.`,
     requestFormat: "json",
-    response: AuthenticatedIdentitySummary,
+    response: z.union([
+      AuthenticatedIdentitySummary,
+      AuthorizedAccountSelectionSummary,
+    ]),
     errors: [
       {
         status: 401,
@@ -1877,7 +1882,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/oauth/requests/:requestIdentifier",
     alias: "OAuthConsent_getAuthorizationRequest",
-    description: `Read consent-screen details for the Identity and session that created the request. Scope and account candidates are freshly validated. Scope ceilings do not grant business permissions.`,
+    description: `Read consent-screen details for the Identity and session that created the request. Show that the approved scopes apply to every account the user can switch to now or in the future. The selected account and current business permissions apply on every request.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1934,7 +1939,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/oauth/requests/:requestIdentifier/approve",
     alias: "OAuthConsent_approveAuthorization",
-    description: `Revalidate membership, approved delegation pairs, active statuses and switch policy; persist consent and issue code in one DB transaction. Failure rolls back consent and leaves the request retryable. Only server-stored Client/redirect/resource/PKCE/state and an approved subset of stored scopes reach code issuance.`,
+    description: `Revalidate the original account and principal, persist scope consent and issue a code in one DB transaction. Failure rolls back consent and leaves the request retryable. Only server-stored Client/redirect/resource/PKCE/state and an approved subset of stored scopes reach code issuance.`,
     requestFormat: "json",
     parameters: [
       {
