@@ -1267,7 +1267,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/accounts/switch",
     alias: "AccountOperations_switchAccount",
-    description: `Switch the current effective account context without changing the authenticated identity.`,
+    description: `Switch the current effective account context without changing the authenticated identity. Internal API Bearer is an Account-selection helper with no additional scope.`,
     requestFormat: "json",
     parameters: [
       {

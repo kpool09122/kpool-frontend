@@ -1513,7 +1513,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/draft-images",
     alias: "DraftImageListOperations_listDraftImages",
-    description: `List draft images.`,
+    description: `List draft images. Internal API Bearer scope: wiki-images:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1537,6 +1537,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -1565,7 +1570,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/draft-wikis",
     alias: "DraftWikiListOperations_listDraftWikis",
-    description: `List draft wikis with read policy authorization.`,
+    description: `List draft wikis with read policy authorization. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1845,7 +1850,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/image/:imageId/metadata",
     alias: "ImageMetadataOperations_updateImageMetadata",
-    description: `Update published image metadata immediately for operators. Preserves image file, approval and visibility.`,
+    description: `Update published image metadata immediately for operators. Preserves image file, approval and visibility. Internal API Bearer scope: wiki-images:write.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1887,8 +1892,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -2125,7 +2140,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/image/upload",
     alias: "ImageOperations_uploadImage",
-    description: `Upload a new image.`,
+    description: `Upload a new image. Internal API Bearer scope: wiki-images:write.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2136,6 +2151,11 @@ const endpoints = makeApi([
     ],
     response: ImageDraftSummary,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 403,
         description: `Access is forbidden.`,
@@ -2172,7 +2192,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/images",
     alias: "ImageListOperations_listUploadedImages",
-    description: `List uploaded images.`,
+    description: `List uploaded images. Internal API Bearer scope: wiki-images:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2191,6 +2211,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -2271,7 +2296,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/managed-images",
     alias: "ManagedImageListOperations_listManagedImages",
-    description: `List images across all Wikis for operators, including hidden published images. Approved selects published images; other statuses select drafts.`,
+    description: `List images across all Wikis for operators, including hidden published images. Approved selects published images; other statuses select drafts. Internal API Bearer scope: wiki-images:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2358,8 +2383,18 @@ const endpoints = makeApi([
         schema: KPool_Common_ProblemDetails,
       },
       {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 500,
         description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
         schema: KPool_Common_ProblemDetails,
       },
     ],
@@ -2368,7 +2403,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/my/draft-wikis",
     alias: "MyDraftWikiListOperations_listMyDraftWikis",
-    description: `List draft wikis edited by the current principal.`,
+    description: `List draft wikis edited by the current principal. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2397,6 +2432,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -4422,7 +4462,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki-translation-sets/masters",
     alias: "WikiTranslationSetOperations_searchTranslationSetMasterWikis",
-    description: `Search wiki masters grouped by translation set for official certification requests.`,
+    description: `Search wiki masters grouped by translation set for official certification requests. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4446,6 +4486,11 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -4546,7 +4591,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/:slug/related-profiles",
     alias: "WikiOperations_listRelatedProfiles",
-    description: `List related published wiki profiles for a source wiki.`,
+    description: `List related published wiki profiles for a source wiki. Internal API Bearer scope: wiki:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4567,6 +4612,16 @@ const endpoints = makeApi([
     ],
     response: ListRelatedProfilesResponseBody,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4598,7 +4653,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/agency/:slug",
     alias: "WikiOperations_getAgencyWiki",
-    description: `Fetch the published agency wiki.`,
+    description: `Fetch the published agency wiki. Internal API Bearer scope: wiki:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4614,6 +4669,16 @@ const endpoints = makeApi([
     ],
     response: AgencyWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4645,7 +4710,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/agency/:slug/my/draft",
     alias: "MyWikiOperations_getMyAgencyDraftWiki",
-    description: `Fetch the current principal&#x27;s agency draft wiki by language and slug.`,
+    description: `Fetch the current principal&#x27;s agency draft wiki by language and slug. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4661,6 +4726,16 @@ const endpoints = makeApi([
     ],
     response: AgencyDraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4692,7 +4767,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/group/:slug",
     alias: "WikiOperations_getGroupWiki",
-    description: `Fetch the published group wiki.`,
+    description: `Fetch the published group wiki. Internal API Bearer scope: wiki:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4708,6 +4783,16 @@ const endpoints = makeApi([
     ],
     response: WikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4739,7 +4824,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/group/:slug/my/draft",
     alias: "MyWikiOperations_getMyGroupDraftWiki",
-    description: `Fetch the current principal&#x27;s group draft wiki by language and slug.`,
+    description: `Fetch the current principal&#x27;s group draft wiki by language and slug. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4755,6 +4840,16 @@ const endpoints = makeApi([
     ],
     response: DraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4786,7 +4881,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/song/:slug",
     alias: "WikiOperations_getSongWiki",
-    description: `Fetch the published song wiki.`,
+    description: `Fetch the published song wiki. Internal API Bearer scope: wiki:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4802,6 +4897,16 @@ const endpoints = makeApi([
     ],
     response: SongWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4833,7 +4938,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/song/:slug/my/draft",
     alias: "MyWikiOperations_getMySongDraftWiki",
-    description: `Fetch the current principal&#x27;s song draft wiki by language and slug.`,
+    description: `Fetch the current principal&#x27;s song draft wiki by language and slug. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4849,6 +4954,16 @@ const endpoints = makeApi([
     ],
     response: SongDraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4880,7 +4995,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/talent/:slug",
     alias: "WikiOperations_getTalentWiki",
-    description: `Fetch the published talent wiki.`,
+    description: `Fetch the published talent wiki. Internal API Bearer scope: wiki:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4896,6 +5011,16 @@ const endpoints = makeApi([
     ],
     response: TalentWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -4927,7 +5052,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/:language/talent/:slug/my/draft",
     alias: "MyWikiOperations_getMyTalentDraftWiki",
-    description: `Fetch the current principal&#x27;s talent draft wiki by language and slug.`,
+    description: `Fetch the current principal&#x27;s talent draft wiki by language and slug. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -4943,6 +5068,16 @@ const endpoints = makeApi([
     ],
     response: TalentDraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -5175,7 +5310,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/wiki/:wikiId/edit",
     alias: "WikiOperations_editWiki",
-    description: `Edit an existing wiki draft.`,
+    description: `Edit an existing wiki draft. Internal API Bearer scope: wiki-drafts:write.`,
     requestFormat: "json",
     parameters: [
       {
@@ -5191,6 +5326,11 @@ const endpoints = makeApi([
     ],
     response: DraftWikiSummary,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 403,
         description: `Access is forbidden.`,
@@ -5627,7 +5767,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/wiki/:wikiId/submit",
     alias: "WikiOperations_submitWiki",
-    description: `Submit a wiki draft for review.`,
+    description: `Submit a wiki draft for review. Internal API Bearer scope: wiki-drafts:submit.`,
     requestFormat: "json",
     parameters: [
       {
@@ -5663,6 +5803,11 @@ const endpoints = makeApi([
     ],
     response: DraftWikiSummary,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 403,
         description: `Access is forbidden.`,
@@ -5853,7 +5998,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/agency/:wikiIdentifier/draft",
     alias: "WikiOperations_getAgencyDraftWiki",
-    description: `Fetch an agency draft wiki by draft wiki identifier.`,
+    description: `Fetch an agency draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -5864,6 +6009,16 @@ const endpoints = makeApi([
     ],
     response: AgencyDraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -5942,7 +6097,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/wiki/create",
     alias: "WikiOperations_createWiki",
-    description: `Create a new wiki draft.`,
+    description: `Create a new wiki draft. Internal API Bearer scope: wiki-drafts:write.`,
     requestFormat: "json",
     parameters: [
       {
@@ -5953,6 +6108,11 @@ const endpoints = makeApi([
     ],
     response: DraftWikiSummary,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 403,
         description: `Access is forbidden.`,
@@ -5994,7 +6154,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/group/:wikiIdentifier/draft",
     alias: "WikiOperations_getGroupDraftWiki",
-    description: `Fetch a group draft wiki by draft wiki identifier.`,
+    description: `Fetch a group draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6005,6 +6165,16 @@ const endpoints = makeApi([
     ],
     response: DraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -6036,7 +6206,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/song/:wikiIdentifier/draft",
     alias: "WikiOperations_getSongDraftWiki",
-    description: `Fetch a song draft wiki by draft wiki identifier.`,
+    description: `Fetch a song draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6047,6 +6217,16 @@ const endpoints = makeApi([
     ],
     response: SongDraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -6078,7 +6258,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/talent/:wikiIdentifier/draft",
     alias: "WikiOperations_getTalentDraftWiki",
-    description: `Fetch a talent draft wiki by draft wiki identifier.`,
+    description: `Fetch a talent draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6089,6 +6269,16 @@ const endpoints = makeApi([
     ],
     response: TalentDraftWikiDetail,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
@@ -6120,7 +6310,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wikis/:language",
     alias: "WikiListOperations_listWikis",
-    description: `List published wikis by language.`,
+    description: `List published wikis by language. Internal API Bearer scope: wiki:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6157,6 +6347,16 @@ const endpoints = makeApi([
     response: ListWikisResponseBody,
     errors: [
       {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
         status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
@@ -6182,7 +6382,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wikis/:language/masters",
     alias: "WikiListOperations_searchMasterWikis",
-    description: `Search published wiki masters for lightweight selection candidates.`,
+    description: `Search published wiki masters for lightweight selection candidates. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6208,6 +6408,16 @@ const endpoints = makeApi([
     ],
     response: SearchMasterWikisResponseBody,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 422,
         description: `Client error`,
