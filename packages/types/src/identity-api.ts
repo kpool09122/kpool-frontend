@@ -554,13 +554,18 @@ const endpoints = makeApi([
     method: "get",
     path: "/auth/me",
     alias: "IdentityAuthOperations_getAuthenticatedIdentity",
-    description: `Get the current authenticated identity.`,
+    description: `Get the current authenticated identity. Internal API Bearer is an Account-selection helper with no additional scope.`,
     requestFormat: "json",
     response: AuthenticatedIdentitySummary,
     errors: [
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
