@@ -5998,7 +5998,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/agency/:wikiIdentifier/draft",
     alias: "WikiOperations_getAgencyDraftWiki",
-    description: `Fetch an agency draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
+    description: `Fetch an agency draft wiki by draft wiki identifier. Requires READ Policy on the target draft resource using the current Account/delegation Wiki Principal. Returns 403 when READ is denied and 404 when the draft or Principal does not exist. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6154,7 +6154,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/group/:wikiIdentifier/draft",
     alias: "WikiOperations_getGroupDraftWiki",
-    description: `Fetch a group draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
+    description: `Fetch a group draft wiki by draft wiki identifier. Requires READ Policy on the target draft resource using the current Account/delegation Wiki Principal. Returns 403 when READ is denied and 404 when the draft or Principal does not exist. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6206,7 +6206,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/song/:wikiIdentifier/draft",
     alias: "WikiOperations_getSongDraftWiki",
-    description: `Fetch a song draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
+    description: `Fetch a song draft wiki by draft wiki identifier. Requires READ Policy on the target draft resource using the current Account/delegation Wiki Principal. Returns 403 when READ is denied and 404 when the draft or Principal does not exist. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6258,7 +6258,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/wiki/talent/:wikiIdentifier/draft",
     alias: "WikiOperations_getTalentDraftWiki",
-    description: `Fetch a talent draft wiki by draft wiki identifier. Internal API Bearer scope: wiki-drafts:read.`,
+    description: `Fetch a talent draft wiki by draft wiki identifier. Requires READ Policy on the target draft resource using the current Account/delegation Wiki Principal. Returns 403 when READ is denied and 404 when the draft or Principal does not exist. Internal API Bearer scope: wiki-drafts:read.`,
     requestFormat: "json",
     parameters: [
       {
