@@ -267,6 +267,16 @@ const ConsentScope = z.enum([
   "wiki-images:read",
   "wiki-images:write",
 ]);
+const AuthorizationConnection = z
+  .object({
+    connectionIdentifier: KPool_Common_Uuid.uuid(),
+    clientIdentifier: KPool_Common_Uuid.uuid(),
+    clientName: z.string(),
+    scopes: z.array(ConsentScope),
+    createdAt: KPool_Common_Timestamp,
+    revokedAt: KPool_Common_Timestamp.nullable(),
+  })
+  .passthrough();
 const CreateAuthorizationRequestBody = z
   .object({
     clientIdentifier: KPool_Common_Uuid.uuid(),
@@ -425,6 +435,7 @@ export const schemas = {
   UpdateIdentityRequestBody,
   WithdrawalEligibility,
   ConsentScope,
+  AuthorizationConnection,
   CreateAuthorizationRequestBody,
   PendingAuthorizationResult,
   AuthorizationRequestResult,
@@ -1802,6 +1813,100 @@ const endpoints = makeApi([
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/oauth/connections",
+    alias: "OAuthConnections_listAuthorizationConnections",
+    description: `List only the signed-in Identity&#x27;s connections, including revoked connections, ordered by consent timestamp ascending then connection ID ascending. Empty results use connections: []. Cookie-only; no-store; independent of selected Account status.`,
+    requestFormat: "json",
+    response: z
+      .object({ connections: z.array(AuthorizationConnection) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/oauth/connections/:connectionIdentifier",
+    alias: "OAuthConnections_revokeAuthorization",
+    description: `Revoke only the signed-in Identity&#x27;s specified connection, its access/refresh tokens and authorization codes. After commit, invalidate all associated internal API authorization caches and this connection&#x27;s Account selection/context, preserving other connections and browser selections. Repeating revocation succeeds without changing revokedAt. Unknown and foreign IDs both return 404. Cookie and CSRF required. Returns an empty JSON array.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "connectionIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.array(z.unknown()),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
