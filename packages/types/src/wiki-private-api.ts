@@ -1366,6 +1366,35 @@ const WikiMasterSearchItem = z
 const SearchMasterWikisResponseBody = z
   .object({ wikis: z.array(WikiMasterSearchItem) })
   .passthrough();
+const AgencyWikiBasicInput = z
+  .object({
+    name: z.string(),
+    normalizedName: z.string().optional(),
+    ceo: z.string().optional(),
+    normalizedCeo: z.string().optional(),
+    foundedIn: z.string().nullish(),
+    parentAgencyIdentifier: KPool_Common_Uuid.nullish(),
+    status: z.string().nullish(),
+    officialWebsite: z.string().nullish(),
+    socialLinks: z.array(z.string()).optional(),
+  })
+  .passthrough();
+const GroupWikiBasicInput = z
+  .object({
+    name: z.string(),
+    normalizedName: z.string().optional(),
+    agencyIdentifier: KPool_Common_Uuid.nullish(),
+    groupType: z.enum(["boy_group", "girl_group", "co_ed"]).nullish(),
+    status: z.string().nullish(),
+    generation: z.string().nullish(),
+    debutDate: z.string().nullish(),
+    disbandDate: z.string().nullish(),
+    fandomName: z.string().optional(),
+    officialColors: z.array(OfficialColor).optional(),
+    emoji: z.string().optional(),
+    representativeSymbol: z.string().optional(),
+  })
+  .passthrough();
 const PlaylistItem = z
   .object({
     sourceVideoLinkIdentifier: KPool_Common_Uuid.nullable(),
@@ -1378,6 +1407,139 @@ const PlaylistItem = z
     title: z.string(),
     thumbnailUrl: z.string().url().nullable(),
     durationSeconds: z.number().int().nullable(),
+  })
+  .passthrough();
+const SongWikiBasicInput = z
+  .object({
+    name: z.string(),
+    normalizedName: z.string().optional(),
+    songType: z
+      .enum([
+        "title_track",
+        "b_side",
+        "ost",
+        "solo",
+        "collaboration",
+        "pre_release",
+      ])
+      .nullish(),
+    genres: z.array(z.string()).optional(),
+    agencyIdentifier: KPool_Common_Uuid.nullish(),
+    releaseDate: z.string().nullish(),
+    albumName: z.string().nullish(),
+    lyricist: z.string().optional(),
+    normalizedLyricist: z.string().optional(),
+    composer: z.string().optional(),
+    normalizedComposer: z.string().optional(),
+    arranger: z.string().optional(),
+    normalizedArranger: z.string().optional(),
+    groupIdentifiers: z.array(KPool_Common_Uuid).optional(),
+    talentIdentifiers: z.array(KPool_Common_Uuid).optional(),
+  })
+  .passthrough();
+const TalentWikiBasicInput = z
+  .object({
+    name: z.string(),
+    normalizedName: z.string().optional(),
+    realName: z.string().optional(),
+    normalizedRealName: z.string().optional(),
+    birthday: z.string().nullish(),
+    agencyIdentifier: KPool_Common_Uuid.nullish(),
+    emoji: z.string().optional(),
+    representativeSymbol: z.string().optional(),
+    position: z.string().optional(),
+    mbti: z
+      .enum([
+        "INTJ",
+        "INTP",
+        "ENTJ",
+        "ENTP",
+        "INFJ",
+        "INFP",
+        "ENFJ",
+        "ENFP",
+        "ISTJ",
+        "ISFJ",
+        "ESTJ",
+        "ESFJ",
+        "ISTP",
+        "ISFP",
+        "ESTP",
+        "ESFP",
+      ])
+      .nullish(),
+    zodiacSign: z
+      .enum([
+        "aries",
+        "taurus",
+        "gemini",
+        "cancer",
+        "leo",
+        "virgo",
+        "libra",
+        "scorpio",
+        "sagittarius",
+        "capricorn",
+        "aquarius",
+        "pisces",
+      ])
+      .nullish(),
+    englishLevel: z
+      .enum(["native", "fluent", "conversational", "basic", "none"])
+      .nullish(),
+    height: z.union([z.number(), z.string()]).nullish(),
+    bloodType: z.enum(["A", "B", "O", "AB"]).nullish(),
+    fandomName: z.string().optional(),
+    groupIdentifiers: z.array(KPool_Common_Uuid).optional(),
+  })
+  .passthrough();
+const WikiBasicInput = z.union([
+  AgencyWikiBasicInput,
+  GroupWikiBasicInput,
+  TalentWikiBasicInput,
+  SongWikiBasicInput,
+]);
+const WikiHistoryEntryInput = z
+  .object({
+    year: z.number().int(),
+    title: z.string(),
+    detail: z.string().nullish(),
+  })
+  .passthrough();
+const WikiContentInput = z
+  .object({
+    type: z.enum([
+      "section",
+      "text",
+      "image",
+      "image_gallery",
+      "embed",
+      "quote",
+      "list",
+      "history",
+      "table",
+      "profile_card_list",
+    ]),
+    displayOrder: z.number().int().optional(),
+    title: z.string().nullish(),
+    contents: z.array(z.unknown()).optional(),
+    content: z.string().optional(),
+    imageIdentifier: KPool_Common_Uuid.nullish(),
+    imageIdentifiers: z.array(KPool_Common_Uuid).optional(),
+    imageWidth: z.number().int().nullish(),
+    caption: z.string().nullish(),
+    alt: z.string().nullish(),
+    provider: z.string().nullish(),
+    embedId: z.string().optional(),
+    source: z.string().nullish(),
+    listType: z.enum(["bullet", "numbered"]).optional(),
+    items: z.array(z.string()).optional(),
+    entries: z.array(WikiHistoryEntryInput).optional(),
+    headerCells: z.array(z.string()).nullish(),
+    rowCells: z.array(z.array(z.string())).optional(),
+    tableWidth: z.string().nullish(),
+    wikiIdentifiers: z.array(KPool_Common_Uuid).optional(),
+    cardShape: z.string().nullish(),
   })
   .passthrough();
 
@@ -1505,7 +1667,14 @@ export const schemas = {
   ListWikisResponseBody,
   WikiMasterSearchItem,
   SearchMasterWikisResponseBody,
+  AgencyWikiBasicInput,
+  GroupWikiBasicInput,
   PlaylistItem,
+  SongWikiBasicInput,
+  TalentWikiBasicInput,
+  WikiBasicInput,
+  WikiHistoryEntryInput,
+  WikiContentInput,
 };
 
 const endpoints = makeApi([
@@ -1574,9 +1743,14 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).nullish(),
+      },
+      {
         name: "perPage",
         type: "Query",
-        schema: z.number().int().optional(),
+        schema: z.number().int().gte(1).lte(100).nullish(),
       },
       {
         name: "translationSetIdentifier",
@@ -1586,7 +1760,7 @@ const endpoints = makeApi([
       {
         name: "statuses",
         type: "Query",
-        schema: z.array(DraftWikiStatus),
+        schema: z.array(DraftWikiStatus).min(1),
       },
       {
         name: "resourceType",
@@ -2407,9 +2581,14 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).nullish(),
+      },
+      {
         name: "perPage",
         type: "Query",
-        schema: z.number().int().optional(),
+        schema: z.number().int().gte(1).lte(100).nullish(),
       },
       {
         name: "translationSetIdentifier",
@@ -2419,7 +2598,7 @@ const endpoints = makeApi([
       {
         name: "statuses",
         type: "Query",
-        schema: z.array(DraftWikiStatus),
+        schema: z.array(DraftWikiStatus).min(1),
       },
       {
         name: "resourceType",
@@ -6319,9 +6498,14 @@ const endpoints = makeApi([
         schema: z.string(),
       },
       {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().gte(1).nullish(),
+      },
+      {
         name: "perPage",
         type: "Query",
-        schema: z.number().int().optional(),
+        schema: z.number().int().gte(1).lte(100).nullish(),
       },
       {
         name: "resourceType",
