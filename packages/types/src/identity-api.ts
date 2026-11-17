@@ -299,6 +299,9 @@ const ApproveAuthorizationBody = z
 const AuthorizationContinuationResult = z
   .object({ redirectUri: z.string() })
   .passthrough();
+const AuthorizationScopeSettings = z
+  .object({ scopes: z.array(ConsentScope).max(6) })
+  .passthrough();
 const AccountPolicyConditionClause = z
   .object({
     field: z.string(),
@@ -441,6 +444,7 @@ export const schemas = {
   AuthorizationRequestResult,
   ApproveAuthorizationBody,
   AuthorizationContinuationResult,
+  AuthorizationScopeSettings,
   AccountPolicyConditionClause,
   AccountPolicyCondition,
   AccountPolicyStatement,
@@ -2149,6 +2153,98 @@ const endpoints = makeApi([
       },
       {
         status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/oauth/scope-settings",
+    alias: "OAuthScopeSettings_getAuthorizationScopeSettings",
+    description: `Read the authenticated Identity&#x27;s allowed scopes. No target Identity ID is accepted. Cookie-only, no-store, independent of Account selection/status.`,
+    requestFormat: "json",
+    response: AuthorizationScopeSettings,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "put",
+    path: "/oauth/scope-settings",
+    alias: "OAuthScopeSettings_updateAuthorizationScopeSettings",
+    description: `Replace the authenticated Identity&#x27;s allowed scopes. Cookie and CSRF required; no-store. scopes is required, unique and may be empty. Returns an empty JSON array. Does not modify existing consents; applies when subsequent consent is finalized.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: AuthorizationScopeSettings,
+      },
+    ],
+    response: z.array(z.unknown()),
+    errors: [
+      {
+        status: 400,
+        description: `The server could not understand the request due to invalid syntax.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
