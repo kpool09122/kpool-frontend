@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, Blocks, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDeadlineTime } from "@/components/useDeadlineTime";
 import { oauthConsentBrowserApi, type OAuthConsentBrowserApi, type ConsentDetails, type ConsentScope } from "@/gateways/identity/oauthConsentBrowserApi";
@@ -64,32 +65,48 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
     });
   };
   const shownError = expired ? "invalid" : error;
-  return <main className="flex-1 bg-surface-base px-6 py-10 text-text-strong sm:px-10">
-    <section aria-labelledby="consent-title" className="mx-auto max-w-2xl space-y-5 rounded-lg border border-stroke-subtle bg-surface-raised p-6">
-      <h1 id="consent-title" className="text-3xl font-bold">{t.title}</h1>
-      <p>{t.introduction}</p>
-      {pending ? <p role="status">{details ? t.sending : t.loading}</p> : null}
-      {complete ? <p role="status">{t.complete}</p> : null}
-      {details && !complete ? <>
-        <h2 className="break-words text-xl font-semibold">{details.clientName}</h2>
-        <p className="text-sm leading-6">{t.accounts}</p><p className="text-sm leading-6">{t.business}</p>
-        <fieldset disabled={pending || blocked} className="space-y-3">
-          <legend className="mb-3 font-semibold">{t.scopesTitle}</legend>
-          {details.scopes.map(({ scope, description }) => <label key={scope} className="flex min-h-12 items-start gap-3 break-words">
-            <input type="checkbox" checked={selection.includes(scope)} onChange={(event) => setSelection((previous) => event.target.checked ? [...previous, scope] : previous.filter((item) => item !== scope))} className="mt-1 h-5 w-5 shrink-0" />
-            <span><span className="block font-semibold">{scope}</span>{t.descriptions[scope] ?? description}</span>
-          </label>)}
-        </fieldset>
-        {details.scopes.length === 0 ? <p>{t.empty}</p> : null}
-        <Link href="/admin/user/security" className="inline-flex min-h-11 items-center text-brand-primary underline">{t.settings}</Link>
-        <div className="flex flex-wrap gap-3">
-          <button type="button" disabled={pending || blocked || selection.length === 0} onClick={() => void submit("approve")} className="min-h-12 rounded-lg bg-brand-primary px-6 font-semibold text-on-primary disabled:opacity-50">{t.approve}</button>
-          <button type="button" disabled={pending || blocked} onClick={() => void submit("deny")} className="min-h-12 rounded-lg border border-stroke-subtle px-6 disabled:opacity-50">{t.cancel}</button>
+  const hasScopes = details !== null && details.scopes.length > 0;
+  const actionClass = "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary";
+  return <main className="flex-1 bg-surface-base px-4 py-8 text-text-strong sm:px-8 sm:py-16">
+    <section aria-label={t.title} className="mx-auto max-w-xl overflow-hidden rounded-2xl border border-stroke-subtle bg-surface-raised shadow-soft">
+      <header className="px-6 pt-8 pb-6 sm:px-8">
+        <div aria-hidden="true" className="mb-6 flex items-center gap-3">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-stroke-subtle bg-surface-base"><Blocks className="h-6 w-6 text-brand-primary" /></span>
+          <ArrowRight className="h-4 w-4 text-text-muted" />
+          <span className="text-lg font-bold tracking-tight">k-pool</span>
         </div>
-      </> : null}
-      {!complete && shownError ? <p role="alert">{t[shownError]}</p> : null}
-      {shownError === "session" ? <Link href={loginHref} className="text-brand-primary underline">{t.login}</Link> : null}
-      {!complete && shownError && shownError !== "session" ? <button type="button" disabled={pending} onClick={() => window.location.reload()} className="min-h-12 text-brand-primary underline">{t.restart}</button> : null}
+        <p className="mb-3 text-xs font-semibold tracking-wide text-text-muted">{t.title}</p>
+        <h1 className="text-2xl font-bold leading-snug [overflow-wrap:anywhere] sm:text-3xl">
+          {details ? <><span className="block">{details.clientName}</span><span className="mt-2 block text-base font-medium leading-relaxed text-text-muted">{t.request}</span></> : t.introduction}
+        </h1>
+      </header>
+      <div className="space-y-6 px-6 pb-6 sm:px-8 sm:pb-8">
+        {pending ? <p role="status" className="text-sm text-text-muted">{details ? t.sending : t.loading}</p> : null}
+        {complete ? <p role="status" className="text-sm text-text-muted">{t.complete}</p> : null}
+        {details && !complete ? hasScopes ? <>
+          <fieldset disabled={pending || blocked} className="min-w-0 space-y-3 disabled:opacity-60">
+            <legend className="mb-3 text-sm font-semibold">{t.scopesTitle}</legend>
+            {details.scopes.map(({ scope, description }) => <label key={scope} className="flex cursor-pointer items-start gap-3 rounded-xl border border-stroke-subtle p-4 transition-colors hover:bg-surface-base has-[:checked]:border-brand-primary has-[:checked]:bg-brand-primary/5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand-primary">
+              <input type="checkbox" checked={selection.includes(scope)} onChange={(event) => setSelection((previous) => event.target.checked ? [...previous, scope] : previous.filter((item) => item !== scope))} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary" />
+              <span className="min-w-0 text-sm leading-6 [overflow-wrap:anywhere]"><span className="block font-medium">{t.descriptions[scope] ?? description}</span><span className="mt-1 block text-xs text-text-muted">{scope}</span></span>
+            </label>)}
+          </fieldset>
+          <div className="space-y-2 rounded-xl bg-surface-base p-4 text-xs leading-6 text-text-muted"><p>{t.accounts}</p><p>{t.business}</p></div>
+          <Link href="/admin/user/security" className="inline-flex min-h-11 items-center gap-2 text-sm text-brand-primary underline underline-offset-4">{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
+        </> : <div className="rounded-xl border border-stroke-subtle bg-surface-base p-5">
+          <SlidersHorizontal aria-hidden="true" className="mb-3 h-5 w-5 text-text-muted" />
+          <h2 className="font-semibold">{t.emptyTitle}</h2>
+          <p className="mt-2 text-sm leading-7 text-text-muted">{t.empty}</p>
+        </div> : null}
+        {!complete && shownError ? <p role="alert" className="rounded-xl border border-stroke-subtle bg-surface-base p-4 text-sm leading-6">{t[shownError]}</p> : null}
+        {shownError === "session" ? <Link href={loginHref} className="inline-flex min-h-11 items-center text-brand-primary underline underline-offset-4">{t.login}</Link> : null}
+        {!complete && shownError && shownError !== "session" ? <button type="button" disabled={pending} onClick={() => window.location.reload()} className="min-h-12 text-sm text-brand-primary underline underline-offset-4">{t.restart}</button> : null}
+      </div>
+      {details && !complete ? <footer className="flex flex-col gap-3 border-t border-stroke-subtle px-6 py-5 sm:flex-row-reverse sm:px-8">
+        {hasScopes ? <button type="button" disabled={pending || blocked || selection.length === 0} onClick={() => void submit("approve")} className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-1`}>{t.approve}<ArrowRight aria-hidden="true" className="h-4 w-4" /></button>
+          : <Link href="/admin/user/security" className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 sm:flex-1`}>{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>}
+        <button type="button" disabled={pending || blocked} onClick={() => void submit("deny")} className={`${actionClass} border border-stroke-subtle hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-40`}>{t.cancel}</button>
+      </footer> : null}
     </section>
   </main>;
 }

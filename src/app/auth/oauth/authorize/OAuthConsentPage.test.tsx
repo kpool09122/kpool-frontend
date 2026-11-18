@@ -32,8 +32,10 @@ describe("OAuth consent", () => {
     const api = mockApi(); api.start.mockResolvedValue({ ok: true, data: detail([]) });
     const { navigate } = show(api);
     await screen.findByText("ChatGPT");
-    expect(approve()).toBeDisabled();
-    expect(screen.getByRole("link", { name: "許可 Scope の設定" })).toHaveAttribute("href", "/admin/user/security");
+    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "許可できる操作がありません" })).toBeInTheDocument();
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/security");
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://client.example/callback?error=access_denied&state=original"));
     expect(api.deny).toHaveBeenCalledWith("returned-id", "ja");
@@ -44,7 +46,7 @@ describe("OAuth consent", () => {
     fireEvent.click(screen.getByLabelText(/wiki:read/)); fireEvent.click(approve());
     await screen.findByText(/許可設定が変更/);
     expect(api.get).toHaveBeenCalledWith("returned-id", "ja");
-    expect(approve()).toBeDisabled(); expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument(); expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(api.start).toHaveBeenCalledOnce();
   });
   it.each([404, 409, 403, 401, 419, 500])("handles status %i without repeating creation or exposing backend messages", async (status) => {
