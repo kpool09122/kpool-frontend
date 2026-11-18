@@ -1020,6 +1020,8 @@ describe("admin page clients", () => {
     fireEvent.click(securityTab);
     expect(screen.getByRole("tab", { name: "セキュリティ", selected: true })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "パスキー管理" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "外部連携" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "外部連携" })).toHaveAttribute("href", "/admin/user/external-connections");
   });
 
   it("hides account settings when /auth/me has no account policy", () => {

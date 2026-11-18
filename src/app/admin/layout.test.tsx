@@ -118,7 +118,7 @@ describe("AdminLayout", () => {
 });
 
 
-it.each(["profile", "language", "security", "other"])("allows user %s settings for a suspended account", async (page) => {
+it.each(["profile", "language", "security", "external-connections", "other"])("allows user %s settings for a suspended account", async (page) => {
   mocks.pathname = `/admin/user/${page}`;
   mocks.loadAdminIdentity.mockResolvedValue({ ...identity, account: { ...identity.account, status: "suspended" } });
   render(await renderAdminLayout({ children: <div>ユーザー設定の内容</div> }));

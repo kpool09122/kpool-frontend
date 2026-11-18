@@ -215,7 +215,7 @@ describe("suspended account entry", () => {
     },
   );
 
-  it.each(["profile", "language", "security", "other"])("allows a direct user %s settings request", async (page) => {
+  it.each(["profile", "language", "security", "external-connections", "other"])("allows a direct user %s settings request", async (page) => {
     await expect(Admin({ params: Promise.resolve({ slug: ["user", page] }) })).resolves.toBeDefined();
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.getInitialWikiPrincipalForRequest).not.toHaveBeenCalled();

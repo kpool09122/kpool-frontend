@@ -19,7 +19,7 @@ export const oauthConsentDictionaries: Record<Locale, ConsentDictionary> = {
     invalid: "この認可要求は期限切れ・完了済み、または別タブの新しい要求で無効になりました。認可をやり直してください。",
     failed: "通信または送信に失敗しました。再試行するか、認可をやり直してください。",
     invalidInput: "認可要求が不正です。接続元アプリから認可をやり直してください。", login: "ログイン", session: "ログインが必要か、セッションが切れました。ログインして認可をやり直してください。", restart: "認可をやり直す",
-    descriptions: { "wiki:read": "公開 Wiki の取得", "wiki-drafts:read": "Draft Wiki の取得", "wiki-drafts:write": "Draft Wiki の通常作成・編集（自動作成は含みません）", "wiki-drafts:submit": "Draft Wiki の提出", "wiki-images:read": "運営向け Wiki 画像一覧の取得", "wiki-images:write": "運営向け Wiki 画像メタデータの編集" },
+    descriptions: { "wiki:read": "公開 Wiki の取得", "wiki-drafts:read": "下書き Wiki の取得", "wiki-drafts:write": "下書き Wiki の作成・編集", "wiki-drafts:submit": "下書き Wiki の提出", "wiki-images:read": "運営向け Wiki 画像一覧の取得", "wiki-images:write": "運営向け Wiki 画像メタデータの編集" },
   },
   en: {
     request: "is requesting access to k-pool", emptyTitle: "No operations are available", title: "Connect an external app", introduction: "Review the app and the operations you wish to allow.",
@@ -31,7 +31,7 @@ export const oauthConsentDictionaries: Record<Locale, ConsentDictionary> = {
     forbidden: "Your Account or business permissions changed. Check your permissions and restart authorization.",
     invalid: "This request expired, was completed, or was replaced by a newer request in another tab. Restart authorization.",
     failed: "The request or connection failed. Retry or restart authorization.", invalidInput: "Invalid authorization request. Restart from the connecting app.", login: "Log in", session: "Log in again to restart authorization; your session may have expired.", restart: "Restart authorization",
-    descriptions: { "wiki:read": "Read public Wiki", "wiki-drafts:read": "Read Draft Wiki", "wiki-drafts:write": "Create and edit Draft Wiki normally (excludes automatic creation)", "wiki-drafts:submit": "Submit Draft Wiki", "wiki-images:read": "Read the staff Wiki image list", "wiki-images:write": "Edit staff Wiki image metadata" },
+    descriptions: { "wiki:read": "Read public Wiki", "wiki-drafts:read": "Read Draft Wiki", "wiki-drafts:write": "Create and edit Draft Wiki", "wiki-drafts:submit": "Submit Draft Wiki", "wiki-images:read": "Read the staff Wiki image list", "wiki-images:write": "Edit staff Wiki image metadata" },
   },
   ko: {
     request: "앱이 k-pool 접근을 요청합니다", emptyTitle: "허용할 수 있는 작업이 없습니다", title: "외부 앱 연결", introduction: "연결할 앱과 허용할 작업 범위를 확인하세요.",
@@ -43,6 +43,6 @@ export const oauthConsentDictionaries: Record<Locale, ConsentDictionary> = {
     forbidden: "Account 또는 업무 권한이 변경되어 승인할 수 없습니다. 권한을 확인하고 다시 시작하세요.",
     invalid: "만료되거나 완료된 요청 또는 다른 탭의 새 요청으로 대체된 요청입니다. 인증을 다시 시작하세요.",
     failed: "통신 또는 전송에 실패했습니다. 재시도하거나 인증을 다시 시작하세요.", invalidInput: "잘못된 인증 요청입니다. 연결할 앱에서 다시 시작하세요.", login: "로그인", session: "로그인이 필요하거나 세션이 만료되었습니다. 다시 로그인하여 인증을 시작하세요.", restart: "인증 다시 시작",
-    descriptions: { "wiki:read": "공개 Wiki 조회", "wiki-drafts:read": "Draft Wiki 조회", "wiki-drafts:write": "Draft Wiki 일반 생성·편집 (자동 생성 제외)", "wiki-drafts:submit": "Draft Wiki 제출", "wiki-images:read": "운영용 Wiki 이미지 목록 조회", "wiki-images:write": "운영용 Wiki 이미지 메타데이터 편집" },
+    descriptions: { "wiki:read": "공개 Wiki 조회", "wiki-drafts:read": "Draft Wiki 조회", "wiki-drafts:write": "Draft Wiki 생성·편집", "wiki-drafts:submit": "Draft Wiki 제출", "wiki-images:read": "운영용 Wiki 이미지 목록 조회", "wiki-images:write": "운영용 Wiki 이미지 메타데이터 편집" },
   },
 };

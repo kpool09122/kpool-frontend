@@ -7,12 +7,16 @@ const localResponse = (status: number) => NextResponse.json({ message: "OAuth au
 const publicCodes = new Set(["oauth_request_expired", "oauth_request_completed"]);
 // No request parameters, authorization codes, tokens or upstream error details are logged.
 export const forwardOAuthRoute = async (request: NextRequest, options: {
-  method: "GET" | "POST"; path: string; responseSchema: z.ZodType; requestSchema?: z.ZodType;
+  method: "GET" | "POST" | "PUT" | "DELETE"; path: string; responseSchema: z.ZodType; requestSchema?: z.ZodType;
 }) => {
   if (!request.headers.get("cookie")) return localResponse(401);
-  if (options.method === "POST") {
+  if (options.method !== "GET") {
     const origin = request.headers.get("origin");
-    if ((origin && origin !== request.nextUrl.origin) || request.headers.get("sec-fetch-site") === "cross-site") return localResponse(403);
+    // NextURL canonicalizes 127.0.0.1 to localhost. Compare the actual request
+    // authority instead, without trusting arbitrary forwarded-host headers.
+    const host = request.headers.get("host");
+    const requestOrigin = host ? `${request.nextUrl.protocol}//${host}` : request.nextUrl.origin;
+    if ((origin && origin !== requestOrigin) || request.headers.get("sec-fetch-site") === "cross-site") return localResponse(403);
     if (!request.headers.get("x-xsrf-token")) return localResponse(419);
   }
   const baseUrl = getIdentityApiBaseUrl();

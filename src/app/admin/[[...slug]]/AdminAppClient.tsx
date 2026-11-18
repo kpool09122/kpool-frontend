@@ -27,6 +27,7 @@ import { UserLanguageClient } from "../user/language/UserLanguageClient";
 import { UserOtherClient } from "../user/other/UserOtherClient";
 import { UserPageClient } from "../user/UserPageClient";
 import { UserProfileClient } from "../user/profile/UserProfileClient";
+import { UserExternalConnectionsClient } from "../user/external-connections/UserExternalConnectionsClient";
 import { UserSecurityClient } from "../user/security/UserSecurityClient";
 import { ApprovedWikisClient } from "../wiki/approved/ApprovedWikisClient";
 import { ManagedImagesClient } from "../wiki/managed-images/ManagedImagesClient";
@@ -75,6 +76,7 @@ type AdminClientPage = "analyze" | "accountAffiliations"
   | "userOther"
   | "userProfile"
   | "userSecurity"
+  | "userExternalConnections"
   | "wikiWatchRequests"
   | "wikiPlaylists"
   | "wikiApproved"
@@ -143,6 +145,8 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
     if (pathname.endsWith("/other")) {
       return "userOther";
     }
+
+    if (pathname.endsWith("/external-connections")) return "userExternalConnections";
 
     return pathname.endsWith("/security") ? "userSecurity" : "userProfile";
   }
@@ -306,6 +310,14 @@ function AdminResolvedPage({
     return (
       <UserPageClient activeSettingsTab="securitySettings">
         <UserSecurityClient />
+      </UserPageClient>
+    );
+  }
+
+  if (page === "userExternalConnections") {
+    return (
+      <UserPageClient activeSettingsTab="externalConnectionsSettings">
+        <UserExternalConnectionsClient />
       </UserPageClient>
     );
   }

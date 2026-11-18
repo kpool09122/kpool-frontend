@@ -18,6 +18,9 @@ describe("resolveAdminClientPage", () => {
     expect(resolveAdminClientPage("/admin/site-management/announcements")).toBe("siteManagementAnnouncements");
     expect(resolveAdminClientPage("/admin/site-management")).toBe("siteManagementContacts");
   });
+  it("resolves the direct external connections route", () => {
+    expect(resolveAdminClientPage("/admin/user/external-connections")).toBe("userExternalConnections");
+  });
   it("resolves the direct other settings route", () => {
     expect(resolveAdminClientPage("/admin/user/other")).toBe("userOther");
   });
