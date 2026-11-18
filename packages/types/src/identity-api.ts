@@ -292,7 +292,16 @@ const CreateAuthorizationRequestBody = z
 const PendingAuthorizationResult = z
   .object({ requestIdentifier: z.string(), expiresAt: KPool_Common_Timestamp })
   .passthrough();
-const AuthorizationRequestResult = PendingAuthorizationResult;
+const AuthorizationRequestResult = z
+  .object({
+    requestIdentifier: z.string(),
+    expiresAt: KPool_Common_Timestamp,
+    clientName: z.string(),
+    scopes: z.array(
+      z.object({ scope: ConsentScope, description: z.string() }).passthrough()
+    ),
+  })
+  .passthrough();
 const ApproveAuthorizationBody = z
   .object({ scopes: z.array(ConsentScope) })
   .passthrough();
