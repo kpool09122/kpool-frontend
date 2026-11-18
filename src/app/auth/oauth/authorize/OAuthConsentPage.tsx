@@ -92,7 +92,7 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
             </label>)}
           </fieldset>
           <div className="space-y-2 rounded-xl bg-surface-base p-4 text-xs leading-6 text-text-muted"><p>{t.accounts}</p><p>{t.business}</p></div>
-          <Link href="/admin/user/security" className="inline-flex min-h-11 items-center gap-2 text-sm text-brand-primary underline underline-offset-4">{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
+          <Link href="/admin/user/external-connections" className="inline-flex min-h-11 items-center gap-2 text-sm text-brand-primary underline underline-offset-4">{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
         </> : <div className="rounded-xl border border-stroke-subtle bg-surface-base p-5">
           <SlidersHorizontal aria-hidden="true" className="mb-3 h-5 w-5 text-text-muted" />
           <h2 className="font-semibold">{t.emptyTitle}</h2>
@@ -104,7 +104,7 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
       </div>
       {details && !complete ? <footer className="flex flex-col gap-3 border-t border-stroke-subtle px-6 py-5 sm:flex-row-reverse sm:px-8">
         {hasScopes ? <button type="button" disabled={pending || blocked || selection.length === 0} onClick={() => void submit("approve")} className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-1`}>{t.approve}<ArrowRight aria-hidden="true" className="h-4 w-4" /></button>
-          : <Link href="/admin/user/security" className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 sm:flex-1`}>{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>}
+          : <Link href="/admin/user/external-connections" className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 sm:flex-1`}>{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>}
         <button type="button" disabled={pending || blocked} onClick={() => void submit("deny")} className={`${actionClass} border border-stroke-subtle hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-40`}>{t.cancel}</button>
       </footer> : null}
     </section>

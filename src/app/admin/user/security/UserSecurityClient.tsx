@@ -10,17 +10,25 @@ export function UserSecurityClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currentIdentity, onRefreshIdentity } = useUserSection();
-  const authenticatedIdentity = currentIdentity && "authenticationMethods" in currentIdentity
-    ? currentIdentity as AuthenticatedIdentitySummary
-    : null;
+  const authenticatedIdentity =
+    currentIdentity && "authenticationMethods" in currentIdentity
+      ? (currentIdentity as AuthenticatedIdentitySummary)
+      : null;
 
   return (
-    <PasskeyManagementPanel
-      linkedSocialProviders={authenticatedIdentity?.authenticationMethods?.linkedSocialProviders ?? []}
-      onPasskeysChanged={onRefreshIdentity}
-      onStepUpConsumed={() => router.replace("/admin/user/security")}
-      passkeyCount={authenticatedIdentity?.authenticationMethods?.passkeyCount ?? 0}
-      ssoStepUpCompleted={searchParams.get("stepUp") === "complete"}
-    />
+    <div className="space-y-5">
+      <PasskeyManagementPanel
+        linkedSocialProviders={
+          authenticatedIdentity?.authenticationMethods?.linkedSocialProviders ??
+          []
+        }
+        onPasskeysChanged={onRefreshIdentity}
+        onStepUpConsumed={() => router.replace("/admin/user/security")}
+        passkeyCount={
+          authenticatedIdentity?.authenticationMethods?.passkeyCount ?? 0
+        }
+        ssoStepUpCompleted={searchParams.get("stepUp") === "complete"}
+      />
+    </div>
   );
 }

@@ -22,7 +22,7 @@ describe("OAuth consent", () => {
     expect(api.start).toHaveBeenCalledOnce();
     expect(approve()).toBeDisabled();
     expect(screen.getByText(/現在または将来/)).toBeInTheDocument();
-    expect(screen.getByText(/自動作成は含みません/)).toBeInTheDocument();
+    expect(screen.getByText(/下書き Wiki の作成・編集/)).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText(/wiki-drafts:write/));
     fireEvent.click(approve());
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://client.example/callback?code=code&state=original"));
@@ -35,7 +35,7 @@ describe("OAuth consent", () => {
     expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "許可できる操作がありません" })).toBeInTheDocument();
     expect(screen.queryByRole("group")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/security");
+    expect(screen.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/external-connections");
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://client.example/callback?error=access_denied&state=original"));
     expect(api.deny).toHaveBeenCalledWith("returned-id", "ja");

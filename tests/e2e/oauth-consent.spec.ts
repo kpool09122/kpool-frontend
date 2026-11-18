@@ -38,7 +38,7 @@ test("mobile empty candidates link to settings and can cancel", async ({ page })
   await expect(region.getByText("ChatGPT")).toBeVisible();
   await expect(region.getByRole("button", { name: "承認", exact: true })).toHaveCount(0);
   await expect(region.getByRole("heading", { name: "許可できる操作がありません" })).toBeVisible();
-  await expect(region.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/security");
+  await expect(region.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/external-connections");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "test-results/oauth-consent-mobile-empty.png", fullPage: true });
   await region.getByRole("button", { name: "キャンセル", exact: true }).click();

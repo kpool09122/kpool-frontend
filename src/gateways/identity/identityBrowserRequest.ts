@@ -9,7 +9,7 @@ export type IdentityBrowserApiResult<T> =
 type RequestOptions = {
   body?: unknown;
   language?: string;
-  method?: "DELETE" | "GET" | "PATCH" | "POST";
+  method?: "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
 };
 
 const readBody = async (response: Response): Promise<unknown> => {
