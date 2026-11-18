@@ -51,9 +51,107 @@ test("signed-out entry preserves the original query in the existing login return
   await expect(login).toBeVisible(); const href = await login.getAttribute("href");
   expect(new URL(href!, "http://localhost").searchParams.get("returnTo")).toBe(entry); expect(state.creates()).toBe(0);
   await login.click(); await expect(page).toHaveURL(/\/login\?returnTo=/);
-  // #632 owns the passkey/SSO login itself. Resume with authenticated fixtures at the unchanged return URL.
+  // A fresh authenticated entry remains supported in addition to the login-button flows below.
   await page.route("**/api/identity/auth/me", (route) => route.fulfill({ json: identity })); await page.goto(entry);
   await expect(page.getByText("ChatGPT")).toBeVisible(); expect(state.creates()).toBe(1);
+});
+
+// External identity providers and WebAuthn are fixture boundaries, not live-service evidence.
+async function loginFlow(page: Page, method: "passkey" | "google" | "line" | "kakao", scopes?: string[]) {
+  const state = await setup(page, scopes);
+  let authenticated = false;
+  const events: string[] = [];
+  await page.route("**/api/identity/auth/me", (route) => authenticated
+    ? route.fulfill({ json: identity }) : route.fulfill({ status: 401 }));
+  await page.route("**/api/identity/auth/csrf-token", (route) => {
+    if (authenticated) events.push("csrf");
+    return route.fulfill({ status: 204, headers: { "Set-Cookie": "XSRF-TOKEN=post-login-token; Path=/; SameSite=Lax" } });
+  });
+  await page.route("**/api/identity/oauth/requests", async (route) => {
+    expect(authenticated).toBe(true);
+    expect(events.at(-1)).toBe("csrf");
+    expect(route.request().headers()["x-xsrf-token"]).toBe("post-login-token");
+    expect(route.request().postDataJSON()).toEqual({
+      clientIdentifier: params.get("client_id"), redirectUri: params.get("redirect_uri"),
+      scopes: params.get("scope")!.split(" "), resource: params.get("resource"),
+      codeChallenge: params.get("code_challenge"), codeChallengeMethod: "S256",
+      responseType: "code", state: params.get("state"),
+    });
+    events.push("create");
+    // This override records creation order; setup still owns approve/deny assertions.
+    await route.fulfill({ status: 201, json: { requestIdentifier: "server-id", expiresAt: new Date(Date.now() + 600000).toISOString() } });
+  });
+  await page.route("**/api/identity/oauth/requests/server-id", async (route) => {
+    expect(events.at(-1)).toBe("create"); events.push("details");
+    await route.fulfill({ json: { requestIdentifier: "server-id", expiresAt: new Date(Date.now() + 600000).toISOString(), clientName: "ChatGPT", scopes: (scopes ?? ["wiki:read", "wiki-drafts:write"]).map((scope) => ({ scope, description: scope })) } });
+  });
+  if (method === "passkey") {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator.credentials, "get", { value: async () => {
+        const response = Object.create(AuthenticatorAssertionResponse.prototype);
+        Object.defineProperties(response, { clientDataJSON: { value: new ArrayBuffer(1) }, authenticatorData: { value: new ArrayBuffer(1) }, signature: { value: new ArrayBuffer(1) }, userHandle: { value: null } });
+        const credential = Object.create(PublicKeyCredential.prototype);
+        Object.defineProperties(credential, { id: { value: "credential" }, rawId: { value: new ArrayBuffer(1) }, response: { value: response }, authenticatorAttachment: { value: "platform" }, getClientExtensionResults: { value: () => ({}) } });
+        return credential;
+      } });
+    });
+    await page.route("**/api/identity/auth/passkeys/authentication/options", (route) => route.fulfill({ json: { challengeKey: "44444444-4444-4444-8444-444444444444", options: { challenge: "YQ", timeout: 60000, rpId: "127.0.0.1", allowCredentials: [], userVerification: "preferred" } } }));
+    await page.route("**/api/identity/auth/passkeys/authentication", (route) => { authenticated = true; return route.fulfill({ json: identity }); });
+  } else {
+    await page.route(`**/api/identity/auth/social/${method}/redirect?*`, async (route) => {
+      const returnTo = new URL(route.request().url()).searchParams.get("return_to")!;
+      expect(new URL(returnTo, "http://localhost").searchParams.get("authReturnTo")).toBe(entry);
+      authenticated = true;
+      // The SSR admin callback reads the repository's mock-session cookie, not page.route auth/me.
+      await page.context().addCookies([{ name: "kpool-mock-account-status", value: "active", domain: "127.0.0.1", path: "/" }]);
+      return route.fulfill({ json: { redirectUrl: returnTo } });
+    });
+  }
+  await page.goto(entry);
+  const region = page.getByRole("region", { name: "外部アプリへの接続" });
+  await region.getByRole("link", { name: "ログイン", exact: true }).click();
+  expect(events).toEqual([]); expect(state.creates()).toBe(0);
+  const labels: Record<string, string> = { passkey: "パスキー", google: "Google", line: "LINE", kakao: "Kakao" };
+  await page.getByRole("button", { name: `${labels[method]}でログイン` }).click();
+  await expect(page).toHaveURL(entry);
+  await expect(region.getByText("ChatGPT")).toBeVisible();
+  expect(events).toEqual(["csrf", "create", "details"]);
+  expect(state.selected()).toBeNull();
+  return { region, state, events, expire: () => { authenticated = false; } };
+}
+for (const method of ["passkey", "google", "line", "kakao"] as const) {
+  test(`signed-out ${method} login preserves OAuth parameters and requires explicit consent`, async ({ page }) => {
+    const { region, state } = await loginFlow(page, method);
+    await expect(region.getByRole("checkbox")).toHaveCount(2);
+    await expect(region.getByRole("button", { name: "承認", exact: true })).toBeDisabled();
+    await region.getByLabel(/wiki:read/).check();
+    await region.getByRole("button", { name: "承認", exact: true }).click();
+    await expect(page).toHaveURL("https://client.example/callback?code=code&state=original");
+    expect(state.selected()).toEqual({ scopes: ["wiki:read"] });
+  });
+}
+test("login with no permitted scopes cannot approve and can explicitly cancel", async ({ page }) => {
+  const { region } = await loginFlow(page, "passkey", []);
+  await expect(region.getByRole("button", { name: "承認", exact: true })).toHaveCount(0);
+  await region.getByRole("button", { name: "キャンセル", exact: true }).click();
+  await expect(page).toHaveURL("https://client.example/callback?error=access_denied&state=original");
+});
+
+test("expired login resumes the original authorization with fresh CSRF and explicit new consent", async ({ page }) => {
+  const flow = await loginFlow(page, "passkey");
+  await page.route("**/api/identity/oauth/requests/server-id/approve", (route) => route.fulfill({ status: 419 }));
+  await flow.region.getByLabel(/wiki:read/).check();
+  await flow.region.getByRole("button", { name: "承認", exact: true }).click();
+  const login = flow.region.getByRole("link", { name: "ログイン", exact: true });
+  await expect(login).toHaveAttribute("href", `/login?returnTo=${encodeURIComponent(entry)}`);
+  flow.expire();
+  await login.click();
+  await page.getByRole("button", { name: "パスキーでログイン" }).click();
+  await expect(page).toHaveURL(entry);
+  await expect(flow.region.getByText("ChatGPT")).toBeVisible();
+  await expect(flow.region.getByLabel(/wiki:read/)).not.toBeChecked();
+  await expect(flow.region.getByRole("button", { name: "承認", exact: true })).toBeDisabled();
+  expect(flow.events).toEqual(["csrf", "create", "details", "csrf", "create", "details"]);
 });
 
 for (const status of [400, 403, 404, 409]) {

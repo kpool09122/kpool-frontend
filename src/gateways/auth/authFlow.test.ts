@@ -76,6 +76,19 @@ describe("login auth flow helpers", () => {
     }, "ja");
   });
 
+  it.each(["google", "line", "kakao"] as const)("retains every opaque OAuth value through %s and admin callback encoding", async (provider) => {
+    const query = new URLSearchParams({ client_id: "client", redirect_uri: "https://client.example/callback?x=1&y=2", scope: "wiki:read wiki-drafts:write", state: "opaque + &=%雪", code_challenge: "opaque+/=", code_challenge_method: "S256", resource: "https://api.example/mcp", response_type: "code" });
+    const returnTo = `/auth/oauth/authorize?${query}`;
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ redirectUrl: "https://accounts.example.test/oauth" }));
+    vi.stubGlobal("fetch", fetchMock);
+    await requestSocialRedirect(provider, returnTo);
+    const callback = new URL(fetchMock.mock.calls[0][0], "https://app.example").searchParams.get("return_to")!;
+    const restored = new URL(callback, "https://app.example").searchParams.get("authReturnTo");
+    expect(restored).toBe(returnTo);
+    expect(normalizeReturnTo(restored)).toBe(returnTo);
+    expect(Object.fromEntries(new URL(restored!, "https://app.example").searchParams)).toEqual(Object.fromEntries(query));
+  });
+
   it("distinguishes unsupported browsers and cancellation", async () => {
     await expect(loginWithPasskey({
       webAuthn: { ...webAuthnBrowserAdapter, isSupported: () => false },

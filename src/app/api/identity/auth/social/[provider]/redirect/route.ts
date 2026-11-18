@@ -1,3 +1,4 @@
+import { normalizeReturnTo } from "@/gateways/auth/returnTo";
 import { getVisitorLocationSigner } from "@/app/api/visitorLocation";
 import { getApiErrorBody } from "@/gateways/support/apiError";
 import { NextResponse, type NextRequest } from "next/server";
@@ -24,9 +25,6 @@ type SocialRedirectRouteContext = {
     provider: string;
   }>;
 };
-
-const normalizeReturnTo = (value: string): string =>
-  value.startsWith("/") && !value.startsWith("//") ? value : "/admin";
 
 export async function GET(request: NextRequest, context: SocialRedirectRouteContext) {
   const baseUrl = getIdentityApiBaseUrl();

@@ -3,8 +3,11 @@ import { getRequestContext } from "../requestContext";
 
 import { LoginPage } from "./LoginPage";
 
-export default function Page() {
-  return <LoginPage />;
+export default async function Page({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { returnTo } = await searchParams;
+  return <LoginPage returnTo={typeof returnTo === "string" ? returnTo : "/admin"} />;
 }
 
 export async function generateMetadata() {
