@@ -1,7 +1,9 @@
 import type { Locale } from "./locales";
+import { oauthConsentDictionaries } from "./oauthConsent";
 import { analyzeReportDictionaries } from "./analyzeReports";
 
 const ja = {
+  oauthConsent: oauthConsentDictionaries.ja,
   announcements: {
     "title": "お知らせ",
     "management": "お知らせ管理",
@@ -1637,6 +1639,7 @@ const ja = {
 };
 
 const en: typeof ja = {
+  oauthConsent: oauthConsentDictionaries.en,
   announcements: {"title": "Announcements", "management": "Announcement management", "create": "Create draft", "save": "Save", "translate": "Translate", "publish": "Publish", "delete": "Delete", "close": "Close", "language": "Display language", "sourceLanguage": "Source language", "category": "Category", "date": "Publication date", "headline": "Title", "content": "Content", "edit": "Edit", "preview": "Preview", "previewEmpty": "Enter content to see a preview.", "loading": "Loading…", "empty": "No announcements.", "draftEmpty": "There are no announcement drafts.", "failed": "Announcement request failed. Check your input and try again.", "notFound": "Announcement not found.", "denied": "You do not have permission to view drafts.", "retry": "Retry", "previous": "Previous", "next": "Next", "confirmDelete": "Delete this draft?", "confirmPublish": "Publish this announcement? It cannot be edited after publication.", "discard": "Discard unsaved changes?", "saved": "Saved.", "deleted": "Deleted.", "published": "Published.", "translated": "Missing translations have been filled in.", "news": "News", "updates": "Updates", "maintenance": "Maintenance"},
   common: {
     authenticationFailed: "Authentication failed. Please try again later.",
@@ -3236,6 +3239,7 @@ const en: typeof ja = {
 };
 
 const ko: typeof ja = {
+  oauthConsent: oauthConsentDictionaries.ko,
   announcements: {"title": "공지사항", "management": "공지사항 관리", "create": "새 초안", "save": "저장", "translate": "번역", "publish": "게시", "delete": "삭제", "close": "닫기", "language": "표시 언어", "sourceLanguage": "원문 언어", "category": "카테고리", "date": "게시일", "headline": "제목", "content": "본문", "edit": "편집", "preview": "미리보기", "previewEmpty": "본문을 입력하면 미리보기가 표시됩니다.", "loading": "불러오는 중…", "empty": "공지사항이 없습니다.", "draftEmpty": "작성 중인 공지사항이 없습니다.", "failed": "공지사항 요청에 실패했습니다. 입력 내용을 확인하고 다시 시도해 주세요.", "notFound": "공지사항을 찾을 수 없습니다.", "denied": "초안 조회 권한이 없습니다.", "retry": "다시 시도", "previous": "이전", "next": "다음", "confirmDelete": "이 초안을 삭제할까요?", "confirmPublish": "이 공지사항을 게시할까요? 게시 후에는 수정할 수 없습니다.", "discard": "저장하지 않은 변경 사항을 버릴까요?", "saved": "저장했습니다.", "deleted": "삭제했습니다.", "published": "게시했습니다.", "translated": "누락된 번역을 추가했습니다.", "news": "뉴스", "updates": "업데이트", "maintenance": "점검"},
   common: {
     authenticationFailed: "인증에 실패했습니다. 잠시 후 다시 시도하세요.",

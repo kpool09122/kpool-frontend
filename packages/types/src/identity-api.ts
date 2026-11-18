@@ -292,7 +292,12 @@ const CreateAuthorizationRequestBody = z
 const PendingAuthorizationResult = z
   .object({ requestIdentifier: z.string(), expiresAt: KPool_Common_Timestamp })
   .passthrough();
-const AuthorizationRequestResult = PendingAuthorizationResult;
+// TypeSpec identity-api.tsp: AuthorizationRequestResult extends PendingAuthorizationResult.
+// Preserve the model's own fields as well as the inherited request handle.
+const AuthorizationRequestResult = PendingAuthorizationResult.extend({
+  clientName: z.string(),
+  scopes: z.array(z.object({ scope: ConsentScope, description: z.string() }).strip()),
+});
 const ApproveAuthorizationBody = z
   .object({ scopes: z.array(ConsentScope) })
   .passthrough();
