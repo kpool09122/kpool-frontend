@@ -129,6 +129,24 @@ describe("LoginPage", () => {
     expect(screen.getByRole("button", { name: "パスキーでログイン" })).toBeEnabled();
   });
 
+  it.each(["passkey", "social"])("recovers from a rejected %s login without losing the OAuth destination", async (method) => {
+    const destination = "/auth/oauth/authorize?state=opaque%2B%26&resource=https%3A%2F%2Fapi.example%2Fmcp";
+    const loginAdapter = vi.fn().mockRejectedValue(new Error("private network details"));
+    const socialRedirectAdapter = vi.fn().mockRejectedValue(new Error("private network details"));
+    const navigate = vi.fn();
+    render(<LoginPage loginAdapter={loginAdapter} socialRedirectAdapter={socialRedirectAdapter} navigate={navigate} returnTo={destination} webAuthnSupported />);
+    const name = method === "passkey" ? "パスキーでログイン" : "Googleでログイン";
+    fireEvent.click(screen.getByRole("button", { name }));
+    expect(await screen.findByRole("alert")).not.toHaveTextContent("private network details");
+    expect(screen.getByRole("button", { name })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name }));
+    await waitFor(() => expect(method === "passkey" ? loginAdapter : socialRedirectAdapter).toHaveBeenCalledTimes(2));
+    if (method === "passkey") expect(loginAdapter).toHaveBeenLastCalledWith({ language: "ja", returnTo: destination });
+    else expect(socialRedirectAdapter).toHaveBeenLastCalledWith("google", destination);
+    expect(navigate).not.toHaveBeenCalled();
+    await screen.findByRole("alert");
+  });
+
   it("keeps SSO enabled when WebAuthn is unsupported", () => {
     render(<LoginPage webAuthnSupported={false} />);
 

@@ -1,3 +1,4 @@
+import { normalizeReturnTo } from "./returnTo";
 import { getBrowserDictionary } from "@/i18n/browserDictionary";
 import {
   parseRedirectUrlResult,
@@ -77,21 +78,7 @@ export const identityProviders: IdentityProvider[] = [
   },
 ];
 
-export const normalizeReturnTo = (value: string | null | undefined): string => {
-  if (
-    !value ||
-    !value.startsWith("/") ||
-    value.startsWith("//") ||
-    value.includes("\\") ||
-    /[\u0000-\u001f\u007f]/.test(value) ||
-    value.startsWith("/login") ||
-    value.startsWith("/signup")
-  ) {
-    return "/admin";
-  }
-
-  return value;
-};
+export { normalizeReturnTo } from "./returnTo";
 
 export const buildPostSocialAuthReturnTo = (returnTo: string | null | undefined): string => {
   const destination = normalizeReturnTo(returnTo);

@@ -82,7 +82,13 @@ export function LoginPage({
     setNoticeMessage(null);
     setPendingAction({ type: "passkey" });
 
-    const result = await loginAdapter({ language: locale, returnTo: destination });
+    const result = await loginAdapter({ language: locale, returnTo: destination }).catch(() => null);
+
+    if (!result) {
+      setErrorMessage(t.passkeyFailed);
+      setPendingAction(null);
+      return;
+    }
 
     if (result.ok) {
       const identity = await refreshIdentity().catch(() => null);
@@ -128,7 +134,13 @@ export function LoginPage({
     setNoticeMessage(null);
     setPendingAction({ type: "social", provider });
 
-    const result = await socialRedirectAdapter(provider, destination);
+    const result = await socialRedirectAdapter(provider, destination).catch(() => null);
+
+    if (!result) {
+      setErrorMessage(t.fallbackError);
+      setPendingAction(null);
+      return;
+    }
 
     if (result.ok) {
       if (navigate) {
