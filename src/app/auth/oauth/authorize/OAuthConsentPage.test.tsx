@@ -4,6 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { OAuthConsentPage } from "./OAuthConsentPage";
 import { I18nProvider } from "@/i18n/I18nProvider";
 
+vi.mock("@/components/User/ExternalConnectionVerification", () => ({
+  ExternalConnectionVerification: ({ onVerified, beforeRedirect }: { onVerified: () => unknown; beforeRedirect: () => void }) => <><button onClick={() => void onVerified()}>Verify authorization</button><button onClick={beforeRedirect}>SSO redirect</button></>,
+}));
 const detail = (scopes = ["wiki:read", "wiki-drafts:write"]) => ({ requestIdentifier: "returned-id", expiresAt: new Date(Date.now() + 600000).toISOString(), clientName: "ChatGPT", scopes: scopes.map((scope) => ({ scope, description: scope })) });
 const mockApi = () => ({
   start: vi.fn().mockResolvedValue({ ok: true, data: detail() }),
@@ -121,4 +124,31 @@ describe("OAuth consent", () => {
     render(<I18nProvider initialLocale={locale}><OAuthConsentPage query={query} api={mockApi()} navigate={vi.fn()} /></I18nProvider>);
     await screen.findByText("ChatGPT"); expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
   });
+});
+
+it("rechecks consent after verification and requires a fresh explicit selection", async () => {
+  const api = mockApi();
+  api.approve.mockResolvedValue({ ok: false, status: 401, code: "recent_authentication_required", message: "Verify" });
+  api.get.mockResolvedValue({ ok: true, data: detail() });
+  const { navigate } = show(api);
+  await screen.findByText("ChatGPT");
+  fireEvent.click(screen.getByRole("button", { name: "全選択" }));
+  fireEvent.click(approve());
+  fireEvent.click(await screen.findByRole("button", { name: "Verify authorization" }));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Verify authorization" })).not.toBeInTheDocument());
+  expect(approve()).toBeDisabled();
+  expect(api.approve).toHaveBeenCalledTimes(1);
+  expect(navigate).not.toHaveBeenCalled();
+  expect(screen.queryByRole("link", { name: "ログイン" })).not.toBeInTheDocument();
+});
+it("retains the original OAuth query before SSO verification", async () => {
+  const api = mockApi();
+  api.approve.mockResolvedValue({ ok: false, status: 401, code: "recent_authentication_required", message: "Verify" });
+  show(api);
+  await screen.findByText("ChatGPT");
+  fireEvent.click(screen.getByRole("button", { name: "全選択" }));
+  fireEvent.click(approve());
+  fireEvent.click(await screen.findByRole("button", { name: "SSO redirect" }));
+  expect(sessionStorage.getItem("oauth-step-up-query")).toBe(query);
+  sessionStorage.clear();
 });

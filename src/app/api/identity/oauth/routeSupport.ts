@@ -4,7 +4,7 @@ import { getIdentityApiBaseUrl } from "@/gateways/identity/identityApi";
 import { getAcceptLanguageForwardHeaders, getSessionForwardHeaders, readIdentityRouteResponseBody, withIdentitySetCookie } from "../auth/routeSupport";
 
 const localResponse = (status: number) => NextResponse.json({ message: "OAuth authorization request failed." }, { status, headers: { "Cache-Control": "no-store" } });
-const publicCodes = new Set(["oauth_request_expired", "oauth_request_completed"]);
+const publicCodes = new Set(["oauth_request_expired", "oauth_request_completed", "recent_authentication_required", "authentication_required"]);
 // No request parameters, authorization codes, tokens or upstream error details are logged.
 export const forwardOAuthRoute = async (request: NextRequest, options: {
   method: "GET" | "POST" | "PUT" | "DELETE"; path: string; responseSchema: z.ZodType; requestSchema?: z.ZodType;

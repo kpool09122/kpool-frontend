@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExternalConnectionVerification } from "@/components/User/ExternalConnectionVerification";
 import Image from "next/image";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -78,8 +79,11 @@ function ConnectionsWorkspace({
     retry: false,
   });
   const isPending = saveMutation.isPending || revokeMutation.isPending;
+  const requiresVerification = [saveMutation.data, revokeMutation.data].some(
+    (result) => result?.ok === false && result.code === "recent_authentication_required",
+  );
   const expired = [saveMutation.data, revokeMutation.data].some(
-    (result) => result?.ok === false && result.status === 401,
+    (result) => result?.ok === false && result.status === 401 && result.code !== "recent_authentication_required",
   );
   const settingsKey = [
     "identity-oauth-settings",
@@ -108,8 +112,21 @@ function ConnectionsWorkspace({
   const denied =
     expired ||
     [settings.data, list.data].some(
-      (result) => result?.ok === false && result.status === 401,
+      (result) => result?.ok === false && result.status === 401 && result.code !== "recent_authentication_required",
     );
+  const verificationRequired = requiresVerification || [settings.data, list.data].some(
+    (result) => result?.ok === false && result.code === "recent_authentication_required",
+  );
+  if (verificationRequired) return <section id="external-connections" aria-label={t.title}>
+    <ExternalConnectionVerification returnTo="external-connections" onVerified={async () => {
+      setDraft(null);
+      setConfirmId(null);
+      setNotice(null);
+      await Promise.all([settings.refetch(), list.refetch()]);
+      saveMutation.reset();
+      revokeMutation.reset();
+    }} />
+  </section>;
   const selected =
     draft ?? (settings.data?.ok ? settings.data.data.scopes : []);
   const allScopesSelected = consentScopes.every((scope) => selected.includes(scope));

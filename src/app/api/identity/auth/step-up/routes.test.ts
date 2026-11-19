@@ -68,3 +68,13 @@ describe("step-up BFF routes", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+it.each(["external-connections", "authorization"])("accepts the %s SSO return destination", async (destination) => {
+  vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://identity.example.test");
+  const fetchMock = vi.fn().mockResolvedValue(upstream({ redirectUrl: "https://accounts.example.test/reauth" }));
+  vi.stubGlobal("fetch", fetchMock);
+  const response = await createSocialStepUpRedirect(request(`/api/identity/auth/step-up/social/google/redirect?returnTo=${destination}`, "GET"), { params: Promise.resolve({ provider: "google" }) });
+  expect(response.status).toBe(200);
+  expect(fetchMock.mock.calls[0][0]).toContain(`returnTo=${destination}`);
+  vi.unstubAllEnvs();
+});

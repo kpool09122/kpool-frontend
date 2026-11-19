@@ -1625,7 +1625,7 @@ const endpoints = makeApi([
       {
         name: "returnTo",
         type: "Query",
-        schema: z.enum(["passkeys", "withdrawal"]),
+        schema: z.enum(["passkeys", "withdrawal", "external-connections", "authorization"]),
       },
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
