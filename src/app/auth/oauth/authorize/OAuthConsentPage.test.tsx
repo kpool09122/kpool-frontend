@@ -29,6 +29,31 @@ describe("OAuth consent", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://client.example/callback?code=code&state=original"));
     expect(api.approve).toHaveBeenCalledWith("returned-id", ["wiki-drafts:write"], "ja");
   });
+  it("selects all candidates for approval", async () => {
+    const { api, navigate } = show();
+    await screen.findByText("ChatGPT");
+    expect(screen.getByRole("button", { name: "全解除" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "全選択" }));
+    for (const checkbox of screen.getAllByRole("checkbox")) expect(checkbox).toBeChecked();
+    expect(screen.getByRole("button", { name: "全選択" })).toBeDisabled();
+    fireEvent.click(approve());
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(api.approve).toHaveBeenCalledWith("returned-id", ["wiki:read", "wiki-drafts:write"], "ja");
+  });
+  it("clears all selections and allows a fresh individual selection", async () => {
+    const { api } = show();
+    await screen.findByText("ChatGPT");
+    fireEvent.click(screen.getByRole("button", { name: "全選択" }));
+    fireEvent.click(screen.getByRole("button", { name: "全解除" }));
+    for (const checkbox of screen.getAllByRole("checkbox")) expect(checkbox).not.toBeChecked();
+    expect(approve()).toBeDisabled();
+    expect(screen.getByRole("button", { name: "全解除" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "全選択" })).toBeEnabled();
+    expect(api.approve).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText(/公開 Wiki の取得/));
+    fireEvent.click(approve());
+    await waitFor(() => expect(api.approve).toHaveBeenCalledWith("returned-id", ["wiki:read"], "ja"));
+  });
   it("offers cancellation back to the app with no candidates", async () => {
     const api = mockApi(); api.start.mockResolvedValue({ ok: true, data: detail([]) });
     const { navigate } = show(api);
@@ -78,6 +103,8 @@ describe("OAuth consent", () => {
     api.approve.mockReturnValue(new Promise((done) => { resolve = done; }));
     const navigate = vi.fn(); const view = render(<OAuthConsentPage query={query} api={api} navigate={navigate} />);
     await screen.findByText("ChatGPT"); fireEvent.click(screen.getByLabelText(/公開 Wiki の取得/)); fireEvent.click(approve());
+    expect(screen.getByRole("button", { name: "全選択" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "全解除" })).toBeDisabled();
     fireEvent.click(approve()); fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
     expect(api.approve).toHaveBeenCalledOnce(); expect(api.deny).not.toHaveBeenCalled();
     view.unmount(); resolve({ ok: true, data: { redirectUri: "https://client.example/callback" } });
@@ -86,6 +113,8 @@ describe("OAuth consent", () => {
   it("does not submit expired details", async () => {
     const api = mockApi(); api.start.mockResolvedValue({ ok: true, data: { ...detail(), expiresAt: "2020-01-01T00:00:00Z" } });
     show(api); await screen.findByText("ChatGPT"); expect(approve()).toBeDisabled();
+    expect(screen.getByRole("button", { name: "全選択" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "全解除" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" })); expect(api.deny).not.toHaveBeenCalled();
   });
   it.each(["en", "ko"] as const)("localizes the consent page in %s", async (locale) => {

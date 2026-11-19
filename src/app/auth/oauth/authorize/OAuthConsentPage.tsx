@@ -66,6 +66,7 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
   };
   const shownError = expired ? "invalid" : error;
   const hasScopes = details !== null && details.scopes.length > 0;
+  const bulkActionClass = "min-h-11 rounded px-1 text-sm text-brand-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:text-text-muted disabled:no-underline disabled:opacity-50";
   const actionClass = "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary";
   return <main className="flex-1 bg-surface-base px-4 py-8 text-text-strong sm:px-8 sm:py-16">
     <section aria-label={t.title} className="mx-auto max-w-xl overflow-hidden rounded-2xl border border-stroke-subtle bg-surface-raised shadow-soft">
@@ -86,6 +87,10 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
         {details && !complete ? hasScopes ? <>
           <fieldset disabled={pending || blocked} className="min-w-0 disabled:opacity-60">
             <legend className="mb-3 text-sm font-semibold">{t.scopesTitle}</legend>
+            <div className="mb-1 flex flex-wrap justify-end gap-4">
+              <button type="button" disabled={details.scopes.every(({ scope }) => selection.includes(scope))} onClick={() => setSelection(details.scopes.map(({ scope }) => scope))} className={bulkActionClass}>{t.selectAll}</button>
+              <button type="button" disabled={selection.length === 0} onClick={() => setSelection([])} className={bulkActionClass}>{t.clearAll}</button>
+            </div>
             <div className="divide-y divide-stroke-subtle border-y border-stroke-subtle">
               {details.scopes.map(({ scope, description }) => <label key={scope} className="flex min-h-12 cursor-pointer items-start gap-3 px-1 py-3 transition-colors hover:bg-surface-base has-[:disabled]:cursor-default">
                 <input type="checkbox" checked={selection.includes(scope)} onChange={(event) => setSelection((previous) => event.target.checked ? [...previous, scope] : previous.filter((item) => item !== scope))} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary" />
