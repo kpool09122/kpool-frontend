@@ -84,15 +84,16 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
         {pending ? <p role="status" className="text-sm text-text-muted">{details ? t.sending : t.loading}</p> : null}
         {complete ? <p role="status" className="text-sm text-text-muted">{t.complete}</p> : null}
         {details && !complete ? hasScopes ? <>
-          <fieldset disabled={pending || blocked} className="min-w-0 space-y-3 disabled:opacity-60">
+          <fieldset disabled={pending || blocked} className="min-w-0 disabled:opacity-60">
             <legend className="mb-3 text-sm font-semibold">{t.scopesTitle}</legend>
-            {details.scopes.map(({ scope, description }) => <label key={scope} className="flex cursor-pointer items-start gap-3 rounded-xl border border-stroke-subtle p-4 transition-colors hover:bg-surface-base has-[:checked]:border-brand-primary has-[:checked]:bg-brand-primary/5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand-primary">
-              <input type="checkbox" checked={selection.includes(scope)} onChange={(event) => setSelection((previous) => event.target.checked ? [...previous, scope] : previous.filter((item) => item !== scope))} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary" />
-              <span className="min-w-0 text-sm leading-6 [overflow-wrap:anywhere]"><span className="block font-medium">{t.descriptions[scope] ?? description}</span><span className="mt-1 block text-xs text-text-muted">{scope}</span></span>
-            </label>)}
+            <div className="divide-y divide-stroke-subtle border-y border-stroke-subtle">
+              {details.scopes.map(({ scope, description }) => <label key={scope} className="flex min-h-12 cursor-pointer items-start gap-3 px-1 py-3 transition-colors hover:bg-surface-base has-[:disabled]:cursor-default">
+                <input type="checkbox" checked={selection.includes(scope)} onChange={(event) => setSelection((previous) => event.target.checked ? [...previous, scope] : previous.filter((item) => item !== scope))} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary" />
+                <span className="min-w-0 text-sm leading-6 [overflow-wrap:anywhere]">{t.descriptions[scope] ?? description}</span>
+              </label>)}
+            </div>
           </fieldset>
           <div className="space-y-2 rounded-xl bg-surface-base p-4 text-xs leading-6 text-text-muted"><p>{t.accounts}</p><p>{t.business}</p></div>
-          <Link href="/admin/user/external-connections" className="inline-flex min-h-11 items-center gap-2 text-sm text-brand-primary underline underline-offset-4">{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>
         </> : <div className="rounded-xl border border-stroke-subtle bg-surface-base p-5">
           <SlidersHorizontal aria-hidden="true" className="mb-3 h-5 w-5 text-text-muted" />
           <h2 className="font-semibold">{t.emptyTitle}</h2>
@@ -103,8 +104,7 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
         {!complete && shownError && shownError !== "session" ? <button type="button" disabled={pending} onClick={() => window.location.reload()} className="min-h-12 text-sm text-brand-primary underline underline-offset-4">{t.restart}</button> : null}
       </div>
       {details && !complete ? <footer className="flex flex-col gap-3 border-t border-stroke-subtle px-6 py-5 sm:flex-row-reverse sm:px-8">
-        {hasScopes ? <button type="button" disabled={pending || blocked || selection.length === 0} onClick={() => void submit("approve")} className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-1`}>{t.approve}<ArrowRight aria-hidden="true" className="h-4 w-4" /></button>
-          : <Link href="/admin/user/external-connections" className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 sm:flex-1`}>{t.settings}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link>}
+        {hasScopes ? <button type="button" disabled={pending || blocked || selection.length === 0} onClick={() => void submit("approve")} className={`${actionClass} bg-brand-primary text-on-primary hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-1`}>{t.approve}<ArrowRight aria-hidden="true" className="h-4 w-4" /></button> : null}
         <button type="button" disabled={pending || blocked} onClick={() => void submit("deny")} className={`${actionClass} border border-stroke-subtle hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-40`}>{t.cancel}</button>
       </footer> : null}
     </section>

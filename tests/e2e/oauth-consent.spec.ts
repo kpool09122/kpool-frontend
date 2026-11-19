@@ -24,21 +24,27 @@ test("authenticated consent creates once, shows only backend candidates, and red
   await page.goto(entry);
   const region = page.getByRole("region", { name: "外部アプリへの接続" });
   await expect(region.getByText("ChatGPT")).toBeVisible();
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
   await expect(region.getByRole("checkbox")).toHaveCount(2);
+  await expect(region.getByRole("link")).toHaveCount(0);
   await expect(region.getByRole("button", { name: "承認", exact: true })).toBeDisabled();
-  await region.getByLabel(/wiki-drafts:write/).check();
+  await region.getByLabel(/下書き Wiki の作成・編集/).check();
   await page.screenshot({ path: "test-results/oauth-consent-desktop.png", fullPage: true });
   await region.getByRole("button", { name: "承認", exact: true }).click();
   await expect(page).toHaveURL("https://client.example/callback?code=code&state=original");
   expect(state.selected()).toEqual({ scopes: ["wiki-drafts:write"] }); expect(state.creates()).toBe(1);
 });
-test("mobile empty candidates link to settings and can cancel", async ({ page }) => {
+test("mobile empty candidates can cancel back to the app", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await setup(page, []); await page.goto(entry);
   const region = page.getByRole("region", { name: "外部アプリへの接続" });
   await expect(region.getByText("ChatGPT")).toBeVisible();
   await expect(region.getByRole("button", { name: "承認", exact: true })).toHaveCount(0);
   await expect(region.getByRole("heading", { name: "許可できる操作がありません" })).toBeVisible();
-  await expect(region.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/external-connections");
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
+  await expect(region.getByRole("button")).toHaveCount(1);
+  await expect(region.getByRole("link")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "test-results/oauth-consent-mobile-empty.png", fullPage: true });
   await region.getByRole("button", { name: "キャンセル", exact: true }).click();
@@ -124,7 +130,7 @@ for (const method of ["passkey", "google", "line", "kakao"] as const) {
     const { region, state } = await loginFlow(page, method);
     await expect(region.getByRole("checkbox")).toHaveCount(2);
     await expect(region.getByRole("button", { name: "承認", exact: true })).toBeDisabled();
-    await region.getByLabel(/wiki:read/).check();
+    await region.getByLabel(/公開 Wiki の取得/).check();
     await region.getByRole("button", { name: "承認", exact: true }).click();
     await expect(page).toHaveURL("https://client.example/callback?code=code&state=original");
     expect(state.selected()).toEqual({ scopes: ["wiki:read"] });
@@ -140,7 +146,7 @@ test("login with no permitted scopes cannot approve and can explicitly cancel", 
 test("expired login resumes the original authorization with fresh CSRF and explicit new consent", async ({ page }) => {
   const flow = await loginFlow(page, "passkey");
   await page.route("**/api/identity/oauth/requests/server-id/approve", (route) => route.fulfill({ status: 419 }));
-  await flow.region.getByLabel(/wiki:read/).check();
+  await flow.region.getByLabel(/公開 Wiki の取得/).check();
   await flow.region.getByRole("button", { name: "承認", exact: true }).click();
   const login = flow.region.getByRole("link", { name: "ログイン", exact: true });
   await expect(login).toHaveAttribute("href", `/login?returnTo=${encodeURIComponent(entry)}`);
@@ -149,7 +155,7 @@ test("expired login resumes the original authorization with fresh CSRF and expli
   await page.getByRole("button", { name: "パスキーでログイン" }).click();
   await expect(page).toHaveURL(entry);
   await expect(flow.region.getByText("ChatGPT")).toBeVisible();
-  await expect(flow.region.getByLabel(/wiki:read/)).not.toBeChecked();
+  await expect(flow.region.getByLabel(/公開 Wiki の取得/)).not.toBeChecked();
   await expect(flow.region.getByRole("button", { name: "承認", exact: true })).toBeDisabled();
   expect(flow.events).toEqual(["csrf", "create", "details", "csrf", "create", "details"]);
 });
@@ -161,12 +167,12 @@ for (const status of [400, 403, 404, 409]) {
     await page.goto(entry);
     const region = page.getByRole("region", { name: "外部アプリへの接続" });
     await expect(region.getByText("ChatGPT")).toBeVisible();
-    await region.getByLabel(/wiki:read/).check();
+    await region.getByLabel(/公開 Wiki の取得/).check();
     await region.getByRole("button", { name: "承認", exact: true }).click();
     await expect(region.getByRole("alert")).toBeVisible();
     await expect(region.getByRole("button", { name: "認可をやり直す" })).toBeVisible();
     expect(state.creates()).toBe(1);
-    if (status === 400) await expect(region.getByLabel(/wiki:read/)).not.toBeChecked();
+    if (status === 400) await expect(region.getByLabel(/公開 Wiki の取得/)).not.toBeChecked();
     else await expect(region.getByRole("button", { name: "承認", exact: true })).toBeDisabled();
   });
 }
