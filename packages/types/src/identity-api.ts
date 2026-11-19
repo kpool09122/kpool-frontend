@@ -1527,7 +1527,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/auth/step-up/passkey",
     alias: "IdentityAuthOperations_completeStepUpWithPasskey",
-    description: `Verify an existing passkey and grant common recent authentication to the same identity and login session for ten minutes from verification. Passkey operations and identity withdrawal share this result without consuming it or extending its expiry.`,
+    description: `Verify an existing passkey and grant common recent authentication to the same identity and login session for ten minutes from verification. Passkey operations, identity withdrawal, external connection management and authorization approval share this result without consuming it or extending its expiry.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1625,7 +1625,12 @@ const endpoints = makeApi([
       {
         name: "returnTo",
         type: "Query",
-        schema: z.enum(["passkeys", "withdrawal", "external-connections", "authorization"]),
+        schema: z.enum([
+          "passkeys",
+          "withdrawal",
+          "external-connections",
+          "authorization",
+        ]),
       },
     ],
     response: z.object({ redirectUrl: z.string() }).passthrough(),
@@ -1849,7 +1854,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/oauth/connections",
     alias: "OAuthConnections_listAuthorizationConnections",
-    description: `List only the signed-in Identity&#x27;s connections, including revoked connections, ordered by consent timestamp ascending then connection ID ascending. Empty results use connections: []. Cookie-only; no-store; independent of selected Account status.`,
+    description: `Requires reusable recent authentication from the same identity and login session within ten minutes; otherwise returns 401 recent_authentication_required. List only the signed-in Identity&#x27;s connections, including revoked connections, ordered by consent timestamp ascending then connection ID ascending. Empty results use connections: []. Cookie-only; no-store; independent of selected Account status.`,
     requestFormat: "json",
     response: z
       .object({ connections: z.array(AuthorizationConnection) })
@@ -1886,7 +1891,7 @@ const endpoints = makeApi([
     method: "delete",
     path: "/oauth/connections/:connectionIdentifier",
     alias: "OAuthConnections_revokeAuthorization",
-    description: `Revoke only the signed-in Identity&#x27;s specified connection, its access/refresh tokens and authorization codes. After commit, invalidate all associated internal API authorization caches and this connection&#x27;s Account selection/context, preserving other connections and browser selections. Repeating revocation succeeds without changing revokedAt. Unknown and foreign IDs both return 404. Cookie and CSRF required. Returns an empty JSON array.`,
+    description: `Requires reusable recent authentication from the same identity and login session within ten minutes; otherwise returns 401 recent_authentication_required. Revoke only the signed-in Identity&#x27;s specified connection, its access/refresh tokens and authorization codes. After commit, invalidate all associated internal API authorization caches and this connection&#x27;s Account selection/context, preserving other connections and browser selections. Repeating revocation succeeds without changing revokedAt. Unknown and foreign IDs both return 404. Cookie and CSRF required. Returns an empty JSON array.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2057,7 +2062,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/oauth/requests/:requestIdentifier/approve",
     alias: "OAuthConsent_approveAuthorization",
-    description: `Revalidate the original account and principal, persist scope consent and issue a code in one DB transaction. Failure rolls back consent and leaves the request retryable. Only server-stored Client/redirect/resource/PKCE/state and an approved subset of stored scopes reach code issuance.`,
+    description: `Requires reusable recent authentication within ten minutes (401 recent_authentication_required). Revalidate the original account and principal, persist scope consent and issue a code in one DB transaction. Failure rolls back consent and leaves the request retryable. Only server-stored Client/redirect/resource/PKCE/state and an approved subset of stored scopes reach code issuance.`,
     requestFormat: "json",
     parameters: [
       {
@@ -2186,7 +2191,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/oauth/scope-settings",
     alias: "OAuthScopeSettings_getAuthorizationScopeSettings",
-    description: `Read the authenticated Identity&#x27;s allowed scopes. No target Identity ID is accepted. Cookie-only, no-store, independent of Account selection/status.`,
+    description: `Requires reusable recent authentication from the same identity and login session within ten minutes; otherwise returns 401 recent_authentication_required. Read the authenticated Identity&#x27;s allowed scopes. No target Identity ID is accepted. Cookie-only, no-store, independent of Account selection/status.`,
     requestFormat: "json",
     response: AuthorizationScopeSettings,
     errors: [
@@ -2221,7 +2226,7 @@ const endpoints = makeApi([
     method: "put",
     path: "/oauth/scope-settings",
     alias: "OAuthScopeSettings_updateAuthorizationScopeSettings",
-    description: `Replace the authenticated Identity&#x27;s allowed scopes. Cookie and CSRF required; no-store. scopes is required, unique and may be empty. Returns an empty JSON array. Does not modify existing consents; applies when subsequent consent is finalized.`,
+    description: `Requires reusable recent authentication from the same identity and login session within ten minutes; otherwise returns 401 recent_authentication_required. Replace the authenticated Identity&#x27;s allowed scopes. Cookie and CSRF required; no-store. scopes is required, unique and may be empty. Returns an empty JSON array. Does not modify existing consents; applies when subsequent consent is finalized.`,
     requestFormat: "json",
     parameters: [
       {
