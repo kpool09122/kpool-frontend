@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-import { GET, PATCH } from "./route";
+import { GET, PUT } from "./route";
 
 const accountId = "22222222-2222-2222-2222-222222222222";
 
 const createRequest = (
-  method: "GET" | "PATCH" = "GET",
+  method: "GET" | "PUT" = "GET",
   body?: unknown,
   headers: Record<string, string> = {},
 ): NextRequest =>
@@ -60,7 +60,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     );
   });
 
-  it("forwards PATCH account profile fields to upstream", async () => {
+  it("forwards PUT account profile fields to upstream", async () => {
     vi.stubEnv("KPOOL_ACCOUNT_API_BASE_URL", "https://account.example.test");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       accountIdentifier: accountId,
@@ -85,7 +85,7 @@ describe("/api/account/accounts/[accountId] route", () => {
       },
     };
 
-    await PATCH(createRequest("PATCH", requestBody, {
+    await PUT(createRequest("PUT", requestBody, {
       "accept-language": "ja",
       cookie: "laravel_session=abc",
     }), context);
@@ -93,7 +93,7 @@ describe("/api/account/accounts/[accountId] route", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       "https://account.example.test/api/v1/account/accounts/22222222-2222-2222-2222-222222222222",
       {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           Accept: "application/json",
           "Accept-Language": "ja",

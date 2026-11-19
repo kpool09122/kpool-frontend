@@ -2021,7 +2021,7 @@ const endpoints = makeApi([
     ],
   },
   {
-    method: "patch",
+    method: "put",
     path: "/image/:imageId/metadata",
     alias: "ImageMetadataOperations_updateImageMetadata",
     description: `Update published image metadata immediately for operators. Preserves image file, approval and visibility. Internal API Bearer scope: wiki-images:write.`,

@@ -751,7 +751,7 @@ const endpoints = makeApi([
     ],
   },
   {
-    method: "patch",
+    method: "put",
     path: "/accounts/:accountId",
     alias: "AccountOperations_updateAccount",
     description: `Update account information.`,

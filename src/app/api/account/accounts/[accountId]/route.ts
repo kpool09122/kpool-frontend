@@ -43,7 +43,7 @@ const unavailableResponse = () =>
 
 const forwardAccountRequest = async (
   request: NextRequest,
-  { method, body }: { method: "GET" | "PATCH"; body?: unknown },
+  { method, body }: { method: "GET" | "PUT"; body?: unknown },
   context: AccountRouteContext,
 ) => {
   const baseUrl = getAccountApiBaseUrl();
@@ -89,10 +89,10 @@ export async function GET(request: NextRequest, context: AccountRouteContext) {
   return forwardAccountRequest(request, { method: "GET" }, context);
 }
 
-export async function PATCH(request: NextRequest, context: AccountRouteContext) {
+export async function PUT(request: NextRequest, context: AccountRouteContext) {
   return forwardAccountRequest(
     request,
-    { method: "PATCH", body: parseUpdateAccountRequest(await request.json()) },
+    { method: "PUT", body: parseUpdateAccountRequest(await request.json()) },
     context,
   );
 }

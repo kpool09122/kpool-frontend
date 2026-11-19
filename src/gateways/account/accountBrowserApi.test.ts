@@ -224,7 +224,7 @@ describe("account browser API", () => {
       requestBody,
     })).resolves.toMatchObject({ phone: requestBody.phone, address: requestBody.address });
     expect(fetchAdapter).toHaveBeenCalledWith("/api/account/accounts/22222222-2222-2222-2222-222222222222", {
-      method: "PATCH",
+      method: "PUT",
       cache: "no-store",
       credentials: "include",
       headers: {
