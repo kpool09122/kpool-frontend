@@ -719,10 +719,10 @@ test("admin lets account policy users edit account information", async ({ page }
     });
   });
 
-  let patchRequests = 0;
+  let putRequests = 0;
   await page.route("**/api/account/accounts/22222222-2222-2222-2222-222222222222", async (route) => {
-    if (route.request().method() === "PATCH") {
-      patchRequests += 1;
+    if (route.request().method() === "PUT") {
+      putRequests += 1;
       expect(route.request().postDataJSON()).toEqual({ accountName: "Updated Account", address: null, phone: null });
       await route.fulfill({
         status: 200,
@@ -766,5 +766,5 @@ test("admin lets account policy users edit account information", async ({ page }
 
   await expect(page.getByRole("status")).toContainText("アカウント設定を保存しました。");
   await expect(page.getByLabel("アカウント名")).toHaveValue("Updated Account");
-  expect(patchRequests).toBe(1);
+  expect(putRequests).toBe(1);
 });

@@ -1748,7 +1748,7 @@ describe("admin page clients", () => {
       addressLine2: "2F",
     };
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PATCH") {
+      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PUT") {
         return Promise.resolve(new Response(JSON.stringify({
           accountIdentifier: "22222222-2222-2222-2222-222222222222",
           email: "member@example.com",
@@ -1829,13 +1829,13 @@ describe("admin page clients", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/account/accounts/22222222-2222-2222-2222-222222222222",
       expect.objectContaining({
-        method: "PATCH",
+        method: "PUT",
         credentials: "include",
       }),
     ));
     const updateCall = fetchMock.mock.calls.find(([url, init]) =>
       url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" &&
-      init?.method === "PATCH");
+      init?.method === "PUT");
     expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
       accountName: "Updated Account",
       phone: "06-1234-5678",
@@ -1848,7 +1848,7 @@ describe("admin page clients", () => {
 
   it("sends null for empty phone and address fields", async () => {
     const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
-      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PATCH") {
+      if (url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" && init?.method === "PUT") {
         return Promise.resolve(new Response(JSON.stringify({
           accountIdentifier: "22222222-2222-2222-2222-222222222222",
           email: "member@example.com",
@@ -1905,13 +1905,13 @@ describe("admin page clients", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/account/accounts/22222222-2222-2222-2222-222222222222",
       expect.objectContaining({
-        method: "PATCH",
+        method: "PUT",
         credentials: "include",
       }),
     ));
     const updateCall = fetchMock.mock.calls.find(([url, init]) =>
       url === "/api/account/accounts/22222222-2222-2222-2222-222222222222" &&
-      init?.method === "PATCH");
+      init?.method === "PUT");
     expect(JSON.parse(String(updateCall?.[1]?.body))).toEqual({
       accountName: "Member Account",
       phone: null,

@@ -314,7 +314,7 @@ export const updateAccount = async ({
   requestBody,
 }: UpdateAccountOptions): Promise<AccountSummary> => {
   const response = await fetchAdapter(`/api/account/accounts/${accountIdentifier}`, {
-    method: "PATCH",
+    method: "PUT",
     cache: "no-store",
     credentials: "include",
     headers: {

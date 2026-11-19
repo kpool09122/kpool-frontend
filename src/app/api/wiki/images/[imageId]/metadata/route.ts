@@ -7,7 +7,7 @@ import { getApiErrorBody } from "@/gateways/support/apiError";
 import { getWikiPrivateApiBaseUrl } from "@/gateways/wiki/wikiPrivateServerApi";
 import { getForwardedWikiApiHeaders, jsonErrorResponse, readJsonResponseBody, wikiImageUnavailableMessage } from "../../../wikiRouteSupport";
 
-export async function PATCH(request: NextRequest, context: { params: Promise<{ imageId: string }> }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ imageId: string }> }) {
   if (request.headers.get(wikiDraftImageReviewCsrfHeaderName) !== wikiDraftImageReviewCsrfHeaderValue) return jsonErrorResponse("Image update request is not allowed.", 403);
   const baseUrl = getWikiPrivateApiBaseUrl();
   if (!baseUrl) return jsonErrorResponse("Wiki image API is not configured.", 500);
@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   try {
     const { imageId } = await context.params;
     const response = await fetch(`${baseUrl.replace(/\/+$/, "")}/image/${encodeURIComponent(imageId)}/metadata`, {
-      method: "PATCH", headers: { ...getForwardedWikiApiHeaders(request.headers), "Content-Type": "application/json" },
+      method: "PUT", headers: { ...getForwardedWikiApiHeaders(request.headers), "Content-Type": "application/json" },
       body: JSON.stringify(input.data), cache: "no-store",
     });
     const body = await readJsonResponseBody(response);

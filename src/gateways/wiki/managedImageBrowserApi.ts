@@ -15,7 +15,7 @@ export async function fetchManagedImages(page: number, fallbackErrorMessage: str
 }
 export async function updateImageMetadata(imageIdentifier: string, metadata: ImageMetadata, fallbackErrorMessage: string) {
   const response = await browserApiFetch(`/api/wiki/images/${encodeURIComponent(imageIdentifier)}/metadata`, {
-    method: "PATCH",
+    method: "PUT",
     headers: { "Content-Type": "application/json", [wikiDraftImageReviewCsrfHeaderName]: wikiDraftImageReviewCsrfHeaderValue },
     body: JSON.stringify(parseWithSchemaLog("image metadata request", imageMetadataSchema, metadata)),
   });
