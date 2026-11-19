@@ -1102,6 +1102,18 @@ const SongDraftWikiDetail = z
     sections: z.array(z.unknown()),
   })
   .passthrough();
+const SubmitWikiTarget = z
+  .object({
+    resourceType: z.enum(["agency", "group", "talent", "song"]),
+    agencyIdentifier: KPool_Common_Uuid.nullish(),
+    wikiId: KPool_Common_Uuid.uuid(),
+    groupIdentifiers: z.array(KPool_Common_Uuid).nullish(),
+    talentIdentifiers: z.array(KPool_Common_Uuid).nullish(),
+  })
+  .passthrough();
+const SubmitWikisRequestBody = z
+  .object({ submissions: z.array(SubmitWikiTarget).min(1).max(100) })
+  .passthrough();
 const TalentDraftWikiGroupSummary = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -1643,6 +1655,8 @@ export const schemas = {
   SongDraftWikiTalentSummary,
   SongDraftWikiBasic,
   SongDraftWikiDetail,
+  SubmitWikiTarget,
+  SubmitWikisRequestBody,
   TalentDraftWikiGroupSummary,
   TalentDraftWikiBasic,
   TalentDraftWikiDetail,
@@ -6409,6 +6423,88 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/wiki/submit",
+    alias: "WikiOperations_submitWikis",
+    description: `Submit 1 to 100 distinct wiki drafts for review atomically, in request order. Any invalid, missing, disallowed or non-submittable draft rejects the entire batch; no status changes or histories are saved. Empty, oversized or duplicate submissions return 422. Internal API Bearer scope: wiki-drafts:submit.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: SubmitWikisRequestBody,
+      },
+      {
+        name: "X-Kpool-Visitor-Country",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Region",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Timestamp",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+      {
+        name: "X-Kpool-Visitor-Signature",
+        type: "Header",
+        schema: z.string().nullish(),
+      },
+    ],
+    response: z.object({ draftWikis: z.array(DraftWikiSummary) }).passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
