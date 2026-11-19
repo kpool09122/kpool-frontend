@@ -1336,7 +1336,14 @@ const ListRelatedProfilesResponseBody = z
 const ListRelatedWikisResponseBody = z
   .object({ wikis: z.array(WikiListItem) })
   .passthrough();
-const DeleteWikiRequestBody = WikiAssociationTargets;
+const DeleteWikiRequestBody = z
+  .object({
+    agencyIdentifier: KPool_Common_Uuid.nullable(),
+    groupIdentifiers: z.array(KPool_Common_Uuid).nullable(),
+    talentIdentifiers: z.array(KPool_Common_Uuid).nullable(),
+  })
+  .partial()
+  .passthrough();
 const WikiWorkflowRequestBody = WikiAssociationTargets;
 const UpdateWikiDraftRequestBody = WikiAssociationTargets;
 const PublishedWikiSummary = z
@@ -1357,7 +1364,14 @@ const RollbackWikiResponseBody = z
 const TranslateWikiResponseBody = z
   .object({ draftWikis: z.array(DraftWikiSummary) })
   .passthrough();
-const WithdrawWikiRequestBody = WikiAssociationTargets;
+const WithdrawWikiRequestBody = z
+  .object({
+    agencyIdentifier: KPool_Common_Uuid.nullable(),
+    groupIdentifiers: z.array(KPool_Common_Uuid).nullable(),
+    talentIdentifiers: z.array(KPool_Common_Uuid).nullable(),
+  })
+  .partial()
+  .passthrough();
 const ListWikisResponseBody = z
   .object({
     wikis: z.array(WikiListItem),
@@ -5359,7 +5373,7 @@ const endpoints = makeApi([
     method: "delete",
     path: "/wiki/:wikiId",
     alias: "WikiOperations_deleteWiki",
-    description: `Delete a wiki draft.`,
+    description: `Delete a pending or rejected wiki draft. Internal API Bearer scope: wiki-drafts:write.`,
     requestFormat: "json",
     parameters: [
       {
@@ -5375,6 +5389,11 @@ const endpoints = makeApi([
     ],
     response: z.void(),
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 403,
         description: `Access is forbidden.`,
@@ -6109,7 +6128,7 @@ const endpoints = makeApi([
     method: "post",
     path: "/wiki/:wikiId/withdraw",
     alias: "WikiOperations_withdrawWiki",
-    description: `Withdraw a wiki draft review request.`,
+    description: `Withdraw a wiki draft review request, returning it from under review to pending. Internal API Bearer scope: wiki-drafts:write.`,
     requestFormat: "json",
     parameters: [
       {
@@ -6145,6 +6164,11 @@ const endpoints = makeApi([
     ],
     response: DraftWikiSummary,
     errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
       {
         status: 403,
         description: `Access is forbidden.`,
