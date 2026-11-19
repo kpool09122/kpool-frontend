@@ -30,3 +30,38 @@ export const Editing: Story = {
     isEditing: true,
   },
 };
+
+export const TalentEditing: Story = {
+  args: {
+    isEditing: true,
+    basic: {
+      resourceType: "talent",
+      name: "NAYEON",
+      normalizedName: "nayeon",
+      realName: "Im Nayeon",
+      birthday: "1995-09-22",
+      fandomName: "ONCE",
+      representativeSymbol: "Bunny",
+      position: "Lead Vocalist, Lead Dancer, Center",
+      mbti: "ISFP",
+      zodiacSign: "virgo",
+      height: 163,
+      bloodType: "A",
+      groups: [{ wikiIdentifier: "twice", name: "TWICE" }],
+    },
+  },
+  decorators: [(Story) => (
+    <div className="mx-auto max-w-3xl rounded-[2rem] bg-surface-base p-6">
+      <Story />
+    </div>
+  )],
+};
+
+export const NarrowTalentEditing: Story = {
+  ...TalentEditing,
+  decorators: [(Story) => (
+    <div className="mx-auto max-w-sm rounded-[2rem] bg-surface-base p-6">
+      <Story />
+    </div>
+  )],
+};

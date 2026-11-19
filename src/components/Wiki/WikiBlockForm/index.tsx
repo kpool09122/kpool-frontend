@@ -1,6 +1,7 @@
 "use client";
 
 import { LocalizedForm } from "@/components/LocalizedForm";
+import { List, ListOrdered } from "lucide-react";
 import { Link2Icon } from "@radix-ui/react-icons";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import Image from "next/image";
@@ -34,6 +35,9 @@ import {
   getLines,
   getString,
   inlineMarkdownToTiptapHtml,
+  isValidInlineLinkUrl,
+  listItemsToTiptapHtml,
+  serializeTiptapJsonToListItems,
   serializeTiptapJsonToInlineMarkdown,
 } from "../editing";
 import { cardSurfaceStyle } from "../styles";
@@ -723,35 +727,46 @@ function WikiTableBlockForm({ block, onCancel, onSave }: TableBlockFormProps) {
   );
 }
 
-function InlineMarkdownEditor({
-  content,
-  editorId,
-  label,
-  minHeightClassName = "min-h-32",
-  onChange,
-}: {
-  content: string;
+type WikiRichTextEditorProps = {
   editorId: string;
   label: string;
   minHeightClassName?: string;
+  descriptionId?: string;
+} & ({
+  kind?: "text";
+  content: string;
   onChange: (content: string) => void;
-}) {
+} | {
+  kind: "list";
+  content: string[];
+  listType: WikiListType;
+  onChange: (content: string[]) => void;
+});
+
+function WikiRichTextEditor(props: WikiRichTextEditorProps) {
+  const { content, editorId, label, minHeightClassName = "min-h-32", descriptionId } = props;
   const { dictionary } = useI18n();
   const t = dictionary.wiki.blockForm;
   const editorLabelId = `${editorId}-label`;
   const [linkUrl, setLinkUrl] = useState("");
-  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
+  const [linkTarget, setLinkTarget] = useState<{ from: number; to: number; href: string | null } | null>(null);
+  const isLinkEditorOpen = linkTarget !== null;
+  const trimmedLinkUrl = linkUrl.trim();
+  const isLinkUrlInvalid = trimmedLinkUrl !== "" && !isValidInlineLinkUrl(trimmedLinkUrl);
+  const canApplyLink = trimmedLinkUrl === "" ? Boolean(linkTarget?.href) : !isLinkUrlInvalid;
   const editor = useEditor({
-    content: inlineMarkdownToTiptapHtml(content),
+    content: props.kind === "list" ? listItemsToTiptapHtml(props.content) : inlineMarkdownToTiptapHtml(props.content),
     editorProps: {
       attributes: {
         "aria-labelledby": editorLabelId,
+        ...(descriptionId ? { "aria-describedby": descriptionId } : {}),
+        "aria-multiline": "true",
         class:
           `${minHeightClassName} min-w-0 whitespace-pre-wrap break-words px-3 py-3 outline-none [overflow-wrap:anywhere] [word-break:break-word] before:text-text-muted empty:before:content-['Write_something…'] [&_a]:break-words [&_a]:[overflow-wrap:anywhere] [&_a]:[word-break:break-word] [&_a]:text-sky-700 [&_a]:underline [&_a]:decoration-sky-500 [&_a]:underline-offset-2`,
         role: "textbox",
       },
       handleKeyDown(view, event) {
-        if (event.key !== "Enter" || event.isComposing) {
+        if (event.key !== "Enter" || event.isComposing || (props.kind === "list" && !event.shiftKey)) {
           return false;
         }
 
@@ -785,7 +800,11 @@ function InlineMarkdownEditor({
       }),
     ],
     onUpdate({ editor: currentEditor }) {
-      onChange(serializeTiptapJsonToInlineMarkdown(currentEditor.getJSON()));
+      if (props.kind === "list") {
+        props.onChange(serializeTiptapJsonToListItems(currentEditor.getJSON()));
+      } else {
+        props.onChange(serializeTiptapJsonToInlineMarkdown(currentEditor.getJSON()));
+      }
     },
     immediatelyRender: false,
   });
@@ -810,14 +829,13 @@ function InlineMarkdownEditor({
     }
 
     if (format === "link") {
-      const href = linkUrl.trim();
-
-      if (!href) {
-        return;
-      }
-
-      editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
-      setIsLinkEditorOpen(false);
+      if (!linkTarget || !canApplyLink) return;
+      const chain = editor.chain().focus()
+        .setTextSelection({ from: linkTarget.from, to: linkTarget.to })
+        .extendMarkRange("link");
+      if (trimmedLinkUrl) chain.setLink({ href: trimmedLinkUrl }).run();
+      else chain.unsetLink().run();
+      setLinkTarget(null);
       setLinkUrl("");
       return;
     }
@@ -836,16 +854,20 @@ function InlineMarkdownEditor({
   };
 
   const openLinkEditor = () => {
+    if (!editor) return;
+    const href: unknown = editor.getAttributes("link").href;
+    const currentHref = typeof href === "string" && href ? href : null;
+    setLinkUrl(currentHref ?? "");
+    setLinkTarget({ from: editor.state.selection.from, to: editor.state.selection.to, href: currentHref });
     window.dispatchEvent(
       new CustomEvent(linkPopoverOpenEventName, {
         detail: { editorId },
       }),
     );
-    setIsLinkEditorOpen(true);
   };
 
   const closeLinkEditor = ({ restoreFocus = true }: { restoreFocus?: boolean } = {}) => {
-    setIsLinkEditorOpen(false);
+    setLinkTarget(null);
     setLinkUrl("");
     if (restoreFocus) {
       editor?.commands.focus();
@@ -857,7 +879,7 @@ function InlineMarkdownEditor({
       const openedEditorId = (event as CustomEvent<{ editorId?: string }>).detail?.editorId;
 
       if (openedEditorId && openedEditorId !== editorId) {
-        setIsLinkEditorOpen(false);
+        setLinkTarget(null);
         setLinkUrl("");
       }
     };
@@ -900,12 +922,17 @@ function InlineMarkdownEditor({
     ].join(" ");
 
   return (
-    <div className="grid gap-2" data-unsaved-value={content}>
+    <div
+      className={`grid min-w-0 gap-2 ${props.kind === "list"
+        ? `[&_.tiptap]:pl-9 [&_.tiptap]:leading-7 [&_.tiptap]:[counter-reset:list-item] [&_.tiptap>p]:list-item [&_.tiptap>p]:pl-1 [&_.tiptap>p]:marker:text-text-muted ${props.listType === "numbered" ? "[&_.tiptap>p]:list-decimal" : "[&_.tiptap>p]:list-disc"}`
+        : ""}`}
+      data-unsaved-value={typeof content === "string" ? content : JSON.stringify(content)}
+    >
       <label className="text-sm font-semibold text-text-strong" id={editorLabelId}>
         {label}
       </label>
       <div className="rounded-2xl border border-stroke-subtle" style={cardSurfaceStyle}>
-        <div className="flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+        <div className="relative flex flex-wrap items-center gap-2 border-b border-stroke-subtle px-3 py-2">
           <button
             aria-label={t.bold}
             aria-pressed={editorState.isBoldActive}
@@ -937,7 +964,7 @@ function InlineMarkdownEditor({
             S
           </button>
           <span aria-hidden="true" className="h-5 w-px bg-stroke-subtle" />
-          <span className="relative inline-flex">
+          <span className="inline-flex">
             <button
               aria-controls={`${editorId}-link-popover`}
               aria-expanded={isLinkEditorOpen}
@@ -952,7 +979,7 @@ function InlineMarkdownEditor({
             </button>
             {isLinkEditorOpen ? (
               <div
-                className="absolute left-0 top-full z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-stroke-subtle bg-surface-raised p-3 shadow-soft"
+                className="absolute left-0 top-full z-20 mt-2 w-72 max-w-[calc(100%-1rem)] rounded-xl border border-stroke-subtle bg-surface-raised p-3 shadow-soft"
                 id={`${editorId}-link-popover`}
                 role="dialog"
               >
@@ -961,6 +988,8 @@ function InlineMarkdownEditor({
                 </label>
                 <input
                   autoFocus
+                  aria-invalid={isLinkUrlInvalid}
+                  aria-describedby={isLinkUrlInvalid ? `${editorId}-link-error` : linkTarget?.href ? `${editorId}-link-hint` : undefined}
                   data-unsaved-ignore
                   className={`${formTextWrapClassName} w-full rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 text-sm font-normal`}
                   id={`${editorId}-link`}
@@ -970,9 +999,14 @@ function InlineMarkdownEditor({
                   type="url"
                   value={linkUrl}
                 />
+                {isLinkUrlInvalid ? (
+                  <p id={`${editorId}-link-error`} className="mt-2 text-xs leading-5 text-status-danger" role="alert">{t.invalidLinkUrl}</p>
+                ) : linkTarget?.href ? (
+                  <p id={`${editorId}-link-hint`} className="mt-2 text-xs leading-5 text-text-muted">{t.removeLinkHint}</p>
+                ) : null}
                 <div className="mt-2 flex justify-end gap-2">
                   <button className="rounded-md px-2 py-2 text-sm text-text-muted transition hover:bg-surface-base" onClick={() => closeLinkEditor()} type="button">{t.cancel}</button>
-                  <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!linkUrl.trim()} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">{t.apply}</button>
+                  <button className="rounded-md border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-50" disabled={!canApplyLink} onClick={() => applyFormat("link")} onMouseDown={(event) => event.preventDefault()} type="button">{t.apply}</button>
                 </div>
               </div>
             ) : null}
@@ -995,7 +1029,7 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
       onSave({ content });
     }}
     >
-      <InlineMarkdownEditor
+      <WikiRichTextEditor
         content={content}
         editorId={`wiki-text-${block.blockIdentifier}`}
         label={t.text}
@@ -1010,83 +1044,47 @@ function WikiListBlockForm({ block, onCancel, onSave }: ListBlockFormProps) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.blockForm;
   const [listType, setListType] = useState<WikiListType>(block.listType);
-  const [nextItemId, setNextItemId] = useState(block.items.length);
-  const [items, setItems] = useState(() =>
-    (block.items.length > 0 ? block.items : [""]).map((content, itemIndex) => ({
-      content,
-      id: `${block.blockIdentifier}-${itemIndex}`,
-    })),
-  );
-
-  const updateItem = (itemId: string, content: string) => {
-    setItems((current) =>
-      current.map((item) => (item.id === itemId ? { ...item, content } : item)),
-    );
-  };
-
-  const addItem = () => {
-    setItems((current) => [...current, { content: "", id: `${block.blockIdentifier}-${nextItemId}` }]);
-    setNextItemId((current) => current + 1);
-  };
-
-  const removeItem = (itemId: string) => {
-    setItems((current) => {
-      const nextItems = current.filter((item) => item.id !== itemId);
-
-      return nextItems.length > 0 ? nextItems : [{ content: "", id: `${block.blockIdentifier}-empty` }];
-    });
-  };
+  const [items, setItems] = useState(() => block.items.length > 0 ? block.items : [""]);
+  const hintId = useId();
+  const types = [
+    { value: "bullet", label: t.bullet, Icon: List },
+    { value: "numbered", label: t.numbered, Icon: ListOrdered },
+  ] as const;
 
   return (
     <LocalizedForm
       onSubmit={(event) => {
         event.preventDefault();
-        onSave({
-          items: items.map((item) => item.content.trim()).filter(Boolean),
-          listType,
-        });
+        onSave({ items: items.map((item) => item.trim()).filter(Boolean), listType });
       }}
     >
-      <label className="grid gap-2 text-sm font-semibold text-text-strong">
-        {t.listType}
-        <select
-          className="rounded-xl border border-stroke-subtle bg-surface-base px-3 py-2"
-          name="listType"
-          onChange={(event) => setListType(event.target.value as WikiListType)}
-          value={listType}
-        >
-          <option value="bullet">{t.bullet}</option>
-          <option value="numbered">{t.numbered}</option>
-        </select>
-      </label>
-      <div className="mt-3 grid gap-3">
-        {items.map((item, itemIndex) => (
-          <div className="grid gap-2" key={item.id}>
-            <InlineMarkdownEditor
-              content={item.content}
-              editorId={`wiki-list-${block.blockIdentifier}-${itemIndex}`}
-              label={t.item(itemIndex + 1)}
-              minHeightClassName="min-h-20"
-              onChange={(content) => updateItem(item.id, content)}
-            />
-            <button
-              className="justify-self-start rounded-md px-2 py-1 text-sm text-text-muted transition hover:bg-surface-base disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={items.length === 1}
-              onClick={() => removeItem(item.id)}
-              type="button"
-            >
-              {t.removeItem}
-            </button>
-          </div>
+      <div className="mb-4 flex flex-wrap gap-1" role="group" aria-label={t.listType} data-unsaved-value={listType}>
+        {types.map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={listType === value}
+            onClick={() => setListType(value)}
+            className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-brand-primary ${listType === value
+              ? "border-brand-primary/30 bg-brand-primary/10 font-medium text-brand-primary"
+              : "border-transparent text-text-muted hover:bg-surface-raised/60"}`}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+            {label}
+          </button>
         ))}
       </div>
-      <button
-        className="mt-3 rounded-xl border border-stroke-subtle px-3 py-2 text-sm font-semibold text-text-strong"
-        onClick={addItem}
-        type="button"
-      >
-        {t.addItem}
-      </button>
+      <WikiRichTextEditor
+        kind="list"
+        content={items}
+        editorId={`wiki-list-${block.blockIdentifier}`}
+        label={t.listItems}
+        listType={listType}
+        descriptionId={hintId}
+        minHeightClassName="min-h-28"
+        onChange={setItems}
+      />
+      <p id={hintId} className="mt-2 text-xs leading-5 text-text-muted">{t.listEditingHint}</p>
       <WikiFormActions onCancel={onCancel} />
     </LocalizedForm>
   );

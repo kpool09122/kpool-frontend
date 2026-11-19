@@ -1,5 +1,6 @@
 "use client";
 
+import { wikiBasicControlClassName, wikiBasicFieldClassName } from "../basicFormStyles";
 import { useI18n } from "@/i18n/I18nProvider";
 
 import { type KeyboardEvent, useMemo, useState } from "react";
@@ -30,7 +31,7 @@ type SearchState =
   | { status: "error"; message: string };
 
 const chipClassName =
-  "inline-flex max-w-full items-center gap-1.5 rounded-full border border-stroke-subtle bg-surface-raised px-2.5 py-1 text-xs font-semibold text-text-strong";
+  "inline-flex max-w-full items-center gap-1.5 rounded-full border border-stroke-subtle bg-brand-primary/5 px-2.5 py-1 text-xs font-medium text-text-strong";
 
 export function WikiMasterSearchSelect({
   disabled = false,
@@ -108,14 +109,14 @@ export function WikiMasterSearchSelect({
     : selectedItems.map((item) => item.wikiIdentifier).join(",");
 
   return (
-    <div className="grid min-w-0 self-start gap-2 text-sm font-semibold text-text-strong" data-unsaved-value={hiddenValue}>
-      <label className="grid min-w-0 gap-2">
+    <div className={`${wikiBasicFieldClassName} self-start`} data-unsaved-value={hiddenValue}>
+      <label className="grid min-w-0 gap-1.5">
         {label}
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-1.5">
           <input
             data-unsaved-ignore
             aria-label={`${label}: ${t.keyword}`}
-            className="h-9 min-w-0 rounded-lg border border-stroke-subtle bg-surface-raised px-2.5 text-sm"
+            className={wikiBasicControlClassName}
             disabled={disabled || searchState.status === "loading"}
             onChange={(event) => {
               const nextValue = event.currentTarget.value;
@@ -135,7 +136,7 @@ export function WikiMasterSearchSelect({
             value={keyword}
           />
           <button
-            className="h-9 w-14 shrink-0 whitespace-nowrap rounded-lg border border-stroke-subtle px-2 text-xs font-semibold text-text-strong disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-10 w-14 shrink-0 whitespace-nowrap rounded-lg border border-stroke-subtle px-2 text-xs font-medium text-text-strong transition-colors hover:bg-brand-primary/5 focus-visible:outline-2 focus-visible:outline-brand-primary disabled:cursor-not-allowed disabled:opacity-60"
             disabled={disabled || searchState.status === "loading"}
             onClick={search}
             type="button"

@@ -1,5 +1,6 @@
 "use client";
 
+import { ReloadIcon } from "@radix-ui/react-icons";
 import { type Ref } from "react";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
@@ -153,12 +154,13 @@ export function WikiHeroBasicFlipCard({
 
       <div className="text-center">
         <button
-          className="text-sm text-text-muted underline underline-offset-4 hover:text-text-strong disabled:opacity-60"
+          className="inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-xs text-text-muted transition hover:bg-brand-highlight/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary disabled:opacity-60"
           disabled={isBasicEditing}
           onClick={() => onFlipChange(!isFlipped)}
           type="button"
         >
-          {isFlipped ? t.editBasicHint : t.editCoverHint}
+          <ReloadIcon aria-hidden="true" />
+          {isFlipped ? t.publicShowPhoto : t.publicShowBasic}
         </button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { formatWikiHeight } from "./wikiHeight";
 import type { WikiBasic, WikiOfficialColor, WikiResourceType, WikiSection } from "./types/wiki";
 import { isWikiSection, sortWikiSectionContents } from "./wikiSectionModel";
 import { buildWikiPath } from "./wikiRouting";
@@ -97,7 +98,7 @@ const basicFieldLabels: Array<{
   { label: "English Level", getValue: (basic) => basic.englishLevel },
   {
     label: "Height",
-    getValue: (basic) => (basic.height === undefined ? null : String(basic.height)),
+    getValue: (basic) => (basic.height === undefined ? null : formatWikiHeight(basic.height)),
   },
   { label: "Blood Type", getValue: (basic) => basic.bloodType },
   {

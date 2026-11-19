@@ -6,6 +6,7 @@ import { I18nProvider } from "../../../i18n/I18nProvider";
 
 import { wikiStoryProfileListBlock, wikiStoryTextBlock, wikiStoryTableBlock } from "../storybook/fixtures";
 import { WikiBlockForm } from "./index";
+import { usePendingFormChanges } from "../../UnsavedChangesGuard/usePendingFormChanges";
 
 const renderWithI18n = (ui: React.ReactElement) =>
   render(<I18nProvider initialLocale="en">{ui}</I18nProvider>);
@@ -318,6 +319,67 @@ describe("WikiBlockForm", () => {
     expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
   });
 
+  it("disables invalid links and also rejects applying them with Enter", () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBlockForm block={{ ...wikiStoryTextBlock, blockType: "text", content: "Original text" }} onCancel={() => {}} onSave={onSave} />);
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
+    const input = screen.getByLabelText("Link destination");
+    expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+    for (const value of ["bad URL", "javascript:alert(1)", "https://", "https:example.com"]) {
+      fireEvent.change(input, { target: { value } });
+      expect(input).toHaveAttribute("aria-invalid", "true");
+      expect(screen.getByRole("button", { name: "Apply" })).toBeDisabled();
+      fireEvent.keyDown(input, { key: "Enter" });
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+    }
+    fireEvent.change(input, { target: { value: "https://example.com" } });
+    expect(input).toHaveAttribute("aria-invalid", "false");
+    expect(screen.getByRole("button", { name: "Apply" })).toBeEnabled();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ content: "Original text" });
+  });
+
+  it.each(["text", "list"] as const)("loads, updates and removes a link in a %s editor", async (kind) => {
+    const onSave = vi.fn();
+    const content = "Before [site](https://example.com) after";
+    const block = kind === "text" ? { ...wikiStoryTextBlock, content } : {
+      blockType: "list" as const, blockIdentifier: "list-link", displayOrder: 1,
+      listType: "bullet" as const, items: [content],
+    };
+    renderWithI18n(<WikiBlockForm block={block} onCancel={() => {}} onSave={onSave} />);
+    const editor = screen.getByRole("textbox", { name: kind === "text" ? "Text" : "List items" });
+    editor.focus();
+    const link = within(editor).getByRole("link", { name: "site" });
+    const range = document.createRange();
+    range.setStart(link.firstChild!, 2);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Insert link" })).toHaveAttribute("aria-pressed", "true"));
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
+    const input = screen.getByLabelText("Link destination");
+    expect(input).toHaveValue("https://example.com");
+    fireEvent.change(input, { target: { value: "https://example.org/updated" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(within(editor).getByRole("link", { name: "site" })).toHaveAttribute("href", "https://example.org/updated");
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
+    expect(screen.getByLabelText("Link destination")).toHaveValue("https://example.org/updated");
+    fireEvent.change(screen.getByLabelText("Link destination"), { target: { value: "https://canceled.example" } });
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    expect(within(editor).getByRole("link", { name: "site" })).toHaveAttribute("href", "https://example.org/updated");
+    fireEvent.click(screen.getByRole("button", { name: "Insert link" }));
+    fireEvent.change(screen.getByLabelText("Link destination"), { target: { value: "" } });
+    expect(screen.getByRole("button", { name: "Apply" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+    expect(within(editor).queryByRole("link")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith(kind === "text"
+      ? { content: "Before site after" }
+      : { items: ["Before site after"], listType: "bullet" });
+  });
+
   it("opens the link editor from a list item toolbar", () => {
     renderWithI18n(
       <WikiBlockForm
@@ -341,32 +403,54 @@ describe("WikiBlockForm", () => {
     expect(screen.getByLabelText("Link destination")).toBeInTheDocument();
   });
 
-  it("closes the previous list link popover when another one opens", () => {
-    renderWithI18n(
-      <WikiBlockForm
-        block={{
-          blockIdentifier: "list-2",
-          blockType: "list",
-          displayOrder: 10,
-          items: ["First item", "Second item"],
-          listType: "bullet",
-        }}
-        onCancel={() => {}}
-        onSave={() => {}}
-      />,
-    );
-    const linkButtons = screen.getAllByRole("button", { name: "Insert link" });
+  it("uses one editor and one toolbar for all items, preserving content when changing list type", () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBlockForm block={{
+      blockIdentifier: "list-2", blockType: "list", displayOrder: 10,
+      items: ["**First** item", "Second item\ncontinued"], listType: "bullet",
+    }} onCancel={() => {}} onSave={onSave} />);
+    expect(screen.getAllByRole("textbox", { name: "List items" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Bold" })).toHaveLength(1);
+    expect(screen.getByRole("textbox", { name: "List items" }).children).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Bullet list" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Numbered list" }));
+    expect(screen.getByRole("button", { name: "Numbered list" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ items: ["**First** item", "Second item\ncontinued"], listType: "numbered" });
+  });
 
-    fireEvent.click(linkButtons[0]);
+  it("tracks unsaved list type changes and clears the warning when restored", async () => {
+    function ListEditor() {
+      const { rootRef, hasPendingChanges } = usePendingFormChanges("list");
+      return <main ref={rootRef}>
+        <output>{hasPendingChanges ? "Unsaved" : "Unchanged"}</output>
+        <WikiBlockForm block={{
+          blockIdentifier: "list-guard", blockType: "list", displayOrder: 10,
+          items: ["First item"], listType: "bullet",
+        }} onCancel={() => {}} onSave={() => {}} />
+      </main>;
+    }
+    renderWithI18n(<ListEditor />);
+    fireEvent.click(screen.getByRole("button", { name: "Numbered list" }));
+    await waitFor(() => expect(screen.getByText("Unsaved")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Bullet list" }));
+    await waitFor(() => expect(screen.getByText("Unchanged")).toBeInTheDocument());
+  });
 
-    expect(linkButtons[0]).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getAllByRole("dialog")).toHaveLength(1);
-
-    fireEvent.click(linkButtons[1]);
-
-    expect(linkButtons[0]).toHaveAttribute("aria-expanded", "false");
-    expect(linkButtons[1]).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  it("saves edited list paragraphs as separate items, preserving inline breaks and omitting empty items", async () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBlockForm block={{
+      blockIdentifier: "list-edited", blockType: "list", displayOrder: 10,
+      items: ["Original"], listType: "bullet",
+    }} onCancel={() => {}} onSave={onSave} />);
+    const editor = screen.getByRole("textbox", { name: "List items" });
+    editor.innerHTML = '<p><strong>Revised</strong></p><p>Second<br>continued</p><p></p>';
+    fireEvent.input(editor);
+    await waitFor(() => expect(editor.closest("[data-unsaved-value]")).toHaveAttribute(
+      "data-unsaved-value", JSON.stringify(["**Revised**", "Second\ncontinued", ""]),
+    ));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith({ items: ["**Revised**", "Second\ncontinued"], listType: "bullet" });
   });
 
   it("submits list item inline markdown without requiring raw textarea editing", () => {
@@ -387,7 +471,7 @@ describe("WikiBlockForm", () => {
     );
 
     expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Items")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "List items" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(onSave).toHaveBeenCalledWith({
