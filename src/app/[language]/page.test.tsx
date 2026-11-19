@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import LanguageHome from "./page";
 import { loadPublicWikiListState, type PublicWikiListState } from "@/gateways/wiki/publicWiki";
 
+vi.mock("@/gateways/wiki/popularVideos", () => ({ loadPopularVideos: vi.fn().mockResolvedValue({ status: "success", videos: [] }) }));
+
+vi.mock("@/gateways/wiki/wikiStatistics", () => ({ loadWikiStatistics: vi.fn().mockResolvedValue(null) }));
+
 vi.mock("@/gateways/wiki/publicWiki", async () => {
   const actual = await vi.importActual<typeof import("@/gateways/wiki/publicWiki")>(
     "@/gateways/wiki/publicWiki",
@@ -65,7 +69,6 @@ describe("language home page", () => {
         params: Promise.resolve({ language: "ja" }),
         searchParams: Promise.resolve({
           createdResourceType: "talent",
-          popularResourceType: "song",
           updatedResourceType: "group",
         }),
       }),
@@ -85,16 +88,11 @@ describe("language home page", () => {
       resourceType: "talent",
       sort: "createdAt",
     });
-    expect(loadPublicWikiListState).toHaveBeenNthCalledWith(3, "ja", {
-      order: "desc",
-      page: 1,
-      perPage: 10,
-      resourceType: "song",
-      sort: "version",
-    });
+    expect(loadPublicWikiListState).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("heading", { name: "最近更新されたWiki" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "新着Wiki" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "更新回数の多いWiki" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "ピックアップ動画" })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent)).toEqual(["みんなで育てるk-pool", "ピックアップ動画", "最近更新されたWiki", "新着Wiki"]);
     expect(screen.getAllByRole("link", { name: /Aurora Echo/ })[0]).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "もっと見る" })[0]).toHaveAttribute(
       "href",

@@ -16,7 +16,7 @@ import { buildWikiPath, wikiResourceTypes, type WikiResourceType } from "@kpool/
 import { buildWikiThemeCssVariables } from "../wiki/[slug]/wikiThemePalette";
 import { OfficialCertificationBadge } from "@/components/Wiki/OfficialCertificationBadge";
 
-export type TopSectionKey = "updated" | "created" | "popular";
+export type TopSectionKey = "updated" | "created";
 
 export type TopSection = {
   key: TopSectionKey;
