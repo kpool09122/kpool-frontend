@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
-import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import {
   oauthConnectionsBrowserApi,
   type OAuthConnectionsBrowserApi,
@@ -16,6 +16,19 @@ import {
 import { useI18n } from "@/i18n/I18nProvider";
 import { oauthConsentDictionaries } from "@/i18n/oauthConsent";
 import { oauthConnectionsDictionaries } from "@/i18n/oauthConnections";
+
+const isChatGPT = (name: string) => name.trim().toLowerCase() === "chatgpt";
+
+function ConnectionAppName({ name }: { name: string }) {
+  return <div className="flex min-w-0 items-center gap-3">
+    {isChatGPT(name) && (
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white p-2">
+        <Image src="/ChatGPT-Logo.webp" alt="" width={24} height={24} />
+      </span>
+    )}
+    <h3 className="min-w-0 font-semibold [overflow-wrap:anywhere]">{name}</h3>
+  </div>;
+}
 
 export function OAuthConnectionsPanel({
   identityIdentifier,
@@ -234,10 +247,7 @@ function ConnectionsWorkspace({
                           );
                         }}
                       />
-                      <span className="min-w-0 space-y-1">
-                        <span className="block font-semibold text-text-strong">{descriptions[scope]}</span>{" "}
-                        <code className="block text-xs leading-5 break-all text-text-muted">{scope}</code>
-                      </span>
+                      <span className="min-w-0 font-semibold text-text-strong">{descriptions[scope]}</span>
                     </label>
                   ))}
                 </fieldset>
@@ -245,54 +255,40 @@ function ConnectionsWorkspace({
             </div>
           </UserSettingsPanel>
           <UserSettingsPanel title={t.list}>
-            <div className="mt-5 space-y-4 text-sm">
+            <div className="mt-3 space-y-2 text-sm">
               {list.isPending && <p role="status">{t.loading}</p>}
-              {list.data?.ok && connections.length === 0 && <p>{t.empty}</p>}
-              <ul className="space-y-4">
+              <ul className="space-y-2">
+                {list.data?.ok && !connections.some((connection) => isChatGPT(connection.clientName)) && (
+                  <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2">
+                    <ConnectionAppName name="ChatGPT" />
+                    <p className="ml-auto shrink-0 text-text-muted">{t.empty}</p>
+                  </li>
+                )}
                 {connections.map((connection) => (
                   <li
                     key={connection.connectionIdentifier}
-                    className="space-y-2 rounded-lg border border-stroke-subtle bg-surface-base p-4 break-words"
+                    className="space-y-2 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 break-words"
                   >
-                    <h3 className="font-semibold">{connection.clientName}</h3>
-                    <p>
-                      {t.clientIdentifier}:{" "}
-                      <span className="break-all">
-                        {connection.clientIdentifier}
-                      </span>
-                    </p>
-                    <p>
-                      {t.identifier}:{" "}
-                      <span className="break-all">
-                        {connection.connectionIdentifier}
-                      </span>
-                    </p>
-                    <p>
-                      {t.created}:{" "}
-                      <LocalizedDateTime value={connection.createdAt} />
-                    </p>
-                    <p>{connection.revokedAt === null ? t.active : t.revoked}</p>
-                    <ul>
-                      {connection.scopes.map((scope) => (
-                        <li key={scope}>
-                          <code>{scope}</code> — {descriptions[scope]}
-                        </li>
-                      ))}
-                    </ul>
-                    {connection.revokedAt === null &&
-                      confirmId !== connection.connectionIdentifier && (
-                        <button
-                          className={buttonClass}
-                          disabled={busy !== null}
-                          onClick={() => {
-                            setNotice(null);
-                            setConfirmId(connection.connectionIdentifier);
-                          }}
-                          type="button"
-                        >
-                          {t.revoke}
-                        </button>
-                      )}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <ConnectionAppName name={connection.clientName} />
+                      <div className="ml-auto shrink-0">
+                        {connection.revokedAt === null &&
+                          confirmId !== connection.connectionIdentifier && (
+                            <button
+                              className={buttonClass}
+                              disabled={busy !== null}
+                              onClick={() => {
+                                setNotice(null);
+                                setConfirmId(connection.connectionIdentifier);
+                              }}
+                              type="button"
+                            >
+                              {t.revoke}
+                            </button>
+                          )}
+                        {connection.revokedAt !== null && <p className="text-text-muted">{t.empty}</p>}
+                      </div>
+                    </div>
                     {target?.connectionIdentifier ===
                       connection.connectionIdentifier && (
                       <fieldset
@@ -302,24 +298,23 @@ function ConnectionsWorkspace({
                       >
                         <legend>{t.confirm}</legend>
                         <p>{connection.clientName}</p>
-                        <p className="break-all">
-                          {connection.connectionIdentifier}
-                        </p>
                         <p>{t.impact}</p>
-                        <button
-                          className={buttonClass}
-                          onClick={() => void revoke()}
-                          type="button"
-                        >
-                          {busy === "revoke" ? t.revoking : t.proceed}
-                        </button>
-                        <button
-                          className={buttonClass}
-                          onClick={() => setConfirmId(null)}
-                          type="button"
-                        >
-                          {t.cancel}
-                        </button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            className={buttonClass}
+                            onClick={() => void revoke()}
+                            type="button"
+                          >
+                            {busy === "revoke" ? t.revoking : t.proceed}
+                          </button>
+                          <button
+                            className={buttonClass}
+                            onClick={() => setConfirmId(null)}
+                            type="button"
+                          >
+                            {t.cancel}
+                          </button>
+                        </div>
                       </fieldset>
                     )}
                   </li>

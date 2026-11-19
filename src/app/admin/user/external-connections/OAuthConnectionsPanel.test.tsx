@@ -58,9 +58,25 @@ function setup(overrides: Partial<typeof oauthConnectionsBrowserApi> = {}) {
   );
   return api;
 }
+it("shows app logos and names without connection metadata or scopes", async () => {
+  setup();
+  await screen.findAllByRole("heading", { name: "ChatGPT" });
+  const list = screen.getByRole("list");
+  expect(within(list).getAllByRole("button", { name: "連携解除" })).toHaveLength(2);
+  for (const logo of within(list).getAllByAltText("")) {
+    expect(logo).toHaveAttribute("src", expect.stringContaining("ChatGPT-Logo.webp"));
+  }
+  expect(within(list).getAllByAltText("")).toHaveLength(2);
+  expect(list).not.toHaveTextContent(connection.clientIdentifier);
+  expect(list).not.toHaveTextContent(connection.connectionIdentifier);
+  expect(list).not.toHaveTextContent("有効");
+  expect(list).not.toHaveTextContent("作成日時");
+  expect(list).not.toHaveTextContent("wiki-drafts:write");
+  expect(within(list).queryByText(/作成・編集/)).not.toBeInTheDocument();
+});
 it("uses API defaults, saves empty scopes, and does not rewrite existing grants", async () => {
   const api = setup();
-  const checkbox = await screen.findByRole("checkbox", { name: /wiki:read/ });
+  const checkbox = await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ });
   expect(checkbox).toBeChecked();
   fireEvent.click(checkbox);
   fireEvent.click(screen.getByRole("button", { name: "保存" }));
@@ -70,7 +86,7 @@ it("uses API defaults, saves empty scopes, and does not rewrite existing grants"
   ).toBeVisible();
   expect(
     screen.getAllByText(/作成・編集/),
-  ).toHaveLength(3);
+  ).toHaveLength(1);
 });
 it("confirms and revokes only the selected connection when client names match", async () => {
   const api = setup();
@@ -78,7 +94,7 @@ it("confirms and revokes only the selected connection when client names match", 
   fireEvent.click(buttons[1]);
   const confirmation = screen.getByRole("group", { name: "連携解除の確認" });
   expect(
-    within(confirmation).getByText("33333333-3333-4333-8333-333333333333"),
+    within(confirmation).getByText("ChatGPT"),
   ).toBeVisible();
   expect(api.revoke).not.toHaveBeenCalled();
   fireEvent.click(
@@ -97,7 +113,7 @@ it("confirms and revokes only the selected connection when client names match", 
   ).toBeVisible();
 });
 
-it("shows empty results and disables controls while loading API defaults", async () => {
+it("shows ChatGPT as not connected and disables controls while loading API defaults", async () => {
   let resolve!: (value: unknown) => void;
   setup({
     settings: vi.fn().mockImplementation(
@@ -109,7 +125,11 @@ it("shows empty results and disables controls while loading API defaults", async
     list: vi.fn().mockResolvedValue({ ok: true, data: { connections: [] } }),
   });
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-  expect(await screen.findByText("外部連携はありません。")).toBeVisible();
+  expect(await screen.findByText("未連携")).toBeVisible();
+  const row = screen.getByRole("listitem");
+  expect(within(row).getByRole("heading", { name: "ChatGPT" })).toBeVisible();
+  expect(within(row).getByAltText("")).toHaveAttribute("src", expect.stringContaining("ChatGPT-Logo.webp"));
+  expect(within(row).queryByRole("button")).not.toBeInTheDocument();
   resolve({ ok: true, data: { scopes: [] } });
   await waitFor(() =>
     expect(
@@ -119,6 +139,17 @@ it("shows empty results and disables controls while loading API defaults", async
     ).toBe(true),
   );
 });
+it("keeps the ChatGPT not-connected row when another app is connected", async () => {
+  setup({
+    list: vi.fn().mockResolvedValue({ ok: true, data: { connections: [{ ...connection, clientName: "Other app" }] } }),
+  });
+  await screen.findByRole("heading", { name: "Other app" });
+  const chatgptRow = screen.getAllByRole("listitem").find((row) => within(row).queryByRole("heading", { name: "ChatGPT" }));
+  expect(chatgptRow).toBeDefined();
+  expect(within(chatgptRow!).getByText("未連携")).toBeVisible();
+  expect(within(chatgptRow!).queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.getAllByRole("button", { name: "連携解除" })).toHaveLength(1);
+});
 it.each([0, 403, 419, 422, 500])(
   "keeps the draft and existing grants on save failure %i",
   async (status) => {
@@ -127,11 +158,11 @@ it.each([0, 403, 419, 422, 500])(
         .fn()
         .mockResolvedValue({ ok: false, status, message: "private detail" }),
     });
-    fireEvent.click(await screen.findByRole("checkbox", { name: /wiki:read/ }));
+    fireEvent.click(await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ }));
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("通信に失敗");
     expect(
-      screen.getByRole("checkbox", { name: /wiki:read/ }),
+      screen.getByRole("checkbox", { name: /公開 Wiki の取得/ }),
     ).not.toBeChecked();
     expect(screen.queryByText("private detail")).not.toBeInTheDocument();
     expect(api.revoke).not.toHaveBeenCalled();
@@ -147,7 +178,7 @@ it("shows save progress and prevents duplicate writes", async () => {
         }),
     ),
   });
-  await screen.findByRole("checkbox", { name: /wiki:read/ });
+  await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ });
   fireEvent.click(screen.getByRole("button", { name: "保存" }));
   expect(screen.getByRole("button", { name: "保存中…" })).toBeDisabled();
   expect(api.save).toHaveBeenCalledTimes(1);
@@ -164,7 +195,7 @@ it.each(["settings", "list", "save", "revoke"] as const)(
       .mockResolvedValue({ ok: false, status: 401, message: "private" });
     setup({ [action]: failure });
     if (action === "save") {
-      await screen.findByRole("checkbox", { name: /wiki:read/ });
+      await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ });
       fireEvent.click(screen.getByRole("button", { name: "保存" }));
     }
     if (action === "revoke") {
@@ -197,7 +228,7 @@ it("does not offer revocation for already-revoked rows", async () => {
         },
       }),
   });
-  expect(await screen.findByText("解除済み")).toBeVisible();
+  expect(await screen.findByText("未連携")).toBeVisible();
   expect(
     screen.queryByRole("button", { name: "連携解除" }),
   ).not.toBeInTheDocument();
@@ -276,7 +307,7 @@ it.each(["ja", "en", "ko"] as const)(
       }),
     ).toBeVisible();
     expect(
-      screen.getByRole("checkbox", { name: /wiki-drafts:write/ }),
+      screen.getByRole("checkbox", { name: /作成・編集|Create and edit Draft Wiki|생성·편집/ }),
     ).toHaveAccessibleName(
       /作成・編集|Create and edit Draft Wiki|생성·편집/,
     );
@@ -308,11 +339,11 @@ it("isolates drafts and ignores late mutation completion after Identity/session 
     </QueryClientProvider>
   );
   const rendered = render(view("old-owner", 0));
-  fireEvent.click(await screen.findByRole("checkbox", { name: /wiki:read/ }));
+  fireEvent.click(await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ }));
   fireEvent.click(screen.getByRole("button", { name: "保存" }));
   rendered.rerender(view("new-owner", 1));
   await waitFor(() =>
-    expect(screen.getByRole("checkbox", { name: /wiki:read/ })).toBeChecked(),
+    expect(screen.getByRole("checkbox", { name: /公開 Wiki の取得/ })).toBeChecked(),
   );
   resolve({ ok: true, data: [] });
   await waitFor(() =>
@@ -328,7 +359,7 @@ it("isolates drafts and ignores late mutation completion after Identity/session 
 
 it("selects and clears all scopes while reflecting partial selection", async () => {
   const api = setup();
-  const firstScope = await screen.findByRole("checkbox", { name: /wiki:read/ });
+  const firstScope = await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ });
   const selectAll = screen.getByRole("checkbox", { name: "すべて選択" });
   expect(selectAll).toBePartiallyChecked();
   fireEvent.click(selectAll);
