@@ -1,6 +1,8 @@
 import type { Locale } from "./locales";
 type ConnectionsDictionary = {
   title: string;
+  verificationRequired: string;
+  verificationCancelled: string;
   introduction: string;
   future: string;
   scopes: string;
@@ -29,6 +31,8 @@ export const oauthConnectionsDictionaries: Record<
 > = {
   ja: {
     title: "外部連携",
+    verificationRequired: "外部連携の確認・変更やアクセスの許可には本人確認が必要です。",
+    verificationCancelled: "本人確認をキャンセルしました。",
     introduction:
       "外部サービスとの連携時に許可する操作を選べます。この設定は、利用するアカウントにかかわらず共通です。",
     future:
@@ -56,6 +60,8 @@ export const oauthConnectionsDictionaries: Record<
   },
   en: {
     title: "External connections",
+    verificationRequired: "Verify your identity to view or change external connections and grant access.",
+    verificationCancelled: "Identity verification was cancelled.",
     introduction:
       "Choose which actions you can allow when connecting an external service. These settings apply across all your accounts.",
     future:
@@ -83,6 +89,8 @@ export const oauthConnectionsDictionaries: Record<
   },
   ko: {
     title: "외부 연결",
+    verificationRequired: "외부 연결을 확인·변경하거나 접근을 허용하려면 본인 확인이 필요합니다.",
+    verificationCancelled: "본인 확인을 취소했습니다.",
     introduction:
       "외부 서비스를 연결할 때 허용할 작업을 선택할 수 있습니다. 이 설정은 사용하는 계정과 관계없이 공통으로 적용됩니다.",
     future:

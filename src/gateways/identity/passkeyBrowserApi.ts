@@ -74,7 +74,7 @@ export const passkeyBrowserApi = {
     parseEmpty,
     { body },
   ),
-  createStepUpSocialRedirect: (provider: "google" | "line" | "kakao", returnTo: "passkeys" | "withdrawal" = "passkeys") => request(
+  createStepUpSocialRedirect: (provider: "google" | "line" | "kakao", returnTo: "passkeys" | "withdrawal" | "external-connections" | "authorization" = "passkeys") => request(
     `/api/identity/auth/step-up/social/${encodeURIComponent(provider)}/redirect?returnTo=${returnTo}`,
     parseRedirectUrlResult,
     { method: "GET" },
@@ -133,7 +133,7 @@ export type PasskeyBrowserApi = {
   createAdditionOptions: () => Promise<IdentityBrowserApiResult<PasskeyRegistrationOptionsResult>>;
   createStepUpPasskeyOptions: () => Promise<IdentityBrowserApiResult<PasskeyAuthenticationOptionsResult>>;
   completeStepUpWithPasskey: (body: CompleteStepUpWithPasskeyRequest) => Promise<IdentityBrowserApiResult<Record<string, never>>>;
-  createStepUpSocialRedirect: (provider: "google" | "line" | "kakao", returnTo?: "passkeys" | "withdrawal") => Promise<IdentityBrowserApiResult<RedirectUrlResult>>;
+  createStepUpSocialRedirect: (provider: "google" | "line" | "kakao", returnTo?: "passkeys" | "withdrawal" | "external-connections" | "authorization") => Promise<IdentityBrowserApiResult<RedirectUrlResult>>;
   sendRecoveryEmail: (body: SendPasskeyRecoveryEmailRequest, language?: string) => Promise<IdentityBrowserApiResult<EmailSendingStatus>>;
   verifyRecoveryEmail: (body: VerifyPasskeyRecoveryEmailRequest, language?: string) => Promise<IdentityBrowserApiResult<PasskeyRecoveryVerificationResult>>;
   createRecoverySocialRedirect: (provider: "google" | "line" | "kakao", language?: string) => Promise<IdentityBrowserApiResult<RedirectUrlResult>>;

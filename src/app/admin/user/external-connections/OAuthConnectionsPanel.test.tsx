@@ -12,6 +12,9 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 import { OAuthConnectionsPanel } from "./OAuthConnectionsPanel";
 import { oauthConnectionsBrowserApi } from "@/gateways/identity/oauthConnectionsBrowserApi";
+vi.mock("@/components/User/ExternalConnectionVerification", () => ({
+  ExternalConnectionVerification: ({ onVerified }: { onVerified: () => unknown }) => <button onClick={() => void onVerified()}>Verify external connections</button>,
+}));
 const connection = {
   connectionIdentifier: "11111111-1111-4111-8111-111111111111",
   clientIdentifier: "22222222-2222-4222-8222-222222222222",
@@ -440,4 +443,33 @@ it("selects and clears all scopes while reflecting partial selection", async () 
   expect(selectAll).not.toBePartiallyChecked();
   fireEvent.click(screen.getByRole("button", { name: "保存" }));
   await waitFor(() => expect(api.save).toHaveBeenCalledWith([], "ja"));
+});
+
+it("hides external connection controls until the server accepts recent authentication", async () => {
+  const required = { ok: false, status: 401, code: "recent_authentication_required", message: "Verify" };
+  const api = setup({ settings: vi.fn().mockResolvedValueOnce(required).mockResolvedValue({ ok: true, data: { scopes: [] } }), list: vi.fn().mockResolvedValueOnce(required).mockResolvedValue({ ok: true, data: { connections: [connection] } }) });
+  fireEvent.click(await screen.findByRole("button", { name: "Verify external connections" }));
+  await screen.findByRole("button", { name: "保存" });
+  expect(api.save).not.toHaveBeenCalled();
+  expect(api.revoke).not.toHaveBeenCalled();
+});
+it("requires verification when a save expires and never retries the write automatically", async () => {
+  const api = setup({ save: vi.fn().mockResolvedValue({ ok: false, status: 401, code: "recent_authentication_required", message: "Verify" }) });
+  fireEvent.click(await screen.findByRole("button", { name: "保存" }));
+  const verify = await screen.findByRole("button", { name: "Verify external connections" });
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "ログイン" })).not.toBeInTheDocument();
+  fireEvent.click(verify);
+  await screen.findByRole("button", { name: "保存" });
+  expect(api.save).toHaveBeenCalledTimes(1);
+});
+
+it("requires verification when revocation expires without retrying the revocation", async () => {
+  const api = setup({ revoke: vi.fn().mockResolvedValue({ ok: false, status: 401, code: "recent_authentication_required", message: "Verify" }) });
+  fireEvent.click((await screen.findAllByRole("button", { name: "連携解除" }))[0]);
+  fireEvent.click(screen.getByRole("button", { name: "解除する" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Verify external connections" }));
+  await screen.findAllByRole("button", { name: "連携解除" });
+  expect(api.revoke).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("group", { name: "連携解除の確認" })).not.toBeInTheDocument();
 });

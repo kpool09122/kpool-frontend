@@ -214,3 +214,11 @@ it("accepts the actual same-origin Host when Next normalizes loopback URLs", asy
   );
   expect((await save(req)).status).toBe(200);
 });
+
+it.each(actions)("preserves the recent authentication code for $name without exposing upstream details", async (action) => {
+  vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "https://backend.example");
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ code: "recent_authentication_required", detail: "secret" }, { status: 401 })));
+  const response = await action.run();
+  expect(response.status).toBe(401);
+  expect(await response.json()).toEqual({ message: "OAuth authorization request failed.", code: "recent_authentication_required" });
+});

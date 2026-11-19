@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExternalConnectionVerification } from "@/components/User/ExternalConnectionVerification";
 import { ArrowRight, Blocks, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDeadlineTime } from "@/components/useDeadlineTime";
@@ -22,6 +23,7 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
   const [selection, setSelection] = useState<ConsentScope[]>([]);
   const [error, setError] = useState<ErrorKind | null>(null);
   const [pending, setPending] = useState(true);
+  const [verificationRequired, setVerificationRequired] = useState(false);
   const [complete, setComplete] = useState(false);
   const busy = useRef(false);
   const alive = useRef(false);
@@ -41,7 +43,7 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
   }, [api, query]);
   const now = useDeadlineTime(details && !complete ? new Date(details.expiresAt).getTime() : null);
   const expired = details !== null && new Date(details.expiresAt).getTime() <= now;
-  const blocked = expired || complete || error === "invalid" || error === "forbidden" || error === "session";
+  const blocked = verificationRequired || expired || complete || error === "invalid" || error === "forbidden" || error === "session";
   const returnTo = `/auth/oauth/authorize?${query}`;
   const loginHref = `/login?returnTo=${encodeURIComponent(returnTo)}`;
   const submit = async (action: "approve" | "deny") => {
@@ -52,7 +54,10 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
     await (action === "approve" ? api.approve(details.requestIdentifier, selected, locale) : api.deny(details.requestIdentifier, locale)).then(async (result) => {
       if (!alive.current) return;
       if (result.ok) { setComplete(true); navigate(result.data.redirectUri); return; }
-      if (action === "approve" && result.status === 400) {
+      if (result.code === "recent_authentication_required") {
+        setSelection([]);
+        setVerificationRequired(true);
+      } else if (action === "approve" && result.status === 400) {
         // Settings are authoritative only on the server. Never resubmit the old selection automatically.
         setSelection([]);
         const refreshed = await api.get(details.requestIdentifier, locale);
@@ -82,6 +87,15 @@ export function OAuthConsentPage({ query, api = oauthConsentBrowserApi, navigate
         </h1>
       </header>
       <div className="space-y-6 px-6 pb-6 sm:px-8 sm:pb-8">
+        {verificationRequired ? <ExternalConnectionVerification returnTo="authorization"
+          beforeRedirect={() => sessionStorage.setItem("oauth-step-up-query", query)}
+          onVerified={async () => {
+            if (!details) return;
+            const result = await api.get(details.requestIdentifier, locale);
+            if (!alive.current) return;
+            if (result.ok) { setDetails(result.data); setVerificationRequired(false); }
+            else { setVerificationRequired(false); setError(errorKind(result.status)); }
+          }} /> : null}
         {pending ? <p role="status" className="text-sm text-text-muted">{details ? t.sending : t.loading}</p> : null}
         {complete ? <p role="status" className="text-sm text-text-muted">{t.complete}</p> : null}
         {details && !complete ? hasScopes ? <>

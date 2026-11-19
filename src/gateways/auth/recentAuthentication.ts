@@ -26,7 +26,7 @@ export const performRecentAuthentication = async ({
 }: {
   api: Pick<PasskeyBrowserApi, "completeStepUpWithPasskey" | "createStepUpPasskeyOptions" | "createStepUpSocialRedirect">;
   method: RecentAuthenticationMethod;
-  returnTo: "passkeys" | "withdrawal";
+  returnTo: "passkeys" | "withdrawal" | "external-connections" | "authorization";
   webAuthnAdapter: WebAuthnBrowserAdapter;
 }): Promise<RecentAuthenticationResult> => {
   if (method !== "passkey") {

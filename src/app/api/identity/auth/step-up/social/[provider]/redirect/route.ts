@@ -12,7 +12,7 @@ type StepUpSocialRouteContext = {
 };
 
 const ProviderSchema = z.enum(["google", "line", "kakao"]);
-const ReturnToSchema = z.enum(["passkeys", "withdrawal"]);
+const ReturnToSchema = z.enum(["passkeys", "withdrawal", "external-connections", "authorization"]);
 
 export async function GET(request: NextRequest, context: StepUpSocialRouteContext) {
   const { provider } = await context.params;
