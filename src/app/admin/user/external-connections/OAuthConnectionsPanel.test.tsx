@@ -1,6 +1,7 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -179,13 +180,61 @@ it("shows save progress and prevents duplicate writes", async () => {
     ),
   });
   await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ });
-  fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  const save = screen.getByRole("button", { name: "保存" });
+  act(() => {
+    fireEvent.click(save);
+    fireEvent.click(save);
+  });
   expect(screen.getByRole("button", { name: "保存中…" })).toBeDisabled();
-  expect(api.save).toHaveBeenCalledTimes(1);
+  for (const button of screen.getAllByRole("button", { name: "連携解除" })) expect(button).toBeDisabled();
+  await waitFor(() => expect(api.save).toHaveBeenCalledTimes(1));
   resolve({ ok: true, data: [] });
   expect(
     await screen.findByText("許可 Scope 設定を保存しました。"),
   ).toBeVisible();
+});
+it("locks save and revocation controls and submits a repeated revocation only once", async () => {
+  let resolve!: (value: unknown) => void;
+  const api = setup({
+    revoke: vi.fn().mockImplementation(() => new Promise((done) => { resolve = done; })),
+  });
+  fireEvent.click((await screen.findAllByRole("button", { name: "連携解除" }))[0]);
+  const proceed = screen.getByRole("button", { name: "解除する" });
+  act(() => {
+    fireEvent.click(proceed);
+    fireEvent.click(proceed);
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  });
+  expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "解除中…" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "キャンセル" })).toBeDisabled();
+  for (const checkbox of screen.getAllByRole("checkbox")) expect(checkbox).toBeDisabled();
+  await waitFor(() => expect(api.revoke).toHaveBeenCalledOnce());
+  expect(api.save).not.toHaveBeenCalled();
+  resolve({ ok: true, data: [] });
+  await screen.findByText("連携を解除しました。この接続からの操作とトークン更新はできません。");
+  expect(screen.getByRole("button", { name: "保存" })).toBeEnabled();
+});
+it.each(["save", "revoke"] as const)("recovers from a rejected %s request and allows an explicit retry", async (action) => {
+  const request = vi.fn()
+    .mockRejectedValueOnce(new Error("private detail"))
+    .mockResolvedValue({ ok: true, data: [] });
+  setup({ [action]: request });
+  if (action === "revoke") {
+    fireEvent.click((await screen.findAllByRole("button", { name: "連携解除" }))[0]);
+  } else {
+    await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ });
+  }
+  const label = action === "save" ? "保存" : "解除する";
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("通信に失敗");
+  expect(screen.queryByText("private detail")).not.toBeInTheDocument();
+  expect(request).toHaveBeenCalledOnce();
+  expect(screen.getByRole("button", { name: label })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  await screen.findByText(action === "save" ? "許可 Scope 設定を保存しました。" : "連携を解除しました。この接続からの操作とトークン更新はできません。");
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 it.each(["settings", "list", "save", "revoke"] as const)(
   "stops stale editing on expired %s",
@@ -313,7 +362,7 @@ it.each(["ja", "en", "ko"] as const)(
     );
   },
 );
-it("isolates drafts and ignores late mutation completion after Identity/session changes", async () => {
+it.each(["save", "revoke"] as const)("ignores late %s completion after Identity/session changes", async (action) => {
   let resolve!: (value: unknown) => void;
   const client = new QueryClient();
   const api = {
@@ -321,12 +370,15 @@ it("isolates drafts and ignores late mutation completion after Identity/session 
     settings: vi
       .fn()
       .mockResolvedValue({ ok: true, data: { scopes: ["wiki:read"] } }),
-    list: vi.fn().mockResolvedValue({ ok: true, data: { connections: [] } }),
+    list: vi.fn().mockResolvedValue({ ok: true, data: { connections: [connection] } }),
     save: vi.fn().mockImplementation(
       () =>
         new Promise((r) => {
           resolve = r;
         }),
+    ),
+    revoke: vi.fn().mockImplementation(
+      () => new Promise((r) => { resolve = r; }),
     ),
   };
   const view = (owner: string, version: number) => (
@@ -339,19 +391,29 @@ it("isolates drafts and ignores late mutation completion after Identity/session 
     </QueryClientProvider>
   );
   const rendered = render(view("old-owner", 0));
-  fireEvent.click(await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ }));
-  fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  if (action === "save") {
+    fireEvent.click(await screen.findByRole("checkbox", { name: /公開 Wiki の取得/ }));
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+  } else {
+    fireEvent.click(await screen.findByRole("button", { name: "連携解除" }));
+    fireEvent.click(screen.getByRole("button", { name: "解除する" }));
+  }
+  await waitFor(() => expect(api[action]).toHaveBeenCalledOnce());
   rendered.rerender(view("new-owner", 1));
   await waitFor(() =>
     expect(screen.getByRole("checkbox", { name: /公開 Wiki の取得/ })).toBeChecked(),
   );
-  resolve({ ok: true, data: [] });
+  await act(async () => { resolve({ ok: true, data: [] }); });
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "保存" })).toBeEnabled(),
   );
   expect(
     screen.queryByText("許可 Scope 設定を保存しました。"),
   ).not.toBeInTheDocument();
+  expect(screen.queryByText("連携を解除しました。この接続からの操作とトークン更新はできません。")).not.toBeInTheDocument();
+  expect(client.getQueryData(["identity-oauth-settings", "old-owner", 0, "ja"])).toEqual({ ok: true, data: { scopes: ["wiki:read"] } });
+  expect(client.getQueryData(["identity-oauth-connections", "old-owner", 0, "ja"])).toEqual({ ok: true, data: { connections: [connection] } });
+  expect(api.list).toHaveBeenCalledTimes(2);
   expect(
     client.getQueryData(["identity-oauth-settings", "new-owner", 1, "ja"]),
   ).toEqual({ ok: true, data: { scopes: ["wiki:read"] } });

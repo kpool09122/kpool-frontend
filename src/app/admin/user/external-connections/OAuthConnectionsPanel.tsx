@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
 import {
   oauthConnectionsBrowserApi,
@@ -61,22 +61,26 @@ function ConnectionsWorkspace({
   const t = oauthConnectionsDictionaries[locale];
   const descriptions = oauthConsentDictionaries[locale].descriptions;
   const client = useQueryClient();
-  const alive = useRef(true);
-  const inFlight = useRef(false);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
   const [draft, setDraft] = useState<ScopeSettings["scopes"] | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"save" | "revoke" | null>(null);
   const [notice, setNotice] = useState<"saved" | "done" | "already" | null>(
     null,
   );
-  const [error, setError] = useState(false);
-  const [expired, setExpired] = useState(false);
+  const mutationKey = ["identity-oauth-mutations", identityIdentifier, sessionVersion];
+  const saveMutation = useMutation({
+    mutationKey: [...mutationKey, "save"],
+    mutationFn: (scopes: ScopeSettings["scopes"]) => api.save(scopes, locale),
+    retry: false,
+  });
+  const revokeMutation = useMutation({
+    mutationKey: [...mutationKey, "revoke"],
+    mutationFn: (id: string) => api.revoke(id, locale),
+    retry: false,
+  });
+  const isPending = saveMutation.isPending || revokeMutation.isPending;
+  const expired = [saveMutation.data, revokeMutation.data].some(
+    (result) => result?.ok === false && result.status === 401,
+  );
   const settingsKey = [
     "identity-oauth-settings",
     identityIdentifier,
@@ -115,62 +119,50 @@ function ConnectionsWorkspace({
     (connection) => connection.connectionIdentifier === confirmId,
   );
   const failed =
-    error ||
+    saveMutation.isError ||
+    revokeMutation.isError ||
+    saveMutation.data?.ok === false ||
+    (revokeMutation.data?.ok === false && revokeMutation.data.status !== 404) ||
     settings.isError ||
     list.isError ||
     settings.data?.ok === false ||
     list.data?.ok === false;
-  const save = async () => {
-    if (inFlight.current || denied || !settings.data?.ok) return;
-    inFlight.current = true;
-    setBusy("save");
-    setError(false);
+  const save = () => {
+    if (client.isMutating({ mutationKey }) || denied || !settings.data?.ok) return;
+    revokeMutation.reset();
     setNotice(null);
-    const scopes = [...selected];
-    const result = await api.save(scopes, locale);
-    if (!alive.current) return;
-    if (result.ok) {
-      client.setQueryData(settingsKey, { ok: true, data: { scopes } });
-      setDraft(null);
-      setNotice("saved");
-    } else {
-      setError(true);
-      if (result.status === 401) setExpired(true);
-    }
-    inFlight.current = false;
-    setBusy(null);
+    // Per-call callbacks are skipped after unmount, including Identity/session changes.
+    saveMutation.mutate([...selected], {
+      onSuccess: (result, scopes) => {
+        if (!result.ok) return;
+        client.setQueryData(settingsKey, { ok: true, data: { scopes } });
+        setDraft(null);
+        setNotice("saved");
+      },
+    });
   };
-  const revoke = async () => {
-    if (inFlight.current || denied || !target || target.revokedAt !== null)
+  const revoke = () => {
+    if (client.isMutating({ mutationKey }) || denied || !target || target.revokedAt !== null)
       return;
-    inFlight.current = true;
-    setBusy("revoke");
-    setError(false);
+    saveMutation.reset();
     setNotice(null);
-    const id = target.connectionIdentifier;
-    const result = await api.revoke(id, locale);
-    if (!alive.current) return;
-    if (result.ok || result.status === 404) {
-      setNotice(result.ok ? "done" : "already");
-      setConfirmId(null);
-      // Remove the confirmed target immediately; a failed refetch must not revive its revoke control.
-      client.setQueryData(listKey, {
-        ok: true,
-        data: {
-          connections: connections.filter(
-            (connection) => connection.connectionIdentifier !== id,
-          ),
-        },
-      });
-      await list.refetch();
-    } else {
-      setError(true);
-      if (result.status === 401) setExpired(true);
-    }
-    if (alive.current) {
-      inFlight.current = false;
-      setBusy(null);
-    }
+    revokeMutation.mutate(target.connectionIdentifier, {
+      onSuccess: (result, id) => {
+        if (!result.ok && result.status !== 404) return;
+        setNotice(result.ok ? "done" : "already");
+        setConfirmId(null);
+        // Remove the confirmed target immediately; a failed refetch must not revive its revoke control.
+        client.setQueryData(listKey, {
+          ok: true,
+          data: {
+            connections: connections.filter(
+              (connection) => connection.connectionIdentifier !== id,
+            ),
+          },
+        });
+        void list.refetch();
+      },
+    });
   };
   const buttonClass =
     "rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold disabled:opacity-60";
@@ -197,11 +189,11 @@ function ConnectionsWorkspace({
             action={settings.data?.ok ? (
               <button
                 className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={busy !== null}
-                onClick={() => void save()}
+                disabled={isPending}
+                onClick={save}
                 type="button"
               >
-                {busy === "save" ? t.saving : t.save}
+                {saveMutation.isPending ? t.saving : t.save}
               </button>
             ) : null}
           >
@@ -211,7 +203,7 @@ function ConnectionsWorkspace({
               {settings.data?.ok && (
                 <fieldset
                   aria-label={t.scopes}
-                  disabled={busy !== null}
+                  disabled={isPending}
                   className="divide-y divide-stroke-subtle overflow-hidden rounded-lg border border-stroke-subtle"
                 >
                   <label className="flex cursor-pointer items-center gap-3 bg-surface-base px-4 py-3 font-semibold has-disabled:cursor-not-allowed has-disabled:opacity-60">
@@ -276,7 +268,7 @@ function ConnectionsWorkspace({
                           confirmId !== connection.connectionIdentifier && (
                             <button
                               className={buttonClass}
-                              disabled={busy !== null}
+                              disabled={isPending}
                               onClick={() => {
                                 setNotice(null);
                                 setConfirmId(connection.connectionIdentifier);
@@ -294,7 +286,7 @@ function ConnectionsWorkspace({
                       <fieldset
                         aria-label={t.confirm}
                         className="space-y-2 rounded border border-stroke-subtle p-3"
-                        disabled={busy !== null}
+                        disabled={isPending}
                       >
                         <legend>{t.confirm}</legend>
                         <p>{connection.clientName}</p>
@@ -302,10 +294,10 @@ function ConnectionsWorkspace({
                         <div className="flex flex-wrap justify-end gap-2">
                           <button
                             className={buttonClass}
-                            onClick={() => void revoke()}
+                            onClick={revoke}
                             type="button"
                           >
-                            {busy === "revoke" ? t.revoking : t.proceed}
+                            {revokeMutation.isPending ? t.revoking : t.proceed}
                           </button>
                           <button
                             className={buttonClass}
