@@ -501,3 +501,17 @@ const serializeTiptapNode = (node: TiptapNode): string => {
 
 export const serializeTiptapJsonToInlineMarkdown = (node: TiptapNode): string =>
   serializeTiptapNode(node);
+
+/** Each paragraph is one flat Wiki list item; hard breaks stay inside that item. */
+export const listItemsToTiptapHtml = (items: string[]): string =>
+  (items.length > 0 ? items : [""]).map(inlineMarkdownToTiptapHtml).join("");
+
+export const serializeTiptapJsonToListItems = (node: TiptapNode): string[] =>
+  (node.content ?? []).map(serializeTiptapJsonToInlineMarkdown);
+
+export const isValidInlineLinkUrl = (value: string): boolean => {
+  const href = value.trim();
+  if (!/^https?:\/\/[^/\\\s?#]+/i.test(href) || /[\s\\]/.test(href) || !URL.canParse(href)) return false;
+  const url = new URL(href);
+  return (url.protocol === "https:" || url.protocol === "http:") && url.hostname !== "";
+};

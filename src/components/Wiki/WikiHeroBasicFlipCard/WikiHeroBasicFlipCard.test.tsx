@@ -31,6 +31,7 @@ describe("WikiHeroBasicFlipCard", () => {
     );
 
     expect(screen.getByText("プロフィール", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View basic details" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("wiki-edit-flip-front-toggle"));
     fireEvent.click(screen.getByTestId("wiki-edit-flip-input"));
@@ -38,7 +39,7 @@ describe("WikiHeroBasicFlipCard", () => {
     expect(onFlipChange).toHaveBeenCalled();
   });
 
-  it("renders the flipped helper copy", () => {
+  it("uses the public Wiki label to return to the photo", () => {
     renderWithI18n(
       <WikiHeroBasicFlipCard
         basic={wikiStoryBasic}
@@ -53,8 +54,6 @@ describe("WikiHeroBasicFlipCard", () => {
       />,
     );
 
-    expect(
-      screen.getAllByText("Tap outside the form area to return to the cover image.").length,
-    ).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Back to photo" })).toBeInTheDocument();
   });
 });

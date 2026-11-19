@@ -19,6 +19,62 @@ const renderWithI18n = (ui: React.ReactElement) =>
   };
 
 describe("WikiBasicPanel", () => {
+  it("edits imperial height, saves centimeters, switches units and clears the height", () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBasicPanel basic={{ ...wikiStoryBasic, resourceType: "talent", height: 165 }}
+      isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    fireEvent.click(screen.getByRole("button", { name: "Switch to feet and inches" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ height: 165 }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Feet (ft)" }), { target: { value: "5" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Inches (in)" }), { target: { value: "7.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ height: 171 }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch to centimeters" }));
+    expect(screen.getByRole("spinbutton", { name: "Height (cm)" })).toHaveValue(171);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Height (cm)" }), { target: { value: "180" } });
+    fireEvent.click(screen.getByRole("button", { name: "Switch to feet and inches" }));
+    expect(screen.getByRole("spinbutton", { name: "Feet (ft)" })).toHaveValue(5);
+    expect(screen.getByRole("spinbutton", { name: "Inches (in)" })).toHaveValue(10.87);
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Feet (ft)" }), { target: { value: "" } });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Inches (in)" }), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ height: undefined }));
+  });
+
+  it("accepts an empty height and validates imperial input ranges", () => {
+    const onSave = vi.fn();
+    renderWithI18n(<WikiBasicPanel basic={{ ...wikiStoryBasic, resourceType: "talent", height: undefined }}
+      isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    fireEvent.click(screen.getByRole("button", { name: "Switch to feet and inches" }));
+    expect(screen.getByRole("spinbutton", { name: "Feet (ft)" })).toHaveValue(null);
+    expect(screen.getByRole("spinbutton", { name: "Inches (in)" })).toHaveValue(null);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ height: undefined }));
+    onSave.mockClear();
+    const feet = screen.getByRole("spinbutton", { name: "Feet (ft)" });
+    const inches = screen.getByRole("spinbutton", { name: "Inches (in)" });
+    fireEvent.change(feet, { target: { value: "5.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.input(feet, { target: { value: "5" } });
+    fireEvent.change(inches, { target: { value: "12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.input(inches, { target: { value: "-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.input(inches, { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ height: 152 }));
+  });
+
+  it("displays height in centimeters and feet/inches", () => {
+    renderWithI18n(<WikiBasicPanel basic={{ ...wikiStoryBasic, resourceType: "talent", height: 170 }}
+      isEditing={false} onCancel={() => {}} onEdit={() => {}} onSave={() => {}} />);
+    expect(screen.getByText(`170 cm / 5' 7"`)).toBeInTheDocument();
+  });
+
   it("exposes unsaved relation additions and removals without submitting the Basic form", async () => {
     const searchContextRef = React.createRef<{ getBasic: () => typeof wikiStoryBasic }>();
     const onSave = vi.fn();

@@ -3,6 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   applyInlineMarkdownFormat,
   inlineMarkdownToTiptapHtml,
+  listItemsToTiptapHtml,
+  isValidInlineLinkUrl,
+  serializeTiptapJsonToListItems,
   parseInlineMarkdown,
   serializeTiptapJsonToInlineMarkdown,
 } from "./editing";
@@ -149,5 +152,36 @@ describe("parseInlineMarkdown", () => {
     expect(parseInlineMarkdown("[[분류:테스트]]")).toEqual([
       { kind: "text", text: "[[분류:테스트]]" },
     ]);
+  });
+});
+
+describe("flat list rich text editing", () => {
+  it("preserves item boundaries, formatting and line breaks", () => {
+    expect(serializeTiptapJsonToListItems({
+      type: "doc", content: [
+        { type: "paragraph", content: [{ type: "text", text: "First", marks: [{ type: "bold" }] }] },
+        { type: "paragraph", content: [
+          { type: "text", text: "Second" }, { type: "hardBreak" },
+          { type: "text", text: "link", marks: [{ type: "link", attrs: { href: "https://example.com" } }] },
+        ] },
+        { type: "paragraph" },
+      ],
+    })).toEqual(["**First**", "Second\n[link](https://example.com)", ""]);
+    expect(listItemsToTiptapHtml(["**First**", "Second\n[link](https://example.com)", ""]))
+      .toBe('<p><strong>First</strong></p><p>Second<br><a href="https://example.com">link</a></p><p></p>');
+  });
+
+  it("initializes an empty list with one editable paragraph and escapes markup", () => {
+    expect(listItemsToTiptapHtml([])).toBe("<p></p>");
+    expect(listItemsToTiptapHtml(["<script>alert(1)</script>"])).toBe("<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>");
+  });
+});
+
+describe("GUI inline link URL validation", () => {
+  it.each(["https://example.com", "http://example.com/path?q=1#section", " HTTPS://example.com/a%20b ", "https://例え.jp/記事"])("accepts a valid web URL: %s", (url) => {
+    expect(isValidInlineLinkUrl(url)).toBe(true);
+  });
+  it.each(["", "example.com", "not a URL", "https://", "https:example.com", "https:///example.com", "https://example.com:invalid", "https://example.com/a b", "javascript:alert(1)", "data:text/html,test", "ftp://example.com"])("rejects an invalid web URL: %s", (url) => {
+    expect(isValidInlineLinkUrl(url)).toBe(false);
   });
 });

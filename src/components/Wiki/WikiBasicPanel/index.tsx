@@ -26,6 +26,8 @@ import { normalizeLocale } from "../../../i18n/locales";
 import { getString } from "../editing";
 import { SocialLinkIcon } from "../socialLinks";
 import { EditIcon } from "../icons";
+import { wikiBasicControlClassName, wikiBasicFieldClassName } from "../basicFormStyles";
+import { WikiHeightInput } from "./WikiHeightInput";
 import { WikiBasicFieldsList } from "../WikiBasicFieldsList";
 import { WikiFormActions } from "../WikiFormActions";
 import { WikiMasterSearchSelect } from "../WikiMasterSearchSelect";
@@ -43,9 +45,8 @@ type WikiBasicPanelProps = {
   onSave: (basic: WikiBasic) => void;
 };
 
-const basicInputClassName =
-  "min-w-0 break-words rounded-xl border border-stroke-subtle bg-surface-raised px-3 py-2 [overflow-wrap:anywhere] [word-break:break-word]";
-const basicLabelClassName = "grid min-w-0 gap-2 text-sm font-semibold text-text-strong";
+const basicInputClassName = wikiBasicControlClassName;
+const basicLabelClassName = wikiBasicFieldClassName;
 
 const getOptionalString = (formData: FormData, name: string): string | undefined =>
   getString(formData, name).trim() || undefined;
@@ -178,16 +179,16 @@ function SocialLinksInput({
   if (!isAlwaysVisible && !values?.length) return null;
 
   return (
-    <fieldset className={`${basicLabelClassName} md:col-span-2`} disabled={disabled}>
+    <fieldset className={`${basicLabelClassName} col-span-full`} disabled={disabled}>
       <legend>{label}</legend>
       <input name="socialLinks" type="hidden" value="" />
       <div className="mt-2 grid min-w-0 gap-2">
         {links.map((link, index) => (
-          <div className="flex min-w-0 items-center overflow-hidden rounded-xl border border-stroke-subtle bg-surface-raised" key={link.id}>
+          <div className="flex min-w-0 items-center overflow-hidden rounded-lg border border-stroke-subtle bg-surface-raised/60" key={link.id}>
             <span className="pl-3 text-text-muted"><SocialLinkIcon url={link.url} /></span>
             <input
               aria-label={`${label} ${index + 1}`}
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary"
+              className="min-h-10 min-w-0 flex-1 bg-transparent px-3 py-2 text-sm font-normal text-text-strong outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary"
               name="socialLinks"
               onChange={(event) => {
                 const url = event.currentTarget.value;
@@ -254,9 +255,9 @@ function OfficialColorsInput({
   };
 
   return (
-    <div className="md:col-span-2 grid min-w-0 gap-2 text-sm font-semibold text-text-strong">
+    <div className={`${basicLabelClassName} col-span-full`}>
       <p>{label}</p>
-      <div className="grid min-w-0 gap-3 rounded-2xl border border-stroke-subtle bg-surface-raised p-4">
+      <div className="grid min-w-0 gap-3">
         <input name="officialColorsField" type="hidden" value="1" />
         <div className="grid gap-3">
           {colors.map((color, index) => (
@@ -367,7 +368,7 @@ function BasicMultiSelectInput({
   }
 
   return (
-    <div className="md:col-span-2">
+    <div className="col-span-full">
       <input name={name} type="hidden" value="" />
       <label className={basicLabelClassName}>
         {label}
@@ -483,7 +484,7 @@ export function WikiBasicPanel({
     return (
       <LocalizedForm
         ref={captureForm}
-        className="rounded-[1.75rem] border border-stroke-subtle p-6"
+        className="@container/wiki-basic min-w-0"
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
@@ -569,12 +570,11 @@ export function WikiBasicPanel({
             ...Object.fromEntries(Object.entries(updatedBasic).filter(([field]) => changedFields.has(field))),
           });
         }}
-        style={cardSurfaceMutedStyle}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
+        <p className="border-b border-stroke-subtle pb-4 text-base font-semibold tracking-tight text-text-strong">
           {heroT.basic}
         </p>
-        <div className="mt-5 grid items-start gap-4 md:grid-cols-2">
+        <div className="mt-5 grid items-start gap-x-6 gap-y-5 @min-[36rem]/wiki-basic:grid-cols-2">
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isGroup}
@@ -754,13 +754,9 @@ export function WikiBasicPanel({
             options={englishLevelOptions}
             value={basic.englishLevel}
           />
-          <BasicTextInput
-            isAlwaysVisible={isTalent}
-            label={fieldLabels.height}
-            name="height"
-            type="number"
-            value={basic.height}
-          />
+          {isTalent || basic.height !== undefined ? (
+            <WikiHeightInput label={fieldLabels.height} value={basic.height} disabled={disabled} />
+          ) : null}
           <BasicSelectInput
             emptyLabel={enumLabels.empty}
             isAlwaysVisible={isTalent}
@@ -775,7 +771,9 @@ export function WikiBasicPanel({
             values={basic.officialColors}
           />
         </div>
-        <WikiFormActions onCancel={onCancel} />
+        <div className="mt-6 border-t border-stroke-subtle pt-1">
+          <WikiFormActions onCancel={onCancel} />
+        </div>
       </LocalizedForm>
     );
   }
