@@ -20,7 +20,7 @@ afterEach(cleanup);
 it("verifies with a passkey and resumes only the read callback", async () => {
   const onVerified = vi.fn();
   render(<ExternalConnectionVerification returnTo="external-connections" onVerified={onVerified} />);
-  fireEvent.click(screen.getByRole("button", { name: "本人確認する" }));
+  fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
   fireEvent.click(await screen.findByRole("button", { name: "Passkey" }));
   await waitFor(() => expect(onVerified).toHaveBeenCalledOnce());
   expect(mocks.perform).toHaveBeenCalledWith(expect.objectContaining({ method: "passkey", returnTo: "external-connections" }));
@@ -31,7 +31,7 @@ it("preserves the consent context before navigating to SSO", async () => {
   const navigate = vi.fn(() => expect(beforeRedirect).toHaveBeenCalledOnce());
   const onVerified = vi.fn();
   render(<ExternalConnectionVerification returnTo="authorization" onVerified={onVerified} beforeRedirect={beforeRedirect} navigate={navigate} />);
-  fireEvent.click(screen.getByRole("button", { name: "本人確認する" }));
+  fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
   fireEvent.click(await screen.findByRole("button", { name: "Google" }));
   await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://accounts.example/reauth"));
   expect(mocks.perform).toHaveBeenCalledWith(expect.objectContaining({ method: "google", returnTo: "authorization" }));
@@ -41,16 +41,16 @@ it("keeps the operation blocked after cancelling authentication", async () => {
   mocks.perform.mockResolvedValue({ status: "error", kind: "cancelled" });
   const onVerified = vi.fn();
   render(<ExternalConnectionVerification returnTo="external-connections" onVerified={onVerified} />);
-  fireEvent.click(screen.getByRole("button", { name: "本人確認する" }));
+  fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
   fireEvent.click(await screen.findByRole("button", { name: "Passkey" }));
   await screen.findByRole("alert");
   expect(onVerified).not.toHaveBeenCalled();
-  expect(screen.getByRole("button", { name: "本人確認する" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "本人確認を行う" })).toBeEnabled();
 });
 it("offers login when the browser session has expired", async () => {
   mocks.refreshIdentity.mockResolvedValue(null);
   render(<ExternalConnectionVerification returnTo="external-connections" onVerified={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: "本人確認する" }));
+  fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
   await screen.findByRole("link", { name: "ログイン" });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(mocks.perform).not.toHaveBeenCalled();

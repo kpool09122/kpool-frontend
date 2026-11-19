@@ -117,15 +117,19 @@ function ConnectionsWorkspace({
   const verificationRequired = requiresVerification || [settings.data, list.data].some(
     (result) => result?.ok === false && result.code === "recent_authentication_required",
   );
-  if (verificationRequired) return <section id="external-connections" aria-label={t.title}>
-    <ExternalConnectionVerification returnTo="external-connections" onVerified={async () => {
-      setDraft(null);
-      setConfirmId(null);
-      setNotice(null);
-      await Promise.all([settings.refetch(), list.refetch()]);
-      saveMutation.reset();
-      revokeMutation.reset();
-    }} />
+  if (verificationRequired) return <section id="external-connections" aria-label={t.title} className="space-y-5">
+    <ExternalConnectionVerification
+      returnTo="external-connections"
+      panels={[{ title: t.scopes, description: t.introduction }, { title: t.list }]}
+      onVerified={async () => {
+        setDraft(null);
+        setConfirmId(null);
+        setNotice(null);
+        await Promise.all([settings.refetch(), list.refetch()]);
+        saveMutation.reset();
+        revokeMutation.reset();
+      }}
+    />
   </section>;
   const selected =
     draft ?? (settings.data?.ok ? settings.data.data.scopes : []);
