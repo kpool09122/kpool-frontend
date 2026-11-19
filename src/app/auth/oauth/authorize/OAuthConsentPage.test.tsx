@@ -21,21 +21,24 @@ describe("OAuth consent", () => {
     await screen.findByText("ChatGPT");
     expect(api.start).toHaveBeenCalledOnce();
     expect(approve()).toBeDisabled();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.getByText(/現在または将来/)).toBeInTheDocument();
     expect(screen.getByText(/下書き Wiki の作成・編集/)).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/wiki-drafts:write/));
+    fireEvent.click(screen.getByLabelText(/下書き Wiki の作成・編集/));
     fireEvent.click(approve());
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://client.example/callback?code=code&state=original"));
     expect(api.approve).toHaveBeenCalledWith("returned-id", ["wiki-drafts:write"], "ja");
   });
-  it("keeps cancellation and settings available with no candidates", async () => {
+  it("offers cancellation back to the app with no candidates", async () => {
     const api = mockApi(); api.start.mockResolvedValue({ ok: true, data: detail([]) });
     const { navigate } = show(api);
     await screen.findByText("ChatGPT");
     expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "許可できる操作がありません" })).toBeInTheDocument();
+    expect(screen.getByText("キャンセルして、ユーザー設定で権限を追加してから、もう一度お試しください。")).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(screen.queryByRole("group")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "許可する操作を設定" })).toHaveAttribute("href", "/admin/user/external-connections");
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("https://client.example/callback?error=access_denied&state=original"));
     expect(api.deny).toHaveBeenCalledWith("returned-id", "ja");
@@ -43,7 +46,7 @@ describe("OAuth consent", () => {
   it("refreshes the same request after a settings change and clears stale selections", async () => {
     const api = mockApi(); api.approve.mockResolvedValue({ ok: false, status: 400, message: "internal" });
     show(api); await screen.findByText("ChatGPT");
-    fireEvent.click(screen.getByLabelText(/wiki:read/)); fireEvent.click(approve());
+    fireEvent.click(screen.getByLabelText(/公開 Wiki の取得/)); fireEvent.click(approve());
     await screen.findByText(/許可設定が変更/);
     expect(api.get).toHaveBeenCalledWith("returned-id", "ja");
     expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument(); expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
@@ -52,7 +55,7 @@ describe("OAuth consent", () => {
   it.each([404, 409, 403, 401, 419, 500])("handles status %i without repeating creation or exposing backend messages", async (status) => {
     const api = mockApi(); api.approve.mockResolvedValue({ ok: false, status, message: "secret trace" });
     show(api); await screen.findByText("ChatGPT");
-    fireEvent.click(screen.getByLabelText(/wiki:read/)); fireEvent.click(approve());
+    fireEvent.click(screen.getByLabelText(/公開 Wiki の取得/)); fireEvent.click(approve());
     await screen.findByRole("alert");
     expect(screen.queryByText(/secret trace/)).not.toBeInTheDocument();
     expect(api.start).toHaveBeenCalledOnce();
@@ -63,18 +66,18 @@ describe("OAuth consent", () => {
     const api = mockApi(); api.approve.mockResolvedValueOnce({ ok: false, status: 400, message: "changed" });
     api.get.mockResolvedValue({ ok: true, data: detail(["wiki-drafts:read"]) });
     show(api); await screen.findByText("ChatGPT");
-    fireEvent.click(screen.getByLabelText(/wiki:read/)); fireEvent.click(approve());
-    await screen.findByLabelText(/wiki-drafts:read/);
-    expect(screen.getByLabelText(/wiki-drafts:read/)).not.toBeChecked(); expect(approve()).toBeDisabled();
-    expect(screen.queryByLabelText(/wiki:read/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/wiki-drafts:read/)); fireEvent.click(approve());
+    fireEvent.click(screen.getByLabelText(/公開 Wiki の取得/)); fireEvent.click(approve());
+    await screen.findByLabelText(/下書き Wiki の取得/);
+    expect(screen.getByLabelText(/下書き Wiki の取得/)).not.toBeChecked(); expect(approve()).toBeDisabled();
+    expect(screen.queryByLabelText(/公開 Wiki の取得/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/下書き Wiki の取得/)); fireEvent.click(approve());
     await waitFor(() => expect(api.approve).toHaveBeenLastCalledWith("returned-id", ["wiki-drafts:read"], "ja"));
   });
   it("locks both operations during submission and ignores late results after unmount", async () => {
     const api = mockApi(); let resolve: (value: unknown) => void = () => undefined;
     api.approve.mockReturnValue(new Promise((done) => { resolve = done; }));
     const navigate = vi.fn(); const view = render(<OAuthConsentPage query={query} api={api} navigate={navigate} />);
-    await screen.findByText("ChatGPT"); fireEvent.click(screen.getByLabelText(/wiki:read/)); fireEvent.click(approve());
+    await screen.findByText("ChatGPT"); fireEvent.click(screen.getByLabelText(/公開 Wiki の取得/)); fireEvent.click(approve());
     fireEvent.click(approve()); fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
     expect(api.approve).toHaveBeenCalledOnce(); expect(api.deny).not.toHaveBeenCalled();
     view.unmount(); resolve({ ok: true, data: { redirectUri: "https://client.example/callback" } });

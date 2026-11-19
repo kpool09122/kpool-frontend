@@ -5,6 +5,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import "./globals.css";
 import { Footer } from "./Footer";
 import { Header } from "./Header";
+import { SiteFrame } from "./SiteFrame";
 import { I18nProvider } from "../i18n/I18nProvider";
 import { buildPageMetadata } from "./metadata";
 import { getRequestContext } from "./requestContext";
@@ -47,12 +48,15 @@ export default async function RootLayout({
                 process.env.NEXT_PUBLIC_GTM_ID,
               )}>
                 <ThemeInitializer />
-                <Header
-                  initialIdentity={authenticatedIdentity}
-                  initialIsAuthenticated={authenticatedIdentity !== null}
-                />
-                <div className="flex flex-1 flex-col">{children}</div>
-                <Footer />
+                <SiteFrame
+                  header={<Header
+                    initialIdentity={authenticatedIdentity}
+                    initialIsAuthenticated={authenticatedIdentity !== null}
+                  />}
+                  footer={<Footer />}
+                >
+                  {children}
+                </SiteFrame>
               </AnalyticsProvider>
             </VideoPlaybackProvider>
           </QueryProvider>
