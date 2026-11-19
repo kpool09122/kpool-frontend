@@ -14,11 +14,6 @@ type ConnectionsDictionary = {
   failed: string;
   session: string;
   login: string;
-  active: string;
-  revoked: string;
-  created: string;
-  identifier: string;
-  clientIdentifier: string;
   revoke: string;
   confirm: string;
   impact: string;
@@ -44,16 +39,11 @@ export const oauthConnectionsDictionaries: Record<
     saving: "保存中…",
     saved: "許可 Scope 設定を保存しました。",
     list: "連携一覧",
-    empty: "外部連携はありません。",
+    empty: "未連携",
     loading: "外部連携を読み込み中…",
     failed: "通信に失敗しました。再試行してください。",
     session: "セッションが切れました。再度ログインしてください。",
     login: "ログイン",
-    active: "有効",
-    revoked: "解除済み",
-    created: "作成日時",
-    identifier: "接続 ID",
-    clientIdentifier: "クライアント ID",
     revoke: "連携解除",
     confirm: "連携解除の確認",
     impact:
@@ -76,16 +66,11 @@ export const oauthConnectionsDictionaries: Record<
     saving: "Saving…",
     saved: "Allowed scopes saved.",
     list: "Connections",
-    empty: "No external connections.",
+    empty: "Not connected",
     loading: "Loading external connections…",
     failed: "Connection failed. Please retry.",
     session: "Your session expired. Please log in again.",
     login: "Log in",
-    active: "Active",
-    revoked: "Revoked",
-    created: "Created",
-    identifier: "Connection ID",
-    clientIdentifier: "Client ID",
     revoke: "Revoke connection",
     confirm: "Confirm revocation",
     impact:
@@ -108,16 +93,11 @@ export const oauthConnectionsDictionaries: Record<
     saving: "저장 중…",
     saved: "허용 Scope 설정을 저장했습니다.",
     list: "연결 목록",
-    empty: "외부 연결이 없습니다.",
+    empty: "연결되지 않음",
     loading: "외부 연결 불러오는 중…",
     failed: "통신에 실패했습니다. 다시 시도하세요.",
     session: "세션이 만료되었습니다. 다시 로그인하세요.",
     login: "로그인",
-    active: "유효",
-    revoked: "해제됨",
-    created: "생성 일시",
-    identifier: "연결 ID",
-    clientIdentifier: "클라이언트 ID",
     revoke: "연결 해제",
     confirm: "연결 해제 확인",
     impact:

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Image from "next/image";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserSettingsPanel, UserStatusMessage } from "@/components/User";
-import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import {
   oauthConnectionsBrowserApi,
   type OAuthConnectionsBrowserApi,
@@ -16,6 +16,19 @@ import {
 import { useI18n } from "@/i18n/I18nProvider";
 import { oauthConsentDictionaries } from "@/i18n/oauthConsent";
 import { oauthConnectionsDictionaries } from "@/i18n/oauthConnections";
+
+const isChatGPT = (name: string) => name.trim().toLowerCase() === "chatgpt";
+
+function ConnectionAppName({ name }: { name: string }) {
+  return <div className="flex min-w-0 items-center gap-3">
+    {isChatGPT(name) && (
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white p-2">
+        <Image src="/ChatGPT-Logo.webp" alt="" width={24} height={24} />
+      </span>
+    )}
+    <h3 className="min-w-0 font-semibold [overflow-wrap:anywhere]">{name}</h3>
+  </div>;
+}
 
 export function OAuthConnectionsPanel({
   identityIdentifier,
@@ -48,22 +61,26 @@ function ConnectionsWorkspace({
   const t = oauthConnectionsDictionaries[locale];
   const descriptions = oauthConsentDictionaries[locale].descriptions;
   const client = useQueryClient();
-  const alive = useRef(true);
-  const inFlight = useRef(false);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
   const [draft, setDraft] = useState<ScopeSettings["scopes"] | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"save" | "revoke" | null>(null);
   const [notice, setNotice] = useState<"saved" | "done" | "already" | null>(
     null,
   );
-  const [error, setError] = useState(false);
-  const [expired, setExpired] = useState(false);
+  const mutationKey = ["identity-oauth-mutations", identityIdentifier, sessionVersion];
+  const saveMutation = useMutation({
+    mutationKey: [...mutationKey, "save"],
+    mutationFn: (scopes: ScopeSettings["scopes"]) => api.save(scopes, locale),
+    retry: false,
+  });
+  const revokeMutation = useMutation({
+    mutationKey: [...mutationKey, "revoke"],
+    mutationFn: (id: string) => api.revoke(id, locale),
+    retry: false,
+  });
+  const isPending = saveMutation.isPending || revokeMutation.isPending;
+  const expired = [saveMutation.data, revokeMutation.data].some(
+    (result) => result?.ok === false && result.status === 401,
+  );
   const settingsKey = [
     "identity-oauth-settings",
     identityIdentifier,
@@ -102,62 +119,50 @@ function ConnectionsWorkspace({
     (connection) => connection.connectionIdentifier === confirmId,
   );
   const failed =
-    error ||
+    saveMutation.isError ||
+    revokeMutation.isError ||
+    saveMutation.data?.ok === false ||
+    (revokeMutation.data?.ok === false && revokeMutation.data.status !== 404) ||
     settings.isError ||
     list.isError ||
     settings.data?.ok === false ||
     list.data?.ok === false;
-  const save = async () => {
-    if (inFlight.current || denied || !settings.data?.ok) return;
-    inFlight.current = true;
-    setBusy("save");
-    setError(false);
+  const save = () => {
+    if (client.isMutating({ mutationKey }) || denied || !settings.data?.ok) return;
+    revokeMutation.reset();
     setNotice(null);
-    const scopes = [...selected];
-    const result = await api.save(scopes, locale);
-    if (!alive.current) return;
-    if (result.ok) {
-      client.setQueryData(settingsKey, { ok: true, data: { scopes } });
-      setDraft(null);
-      setNotice("saved");
-    } else {
-      setError(true);
-      if (result.status === 401) setExpired(true);
-    }
-    inFlight.current = false;
-    setBusy(null);
+    // Per-call callbacks are skipped after unmount, including Identity/session changes.
+    saveMutation.mutate([...selected], {
+      onSuccess: (result, scopes) => {
+        if (!result.ok) return;
+        client.setQueryData(settingsKey, { ok: true, data: { scopes } });
+        setDraft(null);
+        setNotice("saved");
+      },
+    });
   };
-  const revoke = async () => {
-    if (inFlight.current || denied || !target || target.revokedAt !== null)
+  const revoke = () => {
+    if (client.isMutating({ mutationKey }) || denied || !target || target.revokedAt !== null)
       return;
-    inFlight.current = true;
-    setBusy("revoke");
-    setError(false);
+    saveMutation.reset();
     setNotice(null);
-    const id = target.connectionIdentifier;
-    const result = await api.revoke(id, locale);
-    if (!alive.current) return;
-    if (result.ok || result.status === 404) {
-      setNotice(result.ok ? "done" : "already");
-      setConfirmId(null);
-      // Remove the confirmed target immediately; a failed refetch must not revive its revoke control.
-      client.setQueryData(listKey, {
-        ok: true,
-        data: {
-          connections: connections.filter(
-            (connection) => connection.connectionIdentifier !== id,
-          ),
-        },
-      });
-      await list.refetch();
-    } else {
-      setError(true);
-      if (result.status === 401) setExpired(true);
-    }
-    if (alive.current) {
-      inFlight.current = false;
-      setBusy(null);
-    }
+    revokeMutation.mutate(target.connectionIdentifier, {
+      onSuccess: (result, id) => {
+        if (!result.ok && result.status !== 404) return;
+        setNotice(result.ok ? "done" : "already");
+        setConfirmId(null);
+        // Remove the confirmed target immediately; a failed refetch must not revive its revoke control.
+        client.setQueryData(listKey, {
+          ok: true,
+          data: {
+            connections: connections.filter(
+              (connection) => connection.connectionIdentifier !== id,
+            ),
+          },
+        });
+        void list.refetch();
+      },
+    });
   };
   const buttonClass =
     "rounded-lg border border-stroke-subtle px-4 py-2 text-sm font-semibold disabled:opacity-60";
@@ -184,11 +189,11 @@ function ConnectionsWorkspace({
             action={settings.data?.ok ? (
               <button
                 className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={busy !== null}
-                onClick={() => void save()}
+                disabled={isPending}
+                onClick={save}
                 type="button"
               >
-                {busy === "save" ? t.saving : t.save}
+                {saveMutation.isPending ? t.saving : t.save}
               </button>
             ) : null}
           >
@@ -198,7 +203,7 @@ function ConnectionsWorkspace({
               {settings.data?.ok && (
                 <fieldset
                   aria-label={t.scopes}
-                  disabled={busy !== null}
+                  disabled={isPending}
                   className="divide-y divide-stroke-subtle overflow-hidden rounded-lg border border-stroke-subtle"
                 >
                   <label className="flex cursor-pointer items-center gap-3 bg-surface-base px-4 py-3 font-semibold has-disabled:cursor-not-allowed has-disabled:opacity-60">
@@ -234,10 +239,7 @@ function ConnectionsWorkspace({
                           );
                         }}
                       />
-                      <span className="min-w-0 space-y-1">
-                        <span className="block font-semibold text-text-strong">{descriptions[scope]}</span>{" "}
-                        <code className="block text-xs leading-5 break-all text-text-muted">{scope}</code>
-                      </span>
+                      <span className="min-w-0 font-semibold text-text-strong">{descriptions[scope]}</span>
                     </label>
                   ))}
                 </fieldset>
@@ -245,81 +247,66 @@ function ConnectionsWorkspace({
             </div>
           </UserSettingsPanel>
           <UserSettingsPanel title={t.list}>
-            <div className="mt-5 space-y-4 text-sm">
+            <div className="mt-3 space-y-2 text-sm">
               {list.isPending && <p role="status">{t.loading}</p>}
-              {list.data?.ok && connections.length === 0 && <p>{t.empty}</p>}
-              <ul className="space-y-4">
+              <ul className="space-y-2">
+                {list.data?.ok && !connections.some((connection) => isChatGPT(connection.clientName)) && (
+                  <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2">
+                    <ConnectionAppName name="ChatGPT" />
+                    <p className="ml-auto shrink-0 text-text-muted">{t.empty}</p>
+                  </li>
+                )}
                 {connections.map((connection) => (
                   <li
                     key={connection.connectionIdentifier}
-                    className="space-y-2 rounded-lg border border-stroke-subtle bg-surface-base p-4 break-words"
+                    className="space-y-2 rounded-lg border border-stroke-subtle bg-surface-base px-3 py-2 break-words"
                   >
-                    <h3 className="font-semibold">{connection.clientName}</h3>
-                    <p>
-                      {t.clientIdentifier}:{" "}
-                      <span className="break-all">
-                        {connection.clientIdentifier}
-                      </span>
-                    </p>
-                    <p>
-                      {t.identifier}:{" "}
-                      <span className="break-all">
-                        {connection.connectionIdentifier}
-                      </span>
-                    </p>
-                    <p>
-                      {t.created}:{" "}
-                      <LocalizedDateTime value={connection.createdAt} />
-                    </p>
-                    <p>{connection.revokedAt === null ? t.active : t.revoked}</p>
-                    <ul>
-                      {connection.scopes.map((scope) => (
-                        <li key={scope}>
-                          <code>{scope}</code> — {descriptions[scope]}
-                        </li>
-                      ))}
-                    </ul>
-                    {connection.revokedAt === null &&
-                      confirmId !== connection.connectionIdentifier && (
-                        <button
-                          className={buttonClass}
-                          disabled={busy !== null}
-                          onClick={() => {
-                            setNotice(null);
-                            setConfirmId(connection.connectionIdentifier);
-                          }}
-                          type="button"
-                        >
-                          {t.revoke}
-                        </button>
-                      )}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <ConnectionAppName name={connection.clientName} />
+                      <div className="ml-auto shrink-0">
+                        {connection.revokedAt === null &&
+                          confirmId !== connection.connectionIdentifier && (
+                            <button
+                              className={buttonClass}
+                              disabled={isPending}
+                              onClick={() => {
+                                setNotice(null);
+                                setConfirmId(connection.connectionIdentifier);
+                              }}
+                              type="button"
+                            >
+                              {t.revoke}
+                            </button>
+                          )}
+                        {connection.revokedAt !== null && <p className="text-text-muted">{t.empty}</p>}
+                      </div>
+                    </div>
                     {target?.connectionIdentifier ===
                       connection.connectionIdentifier && (
                       <fieldset
                         aria-label={t.confirm}
                         className="space-y-2 rounded border border-stroke-subtle p-3"
-                        disabled={busy !== null}
+                        disabled={isPending}
                       >
                         <legend>{t.confirm}</legend>
                         <p>{connection.clientName}</p>
-                        <p className="break-all">
-                          {connection.connectionIdentifier}
-                        </p>
                         <p>{t.impact}</p>
-                        <button
-                          className={buttonClass}
-                          onClick={() => void revoke()}
-                          type="button"
-                        >
-                          {busy === "revoke" ? t.revoking : t.proceed}
-                        </button>
-                        <button
-                          className={buttonClass}
-                          onClick={() => setConfirmId(null)}
-                          type="button"
-                        >
-                          {t.cancel}
-                        </button>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            className={buttonClass}
+                            onClick={revoke}
+                            type="button"
+                          >
+                            {revokeMutation.isPending ? t.revoking : t.proceed}
+                          </button>
+                          <button
+                            className={buttonClass}
+                            onClick={() => setConfirmId(null)}
+                            type="button"
+                          >
+                            {t.cancel}
+                          </button>
+                        </div>
                       </fieldset>
                     )}
                   </li>

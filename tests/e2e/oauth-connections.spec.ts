@@ -80,7 +80,7 @@ test("settings navigation saves empty scopes and revokes only the confirmed conn
   await expect(page.getByRole("tab", { name: "外部連携", selected: true })).toBeVisible();
   const region = page.getByRole("region", { name: "外部連携", exact: true });
   await expect(region.getByText("ChatGPT")).toHaveCount(2);
-  await region.getByRole("checkbox", { name: /wiki:read/ }).uncheck();
+  await region.getByRole("checkbox", { name: /公開 Wiki の取得/ }).uncheck();
   await region.getByRole("button", { name: "保存", exact: true }).click();
   await expect(
     region.getByText("許可 Scope 設定を保存しました。"),
@@ -91,7 +91,7 @@ test("settings navigation saves empty scopes and revokes only the confirmed conn
     .nth(1)
     .click();
   const confirmation = region.getByRole("group", { name: "連携解除の確認" });
-  await expect(confirmation.getByText(second)).toBeVisible();
+  await expect(confirmation.getByText("ChatGPT")).toBeVisible();
   expect(revoked).toBeNull();
   await confirmation
     .getByRole("button", { name: "解除する", exact: true })
@@ -105,7 +105,7 @@ test("settings navigation saves empty scopes and revokes only the confirmed conn
   await expect(
     region.getByRole("button", { name: "連携解除", exact: true }),
   ).toHaveCount(1);
-  await expect(region.getByText("解除済み", { exact: true })).toBeVisible();
+  await expect(region.getByText("未連携", { exact: true })).toBeVisible();
   await region.scrollIntoViewIfNeeded();
   await page.screenshot({
     path: "test-results/oauth-connections-desktop.png",
