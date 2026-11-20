@@ -20,6 +20,11 @@ import { oauthConnectionsDictionaries } from "@/i18n/oauthConnections";
 
 const isChatGPT = (name: string) => name.trim().toLowerCase() === "chatgpt";
 
+function formatConnectionDate(value: string, formatter: Intl.DateTimeFormat) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : formatter.format(date);
+}
+
 function ConnectionAppName({ name }: { name: string }) {
   return <div className="flex min-w-0 items-center gap-3">
     {isChatGPT(name) && (
@@ -60,6 +65,10 @@ function ConnectionsWorkspace({
 }) {
   const { locale } = useI18n();
   const t = oauthConnectionsDictionaries[locale];
+  const connectionDateFormatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const descriptions = oauthConsentDictionaries[locale].descriptions;
   const client = useQueryClient();
   const [draft, setDraft] = useState<ScopeSettings["scopes"] | null>(null);
@@ -284,7 +293,13 @@ function ConnectionsWorkspace({
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <ConnectionAppName name={connection.clientName} />
-                      <div className="ml-auto shrink-0">
+                      <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+                        <p className="text-xs text-text-muted">
+                          {t.connectedAt}{": "}
+                          <time dateTime={connection.createdAt}>
+                            {formatConnectionDate(connection.createdAt, connectionDateFormatter)}
+                          </time>
+                        </p>
                         {connection.revokedAt === null &&
                           confirmId !== connection.connectionIdentifier && (
                             <button

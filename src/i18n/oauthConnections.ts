@@ -11,6 +11,7 @@ type ConnectionsDictionary = {
   saving: string;
   saved: string;
   list: string;
+  connectedAt: string;
   empty: string;
   loading: string;
   failed: string;
@@ -43,6 +44,7 @@ export const oauthConnectionsDictionaries: Record<
     saving: "保存中…",
     saved: "許可 Scope 設定を保存しました。",
     list: "連携一覧",
+    connectedAt: "連携日時",
     empty: "未連携",
     loading: "外部連携を読み込み中…",
     failed: "通信に失敗しました。再試行してください。",
@@ -72,6 +74,7 @@ export const oauthConnectionsDictionaries: Record<
     saving: "Saving…",
     saved: "Allowed scopes saved.",
     list: "Connections",
+    connectedAt: "Connected at",
     empty: "Not connected",
     loading: "Loading external connections…",
     failed: "Connection failed. Please retry.",
