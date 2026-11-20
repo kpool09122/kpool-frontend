@@ -39,7 +39,7 @@ export function UntranslatedWikisClient() {
       draftWikiTranslateFailed: t.draftWikiTranslateFailed,
     },
   });
-  const canLoadMore = draftWiki.pageInfo
+  const canLoadMore = draftWiki.pageInfo && "current_page" in draftWiki.pageInfo
     ? draftWiki.pageInfo.current_page < draftWiki.pageInfo.last_page
     : false;
 
@@ -60,7 +60,7 @@ export function UntranslatedWikisClient() {
       reviewError={reviewError}
       totalLabel={draftWiki.pageInfo ? t.untranslatedWikiListTotal(draftWiki.pageInfo.total) : null}
       onLoadMore={() => {
-        if (draftWiki.pageInfo) {
+        if (draftWiki.pageInfo && "current_page" in draftWiki.pageInfo) {
           loadDraftWikisPage(draftWiki.pageInfo.current_page + 1);
         }
       }}

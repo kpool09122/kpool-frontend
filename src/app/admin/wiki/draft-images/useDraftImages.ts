@@ -44,8 +44,7 @@ const toDraftImageListState = (imagePage: WikiDraftImageListResponse): DraftImag
   isLoadingMore: false,
   loadError: null,
   pageInfo: {
-    current_page: imagePage.current_page,
-    last_page: imagePage.last_page,
+    next_cursor: imagePage.next_cursor,
     total: imagePage.total,
   },
 });
@@ -98,47 +97,39 @@ export const useDraftImages = ({
     identityIdentifier,
   });
   const hasInitialDraftImagePage = !shouldLoadInitialDraftImagePage(initialDraftImages);
-  const fetchDraftImagesPage = useCallback((page: number) =>
+  const fetchDraftImagesPage = useCallback((cursor: string | null = null) =>
     adapter.listDraftImages({
       fallbackErrorMessage: messages.draftImageListLoadFailed,
-      page,
+      cursor,
       perPage: defaultWikiImagePerPage,
       status: draftImageListQuery.status,
     }), [adapter, messages.draftImageListLoadFailed]);
   const draftImagesQuery = useQuery({
     enabled: !hasInitialDraftImagePage,
     initialData: hasInitialDraftImagePage ? initialDraftImages : undefined,
-    queryFn: async () => toDraftImageListState(await fetchDraftImagesPage(1)),
+    queryFn: async () => toDraftImageListState(await fetchDraftImagesPage(null)),
     queryKey: listQueryKey,
     retry: false,
   });
   const [reviewingImageIdentifier, setReviewingImageIdentifier] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  const loadDraftImagesPage = useCallback((page: number) => {
+  const loadDraftImages = useCallback((cursor: string | null = null) => {
     queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
       ...state,
-      isInitialLoading: page === 1,
-      isLoadingMore: page > 1,
+      isInitialLoading: cursor === null,
+      isLoadingMore: cursor !== null,
       loadError: null,
     }));
 
-    void queryClient.fetchQuery({
-      queryKey: adminQueryKeys.draftImages.page({
-        ...draftImageListQuery,
-        identityIdentifier,
-        page,
-      }),
-      queryFn: () => fetchDraftImagesPage(page),
-    }).then((imagePage) => {
+    void fetchDraftImagesPage(cursor).then((imagePage) => {
       queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
         ...state,
-        images: page === 1 ? imagePage.images : [...state.images, ...imagePage.images],
+        images: cursor === null ? imagePage.images : [...state.images, ...imagePage.images],
         isInitialLoading: false,
         isLoadingMore: false,
         pageInfo: {
-          current_page: imagePage.current_page,
-          last_page: imagePage.last_page,
+          next_cursor: imagePage.next_cursor,
           total: imagePage.total,
         },
       }));
@@ -151,7 +142,7 @@ export const useDraftImages = ({
           error instanceof Error ? error.message : messages.draftImageListLoadFailed,
       }));
     });
-  }, [fetchDraftImagesPage, identityIdentifier, listQueryKey, messages.draftImageListLoadFailed, queryClient]);
+  }, [fetchDraftImagesPage, listQueryKey, messages.draftImageListLoadFailed, queryClient]);
 
   const removeReviewedImage = useCallback((imageIdentifier: string) => {
     queryClient.setQueryData<DraftImageListState>(listQueryKey, (state = initialDraftImageListState) => ({
@@ -219,7 +210,7 @@ export const useDraftImages = ({
       isFetching: draftImagesQuery.isFetching,
       state: draftImagesQuery.data,
     }),
-    loadDraftImagesPage,
+    loadDraftImages,
     reviewDraftImage,
     reviewError,
     reviewingImageIdentifier,

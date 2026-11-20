@@ -222,13 +222,13 @@ export const createWikiImagesUrl = ({
 
 export const createWikiDraftImagesUrl = ({
   baseUrl,
-  page,
+  cursor,
   perPage,
   status,
   wikiIdentifier,
 }: {
   baseUrl: string;
-  page: number;
+  cursor?: string | null;
   perPage: number;
   status: WikiDraftImageStatus;
   wikiIdentifier?: string;
@@ -237,7 +237,7 @@ export const createWikiDraftImagesUrl = ({
 
   url.searchParams.set("status", status);
   url.searchParams.set("perPage", String(perPage));
-  url.searchParams.set("page", String(page));
+  if (cursor) url.searchParams.set("cursor", cursor);
 
   if (wikiIdentifier) {
     url.searchParams.set("wikiIdentifier", wikiIdentifier);

@@ -393,8 +393,7 @@ const createDraftImageAdapter = (
   }),
   listDraftImages: vi.fn().mockResolvedValue({
     images: [draftImage],
-    current_page: 1,
-    last_page: 1,
+    next_cursor: null,
     total: 1,
     per_page: 12,
   }),
@@ -430,15 +429,13 @@ const createDraftWikiAdapter = (
   deleteDraftWiki: vi.fn().mockResolvedValue(undefined),
   listManagedDraftWikis: vi.fn().mockResolvedValue({
 	    wikis: [draftWiki],
-	    current_page: 1,
-    last_page: 1,
+	    next_cursor: null,
     total: 1,
 	    per_page: 12,
 	  }),
   listMyDraftWikis: vi.fn().mockResolvedValue({
     wikis: [draftWiki],
-    current_page: 1,
-    last_page: 1,
+    next_cursor: null,
     total: 1,
     per_page: 12,
   }),
@@ -505,8 +502,7 @@ const draftWikiListState = {
   isLoadingMore: false,
   loadError: null,
   pageInfo: {
-    current_page: 1,
-    last_page: 1,
+    next_cursor: null,
     total: 1,
   },
   wikis: [draftWiki],
@@ -961,7 +957,7 @@ describe("admin page clients", () => {
     expect(screen.getByText("CC BY-SA 4.0")).toBeInTheDocument();
     expect(draftImageAdapter.listDraftImages).toHaveBeenCalledWith({
       fallbackErrorMessage: "未承認の画像一覧を読み込めませんでした。",
-      page: 1,
+      cursor: null,
       perPage: 12,
       status: "under_review",
     });
@@ -2614,7 +2610,7 @@ describe("admin page clients", () => {
     await waitFor(() =>
       expect(draftImageAdapter.listDraftImages).toHaveBeenCalledWith({
         fallbackErrorMessage: "未承認の画像一覧を読み込めませんでした。",
-        page: 1,
+        cursor: null,
         perPage: 12,
         status: "under_review",
       }),
@@ -2817,7 +2813,7 @@ describe("admin page clients", () => {
     await waitFor(() =>
       expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        page: 1,
+        cursor: null,
         perPage: 12,
         statuses: ["under_review"],
       }),
@@ -2837,8 +2833,7 @@ describe("admin page clients", () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       listMyDraftWikis: vi.fn().mockImplementation(({ statuses }) => Promise.resolve({
         wikis: statuses.includes("under_review") ? [submittedWiki] : [],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: statuses.includes("under_review") ? 1 : 0,
         per_page: 12,
       })),
@@ -2881,7 +2876,7 @@ describe("admin page clients", () => {
     await waitFor(() =>
       expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        page: 1,
+        cursor: null,
         perPage: 12,
         statuses: ["pending", "rejected"],
       }),
@@ -2897,8 +2892,7 @@ describe("admin page clients", () => {
     const draftWikiAdapter = createDraftWikiAdapter({
       listMyDraftWikis: vi.fn().mockResolvedValue({
         wikis: [submittedWiki],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3035,8 +3029,7 @@ describe("admin page clients", () => {
           imageUrl: null,
           imageAltText: null,
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3061,7 +3054,7 @@ describe("admin page clients", () => {
     await waitFor(() =>
       expect(draftWikiAdapter.listManagedDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        page: 1,
+        cursor: null,
         perPage: 12,
         statuses: ["under_review"],
       }),
@@ -3082,8 +3075,7 @@ describe("admin page clients", () => {
           status: "under_review",
           name: "未承認 Wiki",
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3133,8 +3125,7 @@ describe("admin page clients", () => {
           imageUrl: null,
           imageAltText: null,
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3159,7 +3150,7 @@ describe("admin page clients", () => {
     await waitFor(() =>
       expect(draftWikiAdapter.listManagedDraftWikis).toHaveBeenCalledWith({
         fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
-        page: 1,
+        cursor: null,
         perPage: 12,
         statuses: ["approved"],
       }),
@@ -3303,8 +3294,7 @@ describe("admin page clients", () => {
           status: "approved",
           name: "承認済み Wiki",
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3354,7 +3344,7 @@ describe("admin page clients", () => {
     const t = dictionaries[locale].admin;
     const adapter = createDraftWikiAdapter({ listManagedDraftWikis: vi.fn().mockResolvedValue({
       wikis: [{ ...draftWiki, status: "approved", publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" }],
-      current_page: 1, last_page: 1, total: 1, per_page: 12,
+      next_cursor: null, total: 1, per_page: 12,
     }) });
     renderWithQueryClient(<I18nProvider initialLocale={locale}><AdminClient
       draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={adapter} initialIdentity={identity}
@@ -3375,7 +3365,7 @@ describe("admin page clients", () => {
         wikis: [
           { ...draftWiki, status: "approved", name: "修正 Wiki", publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
           { ...draftWiki, wikiIdentifier: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", status: "approved", name: "初回 Wiki", publishedWikiIdentifier: null },
-        ], current_page: 1, last_page: 1, total: 2, per_page: 12,
+        ], next_cursor: null, total: 2, per_page: 12,
       }),
     });
     renderWithQueryClient(<AdminClient draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={draftWikiAdapter} initialIdentity={identity}
@@ -3409,7 +3399,7 @@ describe("admin page clients", () => {
         wikis: [
           { ...draftWiki, status: "approved", name: "修正 Wiki", publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" },
           { ...draftWiki, wikiIdentifier: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", status: "approved", name: "別 Wiki" },
-        ], current_page: 1, last_page: 1, total: 2, per_page: 12,
+        ], next_cursor: null, total: 2, per_page: 12,
       }),
     });
     renderWithQueryClient(<AdminClient draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={draftWikiAdapter} initialIdentity={identity}
@@ -3445,8 +3435,7 @@ describe("admin page clients", () => {
           status: "under_review",
           name: "未承認 Wiki",
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3513,8 +3502,7 @@ describe("admin page clients", () => {
             rejectionReason: null,
           },
         ],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 2,
         per_page: 12,
       }),
@@ -3529,8 +3517,7 @@ describe("admin page clients", () => {
           editingWikis: {
             ...draftWikiListState,
             pageInfo: {
-              current_page: 1,
-              last_page: 1,
+              next_cursor: null,
               total: 2,
             },
             wikis: [
@@ -3576,8 +3563,7 @@ describe("admin page clients", () => {
           status: "under_review",
           name: "未承認 Wiki",
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3615,8 +3601,7 @@ describe("admin page clients", () => {
           status: "under_review",
           name: "新規 Wiki",
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3652,8 +3637,7 @@ describe("admin page clients", () => {
           status: "under_review",
           name: "未承認 Wiki",
         }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3685,8 +3669,7 @@ describe("admin page clients", () => {
     const draftImageAdapter = createDraftImageAdapter({
       listDraftImages: vi.fn().mockResolvedValue({
         images: [{ ...draftImage, sourceUrl: "javascript:alert(1)" }],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 1,
         per_page: 12,
       }),
@@ -3705,6 +3688,47 @@ describe("admin page clients", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByText("k-pool archive")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "k-pool archive" })).not.toBeInTheDocument();
+  });
+
+  it("keeps loading available after approving every displayed draft image", async () => {
+    const draftImageAdapter = createDraftImageAdapter({
+      listDraftImages: vi.fn()
+        .mockResolvedValueOnce({ images: [draftImage], next_cursor: "after-image", total: 2, per_page: 12 })
+        .mockResolvedValueOnce({ images: [{ ...draftImage, imageIdentifier: "77777777-7777-4777-8777-777777777777" }], next_cursor: null, total: 1, per_page: 12 }),
+    });
+    renderWithQueryClient(
+      <AdminClient draftImageAdapter={draftImageAdapter} draftWikiAdapter={createDraftWikiAdapter()}
+        initialIdentity={identity} initialPrincipalState={{ status: "available", principal }} principalAdapter={createAdapter()} />,
+    );
+    fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
+    fireEvent.click(await screen.findByRole("button", { name: "承認" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument());
+    expect(screen.queryByText("未承認の画像はありません")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+    expect(await screen.findByRole("button", { name: "承認" })).toBeInTheDocument();
+    expect(draftImageAdapter.listDraftImages).toHaveBeenLastCalledWith({
+      cursor: "after-image", perPage: 12, status: "under_review", fallbackErrorMessage: "未承認の画像一覧を読み込めませんでした。",
+    });
+  });
+
+  it("keeps loading available after deleting every displayed draft wiki", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const draftWikiAdapter = createDraftWikiAdapter({
+      listMyDraftWikis: vi.fn().mockResolvedValue({ wikis: [{ ...draftWiki, name: "Next Wiki", wikiIdentifier: "77777777-7777-4777-8777-777777777777" }], next_cursor: null, total: 1, per_page: 12 }),
+    });
+    renderWithQueryClient(
+      <AdminClient draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={draftWikiAdapter}
+        initialDraftWikis={{ ...emptyDraftWikiLists, editingWikis: { ...draftWikiListState, pageInfo: { next_cursor: "after-wiki", total: 2 } } }}
+        initialIdentity={identity} initialPrincipalState={{ status: "available", principal }} principalAdapter={createAdapter()} />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "削除" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "削除" })).not.toBeInTheDocument());
+    expect(screen.queryByText("編集中のWikiはありません")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+    expect(await screen.findByRole("link", { name: "Next Wiki" })).toBeInTheDocument();
+    expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenLastCalledWith({
+      cursor: "after-wiki", perPage: 12, statuses: ["pending", "rejected"], fallbackErrorMessage: "Wiki 下書き一覧を読み込めませんでした。",
+    });
   });
 
   it("approves a draft image and removes it from the list", async () => {
@@ -3847,8 +3871,7 @@ describe("admin page clients", () => {
     const draftImageAdapter = createDraftImageAdapter({
       listDraftImages: vi.fn().mockResolvedValue({
         images: [],
-        current_page: 1,
-        last_page: 1,
+        next_cursor: null,
         total: 0,
         per_page: 12,
       }),

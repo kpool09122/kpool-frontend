@@ -32,7 +32,7 @@ export function ApprovedWikisClient() {
   const { draftWikiAdapter } = useWikiSection();
   const {
     draftWiki,
-    loadDraftWikisPage,
+    loadDraftWikis,
     publishDraftWiki,
     reviewError,
     reviewingWikiIdentifier,
@@ -46,7 +46,7 @@ export function ApprovedWikisClient() {
     },
   });
   const canLoadMore = draftWiki.pageInfo
-    ? draftWiki.pageInfo.current_page < draftWiki.pageInfo.last_page
+    ? "next_cursor" in draftWiki.pageInfo && draftWiki.pageInfo.next_cursor !== null
     : false;
 
   return (
@@ -70,11 +70,11 @@ export function ApprovedWikisClient() {
           : null
       }
       onLoadMore={() => {
-        if (draftWiki.pageInfo) {
-          loadDraftWikisPage(draftWiki.pageInfo.current_page + 1);
+        if (draftWiki.pageInfo && "next_cursor" in draftWiki.pageInfo && draftWiki.pageInfo.next_cursor) {
+          loadDraftWikis(draftWiki.pageInfo.next_cursor);
         }
       }}
-      onReload={() => loadDraftWikisPage(1)}
+      onReload={() => loadDraftWikis()}
     >
       {draftWiki.wikis.map((wiki) => {
         const isOnImage = wiki.isHidden !== true && Boolean(wiki.imageUrl);

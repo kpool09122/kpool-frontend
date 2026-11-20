@@ -21,7 +21,7 @@ import {
 
 type CreateDraftWikiListUrl = (params: {
   baseUrl: string;
-  page: number;
+  cursor?: string | null;
   perPage: number;
   resourceType?: string;
   statuses: readonly WikiDraftWikiStatus[];
@@ -52,7 +52,7 @@ export const createDraftWikiListRouteGetHandler = (
     const apiResponse = await fetch(
       createDraftWikiListUrl({
         baseUrl,
-        page: parsePositiveIntegerParam(request.nextUrl.searchParams.get("page"), 1),
+        cursor: request.nextUrl.searchParams.get("cursor"),
         perPage: parsePositiveIntegerParam(
           request.nextUrl.searchParams.get("perPage"),
           defaultWikiDraftPerPage,

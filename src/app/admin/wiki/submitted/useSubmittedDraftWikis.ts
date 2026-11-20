@@ -4,7 +4,6 @@ import { useCallback, useState } from "react";
 import {
   defaultWikiDraftPerPage,
   type WikiDraftWikiListResponse,
-  type WikiVersionInconsistentWikiListResponse,
   
 } from "@/gateways/wiki/draftWiki";
 import type { AdminDraftWikiAdapter } from "@/gateways/admin/adminAdapters";
@@ -31,14 +30,13 @@ const shouldLoadInitialDraftWikiPage = (state: DraftWikiListState): boolean =>
   !state.pageInfo && state.wikis.length === 0 && !state.isInitialLoading;
 
 const toDraftWikiListState = (
-  wikiPage: WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse,
+  wikiPage: WikiDraftWikiListResponse,
 ): DraftWikiListState => ({
   isInitialLoading: false,
   isLoadingMore: false,
   loadError: null,
   pageInfo: {
-    current_page: wikiPage.current_page,
-    last_page: wikiPage.last_page,
+    next_cursor: wikiPage.next_cursor,
     total: wikiPage.total,
   },
   wikis: wikiPage.wikis,
@@ -82,50 +80,41 @@ export const useSubmittedDraftWikis = ({
     statuses: ["under_review"],
   });
   const hasInitialDraftWikiPage = !shouldLoadInitialDraftWikiPage(initialDraftWiki);
-  const fetchPage = useCallback((page: number) =>
+  const fetchPage = useCallback((cursor: string | null = null) =>
     adapter.listMyDraftWikis({
       fallbackErrorMessage: messages.draftWikiListLoadFailed,
-      page,
+      cursor,
       perPage: defaultWikiDraftPerPage,
       statuses: ["under_review"],
     }), [adapter, messages.draftWikiListLoadFailed]);
   const draftWikiQuery = useQuery({
     enabled: !hasInitialDraftWikiPage,
     initialData: hasInitialDraftWikiPage ? initialDraftWiki : undefined,
-    queryFn: async () => toDraftWikiListState(await fetchPage(1)),
+    queryFn: async () => toDraftWikiListState(await fetchPage(null)),
     queryKey: listQueryKey,
     retry: false,
   });
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewingWikiIdentifier, setReviewingWikiIdentifier] = useState<string | null>(null);
 
-  const loadDraftWikisPage = useCallback((page: number) => {
+  const loadDraftWikis = useCallback((cursor: string | null = null) => {
     queryClient.setQueryData<DraftWikiListState>(listQueryKey, (state = initialDraftWikiListState) => ({
       ...state,
-      isInitialLoading: page === 1,
-      isLoadingMore: page > 1,
+      isInitialLoading: cursor === null,
+      isLoadingMore: cursor !== null,
       loadError: null,
     }));
 
-    void queryClient.fetchQuery<WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse>({
-      queryKey: adminQueryKeys.draftWikis.page({
-        identityIdentifier,
-        page,
-    scope: "my",
-    statuses: ["under_review"],
-      }),
-      queryFn: () => fetchPage(page),
-    }).then((wikiPage) => {
+    void fetchPage(cursor).then((wikiPage) => {
       queryClient.setQueryData<DraftWikiListState>(listQueryKey, (state = initialDraftWikiListState) => ({
         ...state,
         isInitialLoading: false,
         isLoadingMore: false,
         pageInfo: {
-          current_page: wikiPage.current_page,
-          last_page: wikiPage.last_page,
+          next_cursor: wikiPage.next_cursor,
           total: wikiPage.total,
         },
-        wikis: page === 1 ? wikiPage.wikis : [...state.wikis, ...wikiPage.wikis],
+        wikis: cursor === null ? wikiPage.wikis : [...state.wikis, ...wikiPage.wikis],
       }));
     }).catch((error: unknown) => {
       queryClient.setQueryData<DraftWikiListState>(listQueryKey, (state = initialDraftWikiListState) => ({
@@ -135,7 +124,7 @@ export const useSubmittedDraftWikis = ({
         loadError: error instanceof Error ? error.message : messages.draftWikiListLoadFailed,
       }));
     });
-  }, [fetchPage, identityIdentifier, listQueryKey, messages.draftWikiListLoadFailed, queryClient]);
+  }, [fetchPage, listQueryKey, messages.draftWikiListLoadFailed, queryClient]);
 
   const removeWikiFromCurrentList = useCallback((wikiIdentifier: string) => {
     queryClient.setQueryData<DraftWikiListState>(listQueryKey, (state = initialDraftWikiListState) => ({
@@ -179,7 +168,7 @@ export const useSubmittedDraftWikis = ({
       isFetching: draftWikiQuery.isFetching,
       state: draftWikiQuery.data,
     }),
-    loadDraftWikisPage,
+    loadDraftWikis,
     reviewError,
     reviewingWikiIdentifier,
     withdrawDraftWiki,

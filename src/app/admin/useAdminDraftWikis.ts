@@ -2,7 +2,7 @@
 
 import type {
   WikiDraftWiki,
-  WikiDraftWikiListResponse,
+  DraftWikiListPageInfo,
   WikiVersionInconsistentWiki,
 } from "@/gateways/wiki/draftWiki";
 
@@ -14,7 +14,7 @@ export type DraftWikiListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   loadError: string | null;
-  pageInfo: Pick<WikiDraftWikiListResponse, "current_page" | "last_page" | "total"> | null;
+  pageInfo: DraftWikiListPageInfo | null;
   wikis: AdminWikiListItem[];
 };
 

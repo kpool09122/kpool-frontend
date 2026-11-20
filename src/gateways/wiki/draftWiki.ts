@@ -92,11 +92,15 @@ export type WikiVersionInconsistentWikiListResponse = z.infer<typeof wikiPrivate
 export type WikiDraftReviewAction = "approve" | "reject";
 export type WikiPublishMethod = "next-generation" | "same-version";
 export type WikiDraftWorkflowAction = WikiDraftReviewAction | "publish" | "publish-same-version" | "translate";
+export type DraftWikiListPageInfo =
+  | Pick<WikiDraftWikiListResponse, "next_cursor" | "total">
+  | Pick<WikiVersionInconsistentWikiListResponse, "current_page" | "last_page" | "total">;
+
 export type InitialDraftWikiListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   loadError: null;
-  pageInfo: { current_page: number; last_page: number; total: number } | null;
+  pageInfo: DraftWikiListPageInfo | null;
   wikis: Array<WikiDraftWiki | WikiVersionInconsistentWiki>;
 };
 export type InitialDraftWikis = {
@@ -569,7 +573,7 @@ export const createTranslateWikiRequestBody = (
 
 type WikiDraftWikisUrlParams = {
   baseUrl: string;
-  page: number;
+  cursor?: string | null;
   perPage: number;
   resourceType?: string;
   statuses: readonly WikiDraftWikiStatus[];
@@ -579,7 +583,7 @@ type WikiDraftWikisUrlParams = {
 const appendWikiDraftWikisSearchParams = (
   url: URL,
   {
-    page,
+    cursor,
     perPage,
     resourceType,
     statuses,
@@ -590,7 +594,7 @@ const appendWikiDraftWikisSearchParams = (
     url.searchParams.append("statuses[]", status);
   });
   url.searchParams.set("perPage", String(perPage));
-  url.searchParams.set("page", String(page));
+  if (cursor) url.searchParams.set("cursor", cursor);
 
   if (resourceType) {
     url.searchParams.set("resourceType", resourceType);
@@ -1017,7 +1021,7 @@ const getRouteErrorMessage = (body: unknown, fallback: string): string =>
 
 type FetchWikiDraftWikisParams = {
   fallbackErrorMessage: string;
-  page: number;
+  cursor?: string | null;
   perPage: number;
   resourceType?: string;
   statuses: readonly WikiDraftWikiStatus[];
@@ -1028,7 +1032,7 @@ const fetchWikiDraftWikisFromRoute = async (
   routePath: "/api/wiki/draft-wikis" | "/api/wiki/my/draft-wikis",
   {
     fallbackErrorMessage,
-    page,
+    cursor,
     perPage,
     resourceType,
     statuses,
@@ -1038,7 +1042,7 @@ const fetchWikiDraftWikisFromRoute = async (
   const url = appendWikiDraftWikisSearchParams(
     new URL(routePath, window.location.origin),
     {
-      page,
+      cursor,
       perPage,
       resourceType,
       statuses,
@@ -1202,7 +1206,6 @@ export const loadInitialDraftWikiListForRequest = async (
         ? createMyWikiDraftWikisUrl
         : createManagedWikiDraftWikisUrl)({
         baseUrl,
-        page: 1,
         perPage: defaultWikiDraftPerPage,
         statuses: initialDraftWikiListConfigByTab[tab].statuses,
       })
@@ -1239,11 +1242,9 @@ export const loadInitialDraftWikiListForRequest = async (
       isInitialLoading: false,
       isLoadingMore: false,
       loadError: null,
-      pageInfo: {
-        current_page: body.current_page,
-        last_page: body.last_page,
-        total: body.total,
-      },
+      pageInfo: "next_cursor" in body
+        ? { next_cursor: typeof body.next_cursor === "string" ? body.next_cursor : null, total: body.total }
+        : { current_page: body.current_page, last_page: body.last_page, total: body.total },
       wikis: body.wikis,
     };
   } catch {

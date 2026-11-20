@@ -25,7 +25,7 @@ export function DraftImagesClient() {
   const { draftImageAdapter } = useWikiSection();
   const {
     draftImages,
-    loadDraftImagesPage,
+    loadDraftImages,
     reviewError,
     reviewDraftImage,
     reviewingImageIdentifier,
@@ -48,11 +48,11 @@ export function DraftImagesClient() {
       state={draftImages}
       t={t}
       onLoadMore={() => {
-        if (draftImages.pageInfo) {
-          loadDraftImagesPage(draftImages.pageInfo.current_page + 1);
+        if (draftImages.pageInfo?.next_cursor) {
+          loadDraftImages(draftImages.pageInfo.next_cursor);
         }
       }}
-      onReload={() => loadDraftImagesPage(1)}
+      onReload={() => loadDraftImages()}
       onReviewDraftImage={reviewDraftImage}
     />
   );
@@ -78,7 +78,7 @@ function DraftImageListPanel({
   onReviewDraftImage: (imageIdentifier: string, action: "approve" | "reject") => void;
 }) {
   const canLoadMore = state.pageInfo
-    ? state.pageInfo.current_page < state.pageInfo.last_page
+    ? state.pageInfo.next_cursor !== null
     : false;
   const isBusy = state.isInitialLoading || state.isLoadingMore;
 
@@ -105,7 +105,7 @@ function DraftImageListPanel({
     );
   }
 
-  if (state.images.length === 0) {
+  if (state.images.length === 0 && !canLoadMore) {
     return (
       <div className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-6 text-center">
         <p className="font-semibold">{t.draftImageListEmptyTitle}</p>

@@ -43,12 +43,12 @@ const getWikiPrivateApiBaseUrl = (): string => {
 
 const createWikiDraftImagesUrl = ({
   baseUrl,
-  page,
+  cursor,
   perPage,
   status,
 }: {
   baseUrl: string;
-  page: number;
+  cursor?: string | null;
   perPage: number;
   status: WikiDraftImageStatus;
 }): string => {
@@ -56,7 +56,7 @@ const createWikiDraftImagesUrl = ({
 
   url.searchParams.set("status", status);
   url.searchParams.set("perPage", String(perPage));
-  url.searchParams.set("page", String(page));
+  if (cursor) url.searchParams.set("cursor", cursor);
 
   return url.toString();
 };
@@ -79,13 +79,13 @@ const createWikiImageDeletionRequestsUrl = ({
 };
 
 export const fetchWikiDraftImages = async ({
-  page,
+  cursor,
   perPage,
   status,
   wikiIdentifier,
   fallbackErrorMessage,
 }: {
-  page: number;
+  cursor?: string | null;
   perPage: number;
   status: WikiDraftImageStatus;
   wikiIdentifier?: string;
@@ -95,7 +95,7 @@ export const fetchWikiDraftImages = async ({
 
   url.searchParams.set("status", status);
   url.searchParams.set("perPage", String(perPage));
-  url.searchParams.set("page", String(page));
+  if (cursor) url.searchParams.set("cursor", cursor);
 
   if (wikiIdentifier) {
     url.searchParams.set("wikiIdentifier", wikiIdentifier);
@@ -153,7 +153,6 @@ export const loadInitialWikiDraftImagesForRequest = async (
     const response = await fetch(
       createWikiDraftImagesUrl({
         baseUrl,
-        page: 1,
         perPage: defaultWikiImagePerPage,
         status: "under_review",
       }),

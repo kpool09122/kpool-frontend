@@ -62,7 +62,7 @@ export function WikiListPanel({
     );
   }
 
-  if (isEmpty) {
+  if (isEmpty && !canLoadMore) {
     return (
       <div className="mt-5 rounded-lg border border-dashed border-stroke-subtle p-6 text-center">
         <p className="font-semibold">{emptyTitle}</p>

@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     const apiResponse = await fetch(
       createWikiDraftImagesUrl({
         baseUrl,
-        page: parsePositiveIntegerParam(request.nextUrl.searchParams.get("page"), 1),
+        cursor: request.nextUrl.searchParams.get("cursor"),
         perPage: parsePositiveIntegerParam(
           request.nextUrl.searchParams.get("perPage"),
           defaultWikiImagePerPage,
