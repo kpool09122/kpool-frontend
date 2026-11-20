@@ -5,34 +5,56 @@ import { HorizontalCarousel } from "@/components/HorizontalCarousel";
 import Link from "next/link";
 import { Play } from "lucide-react";
 import { buildWikiPath, formatVideoDuration, getVideoThumbnailUrl } from "@kpool/wiki";
-import {
-  PlaybackOutlet,
-  VideoPlaybackProvider,
-  usePlaybackOwner,
-  useVideoPlayback,
-} from "@/components/VideoPlayback/VideoPlaybackProvider";
-import type { PlaybackStore } from "@/components/VideoPlayback/playbackStore";
+import { YouTubePlayer } from "@/components/VideoPlayback/YouTubePlayer";
+import { TikTokPlayer } from "@/components/VideoPlayback/TikTokPlayer";
 import type { PopularVideo, PopularVideosState } from "@/gateways/wiki/popularVideos";
 import type { Locale } from "@/i18n/locales";
 import { popularVideosCopy } from "@/i18n/popularVideos";
 import { useState } from "react";
 
-function VideoCard({ video, locale, onPlay }: {
+function VideoCard({ video, locale, active, onPlay, onEnd }: {
   video: PopularVideo;
   locale: Locale;
+  active: boolean;
   onPlay: () => void;
+  onEnd: () => void;
 }) {
   const t = popularVideosCopy[locale];
   const [imageFailed, setImageFailed] = useState(false);
+  const [playbackFailed, setPlaybackFailed] = useState(false);
   const thumbnail = getVideoThumbnailUrl(video.thumbnailUrl) ??
     (video.provider === "youtube" ? `https://i.ytimg.com/vi/${video.externalVideoId}/mqdefault.jpg` : null);
   const duration = formatVideoDuration(video.durationSeconds);
 
   return (
-    <li className="w-[78vw] max-w-80 shrink-0 snap-start overflow-hidden rounded-2xl border border-stroke-subtle bg-surface-raised sm:w-72">
-      <button
+    <article className="h-full overflow-hidden rounded-2xl border border-stroke-subtle bg-surface-raised">
+      {active ? (
+        <div className="aspect-video w-full overflow-hidden bg-black">
+          {playbackFailed ? (
+            <p role="status" className="flex h-full items-center justify-center p-4 text-sm text-white">{t.unavailable}</p>
+          ) : video.provider === "youtube" ? (
+            <YouTubePlayer
+              videoId={video.externalVideoId}
+              title={video.title}
+              className="h-full w-full"
+              onStateChange={({ state }) => { if (state === 0) onEnd(); }}
+              onError={() => setPlaybackFailed(true)}
+              onUnavailable={() => setPlaybackFailed(true)}
+            />
+          ) : (
+            <TikTokPlayer
+              videoId={video.externalVideoId}
+              title={video.title}
+              expanded
+              advanceOnError={false}
+              onEnded={onEnd}
+              onError={() => setPlaybackFailed(true)}
+            />
+          )}
+        </div>
+      ) : <button
         type="button"
-        onClick={onPlay}
+        onClick={() => { setPlaybackFailed(false); onPlay(); }}
         aria-label={`${t.play}: ${video.title}`}
         className="group relative flex aspect-video w-full items-center justify-center overflow-hidden bg-brand-primary/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-primary"
       >
@@ -54,56 +76,41 @@ function VideoCard({ video, locale, onPlay }: {
         {duration !== null ? (
           <span className="absolute right-2 bottom-2 rounded bg-black/80 px-1.5 py-0.5 text-xs tabular-nums text-white">{duration}</span>
         ) : null}
-      </button>
+      </button>}
       <h3 className="p-4 text-base font-semibold leading-6">
         <Link
           href={`${buildWikiPath(video.language, video.slug)}?tab=video`}
-          className="line-clamp-2 min-h-12 hover:text-brand-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+          className="block truncate hover:text-brand-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
         >
           {video.title}
         </Link>
       </h3>
-    </li>
+    </article>
   );
 }
 
-function ConnectedVideoCards({ videos, locale, store }: {
-  videos: PopularVideo[];
-  locale: Locale;
-  store: PlaybackStore;
-}) {
-  const owner = `home-popular-videos:${locale}`;
-  usePlaybackOwner(store, owner);
+function VideoCards({ videos, locale }: { videos: PopularVideo[]; locale: Locale }) {
+  const [activeVideo, setActiveVideo] = useState<string | null>(null);
   return (
     <HorizontalCarousel
       title={popularVideosCopy[locale].title}
       previousLabel={popularVideosCopy[locale].previous}
       nextLabel={popularVideosCopy[locale].next}
-      beforeItems={<PlaybackOutlet owner={owner} />}
+      paginationLabel={popularVideosCopy[locale].pagination}
+      slideLabel={popularVideosCopy[locale].slide}
+      autoPlay={activeVideo === null}
     >
       {videos.map((video) => (
         <VideoCard
           key={video.videoLinkIdentifier}
           video={video}
           locale={locale}
-          onPlay={() => store.getState().start(owner, [{
-            identifier: video.videoLinkIdentifier,
-            videoId: video.externalVideoId,
-            provider: video.provider,
-            title: video.title,
-          }], "single")}
+          active={activeVideo === video.videoLinkIdentifier}
+          onPlay={() => setActiveVideo(video.videoLinkIdentifier)}
+          onEnd={() => setActiveVideo((current) => current === video.videoLinkIdentifier ? null : current)}
         />
       ))}
     </HorizontalCarousel>
-  );
-}
-
-function VideoCards({ videos, locale }: { videos: PopularVideo[]; locale: Locale }) {
-  const playback = useVideoPlayback();
-  return playback ? (
-    <ConnectedVideoCards videos={videos} locale={locale} store={playback.store} />
-  ) : (
-    <VideoPlaybackProvider><VideoCards videos={videos} locale={locale} /></VideoPlaybackProvider>
   );
 }
 

@@ -17,6 +17,12 @@ it("loads the global ranking on the server with a short shared cache", async () 
     next: { revalidate: 60, tags: ["wiki-public-content"] },
   }));
 });
+it("accepts videos with no likes", async () => {
+  vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
+  const unliked = { ...video, likeCount: 0 };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ videos: [unliked] })));
+  expect(await loadPopularVideos()).toEqual({ status: "success", videos: [unliked] });
+});
 it("retains a successful empty result", async () => {
   vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ videos: [] })));

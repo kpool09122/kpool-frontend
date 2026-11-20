@@ -10,7 +10,7 @@ export const popularVideoSchema = z.object({
   title: z.string(),
   thumbnailUrl: z.string().nullable(),
   durationSeconds: z.number().int().nonnegative().nullable(),
-  likeCount: z.number().int().positive(),
+  likeCount: z.number().int().nonnegative(),
   language: z.enum(["ja", "en", "ko"]),
   slug: z.string().min(1),
 }).refine((video) => isVideoId(video.provider, video.externalVideoId));
