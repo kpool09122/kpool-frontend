@@ -104,6 +104,7 @@ export const oauthConnectionsDictionaries: Record<
     saving: "저장 중…",
     saved: "허용 Scope 설정을 저장했습니다.",
     list: "연결 목록",
+    connectedAt: "연결 일시",
     empty: "연결되지 않음",
     loading: "외부 연결 불러오는 중…",
     failed: "통신에 실패했습니다. 다시 시도하세요.",
