@@ -847,6 +847,20 @@ const CreateVideoLinkRequestBody = z
     publishedAt: z.string().nullish(),
   })
   .passthrough();
+const PopularVideo = z
+  .object({
+    videoLinkIdentifier: KPool_Common_Uuid.uuid(),
+    provider: z.enum(["youtube", "tiktok"]),
+    externalVideoId: z.string(),
+    url: z.string(),
+    title: z.string(),
+    thumbnailUrl: z.string().nullable(),
+    durationSeconds: z.number().int().nullable(),
+    likeCount: z.number().int().gte(0),
+    language: z.enum(["ja", "ko", "en"]),
+    slug: z.string(),
+  })
+  .passthrough();
 const TranslationSetMasterSearchWikiItem = z
   .object({
     wikiIdentifier: KPool_Common_Uuid,
@@ -1651,6 +1665,7 @@ export const schemas = {
   SitemapWiki,
   ListSitemapWikisResponseBody,
   CreateVideoLinkRequestBody,
+  PopularVideo,
   TranslationSetMasterSearchWikiItem,
   TranslationSetMasterSearchItem,
   SearchTranslationSetMasterWikisResponseBody,
@@ -4667,6 +4682,36 @@ const endpoints = makeApi([
   },
   {
     method: "get",
+    path: "/videos/popular",
+    alias: "PublicVideoLinkOperations_listPopularVideos",
+    description: `Top 10 unique videos from published wikis across all languages, including videos with zero likes. Deduplicated by provider and external video ID before the limit; the highest-ranked eligible link supplies the video metadata and source wiki. Official-owner likes are excluded. Ordered by ordinary likes received in the rolling calendar month ending at request time descending, then creation time descending, then identifier ascending. Includes eligible videos from all wiki resource types; agency videos must be manually submitted. Viewing performs no collection or provider API requests.`,
+    requestFormat: "json",
+    response: z.object({ videos: z.array(PopularVideo).max(10) }).passthrough(),
+    errors: [
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
     path: "/wiki-translation-sets/masters",
     alias: "WikiTranslationSetOperations_searchTranslationSetMasterWikis",
     description: `Search wiki masters grouped by translation set for official certification requests. Internal API Bearer scope: wiki-drafts:read.`,
@@ -6727,6 +6772,58 @@ const endpoints = makeApi([
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/wikis/statistics",
+    alias: "WikiListOperations_getWikiStatistics",
+    description: `Public wiki page counts across all languages. Each translation counts separately; group types count group wiki pages. Drafts are excluded.`,
+    requestFormat: "json",
+    response: z
+      .object({
+        total: z.number().int(),
+        languages: z
+          .object({
+            ja: z.number().int(),
+            en: z.number().int(),
+            ko: z.number().int(),
+          })
+          .passthrough(),
+        resourceTypes: z
+          .object({
+            agency: z.number().int(),
+            group: z.number().int(),
+            talent: z.number().int(),
+            song: z.number().int(),
+          })
+          .passthrough(),
+        groupTypes: z
+          .object({
+            boy_group: z.number().int(),
+            girl_group: z.number().int(),
+            co_ed: z.number().int(),
+            unknown: z.number().int(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
       {
         status: 429,
         description: `Client error`,
