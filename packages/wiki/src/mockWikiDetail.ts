@@ -26,13 +26,13 @@ type CreateMockWikiDetailOptions = {
 const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   {
     type: "section",
-    sectionIdentifier: "sec-twice-overview",
+    sectionKey: "sec-twice-overview",
     title: "Overview",
     displayOrder: 10,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-overview-text",
+        blockKey: "block-twice-overview-text",
         blockType: "text",
         displayOrder: 10,
         content: [
@@ -50,7 +50,7 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
         ].join("\n"),
       },
       {
-        blockIdentifier: "block-twice-overview-embed",
+        blockKey: "block-twice-overview-embed",
         blockType: "embed",
         displayOrder: 20,
         provider: "youtube",
@@ -61,13 +61,13 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   },
   {
     type: "section",
-    sectionIdentifier: "sec-twice-members",
+    sectionKey: "sec-twice-members",
     title: "Members",
     displayOrder: 20,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-members-profiles",
+        blockKey: "block-twice-members-profiles",
         blockType: "profile_card_list",
         displayOrder: 10,
         wikiIdentifiers: [],
@@ -77,13 +77,13 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   },
   {
     type: "section",
-    sectionIdentifier: "sec-twice-history",
+    sectionKey: "sec-twice-history",
     title: "History",
     displayOrder: 30,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-history-text",
+        blockKey: "block-twice-history-text",
         blockType: "text",
         displayOrder: 10,
         content:
@@ -93,20 +93,20 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   },
   {
     type: "section",
-    sectionIdentifier: "sec-twice-discography",
+    sectionKey: "sec-twice-discography",
     title: "Discography",
     displayOrder: 40,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-discography-text",
+        blockKey: "block-twice-discography-text",
         blockType: "text",
         displayOrder: 10,
         content:
           "한국 및 일본 음반 전개가 모두 큰 비중을 차지하며, 정규/미니/싱글/베스트 앨범 축이 나뉘어 전개된다.",
       },
       {
-        blockIdentifier: "block-twice-discography-include",
+        blockKey: "block-twice-discography-include",
         blockType: "text",
         displayOrder: 20,
         content: "[include(틀:TWICE/음반)]",
@@ -115,13 +115,13 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   },
   {
     type: "section",
-    sectionIdentifier: "sec-twice-activities",
+    sectionKey: "sec-twice-activities",
     title: "Activities",
     displayOrder: 50,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-activities-text",
+        blockKey: "block-twice-activities-text",
         blockType: "text",
         displayOrder: 10,
         content:
@@ -131,20 +131,20 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   },
   {
     type: "section",
-    sectionIdentifier: "sec-twice-records",
+    sectionKey: "sec-twice-records",
     title: "Records",
     displayOrder: 60,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-records-text",
+        blockKey: "block-twice-records-text",
         blockType: "text",
         displayOrder: 10,
         content:
           "음원과 음반 양쪽에서 강한 성과를 남긴 팀으로 평가되며, 나무위키에서는 관련 기록 틀을 별도로 끼워 넣는 구조가 자주 보인다.",
       },
       {
-        blockIdentifier: "block-twice-records-include",
+        blockKey: "block-twice-records-include",
         blockType: "text",
         displayOrder: 20,
         content: "[include(틀:TWICE의 기록)]",
@@ -153,13 +153,13 @@ const createTwiceCompatibilitySections = (): WikiDetail["sections"] => [
   },
   {
     type: "section",
-    sectionIdentifier: "sec-twice-media",
+    sectionKey: "sec-twice-media",
     title: "Media",
     displayOrder: 70,
     depth: 1,
     contents: [
       {
-        blockIdentifier: "block-twice-media-text",
+        blockKey: "block-twice-media-text",
         blockType: "text",
         displayOrder: 10,
         content:
@@ -301,13 +301,13 @@ const twiceMemberProfiles = [
 const createTwiceMemberSections = (name: string, overview: string): WikiDetail["sections"] => [
   {
     type: "section",
-    sectionIdentifier: `sec-${name}-overview`,
+    sectionKey: `sec-${name}-overview`,
     title: "Overview",
     displayOrder: 10,
     depth: 1,
     contents: [
       {
-        blockIdentifier: `block-${name}-overview-text`,
+        blockKey: `block-${name}-overview-text`,
         blockType: "text",
         displayOrder: 10,
         content: overview,
@@ -316,13 +316,13 @@ const createTwiceMemberSections = (name: string, overview: string): WikiDetail["
   },
   {
     type: "section",
-    sectionIdentifier: `sec-${name}-related`,
+    sectionKey: `sec-${name}-related`,
     title: "Related",
     displayOrder: 20,
     depth: 1,
     contents: [
       {
-        blockIdentifier: `block-${name}-related-profiles`,
+        blockKey: `block-${name}-related-profiles`,
         blockType: "profile_card_list",
         displayOrder: 10,
         wikiIdentifiers: [],
@@ -432,20 +432,20 @@ export const createMockWikiDetail = (
       : [
       {
         type: "section",
-        sectionIdentifier: "sec-discography",
+        sectionKey: "sec-discography",
         title: "Discography",
         displayOrder: 30,
         depth: 1,
         contents: [
           {
-            blockIdentifier: "block-discography-text",
+            blockKey: "block-discography-text",
             blockType: "text",
             displayOrder: 10,
             content:
               "The group balances brisk digital singles with a smaller number of concept-heavy mini albums.",
           },
           {
-            blockIdentifier: "block-discography-image",
+            blockKey: "block-discography-image",
             blockType: "image",
             displayOrder: 20,
             imageIdentifier: "img-discography-stage",
@@ -454,7 +454,7 @@ export const createMockWikiDetail = (
             alt: "Concert stage image for Discography",
           },
           {
-            blockIdentifier: "block-discography-gallery",
+            blockKey: "block-discography-gallery",
             blockType: "image_gallery",
             displayOrder: 30,
             images: [
@@ -472,7 +472,7 @@ export const createMockWikiDetail = (
             caption: "Editable gallery",
           },
           {
-            blockIdentifier: "block-discography-embed",
+            blockKey: "block-discography-embed",
             blockType: "embed",
             displayOrder: 40,
             provider: "youtube",
@@ -480,28 +480,28 @@ export const createMockWikiDetail = (
             caption: "Stage video",
           },
           {
-            blockIdentifier: "block-discography-quote",
+            blockKey: "block-discography-quote",
             blockType: "quote",
             displayOrder: 50,
             content: "A dusk-to-dawn pop sequence.",
             source: "k-pool editorial",
           },
           {
-            blockIdentifier: "block-discography-list",
+            blockKey: "block-discography-list",
             blockType: "list",
             displayOrder: 60,
             listType: "bullet",
             items: ["Low Tide, High Lights", "Pearl Signal"],
           },
           {
-            blockIdentifier: "block-discography-table",
+            blockKey: "block-discography-table",
             blockType: "table",
             displayOrder: 70,
             headers: ["Release", "Year"],
             rows: [["Low Tide, High Lights", "2022"]],
           },
           {
-            blockIdentifier: "block-discography-profiles",
+            blockKey: "block-discography-profiles",
             blockType: "profile_card_list",
             displayOrder: 80,
             wikiIdentifiers: [],
@@ -509,13 +509,13 @@ export const createMockWikiDetail = (
           },
           {
             type: "section",
-            sectionIdentifier: "sec-discography-highlights",
+            sectionKey: "sec-discography-highlights",
             title: "Highlights",
             displayOrder: 20,
             depth: 2,
             contents: [
               {
-                blockIdentifier: "block-discography-highlights-text",
+                blockKey: "block-discography-highlights-text",
                 blockType: "text",
                 displayOrder: 10,
                 content:
@@ -523,13 +523,13 @@ export const createMockWikiDetail = (
               },
               {
                 type: "section",
-                sectionIdentifier: "sec-discography-highlights-chart",
+                sectionKey: "sec-discography-highlights-chart",
                 title: "Chart notes",
                 displayOrder: 20,
                 depth: 3,
                 contents: [
                   {
-                    blockIdentifier: "block-discography-highlights-chart-text",
+                    blockKey: "block-discography-highlights-chart-text",
                     blockType: "text",
                     displayOrder: 10,
                     content:
@@ -541,13 +541,13 @@ export const createMockWikiDetail = (
           },
           {
             type: "section",
-            sectionIdentifier: "sec-discography-albums",
+            sectionKey: "sec-discography-albums",
             title: "Mini Albums",
             displayOrder: 10,
             depth: 2,
             contents: [
               {
-                blockIdentifier: "block-discography-albums-text",
+                blockKey: "block-discography-albums-text",
                 blockType: "text",
                 displayOrder: 10,
                 content:
@@ -559,13 +559,13 @@ export const createMockWikiDetail = (
       },
       {
         type: "section",
-        sectionIdentifier: "sec-overview",
+        sectionKey: "sec-overview",
         title: "Overview",
         displayOrder: 10,
         depth: 1,
         contents: [
           {
-            blockIdentifier: "block-overview-text",
+            blockKey: "block-overview-text",
             blockType: "text",
             displayOrder: 10,
             content:
@@ -573,13 +573,13 @@ export const createMockWikiDetail = (
           },
           {
             type: "section",
-            sectionIdentifier: "sec-overview-style",
+            sectionKey: "sec-overview-style",
             title: "Style",
             displayOrder: 10,
             depth: 2,
             contents: [
               {
-                blockIdentifier: "block-overview-style-text",
+                blockKey: "block-overview-style-text",
                 blockType: "text",
                 displayOrder: 10,
                 content:
@@ -591,13 +591,13 @@ export const createMockWikiDetail = (
       },
       {
         type: "section",
-        sectionIdentifier: "sec-members",
+        sectionKey: "sec-members",
         title: "Members",
         displayOrder: 20,
         depth: 1,
         contents: [
           {
-            blockIdentifier: "block-members-text",
+            blockKey: "block-members-text",
             blockType: "text",
             displayOrder: 10,
             content:

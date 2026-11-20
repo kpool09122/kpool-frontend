@@ -28,8 +28,8 @@ describe("WikiAddContentControls", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ Block" }));
     fireEvent.click(screen.getByRole("button", { name: "Text" }));
 
-    expect(onAddSection).toHaveBeenCalledWith(wikiStorySection.sectionIdentifier);
-    expect(onAddBlock).toHaveBeenCalledWith(wikiStorySection.sectionIdentifier, "text");
+    expect(onAddSection).toHaveBeenCalledWith(wikiStorySection.sectionKey);
+    expect(onAddBlock).toHaveBeenCalledWith(wikiStorySection.sectionKey, "text");
   });
 
   it("disables section creation at max depth", () => {
@@ -39,7 +39,7 @@ describe("WikiAddContentControls", () => {
         onAddSection={() => {}}
         section={{
           ...wikiStorySection,
-          sectionIdentifier: "depth-3",
+          sectionKey: "depth-3",
           depth: 3,
         }}
       />,

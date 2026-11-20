@@ -425,7 +425,7 @@ export function WikiEditContent({
                           renderItem={(section, reorder) => (
                             <WikiSectionEditor
                               editingId={editingId}
-                              key={section.sectionIdentifier}
+                              key={section.sectionKey}
                               language={language}
                               onAddBlock={addBlock}
                               onAddSection={addSection}
@@ -435,12 +435,12 @@ export function WikiEditContent({
                               onEdit={setEditingId}
                               onMoveContent={reorderContent}
                               onRequestImage={openImageLibrary}
-                              onSaveBlock={(blockIdentifier, changes) => {
-                                updateBlock(blockIdentifier, changes);
+                              onSaveBlock={(blockKey, changes) => {
+                                updateBlock(blockKey, changes);
                                 closeEditor();
                               }}
-                              onSaveSection={(sectionIdentifier, changes) => {
-                                updateSection(sectionIdentifier, changes);
+                              onSaveSection={(sectionKey, changes) => {
+                                updateSection(sectionKey, changes);
                                 closeEditor();
                               }}
                               reorder={reorder}

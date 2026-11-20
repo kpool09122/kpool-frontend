@@ -55,7 +55,7 @@ export function WikiBlockEditorItem({
 
   if (isEditing) {
     return (
-      <article className="rounded-2xl border border-stroke-subtle p-4" data-testid={`wiki-edit-block-${block.blockIdentifier}`} style={cardSurfaceMutedStyle}>
+      <article className="rounded-2xl border border-stroke-subtle p-4" data-testid={`wiki-edit-block-${block.blockKey}`} style={cardSurfaceMutedStyle}>
         <div className="mb-3 flex justify-end">
           {controls}
         </div>
@@ -72,7 +72,7 @@ export function WikiBlockEditorItem({
     <article
       {...reorder?.attributes}
       className={`group relative ${wikiReorderItemClassName} ${reorder ? "sm:pr-12" : contentWidthClassName}`}
-      data-testid={`wiki-edit-block-${block.blockIdentifier}`}
+      data-testid={`wiki-edit-block-${block.blockKey}`}
     >
       <div className="mb-2 flex items-center justify-end gap-1 sm:absolute sm:right-0 sm:top-0 sm:z-10 sm:mb-0">
         <div className="transition sm:rounded-lg sm:bg-surface-raised/95 sm:p-1 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">

@@ -5,10 +5,10 @@ import { parseWikiSectionsFromCode, serializeWikiSectionsToCode, toWikiEditReque
 import type { WikiSection } from "./types/wiki";
 
 const sections: WikiSection[] = [{
-  type: "section", sectionIdentifier: "photos", title: "Photos", depth: 1, displayOrder: 1,
+  type: "section", sectionKey: "photos", title: "Photos", depth: 1, displayOrder: 1,
   contents: [
-    { blockType: "image", blockIdentifier: "single", displayOrder: 1, imageIdentifier: "photo", imageSrc: "https://example.test/photo.jpg", alt: "Photo", caption: "Caption", imageWidth: 450 },
-    { blockType: "image_gallery", blockIdentifier: "gallery", displayOrder: 2, images: [{ imageIdentifier: "photo", imageSrc: "https://example.test/photo.jpg", alt: "Photo" }], caption: null, imageWidth: 700 },
+    { blockType: "image", blockKey: "single", displayOrder: 1, imageIdentifier: "photo", imageSrc: "https://example.test/photo.jpg", alt: "Photo", caption: "Caption", imageWidth: 450 },
+    { blockType: "image_gallery", blockKey: "gallery", displayOrder: 2, images: [{ imageIdentifier: "photo", imageSrc: "https://example.test/photo.jpg", alt: "Photo" }], caption: null, imageWidth: 700 },
   ],
 }];
 

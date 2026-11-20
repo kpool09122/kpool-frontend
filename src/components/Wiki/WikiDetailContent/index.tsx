@@ -81,7 +81,7 @@ export function WikiDetailContent({
                   <WikiSectionAccordion
                     editHref={editHref}
                     onEdit={onEdit}
-                    key={section.sectionIdentifier}
+                    key={section.sectionKey}
                     language={language}
                     openByDefault={sectionsOpenByDefault}
                     section={section}

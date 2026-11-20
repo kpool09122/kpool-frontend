@@ -15,7 +15,7 @@ type WikiAddContentControlsProps = {
   section: WikiSection;
   disabled?: boolean;
   onAddSection: (parentSectionIdentifier: string) => void;
-  onAddBlock: (sectionIdentifier: string, blockType: WikiBlockType) => void;
+  onAddBlock: (sectionKey: string, blockType: WikiBlockType) => void;
 };
 
 export function WikiAddContentControls({
@@ -44,12 +44,12 @@ export function WikiAddContentControls({
   }, [isBlockMenuOpen]);
 
   return (
-    <div className="pt-1" data-testid={`wiki-edit-add-section-${section.sectionIdentifier}`}>
+    <div className="pt-1" data-testid={`wiki-edit-add-section-${section.sectionKey}`}>
       <div className="flex flex-wrap items-start gap-2">
         <button
           className="rounded-lg px-2.5 py-2 text-sm text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40"
           disabled={disabled || !canAddSection}
-          onClick={() => onAddSection(section.sectionIdentifier)}
+          onClick={() => onAddSection(section.sectionKey)}
           title={canAddSection ? t.addSectionTitle : t.maxDepthReached}
           type="button"
         >
@@ -73,7 +73,7 @@ export function WikiAddContentControls({
                   disabled={disabled}
                   key={blockType}
                   onClick={() => {
-                    onAddBlock(section.sectionIdentifier, blockType);
+                    onAddBlock(section.sectionKey, blockType);
                     setIsBlockMenuOpen(false);
                   }}
                   type="button"

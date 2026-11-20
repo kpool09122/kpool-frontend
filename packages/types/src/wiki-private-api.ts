@@ -1546,6 +1546,8 @@ const WikiContentInput = z
       "table",
       "profile_card_list",
     ]),
+    sectionKey: z.string().nullish(),
+    blockKey: z.string().nullish(),
     displayOrder: z.number().int().optional(),
     title: z.string().nullish(),
     contents: z.array(z.unknown()).optional(),

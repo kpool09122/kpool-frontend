@@ -66,7 +66,7 @@ function mount(videos = [first, second], locale: "en" | "ja" | "ko" = "en") {
         <VideoPlaybackProvider>
           <WikiVideoPanel wikiTitle="Momo" language="ja" resourceType="group" slug={slug} />
           {withEmbed ? <WikiEmbedFrame block={{
-            blockType: "embed", blockIdentifier: "body-video", displayOrder: 0,
+            blockType: "embed", blockKey: "body-video", displayOrder: 0,
             provider: "youtube", embedId: "12345678901", caption: "Body video",
           }} /> : null}
         </VideoPlaybackProvider>

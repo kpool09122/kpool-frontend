@@ -37,8 +37,8 @@ describe("WikiSectionEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: `Section actions: ${wikiStorySection.title}` }));
     fireEvent.click(screen.getByRole("button", { name: `Delete section: ${wikiStorySection.title}` }));
 
-    expect(onEdit).toHaveBeenCalledWith(`section:${wikiStorySection.sectionIdentifier}`);
-    expect(onDeleteContent).toHaveBeenCalledWith(wikiStorySection.sectionIdentifier);
+    expect(onEdit).toHaveBeenCalledWith(`section:${wikiStorySection.sectionKey}`);
+    expect(onDeleteContent).toHaveBeenCalledWith(wikiStorySection.sectionKey);
   });
 
   it("dismisses section actions with Escape or an outside pointer", () => {
@@ -107,7 +107,7 @@ describe("WikiSectionEditor", () => {
   it("renders the section title form when editing", () => {
     renderWithI18n(
       <WikiSectionEditor
-        editingId={`section:${wikiStorySection.sectionIdentifier}`}
+        editingId={`section:${wikiStorySection.sectionKey}`}
         language="ja"
         onAddBlock={() => {}}
         onAddSection={() => {}}
@@ -146,7 +146,7 @@ describe("WikiSectionEditor", () => {
     renderWithI18n(<TestSectionEditor />);
 
     const section = screen
-      .getByTestId(`wiki-edit-section-${wikiStorySection.sectionIdentifier}`);
+      .getByTestId(`wiki-edit-section-${wikiStorySection.sectionKey}`);
     const toggle = screen.getByRole("button", {
       name: `Toggle section: ${wikiStorySection.title}`,
     });

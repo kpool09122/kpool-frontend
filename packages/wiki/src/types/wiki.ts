@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export type WikiSection = {
   type: "section";
-  sectionIdentifier: string;
+  sectionKey: string;
   title: string;
   displayOrder: number;
   depth: number;
@@ -168,7 +168,7 @@ const wikiBasicRelationSummarySchema = z
   .passthrough();
 
 export type WikiTextBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "text";
   displayOrder: number;
   content: string;
@@ -176,7 +176,7 @@ export type WikiTextBlock = {
 
 export type WikiImageBlock = {
   imageWidth?: number | null;
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "image";
   displayOrder: number;
   imageIdentifier: string;
@@ -188,7 +188,7 @@ export type WikiImageBlock = {
 
 export type WikiImageGalleryBlock = {
   imageWidth?: number | null;
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "image_gallery";
   displayOrder: number;
   images: Array<{
@@ -201,7 +201,7 @@ export type WikiImageGalleryBlock = {
 };
 
 export type WikiEmbedBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "embed";
   displayOrder: number;
   provider: WikiEmbedProvider;
@@ -210,7 +210,7 @@ export type WikiEmbedBlock = {
 };
 
 export type WikiQuoteBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "quote";
   displayOrder: number;
   content: string;
@@ -218,7 +218,7 @@ export type WikiQuoteBlock = {
 };
 
 export type WikiListBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "list";
   displayOrder: number;
   listType: WikiListType;
@@ -234,14 +234,14 @@ export const wikiHistoryEntrySchema = z.object({
 export type WikiHistoryEntry = z.infer<typeof wikiHistoryEntrySchema>;
 
 export type WikiHistoryBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "history";
   displayOrder: number;
   entries: WikiHistoryEntry[];
 };
 
 export type WikiTableBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "table";
   displayOrder: number;
   headers: string[] | null;
@@ -256,7 +256,7 @@ export const wikiProfileCardShapeSchema = z.enum(["portrait", "square", "landsca
 export type WikiProfileCardShape = z.infer<typeof wikiProfileCardShapeSchema>;
 
 export type WikiProfileCardListBlock = {
-  blockIdentifier: string;
+  blockKey: string;
   blockType: "profile_card_list";
   displayOrder: number;
   cardShape?: WikiProfileCardShape;
@@ -280,7 +280,7 @@ export type WikiBlock =
 export type WikiSectionContent = WikiSection | WikiBlock;
 
 const wikiBlockBaseSchema = z.object({
-  blockIdentifier: z.string(),
+  blockKey: z.string(),
   displayOrder: z.number().int(),
 });
 
@@ -369,7 +369,7 @@ const wikiBlockSchema = z.discriminatedUnion("blockType", [
 const wikiSectionSchema: z.ZodType<WikiSection> = z.lazy(() =>
   z.object({
     type: z.literal("section"),
-    sectionIdentifier: z.string(),
+    sectionKey: z.string(),
     title: z.string(),
     displayOrder: z.number().int(),
     depth: z.number().int().min(1),
@@ -378,12 +378,12 @@ const wikiSectionSchema: z.ZodType<WikiSection> = z.lazy(() =>
   }).transform(({ children, contents, ...section }) => {
     const contentSectionIds = new Set(
       contents
-        .filter((content): content is WikiSection => "sectionIdentifier" in content)
-        .map((content) => content.sectionIdentifier),
+        .filter((content): content is WikiSection => "sectionKey" in content)
+        .map((content) => content.sectionKey),
     );
     const mergedContents = [
       ...contents,
-      ...(children ?? []).filter((child) => !contentSectionIds.has(child.sectionIdentifier)),
+      ...(children ?? []).filter((child) => !contentSectionIds.has(child.sectionKey)),
     ].sort((left, right) => left.displayOrder - right.displayOrder);
 
     return {

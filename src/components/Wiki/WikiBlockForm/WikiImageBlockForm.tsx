@@ -54,7 +54,7 @@ export function WikiImageBlockForm({ block, onCancel, onSave, onRequestImage }: 
               </button>
             ) : (
               <WikiBlockDisplay
-                block={{ ...image, blockType: "image", blockIdentifier: block.blockIdentifier, displayOrder: 1, caption: null, imageWidth }}
+                block={{ ...image, blockType: "image", blockKey: block.blockKey, displayOrder: 1, caption: null, imageWidth }}
                 onSelectImage={() => chooseImage(index)}
                 onImageMaxWidth={reportMaximumWidth}
                 showEditableImageOverlay

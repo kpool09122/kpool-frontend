@@ -1031,7 +1031,7 @@ function WikiTextBlockForm({ block, onCancel, onSave }: TextBlockFormProps) {
     >
       <WikiRichTextEditor
         content={content}
-        editorId={`wiki-text-${block.blockIdentifier}`}
+        editorId={`wiki-text-${block.blockKey}`}
         label={t.text}
         onChange={setContent}
       />
@@ -1077,7 +1077,7 @@ function WikiListBlockForm({ block, onCancel, onSave }: ListBlockFormProps) {
       <WikiRichTextEditor
         kind="list"
         content={items}
-        editorId={`wiki-list-${block.blockIdentifier}`}
+        editorId={`wiki-list-${block.blockKey}`}
         label={t.listItems}
         listType={listType}
         descriptionId={hintId}
@@ -1408,7 +1408,7 @@ export function WikiBlockForm({
         </LocalizedForm>
       );
     case "embed":
-      return <WikiEmbedBlockForm key={block.blockIdentifier} block={block} onCancel={onCancel} onSave={onSave} />;
+      return <WikiEmbedBlockForm key={block.blockKey} block={block} onCancel={onCancel} onSave={onSave} />;
     case "quote":
       return (
         <LocalizedForm onSubmit={(event) => submit(event, (data) => ({ content: getString(data, "content"), source: getString(data, "source") || null }))}>

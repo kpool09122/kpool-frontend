@@ -7,7 +7,7 @@ import { WikiEmbedFrame } from "./index";
 function embed(provider: WikiEmbedBlock["provider"], embedId: string, caption: string | null = null) {
   return (
     <I18nProvider initialLocale="en">
-      <WikiEmbedFrame block={{ blockIdentifier: embedId, blockType: "embed", displayOrder: 0, provider, embedId, caption }} />
+      <WikiEmbedFrame block={{ blockKey: embedId, blockType: "embed", displayOrder: 0, provider, embedId, caption }} />
     </I18nProvider>
   );
 }
