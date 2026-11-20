@@ -1728,7 +1728,6 @@ const endpoints = makeApi([
     description: `List draft images. Internal API Bearer scope: wiki-images:read.`,
     requestFormat: "json",
     parameters: [
-      { name: "cursor", type: "Query", schema: z.string().max(2048).nullish() },
       {
         name: "translationSetIdentifier",
         type: "Query",
@@ -1743,6 +1742,11 @@ const endpoints = makeApi([
         name: "perPage",
         type: "Query",
         schema: z.number().int().gte(1).lte(100).nullish(),
+      },
+      {
+        name: "cursor",
+        type: "Query",
+        schema: z.string().max(2048).nullish(),
       },
     ],
     response: ListDraftImagesResponseBody,
