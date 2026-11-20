@@ -38,10 +38,10 @@ type WikiSectionEditorProps = {
   section: WikiSection;
   onEdit: (id: WikiContentEditorId) => void;
   onCancel: () => void;
-  onSaveSection: (sectionIdentifier: string, changes: Pick<WikiSection, "title">) => void;
-  onSaveBlock: (blockIdentifier: string, changes: Partial<WikiBlock>) => void;
+  onSaveSection: (sectionKey: string, changes: Pick<WikiSection, "title">) => void;
+  onSaveBlock: (blockKey: string, changes: Partial<WikiBlock>) => void;
   onAddSection: (parentSectionIdentifier: string) => void;
-  onAddBlock: (sectionIdentifier: string, blockType: WikiBlockType) => void;
+  onAddBlock: (sectionKey: string, blockType: WikiBlockType) => void;
   onDeleteContent: (identifier: string) => void;
   onMoveContent?: (move: WikiContentMove) => void;
   onRequestImage?: WikiImagePicker;
@@ -99,7 +99,7 @@ export function WikiSectionEditor({
   const t = dictionary.wiki.ui;
   const contents = sortWikiSectionContents(section.contents);
   const hasSideHeading = section.depth === 1;
-  const sectionEditorId: WikiContentEditorId = `section:${section.sectionIdentifier}`;
+  const sectionEditorId: WikiContentEditorId = `section:${section.sectionKey}`;
   const [isOpen, setIsOpen] = useState(true);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -122,7 +122,7 @@ export function WikiSectionEditor({
       {...reorder?.attributes}
       className={`${sectionArticleClassName} relative [&:first-child>.wiki-section-reorder-handle]:top-0 ${wikiReorderItemClassName}${hasSideHeading ? " lg:grid lg:grid-cols-[160px_minmax(0,800px)] lg:gap-x-12" : ""}`}
       style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
-      data-testid={`wiki-edit-section-${section.sectionIdentifier}`}
+      data-testid={`wiki-edit-section-${section.sectionKey}`}
     >
       {reorder ? (
         <div className="wiki-section-reorder-handle absolute right-0 top-8 z-10">{reorder.handle}</div>
@@ -187,7 +187,7 @@ export function WikiSectionEditor({
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-status-danger transition hover:bg-status-danger/10 focus-visible:outline-2 focus-visible:outline-status-danger"
                 onClick={() => {
                   setIsActionsOpen(false);
-                  onDeleteContent(section.sectionIdentifier);
+                  onDeleteContent(section.sectionKey);
                 }}
                 type="button"
               >
@@ -205,7 +205,7 @@ export function WikiSectionEditor({
           {editingId === sectionEditorId ? (
             <WikiSectionForm
               onCancel={onCancel}
-              onSave={(changes) => onSaveSection(section.sectionIdentifier, changes)}
+              onSave={(changes) => onSaveSection(section.sectionKey, changes)}
               section={section}
             />
           ) : null}
@@ -213,19 +213,19 @@ export function WikiSectionEditor({
           <WikiReorderList
             items={contents}
             onMove={onMoveContent}
-            parentSectionIdentifier={section.sectionIdentifier}
+            parentSectionIdentifier={section.sectionKey}
             renderItem={(content, itemReorder) =>
               isWikiBlock(content) ? (
                 <WikiBlockEditorItem
                   block={content}
                   disabled={disabled}
-                  isEditing={editingId === `block:${content.blockIdentifier}`}
-                  key={content.blockIdentifier}
+                  isEditing={editingId === `block:${content.blockKey}`}
+                  key={content.blockKey}
                   language={language}
                   onCancel={onCancel}
-                  onDelete={() => onDeleteContent(content.blockIdentifier)}
-                  onEdit={() => onEdit(`block:${content.blockIdentifier}`)}
-                  onSave={(changes) => onSaveBlock(content.blockIdentifier, changes)}
+                  onDelete={() => onDeleteContent(content.blockKey)}
+                  onEdit={() => onEdit(`block:${content.blockKey}`)}
+                  onSave={(changes) => onSaveBlock(content.blockKey, changes)}
                   onRequestImage={onRequestImage}
                   reorder={itemReorder}
                   sourceWiki={sourceWiki}
@@ -234,7 +234,7 @@ export function WikiSectionEditor({
                 <WikiSectionEditor
                   disabled={disabled}
                   editingId={editingId}
-                  key={content.sectionIdentifier}
+                  key={content.sectionKey}
                   language={language}
                   onAddBlock={onAddBlock}
                   onAddSection={onAddSection}

@@ -155,11 +155,11 @@ describe("wikiApiModel section identifiers", () => {
     const secondRoot = wiki.sections[1];
     const secondNested = secondRoot?.contents.find(isWikiSection);
 
-    expect(firstRoot?.sectionIdentifier).toBe("section-1");
-    expect(firstNested?.sectionIdentifier).toBe("section-1-1");
-    expect(deepNested?.sectionIdentifier).toBe("section-1-1-1");
-    expect(secondRoot?.sectionIdentifier).toBe("section-2");
-    expect(secondNested?.sectionIdentifier).toBe("section-2-1");
+    expect(firstRoot?.sectionKey).toBe("section-1");
+    expect(firstNested?.sectionKey).toBe("section-1-1");
+    expect(deepNested?.sectionKey).toBe("section-1-1-1");
+    expect(secondRoot?.sectionKey).toBe("section-2");
+    expect(secondNested?.sectionKey).toBe("section-2-1");
   });
 });
 
@@ -200,7 +200,7 @@ describe("wikiApiModel profile card list blocks", () => {
     });
 
     expect(wiki.sections[0]?.contents[0]).toMatchObject({
-      blockIdentifier: "members-profiles",
+      blockKey: "members-profiles",
       blockType: "profile_card_list",
       displayOrder: 20,
       relatedResourceType: "talent",

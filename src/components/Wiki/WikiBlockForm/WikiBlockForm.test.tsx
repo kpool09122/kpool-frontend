@@ -77,7 +77,7 @@ describe("WikiBlockForm", () => {
     renderWithI18n(
       <WikiBlockForm
         block={{
-          blockIdentifier: "history-1",
+          blockKey: "history-1",
           blockType: "history",
           displayOrder: 10,
           entries: [{ year: 2024, title: "Debut", detail: null }],
@@ -105,7 +105,7 @@ describe("WikiBlockForm", () => {
     renderWithI18n(
       <WikiBlockForm
         block={{
-          blockIdentifier: "history-1",
+          blockKey: "history-1",
           blockType: "history",
           displayOrder: 10,
           entries: [
@@ -152,7 +152,7 @@ describe("WikiBlockForm", () => {
     renderWithI18n(
       <WikiBlockForm
         block={{
-          blockIdentifier: "history-1",
+          blockKey: "history-1",
           blockType: "history",
           displayOrder: 10,
           entries: [concert, firstAward, secondAward, thirdAward, debut],
@@ -344,7 +344,7 @@ describe("WikiBlockForm", () => {
     const onSave = vi.fn();
     const content = "Before [site](https://example.com) after";
     const block = kind === "text" ? { ...wikiStoryTextBlock, content } : {
-      blockType: "list" as const, blockIdentifier: "list-link", displayOrder: 1,
+      blockType: "list" as const, blockKey: "list-link", displayOrder: 1,
       listType: "bullet" as const, items: [content],
     };
     renderWithI18n(<WikiBlockForm block={block} onCancel={() => {}} onSave={onSave} />);
@@ -384,7 +384,7 @@ describe("WikiBlockForm", () => {
     renderWithI18n(
       <WikiBlockForm
         block={{
-          blockIdentifier: "list-1",
+          blockKey: "list-1",
           blockType: "list",
           displayOrder: 10,
           items: ["First item"],
@@ -406,7 +406,7 @@ describe("WikiBlockForm", () => {
   it("uses one editor and one toolbar for all items, preserving content when changing list type", () => {
     const onSave = vi.fn();
     renderWithI18n(<WikiBlockForm block={{
-      blockIdentifier: "list-2", blockType: "list", displayOrder: 10,
+      blockKey: "list-2", blockType: "list", displayOrder: 10,
       items: ["**First** item", "Second item\ncontinued"], listType: "bullet",
     }} onCancel={() => {}} onSave={onSave} />);
     expect(screen.getAllByRole("textbox", { name: "List items" })).toHaveLength(1);
@@ -425,7 +425,7 @@ describe("WikiBlockForm", () => {
       return <main ref={rootRef}>
         <output>{hasPendingChanges ? "Unsaved" : "Unchanged"}</output>
         <WikiBlockForm block={{
-          blockIdentifier: "list-guard", blockType: "list", displayOrder: 10,
+          blockKey: "list-guard", blockType: "list", displayOrder: 10,
           items: ["First item"], listType: "bullet",
         }} onCancel={() => {}} onSave={() => {}} />
       </main>;
@@ -440,7 +440,7 @@ describe("WikiBlockForm", () => {
   it("saves edited list paragraphs as separate items, preserving inline breaks and omitting empty items", async () => {
     const onSave = vi.fn();
     renderWithI18n(<WikiBlockForm block={{
-      blockIdentifier: "list-edited", blockType: "list", displayOrder: 10,
+      blockKey: "list-edited", blockType: "list", displayOrder: 10,
       items: ["Original"], listType: "bullet",
     }} onCancel={() => {}} onSave={onSave} />);
     const editor = screen.getByRole("textbox", { name: "List items" });
@@ -459,7 +459,7 @@ describe("WikiBlockForm", () => {
     renderWithI18n(
       <WikiBlockForm
         block={{
-          blockIdentifier: "list-2",
+          blockKey: "list-2",
           blockType: "list",
           displayOrder: 10,
           items: ["**bold** _italic_ ~~strike~~ [site](https://example.com)"],

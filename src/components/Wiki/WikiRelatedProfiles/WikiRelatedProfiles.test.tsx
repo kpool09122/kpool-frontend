@@ -14,7 +14,7 @@ describe("WikiRelatedProfiles", () => {
     ["landscape", "aspect-video"],
   ] as const)("renders saved related profile summaries with shape %s", (cardShape, aspectClass) => {
     const block: WikiProfileCardListBlock = {
-      blockIdentifier: "related-profiles",
+      blockKey: "related-profiles",
       blockType: "profile_card_list",
       displayOrder: 1,
       cardShape,
@@ -73,7 +73,7 @@ describe("WikiRelatedProfiles", () => {
 
   it("does not fall back to mock details when only identifiers are present", () => {
     const block: WikiProfileCardListBlock = {
-      blockIdentifier: "related-profiles",
+      blockKey: "related-profiles",
       blockType: "profile_card_list",
       displayOrder: 1,
       relatedResourceType: "talent",

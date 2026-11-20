@@ -30,19 +30,19 @@ const successWikiDetail: WikiDetail = {
   sections: [
     {
       type: "section",
-      sectionIdentifier: "members",
+      sectionKey: "members",
       title: "Members",
       displayOrder: 20,
       depth: 1,
       contents: [
         {
-          blockIdentifier: "members-text",
+          blockKey: "members-text",
           blockType: "text",
           displayOrder: 10,
           content: "Members body",
         },
         {
-          blockIdentifier: "members-profiles",
+          blockKey: "members-profiles",
           blockType: "profile_card_list",
           displayOrder: 20,
           profiles: [
@@ -64,19 +64,19 @@ const successWikiDetail: WikiDetail = {
     },
     {
       type: "section",
-      sectionIdentifier: "overview",
+      sectionKey: "overview",
       title: "Overview",
       displayOrder: 10,
       depth: 1,
       contents: [
         {
-          blockIdentifier: "overview-text",
+          blockKey: "overview-text",
           blockType: "text",
           displayOrder: 10,
           content: "Overview body",
         },
         {
-          blockIdentifier: "overview-embed",
+          blockKey: "overview-embed",
           blockType: "embed",
           displayOrder: 20,
           provider: "youtube",

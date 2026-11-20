@@ -75,7 +75,7 @@ describe("WikiEditPage", () => {
       images: [{ imageIdentifier: "selected-body-image", url: "https://images.example.test/body.jpg", resourceType: "group", wikiIdentifier: "gr-aurora-echo", translationSetIdentifier: "translation-set-aurora-echo", displayOrder: 1, sourceUrl: "https://example.test/source", sourceName: "Source", author: null, license: null, altText: "Selected body photo", isHidden: false, uploadedAt: "2026-11-11T00:00:00Z" }],
       current_page: 1, last_page: 1, total: 1, per_page: 12,
     }));
-    renderPage({ status: "success", data: { ...successState.data, sections: [{ ...successState.data.sections[0], contents: [{ blockIdentifier: "body-photo", blockType: "image", displayOrder: 1, imageIdentifier: "original-image", imageSrc: "https://images.example.test/original.jpg", alt: "Body photo", caption: "Preserved caption" }] }] } });
+    renderPage({ status: "success", data: { ...successState.data, sections: [{ ...successState.data.sections[0], contents: [{ blockKey: "body-photo", blockType: "image", displayOrder: 1, imageIdentifier: "original-image", imageSrc: "https://images.example.test/original.jpg", alt: "Body photo", caption: "Preserved caption" }] }] } });
 
     fireEvent.click(screen.getByRole("button", { name: "Open wiki image library: Body photo" }));
     expect(await screen.findByTestId("wiki-image-library")).toBeInTheDocument();
@@ -1270,10 +1270,10 @@ describe("WikiEditPage", () => {
       expect.objectContaining({
         sections: expect.arrayContaining([
           expect.objectContaining({
-            sectionIdentifier: "sec-overview",
+            sectionKey: "sec-overview",
             contents: expect.arrayContaining([
               expect.objectContaining({
-                sectionIdentifier: "sec-overview-style",
+                sectionKey: "sec-overview-style",
                 contents: expect.arrayContaining([
                   expect.objectContaining({
                     blockType: "quote",

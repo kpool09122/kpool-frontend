@@ -255,7 +255,7 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
   };
 };
 
-const toSectionIdentifier = (value: unknown, fallback: string): string =>
+const toSectionKey = (value: unknown, fallback: string): string =>
   typeof value === "string" && value.length > 0 ? value : fallback;
 
 const toSectionTitle = (value: unknown, fallback: string): string =>
@@ -399,12 +399,12 @@ const adaptWikiBlock = (
 ): WikiBlock | null => {
   const blockType = getBlockType(content);
   const displayOrder = toNumber(content.displayOrder ?? content.display_order, index + 1);
-  const blockIdentifier = toString(content.id ?? content.blockIdentifier, `${path}-block-${index + 1}`);
+  const blockKey = toString(content.blockKey ?? content.block_key ?? content.id ?? content.blockIdentifier, `${path}-block-${index + 1}`);
 
   switch (blockType) {
     case "text":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         content: toString(content.content),
@@ -413,7 +413,7 @@ const adaptWikiBlock = (
       const imageIdentifier = toString(content.imageIdentifier ?? content.image_identifier);
 
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         imageIdentifier,
@@ -447,7 +447,7 @@ const adaptWikiBlock = (
           }));
 
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         images,
@@ -457,7 +457,7 @@ const adaptWikiBlock = (
     }
     case "embed":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         provider: toEmbedProvider(content.provider),
@@ -466,7 +466,7 @@ const adaptWikiBlock = (
       };
     case "quote":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         content: toString(content.content),
@@ -474,7 +474,7 @@ const adaptWikiBlock = (
       };
     case "list":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         listType: toString(content.listType ?? content.list_type, "bullet") === "numbered" ? "numbered" : "bullet",
@@ -482,7 +482,7 @@ const adaptWikiBlock = (
       };
     case "history":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         entries: Array.isArray(content.entries)
@@ -498,7 +498,7 @@ const adaptWikiBlock = (
       const headerCells = toHeaderCells(content.headerCells ?? content.header_cells);
 
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         headers: Array.isArray(content.headers) ? toStringList(content.headers) : headerCells?.map((cell) => cell.content) ?? null,
@@ -519,7 +519,7 @@ const adaptWikiBlock = (
       const cardShape = wikiProfileCardShapeSchema.safeParse(content.cardShape ?? content.card_shape);
 
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         ...(cardShape.success ? { cardShape: cardShape.data } : {}),
@@ -557,8 +557,8 @@ const adaptWikiSection = (
   depth: number,
   path: string,
 ): WikiDetail["sections"][number] => {
-  const sectionIdentifier = toSectionIdentifier(
-    section.id ?? section.sectionIdentifier ?? section.section_identifier,
+  const sectionKey = toSectionKey(
+    section.sectionKey ?? section.section_key ?? section.id ?? section.sectionIdentifier ?? section.section_identifier,
     path,
   );
   const rawContents = Array.isArray(section.contents) ? section.contents : [];
@@ -566,7 +566,7 @@ const adaptWikiSection = (
   const adaptedContents = content
     ? [
         {
-          blockIdentifier: `${sectionIdentifier}-text-1`,
+          blockKey: `${sectionKey}-text-1`,
           blockType: "text" as const,
           displayOrder: 1,
           content,
@@ -576,8 +576,8 @@ const adaptWikiSection = (
     : adaptWikiSectionContents(rawContents, depth + 1, path);
   return {
     type: "section",
-    sectionIdentifier,
-    title: toSectionTitle(section.title, sectionIdentifier),
+    sectionKey,
+    title: toSectionTitle(section.title, sectionKey),
     displayOrder: toNumber(section.displayOrder ?? section.display_order, index + 1),
     depth,
     contents: adaptedContents,

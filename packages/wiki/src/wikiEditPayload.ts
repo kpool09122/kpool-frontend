@@ -16,12 +16,14 @@ import {
 export type WikiSectionContentPayload =
   | {
       type: "section";
+      sectionKey: string;
       title: string;
       displayOrder: number;
       contents: WikiSectionContentPayload[];
     }
   | {
       type: WikiBlockType;
+      blockKey: string;
       displayOrder: number;
       content?: string;
       imageIdentifier?: string;
@@ -92,9 +94,10 @@ export const normalizeSeoKeywords = (
 
 export const toWikiSectionContentPayload = (
   sections: WikiSection[],
+  keyNamespace?: string,
 ): WikiSectionContentPayload[] =>
   sortWikiSectionContents(sections).map((section) =>
-    toWikiContentPayload(normalizeWikiSectionContents(section)),
+    toWikiContentPayload(normalizeWikiSectionContents(section), keyNamespace),
   );
 
 export const toWikiEditPayload = (wiki: WikiDraftDetail): WikiEditPayload => ({
@@ -108,13 +111,13 @@ export const toWikiEditPayload = (wiki: WikiDraftDetail): WikiEditPayload => ({
   keywords: normalizeSeoKeywords(wiki.keywords),
   hero_image: wiki.heroImage,
   basic: wiki.basic,
-  contents: toWikiSectionContentPayload(wiki.sections),
+  contents: toWikiSectionContentPayload(wiki.sections, wiki.wikiIdentifier),
 });
 
 export const toWikiEditRequestPayload = (wiki: WikiDraftDetail): WikiEditRequestPayload => ({
   resourceType: wiki.resourceType,
   basic: wiki.basic,
-  sections: toWikiSectionContentPayload(wiki.sections),
+  sections: toWikiSectionContentPayload(wiki.sections, wiki.wikiIdentifier),
   themeColor: wiki.themeColor ?? null,
   fontStyle: wiki.fontStyle ?? null,
   title: normalizeSeoText(wiki.title),
@@ -123,15 +126,24 @@ export const toWikiEditRequestPayload = (wiki: WikiDraftDetail): WikiEditRequest
   imageIdentifier: wiki.heroImage.imageIdentifier ?? null,
 });
 
+// Legacy position-based editor keys are scoped to the originating Wiki on first save.
+// Independently edited translations must not acquire matching keys merely by position.
+const persistentKey = (key: string, namespace?: string): string =>
+  namespace && /^section-\d+(?:-\d+)*(?:-(?:block|text)-\d+)?$/.test(key)
+    ? `${namespace}:${key}`
+    : key;
+
 const toWikiContentPayload = (
   content: WikiSectionContent,
+  keyNamespace?: string,
 ): WikiSectionContentPayload => {
   if (isWikiSection(content)) {
     return {
       type: "section",
+      sectionKey: persistentKey(content.sectionKey, keyNamespace),
       title: content.title,
       displayOrder: content.displayOrder,
-      contents: sortWikiSectionContents(content.contents).map(toWikiContentPayload),
+      contents: sortWikiSectionContents(content.contents).map((child) => toWikiContentPayload(child, keyNamespace)),
     };
   }
 
@@ -139,12 +151,14 @@ const toWikiContentPayload = (
     case "text":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         content: content.content,
       };
     case "image":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         imageIdentifier: content.imageIdentifier,
         ...(content.imageWidth == null ? {} : { imageWidth: normalizeWikiImageWidth(content.imageWidth) }),
@@ -154,6 +168,7 @@ const toWikiContentPayload = (
     case "image_gallery":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         imageIdentifiers: content.images.map((image) => image.imageIdentifier),
         ...(content.imageWidth == null ? {} : { imageWidth: normalizeWikiImageWidth(content.imageWidth) }),
@@ -162,6 +177,7 @@ const toWikiContentPayload = (
     case "embed":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         provider: content.provider,
         embedId: content.embedId,
@@ -170,6 +186,7 @@ const toWikiContentPayload = (
     case "quote":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         content: content.content,
         source: content.source,
@@ -177,6 +194,7 @@ const toWikiContentPayload = (
     case "list":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         listType: content.listType,
         items: content.items,
@@ -184,12 +202,14 @@ const toWikiContentPayload = (
     case "history":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         entries: content.entries,
       };
     case "table":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         rows: content.rows,
         headers: content.headers,
@@ -200,6 +220,7 @@ const toWikiContentPayload = (
     case "profile_card_list":
       return {
         type: content.blockType,
+        blockKey: persistentKey(content.blockKey, keyNamespace),
         displayOrder: content.displayOrder,
         ...(content.cardShape ? { cardShape: content.cardShape } : {}),
         relatedResourceType: content.relatedResourceType ?? null,

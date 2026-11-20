@@ -40,13 +40,13 @@ export function WikiSectionAccordion({
   return (
     <details
       className={`section-accordion flow-root ${sectionArticleClassName}`}
-      data-testid={`section-${section.sectionIdentifier}`}
+      data-testid={`section-${section.sectionKey}`}
       open={isOpen}
       style={{ borderColor: "var(--wiki-card-border, var(--stroke-subtle))" }}
     >
       <summary
         className={`flex list-none cursor-pointer items-center gap-1 text-left sm:gap-2${hasSideHeading ? " @min-[56rem]/wiki-content:float-left @min-[56rem]/wiki-content:w-40 @min-[56rem]/wiki-content:flex-wrap" : ""}`}
-        data-testid={`section-toggle-${section.sectionIdentifier}`}
+        data-testid={`section-toggle-${section.sectionKey}`}
         onClick={(event) => {
           event.preventDefault();
           setOpenOverride(!isOpen);
@@ -77,7 +77,7 @@ export function WikiSectionAccordion({
             isWikiBlock(content) ? (
               <WikiBlockDisplay
                 block={content}
-                key={content.blockIdentifier}
+                key={content.blockKey}
                 language={language}
                 textClassName="text-base leading-[30px] text-text-strong"
               />
@@ -85,7 +85,7 @@ export function WikiSectionAccordion({
               <WikiSectionAccordion
                 editHref={editHref}
                 onEdit={onEdit}
-                key={content.sectionIdentifier}
+                key={content.sectionKey}
                 language={language}
                 openByDefault={openByDefault}
                 section={content}

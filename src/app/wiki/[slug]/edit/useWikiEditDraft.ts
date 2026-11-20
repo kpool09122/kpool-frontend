@@ -6,6 +6,7 @@ import {
   deleteWikiContent,
   normalizeWikiSectionsForEditing,
   parseWikiSectionsFromCode,
+  preserveWikiContentKeys,
   reorderWikiContent,
   serializeWikiSectionsToCode,
   toWikiEditPayload,
@@ -301,7 +302,7 @@ export const useWikiEditDraft = (
       commitDraft(
         {
           ...currentDraft,
-          sections: parsed.sections,
+          sections: preserveWikiContentKeys(parsed.sections, currentDraft.sections),
         },
         nextCode,
       );
@@ -353,23 +354,23 @@ export const useWikiEditDraft = (
       });
     },
     updateSection: (
-      sectionIdentifier: string,
+      sectionKey: string,
       changes: Parameters<typeof updateWikiSection>[2],
     ) => {
       const currentDraft = getCurrentDraft();
       commitDraft({
         ...currentDraft,
-        sections: updateWikiSection(currentDraft.sections, sectionIdentifier, changes),
+        sections: updateWikiSection(currentDraft.sections, sectionKey, changes),
       });
       if (editingId === newContentEditorId) {
         setNewContentEditorId(null);
       }
     },
-    updateBlock: (blockIdentifier: string, changes: Partial<WikiBlock>) => {
+    updateBlock: (blockKey: string, changes: Partial<WikiBlock>) => {
       const currentDraft = getCurrentDraft();
       commitDraft({
         ...currentDraft,
-        sections: updateWikiBlock(currentDraft.sections, blockIdentifier, changes),
+        sections: updateWikiBlock(currentDraft.sections, blockKey, changes),
       });
       if (editingId === newContentEditorId) {
         setNewContentEditorId(null);
@@ -394,11 +395,11 @@ export const useWikiEditDraft = (
       setEditingId(nextEditingId);
       setNewContentEditorId(nextEditingId);
     },
-    addBlock: (sectionIdentifier: string, blockType: WikiBlockType) => {
+    addBlock: (sectionKey: string, blockType: WikiBlockType) => {
       const currentDraft = getCurrentDraft();
       const [sections, nextEditingId] = addWikiBlock(
         currentDraft.sections,
-        sectionIdentifier,
+        sectionKey,
         blockType,
       );
 

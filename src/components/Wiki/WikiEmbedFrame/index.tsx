@@ -119,7 +119,7 @@ export function WikiEmbedFrame({ block }: { block: WikiEmbedBlock }) {
   return (
     <WikiEmbedFigure caption={block.caption} className={sizingClassName}>
       {playback && videoId ? (
-        <SharedVideoEmbed provider={block.provider === "tiktok" ? "tiktok" : "youtube"} videoId={videoId} title={block.caption || (block.provider === "tiktok" ? "TikTok" : "YouTube")} identifier={block.blockIdentifier} />
+        <SharedVideoEmbed provider={block.provider === "tiktok" ? "tiktok" : "youtube"} videoId={videoId} title={block.caption || (block.provider === "tiktok" ? "TikTok" : "YouTube")} identifier={block.blockKey} />
       ) : <div className={frame.height ? "w-full" : "aspect-video w-full"} style={frame.height ? { height: frame.height } : undefined}>
         <iframe
           allow={frame.allow}

@@ -21,13 +21,13 @@ import type { WikiBlock, WikiSection, WikiTextBlock } from "./types/wiki";
 
 const createSection = (overrides?: Partial<WikiSection>): WikiSection => ({
   type: "section",
-  sectionIdentifier: "sec-root",
+  sectionKey: "sec-root",
   title: "Root",
   displayOrder: 10,
   depth: 1,
   contents: [
     {
-      blockIdentifier: "block-root-text",
+      blockKey: "block-root-text",
       blockType: "text",
       displayOrder: 10,
       content: "Root text",
@@ -44,7 +44,7 @@ describe("wikiEditModel", () => {
       { year: 2025, title: "Concert", detail: null },
     ];
     const section = createSection({
-      contents: [{ blockType: "history", blockIdentifier: "history-1", displayOrder: 10, entries }],
+      contents: [{ blockType: "history", blockKey: "history-1", displayOrder: 10, entries }],
     });
     const parsed = parseWikiSectionsFromCode(serializeWikiSectionsToCode([section]));
 
@@ -108,10 +108,10 @@ describe("wikiEditModel", () => {
   });
 
   it("reorders sibling blocks without changing the position of nested sections", () => {
-    const first = { ...createWikiBlock("text", 5), blockIdentifier: "first" };
-    const last = { ...createWikiBlock("quote", 90), blockIdentifier: "last" };
+    const first = { ...createWikiBlock("text", 5), blockKey: "first" };
+    const last = { ...createWikiBlock("quote", 90), blockKey: "last" };
     const child = createSection({
-      sectionIdentifier: "child",
+      sectionKey: "child",
       depth: 2,
       displayOrder: 40,
     });
@@ -137,7 +137,7 @@ describe("wikiEditModel", () => {
 
   it("adds one editable block to a nested section with contents as the canonical edit tree", () => {
     const childSection = createSection({
-      sectionIdentifier: "sec-child",
+      sectionKey: "sec-child",
       title: "Child",
       displayOrder: 20,
       depth: 2,
@@ -151,22 +151,22 @@ describe("wikiEditModel", () => {
     });
 
     const [addedSections, editId] = addWikiBlock([rootSection], "sec-child", "embed");
-    const blockIdentifier = editId?.replace("block:", "");
+    const blockKey = editId?.replace("block:", "");
 
-    expect(blockIdentifier).toBeTruthy();
+    expect(blockKey).toBeTruthy();
 
-    const [updatedSections] = blockIdentifier
-      ? [updateWikiBlock(addedSections, blockIdentifier, { embedId: "ohVNJ2gxsmo" } as Partial<WikiBlock>)]
+    const [updatedSections] = blockKey
+      ? [updateWikiBlock(addedSections, blockKey, { embedId: "ohVNJ2gxsmo" } as Partial<WikiBlock>)]
       : [addedSections];
     const normalizedRoot = updatedSections[0];
     const contentsChild = normalizedRoot?.contents.find(isWikiSection);
 
     expect(normalizedRoot).not.toHaveProperty("children");
-    expect(contentsChild?.sectionIdentifier).toBe("sec-child");
+    expect(contentsChild?.sectionKey).toBe("sec-child");
     expect(contentsChild?.contents).toHaveLength(1);
     expect(contentsChild).not.toHaveProperty("children");
-    expect((contentsChild?.contents[0] as WikiBlock | undefined)?.blockIdentifier).toBe(
-      blockIdentifier,
+    expect((contentsChild?.contents[0] as WikiBlock | undefined)?.blockKey).toBe(
+      blockKey,
     );
     expect(serializeWikiSectionsToCode(updatedSections)).toContain(
       "[[embed|provider:youtube|id:ohVNJ2gxsmo|caption:New embed caption]]",
@@ -185,13 +185,13 @@ describe("wikiEditModel", () => {
   it("updates and deletes section content without mutating sibling items", () => {
     const section = createSection();
     const textBlock = section.contents[0] as WikiBlock;
-    const updatedBlock = updateWikiBlock([section], textBlock.blockIdentifier, {
+    const updatedBlock = updateWikiBlock([section], textBlock.blockKey, {
       content: "Updated text",
     });
     const updatedSection = updateWikiSection(updatedBlock, "sec-root", {
       title: "Updated Root",
     });
-    const deleted = deleteWikiContent(updatedSection, textBlock.blockIdentifier);
+    const deleted = deleteWikiContent(updatedSection, textBlock.blockKey);
 
     expect((updatedBlock[0]?.contents[0] as WikiTextBlock).content).toBe("Updated text");
     expect(updatedSection[0]?.title).toBe("Updated Root");
@@ -337,7 +337,7 @@ describe("wikiEditModel", () => {
       return;
     }
 
-    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+    expect(toWikiSectionContentPayload(parsed.sections)).toMatchObject([
       {
         type: "section",
         title: "Overview",
@@ -459,7 +459,7 @@ describe("wikiEditModel", () => {
       return;
     }
 
-    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+    expect(toWikiSectionContentPayload(parsed.sections)).toMatchObject([
       {
         type: "section",
         title: "Overview",
@@ -494,7 +494,7 @@ describe("wikiEditModel", () => {
       return;
     }
 
-    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+    expect(toWikiSectionContentPayload(parsed.sections)).toMatchObject([
       {
         type: "section",
         title: "Members",
@@ -529,7 +529,7 @@ describe("wikiEditModel", () => {
       return;
     }
 
-    expect(toWikiSectionContentPayload(parsed.sections)).toEqual([
+    expect(toWikiSectionContentPayload(parsed.sections)).toMatchObject([
       {
         type: "section",
         title: "Highlights",

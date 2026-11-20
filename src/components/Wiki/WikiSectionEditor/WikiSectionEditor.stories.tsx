@@ -62,7 +62,7 @@ export const Default: Story = {
 
 export const SectionEditing: Story = {
   args: {
-    editingId: `section:${wikiStorySection.sectionIdentifier}`,
+    editingId: `section:${wikiStorySection.sectionKey}`,
   },
   render: Default.render,
 };

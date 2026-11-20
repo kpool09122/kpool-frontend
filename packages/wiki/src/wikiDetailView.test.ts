@@ -50,14 +50,14 @@ const basic: WikiBasic = {
 const sections: WikiSection[] = [
   {
     type: "section",
-    sectionIdentifier: "second",
+    sectionKey: "second",
     title: "Second",
     displayOrder: 20,
     depth: 1,
     contents: [
       {
         type: "section",
-        sectionIdentifier: "child-b",
+        sectionKey: "child-b",
         title: "Child B",
         displayOrder: 20,
         depth: 2,
@@ -65,7 +65,7 @@ const sections: WikiSection[] = [
       },
       {
         type: "section",
-        sectionIdentifier: "child-a",
+        sectionKey: "child-a",
         title: "Child A",
         displayOrder: 10,
         depth: 2,
@@ -75,7 +75,7 @@ const sections: WikiSection[] = [
   },
   {
     type: "section",
-    sectionIdentifier: "first",
+    sectionKey: "first",
     title: "First",
     displayOrder: 10,
     depth: 1,
@@ -156,7 +156,7 @@ describe("wikiDetailView", () => {
     expect(sortWikiSections(sections)).toEqual([
       {
         type: "section",
-        sectionIdentifier: "first",
+        sectionKey: "first",
         title: "First",
         displayOrder: 10,
         depth: 1,
@@ -164,14 +164,14 @@ describe("wikiDetailView", () => {
       },
       {
         type: "section",
-        sectionIdentifier: "second",
+        sectionKey: "second",
         title: "Second",
         displayOrder: 20,
         depth: 1,
         contents: [
           {
             type: "section",
-            sectionIdentifier: "child-a",
+            sectionKey: "child-a",
             title: "Child A",
             displayOrder: 10,
             depth: 2,
@@ -179,7 +179,7 @@ describe("wikiDetailView", () => {
           },
           {
             type: "section",
-            sectionIdentifier: "child-b",
+            sectionKey: "child-b",
             title: "Child B",
             displayOrder: 20,
             depth: 2,

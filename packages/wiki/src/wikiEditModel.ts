@@ -26,3 +26,5 @@ export {
   WIKI_SECTION_MAX_DEPTH,
 } from "./wikiSectionModel";
 export type { WikiContentEditorId, WikiContentMove } from "./wikiSectionModel";
+
+export { preserveWikiContentKeys } from "./wikiContentKeys";

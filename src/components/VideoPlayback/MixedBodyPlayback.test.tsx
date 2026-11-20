@@ -11,8 +11,8 @@ let store: PlaybackStore;
 function Capture() { const context = useVideoPlayback()!; useEffect(() => { store = context.store; }, [context]); return null; }
 it("TikTok body embeds take over the shared single session, detach and yield to YouTube", () => {
   render(<I18nProvider initialLocale="en"><VideoPlaybackProvider><Capture />
-    <WikiEmbedFrame block={{ blockIdentifier: "tiktok", blockType: "embed", displayOrder: 0, provider: "tiktok", embedId: "https://www.tiktok.com/@scout2015/video/6718335390845095173", caption: "Body TikTok" }} />
-    <WikiEmbedFrame block={{ blockIdentifier: "youtube", blockType: "embed", displayOrder: 0, provider: "youtube", embedId: "abcdefghijk", caption: "Body YouTube" }} />
+    <WikiEmbedFrame block={{ blockKey: "tiktok", blockType: "embed", displayOrder: 0, provider: "tiktok", embedId: "https://www.tiktok.com/@scout2015/video/6718335390845095173", caption: "Body TikTok" }} />
+    <WikiEmbedFrame block={{ blockKey: "youtube", blockType: "embed", displayOrder: 0, provider: "youtube", embedId: "abcdefghijk", caption: "Body YouTube" }} />
   </VideoPlaybackProvider></I18nProvider>);
   expect(screen.queryByTitle("Body TikTok")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Play: Body TikTok" }));

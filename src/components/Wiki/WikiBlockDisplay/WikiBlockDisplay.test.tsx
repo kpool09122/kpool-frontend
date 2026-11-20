@@ -21,7 +21,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "list-1",
+          blockKey: "list-1",
           blockType: "list",
           displayOrder: 10,
           listType: "bullet",
@@ -38,7 +38,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "history-1",
+          blockKey: "history-1",
           blockType: "history",
           displayOrder: 10,
           entries: [
@@ -61,7 +61,7 @@ describe("WikiBlockDisplay", () => {
     const { container } = render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "table-1",
+          blockKey: "table-1",
           blockType: "table",
           displayOrder: 20,
           headers: ["Role", "Member"],
@@ -83,7 +83,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "table-2",
+          blockKey: "table-2",
           blockType: "table",
           displayOrder: 20,
           headers: ["Release", "Year"],
@@ -102,7 +102,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "image-1",
+          blockKey: "image-1",
           blockType: "image",
           displayOrder: 30,
           imageIdentifier: "image-1",
@@ -121,7 +121,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "text-1",
+          blockKey: "text-1",
           blockType: "text",
           content:
             "**bold** _italic_ ~~strike~~ [site](https://example.com)",
@@ -148,7 +148,7 @@ describe("WikiBlockDisplay", () => {
   ])("keeps the full escaped label inside %s", (content, href, label) => {
     const { container } = render(
       <WikiBlockDisplay
-        block={{ blockIdentifier: "escaped-link", blockType: "text", content, displayOrder: 10 }}
+        block={{ blockKey: "escaped-link", blockType: "text", content, displayOrder: 10 }}
         language="ko"
       />,
     );
@@ -162,7 +162,7 @@ describe("WikiBlockDisplay", () => {
     const { container } = render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "list-inline-markdown",
+          blockKey: "list-inline-markdown",
           blockType: "list",
           displayOrder: 15,
           listType: "bullet",
@@ -197,7 +197,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "text-2",
+          blockKey: "text-2",
           blockType: "text",
           content: "Broken [link](not a url",
           displayOrder: 20,
@@ -212,7 +212,7 @@ describe("WikiBlockDisplay", () => {
     const { container } = render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "text-3",
+          blockKey: "text-3",
           blockType: "text",
           content: "first line\nsecond line",
           displayOrder: 30,
@@ -230,7 +230,7 @@ describe("WikiBlockDisplay", () => {
     const { container } = render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "text-long-url",
+          blockKey: "text-long-url",
           blockType: "text",
           content: `weverse.io (${longUrl}) [source](${longUrl})`,
           displayOrder: 40,
@@ -246,7 +246,7 @@ describe("WikiBlockDisplay", () => {
     const { container } = render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "list-long-url",
+          blockKey: "list-long-url",
           blockType: "list",
           displayOrder: 50,
           listType: "bullet",
@@ -262,7 +262,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "quote-long-url",
+          blockKey: "quote-long-url",
           blockType: "quote",
           content: longUrl,
           displayOrder: 60,
@@ -279,7 +279,7 @@ describe("WikiBlockDisplay", () => {
     render(
       <WikiBlockDisplay
         block={{
-          blockIdentifier: "table-long-url",
+          blockKey: "table-long-url",
           blockType: "table",
           displayOrder: 70,
           headers: [longUrl],

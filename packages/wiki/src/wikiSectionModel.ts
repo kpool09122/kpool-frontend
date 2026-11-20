@@ -11,22 +11,22 @@ export const getNextDisplayOrder = (contents: WikiSectionContent[]): number =>
   contents.reduce((max, content) => Math.max(max, content.displayOrder), 0) +
   DISPLAY_ORDER_STEP;
 
-export const createWikiContentIdentifier = (prefix: string): string =>
-  `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+export const createWikiContentKey = (prefix: string): string =>
+  `${prefix}-${crypto.randomUUID()}`;
 
 export const isWikiSection = (
   content: WikiSectionContent,
-): content is WikiSection => "sectionIdentifier" in content;
+): content is WikiSection => "sectionKey" in content;
 
 export const isWikiBlock = (content: WikiSectionContent): content is WikiBlock =>
-  "blockIdentifier" in content;
+  "blockKey" in content;
 
 export const getWikiContentEditorId = (
   content: WikiSectionContent,
 ): WikiContentEditorId =>
   isWikiSection(content)
-    ? `section:${content.sectionIdentifier}`
-    : `block:${content.blockIdentifier}`;
+    ? `section:${content.sectionKey}`
+    : `block:${content.blockKey}`;
 
 export const normalizeWikiSectionContents = (
   section: WikiSection,
@@ -66,19 +66,19 @@ export const createWikiBlock = (
   blockType: WikiBlockType,
   displayOrder: number,
 ): WikiBlock => {
-  const blockIdentifier = createWikiContentIdentifier(`block-${blockType.replace("_", "-")}`);
+  const blockKey = createWikiContentKey(`block-${blockType.replace("_", "-")}`);
 
   switch (blockType) {
     case "text":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         content: "",
       };
     case "image":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         imageIdentifier: "pending-image",
@@ -89,7 +89,7 @@ export const createWikiBlock = (
       };
     case "image_gallery":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         images: [
@@ -104,7 +104,7 @@ export const createWikiBlock = (
       };
     case "embed":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         provider: "youtube",
@@ -113,7 +113,7 @@ export const createWikiBlock = (
       };
     case "quote":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         content: "New quote",
@@ -121,17 +121,17 @@ export const createWikiBlock = (
       };
     case "list":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         listType: "bullet",
         items: ["New item"],
       };
     case "history":
-      return { blockIdentifier, blockType, displayOrder, entries: [] };
+      return { blockKey, blockType, displayOrder, entries: [] };
     case "table":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         headers: ["Column 1", "Column 2"],
@@ -142,7 +142,7 @@ export const createWikiBlock = (
       };
     case "profile_card_list":
       return {
-        blockIdentifier,
+        blockKey,
         blockType,
         displayOrder,
         relatedResourceType: null,
@@ -177,12 +177,12 @@ export const addWikiSection = (
 ): [WikiSection[], WikiContentEditorId | null] => {
   let nextEditorId: WikiContentEditorId | null = null;
   const createSection = (parentDepth: number, displayOrder: number): WikiSection => {
-    const sectionIdentifier = createWikiContentIdentifier("section");
-    nextEditorId = `section:${sectionIdentifier}`;
+    const sectionKey = createWikiContentKey("section");
+    nextEditorId = `section:${sectionKey}`;
 
     return {
       type: "section",
-      sectionIdentifier,
+      sectionKey,
       title: "New section",
       displayOrder,
       depth: parentDepth + 1,
@@ -197,7 +197,7 @@ export const addWikiSection = (
   }
 
   const updated = mapSections(sections, (section) => {
-    if (section.sectionIdentifier !== parentSectionIdentifier) {
+    if (section.sectionKey !== parentSectionIdentifier) {
       return section;
     }
 
@@ -218,17 +218,17 @@ export const addWikiSection = (
 
 export const addWikiBlock = (
   sections: WikiSection[],
-  sectionIdentifier: string,
+  sectionKey: string,
   blockType: WikiBlockType,
 ): [WikiSection[], WikiContentEditorId | null] => {
   let nextEditorId: WikiContentEditorId | null = null;
   const updated = mapSections(sections, (section) => {
-    if (section.sectionIdentifier !== sectionIdentifier) {
+    if (section.sectionKey !== sectionKey) {
       return section;
     }
 
     const block = createWikiBlock(blockType, getNextDisplayOrder(section.contents));
-    nextEditorId = `block:${block.blockIdentifier}`;
+    nextEditorId = `block:${block.blockKey}`;
 
     return {
       ...section,
@@ -241,24 +241,24 @@ export const addWikiBlock = (
 
 export const updateWikiSection = (
   sections: WikiSection[],
-  sectionIdentifier: string,
+  sectionKey: string,
   changes: Partial<Pick<WikiSection, "title">>,
 ): WikiSection[] =>
   mapSections(sections, (section) =>
-    section.sectionIdentifier === sectionIdentifier
+    section.sectionKey === sectionKey
       ? { ...section, ...changes }
       : section,
   );
 
 export const updateWikiBlock = (
   sections: WikiSection[],
-  blockIdentifier: string,
+  blockKey: string,
   changes: Partial<WikiBlock>,
 ): WikiSection[] =>
   mapSections(sections, (section) => ({
     ...section,
     contents: section.contents.map((content) =>
-      isWikiBlock(content) && content.blockIdentifier === blockIdentifier
+      isWikiBlock(content) && content.blockKey === blockKey
         ? ({ ...content, ...changes } as WikiBlock)
         : content,
     ),
@@ -301,7 +301,7 @@ export const reorderWikiContent = (
   const visit = <T extends WikiSectionContent>(contents: T[]): T[] => {
     const updated = contents.map((content) => {
       if (!isWikiSection(content)) return content;
-      const children = content.sectionIdentifier === parentSectionIdentifier
+      const children = content.sectionKey === parentSectionIdentifier
         ? reorderSiblings(content.contents)
         : visit(content.contents);
       return children === content.contents ? content : { ...content, contents: children };
@@ -317,7 +317,7 @@ export const deleteWikiContent = (
   identifier: string,
 ): WikiSection[] =>
   sections
-    .filter((section) => section.sectionIdentifier !== identifier)
+    .filter((section) => section.sectionKey !== identifier)
     .map((section) => {
       const normalizedSection = normalizeWikiSectionContents(section);
 
@@ -326,8 +326,8 @@ export const deleteWikiContent = (
         contents: normalizedSection.contents
           .filter((content) =>
             isWikiSection(content)
-              ? content.sectionIdentifier !== identifier
-              : content.blockIdentifier !== identifier,
+              ? content.sectionKey !== identifier
+              : content.blockKey !== identifier,
           )
           .map((content) =>
             isWikiSection(content)

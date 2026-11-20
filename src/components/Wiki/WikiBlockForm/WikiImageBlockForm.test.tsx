@@ -5,7 +5,7 @@ import { WikiBlockForm } from "./index";
 import type { WikiImagePicker } from "../WikiImageLibrary/types";
 
 const block: WikiImageBlock = {
-  blockIdentifier: "block-photo", blockType: "image", displayOrder: 1,
+  blockKey: "block-photo", blockType: "image", displayOrder: 1,
   imageIdentifier: "old-image", imageSrc: "https://images.example.test/old.jpg", alt: "Old photo", caption: "Original caption",
 };
 const selected: WikiUploadedImage = {
@@ -86,7 +86,7 @@ describe("Wiki image block library editing", () => {
   });
 
   it("adds a gallery selection and retains each image's own URL", () => {
-    const gallery: WikiImageGalleryBlock = { blockIdentifier: "gallery", blockType: "image_gallery", displayOrder: 1, images: [block], caption: "Gallery caption" };
+    const gallery: WikiImageGalleryBlock = { blockKey: "gallery", blockType: "image_gallery", displayOrder: 1, images: [block], caption: "Gallery caption" };
     const onSave = vi.fn();
     render(<WikiBlockForm block={gallery} onRequestImage={pickImage} onCancel={vi.fn()} onSave={onSave} />);
     fireEvent.click(screen.getByRole("button", { name: "画像を追加" }));

@@ -11,7 +11,7 @@ describe("WikiSectionAccordion", () => {
   it("renders the section summary closed by default", () => {
     render(<WikiSectionAccordion language="ja" section={wikiStorySection} />);
 
-    const section = screen.getByTestId(`section-${wikiStorySection.sectionIdentifier}`);
+    const section = screen.getByTestId(`section-${wikiStorySection.sectionKey}`);
 
     expect(section).not.toHaveAttribute("open");
     expect(screen.getByText(wikiStorySection.title)).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe("WikiSectionAccordion", () => {
   it("renders the section body content after opening", () => {
     render(<WikiSectionAccordion language="ja" section={wikiStorySection} />);
 
-    fireEvent.click(screen.getByTestId(`section-toggle-${wikiStorySection.sectionIdentifier}`));
+    fireEvent.click(screen.getByTestId(`section-toggle-${wikiStorySection.sectionKey}`));
 
     expect(
       screen.getAllByText(
@@ -44,7 +44,7 @@ describe("WikiSectionAccordion", () => {
       />,
     );
 
-    const section = screen.getByTestId(`section-${wikiStorySection.sectionIdentifier}`);
+    const section = screen.getByTestId(`section-${wikiStorySection.sectionKey}`);
     const editLink = screen.getByRole("link", {
       name: `セクションを編集: ${wikiStorySection.title}`,
     });

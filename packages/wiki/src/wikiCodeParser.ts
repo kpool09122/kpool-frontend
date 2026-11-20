@@ -17,7 +17,7 @@ import {
 } from "./wikiCodeSyntax";
 import { normalizeWikiImageWidth } from "./wikiImageLayout";
 import {
-  createWikiContentIdentifier,
+  createWikiContentKey,
   DISPLAY_ORDER_STEP,
   getNextDisplayOrder,
   isWikiSection,
@@ -331,7 +331,7 @@ const getIncludeEmbedId = (
 
 const parseIncludeEmbedBlock = (
   line: string,
-): Omit<WikiEmbedBlock, "blockIdentifier" | "displayOrder"> | null => {
+): Omit<WikiEmbedBlock, "blockKey" | "displayOrder"> | null => {
   const includeMacro = parseNamuIncludeMacro(line);
 
   if (!includeMacro) {
@@ -366,7 +366,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
   const addBlock = (block: Record<string, unknown> & { blockType: WikiBlockType }) => {
     blocks.push({
       ...block,
-      blockIdentifier: createWikiContentIdentifier(`block-${block.blockType.replaceAll("_", "-")}`),
+      blockKey: createWikiContentKey(`block-${block.blockType.replaceAll("_", "-")}`),
       displayOrder: (blocks.length + 1) * DISPLAY_ORDER_STEP,
     } as WikiBlock);
   };
@@ -662,7 +662,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
 
     if (nextSection.depth === 1) {
       const rootIndex = rootSections.findIndex(
-        (section) => section.sectionIdentifier === nextSection.sectionIdentifier,
+        (section) => section.sectionKey === nextSection.sectionKey,
       );
 
       if (rootIndex >= 0) {
@@ -681,7 +681,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
     const nextParent = {
       ...parent,
       contents: parent.contents.map((content) =>
-        isWikiSection(content) && content.sectionIdentifier === nextSection.sectionIdentifier
+        isWikiSection(content) && content.sectionKey === nextSection.sectionKey
           ? nextSection
           : content,
       ),
@@ -749,7 +749,7 @@ export const parseWikiSectionsFromCode = (code: string): WikiCodeParseResult => 
       const parent = sectionStack.at(-1);
       const nextSection: WikiSection = {
         type: "section",
-        sectionIdentifier: createWikiContentIdentifier("section"),
+        sectionKey: createWikiContentKey("section"),
         title,
         displayOrder: getNextDisplayOrder(parent ? parent.contents : rootSections),
         depth: normalizedHeadingDepth,

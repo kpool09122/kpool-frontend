@@ -148,13 +148,13 @@ describe("publicWiki", () => {
     expect(wiki.sections).toEqual([
       {
         type: "section",
-        sectionIdentifier: "overview",
+        sectionKey: "overview",
         title: "Overview",
         displayOrder: 1,
         depth: 1,
         contents: [
           {
-            blockIdentifier: "overview-text-1",
+            blockKey: "overview-text-1",
             blockType: "text",
             displayOrder: 1,
             content: "Published overview from the backend.",
@@ -339,7 +339,7 @@ describe("publicWiki", () => {
 
     expect(wiki.sections[0].contents).toEqual([
       {
-        blockIdentifier: "members-profiles",
+        blockKey: "members-profiles",
         blockType: "profile_card_list",
         displayOrder: 10,
         cardShape: "square",
@@ -385,7 +385,7 @@ describe("publicWiki", () => {
 
     expect(wiki.sections[0].contents).toEqual([
       {
-        blockIdentifier: "members-profiles",
+        blockKey: "members-profiles",
         blockType: "profile_card_list",
         displayOrder: 10,
         profiles: [],

@@ -409,7 +409,7 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   const body: Record<string, unknown> = {
     basic: publicWiki.basic,
     publishedWikiIdentifier: publicWiki.wikiIdentifier,
-    sections: toWikiSectionContentPayload(publicWikiDetail.sections),
+    sections: toWikiSectionContentPayload(publicWikiDetail.sections, publicWikiDetail.wikiIdentifier),
   };
 
   copyStringProperty(source, body, "language");
