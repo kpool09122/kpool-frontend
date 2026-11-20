@@ -30,6 +30,15 @@ task dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## UI Components
+
+UI primitives use shadcn/ui (Radix, `new-york`). Configuration is in `components.json`,
+components live in `src/components/ui`, and `src/lib/utils.ts` provides `cn`.
+Theme tokens in `src/app/globals.css` follow the existing k-pool colors.
+
+Add components with `pnpm dlx shadcn@latest add <component>` and review the generated changes.
+The video carousel uses the shadcn Carousel with Embla Autoplay.
+
 ## Environment Variables
 
 Wiki pages fetch backend data via `KPOOL_WIKI_PRIVATE_API_BASE_URL`. Backend requests use `/api/v1/{context}`; browser-facing Next.js API URLs remain unversioned. Deploy together with kpool-backend#698.

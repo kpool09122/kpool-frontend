@@ -1,3 +1,7 @@
+import { PopularVideosSection } from "./PopularVideosSection";
+import { loadPopularVideos } from "@/gateways/wiki/popularVideos";
+import { HomeOverview } from "./HomeOverview";
+import { loadWikiStatistics } from "@/gateways/wiki/wikiStatistics";
 import { buildPageMetadata } from "../metadata";
 
 import { dictionaries } from "../../i18n/dictionaries";
@@ -16,7 +20,6 @@ type ResourceParamName = TopSection["resourceParamName"];
 
 const sectionResourceParamNames: Record<TopSectionKey, ResourceParamName> = {
   created: "createdResourceType",
-  popular: "popularResourceType",
   updated: "updatedResourceType",
 };
 
@@ -24,7 +27,6 @@ const getSectionResourceTypes = (
   searchParams: Record<string, string | string[] | undefined>,
 ): Record<TopSectionKey, WikiResourceType | undefined> => ({
   created: toResourceType(searchParams.createdResourceType),
-  popular: toResourceType(searchParams.popularResourceType),
   updated: toResourceType(searchParams.updatedResourceType),
 });
 
@@ -49,18 +51,12 @@ export default async function LanguageHome({ params, searchParams }: LanguageHom
       order: "desc" as const,
       resourceType: resourceTypes.created,
     },
-    popular: {
-      perPage: 10,
-      page: 1,
-      sort: "version" as const,
-      order: "desc" as const,
-      resourceType: resourceTypes.popular,
-    },
   };
-  const [updatedState, createdState, popularState] = await Promise.all([
+  const [updatedState, createdState, statistics, popularVideos] = await Promise.all([
     loadPublicWikiListState(resolvedLanguage, queries.updated),
     loadPublicWikiListState(resolvedLanguage, queries.created),
-    loadPublicWikiListState(resolvedLanguage, queries.popular),
+    loadWikiStatistics(),
+    loadPopularVideos(),
   ]);
   const sections: TopSection[] = [
     {
@@ -77,18 +73,13 @@ export default async function LanguageHome({ params, searchParams }: LanguageHom
       resourceParamName: sectionResourceParamNames.created,
       state: createdState,
     },
-    {
-      key: "popular",
-      title: t.popularWikisTitle,
-      query: queries.popular,
-      resourceParamName: sectionResourceParamNames.popular,
-      state: popularState,
-    },
   ];
 
   return (
     <main className="flex-1 bg-surface-base px-6 py-8 text-text-strong sm:px-10 lg:px-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
+        <HomeOverview locale={resolvedLanguage} statistics={statistics} />
+        <PopularVideosSection locale={resolvedLanguage} state={popularVideos} />
         <TopWikiSectionsClient
           initialSections={sections}
           language={resolvedLanguage}

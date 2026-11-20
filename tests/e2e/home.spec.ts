@@ -15,7 +15,7 @@ test("home page shows Wiki discovery sections", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("region", { name: "Recently updated wikis" })).toBeVisible();
   await expect(page.getByRole("region", { name: "New wikis" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Frequently updated wikis" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Featured videos" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Recently updated wikis" }).getByRole("link", { name: "View more" }))
     .toHaveAttribute("href", "/en/wiki?sort=updatedAt&order=desc&perPage=10&page=1");
 });
