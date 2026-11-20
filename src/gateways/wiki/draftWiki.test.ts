@@ -478,8 +478,7 @@ describe("draftWiki", () => {
               rejectionReason: "内容が不足しています。",
             },
           ],
-          current_page: 1,
-          last_page: 1,
+          next_cursor: null,
           total: 1,
           per_page: 12,
         }),
@@ -489,7 +488,7 @@ describe("draftWiki", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(fetchMyWikiDraftWikis({
       fallbackErrorMessage: "failed",
-      page: 1,
+      cursor: null,
       perPage: 12,
       statuses: ["rejected"],
     })).resolves.toMatchObject({
@@ -843,7 +842,7 @@ describe("draftWiki", () => {
   it("builds my and managed draft wiki list urls without legacy filtering query", () => {
     const params = {
       baseUrl: "https://api.example.test/api/v1/wiki/",
-      page: 2,
+      cursor: "next-cursor",
       perPage: 24,
       resourceType: "group",
       statuses: ["under_review"] as const,
@@ -851,10 +850,10 @@ describe("draftWiki", () => {
     };
 
     expect(createMyWikiDraftWikisUrl(params)).toBe(
-      "https://api.example.test/api/v1/wiki/my/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+      "https://api.example.test/api/v1/wiki/my/draft-wikis?statuses%5B%5D=under_review&perPage=24&cursor=next-cursor&resourceType=group&translationSetIdentifier=translation-set-1",
     );
     expect(createManagedWikiDraftWikisUrl(params)).toBe(
-      "https://api.example.test/api/v1/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=24&page=2&resourceType=group&translationSetIdentifier=translation-set-1",
+      "https://api.example.test/api/v1/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=24&cursor=next-cursor&resourceType=group&translationSetIdentifier=translation-set-1",
     );
   });
 
@@ -877,12 +876,12 @@ describe("draftWiki", () => {
     vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "0");
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
     vi.stubGlobal("window", undefined);
-    const body = { wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 };
+    const body = { wikis: [], next_cursor: null, total: 0, per_page: 12 };
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify(body)));
 
     await expect(loadInitialDraftWikiListForRequest("session=abc", "editingWikis")).resolves.toMatchObject({
       wikis: body.wikis,
-      pageInfo: { current_page: 1, last_page: 1, total: 0 },
+      pageInfo: { next_cursor: null, total: 0 },
     });
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
       expect.stringMatching(/^https:\/\/api\.example\.test\/api\/v1\/wiki\/my\/draft-wikis\?/),
@@ -897,8 +896,7 @@ describe("draftWiki", () => {
     await expect(loadInitialDraftWikisForRequest("session=abc")).resolves.toMatchObject({
       editingWikis: {
         pageInfo: {
-          current_page: 1,
-          last_page: 1,
+          next_cursor: null,
           total: 1,
         },
         wikis: [
@@ -939,8 +937,7 @@ describe("draftWiki", () => {
               mergedAt: null,
             },
           ],
-          current_page: 1,
-          last_page: 1,
+          next_cursor: null,
           total: 1,
           per_page: 12,
         }),
@@ -951,13 +948,13 @@ describe("draftWiki", () => {
     await expect(
       fetchMyWikiDraftWikis({
         fallbackErrorMessage: "fallback",
-        page: 1,
+        cursor: null,
         perPage: 12,
         statuses: ["pending", "rejected"],
       }),
     ).resolves.toEqual(expect.objectContaining({ total: 1 }));
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12&page=1",
+      "/api/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12",
       {
         credentials: "include",
       },
@@ -966,19 +963,19 @@ describe("draftWiki", () => {
 
   it("fetches managed draft wiki lists through the browser API route", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 }), { status: 200 }),
+      new Response(JSON.stringify({ wikis: [], next_cursor: null, total: 0, per_page: 12 }), { status: 200 }),
     );
 
     await expect(
       fetchManagedWikiDraftWikis({
         fallbackErrorMessage: "fallback",
-        page: 1,
+        cursor: null,
         perPage: 12,
         statuses: ["under_review"],
       }),
     ).resolves.toEqual(expect.objectContaining({ total: 0 }));
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12&page=1",
+      "/api/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12",
       { credentials: "include" },
     );
   });

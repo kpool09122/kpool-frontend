@@ -36,12 +36,14 @@ describe("wikiImageBrowserApi", () => {
   });
 
   it.each([
-    [loadInitialWikiDraftImagesForRequest, "draft-images?status=under_review&perPage=12&page=1"],
+    [loadInitialWikiDraftImagesForRequest, "draft-images?status=under_review&perPage=12"],
     [loadInitialWikiImageDeletionRequestsForRequest, "image-deletion-requests?perPage=12&page=1"],
   ] as const)("loads %s from the backend without browser globals", async (loadInitial, path) => {
     vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://api.example.test");
     vi.stubGlobal("window", undefined);
-    const body = { images: [], current_page: 1, last_page: 1, total: 0, per_page: 12 };
+    const body = path.startsWith("draft-images")
+      ? { images: [], next_cursor: null, total: 0, per_page: 12 }
+      : { images: [], current_page: 1, last_page: 1, total: 0, per_page: 12 };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(body));
     vi.stubGlobal("fetch", fetchMock);
 

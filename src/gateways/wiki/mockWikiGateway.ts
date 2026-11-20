@@ -47,8 +47,7 @@ export const createMockInitialDraftWikis = () => ({
     isLoadingMore: false,
     loadError: null,
     pageInfo: {
-      current_page: 1,
-      last_page: 1,
+      next_cursor: null,
       total: 1,
     },
     wikis: [createMockEditingDraftWiki()],

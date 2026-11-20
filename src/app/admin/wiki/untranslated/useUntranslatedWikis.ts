@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 
 import {
   defaultWikiDraftPerPage,
-  type WikiDraftWikiListResponse,
   type WikiVersionInconsistentWikiListResponse,
   createTranslateWikiRequestBody,
 } from "@/gateways/wiki/draftWiki";
@@ -31,7 +30,7 @@ const shouldLoadInitialDraftWikiPage = (state: DraftWikiListState): boolean =>
   !state.pageInfo && state.wikis.length === 0 && !state.isInitialLoading;
 
 const toDraftWikiListState = (
-  wikiPage: WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse,
+  wikiPage: WikiVersionInconsistentWikiListResponse,
 ): DraftWikiListState => ({
   isInitialLoading: false,
   isLoadingMore: false,
@@ -106,7 +105,7 @@ export const useUntranslatedWikis = ({
       loadError: null,
     }));
 
-    void queryClient.fetchQuery<WikiDraftWikiListResponse | WikiVersionInconsistentWikiListResponse>({
+    void queryClient.fetchQuery<WikiVersionInconsistentWikiListResponse>({
       queryKey: adminQueryKeys.draftWikis.page({
         identityIdentifier,
         page,

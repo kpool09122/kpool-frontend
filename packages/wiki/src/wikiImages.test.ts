@@ -168,13 +168,13 @@ describe("wikiImages", () => {
     expect(
       createWikiDraftImagesUrl({
         baseUrl: "https://api.example.test/api/v1/wiki/",
-        page: 3,
+        cursor: "next-cursor",
         perPage: 24,
         status: "under_review",
         wikiIdentifier: "wiki-1",
       }),
     ).toBe(
-      "https://api.example.test/api/v1/wiki/draft-images?status=under_review&perPage=24&page=3&wikiIdentifier=wiki-1",
+      "https://api.example.test/api/v1/wiki/draft-images?status=under_review&perPage=24&cursor=next-cursor&wikiIdentifier=wiki-1",
     );
   });
 

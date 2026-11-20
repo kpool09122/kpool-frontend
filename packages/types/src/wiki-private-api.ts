@@ -68,8 +68,7 @@ const DraftImageListItem = z
 const ListDraftImagesResponseBody = z
   .object({
     images: z.array(DraftImageListItem),
-    current_page: z.number().int(),
-    last_page: z.number().int(),
+    next_cursor: z.string().nullable(),
     total: z.number().int(),
     per_page: z.number().int(),
   })
@@ -143,8 +142,7 @@ const DraftWikiListItem = z
 const ListDraftWikisResponseBody = z
   .object({
     wikis: z.array(DraftWikiListItem),
-    current_page: z.number().int(),
-    last_page: z.number().int(),
+    next_cursor: z.string().nullable(),
     total: z.number().int(),
     per_page: z.number().int(),
   })
@@ -1730,6 +1728,7 @@ const endpoints = makeApi([
     description: `List draft images. Internal API Bearer scope: wiki-images:read.`,
     requestFormat: "json",
     parameters: [
+      { name: "cursor", type: "Query", schema: z.string().max(2048).nullish() },
       {
         name: "translationSetIdentifier",
         type: "Query",
@@ -1743,7 +1742,7 @@ const endpoints = makeApi([
       {
         name: "perPage",
         type: "Query",
-        schema: z.number().int().optional(),
+        schema: z.number().int().gte(1).lte(100).nullish(),
       },
     ],
     response: ListDraftImagesResponseBody,
@@ -1788,9 +1787,9 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "page",
+        name: "cursor",
         type: "Query",
-        schema: z.number().int().gte(1).nullish(),
+        schema: z.string().max(2048).nullish(),
       },
       {
         name: "perPage",
@@ -2626,9 +2625,9 @@ const endpoints = makeApi([
     requestFormat: "json",
     parameters: [
       {
-        name: "page",
+        name: "cursor",
         type: "Query",
-        schema: z.number().int().gte(1).nullish(),
+        schema: z.string().max(2048).nullish(),
       },
       {
         name: "perPage",

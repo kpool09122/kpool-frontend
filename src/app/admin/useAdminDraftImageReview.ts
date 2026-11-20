@@ -8,7 +8,7 @@ export type DraftImageListState = {
   isInitialLoading: boolean;
   isLoadingMore: boolean;
   loadError: string | null;
-  pageInfo: Pick<WikiDraftImageListResponse, "current_page" | "last_page" | "total"> | null;
+  pageInfo: Pick<WikiDraftImageListResponse, "next_cursor" | "total"> | null;
 };
 
 export const initialDraftImageListState: DraftImageListState = {

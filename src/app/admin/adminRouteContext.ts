@@ -175,8 +175,7 @@ const toDraftImageListState = (
       isLoadingMore: false,
       loadError: null,
       pageInfo: {
-        current_page: page.current_page,
-        last_page: page.last_page,
+        next_cursor: page.next_cursor,
         total: page.total,
       },
     }

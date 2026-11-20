@@ -74,7 +74,7 @@ describe("wiki draft wikis route", () => {
   it("forwards managed draft wiki list requests without legacy filtering query", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 }, 200),
+      jsonResponse({ wikis: [], next_cursor: null, total: 0, per_page: 12 }, 200),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -84,7 +84,7 @@ describe("wiki draft wikis route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/v1/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12&page=1",
+      "https://api.example.test/api/v1/wiki/draft-wikis?statuses%5B%5D=under_review&perPage=12",
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -92,7 +92,7 @@ describe("wiki draft wikis route", () => {
   it("forwards my draft wiki list requests to the separated backend endpoint", async () => {
     process.env.KPOOL_WIKI_PRIVATE_API_BASE_URL = "https://api.example.test";
     const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse({ wikis: [], current_page: 1, last_page: 1, total: 0, per_page: 12 }, 200),
+      jsonResponse({ wikis: [], next_cursor: null, total: 0, per_page: 12 }, 200),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -102,7 +102,7 @@ describe("wiki draft wikis route", () => {
 
     expect(response.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.test/api/v1/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12&page=1",
+      "https://api.example.test/api/v1/wiki/my/draft-wikis?statuses%5B%5D=pending&statuses%5B%5D=rejected&perPage=12",
       expect.objectContaining({ method: "GET" }),
     );
   });
