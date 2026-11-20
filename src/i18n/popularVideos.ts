@@ -1,7 +1,6 @@
 export const popularVideosCopy = {
   ja: {
     title: "ピックアップ動画",
-    previous: "前の動画", next: "次の動画",
     pagination: "動画の表示位置", slide: (position: number) => `${position}番目の位置へ移動`,
     empty: "動画はまだありません。",
     error: "動画を読み込めませんでした。時間をおいて再度お試しください。",
@@ -10,7 +9,6 @@ export const popularVideosCopy = {
   },
   en: {
     title: "Featured videos",
-    previous: "Previous videos", next: "Next videos",
     pagination: "Video positions", slide: (position: number) => `Go to position ${position}`,
     empty: "No videos yet.",
     error: "Videos are temporarily unavailable. Please try again later.",
@@ -19,7 +17,6 @@ export const popularVideosCopy = {
   },
   ko: {
     title: "추천 영상",
-    previous: "이전 영상", next: "다음 영상",
     pagination: "영상 표시 위치", slide: (position: number) => `${position}번째 위치로 이동`,
     empty: "아직 영상이 없습니다.",
     error: "영상을 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.",

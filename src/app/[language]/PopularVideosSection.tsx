@@ -94,8 +94,6 @@ function VideoCards({ videos, locale }: { videos: PopularVideo[]; locale: Locale
   return (
     <HorizontalCarousel
       title={popularVideosCopy[locale].title}
-      previousLabel={popularVideosCopy[locale].previous}
-      nextLabel={popularVideosCopy[locale].next}
       paginationLabel={popularVideosCopy[locale].pagination}
       slideLabel={popularVideosCopy[locale].slide}
       autoPlay={activeVideo === null}

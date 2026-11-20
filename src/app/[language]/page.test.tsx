@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import LanguageHome from "./page";
 import { loadPublicWikiListState, type PublicWikiListState } from "@/gateways/wiki/publicWiki";
 
+vi.mock("embla-carousel-react", () => ({ default: () => [null, undefined] }));
+
 vi.mock("@/gateways/wiki/popularVideos", () => ({ loadPopularVideos: vi.fn().mockResolvedValue({ status: "success", videos: [] }) }));
 
 vi.mock("@/gateways/wiki/wikiStatistics", () => ({ loadWikiStatistics: vi.fn().mockResolvedValue(null) }));

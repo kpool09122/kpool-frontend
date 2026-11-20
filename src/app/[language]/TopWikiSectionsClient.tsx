@@ -1,5 +1,7 @@
 "use client";
 
+import { HorizontalCarousel } from "@/components/HorizontalCarousel";
+import { wikiCarouselCopy } from "@/i18n/wikiCarousel";
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
 import type { CSSProperties, Dispatch, SetStateAction } from "react";
 import { useState } from "react";
@@ -82,7 +84,7 @@ const TopWikiSlide = ({
 
   return (
     <Link
-      className="wiki-theme-scope group flex min-h-56 w-[82vw] max-w-[26rem] shrink-0 snap-start flex-col justify-between overflow-hidden rounded-3xl border border-stroke-subtle bg-surface-raised bg-cover bg-center p-6 transition hover:border-brand-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary sm:w-[24rem]"
+      className="wiki-theme-scope group flex h-full min-h-56 w-full flex-col justify-between overflow-hidden rounded-3xl border border-stroke-subtle bg-surface-raised bg-cover bg-center p-6 transition hover:border-brand-primary/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
       href={buildWikiPath(item.language || locale, item.slug)}
       style={buildSlideCardStyle(item)}
     >
@@ -224,12 +226,15 @@ const Section = ({
       });
   };
 
+  const carousel = wikiCarouselCopy[locale];
   return (
-    <section className="space-y-4" aria-labelledby={`${section.key}-wiki-heading`}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <h2 id={`${section.key}-wiki-heading`} className="text-2xl font-semibold">
-          {section.title}
-        </h2>
+    <HorizontalCarousel
+      title={section.title}
+      paginationLabel={carousel.pagination}
+      slideLabel={carousel.slide}
+      direction={section.key === "updated" ? "rtl" : "ltr"}
+      itemClassName="basis-[calc(82vw+1rem)] max-w-[27rem] sm:basis-[25rem]"
+      headerActions={
         <div className="flex flex-wrap items-end gap-3">
           <div className="grid text-sm font-semibold text-text-muted">
             <select
@@ -253,32 +258,19 @@ const Section = ({
             {t.more}
           </Link>
         </div>
-      </div>
-      {section.state.status === "loading" ? (
+      }
+      emptyState={
         <p className="rounded-lg border border-stroke-subtle bg-surface-raised p-5 text-sm text-text-muted">
-          {t.loadingMessage}
+          {section.state.status === "loading" ? t.loadingMessage
+            : section.state.status === "error" ? section.state.message
+            : t.emptyMessage}
         </p>
-      ) : null}
-      {section.state.status === "error" ? (
-        <p className="rounded-lg border border-stroke-subtle bg-surface-raised p-5 text-sm text-text-muted">
-          {section.state.message}
-        </p>
-      ) : null}
-      {section.state.status === "empty" ? (
-        <p className="rounded-lg border border-stroke-subtle bg-surface-raised p-5 text-sm text-text-muted">
-          {t.emptyMessage}
-        </p>
-      ) : null}
-      {data.length > 0 ? (
-        <div className="overflow-x-auto bg-transparent py-2">
-          <div className="flex snap-x snap-mandatory gap-4">
-            {data.map((item) => (
-              <TopWikiSlide key={item.wikiIdentifier} item={item} locale={locale} t={t} />
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </section>
+      }
+    >
+      {data.map((item) => (
+        <TopWikiSlide key={item.wikiIdentifier} item={item} locale={locale} t={t} />
+      ))}
+    </HorizontalCarousel>
   );
 };
 

@@ -15,7 +15,7 @@ export const popularVideoSchema = z.object({
   slug: z.string().min(1),
 }).refine((video) => isVideoId(video.provider, video.externalVideoId));
 
-const responseSchema = z.object({ videos: z.array(popularVideoSchema).max(20) });
+const responseSchema = z.object({ videos: z.array(popularVideoSchema).max(10) });
 export type PopularVideo = z.infer<typeof popularVideoSchema>;
 export type PopularVideosState =
   | { status: "success"; videos: PopularVideo[] }

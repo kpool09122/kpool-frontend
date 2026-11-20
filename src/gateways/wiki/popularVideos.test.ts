@@ -31,7 +31,7 @@ it("retains a successful empty result", async () => {
 it.each([
   { videos: [{ ...video, likeCount: -1 }] },
   { videos: [{ ...video, externalVideoId: "invalid" }] },
-  { videos: Array(21).fill(video) },
+  { videos: Array(11).fill(video) },
   {},
 ])("rejects malformed rankings without showing partial results", async (body) => {
   vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");

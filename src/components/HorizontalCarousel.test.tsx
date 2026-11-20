@@ -14,18 +14,15 @@ vi.mock("embla-carousel-react", () => ({ default: (...args: unknown[]) => {
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 function renderCarousel() {
-  return render(<HorizontalCarousel title="Videos" previousLabel="Previous" nextLabel="Next" paginationLabel="Positions" slideLabel={(position) => `Go to ${position}`}><article>One</article><article>Two</article></HorizontalCarousel>);
+  return render(<HorizontalCarousel title="Videos" paginationLabel="Positions" slideLabel={(position) => `Go to ${position}`}><article>One</article><article>Two</article></HorizontalCarousel>);
 }
 
-it("uses the library for arrow buttons and keyboard navigation", () => {
+it("keeps keyboard navigation without arrow controls", () => {
   renderCarousel();
-  fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  expect(embla.api.scrollNext).toHaveBeenCalledOnce();
-  fireEvent.click(screen.getByRole("button", { name: "Previous" }));
-  expect(embla.api.scrollPrev).toHaveBeenCalledOnce();
   fireEvent.keyDown(screen.getByRole("list"), { key: "ArrowRight" });
-  expect(embla.api.scrollNext).toHaveBeenCalledTimes(2);
+  expect(embla.api.scrollNext).toHaveBeenCalledOnce();
   expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  expect(screen.getAllByRole("button")).toHaveLength(2);
 });
 
 it("jumps to a dot position and updates the active dot when the carousel moves", () => {
@@ -42,4 +39,11 @@ it("jumps to a dot position and updates the active dot when the carousel moves",
   });
   expect(screen.getByRole("button", { name: "Go to 2" })).toHaveAttribute("aria-current", "true");
   expect(screen.getByRole("button", { name: "Go to 1" })).not.toHaveAttribute("aria-current");
+});
+
+it("uses the reverse slide direction while keeping card text left-to-right", () => {
+  render(<HorizontalCarousel title="Wikis" paginationLabel="Positions" slideLabel={(position) => `Go to ${position}`} direction="rtl"><article>Wiki</article></HorizontalCarousel>);
+  expect(embla.hook.mock.lastCall?.[0]).toMatchObject({ direction: "rtl" });
+  expect(screen.getByRole("list")).toHaveAttribute("dir", "rtl");
+  expect(screen.getByRole("listitem")).toHaveAttribute("dir", "ltr");
 });
