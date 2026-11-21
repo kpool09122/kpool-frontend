@@ -172,6 +172,48 @@ const RefundPaymentRequestBody = z
     reason: z.string(),
   })
   .passthrough();
+const PrincipalConditionClause = z
+  .object({
+    field: z.literal("resource:accountId"),
+    operator: z.enum(["eq", "ne", "in", "not_in"]),
+    value: z.union([z.string(), z.array(z.string())]),
+  })
+  .passthrough();
+const PrincipalPolicyStatement = z
+  .object({
+    effect: z.enum(["allow", "deny"]),
+    actions: z.array(
+      z.enum(["principal_group_read", "principal_group_manage"])
+    ),
+    resourceTypes: z.array(z.literal("principal_group")),
+    condition: z
+      .object({ clauses: z.array(PrincipalConditionClause) })
+      .passthrough()
+      .nullable(),
+  })
+  .passthrough();
+const PrincipalPolicySummary = z
+  .object({
+    policyIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string(),
+    statements: z.array(PrincipalPolicyStatement),
+  })
+  .passthrough();
+const PrincipalSnapshot = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid.uuid(),
+    identityIdentifier: KPool_Common_Uuid.uuid(),
+    status: z.enum(["active", "suspended", "forced_stop"]),
+    accountPrincipalCount: z.number().int().gte(1),
+    policies: z.array(PrincipalPolicySummary),
+  })
+  .passthrough();
+const PrincipalSummary = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid.uuid(),
+    identityIdentifier: KPool_Common_Uuid.uuid(),
+  })
+  .passthrough();
 const PaidAmountRequestItem = z
   .object({ amount: z.number().int(), currency: CurrencyCode })
   .passthrough();
@@ -234,6 +276,11 @@ export const schemas = {
   PaymentStatus,
   PaymentSummary,
   RefundPaymentRequestBody,
+  PrincipalConditionClause,
+  PrincipalPolicyStatement,
+  PrincipalPolicySummary,
+  PrincipalSnapshot,
+  PrincipalSummary,
   PaidAmountRequestItem,
   KPool_Common_DateString,
   SettleRevenueRequestBody,
@@ -725,6 +772,91 @@ const endpoints = makeApi([
       },
       {
         status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/principal/me",
+    alias: "PrincipalOperations_getCurrentPrincipal",
+    description: `Return the original authenticated identity&#x27;s Monetization principal for the current effective Account. No arbitrary account selection is accepted. Returns 404 when not enabled. Account, Account Principal and Monetization Principal suspension does not prevent reading this snapshot. Does not require group management permissions.`,
+    requestFormat: "json",
+    response: PrincipalSnapshot,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/principals",
+    alias: "PrincipalOperations_createPrincipal",
+    description: `Explicitly enable Monetization for the original authenticated identity and current effective Account. No identity or account input is accepted. Requires active direct membership. All members join Default with General; Account Owners also join Owners with Owner. Duplicate enrollment returns 409 without restoring status or permissions. Does not enable payment, billing or settlement APIs.`,
+    requestFormat: "json",
+    response: PrincipalSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
         description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
