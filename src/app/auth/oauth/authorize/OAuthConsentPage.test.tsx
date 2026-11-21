@@ -115,9 +115,13 @@ describe("OAuth consent", () => {
   });
   it("does not submit expired details", async () => {
     const api = mockApi(); api.start.mockResolvedValue({ ok: true, data: { ...detail(), expiresAt: "2020-01-01T00:00:00Z" } });
-    show(api); await screen.findByText("ChatGPT"); expect(approve()).toBeDisabled();
-    expect(screen.getByRole("button", { name: "全選択" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "全解除" })).toBeDisabled();
+    show(api); await screen.findByText("ChatGPT");
+    await waitFor(() => {
+      expect(approve()).toBeDisabled();
+      expect(screen.getByRole("button", { name: "全選択" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "全解除" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "キャンセル" })).toBeDisabled();
+    });
     fireEvent.click(screen.getByRole("button", { name: "キャンセル" })); expect(api.deny).not.toHaveBeenCalled();
   });
   it.each(["en", "ko"] as const)("localizes the consent page in %s", async (locale) => {
