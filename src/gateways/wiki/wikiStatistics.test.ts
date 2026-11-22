@@ -6,6 +6,11 @@ const statistics = {
   languages: { ja: 5, en: 3, ko: 4 },
   resourceTypes: { agency: 1, group: 6, talent: 3, song: 2 },
   groupTypes: { boy_group: 3, girl_group: 2, co_ed: 1, unknown: 0 },
+  byLanguage: {
+    ja: { resourceTypes: { agency: 0, group: 2, talent: 2, song: 1 }, groupTypes: { boy_group: 1, girl_group: 1, co_ed: 0, unknown: 0 } },
+    en: { resourceTypes: { agency: 1, group: 0, talent: 1, song: 1 }, groupTypes: { boy_group: 0, girl_group: 0, co_ed: 0, unknown: 0 } },
+    ko: { resourceTypes: { agency: 0, group: 4, talent: 0, song: 0 }, groupTypes: { boy_group: 2, girl_group: 1, co_ed: 1, unknown: 0 } },
+  },
 };
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 it("loads validated public counts with a shared invalidation tag", async () => {
@@ -21,6 +26,11 @@ it.each([
   { ...statistics, total: 13 },
   { ...statistics, groupTypes: { ...statistics.groupTypes, unknown: 1 } },
   { ...statistics, languages: { ja: -1, en: 9, ko: 4 } },
+  { ...statistics, byLanguage: { ...statistics.byLanguage, ja: statistics.byLanguage.ko } },
+  { ...statistics, byLanguage: { ...statistics.byLanguage, ja: { ...statistics.byLanguage.ja, groupTypes: statistics.byLanguage.ko.groupTypes } } },
+  // Preserve per-language totals while making category totals inconsistent.
+  { ...statistics, byLanguage: { ...statistics.byLanguage, en: { ...statistics.byLanguage.en, resourceTypes: { agency: 0, group: 0, talent: 2, song: 1 } } } },
+  { ...statistics, byLanguage: undefined },
   {},
 ])("does not render inconsistent or malformed counts", async (body) => {
   vi.stubEnv("KPOOL_WIKI_PRIVATE_API_BASE_URL", "https://backend.example");

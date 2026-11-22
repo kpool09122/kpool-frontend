@@ -1583,7 +1583,29 @@ const WikiContentInput = z
   })
   .passthrough();
 
+const WikiStatisticsBreakdown = z
+  .object({
+    resourceTypes: z
+      .object({
+        agency: z.number().int(),
+        group: z.number().int(),
+        talent: z.number().int(),
+        song: z.number().int(),
+      })
+      .passthrough(),
+    groupTypes: z
+      .object({
+        boy_group: z.number().int(),
+        girl_group: z.number().int(),
+        co_ed: z.number().int(),
+        unknown: z.number().int(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
+
 export const schemas = {
+  WikiStatisticsBreakdown,
   KPool_Common_Uuid,
   translationSetIdentifier,
   DraftImageWikiDisplayInformation,
@@ -6798,10 +6820,17 @@ const endpoints = makeApi([
     method: "get",
     path: "/wikis/statistics",
     alias: "WikiListOperations_getWikiStatistics",
-    description: `Public wiki page counts across all languages. Each translation counts separately; group types count group wiki pages. Drafts are excluded.`,
+    description: `Public wiki page counts across all languages, with resource and group type breakdowns per language in byLanguage. Each translation counts separately; group types count group wiki pages. Drafts are excluded.`,
     requestFormat: "json",
     response: z
       .object({
+        byLanguage: z
+          .object({
+            ja: WikiStatisticsBreakdown,
+            en: WikiStatisticsBreakdown,
+            ko: WikiStatisticsBreakdown,
+          })
+          .passthrough(),
         total: z.number().int(),
         languages: z
           .object({
