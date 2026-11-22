@@ -55,6 +55,8 @@ export function AdminShellClient({
   const principalStopped = !isUserSettings && (accountPrincipalStopped || (activeSection === "wiki" && wikiPrincipalStopped) || (activeSection === "siteManagement" && sitePrincipalStopped));
   const headerTitle = activeSection === "wiki"
     ? t.wikiHeaderTitle
+    : activeSection === "monetization"
+      ? t.monetizationMenu
     : activeSection === "analyze"
       ? t.analyzeMenu
     : activeSection === "siteManagement"
@@ -130,7 +132,7 @@ export function AdminShellClient({
 
       <div className="mx-auto max-w-5xl">
         <section className="min-w-0 space-y-6">
-          <header className={activeSection === "analyze" ? "space-y-3 pl-6" : "space-y-3"}>
+          <header className={activeSection === "analyze" || activeSection === "monetization" ? "space-y-3 pl-6" : "space-y-3"}>
             <h1 className="text-3xl font-bold">{headerTitle}</h1>
           </header>
           {accountSuspended && !isUserSettings ? (

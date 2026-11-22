@@ -9,11 +9,12 @@ import {
   getCurrentWikiPrincipal,
   canManageWikiPrincipalGroups,
 } from "@/gateways/wiki/wikiPrincipal";
+import { getMonetizationPrincipal, canManageMonetization } from "@/gateways/monetization/monetizationPrincipal";
 import { useAdmin } from "../AdminProvider";
 import { adminQueryKeys } from "../queryKeys";
 
 export function usePrincipalAccess(
-  context: "account" | "wiki" | "site-management",
+  context: "account" | "wiki" | "site-management" | "monetization",
 ) {
   const { currentIdentity, refreshIdentity } = useAdmin();
   const client = useQueryClient();
@@ -61,6 +62,13 @@ export function usePrincipalAccess(
     if (context === "account") return canManagePrincipalGroups(identity);
     if (context === "site-management")
       return canManageSiteManagementPrincipalGroups(identity);
+    if (context === "monetization") {
+      const principal = await getMonetizationPrincipal();
+      if (!isCurrent()) return null;
+      client.setQueryData(adminQueryKeys.monetization.principal(accountIdentifier, actorIdentifier, sessionVersion), principal);
+      if (principal.status === "error") return null;
+      return identity.accountPrincipalStatus === "active" && identity.account?.status === "active" && principal.status === "available" && canManageMonetization(principal.principal, accountIdentifier ?? "");
+    }
     const principal = await getCurrentWikiPrincipal();
     if (!isCurrent()) return null;
     client.setQueryData(
@@ -78,6 +86,7 @@ export function usePrincipalAccess(
     );
   }, [
     accountIdentifier,
+    actorIdentifier,
     client,
     context,
     currentIdentity,

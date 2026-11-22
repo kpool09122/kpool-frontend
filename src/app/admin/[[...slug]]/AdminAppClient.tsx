@@ -1,5 +1,6 @@
 "use client";
 
+import { MonetizationClient } from "../monetization/MonetizationClient";
 import { AnalyzeClient } from "../analyze/AnalyzeClient";
 import { OfficialVideoInboxClient } from "../wiki/watch-requests/OfficialVideoInboxClient";
 import { usePathname } from "next/navigation";
@@ -58,7 +59,7 @@ export function AdminAppClient({ data, returnTo = null, initialCountry = null }:
   );
 }
 
-type AdminClientPage = "analyze" | "accountAffiliations"
+type AdminClientPage = "monetization" | "analyze" | "accountAffiliations"
   | "siteManagementPrincipalGroups"
   | "siteManagementAnnouncements"
   | "siteManagementContactManagement"
@@ -92,6 +93,7 @@ type AdminClientPage = "analyze" | "accountAffiliations"
   | "wikiUntranslated";
 
 export const resolveAdminClientPage = (pathname: string | null): AdminClientPage => {
+  if (pathname === "/admin/monetization" || pathname?.startsWith("/admin/monetization/")) return "monetization";
   if (pathname === "/admin/analyze" || pathname?.startsWith("/admin/analyze/")) return "analyze";
   if (pathname?.startsWith("/admin/site-management")) {
     if (pathname.endsWith("/contact-management")) return "siteManagementContactManagement";
@@ -203,6 +205,7 @@ function AdminResolvedPage({
   returnTo: string | null;
   initialCountry: string | null;
 }) {
+  if (page === "monetization") return <MonetizationClient />;
   if (page === "analyze") return <AnalyzeClient initialCountry={initialCountry} />;
   if (page === "siteManagementContactManagement") return <SiteManagementPageClient activeTab="contactManagement"><OperatorContactsClient /></SiteManagementPageClient>;
   if (page === "siteManagementAnnouncements") return <SiteManagementPageClient activeTab="announcements"><SiteManagementAnnouncementsClient /></SiteManagementPageClient>;

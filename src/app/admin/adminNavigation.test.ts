@@ -16,10 +16,10 @@ const principalState = (status: WikiPrincipalSummary["status"]): WikiPrincipalSt
 
 describe("admin navigation and initial destination", () => {
   it.each([
-    [{}, "active", ["wiki", "analyze", "siteManagement", "accountSettings", "settings"], "/admin/wiki/editing"],
-    [{}, "suspended", ["analyze", "siteManagement", "accountSettings", "settings"], "/admin/analyze"],
-    [{ siteManagementPrincipalStatus: "suspended" }, "forced_stop", ["analyze", "accountSettings", "settings"], "/admin/analyze"],
-    [{ siteManagementPrincipalStatus: "forced_stop", accountPolicies: [] }, "suspended", ["analyze", "settings"], "/admin/analyze"],
+    [{}, "active", ["wiki", "analyze", "siteManagement", "accountSettings", "monetization", "settings"], "/admin/wiki/editing"],
+    [{}, "suspended", ["analyze", "siteManagement", "accountSettings", "monetization", "settings"], "/admin/analyze"],
+    [{ siteManagementPrincipalStatus: "suspended" }, "forced_stop", ["analyze", "accountSettings", "monetization", "settings"], "/admin/analyze"],
+    [{ siteManagementPrincipalStatus: "forced_stop", accountPolicies: [] }, "suspended", ["analyze", "monetization", "settings"], "/admin/analyze"],
     [{ accountPrincipalStatus: "suspended" }, "active", ["settings"], "/admin/user/profile"],
     [{ account: { status: "suspended" } }, "active", ["settings"], "/admin/user/profile"],
   ] as const)("uses the first visible section for %j / Wiki %s", (overrides, status, sections, route) => {
