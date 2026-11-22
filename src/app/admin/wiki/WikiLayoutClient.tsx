@@ -3,28 +3,10 @@
 import { AdminNavigationLink } from "../AdminNavigationLink";
 import type { ReactNode } from "react";
 
-import {
-  canPublishWikiDraftWikis,
-  canTranslateWikis,
-  canManageOfficialCertifications,
-  canReviewOfficialCertifications,
-  canReviewWikiDraftImages,
-  canManageWikiImages,
-  canReviewWikiDraftWikis,
-  canReviewWikiImageDeletionRequests,
-  type WikiPrincipalState,
-} from "@/gateways/wiki/wikiPrincipal";
-import { canShowWikiPrincipalGroupManagement } from "../principalGroupVisibility";
 import type { useI18n } from "../../../i18n/I18nProvider";
-import {
-  adminWikiTabRoutes,
-  type AdminWikiTab,
-} from "../adminTypes";
-
-const createWikiTab = (id: AdminWikiTab, label: string): { id: AdminWikiTab; label: string } => ({
-  id,
-  label,
-});
+import { adminWikiTabRoutes, type AdminWikiTab } from "../adminTypes";
+import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
+import { getWikiCategory, getWikiNavigationGroups } from "./wikiNavigation";
 
 type WikiLayoutClientProps = {
   canViewOfficialVideoInbox: boolean;
@@ -71,44 +53,26 @@ export function WikiLayoutClient({
   }
 
   if (state.status === "available") {
-    const canReviewDraftImages = canReviewWikiDraftImages(state.principal);
-    const canReviewImageDeletionRequests = canReviewWikiImageDeletionRequests(state.principal);
-    const canReviewDraftWikis = canReviewWikiDraftWikis(state.principal);
-    const canPublishDraftWikis = canPublishWikiDraftWikis(state.principal);
-    const canTranslate = canTranslateWikis(state.principal);
-    const canManagePrincipalGroups = canShowWikiPrincipalGroupManagement(state.principal);
-    const canRequestOfficialCertification = canManageOfficialCertifications(state.principal);
-
-    const tabs: Array<{ id: AdminWikiTab; label: string }> = [
-      createWikiTab("editingWikis", t.editingWikisTab),
-      createWikiTab("submittedWikis", t.submittedWikisTab),
-      ...(canReviewDraftWikis ? [createWikiTab("unapprovedWikis", t.unapprovedWikisTab)] : []),
-      ...(canPublishDraftWikis ? [createWikiTab("approvedWikis", t.approvedWikisTab)] : []),
-      ...(canTranslate ? [createWikiTab("untranslatedWikis", t.untranslatedWikisTab)] : []),
-      ...(canManageWikiImages(state.principal) ? [createWikiTab("managedImages", t.managedImages.title)] : []),
-      ...(canReviewDraftImages ? [createWikiTab("draftImages", t.draftImagesTab)] : []),
-      ...(canReviewImageDeletionRequests ? [createWikiTab("imageDeletionRequests", t.imageDeletionRequestsTab)] : []),
-      ...(canRequestOfficialCertification ? [createWikiTab("officialCertificationRequest", t.officialCertificationRequestTab)] : []),
-      ...(canReviewOfficialCertifications(state.principal) ? [createWikiTab("officialCertificationReview", t.officialCertificationReviewTab)] : []),
-      createWikiTab("playlists", t.playlists.title),
-      ...(canViewOfficialVideoInbox ? [createWikiTab("watchRequests", t.officialVideoInbox.title)] : []),
-      ...(canManagePrincipalGroups ? [createWikiTab("principalGroupManagement", t.wikiPrincipalGroupManagementTab)] : []),
-    ];
+    const groups = getWikiNavigationGroups(state.principal, t, canViewOfficialVideoInbox);
+    const selectedCategory = getWikiCategory(selectedWikiTab);
+    const tabs = (groups.find((group) => group.id === selectedCategory) ?? groups[0]).tabs;
     const activeWikiTab = tabs.some((tab) => tab.id === selectedWikiTab)
       ? selectedWikiTab
       : tabs[0].id;
 
     return (
       <section className="space-y-5">
-        <div className="flex justify-end">
-          <button
-            className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105"
-            onClick={onOpenCreateDraftWiki}
-            type="button"
-          >
-            {t.createWiki}
-          </button>
-        </div>
+        {getWikiCategory(activeWikiTab) === "wiki" ? (
+          <div className="flex justify-end">
+            <button
+              className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105"
+              onClick={onOpenCreateDraftWiki}
+              type="button"
+            >
+              {t.createWiki}
+            </button>
+          </div>
+        ) : null}
         <div className="overflow-x-auto border-b border-stroke-subtle">
           <div aria-label={t.wikiTabsLabel} className="-mb-px flex gap-1" role="tablist">
             {tabs.map((tab) => (

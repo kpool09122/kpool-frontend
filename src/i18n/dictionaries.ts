@@ -445,6 +445,7 @@ const ja = {
     wikiReviewUnavailableMessage:
       "この principal で利用できる Wiki 機能は現在ありません。",
     wikiTabsLabel: "Wiki タブ",
+    wikiCategories: { wiki: "Wiki", certification: "公式認証", images: "画像", video: "Video" },
     editingWikisTab: "編集中のWiki",
     submittedWikisTab: "申請中のWiki",
     unapprovedWikisTab: "未承認のWiki",
@@ -2051,6 +2052,7 @@ const en: typeof ja = {
     wikiReviewUnavailableMessage:
       "There are currently no Wiki features available for this principal.",
     wikiTabsLabel: "Wiki tabs",
+    wikiCategories: { wiki: "Wiki", certification: "Official certification", images: "Images", video: "Video" },
     editingWikisTab: "Editing Wikis",
     submittedWikisTab: "Submitted Wikis",
     unapprovedWikisTab: "Unapproved Wikis",
@@ -3656,6 +3658,7 @@ const ko: typeof ja = {
     wikiReviewUnavailableMessage:
       "현재 이 principal에서 사용할 수 있는 Wiki 기능이 없습니다.",
     wikiTabsLabel: "Wiki 탭",
+    wikiCategories: { wiki: "Wiki", certification: "공식 인증", images: "이미지", video: "Video" },
     editingWikisTab: "편집 중인 Wiki",
     submittedWikisTab: "신청 중인 Wiki",
     unapprovedWikisTab: "미승인 Wiki",
