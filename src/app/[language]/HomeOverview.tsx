@@ -57,9 +57,9 @@ export function HomeOverview({ locale, statistics }: { locale: Locale; statistic
       <section aria-labelledby="wiki-statistics-title" className="min-w-0 rounded-3xl border border-stroke-subtle bg-surface-raised p-5 shadow-sm sm:p-7">
         <div className="flex items-center gap-2 text-text-muted"><BookOpen aria-hidden="true" size={15} /><h2 id="wiki-statistics-title" className="text-xs font-medium">{t.stats}</h2></div>
         {statistics ? <>
-          <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-            <div className="flex items-baseline gap-3"><span className="text-5xl font-semibold tracking-tight tabular-nums">{statistics.total.toLocaleString(locale)}</span><span className="text-xs text-text-muted">{t.total}</span></div>
-            <p className="text-xs text-text-muted">{t.localTotal} <span className="font-medium tabular-nums text-text-strong">{statistics.languages[locale].toLocaleString(locale)}</span></p>
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2">
+            <p className="flex items-baseline gap-3 text-xs text-text-muted">{t.total}<span className="text-5xl font-semibold tracking-tight tabular-nums text-text-strong">{statistics.total.toLocaleString(locale)}</span></p>
+            <p className="flex items-baseline gap-3 text-xs text-text-muted">{t.localTotal}<span className="text-5xl font-semibold tracking-tight tabular-nums text-text-strong">{statistics.languages[locale].toLocaleString(locale)}</span></p>
           </div>
           {statistics.total === 0 && <p className="mt-3 text-sm text-text-muted">{t.empty}</p>}
           <div className="my-6 grid grid-cols-2 gap-6 border-t border-stroke-subtle pt-5">
