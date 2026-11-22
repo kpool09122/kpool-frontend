@@ -12,6 +12,7 @@ import {
 import { getMonetizationPrincipal, canManageMonetization } from "@/gateways/monetization/monetizationPrincipal";
 import { useAdmin } from "../AdminProvider";
 import { adminQueryKeys } from "../queryKeys";
+import { getAdminActorIdentifier } from "../accountScope";
 
 export function usePrincipalAccess(
   context: "account" | "wiki" | "site-management" | "monetization",
@@ -27,12 +28,7 @@ export function usePrincipalAccess(
     };
   }, []);
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
-  const actorIdentifier = JSON.stringify([
-    currentIdentity.identityIdentifier,
-    currentIdentity.accountPrincipalIdentifier,
-    currentIdentity.siteManagementPrincipalIdentifier,
-    currentIdentity.delegationIdentifier,
-  ]);
+  const actorIdentifier = getAdminActorIdentifier(currentIdentity);
   const refreshAccess = useCallback(async () => {
     const initial = useAuthStore.getState();
     const bootstrapping =

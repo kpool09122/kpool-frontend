@@ -3,6 +3,7 @@ import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { isAccountActive, type AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { canAccessSiteManagement } from "@/gateways/site-management/siteManagementPolicy";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
+import { canManageMonetization, type MonetizationState } from "@/gateways/monetization/monetizationPrincipal";
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
 
 export type AdminNavigationItem = {
@@ -12,17 +13,22 @@ export type AdminNavigationItem = {
 };
 
 /** The sidebar order also determines the default landing page. */
-export function getAdminNavigation(identity: AuthenticatedIdentitySummary, principalState: WikiPrincipalState): AdminNavigationItem[] {
+export function getAdminNavigation(identity: AuthenticatedIdentitySummary, principalState: WikiPrincipalState, monetizationState?: MonetizationState | null): AdminNavigationItem[] {
   const accountAvailable = isAccountActive(identity)
     && identity.accountPrincipalStatus !== "suspended"
     && identity.accountPrincipalStatus !== "forced_stop";
   const wikiStopped = principalState.status === "available" && principalState.principal.status !== "active";
+  // Server callers defer this decision until the client has loaded the access snapshot.
+  const monetizationAvailable = monetizationState === undefined
+    || monetizationState?.status === "missing"
+    || (monetizationState?.status === "available"
+      && canManageMonetization(monetizationState.principal, getAccountIdentifierFromIdentity(identity) ?? ""));
   return [
     ...(accountAvailable && !wikiStopped ? [{ section: "wiki" as const, href: adminSectionRoutes.wiki, labelKey: "wikiMenu" as const }] : []),
     ...(accountAvailable ? [{ section: "analyze" as const, href: adminSectionRoutes.analyze, labelKey: "analyzeMenu" as const }] : []),
     ...(canAccessSiteManagement(identity) ? [{ section: "siteManagement" as const, href: adminSectionRoutes.siteManagement, labelKey: "siteManagementMenu" as const }] : []),
     ...(accountAvailable && getAccountIdentifierFromIdentity(identity) && hasAccountPolicy(identity) ? [{ section: "accountSettings" as const, href: adminSectionRoutes.accountSettings, labelKey: "accountSettingsMenu" as const }] : []),
-    ...(accountAvailable ? [{ section: "monetization" as const, href: adminSectionRoutes.monetization, labelKey: "monetizationMenu" as const }] : []),
+    ...(accountAvailable && monetizationAvailable ? [{ section: "monetization" as const, href: adminSectionRoutes.monetization, labelKey: "monetizationMenu" as const }] : []),
     { section: "settings", href: adminSectionRoutes.settings, labelKey: "settingsMenu" },
   ];
 }

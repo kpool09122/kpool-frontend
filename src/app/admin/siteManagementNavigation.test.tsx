@@ -5,7 +5,7 @@ import { AdminShellClient } from "./AdminShellClient";
 import { SiteManagementPageClient } from "./site-management/SiteManagementPageClient";
 const mocks = vi.hoisted(() => ({ pathname: "/admin/site-management/principal-groups", identity: {} }));
 vi.mock("next/navigation", () => ({ usePathname: () => mocks.pathname, redirect: (path: string) => { throw new Error(`redirect:${path}`); }, useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
-vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: mocks.identity, t: dictionaries.ja.admin }) }));
+vi.mock("./AdminProvider", () => ({ useAdmin: () => ({ currentIdentity: mocks.identity, monetizationState: { status: "missing" }, t: dictionaries.ja.admin }) }));
 afterEach(cleanup);
 const identity = { accountPolicies: [{ policyIdentifier: "account-policy", name: "Account", isSystemPolicy: true, statements: [] }], accountPrincipalStatus: "active" as const, siteManagementPrincipalStatus: "active" as const, language: "ja", identityIdentifier: "actor", identityName: "Admin", email: "a@example.test", accountIdentifier: "account", siteManagementPrincipalIdentifier: "principal", siteManagementPrincipalCount: 2, account: { status: "active" }, siteManagementPolicies: [{ name: "Administrator", policyIdentifier: "policy", statements: [{ effect: "allow", actions: ["principal-group:manage"], resourceTypes: ["principal_group"], condition: null }] }] };
 describe("SiteManagement navigation", () => {

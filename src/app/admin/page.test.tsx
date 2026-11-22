@@ -50,6 +50,10 @@ const identityMocks = vi.hoisted(() => ({
 vi.mock("@/gateways/wiki/officialVideoInbox", () => ({
   fetchOfficialVideoWikis: vi.fn().mockResolvedValue({ wikis: [] }),
 }));
+vi.mock("@/gateways/monetization/monetizationPrincipal", async load => ({
+  ...await load<typeof import("@/gateways/monetization/monetizationPrincipal")>(),
+  getMonetizationPrincipal: vi.fn().mockResolvedValue({ status: "missing" }),
+}));
 const passkeyMocks = vi.hoisted(() => ({
   list: vi.fn(),
 }));
@@ -3941,7 +3945,7 @@ describe("admin page clients", () => {
       await screen.findByRole("heading", { name: "Wiki collaborator を有効化" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("この機能を有効にするには Wiki のコラボレータになる必要があります。"),
+      screen.getByText(dictionaries.ja.admin.wikiMissingMessage),
     ).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "未承認の画像" })).not.toBeInTheDocument();
   });
