@@ -1,5 +1,7 @@
 "use client";
 
+import { WikiGoogleTrendsBlockForm } from "./WikiGoogleTrendsBlockForm";
+
 import { LocalizedForm } from "@/components/LocalizedForm";
 import { List, ListOrdered } from "lucide-react";
 import { Link2Icon } from "@radix-ui/react-icons";
@@ -1423,6 +1425,8 @@ export function WikiBlockForm({
           <WikiFormActions onCancel={onCancel} />
         </LocalizedForm>
       );
+    case "google_trends":
+      return <WikiGoogleTrendsBlockForm key={block.blockKey} block={block} onCancel={onCancel} onSave={onSave} />;
     case "history":
       return <WikiHistoryBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "list":

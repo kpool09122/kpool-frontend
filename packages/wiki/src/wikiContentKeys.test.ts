@@ -65,7 +65,7 @@ describe("persistent wiki content keys", () => {
   });
 
   it("sends keys for all block types", () => {
-    const blocks = ["text", "image", "image_gallery", "embed", "quote", "list", "history", "table", "profile_card_list"] as const;
+    const blocks = ["text", "image", "image_gallery", "embed", "quote", "list", "history", "google_trends", "table", "profile_card_list"] as const;
     const node: WikiSection = { type: "section", sectionKey: "all", title: "All", displayOrder: 10, depth: 1,
       contents: blocks.map((type, index) => createWikiBlock(type, index * 10)),
     };

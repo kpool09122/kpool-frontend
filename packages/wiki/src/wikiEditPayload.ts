@@ -37,6 +37,9 @@ export type WikiSectionContentPayload =
       listType?: string;
       items?: string[];
       entries?: WikiHistoryEntry[];
+      searchTerm?: string;
+      region?: "JP" | "KR" | "";
+      timeRange?: "today 12-m" | "today 5-y";
       rows?: string[][];
       headers?: string[] | null;
       rowCells?: Array<Array<{ content: string; colspan?: number }>>;
@@ -199,6 +202,8 @@ const toWikiContentPayload = (
         listType: content.listType,
         items: content.items,
       };
+    case "google_trends":
+      return { type: content.blockType, blockKey: persistentKey(content.blockKey, keyNamespace), displayOrder: content.displayOrder, searchTerm: content.searchTerm, region: content.region, timeRange: content.timeRange };
     case "history":
       return {
         type: content.blockType,

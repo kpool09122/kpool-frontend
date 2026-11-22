@@ -10,6 +10,7 @@ import {
   type WikiSectionContent,
   wikiDetailSchema,
   wikiHistoryEntrySchema,
+  wikiGoogleTrendsSettingsSchema,
   wikiProfileCardShapeSchema,
   type WikiResourceType,
   wikiDraftDetailSchema,
@@ -387,6 +388,7 @@ const getBlockType = (content: Record<string, unknown>): WikiBlockType | null =>
     "quote",
     "list",
     "history",
+    "google_trends",
     "table",
     "profile_card_list",
   ].includes(rawType)
@@ -482,6 +484,14 @@ const adaptWikiBlock = (
         listType: toString(content.listType ?? content.list_type, "bullet") === "numbered" ? "numbered" : "bullet",
         items: toStringList(content.items),
       };
+    case "google_trends": {
+      const settings = wikiGoogleTrendsSettingsSchema.safeParse({
+        searchTerm: content.searchTerm ?? content.search_term,
+        region: content.region,
+        timeRange: content.timeRange ?? content.time_range,
+      });
+      return settings.success ? { blockKey, blockType, displayOrder, ...settings.data } : null;
+    }
     case "history":
       return {
         blockKey,

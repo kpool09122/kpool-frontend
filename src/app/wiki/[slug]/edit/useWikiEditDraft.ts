@@ -401,6 +401,7 @@ export const useWikiEditDraft = (
         currentDraft.sections,
         sectionKey,
         blockType,
+        { name: currentDraft.basic.name, language: currentDraft.language },
       );
 
       commitDraft({

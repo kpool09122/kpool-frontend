@@ -18,6 +18,7 @@ export type WikiBlockType =
   | "quote"
   | "list"
   | "history"
+  | "google_trends"
   | "table"
   | "profile_card_list";
 
@@ -240,6 +241,19 @@ export type WikiHistoryBlock = {
   entries: WikiHistoryEntry[];
 };
 
+export const wikiGoogleTrendsSettingsSchema = z.object({
+  searchTerm: z.string().refine((value) => value.trim().length > 0 && [...value].length <= 100),
+  region: z.enum(["JP", "KR", ""]),
+  timeRange: z.enum(["today 12-m", "today 5-y"]),
+});
+
+export type WikiGoogleTrendsSettings = z.infer<typeof wikiGoogleTrendsSettingsSchema>;
+export type WikiGoogleTrendsBlock = WikiGoogleTrendsSettings & {
+  blockType: "google_trends";
+  blockKey: string;
+  displayOrder: number;
+};
+
 export type WikiTableBlock = {
   blockKey: string;
   blockType: "table";
@@ -274,6 +288,7 @@ export type WikiBlock =
   | WikiQuoteBlock
   | WikiListBlock
   | WikiHistoryBlock
+  | WikiGoogleTrendsBlock
   | WikiTableBlock
   | WikiProfileCardListBlock;
 
@@ -285,6 +300,7 @@ const wikiBlockBaseSchema = z.object({
 });
 
 const wikiBlockSchema = z.discriminatedUnion("blockType", [
+  wikiBlockBaseSchema.merge(wikiGoogleTrendsSettingsSchema).extend({ blockType: z.literal("google_trends") }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("text"),
     content: z.string(),
