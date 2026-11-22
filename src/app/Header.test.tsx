@@ -1,4 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import type { ReactElement } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, fireEvent, render as renderView, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as navigation from "next/navigation";
 import { I18nProvider } from "../i18n/I18nProvider";
@@ -7,6 +9,11 @@ import { useUnsavedChangesGuard } from "@/components/UnsavedChangesGuard/useUnsa
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { buildLocaleChangePath, Header } from "./Header";
 import { applyThemeMode } from "./themeMode";
+
+const render = (ui: ReactElement) => {
+  const client = new QueryClient();
+  return renderView(ui, { wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider> });
+};
 it.each(["/ja/announcements", "/ja/announcements/019b0000-0000-7000-8000-000000000001"])("changes announcement route language for %s", (pathname) => {
  expect(buildLocaleChangePath({ nextLocale: "ko", pathname, searchParams: new URLSearchParams("page=2") })).toBe(pathname.replace("/ja/", "/ko/") + "?page=2");
 });

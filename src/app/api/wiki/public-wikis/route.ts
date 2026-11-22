@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   const query: PublicWikiListQuery = {
+    keyword: optionalParam(request.nextUrl.searchParams.get("keyword"))?.trim() || undefined,
     order: parseEnumParam(orderParamSchema, request.nextUrl.searchParams.get("order")),
     page: parsePositiveIntegerParam(request.nextUrl.searchParams.get("page"), 1),
     perPage: parsePositiveIntegerParam(request.nextUrl.searchParams.get("perPage"), 10),
