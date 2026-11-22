@@ -31,8 +31,10 @@ function Breakdown({ title, items, locale }: { title: string; items: BreakdownIt
 
 export function HomeOverview({ locale, statistics }: { locale: Locale; statistics: WikiStatistics | null }) {
   const t = homeOverviewCopy[locale];
-  const groupTotal = statistics?.resourceTypes.group ?? 0;
-  const groups = statistics ? Object.entries(statistics.groupTypes).map(([key, count], index) => ({
+  const resourceLabels = dictionaries[locale].home.resourceLabels;
+  const localizedStatistics = statistics?.byLanguage[locale];
+  const groupTotal = localizedStatistics?.resourceTypes.group ?? 0;
+  const groups = localizedStatistics ? Object.entries(localizedStatistics.groupTypes).map(([key, count], index) => ({
     key, count, color: colors[index], label: t.groupLabels[key as keyof typeof t.groupLabels],
   })) : [];
   let offset = 0;
@@ -56,11 +58,14 @@ export function HomeOverview({ locale, statistics }: { locale: Locale; statistic
       <section aria-labelledby="wiki-statistics-title" className="min-w-0 rounded-3xl border border-stroke-subtle bg-surface-raised p-5 shadow-sm sm:p-7">
         <div className="flex items-center gap-2 text-text-muted"><BookOpen aria-hidden="true" size={15} /><h2 id="wiki-statistics-title" className="text-xs font-medium">{t.stats}</h2></div>
         {statistics ? <>
-          <div className="mt-4 flex items-baseline gap-3"><span className="text-5xl font-semibold tracking-tight tabular-nums">{statistics.total.toLocaleString(locale)}</span><span className="text-xs text-text-muted">{t.total}</span></div>
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-2">
+            <p className="flex items-baseline gap-3 text-xs text-text-muted">{t.total}<span className="text-5xl font-semibold tracking-tight tabular-nums text-text-strong">{statistics.total.toLocaleString(locale)}</span></p>
+            <p className="flex items-baseline gap-3 text-xs text-text-muted">{t.localTotal}<span className="text-5xl font-semibold tracking-tight tabular-nums text-text-strong">{statistics.languages[locale].toLocaleString(locale)}</span></p>
+          </div>
           {statistics.total === 0 && <p className="mt-3 text-sm text-text-muted">{t.empty}</p>}
           <div className="my-6 grid grid-cols-2 gap-6 border-t border-stroke-subtle pt-5">
             <Breakdown title={t.languages} locale={locale} items={supportedLocales.map((key, index) => ({ key, label: localeLabels[key], count: statistics.languages[key], color: colors[index] }))} />
-            <Breakdown title={t.resources} locale={locale} items={Object.entries(statistics.resourceTypes).map(([key, count], index) => ({ key, label: dictionaries[locale].home.resourceLabels[key as keyof typeof statistics.resourceTypes], count, color: colors[index] }))} />
+            <Breakdown title={t.resources} locale={locale} items={Object.entries(statistics.byLanguage[locale].resourceTypes).map(([key, count], index) => ({ key, label: resourceLabels[key as keyof typeof resourceLabels], count, color: colors[index] }))} />
           </div>
           <div className="border-t border-stroke-subtle pt-5">
             <h3 className="mb-3 text-xs font-semibold text-text-muted">{t.groups}</h3>
