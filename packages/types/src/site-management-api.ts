@@ -234,8 +234,9 @@ const KPool_Common_PrincipalStatusUpdate = z
 const UpdatePrincipalGroupMembersRequestBody = z
   .object({
     principalGroups: z.array(UpdatePrincipalGroupMembersItem),
-    principalStatuses: z.array(KPool_Common_PrincipalStatusUpdate).optional(),
+    principalStatuses: z.array(KPool_Common_PrincipalStatusUpdate),
   })
+  .partial()
   .passthrough();
 const UpdatedPrincipalGroup = z
   .object({
@@ -1293,7 +1294,7 @@ const endpoints = makeApi([
     method: "patch",
     path: "/principal-groups/members",
     alias: "PrincipalGroupOperations_updatePrincipalGroupMembers",
-    description: `Atomically save specified group memberships and Principal statuses while preserving omitted groups and statuses. The final combined state must retain a reachable active permission manager; an active replacement and suspension of the old manager can be saved together. Duplicate status identifiers return 422; missing or out-of-scope Principals return 404; insufficient permission or protected Operator groups return 403. An unchanged forced_stop is accepted. A forbidden status change returns 409 code principal_status_change_forbidden; losing the last active manager returns 409 code last_active_manager. Both roll back the entire save. Success returns only the submitted groups and Principal statuses; clients refetch management lists separately. Status restrictions take effect on the next request even for logged-in cached sessions.`,
+    description: `Atomically save specified group memberships and Principal statuses while preserving omitted groups and statuses. The final combined state must retain a reachable active permission manager; an active replacement and suspension of the old manager can be saved together. The principalGroups field may be omitted for status-only updates. Duplicate group identifiers, member identifiers within a group, or status identifiers return 422; missing or out-of-scope Principals return 404; insufficient permission or protected Operator groups return 403. An unchanged forced_stop is accepted. A forbidden status change returns 409 code principal_status_change_forbidden; losing the last active manager returns 409 code last_active_manager. Both roll back the entire save. Success returns only the submitted groups and Principal statuses; clients refetch management lists separately. Status restrictions take effect on the next request even for logged-in cached sessions.`,
     requestFormat: "json",
     parameters: [
       {
