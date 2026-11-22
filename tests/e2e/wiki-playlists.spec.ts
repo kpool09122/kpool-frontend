@@ -30,7 +30,7 @@ test("mixed playlist snapshots survive source deletion, reorder/save/refetch and
   });
   await page.route("**/api/wiki/videos/likes?*", (route) => route.fulfill({ json: { likedVideoLinkIdentifiers: [], videos: [], pagination: { currentPage: 1, perPage: 20, total: 0 } } }));
   await page.goto("/admin/wiki/editing");
-  await page.getByRole("tab", { name: "My playlists" }).click();
+  await page.getByRole("link", { name: "Video", exact: true }).click();
   await page.getByRole("combobox", { name: "Playlist", exact: true }).selectOption(id);
   const handle = page.getByRole("button", { name: "Reorder: Deleted TikTok", exact: true });
   await handle.focus(); await handle.press("ArrowUp");
@@ -209,9 +209,13 @@ for (const width of [1280, 390])
       });
     });
     await page.goto("/admin/wiki/editing");
-    if (width < 768)
+    if (width < 768) {
       await expect(page.getByRole("button", { name: "Expand admin menu" })).toHaveAttribute("aria-expanded", "false");
-    await page.getByRole("tab", { name: "My playlists" }).click();
+      await page.getByRole("button", { name: "Expand admin menu" }).click();
+    }
+    await page.getByRole("link", { name: "Video", exact: true }).click();
+    if (width < 768)
+      await page.getByRole("button", { name: "Collapse admin menu" }).click();
     await expect(page.getByText("No playlists yet.")).toBeVisible();
     await page.getByRole("tab", { name: "Create", exact: true }).click();
     await page.getByLabel("New playlist name").fill("My music");
