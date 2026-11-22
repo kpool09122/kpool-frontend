@@ -63,6 +63,13 @@ const basicFieldLabels: Array<{
   { label: "Fandom Name", getValue: (basic) => basic.fandomName },
   { label: "Representative Symbol", getValue: (basic) => basic.representativeSymbol },
   { label: "CEO", getValue: (basic) => basic.ceo },
+  {
+    label: "Parent Company",
+    getLinks: (basic) => getRelationLink(basic.parentAgency, "agency"),
+    getValue: (basic) => basic.resourceType === "agency"
+      ? basic.parentAgency?.name ?? basic.parentAgencyIdentifier
+      : null,
+  },
   { label: "Official Website", getValue: (basic) => basic.officialWebsite },
   {
     label: "Social Links",

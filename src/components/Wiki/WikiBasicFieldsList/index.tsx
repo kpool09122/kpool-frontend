@@ -50,6 +50,7 @@ const basicFieldLabelKeys: Record<string, BasicFieldLabelKey> = {
   "Song Type": "songType",
   Genres: "genres",
   Agency: "agency",
+  "Parent Company": "parentAgency",
   Groups: "groups",
   Talents: "talents",
   "Release Date": "releaseDate",

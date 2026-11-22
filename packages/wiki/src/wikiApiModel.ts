@@ -215,6 +215,8 @@ const adaptWikiBasic = (response: WikiApiResponseBase): WikiBasic => {
     name: String(basic.name ?? response.slug),
     normalizedName: String(basic.normalizedName ?? basic.name ?? response.slug),
     resourceType,
+    parentAgency: toWikiBasicRelationSummary(basic.parentAgency),
+    parentAgencyIdentifier: toNullableString(basic.parentAgencyIdentifier),
     agency: toWikiBasicRelationSummary(basic.agency),
     agencyName: toNullableString(basic.agencyName),
     agencyIdentifier: toNullableString(basic.agencyIdentifier ?? basic.agency_identifier),

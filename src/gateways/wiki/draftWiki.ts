@@ -1,3 +1,4 @@
+import { withParentAgency } from "./parentAgency";
 import { getBackendErrorResponse } from "@/gateways/support/apiError";
 import { browserApiFetch } from "@/gateways/support/browserApiFetch";
 
@@ -19,6 +20,7 @@ import {
 } from "@kpool/wiki";
 import { parseWithSchemaLog } from "@/gateways/support/zodErrorLog";
 import {
+  createPublicWikiApiClient,
   getPublicWikiEndpointPath,
   publicWikiApiResponseSchema,
   type PublicWikiApiResponse,
@@ -673,7 +675,7 @@ export const fetchDraftWiki = async (
   try {
     const response = await client.fetchDraftWiki(language, resourceType, slug);
 
-    return adaptDraftWikiResponse(response);
+    return withParentAgency(adaptDraftWikiResponse(response), createPublicWikiApiClient());
   } catch (error) {
     if (!isNotFoundApiError(error)) {
       throw error;
@@ -690,7 +692,7 @@ export const fetchDraftWikiByIdentifier = async (
 ): Promise<WikiDraftDetail> => {
   const response = await client.fetchDraftWikiByIdentifier(resourceType, wikiIdentifier);
 
-  return adaptDraftWikiResponse(response);
+  return withParentAgency(adaptDraftWikiResponse(response), createPublicWikiApiClient());
 };
 
 export const saveDraftWiki = async (
