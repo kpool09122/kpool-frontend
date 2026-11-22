@@ -31,6 +31,7 @@ function Breakdown({ title, items, locale }: { title: string; items: BreakdownIt
 
 export function HomeOverview({ locale, statistics }: { locale: Locale; statistics: WikiStatistics | null }) {
   const t = homeOverviewCopy[locale];
+  const resourceLabels = dictionaries[locale].home.resourceLabels;
   const localizedStatistics = statistics?.byLanguage[locale];
   const groupTotal = localizedStatistics?.resourceTypes.group ?? 0;
   const groups = localizedStatistics ? Object.entries(localizedStatistics.groupTypes).map(([key, count], index) => ({
@@ -64,7 +65,7 @@ export function HomeOverview({ locale, statistics }: { locale: Locale; statistic
           {statistics.total === 0 && <p className="mt-3 text-sm text-text-muted">{t.empty}</p>}
           <div className="my-6 grid grid-cols-2 gap-6 border-t border-stroke-subtle pt-5">
             <Breakdown title={t.languages} locale={locale} items={supportedLocales.map((key, index) => ({ key, label: localeLabels[key], count: statistics.languages[key], color: colors[index] }))} />
-            <Breakdown title={t.resources} locale={locale} items={Object.entries(statistics.byLanguage[locale].resourceTypes).map(([key, count], index) => ({ key, label: dictionaries[locale].home.resourceLabels[key as keyof typeof statistics.resourceTypes], count, color: colors[index] }))} />
+            <Breakdown title={t.resources} locale={locale} items={Object.entries(statistics.byLanguage[locale].resourceTypes).map(([key, count], index) => ({ key, label: resourceLabels[key as keyof typeof resourceLabels], count, color: colors[index] }))} />
           </div>
           <div className="border-t border-stroke-subtle pt-5">
             <h3 className="mb-3 text-xs font-semibold text-text-muted">{t.groups}</h3>

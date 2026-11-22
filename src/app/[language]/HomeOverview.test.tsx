@@ -4,8 +4,6 @@ import { HomeOverview } from "./HomeOverview";
 
 const statistics = {
   total: 12, languages: { ja: 5, en: 3, ko: 4 },
-  resourceTypes: { agency: 1, group: 6, talent: 3, song: 2 },
-  groupTypes: { boy_group: 3, girl_group: 2, co_ed: 1, unknown: 0 },
   byLanguage: {
     ja: { resourceTypes: { agency: 0, group: 2, talent: 2, song: 1 }, groupTypes: { boy_group: 1, girl_group: 1, co_ed: 0, unknown: 0 } },
     en: { resourceTypes: { agency: 1, group: 0, talent: 1, song: 1 }, groupTypes: { boy_group: 0, girl_group: 0, co_ed: 0, unknown: 0 } },
@@ -42,7 +40,6 @@ it("handles empty statistics without invalid percentages", () => {
   render(<HomeOverview locale="ko" statistics={{
     total: 0,
     languages: { ja: 0, en: 0, ko: 0 },
-    ...emptyBreakdown,
     byLanguage: { ja: emptyBreakdown, en: emptyBreakdown, ko: emptyBreakdown },
   }} />);
   expect(screen.getByText("아직 그룹 위키가 없습니다.")).toBeInTheDocument();

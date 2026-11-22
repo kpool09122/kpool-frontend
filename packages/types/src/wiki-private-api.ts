@@ -6839,22 +6839,6 @@ const endpoints = makeApi([
             ko: z.number().int(),
           })
           .passthrough(),
-        resourceTypes: z
-          .object({
-            agency: z.number().int(),
-            group: z.number().int(),
-            talent: z.number().int(),
-            song: z.number().int(),
-          })
-          .passthrough(),
-        groupTypes: z
-          .object({
-            boy_group: z.number().int(),
-            girl_group: z.number().int(),
-            co_ed: z.number().int(),
-            unknown: z.number().int(),
-          })
-          .passthrough(),
       })
       .passthrough(),
     errors: [
