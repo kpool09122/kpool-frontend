@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe("Google Trends display", () => {
-  it("renders the official widget, explanation and same-condition link, with temporary viewer settings", () => {
+  it("renders the official widget, source and same-condition link, with temporary viewer settings", () => {
     const { unmount } = render(view());
     const frame = screen.getByTitle(
       `Google Trends: ${block.searchTerm}`,
@@ -46,7 +46,7 @@ describe("Google Trends display", () => {
       category: 0,
       property: "",
     });
-    expect(screen.getByText(/not search counts/)).toBeVisible();
+    expect(screen.getByText("Source: Google Trends.")).toBeVisible();
     fireEvent.change(screen.getByLabelText("Region"), {
       target: { value: "" },
     });
@@ -67,7 +67,7 @@ describe("Google Trends display", () => {
   it("keeps fallback links, offers retry after timeout and cleans up on unmount", () => {
     vi.useFakeTimers();
     const { unmount } = render(view());
-    expect(screen.getByText(/Errors inside the external frame/)).toBeVisible();
+    expect(screen.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toBeVisible();
     act(() => vi.advanceTimersByTime(15000));
     expect(screen.getByRole("status")).toHaveTextContent(
       "loading could not be confirmed",
@@ -122,8 +122,12 @@ describe("Google Trends display", () => {
       "Worldwide",
       "Japan",
       "South Korea",
-      "Past 12 months",
+      "Past 3 months",
+      "Past 6 months",
+      "Past year",
+      "Past 2 years",
       "Past 5 years",
+      "Past 10 years",
     ]);
     fireEvent.change(screen.getByLabelText("Region"), {
       target: { value: "KR" },

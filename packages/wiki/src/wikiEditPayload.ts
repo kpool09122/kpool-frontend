@@ -2,6 +2,7 @@ import type {
   WikiBlockType,
   WikiDraftDetail,
   WikiHistoryEntry,
+  WikiGoogleTrendsSettings,
   WikiProfileCardListBlock,
   WikiSection,
   WikiSectionContent,
@@ -38,8 +39,8 @@ export type WikiSectionContentPayload =
       items?: string[];
       entries?: WikiHistoryEntry[];
       searchTerm?: string;
-      region?: "JP" | "KR" | "";
-      timeRange?: "today 12-m" | "today 5-y";
+      region?: WikiGoogleTrendsSettings["region"];
+      timeRange?: WikiGoogleTrendsSettings["timeRange"];
       rows?: string[][];
       headers?: string[] | null;
       rowCells?: Array<Array<{ content: string; colspan?: number }>>;

@@ -14,6 +14,7 @@ import {
   adaptWikiApiResponse,
 } from "./wikiApiModel";
 import { wikiGoogleTrendsSettingsSchema } from "./types/wiki";
+import { buildGoogleTrendsEmbedUrl, buildGoogleTrendsExploreUrl, googleTrendsTimeRangeOptions } from "./wikiGoogleTrends";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { createMockWikiDetail } from "./mockWikiDetail";
 
@@ -43,10 +44,11 @@ describe("Google Trends block", () => {
       displayOrder: 10,
       contents: [],
     };
-    const [first] = addWikiBlock([section], "section", "google_trends", {
+    const [first, editingId] = addWikiBlock([section], "section", "google_trends", {
       name: "TWICE",
       language: "ko",
     });
+    expect(editingId).toBeNull();
     const [second] = addWikiBlock(first, "section", "google_trends", {
       name: "BTS",
       language: "ko",
@@ -71,13 +73,13 @@ describe("Google Trends block", () => {
     ]);
   });
 
-  it("accepts the backend-generated input contract", () => {
+  it.each(googleTrendsTimeRangeOptions)("accepts $value through the API input contract", ({ value }) => {
     expect(
       wikiPrivateApiTypes.schemas.WikiContentInput.safeParse({
         type: "google_trends",
         searchTerm: "TWICE",
         region: "",
-        timeRange: "today 5-y",
+        timeRange: value,
       }).success,
     ).toBe(true);
   });
@@ -99,14 +101,14 @@ describe("Google Trends block", () => {
       });
     }
   });
-  it("round trips backend-generated settings, keys, API payload and code", () => {
+  it.each(googleTrendsTimeRangeOptions)("round trips $value through settings, API payload and code", ({ value }) => {
     const block = {
       blockType: "google_trends" as const,
       blockKey: "trends-key",
       displayOrder: 10,
       searchTerm: "TWICE | 트와이스 \\ % & ]]",
       region: "KR" as const,
-      timeRange: "today 5-y" as const,
+      timeRange: value,
     };
     const wiki = createMockWikiDetail("gr-twice");
     const sections = [
@@ -146,10 +148,36 @@ describe("Google Trends block", () => {
             displayOrder: 10,
             searchTerm: block.searchTerm,
             region: "KR",
-            timeRange: "today 5-y",
+            timeRange: value,
           },
         ],
       },
     ]);
+  });
+
+  it.each([
+    ["today 3-m", "today 3-m"],
+    ["today 6-m", "2026-05-23 2026-11-23"],
+    ["today 12-m", "today 12-m"],
+    ["today 2-y", "2024-11-23 2026-11-23"],
+    ["today 5-y", "today 5-y"],
+    ["today 10-y", "2016-11-23 2026-11-23"],
+  ] as const)("uses matching date bounds for the widget and external link: %s", (timeRange, date) => {
+    const settings = { searchTerm: "TWICE", region: "JP" as const, timeRange };
+    const now = new Date("2026-11-23T10:00:00Z");
+    const link = new URL(buildGoogleTrendsExploreUrl(settings, "ja", now));
+    const widget = new URL(buildGoogleTrendsEmbedUrl(settings, "ja", now));
+    expect(link.searchParams.get("date")).toBe(date);
+    expect(JSON.parse(widget.searchParams.get("req")!).comparisonItem[0].time).toBe(date);
+    expect(new URLSearchParams(widget.searchParams.get("eq")!).get("date")).toBe(date);
+  });
+
+  it.each([
+    ["today 6-m", "2025-08-31T23:00:00Z", "2025-02-28 2025-08-31"],
+    ["today 2-y", "2024-02-29T00:00:00Z", "2022-02-28 2024-02-29"],
+    ["today 10-y", "2024-02-29T00:00:00Z", "2014-02-28 2024-02-29"],
+  ] as const)("clamps month ends and leap days for %s", (timeRange, now, date) => {
+    const link = new URL(buildGoogleTrendsExploreUrl({ searchTerm: "TWICE", region: "", timeRange }, "en", new Date(now)));
+    expect(link.searchParams.get("date")).toBe(date);
   });
 });

@@ -232,7 +232,7 @@ export const addWikiBlock = (
     }
 
     const block = createWikiBlock(blockType, getNextDisplayOrder(section.contents), context);
-    nextEditorId = `block:${block.blockKey}`;
+    nextEditorId = blockType === "google_trends" ? null : `block:${block.blockKey}`;
 
     return {
       ...section,

@@ -11,6 +11,31 @@ import { describe, expect, it, vi } from "vitest";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 describe("useWikiEditDraft", () => {
+  it("inserts Google Trends ready to display and persists inline settings without opening a form", async () => {
+    const wiki = createMockWikiDetail("gr-aurora-echo");
+    const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useWikiEditDraft(wiki, { saveAdapter }));
+    const sectionKey = result.current.draft.sections[0].sectionKey;
+    act(() => result.current.addBlock(sectionKey, "google_trends"));
+    expect(result.current.editingId).toBeNull();
+    const block = result.current.draft.sections[0].contents.find((content) => "blockType" in content && content.blockType === "google_trends");
+    if (!block || !("blockKey" in block)) throw new Error("Expected Google Trends block");
+    act(() => result.current.updateBlock(block.blockKey, { region: "KR", timeRange: "today 10-y" }));
+    expect(result.current.editingId).toBeNull();
+    await act(async () => { await result.current.saveDraft(); });
+    expect(saveAdapter).toHaveBeenCalledWith(expect.objectContaining({
+      sections: expect.arrayContaining([expect.objectContaining({
+        sectionKey,
+        contents: expect.arrayContaining([expect.objectContaining({
+          blockKey: block.blockKey,
+          searchTerm: wiki.basic.name,
+          region: "KR",
+          timeRange: "today 10-y",
+        })]),
+      })]),
+    }));
+  });
+
   it("preserves edits when the loaded wiki has not changed", () => {
     const wiki = createMockWikiDetail("gr-aurora-echo");
     const { result, rerender } = renderHook(

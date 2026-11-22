@@ -6,6 +6,7 @@ import { type WikiBlock, type WikiResourceType } from "@kpool/wiki";
 
 import { EditIcon, TrashIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
+import { WikiGoogleTrends } from "../WikiGoogleTrends";
 import { WikiBlockForm } from "../WikiBlockForm";
 import { wikiReorderItemClassName, type WikiReorderItem } from "../WikiReorderList";
 import { cardSurfaceMutedStyle, youtubeEmbedClassName } from "../styles";
@@ -48,12 +49,12 @@ export function WikiBlockEditorItem({
   const blockLabel = dictionary.wiki.blockTypes[block.blockType];
   const controls = (
     <div className="flex gap-2">
-      <button aria-label={`${t.editBlock}: ${blockLabel}`} className="rounded-lg p-2 text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button>
+      {block.blockType !== "google_trends" ? <button aria-label={`${t.editBlock}: ${blockLabel}`} className="rounded-lg p-2 text-text-muted transition hover:bg-text-strong/5 hover:text-text-strong disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled} onClick={onEdit} type="button"><EditIcon /></button> : null}
       <button aria-label={`${t.deleteBlock}: ${blockLabel}`} className="rounded-lg p-2 text-text-muted transition hover:bg-status-danger/10 hover:text-status-danger disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled} onClick={onDelete} type="button"><TrashIcon /></button>
     </div>
   );
 
-  if (isEditing) {
+  if (isEditing && block.blockType !== "google_trends") {
     return (
       <article className="rounded-2xl border border-stroke-subtle p-4" data-testid={`wiki-edit-block-${block.blockKey}`} style={cardSurfaceMutedStyle}>
         <div className="mb-3 flex justify-end">
@@ -80,7 +81,9 @@ export function WikiBlockEditorItem({
         </div>
         {reorder?.handle}
       </div>
-      <WikiBlockDisplay
+      {block.blockType === "google_trends" ? (
+        <WikiGoogleTrends block={block} language={language} disabled={disabled} onSettingsChange={onSave} />
+      ) : <WikiBlockDisplay
         block={block}
         language={language}
         showEditableImageOverlay
@@ -92,7 +95,7 @@ export function WikiBlockEditorItem({
           });
         } : undefined}
         textClassName="text-base leading-[30px] text-text-strong"
-      />
+      />}
     </article>
   );
 }

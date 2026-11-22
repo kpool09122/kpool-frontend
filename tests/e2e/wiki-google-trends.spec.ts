@@ -20,6 +20,7 @@ for (const width of [1280, 390]) {
       route.fulfill({ contentType: "text/html", body: mockWidget }),
     );
     await page.setViewportSize({ width, height: 900 });
+    await page.clock.setFixedTime(new Date("2026-11-23T10:00:00Z"));
     await page.goto("/en/wiki/gr-google-trends");
     if (width === 390)
       await page.getByTestId("section-toggle-sec-trends").click();
@@ -33,10 +34,21 @@ for (const width of [1280, 390]) {
     await expect(first.getByRole("status")).toHaveCount(0);
     await expect(charts.first()).toHaveCSS("height", "350px");
     await first.getByLabel("Region", { exact: true }).selectOption("");
-    await first.getByLabel("Time range").selectOption("today 5-y");
-    await expect(
-      first.getByRole("link", { name: /Open Google Trends/ }),
-    ).toHaveAttribute("href", /date=today\+5-y/);
+    await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
+    for (const [value, date] of [
+      ["today 3-m", "today 3-m"],
+      ["today 6-m", "2026-05-23 2026-11-23"],
+      ["today 12-m", "today 12-m"],
+      ["today 2-y", "2024-11-23 2026-11-23"],
+      ["today 5-y", "today 5-y"],
+      ["today 10-y", "2016-11-23 2026-11-23"],
+    ]) {
+      await first.getByLabel("Time range").selectOption(value);
+      const href = await first.getByRole("link", { name: /Open Google Trends/ }).getAttribute("href");
+      expect(new URL(href!).searchParams.get("date")).toBe(date);
+      const src = await charts.first().getAttribute("src");
+      expect(JSON.parse(new URL(src!).searchParams.get("req")!).comparisonItem[0].time).toBe(date);
+    }
     const bounds = await charts.first().boundingBox();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
@@ -71,7 +83,7 @@ test("blocked external loads preserve article, source link and retry", async ({
   await expect(
     page.getByRole("link", { name: /Open Google Trends/ }),
   ).toHaveCount(2);
-  await expect(page.getByText(/Errors inside the external frame/)).toHaveCount(
+  await expect(page.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toHaveCount(
     2,
   );
   await page.getByRole("button", { name: "Reload chart" }).first().click();
@@ -108,14 +120,12 @@ test("adds, edits, code round trips and saves a structured block in the actual e
   await controls
     .getByRole("button", { name: "Google Trends", exact: true })
     .click();
-  await expect(page.getByLabel("Search term")).toHaveValue("Aurora Echo");
-  await page.getByLabel("Search term").fill("트와이스");
-  await page.getByLabel("Region", { exact: true }).last().selectOption("KR");
-  await page.getByLabel("Time range").last().selectOption("today 5-y");
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(
-    page.getByRole("figure", { name: "Google Trends: 트와이스", exact: true }),
-  ).toBeVisible();
+  const inserted = page.getByRole("figure", { name: "Google Trends: Aurora Echo", exact: true });
+  await expect(inserted).toBeVisible();
+  await expect(page.getByLabel("Search term")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Edit block: Google Trends", exact: true })).toHaveCount(0);
+  await inserted.getByLabel("Region", { exact: true }).selectOption("KR");
+  await inserted.getByLabel("Time range").selectOption("today 10-y");
   await page.getByRole("button", { name: "Expand editor sidebar" }).click();
   await page.getByRole("button", { name: "code", exact: true }).click();
   const code = page.getByLabel("Wiki code");
@@ -149,9 +159,9 @@ test("adds, edits, code round trips and saves a structured block in the actual e
           }),
           expect.objectContaining({
             type: "google_trends",
-            searchTerm: "트와이스",
+            searchTerm: "Aurora Echo",
             region: "KR",
-            timeRange: "today 5-y",
+            timeRange: "today 10-y",
           }),
         ]),
       }),

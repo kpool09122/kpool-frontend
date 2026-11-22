@@ -437,7 +437,7 @@ export function WikiEditContent({
                               onRequestImage={openImageLibrary}
                               onSaveBlock={(blockKey, changes) => {
                                 updateBlock(blockKey, changes);
-                                closeEditor();
+                                if (editingId === `block:${blockKey}`) closeEditor();
                               }}
                               onSaveSection={(sectionKey, changes) => {
                                 updateSection(sectionKey, changes);

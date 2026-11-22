@@ -5,6 +5,7 @@ import {
   buildGoogleTrendsEmbedUrl,
   buildGoogleTrendsExploreUrl,
   googleTrendsOrigin,
+  googleTrendsTimeRangeOptions,
   wikiGoogleTrendsSettingsSchema,
   type WikiGoogleTrendsBlock,
   type WikiGoogleTrendsSettings,
@@ -90,9 +91,13 @@ function GoogleTrendsFrame({
 function GoogleTrendsViewer({
   block,
   language,
+  disabled = false,
+  onSettingsChange,
 }: {
   block: WikiGoogleTrendsBlock;
   language: string;
+  disabled?: boolean;
+  onSettingsChange?: (settings: WikiGoogleTrendsSettings) => void;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.googleTrends;
@@ -102,7 +107,7 @@ function GoogleTrendsViewer({
   const settings = { searchTerm: block.searchTerm, region, timeRange };
   const regions = [
     ...new Set<WikiGoogleTrendsSettings["region"]>(
-      language === "en"
+      language === "en" || onSettingsChange
         ? ["", "JP", "KR"]
         : [language === "ko" ? "KR" : "JP", "", block.region],
     ),
@@ -119,12 +124,16 @@ function GoogleTrendsViewer({
             aria-label={t.region}
             className={selectClassName}
             value={region}
+            disabled={disabled}
             onChange={(event) => {
               const parsed =
                 wikiGoogleTrendsSettingsSchema.shape.region.safeParse(
                   event.target.value,
                 );
-              if (parsed.success) setRegion(parsed.data);
+              if (parsed.success) {
+                setRegion(parsed.data);
+                onSettingsChange?.({ ...settings, region: parsed.data });
+              }
             }}
           >
             {regions.map((value) => (
@@ -140,20 +149,24 @@ function GoogleTrendsViewer({
             aria-label={t.timeRange}
             className={selectClassName}
             value={timeRange}
+            disabled={disabled}
             onChange={(event) => {
               const parsed =
                 wikiGoogleTrendsSettingsSchema.shape.timeRange.safeParse(
                   event.target.value,
                 );
-              if (parsed.success) setTimeRange(parsed.data);
+              if (parsed.success) {
+                setTimeRange(parsed.data);
+                onSettingsChange?.({ ...settings, timeRange: parsed.data });
+              }
             }}
           >
-            <option value="today 12-m">{t.year}</option>
-            <option value="today 5-y">{t.fiveYears}</option>
+            {googleTrendsTimeRangeOptions.map(({ value, label }) => (
+              <option key={value} value={value}>{t[label]}</option>
+            ))}
           </select>
         </label>
       </div>
-      <p className="text-sm text-text-muted">{t.regionHelp}</p>
       <GoogleTrendsFrame
         key={JSON.stringify([settings, language, attempt])}
         settings={settings}
@@ -187,9 +200,13 @@ function GoogleTrendsViewer({
 export function WikiGoogleTrends({
   block,
   language,
+  disabled,
+  onSettingsChange,
 }: {
   block: WikiGoogleTrendsBlock;
   language: string;
+  disabled?: boolean;
+  onSettingsChange?: (settings: WikiGoogleTrendsSettings) => void;
 }) {
   const { dictionary } = useI18n();
   if (!wikiGoogleTrendsSettingsSchema.safeParse(block).success)
@@ -205,6 +222,8 @@ export function WikiGoogleTrends({
       ])}
       block={block}
       language={language}
+      disabled={disabled}
+      onSettingsChange={onSettingsChange}
     />
   );
 }

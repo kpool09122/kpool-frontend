@@ -72,20 +72,6 @@ describe("WikiBlockForm", () => {
     expect(onSave).toHaveBeenCalledWith({ provider: "x", embedId: "123456789", caption: block.caption });
   });
 
-  it("edits structured Google Trends settings and rejects whitespace-only terms", () => {
-    const onSave = vi.fn();
-    renderWithI18n(<WikiBlockForm block={createWikiBlock("google_trends", 10, { name: "TWICE", language: "ja" })} onSave={onSave} onCancel={vi.fn()} />);
-    const term = screen.getByLabelText("Search term");
-    expect(term).toHaveValue("TWICE");
-    fireEvent.change(term, { target: { value: "  " } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).not.toHaveBeenCalled();
-    fireEvent.change(term, { target: { value: "트와이스" } });
-    fireEvent.change(screen.getByLabelText("Region"), { target: { value: "KR" } });
-    fireEvent.change(screen.getByLabelText("Time range"), { target: { value: "today 5-y" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(onSave).toHaveBeenCalledWith({ searchTerm: "트와이스", region: "KR", timeRange: "today 5-y" });
-  });
 
   it("edits, adds, and removes entries in a history block", () => {
     const onSave = vi.fn();
