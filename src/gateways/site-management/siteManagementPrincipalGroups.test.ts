@@ -27,6 +27,13 @@ describe("SiteManagement gateway", () => {
     expect(await saveSiteManagementPrincipalGroups({ principalGroups: [] }, { fetchAdapter })).toMatchObject({ committed: true, refresh: { ok: true } });
     expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/principal-groups/members", expect.objectContaining({ method: "PATCH", credentials: "include", body: '{"principalGroups":[]}' }));
   });
+  it("sends status-only updates without adding group replacements", async () => {
+    const body = { principalStatuses: [{ principalIdentifier: id, status: "suspended" as const }] };
+    const fetchAdapter = vi.fn().mockResolvedValue(Response.json({ committed: true, refresh: { ok: true, data: { principalGroups: [], principals: [] } } }));
+
+    expect(await saveSiteManagementPrincipalGroups(body, { fetchAdapter })).toMatchObject({ committed: true });
+    expect(fetchAdapter).toHaveBeenCalledWith("/api/site-management/principal-groups/members", expect.objectContaining({ body: JSON.stringify(body) }));
+  });
   it("validates duplicates but allows empty memberships and cross-group membership", () => {
     const item = { principalGroupIdentifier: id, principalIdentifiers: [id] };
     expect(siteManagementMembersRequestSchema.safeParse({ principalGroups: [item, item] }).success).toBe(false);

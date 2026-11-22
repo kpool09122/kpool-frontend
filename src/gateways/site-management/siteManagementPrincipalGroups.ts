@@ -29,10 +29,11 @@ export const saveSiteManagementPrincipalGroups = async (body: SiteManagementMemb
     return result.success ? result.data : failed;
   }, () => failed);
 };
-export const siteManagementMembersRequestSchema = siteManagementApiTypes.schemas.UpdatePrincipalGroupMembersRequestBody.refine((body) =>
-  new Set(body.principalGroups.map((group) => group.principalGroupIdentifier)).size === body.principalGroups.length &&
-  body.principalGroups.every((group) => new Set(group.principalIdentifiers).size === group.principalIdentifiers.length),
-);
+export const siteManagementMembersRequestSchema = siteManagementApiTypes.schemas.UpdatePrincipalGroupMembersRequestBody.refine((body) => {
+  const principalGroups = body.principalGroups ?? [];
+  return new Set(principalGroups.map((group) => group.principalGroupIdentifier)).size === principalGroups.length &&
+    principalGroups.every((group) => new Set(group.principalIdentifiers).size === group.principalIdentifiers.length);
+});
 export const parseSiteManagementPrincipalGroups = (body: unknown): SiteManagementPrincipalGroupList =>
   parseWithSchemaLog("site management principal groups", siteManagementApiTypes.schemas.PrincipalGroupList, body);
 

@@ -192,6 +192,35 @@ const PrincipalGroup = z
     members: z.array(PrincipalGroupMember),
   })
   .passthrough();
+const PrincipalGroupMembersUpdate = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid.uuid(),
+    principalIdentifiers: z.array(KPool_Common_Uuid),
+  })
+  .passthrough();
+const PrincipalStatusUpdate = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid.uuid(),
+    status: z.enum(["active", "suspended", "forced_stop"]),
+  })
+  .passthrough();
+const UpdatePrincipalGroupMembersRequest = z
+  .object({
+    principalGroups: z.array(PrincipalGroupMembersUpdate),
+    principalStatuses: z.array(PrincipalStatusUpdate),
+  })
+  .partial()
+  .passthrough();
+const UpdatedPrincipalGroup = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string(),
+    description: z.string().nullable(),
+    isDefault: z.boolean(),
+    memberCount: z.number().int(),
+  })
+  .passthrough();
 const PrincipalConditionClause = z
   .object({
     field: z.literal("resource:accountId"),
@@ -298,6 +327,10 @@ export const schemas = {
   PaymentSummary,
   RefundPaymentRequestBody,
   PrincipalGroup,
+  PrincipalGroupMembersUpdate,
+  PrincipalStatusUpdate,
+  UpdatePrincipalGroupMembersRequest,
+  UpdatedPrincipalGroup,
   PrincipalConditionClause,
   PrincipalPolicyStatement,
   PrincipalPolicySummary,
@@ -879,6 +912,73 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "patch",
+    path: "/principal-groups/members",
+    alias: "PrincipalManagementOperations_updatePrincipalGroupMembers",
+    description: `Atomically replace only specified groups&#x27; memberships and specified Principals&#x27; statuses in the effective Account. Omitted groups and statuses are preserved. Requires fresh principal_group_manage permission and active reachable operator. Rejects foreign/missing targets with 404 and duplicate identifiers with 422. forced_stop transitions are forbidden (409), but resending the current status is allowed. Validates the complete proposed state before saving: at least one reachable active Owner-role Principal with effective management permission and no overriding Deny must remain. A successor may be granted management while the previous manager is removed/suspended in the same update. Last-manager loss returns 409 with code last_active_manager; forbidden status changes return 409 with code principal_status_change_forbidden. Changes invalidate Identity/Account authorization context after commit. Does not enable business payment APIs.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: UpdatePrincipalGroupMembersRequest,
+      },
+    ],
+    response: z
+      .object({
+        principalGroups: z.array(UpdatedPrincipalGroup),
+        principalStatuses: z.array(PrincipalStatusUpdate),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
