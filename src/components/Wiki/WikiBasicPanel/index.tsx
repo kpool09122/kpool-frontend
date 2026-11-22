@@ -447,6 +447,19 @@ export function WikiBasicPanel({
     language,
     name: item.name,
   });
+  const [selectedParentAgency, setSelectedParentAgency] = useState<WikiMasterSearchItem[]>(() =>
+    basic.parentAgency
+      ? [{ ...toSearchItem(basic.parentAgency), resourceType: "agency" }]
+      : basic.parentAgencyIdentifier
+        ? [{
+            id: basic.parentAgencyIdentifier,
+            wikiIdentifier: basic.parentAgencyIdentifier,
+            name: basic.parentAgencyIdentifier,
+            slug: "",
+            resourceType: "agency",
+          }]
+        : [],
+  );
   const [selectedAgency, setSelectedAgency] = useState<WikiMasterSearchItem[]>(() =>
     basic.agency
       ? [{ ...toSearchItem(basic.agency), resourceType: "agency" }]
@@ -471,6 +484,10 @@ export function WikiBasicPanel({
 
   useImperativeHandle(searchContextRef, () => ({ getBasic: () => !isEditing ? basic : ({
     ...basic,
+    ...(isAgency ? {
+      parentAgency: selectedParentAgency[0] ? toBasicRelation(selectedParentAgency[0]) : null,
+      parentAgencyIdentifier: selectedParentAgency[0]?.wikiIdentifier ?? null,
+    } : {}),
     ...(showsAgencySearch ? { agency: selectedAgency[0] ? toBasicRelation(selectedAgency[0]) : null, agencyIdentifier: selectedAgency[0]?.wikiIdentifier ?? null, agencyName: selectedAgency[0]?.name ?? null } : {}),
     ...(showsGroupsSearch ? { groups: selectedGroups.map(toBasicRelation), groupIdentifiers: selectedGroups.map((item) => item.wikiIdentifier) } : {}),
     ...(showsTalentsSearch ? { talents: selectedTalents.map(toBasicRelation), talentIdentifiers: selectedTalents.map((item) => item.wikiIdentifier) } : {}),
@@ -495,6 +512,10 @@ export function WikiBasicPanel({
           if (changedFields.has("officialColorCode") || changedFields.has("officialColorLabel")) {
             changedFields.add("officialColors");
           }
+          if (isAgency && (selectedParentAgency[0]?.wikiIdentifier ?? null) !== (basic.parentAgencyIdentifier ?? null)) {
+            changedFields.add("parentAgency");
+            changedFields.add("parentAgencyIdentifier");
+          }
           const initialAgencyIds = basic.agency
             ? [basic.agency.wikiIdentifier]
             : basic.agencyName ? [basic.agencyIdentifier ?? ""] : [];
@@ -513,6 +534,8 @@ export function WikiBasicPanel({
           const updatedBasic: WikiBasic = {
             ...basic,
             name: basic.name,
+            parentAgency: selectedParentAgency[0] ? toBasicRelation(selectedParentAgency[0]) : null,
+            parentAgencyIdentifier: selectedParentAgency[0]?.wikiIdentifier ?? null,
             agency: selectedAgency[0]
               ? {
                   wikiIdentifier: selectedAgency[0].wikiIdentifier,
@@ -629,6 +652,17 @@ export function WikiBasicPanel({
             name="officialWebsite"
             value={basic.officialWebsite}
           />
+          {isAgency ? (
+            <WikiMasterSearchSelect
+              disabled={disabled}
+              language={language}
+              label={fieldLabels.parentAgency}
+              mode="single"
+              onChange={setSelectedParentAgency}
+              resourceType="agency"
+              selectedItems={selectedParentAgency}
+            />
+          ) : null}
           <SocialLinksInput
             disabled={disabled}
             isAlwaysVisible={isAgency}

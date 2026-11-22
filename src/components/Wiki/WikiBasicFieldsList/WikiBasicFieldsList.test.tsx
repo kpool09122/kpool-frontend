@@ -19,6 +19,14 @@ const expectWrappedText = (element: Element | null) => {
 describe("WikiBasicFieldsList", () => {
   afterEach(() => cleanup());
 
+  it.each([["ja", "親会社"], ["en", "Parent Company"], ["ko", "모회사"]])("renders a localized parent company link in %s", (language, label) => {
+    render(<WikiBasicFieldsList basic={{ name: "BIGHIT MUSIC", normalizedName: "bighit", resourceType: "agency",
+      parentAgencyIdentifier: "hybe-id", parentAgency: { wikiIdentifier: "hybe-id", name: "HYBE", slug: "ag-hybe", language: "ko" },
+    }} className="grid" itemClassName="" language={language} />);
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "HYBE" })).toHaveAttribute("href", "/ko/wiki/ag-hybe");
+  });
+
   it("renders wiki basic field labels and values", () => {
     render(
       <WikiBasicFieldsList

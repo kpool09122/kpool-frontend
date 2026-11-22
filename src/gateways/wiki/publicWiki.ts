@@ -1,3 +1,4 @@
+import { withParentAgency } from "./parentAgency";
 import { publicWikiCacheTag } from "./publicWikiCache";
 import { getWikiDetailState, type WikiDetail, type WikiDetailState } from "@kpool/wiki";
 import { wikiPrivateApiTypes } from "@kpool/types";
@@ -296,7 +297,7 @@ export const fetchPublicWiki = async (
 
   const response = await client.fetchWiki(language, resourceType, slug);
 
-  return adaptPublicWikiResponse(response);
+  return withParentAgency(adaptPublicWikiResponse(response), client);
 };
 
 export const fetchPublicWikiList = async (

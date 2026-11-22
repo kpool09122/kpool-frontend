@@ -405,6 +405,8 @@ export const wikiBasicSchema = z.object({
   emoji: z.string().optional(),
   representativeSymbol: z.string().optional(),
   officialColors: z.array(wikiOfficialColorSchema).optional(),
+  parentAgency: wikiBasicRelationSummarySchema.nullable().optional(),
+  parentAgencyIdentifier: z.string().nullable().optional(),
   agency: wikiBasicRelationSummarySchema.nullable().optional(),
   agencyName: z.string().nullable().optional(),
   agencyIdentifier: z.string().nullable().optional(),

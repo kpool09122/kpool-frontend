@@ -1,4 +1,5 @@
 import React from "react";
+import type { WikiBasic } from "@kpool/wiki";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider, useI18n } from "../../../i18n/I18nProvider";
@@ -19,6 +20,38 @@ const renderWithI18n = (ui: React.ReactElement) =>
   };
 
 describe("WikiBasicPanel", () => {
+  it("searches, selects and clears a parent company through the existing agency API", async () => {
+    const onSave = vi.fn();
+    const searchContextRef = React.createRef<{ getBasic: () => WikiBasic }>();
+    const id = "11111111-1111-4111-8111-111111111111";
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ wikis: [{ id, slug: "ag-hybe", name: "HYBE", resourceType: "agency" }] }));
+    vi.stubGlobal("fetch", fetchMock);
+    renderWithI18n(<WikiBasicPanel basic={{ name: "BIGHIT MUSIC", normalizedName: "bighit", resourceType: "agency" }}
+      language="ko" searchContextRef={searchContextRef} isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("Parent Company: Search keyword"), { target: { value: "HYBE" } });
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    fireEvent.click(await screen.findByRole("button", { name: /HYBE/ }));
+    expect(fetchMock).toHaveBeenCalledWith("/api/wiki/master-search?language=ko&resourceType=agency&keyword=HYBE&limit=20");
+    expect(searchContextRef.current?.getBasic().parentAgencyIdentifier).toBe(id);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ parentAgencyIdentifier: id, parentAgency: expect.objectContaining({ name: "HYBE" }) }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove: HYBE" }));
+    expect(searchContextRef.current?.getBasic().parentAgencyIdentifier).toBeNull();
+  });
+
+  it("retains an unresolved parent ID while editing other fields and can explicitly clear it", () => {
+    const onSave = vi.fn();
+    const id = "11111111-1111-4111-8111-111111111111";
+    renderWithI18n(<WikiBasicPanel basic={{ name: "BIGHIT MUSIC", normalizedName: "bighit", resourceType: "agency", parentAgencyIdentifier: id }}
+      isEditing onCancel={() => {}} onEdit={() => {}} onSave={onSave} />);
+    fireEvent.change(screen.getByLabelText("CEO"), { target: { value: "New CEO" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ ceo: "New CEO", parentAgencyIdentifier: id }));
+    fireEvent.click(screen.getByRole("button", { name: `Remove: ${id}` }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ parentAgencyIdentifier: null, parentAgency: null }));
+  });
+
   it("edits imperial height, saves centimeters, switches units and clears the height", () => {
     const onSave = vi.fn();
     renderWithI18n(<WikiBasicPanel basic={{ ...wikiStoryBasic, resourceType: "talent", height: 165 }}
