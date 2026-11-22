@@ -63,7 +63,11 @@ const getDraftImageQueryState = ({
   state: DraftImageListState | undefined;
 }): DraftImageListState => {
   if (state) {
-    return state;
+    return {
+      ...state,
+      isInitialLoading: state.isInitialLoading || isFetching,
+      loadError: error ? (error instanceof Error ? error.message : fallbackErrorMessage) : state.loadError,
+    };
   }
 
   if (isFetching) {
@@ -105,7 +109,6 @@ export const useDraftImages = ({
       status: draftImageListQuery.status,
     }), [adapter, messages.draftImageListLoadFailed]);
   const draftImagesQuery = useQuery({
-    enabled: !hasInitialDraftImagePage,
     initialData: hasInitialDraftImagePage ? initialDraftImages : undefined,
     queryFn: async () => toDraftImageListState(await fetchDraftImagesPage(null)),
     queryKey: listQueryKey,
@@ -174,12 +177,14 @@ export const useDraftImages = ({
         ? adapter.approveDraftImage({ imageIdentifier, fallbackErrorMessage })
         : adapter.rejectDraftImage({ imageIdentifier, fallbackErrorMessage });
     },
-    onMutate: ({ imageIdentifier }) => {
+    onMutate: async ({ imageIdentifier }) => {
       setReviewingImageIdentifier(imageIdentifier);
       setReviewError(null);
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
     },
-    onSuccess: (_data, { imageIdentifier }) => {
+    onSuccess: async (_data, { imageIdentifier }) => {
       removeReviewedImage(imageIdentifier);
+      await queryClient.invalidateQueries({ queryKey: listQueryKey });
     },
     onError: (error, { action }) => {
       setReviewError(

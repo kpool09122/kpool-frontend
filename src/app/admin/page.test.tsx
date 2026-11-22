@@ -2641,6 +2641,11 @@ describe("admin page clients", () => {
   it("shows image deletion request tab after draft images and requires rejection reasons", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
+    const initialList = draftImageAdapter.listImageDeletionRequests;
+    draftImageAdapter.listImageDeletionRequests = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ images: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
+
     renderWithQueryClient(
       <AdminClient
         draftImageAdapter={draftImageAdapter}
@@ -2684,6 +2689,11 @@ describe("admin page clients", () => {
 
   it("rejects image deletion requests and removes reviewed items", async () => {
     const draftImageAdapter = createDraftImageAdapter();
+
+    const initialList = draftImageAdapter.listImageDeletionRequests;
+    draftImageAdapter.listImageDeletionRequests = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ images: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient
@@ -2807,7 +2817,7 @@ describe("admin page clients", () => {
       "aria-selected",
       "true",
     );
-    expect(draftWikiAdapter.listMyDraftWikis).not.toHaveBeenCalled();
+    expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenCalledWith(expect.objectContaining({ statuses: ["pending", "rejected"] }));
     expect(draftWikiAdapter.listManagedDraftWikis).not.toHaveBeenCalled();
     expect(await screen.findByRole("link", { name: "編集中 Wiki" })).toHaveAttribute(
       "href",
@@ -2848,6 +2858,12 @@ describe("admin page clients", () => {
         per_page: 12,
       })),
     });
+
+    const initialList = draftWikiAdapter.listMyDraftWikis;
+    draftWikiAdapter.listMyDraftWikis = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ wikis: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient
@@ -2968,6 +2984,11 @@ describe("admin page clients", () => {
   it("deletes an editing draft wiki and removes it from the list", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const draftWikiAdapter = createDraftWikiAdapter();
+
+    const initialList = draftWikiAdapter.listMyDraftWikis;
+    draftWikiAdapter.listMyDraftWikis = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ wikis: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient
@@ -3090,6 +3111,11 @@ describe("admin page clients", () => {
         per_page: 12,
       }),
     });
+
+    const initialList = draftWikiAdapter.listManagedDraftWikis;
+    draftWikiAdapter.listManagedDraftWikis = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ wikis: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient
@@ -3294,7 +3320,7 @@ describe("admin page clients", () => {
 
   it.each(["next-generation", "same-version"] as const)("publishes an approved draft wiki using %s and removes it from the list", async (publishMethod) => {
     const draftWikiAdapter = createDraftWikiAdapter({
-      listManagedDraftWikis: vi.fn().mockResolvedValue({
+      listManagedDraftWikis: vi.fn().mockResolvedValueOnce({
         wikis: [{
           ...draftWiki,
           publishedWikiIdentifier: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -3304,7 +3330,7 @@ describe("admin page clients", () => {
         next_cursor: null,
         total: 1,
         per_page: 12,
-      }),
+      }).mockResolvedValue({ wikis: [], next_cursor: null, total: 0, per_page: 12 }),
     });
 
     renderWithQueryClient(
@@ -3427,6 +3453,10 @@ describe("admin page clients", () => {
     result.reject(new Error("公開の競合が発生しました"));
     expect(await within(screen.getByRole("dialog", { name: "公開方法" })).findByRole("alert")).toHaveTextContent("公開の競合が発生しました");
     expect(screen.getByRole("link", { name: "修正 Wiki" })).toBeInTheDocument();
+    vi.mocked(draftWikiAdapter.listManagedDraftWikis).mockResolvedValue({
+      wikis: [{ ...draftWiki, wikiIdentifier: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", status: "approved", name: "別 Wiki" }],
+      next_cursor: null, total: 1, per_page: 12,
+    });
     fireEvent.click(screen.getByRole("button", { name: "選択した方法で公開" }));
     await waitFor(() => expect(publishDraftWiki).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole("link", { name: "修正 Wiki" })).not.toBeInTheDocument());
@@ -3447,6 +3477,11 @@ describe("admin page clients", () => {
         per_page: 12,
       }),
     });
+
+    const initialList = draftWikiAdapter.listManagedDraftWikis;
+    draftWikiAdapter.listManagedDraftWikis = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ wikis: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient
@@ -3702,6 +3737,7 @@ describe("admin page clients", () => {
     const draftImageAdapter = createDraftImageAdapter({
       listDraftImages: vi.fn()
         .mockResolvedValueOnce({ images: [draftImage], next_cursor: "after-image", total: 2, per_page: 12 })
+        .mockResolvedValueOnce({ images: [], next_cursor: "after-image", total: 1, per_page: 12 })
         .mockResolvedValueOnce({ images: [{ ...draftImage, imageIdentifier: "77777777-7777-4777-8777-777777777777" }], next_cursor: null, total: 1, per_page: 12 }),
     });
     renderWithQueryClient(
@@ -3711,7 +3747,8 @@ describe("admin page clients", () => {
     fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "承認" }));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument());
+    await screen.findByRole("button", { name: "さらに読み込む" });
+    expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument();
     expect(screen.queryByText("未承認の画像はありません")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
     expect(await screen.findByRole("button", { name: "承認" })).toBeInTheDocument();
@@ -3723,7 +3760,10 @@ describe("admin page clients", () => {
   it("keeps loading available after deleting every displayed draft wiki", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const draftWikiAdapter = createDraftWikiAdapter({
-      listMyDraftWikis: vi.fn().mockResolvedValue({ wikis: [{ ...draftWiki, name: "Next Wiki", wikiIdentifier: "77777777-7777-4777-8777-777777777777" }], next_cursor: null, total: 1, per_page: 12 }),
+      listMyDraftWikis: vi.fn()
+        .mockResolvedValueOnce({ wikis: [draftWiki], next_cursor: "after-wiki", total: 2, per_page: 12 })
+        .mockResolvedValueOnce({ wikis: [], next_cursor: "after-wiki", total: 1, per_page: 12 })
+        .mockResolvedValueOnce({ wikis: [{ ...draftWiki, name: "Next Wiki", wikiIdentifier: "77777777-7777-4777-8777-777777777777" }], next_cursor: null, total: 1, per_page: 12 }),
     });
     renderWithQueryClient(
       <AdminClient draftImageAdapter={createDraftImageAdapter()} draftWikiAdapter={draftWikiAdapter}
@@ -3731,7 +3771,9 @@ describe("admin page clients", () => {
         initialIdentity={identity} initialPrincipalState={{ status: "available", principal }} principalAdapter={createAdapter()} />,
     );
     fireEvent.click(await screen.findByRole("button", { name: "削除" }));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "削除" })).not.toBeInTheDocument());
+    await waitFor(() => expect(draftWikiAdapter.listMyDraftWikis).toHaveBeenCalledTimes(2));
+    await screen.findByRole("button", { name: "さらに読み込む" });
+    expect(screen.queryByRole("button", { name: "削除" })).not.toBeInTheDocument();
     expect(screen.queryByText("編集中のWikiはありません")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
     expect(await screen.findByRole("link", { name: "Next Wiki" })).toBeInTheDocument();
@@ -3742,6 +3784,11 @@ describe("admin page clients", () => {
 
   it("approves a draft image and removes it from the list", async () => {
     const draftImageAdapter = createDraftImageAdapter();
+
+    const initialList = draftImageAdapter.listDraftImages;
+    draftImageAdapter.listDraftImages = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ images: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient
@@ -3768,6 +3815,11 @@ describe("admin page clients", () => {
 
   it("rejects a draft image and removes it from the list", async () => {
     const draftImageAdapter = createDraftImageAdapter();
+
+    const initialList = draftImageAdapter.listDraftImages;
+    draftImageAdapter.listDraftImages = vi.fn()
+      .mockImplementationOnce(initialList)
+      .mockResolvedValue({ images: [], next_cursor: null, current_page: 1, last_page: 1, total: 0, per_page: 12 });
 
     renderWithQueryClient(
       <AdminClient

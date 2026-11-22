@@ -65,7 +65,11 @@ const getImageDeletionRequestQueryState = ({
   state: ImageDeletionRequestListState | undefined;
 }): ImageDeletionRequestListState => {
   if (state) {
-    return state;
+    return {
+      ...state,
+      isInitialLoading: state.isInitialLoading || isFetching,
+      loadError: error ? (error instanceof Error ? error.message : fallbackErrorMessage) : state.loadError,
+    };
   }
 
   if (isFetching) {
@@ -105,7 +109,6 @@ export const useImageDeletionRequests = ({
       perPage: defaultWikiImagePerPage,
     }), [adapter, messages.imageDeletionRequestListLoadFailed]);
   const imageDeletionRequestsQuery = useQuery({
-    enabled: !hasInitialImageDeletionRequestPage,
     initialData: hasInitialImageDeletionRequestPage ? initialImageDeletionRequests : undefined,
     queryFn: async () => toImageDeletionRequestListState(await fetchImageDeletionRequestsPage(1)),
     queryKey: listQueryKey,
@@ -184,12 +187,14 @@ export const useImageDeletionRequests = ({
             requestBody: createWikiImageDeletionRequestRejection({ rejectReason: input.rejectReason }),
           });
     },
-    onMutate: ({ imageIdentifier }) => {
+    onMutate: async ({ imageIdentifier }) => {
       setReviewingImageIdentifier(imageIdentifier);
       setReviewError(null);
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
     },
-    onSuccess: (_data, { imageIdentifier }) => {
+    onSuccess: async (_data, { imageIdentifier }) => {
       removeReviewedImage(imageIdentifier);
+      await queryClient.invalidateQueries({ queryKey: listQueryKey });
     },
     onError: (error, { action }) => {
       setReviewError(

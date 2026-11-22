@@ -57,7 +57,11 @@ const getDraftWikiQueryState = ({
   isFetching: boolean;
   state: DraftWikiListState | undefined;
 }): DraftWikiListState => {
-  if (state) return state;
+  if (state) return {
+    ...state,
+    isInitialLoading: state.isInitialLoading || isFetching,
+    loadError: error ? (error instanceof Error ? error.message : fallbackErrorMessage) : state.loadError,
+  };
   if (isFetching) return { ...initialDraftWiki, isInitialLoading: true, loadError: null };
   if (error) {
     return {
@@ -90,7 +94,6 @@ export const useUnapprovedDraftWikis = ({
       statuses: ["under_review"],
     }), [adapter, messages.draftWikiListLoadFailed]);
   const draftWikiQuery = useQuery({
-    enabled: !hasInitialDraftWikiPage,
     initialData: hasInitialDraftWikiPage ? initialDraftWiki : undefined,
     queryFn: async () => toDraftWikiListState(await fetchPage(null)),
     queryKey: listQueryKey,
@@ -144,12 +147,14 @@ export const useUnapprovedDraftWikis = ({
       requestBody: createReviewWikiRequestBody(wiki),
       wikiId: wiki.wikiIdentifier,
     }),
-    onMutate: (wiki) => {
+    onMutate: async (wiki) => {
       setReviewingWikiIdentifier(wiki.wikiIdentifier);
       setReviewError(null);
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
     },
-    onSuccess: (_data, wiki) => {
+    onSuccess: async (_data, wiki) => {
       removeWikiFromCurrentList(wiki.wikiIdentifier);
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.draftWikis.all() });
     },
     onError: (error) => {
       setReviewError(error instanceof Error ? error.message : messages.draftWikiApproveFailed);
@@ -165,12 +170,14 @@ export const useUnapprovedDraftWikis = ({
       requestBody: createRejectWikiRequestBody(wiki, reason),
       wikiId: wiki.wikiIdentifier,
     }),
-    onMutate: ({ wiki }) => {
+    onMutate: async ({ wiki }) => {
       setReviewingWikiIdentifier(wiki.wikiIdentifier);
       setReviewError(null);
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
     },
-    onSuccess: (_data, { wiki }) => {
+    onSuccess: async (_data, { wiki }) => {
       removeWikiFromCurrentList(wiki.wikiIdentifier);
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.draftWikis.all() });
     },
     onError: (error) => {
       setReviewError(error instanceof Error ? error.message : messages.draftWikiRejectFailed);
