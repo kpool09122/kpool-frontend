@@ -25,7 +25,8 @@ test("wiki list applies filters and resets to the first page", async ({
 }) => {
   await page.goto("/en/wiki?page=3&perPage=10&sort=name&order=asc");
 
-  await page.getByLabel("Search").fill("aurora");
+  const search = page.getByRole("searchbox", { name: "Search", exact: true });
+  await search.fill("aurora");
   await expect(async () => {
     await page.getByLabel("Resource").selectOption("group");
     await expect(page).toHaveURL(/keyword=aurora/, { timeout: 1000 });
@@ -48,7 +49,7 @@ test("wiki list applies filters and resets to the first page", async ({
   await expect(page).toHaveURL(/order=desc/);
   await expect(page).toHaveURL(/perPage=30/);
   await expect(page).not.toHaveURL(/page=3/);
-  await expect(page.getByLabel("Search")).toHaveValue("aurora");
+  await expect(search).toHaveValue("aurora");
   await expect(page.getByLabel("Resource")).toHaveValue("group");
   await expect(page.getByLabel("Sort")).toHaveValue("desc");
   await expect(page.getByLabel("Per page")).toHaveValue("30");
