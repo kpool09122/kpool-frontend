@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { mockEditingDraftWikiList } from "./wiki-draft-wikis";
 import { mockAccountPolicyCookieName } from "@/gateways/identity/authIdentity";
 import {
   mockWikiPrincipalCookieName,
@@ -109,13 +110,15 @@ test("admin shows under review draft images for an available Wiki principal", as
   await useWikiPrincipal(page, "image-review");
 
   let approveRequests = 0;
+  let listRequests = 0;
 
   await page.route("**/api/wiki/draft-images?**", async (route) => {
+    listRequests += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        images: [
+        images: approveRequests === 0 ? [
           {
             imageIdentifier: "44444444-4444-4444-4444-444444444444",
             publishedImageIdentifier: null,
@@ -138,46 +141,14 @@ test("admin shows under review draft images for an available Wiki principal", as
             status: "under_review",
             uploadedAt: "2026-05-09T00:00:00Z",
           },
-        ],
+        ] : [],
         next_cursor: null,
-        total: 1,
+        total: approveRequests === 0 ? 1 : 0,
         per_page: 12,
       }),
     });
   });
-  await page.route(/.*\/api\/wiki\/(my\/)?draft-wikis\?.*/, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        wikis: [
-          {
-            wikiIdentifier: "88888888-8888-8888-8888-888888888888",
-            publishedWikiIdentifier: null,
-            translationSetIdentifier: "99999999-9999-9999-9999-999999999999",
-            slug: "gr-review-wiki",
-            language: "ja",
-            resourceType: "group",
-            themeColor: "#4c5cff",
-            status: "pending",
-            name: "編集中 Wiki",
-            normalizedName: "editing-wiki",
-            imageIdentifier: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-            imageUrl: "https://images.example.test/editing-wiki.webp",
-            imageAltText: "編集中 Wiki profile",
-            editedAt: "2026-05-10T00:00:00Z",
-            updatedAt: "2026-05-11T00:00:00Z",
-            approvedAt: null,
-            translatedAt: null,
-            mergedAt: null,
-          },
-        ],
-        next_cursor: null,
-        total: 1,
-        per_page: 12,
-      }),
-    });
-  });
+  await mockEditingDraftWikiList(page);
   await page.route("**/api/wiki/draft-images/*/approve", async (route) => {
     approveRequests += 1;
     await route.fulfill({
@@ -225,11 +196,13 @@ test("admin shows under review draft images for an available Wiki principal", as
   await page.getByRole("button", { name: "承認" }).click();
   await expect(page.getByText("未承認の画像はありません")).toBeVisible();
   expect(approveRequests).toBe(1);
+  expect(listRequests).toBe(2);
 });
 
 test("admin keeps wiki tabs interactive after browser back", async ({ page }) => {
   await useJapaneseLocale(page);
   await useWikiPrincipal(page, "image-review");
+  await mockEditingDraftWikiList(page);
 
   await page.route("**/api/wiki/draft-images?**", async (route) => {
     await route.fulfill({

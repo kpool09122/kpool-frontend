@@ -25,6 +25,8 @@ it("continues from the saved cursor after deleting a draft and retries a failed 
     listManagedDraftWikis: vi.fn(), listUntranslatedWikis: vi.fn(),
     publishDraftWiki: vi.fn(), rejectDraftWiki: vi.fn(), translateDraftWiki: vi.fn(), withdrawDraftWiki: vi.fn(),
     listMyDraftWikis: vi.fn()
+      .mockResolvedValueOnce({ wikis: [first], next_cursor: "after-first", total: 2, per_page: 12 })
+      .mockResolvedValueOnce({ wikis: [], next_cursor: "after-first", total: 1, per_page: 12 })
       .mockRejectedValueOnce(new Error("temporary failure"))
       .mockResolvedValueOnce({ wikis: [second], next_cursor: null, total: 1, per_page: 12 }),
   };
@@ -36,8 +38,10 @@ it("continues from the saved cursor after deleting a draft and retries a failed 
     messages: { draftWikiListLoadFailed: "failed", draftWikiDeleteFailed: "delete failed" },
   }), { wrapper: wrapper() });
 
+  await waitFor(() => expect(result.current.draftWiki.isInitialLoading).toBe(false));
   act(() => result.current.deleteDraftWiki(first));
   await waitFor(() => expect(result.current.draftWiki.wikis).toEqual([]));
+  await waitFor(() => expect(result.current.deletingWikiIdentifier).toBeNull());
   expect(result.current.draftWiki.pageInfo).toEqual({ next_cursor: "after-first", total: 1 });
   act(() => result.current.loadDraftWikis("after-first"));
   await waitFor(() => expect(result.current.draftWiki.loadError).toBe("temporary failure"));
@@ -64,7 +68,10 @@ it("keeps the cursor after reviewing the last displayed draft image", async () =
   const adapter: AdminDraftImageAdapter = {
     approveDraftImage: vi.fn().mockResolvedValue(undefined), rejectDraftImage: vi.fn(),
     approveImageDeletionRequest: vi.fn(), rejectImageDeletionRequest: vi.fn(), listImageDeletionRequests: vi.fn(),
-    listDraftImages: vi.fn().mockResolvedValue({ images: [second], next_cursor: null, total: 1, per_page: 12 }),
+    listDraftImages: vi.fn()
+      .mockResolvedValueOnce({ images: [first], next_cursor: "after-first-image", total: 2, per_page: 12 })
+      .mockResolvedValueOnce({ images: [], next_cursor: "after-first-image", total: 1, per_page: 12 })
+      .mockResolvedValueOnce({ images: [second], next_cursor: null, total: 1, per_page: 12 }),
   };
   const { result } = renderHook(() => useDraftImages({
     adapter, identityIdentifier: "identity", initialDraftImages: {
@@ -72,8 +79,10 @@ it("keeps the cursor after reviewing the last displayed draft image", async () =
       isInitialLoading: false, isLoadingMore: false, loadError: null,
     }, messages: { draftImageListLoadFailed: "failed", draftImageApproveFailed: "failed", draftImageRejectFailed: "failed" },
   }), { wrapper: wrapper() });
+  await waitFor(() => expect(result.current.draftImages.isInitialLoading).toBe(false));
   act(() => result.current.reviewDraftImage(first.imageIdentifier, "approve"));
   await waitFor(() => expect(result.current.draftImages.images).toEqual([]));
+  await waitFor(() => expect(result.current.reviewingImageIdentifier).toBeNull());
   expect(result.current.draftImages.pageInfo).toEqual({ next_cursor: "after-first-image", total: 1 });
   act(() => result.current.loadDraftImages("after-first-image"));
   await waitFor(() => expect(result.current.draftImages.images).toEqual([second]));

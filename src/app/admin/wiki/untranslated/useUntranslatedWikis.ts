@@ -56,7 +56,11 @@ const getDraftWikiQueryState = ({
   isFetching: boolean;
   state: DraftWikiListState | undefined;
 }): DraftWikiListState => {
-  if (state) return state;
+  if (state) return {
+    ...state,
+    isInitialLoading: state.isInitialLoading || isFetching,
+    loadError: error ? (error instanceof Error ? error.message : fallbackErrorMessage) : state.loadError,
+  };
   if (isFetching) return { ...initialDraftWiki, isInitialLoading: true, loadError: null };
   if (error) {
     return {
@@ -88,7 +92,6 @@ export const useUntranslatedWikis = ({
       sort: "updatedAt",
     }), [adapter, messages.draftWikiListLoadFailed]);
   const draftWikiQuery = useQuery({
-    enabled: !hasInitialDraftWikiPage,
     initialData: hasInitialDraftWikiPage ? initialDraftWiki : undefined,
     queryFn: async () => toDraftWikiListState(await fetchPage(1)),
     queryKey: listQueryKey,
@@ -139,12 +142,13 @@ export const useUntranslatedWikis = ({
       requestBody: createTranslateWikiRequestBody(wiki),
       wikiId: wiki.wikiIdentifier,
     }),
-    onMutate: (wiki) => {
+    onMutate: async (wiki) => {
       setReviewingWikiIdentifier(wiki.wikiIdentifier);
       setReviewError(null);
+      await queryClient.cancelQueries({ queryKey: listQueryKey });
     },
-    onSuccess: () => {
-      loadDraftWikisPage(1);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminQueryKeys.draftWikis.all() });
     },
     onError: (error) => {
       setReviewError(error instanceof Error ? error.message : messages.draftWikiTranslateFailed);

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./fixtures";
+import { mockEditingDraftWikiList } from "./wiki-draft-wikis";
 import { installTikTokPlayerMock, sendTikTokState } from "./tiktok-player";
 import { installYouTubePlayerMock } from "./youtube-player";
 import { wikiVideoAuthenticatedIdentity } from "./wiki-video-identity";
@@ -517,6 +518,7 @@ test("mobile keyboard playback progresses, preserves blocked playback, stops and
 
 test("admin wiki cards preserve the playing mini player when opening the editor", async ({ page }) => {
   await setupPlayback(page);
+  await mockEditingDraftWikiList(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.context().addCookies([{
     name: mockWikiPrincipalCookieName,

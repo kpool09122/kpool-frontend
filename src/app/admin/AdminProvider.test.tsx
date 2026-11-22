@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
@@ -34,6 +34,47 @@ const emptyWikis = { wikis: [], isInitialLoading: false, isLoadingMore: false, l
 
 beforeEach(() => useAuthStore.setState({ ...useAuthStore.getInitialState(), identity: original, status: "authenticated" }, true));
 afterEach(() => { cleanup(); useAuthStore.setState(useAuthStore.getInitialState(), true); });
+
+it("discards inactive admin data and requests current data when a screen is opened again", async () => {
+  const refreshed = Promise.withResolvers<string>();
+  const fetchList = vi.fn().mockResolvedValueOnce("first list").mockReturnValueOnce(refreshed.promise);
+  let client!: QueryClient;
+  function ClientObserver() {
+    const current = useQueryClient();
+    useEffect(() => { client = current; }, [current]);
+    return null;
+  }
+  function List() {
+    const query = useQuery({ queryKey: ["admin", "fresh-list"], queryFn: fetchList });
+    return <p>{query.data ?? "loading list"}</p>;
+  }
+  function View({ open }: { open: boolean }) {
+    return <AdminProvider initialIdentity={original}><ClientObserver />{open ? <List /> : null}</AdminProvider>;
+  }
+  const view = render(<View open />);
+  await screen.findByText("first list");
+  view.rerender(<View open={false} />);
+  await waitFor(() => expect(client.getQueryData(["admin", "fresh-list"])).toBeUndefined());
+  view.rerender(<View open />);
+  await waitFor(() => expect(fetchList).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText("first list")).not.toBeInTheDocument();
+  expect(screen.getByText("loading list")).toBeInTheDocument();
+  await act(async () => refreshed.resolve("current list"));
+  await screen.findByText("current list");
+});
+
+it("revalidates even a fresh shared query when another admin screen mounts", async () => {
+  const fetchList = vi.fn().mockResolvedValueOnce("before command").mockResolvedValueOnce("after command");
+  function List() {
+    const query = useQuery({ queryKey: ["admin", "shared-list"], queryFn: fetchList, staleTime: Infinity });
+    return <p>{query.data}</p>;
+  }
+  const view = render(<AdminProvider initialIdentity={original}><List /></AdminProvider>);
+  await screen.findByText("before command");
+  view.rerender(<AdminProvider initialIdentity={original}><List /><List /></AdminProvider>);
+  await waitFor(() => expect(screen.getAllByText("after command")).toHaveLength(2));
+  expect(fetchList).toHaveBeenCalledTimes(2);
+});
 
 describe("admin account switching", () => {
 

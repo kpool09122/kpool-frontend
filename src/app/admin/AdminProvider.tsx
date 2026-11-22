@@ -9,6 +9,7 @@ import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityA
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
 import { useWikiPrincipalState } from "./useWikiPrincipalState";
 import { QueryProvider } from "../QueryProvider";
+import { adminQueryDefaults } from "./queryDefaults";
 import { PrincipalAccessMonitor } from "./PrincipalAccessMonitor";
 import { getAdminAccountScope } from "./accountScope";
 import { useVideoPlayback } from "@/components/VideoPlayback/VideoPlaybackProvider";
@@ -63,7 +64,7 @@ export function AdminProvider({
   }
 
   return (
-    <QueryProvider key={`${sessionVersion}:${currentScope}`}>
+    <QueryProvider key={`${sessionVersion}:${currentScope}`} queryDefaults={adminQueryDefaults}>
       <AdminSession principalStateUpdatedAt={principalStateUpdatedAt} initialPrincipalState={initialPrincipalState} value={{ currentIdentity, locale, refreshIdentity, t: dictionary.admin }}>
         {children}
       </AdminSession>
