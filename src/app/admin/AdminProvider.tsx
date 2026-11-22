@@ -13,9 +13,12 @@ import { PrincipalAccessMonitor } from "./PrincipalAccessMonitor";
 import { getAdminAccountScope } from "./accountScope";
 import { useVideoPlayback } from "@/components/VideoPlayback/VideoPlaybackProvider";
 import { reconcilePrivatePlayback } from "./privatePlaybackAccess";
+import type { MonetizationState } from "@/gateways/monetization/monetizationPrincipal";
+import { useMonetizationPrincipal } from "./monetization/useMonetizationPrincipal";
 
 type AdminContextValue = {
   principalState: WikiPrincipalState;
+  monetizationState: MonetizationState | null;
   currentIdentity: AuthenticatedIdentitySummary;
   locale: Locale;
   refreshIdentity: AuthIdentityRefresh;
@@ -72,14 +75,16 @@ function AdminSession({ children, initialPrincipalState, principalStateUpdatedAt
   children: ReactNode;
   initialPrincipalState: WikiPrincipalState;
   principalStateUpdatedAt?: number;
-  value: Omit<AdminContextValue, "principalState">;
+  value: Omit<AdminContextValue, "principalState" | "monetizationState">;
 }) {
   const principalState = useWikiPrincipalState(value.currentIdentity, initialPrincipalState, principalStateUpdatedAt);
+  const sessionVersion = useAuthStore(state => state.sessionVersion);
+  const monetization = useMonetizationPrincipal(value.currentIdentity, sessionVersion);
   const playback = useVideoPlayback()?.store;
   const principal = principalState.status === "available" && principalState.principal.status === "active" ? principalState.principal.principalIdentifier : null;
   useEffect(() => { if (playback) reconcilePrivatePlayback(playback, principal); }, [playback, principal]);
   return (
-    <AdminContext.Provider value={{ ...value, principalState }}>
+    <AdminContext.Provider value={{ ...value, principalState, monetizationState: monetization.data ?? null }}>
       <PrincipalAccessMonitor identity={value.currentIdentity} refreshIdentity={value.refreshIdentity} t={value.t}>
         {children}
       </PrincipalAccessMonitor>

@@ -31,7 +31,7 @@ export function AdminShellClient({
   children,
 }: AdminShellClientProps) {
   const pathname = usePathname();
-  const { currentIdentity, t, principalState = { status: "idle" } } = useAdmin();
+  const { currentIdentity, t, principalState = { status: "idle" }, monetizationState = null } = useAdmin();
   const searchParams = useSearchParams();
   const [sidebarOverride, setSidebarOverride] = useState<boolean | null>(null);
   const isDesktop = useSyncExternalStore(subscribeToViewport, getDesktopSnapshot, () => false);
@@ -39,7 +39,7 @@ export function AdminShellClient({
   const isSidebarHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const activeSection = resolveAdminSection(pathname);
   const isUserSettings = activeSection === "settings";
-  const navigation = getAdminNavigation(currentIdentity, principalState);
+  const navigation = getAdminNavigation(currentIdentity, principalState, monetizationState);
   const showAnalyzeMenu = searchParams.get("test") === "true";
   const sidebarNavigation = navigation.filter((item) => item.section !== "analyze" || showAnalyzeMenu);
   const wikiGroups = principalState.status === "available" && principalState.principal.status === "active"
@@ -47,7 +47,8 @@ export function AdminShellClient({
   const activeWikiCategory = resolveWikiCategory(pathname);
   const fallbackRoute = navigation[0].href;
   const hiddenSection = !navigation.some((item) => item.section === activeSection);
-  const shouldRedirect = hiddenSection && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
+  const monetizationUnresolved = activeSection === "monetization" && (!monetizationState || monetizationState.status === "error");
+  const shouldRedirect = hiddenSection && !monetizationUnresolved && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
   const accountSuspended = isAccountSuspended(currentIdentity);
   const accountPrincipalStopped = currentIdentity.accountPrincipalStatus === "suspended" || currentIdentity.accountPrincipalStatus === "forced_stop";
   const wikiPrincipalStopped = principalState.status === "available" && principalState.principal.status !== "active";
@@ -55,6 +56,8 @@ export function AdminShellClient({
   const principalStopped = !isUserSettings && (accountPrincipalStopped || (activeSection === "wiki" && wikiPrincipalStopped) || (activeSection === "siteManagement" && sitePrincipalStopped));
   const headerTitle = activeSection === "wiki"
     ? t.wikiHeaderTitle
+    : activeSection === "monetization"
+      ? t.monetizationMenu
     : activeSection === "analyze"
       ? t.analyzeMenu
     : activeSection === "siteManagement"
@@ -130,7 +133,7 @@ export function AdminShellClient({
 
       <div className="mx-auto max-w-5xl">
         <section className="min-w-0 space-y-6">
-          <header className={activeSection === "analyze" ? "space-y-3 pl-6" : "space-y-3"}>
+          <header className={activeSection === "analyze" || activeSection === "monetization" ? "space-y-3 pl-6" : "space-y-3"}>
             <h1 className="text-3xl font-bold">{headerTitle}</h1>
           </header>
           {accountSuspended && !isUserSettings ? (

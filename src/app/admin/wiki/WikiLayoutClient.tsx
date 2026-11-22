@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminNavigationLink } from "../AdminNavigationLink";
+import { AdminSectionTabs } from "../AdminSectionTabs";
 import type { ReactNode } from "react";
 
 import type { useI18n } from "../../../i18n/I18nProvider";
@@ -73,25 +73,11 @@ export function WikiLayoutClient({
             </button>
           </div>
         ) : null}
-        <div className="overflow-x-auto border-b border-stroke-subtle">
-          <div aria-label={t.wikiTabsLabel} className="-mb-px flex gap-1" role="tablist">
-            {tabs.map((tab) => (
-              <AdminNavigationLink
-                aria-selected={activeWikiTab === tab.id}
-                className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-semibold transition ${
-                  activeWikiTab === tab.id
-                    ? "border-brand-primary text-text-strong"
-                    : "border-transparent text-text-muted hover:border-stroke-subtle hover:text-text-strong"
-                }`}
-                key={tab.id}
-                href={adminWikiTabRoutes[tab.id]}
-                role="tab"
-              >
-                {tab.label}
-              </AdminNavigationLink>
-            ))}
-          </div>
-        </div>
+        <AdminSectionTabs
+          label={t.wikiTabsLabel}
+          tabs={tabs.map(tab => ({ ...tab, href: adminWikiTabRoutes[tab.id] }))}
+          activeTab={activeWikiTab}
+        />
         {children(activeWikiTab)}
       </section>
     );

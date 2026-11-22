@@ -1,6 +1,14 @@
 import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 
+export const getAdminActorIdentifier = (identity: AuthenticatedIdentitySummary): string =>
+  JSON.stringify([
+    identity.identityIdentifier,
+    identity.accountPrincipalIdentifier,
+    identity.siteManagementPrincipalIdentifier,
+    identity.delegationIdentifier,
+  ]);
+
 export const getAdminAccountScope = (identity: AuthenticatedIdentitySummary): string =>
   JSON.stringify([
     identity.identityIdentifier,

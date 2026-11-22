@@ -69,7 +69,7 @@ test("admin shows the Wiki collaborator activation path", async ({ page }) => {
     page.getByRole("heading", { name: "Wiki collaborator を有効化" }),
   ).toBeVisible();
   await expect(
-    page.getByText("この機能を有効にするには Wiki のコラボレータになる必要があります。"),
+    page.getByText("コラボレータになると、Wikiの編集やプレイリストの作成などが利用できるようになります。"),
   ).toBeVisible();
 });
 

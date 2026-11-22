@@ -5,6 +5,10 @@ import type { WikiDraftWikiStatus } from "@/gateways/wiki/draftWiki";
 type WikiDraftWikiListScope = "managed" | "my";
 
 export const adminQueryKeys = {
+  monetization: {
+    principal: (account: string | null, actor: string, session: number) => ["admin", "monetization", "principal", account, actor, session] as const,
+    groups: (account: string | null, actor: string, session: number) => ["admin", "monetization", "groups", account, actor, session] as const,
+  },
   siteManagement: {
     announcements: (scope: string) => ["admin", "siteManagement", "announcements", scope] as const,
     principalGroups: (accountIdentifier: string | null, actorIdentifier: string | null) => ["admin", "siteManagement", "principalGroups", accountIdentifier, actorIdentifier] as const,
