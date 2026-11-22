@@ -158,14 +158,14 @@ it.each(["suspended", "forced_stop"] as const)("hides only the Wiki menu when Wi
   };
   mocks.loadAdminIdentity.mockResolvedValue(activeIdentity);
   render(await renderAdminLayout({ children: <PrincipalControls /> }));
-  expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible();
+  expect(screen.getByText("Wiki", { selector: "summary" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: wikiPrincipalStatus }));
-  await waitFor(() => expect(screen.queryByRole("link", { name: "Wiki" })).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText("Wiki", { selector: "summary" })).not.toBeInTheDocument());
   expect(screen.getByRole("link", { name: "サイト管理" })).toBeVisible();
   expect(screen.getByRole("link", { name: "アカウント設定" })).toBeVisible();
   expect(screen.getByRole("link", { name: "ユーザー設定" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "active" }));
-  await waitFor(() => expect(screen.getByRole("link", { name: "Wiki" })).toBeVisible());
+  await waitFor(() => expect(screen.getByText("Wiki", { selector: "summary" })).toBeVisible());
 });
 
 
@@ -201,4 +201,60 @@ it.each([
   view.rerender(await renderAdminLayout({ children: <div>移動先の内容</div> }));
   expect(screen.getByText("移動先の内容")).toBeVisible();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+
+it.each(["none", "allow", "deny"] as const)("filters Wiki child categories by effective permissions (%s)", async (permission) => {
+  const state = wikiState("active");
+  const statements = permission === "none" ? [] : [
+    { effect: "allow", actions: ["*"], resourceTypes: ["*"], condition: null },
+    ...(permission === "deny" ? [{ effect: "deny", actions: ["*"], resourceTypes: ["*"], condition: null }] : []),
+  ];
+  mocks.loadAdminWikiPrincipalSnapshot.mockResolvedValue({
+    state: { ...state, principal: { ...state.principal, policies: [{ policyIdentifier: "test", name: "test", statements }] } }, updatedAt: Date.now(),
+  });
+  render(await renderAdminLayout({ children: <p>content</p> }));
+  expect(screen.getByRole("link", { name: "Wiki" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("link", { name: "Video" })).toHaveAttribute("href", "/admin/wiki/playlists");
+  expect(Boolean(screen.queryByRole("link", { name: "公式認証" }))).toBe(permission === "allow");
+  expect(Boolean(screen.queryByRole("link", { name: "画像" }))).toBe(permission === "allow");
+});
+
+it("selects the image category for a direct image URL", async () => {
+  mocks.pathname = "/admin/wiki/draft-images";
+  const state = wikiState("active");
+  mocks.loadAdminWikiPrincipalSnapshot.mockResolvedValue({
+    state: { ...state, principal: { ...state.principal, policies: [{ policyIdentifier: "test", name: "reviewer", statements: [{ effect: "allow", actions: ["approve", "reject"], resourceTypes: ["image"], condition: null }] }] } }, updatedAt: Date.now(),
+  });
+  render(await renderAdminLayout({ children: <p>content</p> }));
+  expect(screen.getByRole("link", { name: "画像" })).toHaveAttribute("href", "/admin/wiki/draft-images");
+  expect(screen.getByRole("link", { name: "画像" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("link", { name: "Wiki" })).not.toHaveAttribute("aria-current");
+});
+
+
+it.each([
+  { initialPath: "/admin/wiki/editing", toggle: false, expectedOpen: true },
+  { initialPath: "/admin/wiki/editing", toggle: true, expectedOpen: false },
+  { initialPath: "/admin/user/profile", toggle: true, expectedOpen: true },
+])("preserves Wiki expansion across menu navigation: %j", async ({ initialPath, toggle, expectedOpen }) => {
+  mocks.pathname = initialPath;
+  mocks.loadAdminIdentity.mockResolvedValue({
+    ...identity,
+    accountPolicies: [{ policyIdentifier: "account-admin", name: "admin", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["account:update"], resourceTypes: ["ACCOUNT"] }] }],
+  });
+  // Keep the shared layout mounted as Next.js does during client navigation.
+  const { rerender } = render(await AdminLayout({ children: <p>initial page</p> }));
+  const summary = screen.getByText("Wiki", { selector: "summary" });
+  const group = summary.closest("details")!;
+  if (toggle) fireEvent.click(summary);
+  await waitFor(() => expect(group.open).toBe(expectedOpen));
+
+  for (const path of ["/admin/account/profile", "/admin/user/profile", "/admin/wiki/editing"]) {
+    mocks.pathname = path;
+    rerender(await AdminLayout({ children: <p>{path}</p> }));
+    expect(screen.getByText("Wiki", { selector: "summary" }).closest("details")).toBe(group);
+    expect(group.open).toBe(expectedOpen);
+    expect(screen.getByText(path)).toBeVisible();
+  }
 });

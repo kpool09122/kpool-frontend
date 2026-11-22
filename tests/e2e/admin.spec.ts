@@ -201,7 +201,8 @@ test("admin shows under review draft images for an available Wiki principal", as
     "href",
     "/wiki/88888888-8888-8888-8888-888888888888/edit?resourceType=group",
   );
-  await page.getByRole("tab", { name: "未承認の画像" }).click();
+  await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
+  await page.getByRole("link", { name: "画像", exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/wiki\/draft-images$/);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
     "aria-selected",
@@ -250,7 +251,8 @@ test("admin keeps wiki tabs interactive after browser back", async ({ page }) =>
 
   await page.goBack();
   await expect(page).toHaveURL(/\/admin\/wiki\/editing$/);
-  await page.getByRole("tab", { name: "未承認の画像" }).click();
+  await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveCount(0);
+  await page.getByRole("link", { name: "画像", exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/wiki\/draft-images$/);
   await expect(page.getByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
     "aria-selected",

@@ -28,7 +28,7 @@ function Menu({ active = true, initialIdentity }: { active?: boolean; initialIde
     <output data-testid="query-status">{query.status}</output>
     <WikiLayoutClient
       canViewOfficialVideoInbox={canViewOfficialVideoInbox}
-      isAuthenticated isPending={false} selectedWikiTab="editingWikis"
+      isAuthenticated isPending={false} selectedWikiTab="playlists"
       state={{ status: "available", principal: { status: "active", isDelegatedPrincipal: false, accountPrincipalCount: 1, principalIdentifier: "wiki-user", identityIdentifier: identity.identityIdentifier, policies: [] } }}
       t={t} onActivate={vi.fn()} onRetry={vi.fn()} onOpenCreateDraftWiki={vi.fn()}
     >{() => null}</WikiLayoutClient>
@@ -53,7 +53,7 @@ it.each([200, 401, 403, 502])("hides the tab for empty or unavailable eligibilit
   mount();
   await waitFor(() => expect(screen.getByTestId("query-status")).toHaveTextContent(status === 200 ? "success" : "error"));
   expect(tab()).toBeNull();
-  expect(screen.getByRole("tab", { name: t.editingWikisTab })).toBeVisible();
+  expect(screen.getByRole("tab", { name: t.playlists.title })).toBeVisible();
 });
 it("hides the tab and skips fetching during delegation", () => {
   useAuthStore.setState({ identity: { ...identity, delegationIdentifier: "delegation-1" } });

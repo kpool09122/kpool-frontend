@@ -930,8 +930,9 @@ describe("admin page clients", () => {
     expect(await screen.findByRole("heading", { name: "Wiki", level: 1 })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
     expect(await screen.findByRole("tab", { name: "申請中のWiki" })).toBeInTheDocument();
-    expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
-    expect(await screen.findByRole("tab", { name: "削除申請画像" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "画像" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "未承認の画像" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "削除申請画像" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "新規作成" })).toBeInTheDocument();
     expect(screen.queryByText(principal.principalIdentifier)).not.toBeInTheDocument();
     expect(adapter.getCurrentPrincipal).not.toHaveBeenCalled();
@@ -2585,7 +2586,7 @@ describe("admin page clients", () => {
     );
   });
 
-  it("shows the Wiki subheader tab and loads under review draft images", async () => {
+  it("opens the image category and loads under review draft images", async () => {
     const draftImageAdapter = createDraftImageAdapter();
 
     renderWithQueryClient(
@@ -2602,6 +2603,7 @@ describe("admin page clients", () => {
     expect(
       await screen.findByRole("tablist", { name: "Wiki タブ" }),
     ).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByRole("tab", { name: "未承認の画像" })).toHaveAttribute(
       "aria-selected",
@@ -2645,6 +2647,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     const tabs = await screen.findAllByRole("tab");
     expect(tabs.map((tab) => tab.textContent)).toContain("未承認の画像");
     expect(tabs.map((tab) => tab.textContent)).toContain("削除申請画像");
@@ -2688,6 +2691,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
     expect(await screen.findByText("Deletion Requester")).toBeInTheDocument();
 
@@ -2723,6 +2727,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
     expect(await screen.findByText("Deletion Requester")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "削除を承認" }));
@@ -2752,6 +2757,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "削除申請画像" }));
 
     expect(await screen.findByText("画像URLを確認できないためプレビューを表示できません。")).toBeInTheDocument();
@@ -3249,9 +3255,6 @@ describe("admin page clients", () => {
       "申請中のWiki",
       "承認済みWiki",
       "未翻訳のWiki",
-      "未承認の画像",
-      "削除申請画像",
-      "マイプレイリスト",
     ]);
     fireEvent.click(screen.getByRole("tab", { name: "未翻訳のWiki" }));
     await waitFor(() =>
@@ -3685,6 +3688,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByText("k-pool archive")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "k-pool archive" })).not.toBeInTheDocument();
@@ -3700,6 +3704,7 @@ describe("admin page clients", () => {
       <AdminClient draftImageAdapter={draftImageAdapter} draftWikiAdapter={createDraftWikiAdapter()}
         initialIdentity={identity} initialPrincipalState={{ status: "available", principal }} principalAdapter={createAdapter()} />,
     );
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "承認" }));
     await waitFor(() => expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument());
@@ -3744,6 +3749,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "承認" }));
 
@@ -3769,6 +3775,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "却下" }));
 
@@ -3796,6 +3803,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "承認" }));
 
@@ -3818,6 +3826,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     fireEvent.click(await screen.findByRole("button", { name: "却下" }));
 
@@ -3887,6 +3896,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByText("未承認の画像はありません")).toBeInTheDocument();
   });
@@ -3906,6 +3916,7 @@ describe("admin page clients", () => {
       />,
     );
 
+    fireEvent.click(await screen.findByRole("link", { name: "画像" }));
     fireEvent.click(await screen.findByRole("tab", { name: "未承認の画像" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("draft image failure");
     expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
@@ -3959,7 +3970,8 @@ describe("admin page clients", () => {
       }),
     );
     expect(adapter.getCurrentPrincipal).toHaveBeenCalled();
-    expect(await screen.findByRole("tab", { name: "未承認の画像" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "編集中のWiki" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "画像" })).toBeInTheDocument();
   });
 
   it("returns to the original edit page after creating a principal when returnTo is provided", async () => {

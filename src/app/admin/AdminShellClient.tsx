@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { useState, useSyncExternalStore } from "react";
 
 import { getAdminNavigation, resolveAdminSection } from "./adminNavigation";
+import { getWikiNavigationGroups, resolveWikiCategory } from "./wiki/wikiNavigation";
 import { useAdmin } from "./AdminProvider";
 import { AccountInitialSetupClient } from "./AccountInitialSetupClient";
 import { normalizeReturnTo } from "@/gateways/auth/authFlow";
@@ -41,6 +42,9 @@ export function AdminShellClient({
   const navigation = getAdminNavigation(currentIdentity, principalState);
   const showAnalyzeMenu = searchParams.get("test") === "true";
   const sidebarNavigation = navigation.filter((item) => item.section !== "analyze" || showAnalyzeMenu);
+  const wikiGroups = principalState.status === "available" && principalState.principal.status === "active"
+    ? getWikiNavigationGroups(principalState.principal, t) : [];
+  const activeWikiCategory = resolveWikiCategory(pathname);
   const fallbackRoute = navigation[0].href;
   const hiddenSection = !navigation.some((item) => item.section === activeSection);
   const shouldRedirect = hiddenSection && !isAccountSetupRequired(currentIdentity) && !isAccountStatusUnavailable(currentIdentity);
@@ -109,7 +113,15 @@ export function AdminShellClient({
           <div className={sidebarOverride === null ? "pointer-events-none invisible lg:pointer-events-auto lg:visible" : isSidebarOpen ? "block" : "pointer-events-none invisible"}>
             <nav className="grid gap-2">
               {sidebarNavigation.map((item) => (
-                <AdminSectionLink href={item.href} isSelected={activeSection === item.section} label={t[item.labelKey]} key={item.section} />
+                item.section === "wiki" && wikiGroups.length > 0 ? (
+                  <WikiNavigationGroup key={item.section} initiallyOpen={activeSection === "wiki"} label={t[item.labelKey]}>
+                    <div className="ml-4 grid gap-1 border-l border-stroke-subtle pl-2">
+                      {wikiGroups.map((group) => (
+                        <AdminSectionLink key={group.id} href={group.href} isSelected={activeSection === "wiki" && activeWikiCategory === group.id} label={group.label} />
+                      ))}
+                    </div>
+                  </WikiNavigationGroup>
+                ) : <AdminSectionLink key={item.section} href={item.href} isSelected={activeSection === item.section} label={t[item.labelKey]} />
               ))}
             </nav>
           </div>
@@ -130,6 +142,20 @@ export function AdminShellClient({
         </section>
       </div>
     </main>
+  );
+}
+
+function WikiNavigationGroup({ children, initiallyOpen, label }: {
+  children: ReactNode;
+  initiallyOpen: boolean;
+  label: string;
+}) {
+  const [isOpen, setIsOpen] = useState(initiallyOpen);
+  return (
+    <details open={isOpen} onToggle={(event) => setIsOpen(event.currentTarget.open)}>
+      <summary className="cursor-pointer rounded-lg px-4 py-3 text-sm font-semibold text-text-strong hover:bg-brand-highlight/30">{label}</summary>
+      {children}
+    </details>
   );
 }
 
