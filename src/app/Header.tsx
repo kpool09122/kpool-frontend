@@ -6,16 +6,18 @@ import { logoutFromIdentity } from "@/gateways/auth/logoutBrowserApi";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { PersonIcon } from "@radix-ui/react-icons";
+import { Cross2Icon, MagnifyingGlassIcon, PersonIcon } from "@radix-ui/react-icons";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isWikiEditPath } from "@kpool/wiki";
 import { ThemeToggle } from "./ThemeToggle";
+import { HeaderWikiSearch } from "./HeaderWikiSearch";
 
 import { switchAccount } from "@/gateways/account/accountBrowserApi";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import type { AuthenticatedIdentitySummary, IdentitySummary } from "@/gateways/identity/identityApi";
 import { useI18n } from "../i18n/I18nProvider";
 import { localeLabels, supportedLocales, type Locale } from "../i18n/locales";
+import { headerWikiSearchCopy } from "../i18n/headerWikiSearch";
 
 type HeaderProps = {
   initialIdentity?: IdentitySummary | null;
@@ -85,6 +87,11 @@ export function Header({
   const { locale, dictionary, setLocale } = useI18n();
   const currentLocale = locale;
   const headerRef = useRef<HTMLElement>(null);
+  const [searchScope, setSearchScope] = useState<string | null>(null);
+  const currentSearchScope = `${currentLocale}:${pathname}`;
+  const isSearchOpen = searchScope === currentSearchScope;
+  const searchCopy = headerWikiSearchCopy[currentLocale];
+  const closeSearch = () => setSearchScope(null);
   const hasScrolled = useSyncExternalStore(subscribeToScroll, getHasScrolled, getServerHasScrolled);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileView, setMobileView] = useState<"menu" | "language" | "account" | "theme">("menu");
@@ -235,147 +242,179 @@ export function Header({
       className="site-header sticky top-0 z-40 border-b text-text-strong"
       data-scrolled={hasScrolled || undefined}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-10 lg:px-16">
-        <Link
-          className="inline-flex items-center rounded-lg bg-white/88 px-2 py-1 ring-1 ring-stroke-subtle transition hover:bg-white"
-          href={`/${currentLocale}`}
+      <div className="mx-auto grid max-w-6xl items-center px-6 py-4 sm:px-10 lg:px-16">
+        <div
+          aria-hidden={!isSearchOpen}
+          inert={!isSearchOpen}
+          className={`col-start-1 row-start-1 flex w-full min-w-0 items-center gap-3 transition-[opacity,translate] duration-300 ease-out motion-reduce:transition-none ${isSearchOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}`}
         >
-          <Image
-            src="/kpool-logo.webp"
-            alt="k-pool"
-            width={1877}
-            height={736}
-            priority
-            className="h-9 w-auto max-w-[8.5rem] object-contain sm:h-10 sm:max-w-[10.5rem]"
-          />
-        </Link>
+          <HeaderWikiSearch key={`${currentSearchScope}:${isSearchOpen}`} language={currentLocale} active={isSearchOpen} onClose={closeSearch} />
+          <button
+            aria-label={searchCopy.close}
+            className="grid size-11 shrink-0 place-items-center rounded-lg text-text-strong transition hover:bg-brand-highlight/30 focus-visible:outline-2 focus-visible:outline-brand-primary"
+            onClick={closeSearch}
+            type="button"
+          >
+            <Cross2Icon aria-hidden="true" className="size-5" />
+          </button>
+        </div>
+        <div
+          aria-hidden={isSearchOpen}
+          inert={isSearchOpen}
+          className={`col-start-1 row-start-1 flex min-w-0 items-center justify-between gap-4 transition-[opacity,translate] duration-300 ease-out motion-reduce:transition-none ${isSearchOpen ? "pointer-events-none translate-y-1 opacity-0" : "translate-y-0 opacity-100"}`}
+        >
+          <Link
+            className="inline-flex items-center rounded-lg bg-white/88 px-2 py-1 ring-1 ring-stroke-subtle transition hover:bg-white"
+            href={`/${currentLocale}`}
+          >
+            <Image
+              src="/kpool-logo.webp"
+              alt="k-pool"
+              width={1877}
+              height={736}
+              priority
+              className="h-9 w-auto max-w-[8.5rem] object-contain sm:h-10 sm:max-w-[10.5rem]"
+            />
+          </Link>
 
-        <div className="hidden items-center gap-5 sm:flex">
-          <ThemeToggle />
-          {languageSwitcher}
-          {isAuthenticated ? (
-            <div className="group relative">
-              <button
-                type="button"
-                className="relative grid size-11 place-items-center overflow-hidden rounded-full border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none focus:ring-2 focus:ring-brand-highlight"
-                aria-label={profileLabel}
-              >
-                {profileImage ? (
-                  <>
-                    <Image
-                      alt=""
-                      className="size-full object-cover"
-                      draggable={false}
-                      height={44}
-                      src={profileImage}
-                      unoptimized
-                      width={44}
-                    />
-                    {/* Keep pointer interactions on the button rather than the image. */}
-                    <span aria-hidden="true" className="absolute inset-0 select-none" />
-                  </>
-                ) : (
-                  <PersonIcon aria-hidden="true" className="size-5" />
-                )}
-              </button>
-              <div className="invisible absolute right-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
-                <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
-                  <Link
-                    className="rounded-lg px-4 py-2 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
-                    href="/admin"
-                  >
-                    {t.admin}
-                  </Link>
-                  {hasAccountSwitchChoices ? (
-                    <div className="group/switch relative">
-                      <button
-                        aria-haspopup="menu"
-                        className="flex w-full items-center justify-between gap-4 rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
-                        type="button"
-                      >
-                        <span>{t.switchAccount}</span>
-                        <span aria-hidden="true">‹</span>
-                      </button>
-                      <div className="invisible absolute right-full top-0 z-50 min-w-72 pr-2 opacity-0 transition group-focus-within/switch:visible group-focus-within/switch:opacity-100 group-hover/switch:visible group-hover/switch:opacity-100">
-                        <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft" role="menu">
-                          {canReturnToOriginalAccount ? (
-                            <button
-                              className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
-                              disabled={isSwitchingAccount}
-                              onClick={() => handleAccountSwitch(null)}
-                              role="menuitem"
-                              type="button"
-                            >
-                              <span className="block">{t.returnToOriginalAccount}</span>
-                              <span className="block text-xs font-normal text-text-muted">
-                                {authenticatedIdentity?.originalAccount?.name}
-                              </span>
-                            </button>
-                          ) : null}
-                          {switchableAccounts.map((account) => (
-                            <button
-                              aria-current={account.isCurrent ? "true" : undefined}
-                              className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
-                              disabled={isSwitchingAccount || account.isCurrent}
-                              key={account.delegationIdentifier}
-                              onClick={() => handleAccountSwitch(account.delegationIdentifier)}
-                              role="menuitem"
-                              type="button"
-                            >
-                              {account.account.name}
-                            </button>
-                          ))}
-                          {isSwitchingAccount ? (
-                            <p className="px-4 py-2 text-xs text-text-muted" role="status">{t.switchingAccount}</p>
-                          ) : null}
-                          {switchAccountError ? (
-                            <p className="px-4 py-2 text-xs text-status-danger" role="alert">{switchAccountError}</p>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
+          <div className="ml-auto flex items-center gap-3 sm:gap-5">
+            <button
+              aria-label={searchCopy.label}
+              aria-expanded={false}
+              className="grid size-11 shrink-0 place-items-center rounded-lg text-text-strong transition hover:bg-brand-highlight/30 focus-visible:outline-2 focus-visible:outline-brand-primary"
+              onClick={() => { closeMobileMenu(); setSearchScope(currentSearchScope); }}
+              type="button"
+            >
+              <MagnifyingGlassIcon aria-hidden="true" className="size-5" />
+            </button>
+            <div className="hidden shrink-0 items-center gap-5 sm:flex">
+              <ThemeToggle />
+              {languageSwitcher}
+              {isAuthenticated ? (
+                <div className="group relative">
                   <button
                     type="button"
-                    className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
-                    disabled={isLoggingOut}
-                    onClick={() => void handleLogout()}
+                    className="relative grid size-11 place-items-center overflow-hidden rounded-full border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none focus:ring-2 focus:ring-brand-highlight"
+                    aria-label={profileLabel}
                   >
-                    {isLoggingOut ? t.loggingOut : t.logout}
+                    {profileImage ? (
+                      <>
+                        <Image
+                          alt=""
+                          className="size-full object-cover"
+                          draggable={false}
+                          height={44}
+                          src={profileImage}
+                          unoptimized
+                          width={44}
+                        />
+                        {/* Keep pointer interactions on the button rather than the image. */}
+                        <span aria-hidden="true" className="absolute inset-0 select-none" />
+                      </>
+                    ) : (
+                      <PersonIcon aria-hidden="true" className="size-5" />
+                    )}
                   </button>
+                  <div className="invisible absolute right-0 top-full z-50 min-w-60 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                    <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft">
+                      <Link
+                        className="rounded-lg px-4 py-2 text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
+                        href="/admin"
+                      >
+                        {t.admin}
+                      </Link>
+                      {hasAccountSwitchChoices ? (
+                        <div className="group/switch relative">
+                          <button
+                            aria-haspopup="menu"
+                            className="flex w-full items-center justify-between gap-4 rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none"
+                            type="button"
+                          >
+                            <span>{t.switchAccount}</span>
+                            <span aria-hidden="true">‹</span>
+                          </button>
+                          <div className="invisible absolute right-full top-0 z-50 min-w-72 pr-2 opacity-0 transition group-focus-within/switch:visible group-focus-within/switch:opacity-100 group-hover/switch:visible group-hover/switch:opacity-100">
+                            <div className="grid rounded-xl border border-stroke-subtle bg-surface-raised p-2 shadow-soft" role="menu">
+                              {canReturnToOriginalAccount ? (
+                                <button
+                                  className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                                  disabled={isSwitchingAccount}
+                                  onClick={() => handleAccountSwitch(null)}
+                                  role="menuitem"
+                                  type="button"
+                                >
+                                  <span className="block">{t.returnToOriginalAccount}</span>
+                                  <span className="block text-xs font-normal text-text-muted">
+                                    {authenticatedIdentity?.originalAccount?.name}
+                                  </span>
+                                </button>
+                              ) : null}
+                              {switchableAccounts.map((account) => (
+                                <button
+                                  aria-current={account.isCurrent ? "true" : undefined}
+                                  className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                                  disabled={isSwitchingAccount || account.isCurrent}
+                                  key={account.delegationIdentifier}
+                                  onClick={() => handleAccountSwitch(account.delegationIdentifier)}
+                                  role="menuitem"
+                                  type="button"
+                                >
+                                  {account.account.name}
+                                </button>
+                              ))}
+                              {isSwitchingAccount ? (
+                                <p className="px-4 py-2 text-xs text-text-muted" role="status">{t.switchingAccount}</p>
+                              ) : null}
+                              {switchAccountError ? (
+                                <p className="px-4 py-2 text-xs text-status-danger" role="alert">{switchAccountError}</p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="rounded-lg px-4 py-2 text-left text-sm font-semibold text-text-strong transition hover:bg-brand-highlight/30 focus:bg-brand-highlight/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={isLoggingOut}
+                        onClick={() => void handleLogout()}
+                      >
+                        {isLoggingOut ? t.loggingOut : t.logout}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <Link
+                  className="hidden min-h-10 items-center rounded px-2 text-sm font-semibold text-text-strong transition hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary sm:inline-flex"
+                  href={guestNavigation.href}
+                >
+                  {t.login}
+                </Link>
+              )}
             </div>
-          ) : (
-            <Link
-              className="hidden min-h-10 items-center rounded px-2 text-sm font-semibold text-text-strong transition hover:text-brand-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary sm:inline-flex"
-              href={guestNavigation.href}
-            >
-              {t.login}
-            </Link>
-          )}
-        </div>
 
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 sm:hidden"
-          aria-label={t.navigationMenu}
-          aria-controls={mobileNavigationId}
-          aria-expanded={isMobileMenuOpen}
-          onClick={() => {
-            setIsMobileMenuOpen((current) => !current);
-            setMobileView("menu");
-          }}
-        >
-          <span className="flex flex-col gap-1.5" aria-hidden="true">
-            <span className="block h-0.5 w-5 rounded-full bg-current" />
-            <span className="block h-0.5 w-5 rounded-full bg-current" />
-            <span className="block h-0.5 w-5 rounded-full bg-current" />
-          </span>
-        </button>
+            <button
+              type="button"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-stroke-subtle bg-surface-base text-text-strong transition hover:bg-brand-highlight/30 sm:hidden"
+              aria-label={t.navigationMenu}
+              aria-controls={mobileNavigationId}
+              aria-expanded={isMobileMenuOpen}
+              onClick={() => {
+                setIsMobileMenuOpen((current) => !current);
+                setMobileView("menu");
+              }}
+            >
+              <span className="flex flex-col gap-1.5" aria-hidden="true">
+                <span className="block h-0.5 w-5 rounded-full bg-current" />
+                <span className="block h-0.5 w-5 rounded-full bg-current" />
+                <span className="block h-0.5 w-5 rounded-full bg-current" />
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {isMobileMenuOpen ? (
+      {isMobileMenuOpen && !isSearchOpen ? (
         <nav
           id={mobileNavigationId}
           aria-label={t.mobileMenu}

@@ -37,7 +37,7 @@ describe("public wiki list browser route", () => {
 
     const response = await GET(
       createRequest(
-        "https://app.example.test/api/wiki/public-wikis?language=ko&resourceType=group&sort=updatedAt&order=desc&perPage=10&page=1",
+        "https://app.example.test/api/wiki/public-wikis?language=ko&keyword=%20TWICE%20&resourceType=group&sort=updatedAt&order=desc&perPage=10&page=1",
       ),
     );
     const body = await response.json();
@@ -45,6 +45,7 @@ describe("public wiki list browser route", () => {
     expect(response.status).toBe(200);
     expect(body.status).toBe("success");
     expect(loadPublicWikiListState).toHaveBeenCalledWith("ko", {
+      keyword: "TWICE",
       order: "desc",
       page: 1,
       perPage: 10,
