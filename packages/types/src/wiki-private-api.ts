@@ -1384,6 +1384,26 @@ const WithdrawWikiRequestBody = z
   })
   .partial()
   .passthrough();
+const WikiStatisticsBreakdown = z
+  .object({
+    resourceTypes: z
+      .object({
+        agency: z.number().int(),
+        group: z.number().int(),
+        talent: z.number().int(),
+        song: z.number().int(),
+      })
+      .passthrough(),
+    groupTypes: z
+      .object({
+        boy_group: z.number().int(),
+        girl_group: z.number().int(),
+        co_ed: z.number().int(),
+        unknown: z.number().int(),
+      })
+      .passthrough(),
+  })
+  .passthrough();
 const ListWikisResponseBody = z
   .object({
     wikis: z.array(WikiListItem),
@@ -1583,29 +1603,7 @@ const WikiContentInput = z
   })
   .passthrough();
 
-const WikiStatisticsBreakdown = z
-  .object({
-    resourceTypes: z
-      .object({
-        agency: z.number().int(),
-        group: z.number().int(),
-        talent: z.number().int(),
-        song: z.number().int(),
-      })
-      .passthrough(),
-    groupTypes: z
-      .object({
-        boy_group: z.number().int(),
-        girl_group: z.number().int(),
-        co_ed: z.number().int(),
-        unknown: z.number().int(),
-      })
-      .passthrough(),
-  })
-  .passthrough();
-
 export const schemas = {
-  WikiStatisticsBreakdown,
   KPool_Common_Uuid,
   translationSetIdentifier,
   DraftImageWikiDisplayInformation,
@@ -1729,6 +1727,7 @@ export const schemas = {
   RollbackWikiResponseBody,
   TranslateWikiResponseBody,
   WithdrawWikiRequestBody,
+  WikiStatisticsBreakdown,
   ListWikisResponseBody,
   WikiMasterSearchItem,
   SearchMasterWikisResponseBody,
@@ -6824,19 +6823,19 @@ const endpoints = makeApi([
     requestFormat: "json",
     response: z
       .object({
-        byLanguage: z
-          .object({
-            ja: WikiStatisticsBreakdown,
-            en: WikiStatisticsBreakdown,
-            ko: WikiStatisticsBreakdown,
-          })
-          .passthrough(),
         total: z.number().int(),
         languages: z
           .object({
             ja: z.number().int(),
             en: z.number().int(),
             ko: z.number().int(),
+          })
+          .passthrough(),
+        byLanguage: z
+          .object({
+            ja: WikiStatisticsBreakdown,
+            en: WikiStatisticsBreakdown,
+            ko: WikiStatisticsBreakdown,
           })
           .passthrough(),
       })
