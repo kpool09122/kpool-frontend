@@ -121,6 +121,15 @@ const InvoiceSummary = z
 const RecordPaymentRequestBody = z
   .object({ paymentIdentifier: KPool_Common_Uuid })
   .passthrough();
+const PrincipalGroupMember = z
+  .object({
+    principalIdentifier: KPool_Common_Uuid.uuid(),
+    identityIdentifier: KPool_Common_Uuid.uuid(),
+    identityName: z.string(),
+    email: z.string(),
+    status: z.enum(["active", "suspended", "forced_stop"]),
+  })
+  .passthrough();
 const PaymentMethodType = z.enum(["card", "bank_transfer", "wallet"]);
 const AuthorizePaymentRequestBody = z
   .object({
@@ -170,6 +179,17 @@ const RefundPaymentRequestBody = z
     refundAmount: z.number().int(),
     refundCurrency: CurrencyCode,
     reason: z.string(),
+  })
+  .passthrough();
+const PrincipalGroup = z
+  .object({
+    principalGroupIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    name: z.string(),
+    description: z.string().nullable(),
+    roleIdentifiers: z.array(KPool_Common_Uuid),
+    isDefault: z.boolean(),
+    members: z.array(PrincipalGroupMember),
   })
   .passthrough();
 const PrincipalConditionClause = z
@@ -271,11 +291,13 @@ export const schemas = {
   KPool_Common_Timestamp,
   InvoiceSummary,
   RecordPaymentRequestBody,
+  PrincipalGroupMember,
   PaymentMethodType,
   AuthorizePaymentRequestBody,
   PaymentStatus,
   PaymentSummary,
   RefundPaymentRequestBody,
+  PrincipalGroup,
   PrincipalConditionClause,
   PrincipalPolicyStatement,
   PrincipalPolicySummary,
@@ -622,6 +644,48 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "get",
+    path: "/members",
+    alias: "PrincipalManagementOperations_listMembers",
+    description: `List enrolled Monetization Principals in the current effective Account ordered by identifier, including suspended and forced-stop candidates. Unenrolled identities are excluded. Requires principal_group_manage permission and an active executing Principal and Account. Selection follows effective Account switching and cannot reuse the original Account&#x27;s permissions. No data is created by this read.`,
+    requestFormat: "json",
+    response: z
+      .object({ members: z.array(PrincipalGroupMember) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "post",
     path: "/payments/:paymentId/capture",
     alias: "MonetizationPaymentOperations_capturePayment",
@@ -773,6 +837,48 @@ const endpoints = makeApi([
       {
         status: 422,
         description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/principal-groups",
+    alias: "PrincipalManagementOperations_listPrincipalGroups",
+    description: `List the current effective Account&#x27;s groups in created-at/identifier order, including Owners and Default groups. Members and roles are ordered by identifier and scoped to the Account (system roles are included). Requires active Account/Account Principal/Monetization Principal and principal_group_manage permission. No arbitrary Account or Principal selection is accepted. Does not create authorization data. Empty collections are arrays.`,
+    requestFormat: "json",
+    response: z
+      .object({ principalGroups: z.array(PrincipalGroup) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
