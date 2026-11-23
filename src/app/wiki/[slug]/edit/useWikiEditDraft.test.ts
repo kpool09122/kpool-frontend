@@ -11,6 +11,14 @@ import { describe, expect, it, vi } from "vitest";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 describe("useWikiEditDraft", () => {
+  it("uses the first group when adding Trends to a talent", () => {
+    const wiki = { ...createMockWikiDetail("gr-aurora-echo"), resourceType: "talent" as const };
+    wiki.basic = { ...wiki.basic, name: "Karina", groups: [{ wikiIdentifier: "aespa-id", name: "aespa" }, { wikiIdentifier: "other-id", name: "Other" }] };
+    const { result } = renderHook(() => useWikiEditDraft(wiki));
+    act(() => result.current.addBlock(result.current.draft.sections[0].sectionKey, "google_trends"));
+    expect(result.current.draft.sections[0].contents).toEqual(expect.arrayContaining([expect.objectContaining({ blockType: "google_trends", searchTerm: "Karina aespa" })]));
+  });
+
   it("inserts Google Trends ready to display and persists inline settings without opening a form", async () => {
     const wiki = createMockWikiDetail("gr-aurora-echo");
     const saveAdapter = vi.fn().mockResolvedValue({ ok: true });

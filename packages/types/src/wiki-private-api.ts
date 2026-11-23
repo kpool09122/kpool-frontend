@@ -1598,7 +1598,7 @@ const WikiContentInput = z
     items: z.array(z.string()).optional(),
     entries: z.array(WikiHistoryEntryInput).optional(),
     searchTerm: z.string().min(1).max(100).optional(),
-    region: z.enum(["JP", "KR", ""]).optional(),
+    region: z.enum(["JP", "KR", "all"]).optional(),
     timeRange: z
       .enum([
         "today 3-m",

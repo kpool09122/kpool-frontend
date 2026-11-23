@@ -33,7 +33,8 @@ for (const width of [1280, 390]) {
     await first.scrollIntoViewIfNeeded();
     await expect(first.getByRole("status")).toHaveCount(0);
     await expect(charts.first()).toHaveCSS("height", "350px");
-    await first.getByLabel("Region", { exact: true }).selectOption("");
+    await first.getByLabel("Region", { exact: true }).selectOption("all");
+    await expect(first.getByLabel("Region", { exact: true })).toHaveValue("all");
     await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
     for (const [value, date] of [
       ["today 3-m", "today 3-m"],
@@ -46,8 +47,11 @@ for (const width of [1280, 390]) {
       await first.getByLabel("Time range").selectOption(value);
       const href = await first.getByRole("link", { name: /Open Google Trends/ }).getAttribute("href");
       expect(new URL(href!).searchParams.get("date")).toBe(date);
+      expect(new URL(href!).searchParams.get("geo")).toBe("");
       const src = await charts.first().getAttribute("src");
-      expect(JSON.parse(new URL(src!).searchParams.get("req")!).comparisonItem[0].time).toBe(date);
+      const comparisonItem = JSON.parse(new URL(src!).searchParams.get("req")!).comparisonItem[0];
+      expect(comparisonItem.time).toBe(date);
+      expect(comparisonItem.geo).toBe("");
     }
     const bounds = await charts.first().boundingBox();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -124,6 +128,7 @@ test("adds, edits, code round trips and saves a structured block in the actual e
     .click();
   const inserted = page.getByRole("figure", { name: "Google Trends: Aurora Echo", exact: true });
   await expect(inserted).toBeVisible();
+  await expect(inserted.getByLabel("Time range")).toHaveValue("today 10-y");
   await expect(page.getByLabel("Search term")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Edit block: Google Trends", exact: true })).toHaveCount(0);
   await inserted.getByLabel("Region", { exact: true }).selectOption("KR");

@@ -109,8 +109,8 @@ function GoogleTrendsViewer({
   const regions = [
     ...new Set<WikiGoogleTrendsSettings["region"]>(
       language === "en" || onSettingsChange
-        ? ["", "JP", "KR"]
-        : [language === "ko" ? "KR" : "JP", "", block.region],
+        ? ["all", "JP", "KR"]
+        : [language === "ko" ? "KR" : "JP", "all", block.region],
     ),
   ];
   return (
@@ -139,7 +139,7 @@ function GoogleTrendsViewer({
           >
             {regions.map((value) => (
               <option key={value} value={value}>
-                {value ? t[value] : t.world}
+                {value === "all" ? t.world : t[value]}
               </option>
             ))}
           </select>

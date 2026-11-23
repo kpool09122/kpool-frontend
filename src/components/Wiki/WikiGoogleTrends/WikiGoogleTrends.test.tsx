@@ -48,7 +48,7 @@ describe("Google Trends display", () => {
     });
     expect(screen.getByText("Source: Google Trends.")).toBeVisible();
     fireEvent.change(screen.getByLabelText("Region"), {
-      target: { value: "" },
+      target: { value: "all" },
     });
     fireEvent.change(screen.getByLabelText("Time range"), {
       target: { value: "today 5-y" },
@@ -115,7 +115,7 @@ describe("Google Trends display", () => {
   });
 
   it("supports English Wiki regions and resets when authoritative settings change", () => {
-    const { rerender } = render(view({ ...block, region: "" }, "en"));
+    const { rerender } = render(view({ ...block, region: "all" }, "en"));
     expect(
       screen.getAllByRole("option").map((option) => option.textContent),
     ).toEqual([
@@ -132,7 +132,7 @@ describe("Google Trends display", () => {
     fireEvent.change(screen.getByLabelText("Region"), {
       target: { value: "KR" },
     });
-    rerender(view({ ...block, region: "", searchTerm: "New name" }, "en"));
-    expect(screen.getByLabelText("Region")).toHaveValue("");
+    rerender(view({ ...block, region: "all", searchTerm: "New name" }, "en"));
+    expect(screen.getByLabelText("Region")).toHaveValue("all");
   });
 });
