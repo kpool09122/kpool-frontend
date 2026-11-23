@@ -129,7 +129,7 @@ export const createWikiBlock = (
         items: ["New item"],
       };
     case "google_trends":
-      return { blockKey, blockType, displayOrder, searchTerm: context?.name ?? "", region: context?.language === "ja" ? "JP" : context?.language === "ko" ? "KR" : "", timeRange: "today 12-m" };
+      return { blockKey, blockType, displayOrder, searchTerm: context?.name ?? "", region: context?.language === "ja" ? "JP" : context?.language === "ko" ? "KR" : "all", timeRange: "today 12-m" };
     case "history":
       return { blockKey, blockType, displayOrder, entries: [] };
     case "table":

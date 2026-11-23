@@ -243,7 +243,7 @@ export type WikiHistoryBlock = {
 
 export const wikiGoogleTrendsSettingsSchema = z.object({
   searchTerm: z.string().refine((value) => value.trim().length > 0 && [...value].length <= 100),
-  region: z.enum(["JP", "KR", ""]),
+  region: z.enum(["JP", "KR", "all"]),
   timeRange: z.enum(["today 3-m", "today 6-m", "today 12-m", "today 2-y", "today 5-y", "today 10-y"]),
 });
 

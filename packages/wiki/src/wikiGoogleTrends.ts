@@ -34,7 +34,7 @@ export const buildGoogleTrendsExploreUrl = (
   const url = new URL("/trends/explore", googleTrendsOrigin);
   url.search = new URLSearchParams({
     q: settings.searchTerm,
-    geo: settings.region,
+    geo: settings.region === "all" ? "" : settings.region,
     date: googleTrendsDateRange(settings.timeRange, now),
     hl: localeFor(language),
   }).toString();
@@ -56,7 +56,7 @@ export const buildGoogleTrendsEmbedUrl = (
       comparisonItem: [
         {
           keyword: settings.searchTerm,
-          geo: settings.region,
+          geo: settings.region === "all" ? "" : settings.region,
           time: explore.searchParams.get("date"),
         },
       ],

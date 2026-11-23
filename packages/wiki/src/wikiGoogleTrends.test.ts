@@ -22,6 +22,7 @@ describe("Google Trends block", () => {
   it.each([
     { searchTerm: "  ", region: "JP", timeRange: "today 12-m" },
     { searchTerm: "a".repeat(101), region: "JP", timeRange: "today 12-m" },
+    { searchTerm: "TWICE", region: "", timeRange: "today 12-m" },
     { searchTerm: "TWICE", region: "US", timeRange: "today 12-m" },
     { searchTerm: "TWICE", region: "JP", timeRange: "all" },
   ])("rejects invalid settings through schema and code: %j", (settings) => {
@@ -78,7 +79,7 @@ describe("Google Trends block", () => {
       wikiPrivateApiTypes.schemas.WikiContentInput.safeParse({
         type: "google_trends",
         searchTerm: "TWICE",
-        region: "",
+        region: "all",
         timeRange: value,
       }).success,
     ).toBe(true);
@@ -88,7 +89,7 @@ describe("Google Trends block", () => {
     for (const [language, region] of [
       ["ja", "JP"],
       ["ko", "KR"],
-      ["en", ""],
+      ["en", "all"],
     ]) {
       expect(
         createWikiBlock("google_trends", 20, { name: "TWICE", language }),
@@ -107,7 +108,7 @@ describe("Google Trends block", () => {
       blockKey: "trends-key",
       displayOrder: 10,
       searchTerm: "TWICE | 트와이스 \\ % & ]]",
-      region: "KR" as const,
+      region: "all" as const,
       timeRange: value,
     };
     const wiki = createMockWikiDetail("gr-twice");
@@ -147,7 +148,7 @@ describe("Google Trends block", () => {
             blockKey: block.blockKey,
             displayOrder: 10,
             searchTerm: block.searchTerm,
-            region: "KR",
+            region: "all",
             timeRange: value,
           },
         ],
@@ -177,7 +178,7 @@ describe("Google Trends block", () => {
     ["today 2-y", "2024-02-29T00:00:00Z", "2022-02-28 2024-02-29"],
     ["today 10-y", "2024-02-29T00:00:00Z", "2014-02-28 2024-02-29"],
   ] as const)("clamps month ends and leap days for %s", (timeRange, now, date) => {
-    const link = new URL(buildGoogleTrendsExploreUrl({ searchTerm: "TWICE", region: "", timeRange }, "en", new Date(now)));
+    const link = new URL(buildGoogleTrendsExploreUrl({ searchTerm: "TWICE", region: "all", timeRange }, "en", new Date(now)));
     expect(link.searchParams.get("date")).toBe(date);
   });
 });
