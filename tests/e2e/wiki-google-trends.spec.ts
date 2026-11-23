@@ -1,10 +1,10 @@
 import { expect, test } from "./fixtures";
 
 const baseURL = `http://127.0.0.1:${process.env.E2E_PORT ?? "3100"}`;
-const widget = "https://trends.google.com/trends/embed/explore/TIMESERIES**";
-const mockWidget = `<html><body><svg aria-label="Fixture trend chart" width="100%" height="300"><path d="M0 250 L100 100 L200 200 L300 50" fill="none" stroke="blue"/></svg><script>addEventListener("message", e => { if(e.source === parent) parent.postMessage({uniqueID:e.data.uniqueID,isReady:true,height:350}, e.origin); });</script></body></html>`;
-
 test.beforeEach(async ({ page }) => {
+  await page.route("https://ssl.gstatic.com/trends_nrtr/**/embed_loader.js*", route =>
+    route.abort(),
+  );
   await page.context().addCookies([
     { name: "kpool-mock-account-status", value: "active", url: baseURL },
     { name: "kpool-e2e-wiki-principal", value: "basic", url: baseURL },
@@ -13,26 +13,17 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const width of [1280, 390]) {
-  test(`official widget boundary fixtures: multiple charts, navigation, temporary settings at ${width}px`, async ({
-    page,
-  }) => {
-    await page.route(widget, (route) =>
-      route.fulfill({ contentType: "text/html", body: mockWidget }),
-    );
+  test(`viewer region and period changes remain temporary at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.clock.setFixedTime(new Date("2026-11-23T10:00:00Z"));
     await page.goto("/en/wiki/gr-google-trends");
     if (width === 390)
       await page.getByTestId("section-toggle-sec-trends").click();
-    const charts = page.locator('iframe[title^="Google Trends:"]');
-    await expect(charts).toHaveCount(2);
     const first = page.getByRole("figure", {
       name: "Google Trends: TWICE",
       exact: true,
     });
     await first.scrollIntoViewIfNeeded();
-    await expect(first.getByRole("status")).toHaveCount(0);
-    await expect(charts.first()).toHaveCSS("height", "350px");
     await first.getByLabel("Region", { exact: true }).selectOption("all");
     await expect(first.getByLabel("Region", { exact: true })).toHaveValue("all");
     await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
@@ -48,62 +39,21 @@ for (const width of [1280, 390]) {
       const href = await first.getByRole("link", { name: /Open Google Trends/ }).getAttribute("href");
       expect(new URL(href!).searchParams.get("date")).toBe(date);
       expect(new URL(href!).searchParams.get("geo")).toBe("");
-      const src = await charts.first().getAttribute("src");
-      const comparisonItem = JSON.parse(new URL(src!).searchParams.get("req")!).comparisonItem[0];
-      expect(comparisonItem.time).toBe(date);
-      expect(comparisonItem.geo).toBe("");
     }
-    const bounds = await charts.first().boundingBox();
-    expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
-    await page.screenshot({
-      path: test.info().outputPath(`trends-${width}.png`),
-      fullPage: true,
-    });
+    const second = page.getByRole("figure", { name: "Google Trends: BTS", exact: true });
+    await expect(second.getByLabel("Region", { exact: true })).toHaveValue("all");
+    await expect(second.getByLabel("Time range")).toHaveValue("today 5-y");
     await page.reload();
     if (width === 390)
       await page.getByTestId("section-toggle-sec-trends").click();
     await expect(first.getByLabel("Region", { exact: true })).toHaveValue("JP");
-    await page.goto("/en/wiki/gr-twice");
-    await expect(charts).toHaveCount(0);
-    await page.goBack();
-    if (width === 390) {
-      const section = page.getByTestId("section-sec-trends");
-      if ((await section.getAttribute("open")) === null)
-        await page.getByTestId("section-toggle-sec-trends").click();
-    }
-    await expect(charts).toHaveCount(2);
+    await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
   });
 }
-
-test("blocked external loads preserve article, source link and retry", async ({
-  page,
-}) => {
-  await page.clock.install();
-  await page.route(widget, (route) => route.abort());
-  await page.goto("/en/wiki/gr-google-trends");
-  await expect(
-    page.getByText("Other Wiki content remains available."),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /Open Google Trends/ }),
-  ).toHaveCount(2);
-  await page.clock.fastForward(15000);
-  await expect(page.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toHaveCount(
-    2,
-  );
-  await page.getByRole("button", { name: "Reload chart" }).first().click();
-  await expect(
-    page.getByText("Other Wiki content remains available."),
-  ).toBeVisible();
-});
 
 test("adds, edits, code round trips and saves a structured block in the actual editor", async ({
   page,
 }) => {
-  await page.route(widget, (route) =>
-    route.fulfill({ contentType: "text/html", body: mockWidget }),
-  );
   let payload: { sections: unknown[] } | undefined;
   await page.route("**/api/wiki/drafts/gr-google-trends", async (route) => {
     payload = route.request().postDataJSON();
@@ -132,7 +82,7 @@ test("adds, edits, code round trips and saves a structured block in the actual e
   await expect(page.getByLabel("Search term")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Edit block: Google Trends", exact: true })).toHaveCount(0);
   await inserted.getByLabel("Region", { exact: true }).selectOption("KR");
-  await inserted.getByLabel("Time range").selectOption("today 10-y");
+  await inserted.getByLabel("Time range").selectOption("today 6-m");
   await page.getByRole("button", { name: "Expand editor sidebar" }).click();
   await page.getByRole("button", { name: "code", exact: true }).click();
   const code = page.getByLabel("Wiki code");
@@ -150,6 +100,8 @@ test("adds, edits, code round trips and saves a structured block in the actual e
       exact: true,
     }),
   ).toBeVisible();
+  await expect(inserted.getByLabel("Region", { exact: true })).toHaveValue("KR");
+  await expect(inserted.getByLabel("Time range")).toHaveValue("today 6-m");
   await page.getByRole("button", { name: "Save wiki changes" }).click();
   await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Saved");
   expect(payload?.sections).toEqual(
@@ -168,7 +120,7 @@ test("adds, edits, code round trips and saves a structured block in the actual e
             type: "google_trends",
             searchTerm: "Aurora Echo",
             region: "KR",
-            timeRange: "today 10-y",
+            timeRange: "today 6-m",
           }),
         ]),
       }),

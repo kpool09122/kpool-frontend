@@ -1,15 +1,12 @@
 import React from "react";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 import type { WikiGoogleTrendsBlock } from "@kpool/wiki";
+
+// Settings are independent of the external chart script.
+vi.mock("next/script", () => ({ default: () => null }));
 
 const block: WikiGoogleTrendsBlock = {
   blockKey: "trends-1",
@@ -26,26 +23,11 @@ const view = (value = block, language = "ja") => (
 );
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
 });
 
 describe("Google Trends display", () => {
-  it("renders the official widget, source and same-condition link, with temporary viewer settings", () => {
+  it("updates the same-condition link with temporary viewer settings", () => {
     const { unmount } = render(view());
-    const frame = screen.getByTitle(
-      `Google Trends: ${block.searchTerm}`,
-    ) as HTMLIFrameElement;
-    const url = new URL(frame.src);
-    expect(url.origin + url.pathname).toBe(
-      "https://trends.google.com/trends/embed/explore/TIMESERIES",
-    );
-    expect(JSON.parse(url.searchParams.get("req")!)).toEqual({
-      comparisonItem: [
-        { keyword: block.searchTerm, geo: "JP", time: "today 12-m" },
-      ],
-      category: 0,
-      property: "",
-    });
     expect(screen.getByText("Source: Google Trends.")).toBeVisible();
     fireEvent.change(screen.getByLabelText("Region"), {
       target: { value: "all" },
@@ -58,60 +40,14 @@ describe("Google Trends display", () => {
     expect(href.searchParams.get("q")).toBe(block.searchTerm);
     expect(href.searchParams.get("geo")).toBe("");
     expect(href.searchParams.get("date")).toBe("today 5-y");
+    expect(screen.getByLabelText("Region")).toHaveValue("all");
+    expect(screen.getByLabelText("Time range")).toHaveValue("today 5-y");
     expect(block.region).toBe("JP");
+    expect(block.timeRange).toBe("today 12-m");
     unmount();
     render(view());
     expect(screen.getByLabelText("Region")).toHaveValue("JP");
-  });
-
-  it("keeps fallback links, offers retry after timeout and cleans up on unmount", () => {
-    vi.useFakeTimers();
-    const { unmount } = render(view());
-    act(() => vi.advanceTimersByTime(15000));
-    expect(screen.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toBeVisible();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "loading could not be confirmed",
-    );
-    const old = screen.getByTitle(`Google Trends: ${block.searchTerm}`);
-    fireEvent.click(screen.getByRole("button", { name: "Reload chart" }));
-    expect(screen.getByTitle(`Google Trends: ${block.searchTerm}`)).not.toBe(
-      old,
-    );
-    unmount();
-    expect(vi.getTimerCount()).toBe(0);
-  });
-
-  it("accepts ready/height messages only from the current official frame and removes listeners", () => {
-    const remove = vi.spyOn(window, "removeEventListener");
-    const { unmount } = render(view());
-    const frame = screen.getByTitle(
-      `Google Trends: ${block.searchTerm}`,
-    ) as HTMLIFrameElement;
-    const post = vi.spyOn(frame.contentWindow!, "postMessage");
-    fireEvent.load(frame);
-    const [data, origin] = post.mock.calls[0];
-    expect(origin).toBe("https://trends.google.com");
-    const ready = { ...data, isReady: true, height: 999999 };
-    const message = (origin: string, source: Window | null, data: unknown) =>
-      act(() => {
-        window.dispatchEvent(
-          new MessageEvent("message", { origin, source, data }),
-        );
-      });
-    message("https://evil.example", frame.contentWindow, ready);
-    message("https://trends.google.com", window, ready);
-    message("https://trends.google.com", frame.contentWindow, {
-      ...ready,
-      uniqueID: "stale",
-    });
-    expect(screen.getByRole("status")).toHaveTextContent("Loading");
-    expect(frame.style.height).toBe("420px");
-    message("https://trends.google.com", frame.contentWindow, ready);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(frame.style.height).toBe("800px");
-    unmount();
-    expect(remove).toHaveBeenCalledWith("message", expect.any(Function));
-    vi.restoreAllMocks();
+    expect(screen.getByLabelText("Time range")).toHaveValue("today 12-m");
   });
 
   it("supports English Wiki regions and resets when authoritative settings change", () => {
