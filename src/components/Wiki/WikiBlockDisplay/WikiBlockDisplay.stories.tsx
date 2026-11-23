@@ -24,7 +24,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const GoogleTrends: Story = {
-  args: { block: { blockType: "google_trends", blockKey: "trends-story", displayOrder: 10, searchTerm: "TWICE", region: "JP", timeRange: "today 12-m" } },
+  args: { block: { blockType: "google_trends", blockKey: "trends-story", displayOrder: 10 }, googleTrendsSearchTerm: "TWICE" },
 };
 
 export const Text: Story = {

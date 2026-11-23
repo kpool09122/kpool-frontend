@@ -1,5 +1,7 @@
 "use client";
 
+import { buildWikiGoogleTrendsSearchTerm } from "@kpool/wiki";
+
 import { sectionListClassName } from "@/components/Wiki/styles";
 
 import { usePendingFormChanges } from "@/components/UnsavedChangesGuard/usePendingFormChanges";
@@ -424,6 +426,7 @@ export function WikiEditContent({
                           onMove={reorderContent}
                           renderItem={(section, reorder) => (
                             <WikiSectionEditor
+                              googleTrendsSearchTerm={buildWikiGoogleTrendsSearchTerm(draft)}
                               editingId={editingId}
                               key={section.sectionKey}
                               language={language}

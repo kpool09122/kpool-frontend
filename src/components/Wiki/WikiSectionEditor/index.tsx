@@ -27,6 +27,7 @@ import { cardSurfaceStyle, sectionArticleClassName, sectionBodyClassName, sectio
 import type { WikiImagePicker } from "../WikiImageLibrary/types";
 
 type WikiSectionEditorProps = {
+  googleTrendsSearchTerm?: string;
   disabled?: boolean;
   editingId: string | null;
   language: string;
@@ -79,6 +80,7 @@ function WikiSectionForm({
 }
 
 export function WikiSectionEditor({
+  googleTrendsSearchTerm = "",
   disabled = false,
   editingId,
   language,
@@ -217,6 +219,7 @@ export function WikiSectionEditor({
             renderItem={(content, itemReorder) =>
               isWikiBlock(content) ? (
                 <WikiBlockEditorItem
+                  googleTrendsSearchTerm={googleTrendsSearchTerm}
                   block={content}
                   disabled={disabled}
                   isEditing={editingId === `block:${content.blockKey}`}
@@ -232,6 +235,7 @@ export function WikiSectionEditor({
                 />
               ) : isWikiSection(content) ? (
                 <WikiSectionEditor
+                  googleTrendsSearchTerm={googleTrendsSearchTerm}
                   disabled={disabled}
                   editingId={editingId}
                   key={content.sectionKey}

@@ -401,7 +401,6 @@ export const useWikiEditDraft = (
         currentDraft.sections,
         sectionKey,
         blockType,
-        { name: currentDraft.basic.name, language: currentDraft.language, groupName: currentDraft.resourceType === "talent" ? currentDraft.basic.groups?.[0]?.name : undefined },
       );
 
       commitDraft({

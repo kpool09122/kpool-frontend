@@ -12,26 +12,27 @@ vi.mock("next/script", () => ({ default: () => null }));
 describe("WikiBlockEditorItem", () => {
   afterEach(() => cleanup());
 
-  it.each(googleTrendsTimeRangeOptions)("saves inline Google Trends region and period $value", ({ value }) => {
+  it.each(googleTrendsTimeRangeOptions)("keeps Google Trends period $value temporary in the editor", ({ value }) => {
     const onSave = vi.fn();
     const onDelete = vi.fn();
-    const block = createWikiBlock("google_trends", 10, { name: "TWICE", language: "ja" });
-    render(<I18nProvider initialLocale="en"><WikiBlockEditorItem block={block} isEditing={false} language="ja" onSave={onSave} onDelete={onDelete} onEdit={vi.fn()} onCancel={vi.fn()} /></I18nProvider>);
+    const block = createWikiBlock("google_trends", 10);
+    render(<I18nProvider initialLocale="en"><WikiBlockEditorItem block={block} googleTrendsSearchTerm="TWICE" isEditing={false} language="ja" onSave={onSave} onDelete={onDelete} onEdit={vi.fn()} onCancel={vi.fn()} /></I18nProvider>);
     expect(screen.queryByRole("button", { name: "Edit block: Google Trends" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search term")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Time range")).toHaveValue("today 10-y");
     fireEvent.change(screen.getByLabelText("Time range"), { target: { value } });
-    expect(onSave).toHaveBeenLastCalledWith({ searchTerm: "TWICE", region: "JP", timeRange: value });
-    fireEvent.change(screen.getByLabelText("Region"), { target: { value: "KR" } });
-    expect(onSave).toHaveBeenLastCalledWith({ searchTerm: "TWICE", region: "KR", timeRange: value });
+    expect(screen.getByLabelText("Time range")).toHaveValue(value);
+    fireEvent.change(screen.getByLabelText("Region"), { target: { value: "all" } });
+    expect(screen.getByLabelText("Region")).toHaveValue("all");
+    expect(onSave).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Delete block: Google Trends" }));
     expect(onDelete).toHaveBeenCalledOnce();
   });
 
   it("locks inline Google Trends settings while editing is disabled", () => {
     const onSave = vi.fn();
-    const block = createWikiBlock("google_trends", 10, { name: "TWICE", language: "ja" });
-    render(<I18nProvider initialLocale="en"><WikiBlockEditorItem block={block} disabled isEditing={false} language="ja" onSave={onSave} onDelete={vi.fn()} onEdit={vi.fn()} onCancel={vi.fn()} /></I18nProvider>);
+    const block = createWikiBlock("google_trends", 10);
+    render(<I18nProvider initialLocale="en"><WikiBlockEditorItem block={block} googleTrendsSearchTerm="TWICE" disabled isEditing={false} language="ja" onSave={onSave} onDelete={vi.fn()} onEdit={vi.fn()} onCancel={vi.fn()} /></I18nProvider>);
     expect(screen.getByLabelText("Region")).toBeDisabled();
     expect(screen.getByLabelText("Time range")).toBeDisabled();
     expect(onSave).not.toHaveBeenCalled();

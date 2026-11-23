@@ -1597,18 +1597,6 @@ const WikiContentInput = z
     listType: z.enum(["bullet", "numbered"]).optional(),
     items: z.array(z.string()).optional(),
     entries: z.array(WikiHistoryEntryInput).optional(),
-    searchTerm: z.string().min(1).max(100).optional(),
-    region: z.enum(["JP", "KR", "all"]).optional(),
-    timeRange: z
-      .enum([
-        "today 3-m",
-        "today 6-m",
-        "today 12-m",
-        "today 2-y",
-        "today 5-y",
-        "today 10-y",
-      ])
-      .optional(),
     headerCells: z.array(z.string()).nullish(),
     rowCells: z.array(z.array(z.string())).optional(),
     tableWidth: z.string().nullish(),

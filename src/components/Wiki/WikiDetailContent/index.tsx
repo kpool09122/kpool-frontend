@@ -1,4 +1,5 @@
 import {
+  buildWikiGoogleTrendsSearchTerm,
   type WikiDetail,
   type WikiDraftDetail,
   normalizeWikiSectionContents,
@@ -79,6 +80,7 @@ export function WikiDetailContent({
               <div className={sectionListClassName}>
                 {sections.map((section) => (
                   <WikiSectionAccordion
+                    googleTrendsSearchTerm={buildWikiGoogleTrendsSearchTerm(data)}
                     editHref={editHref}
                     onEdit={onEdit}
                     key={section.sectionKey}

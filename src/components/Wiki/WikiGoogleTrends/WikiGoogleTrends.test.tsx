@@ -12,13 +12,10 @@ const block: WikiGoogleTrendsBlock = {
   blockKey: "trends-1",
   blockType: "google_trends",
   displayOrder: 10,
-  searchTerm: "TWICE & 트와이스",
-  region: "JP",
-  timeRange: "today 12-m",
 };
-const view = (value = block, language = "ja") => (
+const view = (searchTerm = "TWICE & 트와이스", language = "ja") => (
   <I18nProvider initialLocale="en">
-    <WikiBlockDisplay block={value} language={language} />
+    <WikiBlockDisplay block={block} language={language} googleTrendsSearchTerm={searchTerm} />
   </I18nProvider>
 );
 afterEach(() => {
@@ -37,21 +34,19 @@ describe("Google Trends display", () => {
     });
     const link = screen.getByRole("link", { name: /Open Google Trends/ });
     const href = new URL(link.getAttribute("href")!);
-    expect(href.searchParams.get("q")).toBe(block.searchTerm);
+    expect(href.searchParams.get("q")).toBe("TWICE & 트와이스");
     expect(href.searchParams.get("geo")).toBe("");
     expect(href.searchParams.get("date")).toBe("today 5-y");
     expect(screen.getByLabelText("Region")).toHaveValue("all");
     expect(screen.getByLabelText("Time range")).toHaveValue("today 5-y");
-    expect(block.region).toBe("JP");
-    expect(block.timeRange).toBe("today 12-m");
     unmount();
     render(view());
     expect(screen.getByLabelText("Region")).toHaveValue("JP");
-    expect(screen.getByLabelText("Time range")).toHaveValue("today 12-m");
+    expect(screen.getByLabelText("Time range")).toHaveValue("today 10-y");
   });
 
   it("supports English Wiki regions and resets when authoritative settings change", () => {
-    const { rerender } = render(view({ ...block, region: "all" }, "en"));
+    const { rerender } = render(view("TWICE", "en"));
     expect(
       screen.getAllByRole("option").map((option) => option.textContent),
     ).toEqual([
@@ -68,7 +63,7 @@ describe("Google Trends display", () => {
     fireEvent.change(screen.getByLabelText("Region"), {
       target: { value: "KR" },
     });
-    rerender(view({ ...block, region: "all", searchTerm: "New name" }, "en"));
+    rerender(view("New name", "en"));
     expect(screen.getByLabelText("Region")).toHaveValue("all");
   });
 });
