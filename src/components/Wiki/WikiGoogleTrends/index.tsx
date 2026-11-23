@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useId, useState } from "react";
+import Script from "next/script";
+import { useCallback, useRef, useState } from "react";
 import {
-  buildGoogleTrendsEmbedUrl,
   buildGoogleTrendsExploreUrl,
   googleTrendsOrigin,
   googleTrendsTimeRangeOptions,
@@ -10,6 +10,11 @@ import {
   type WikiGoogleTrendsBlock,
   type WikiGoogleTrendsSettings,
 } from "@kpool/wiki";
+import {
+  getGoogleTrendsLoaderUrl,
+  isGoogleTrendsLoaderReady,
+  renderGoogleTrendsWidget,
+} from "@/gateways/wiki/googleTrendsWidget";
 import { useI18n } from "@/i18n/I18nProvider";
 
 const selectClassName =
@@ -18,66 +23,77 @@ const selectClassName =
 function GoogleTrendsFrame({
   settings,
   language,
+  attempt,
 }: {
   settings: WikiGoogleTrendsSettings;
   language: string;
+  attempt: number;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.googleTrends;
-  const id = useId();
+  const { searchTerm, region, timeRange } = settings;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const initialized = useRef(false);
   const [status, setStatus] = useState<"loading" | "ready" | "unconfirmed">(
     "loading",
   );
-  const attach = useCallback(
-    (frame: HTMLIFrameElement | null) => {
-      if (!frame) return;
-      const timer = window.setTimeout(() => setStatus("unconfirmed"), 15000);
-      const receive = (event: MessageEvent<unknown>) => {
-        if (
-          event.origin !== googleTrendsOrigin ||
-          event.source !== frame.contentWindow ||
-          !event.data ||
-          typeof event.data !== "object"
-        )
-          return;
-        const data = event.data as {
-          uniqueID?: unknown;
-          isReady?: unknown;
-          height?: unknown;
-        };
-        if (data.uniqueID !== id) return;
-        if (data.isReady === true) {
-          window.clearTimeout(timer);
-          setStatus("ready");
-        }
-        if (typeof data.height === "number" && Number.isFinite(data.height))
-          frame.style.height = `${Math.max(300, Math.min(800, data.height))}px`;
-      };
-      window.addEventListener("message", receive);
-      return () => {
-        window.clearTimeout(timer);
-        window.removeEventListener("message", receive);
-      };
-    },
-    [id],
-  );
+  const attach = useCallback((container: HTMLDivElement | null) => {
+    if (!container) return;
+    containerRef.current = container;
+    const timer = window.setTimeout(() => setStatus("unconfirmed"), 15000);
+    // Observe readiness for the fallback UI only. The official loader owns the
+    // handshake and frame sizing; a load event alone can also mean an error page.
+    const receive = (event: MessageEvent<unknown>) => {
+      const frame = container.querySelector("iframe");
+      if (
+        !frame ||
+        event.origin !== googleTrendsOrigin ||
+        event.source !== frame.contentWindow ||
+        !event.data ||
+        typeof event.data !== "object" ||
+        !("isReady" in event.data) ||
+        event.data.isReady !== true
+      ) return;
+      window.clearTimeout(timer);
+      setStatus("ready");
+    };
+    window.addEventListener("message", receive);
+    // Cached scripts can already be ready when an accordion or React remounts.
+    if (isGoogleTrendsLoaderReady()) {
+      initialized.current = renderGoogleTrendsWidget(
+        container,
+        { searchTerm, region, timeRange },
+        language,
+      );
+      if (!initialized.current) setStatus("unconfirmed");
+    }
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("message", receive);
+      container.replaceChildren();
+      containerRef.current = null;
+      initialized.current = false;
+    };
+  }, [searchTerm, region, timeRange, language]);
+
+  const renderWidget = () => {
+    const container = containerRef.current;
+    if (!container || initialized.current) return;
+    initialized.current = renderGoogleTrendsWidget(container, settings, language);
+    if (!initialized.current) setStatus("unconfirmed");
+  };
 
   return (
     <>
-      <iframe
-        ref={attach}
-        className="block w-full rounded-xl border-0"
-        style={{ height: 420 }}
-        title={`Google Trends: ${settings.searchTerm}`}
-        src={buildGoogleTrendsEmbedUrl(settings, language)}
-        referrerPolicy="strict-origin-when-cross-origin"
-        onLoad={(event) =>
-          event.currentTarget.contentWindow?.postMessage(
-            { uniqueID: id },
-            googleTrendsOrigin,
-          )
-        }
+      <Script
+        src={getGoogleTrendsLoaderUrl(attempt)}
+        onLoad={renderWidget}
+        onReady={renderWidget}
         onError={() => setStatus("unconfirmed")}
+      />
+      <div
+        ref={attach}
+        className="min-h-[300px] min-w-0 overflow-hidden rounded-xl [&_iframe]:block [&_iframe]:w-full [&_iframe]:border-0"
       />
       {status !== "ready" ? (
         <div role="status" className="space-y-1 text-sm text-text-muted">
@@ -172,6 +188,7 @@ function GoogleTrendsViewer({
         key={JSON.stringify([settings, language, attempt])}
         settings={settings}
         language={language}
+        attempt={attempt}
       />
       <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 break-words text-xs text-text-muted">
         <p>{t.explanation}</p>

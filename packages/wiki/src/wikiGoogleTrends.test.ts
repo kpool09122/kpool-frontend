@@ -14,7 +14,7 @@ import {
   adaptWikiApiResponse,
 } from "./wikiApiModel";
 import { wikiGoogleTrendsSettingsSchema } from "./types/wiki";
-import { buildGoogleTrendsEmbedUrl, buildGoogleTrendsExploreUrl, googleTrendsTimeRangeOptions } from "./wikiGoogleTrends";
+import { buildGoogleTrendsWidgetOptions, buildGoogleTrendsExploreUrl, googleTrendsTimeRangeOptions } from "./wikiGoogleTrends";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { createMockWikiDetail } from "./mockWikiDetail";
 
@@ -174,10 +174,10 @@ describe("Google Trends block", () => {
     const settings = { searchTerm: "TWICE", region: "JP" as const, timeRange };
     const now = new Date("2026-11-23T10:00:00Z");
     const link = new URL(buildGoogleTrendsExploreUrl(settings, "ja", now));
-    const widget = new URL(buildGoogleTrendsEmbedUrl(settings, "ja", now));
+    const widget = buildGoogleTrendsWidgetOptions(settings, "ja", now);
     expect(link.searchParams.get("date")).toBe(date);
-    expect(JSON.parse(widget.searchParams.get("req")!).comparisonItem[0].time).toBe(date);
-    expect(new URLSearchParams(widget.searchParams.get("eq")!).get("date")).toBe(date);
+    expect(widget.request.comparisonItem[0].time).toBe(date);
+    expect(new URLSearchParams(widget.options.exploreQuery).get("date")).toBe(date);
   });
 
   it.each([

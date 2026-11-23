@@ -41,31 +41,27 @@ export const buildGoogleTrendsExploreUrl = (
   return url.href;
 };
 
-// The official embed_loader.js (4278_RC01) generates this TIMESERIES iframe.
-// Use the official frame directly: no third-party script executes in the host page,
-// and our origin/source-checked message listener can be removed on unmount.
-export const buildGoogleTrendsEmbedUrl = (
+// Pass search conditions to the official loader instead of reproducing its iframe URL.
+export const buildGoogleTrendsWidgetOptions = (
   settings: WikiGoogleTrendsSettings,
   language: string,
   now: Date = new Date(),
 ) => {
-  const url = new URL("/trends/embed/explore/TIMESERIES", googleTrendsOrigin);
   const explore = new URL(buildGoogleTrendsExploreUrl(settings, language, now));
-  url.search = new URLSearchParams({
-    req: JSON.stringify({
-      comparisonItem: [
-        {
-          keyword: settings.searchTerm,
-          geo: settings.region === "all" ? "" : settings.region,
-          time: explore.searchParams.get("date"),
-        },
-      ],
+  return {
+    request: {
+      comparisonItem: [{
+        keyword: settings.searchTerm,
+        geo: explore.searchParams.get("geo")!,
+        time: explore.searchParams.get("date")!,
+      }],
       category: 0,
       property: "",
-    }),
-    tz: "0",
-    eq: explore.search.slice(1),
-    hl: localeFor(language),
-  }).toString();
-  return url.href;
+    },
+    options: {
+      exploreQuery: explore.search.slice(1),
+      guestPath: `${googleTrendsOrigin}/trends/embed/`,
+      hl: localeFor(language),
+    },
+  };
 };
