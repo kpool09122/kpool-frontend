@@ -85,6 +85,13 @@ describe("Google Trends block", () => {
     ).toBe(true);
   });
 
+  it("qualifies a talent search with its group name", () => {
+    expect(createWikiBlock("google_trends", 20, { name: "Karina", language: "en", groupName: "aespa" })).toMatchObject({ searchTerm: "Karina aespa", region: "all" });
+    const block = createWikiBlock("google_trends", 20, { name: "あ".repeat(64), language: "ja", groupName: "い".repeat(64) });
+    if (block.blockType !== "google_trends") throw new Error("Expected Google Trends block");
+    expect([...block.searchTerm]).toHaveLength(100);
+  });
+
   it("uses the displayed Wiki name and language when adding a block", () => {
     for (const [language, region] of [
       ["ja", "JP"],
