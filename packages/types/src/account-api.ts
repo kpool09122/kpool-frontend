@@ -121,6 +121,15 @@ const SwitchAccountResponseBody = z
 const RequestAccountCategoryChangeRequestBody = z
   .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
   .passthrough();
+const AccountSnapshotSummary = z
+  .object({
+    snapshotIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    version: z.number().int().gte(1),
+    savedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const AccountSnapshotDetail = AccountSnapshotSummary;
 const UpdateAccountRequestBody = z
   .object({
     accountName: z.string(),
@@ -344,6 +353,27 @@ const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
+const AccountSnapshotDocument = z
+  .object({
+    documentType: z.string(),
+    uploadedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const AccountSnapshotProfile = z
+  .object({
+    email: z.string(),
+    type: z.enum(["corporation", "individual"]),
+    name: z.string(),
+    status: z.string(),
+    phone: z.string(),
+    countryCode: z.string(),
+    administrativeAreaCode: z.string().nullable(),
+    postalCode: z.string(),
+    locality: z.string().nullable(),
+    addressLine1: z.string(),
+    addressLine2: z.string().nullable(),
+  })
+  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -362,6 +392,8 @@ export const schemas = {
   SwitchAccountRequestBody,
   SwitchAccountResponseBody,
   RequestAccountCategoryChangeRequestBody,
+  AccountSnapshotSummary,
+  AccountSnapshotDetail,
   UpdateAccountRequestBody,
   AccountDocumentUploadItem,
   UploadAccountDocumentsRequestBody,
@@ -398,6 +430,8 @@ export const schemas = {
   UpdatedPrincipalGroupSummary,
   KPool_Common_PrincipalStatusConflictProblem,
   MutatePrincipalGroupMemberRequestBody,
+  AccountSnapshotDocument,
+  AccountSnapshotProfile,
 };
 
 const endpoints = makeApi([
@@ -1182,6 +1216,234 @@ const endpoints = makeApi([
       {
         status: 403,
         description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "put",
+    path: "/accounts/:accountIdentifier/snapshot",
+    alias: "AccountSnapshotOperations_saveAccountSnapshot",
+    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable version; previous versions and document files are retained. Identical-content saves succeed without writes. Does not change category-change requests.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountIdentifier/snapshot",
+    alias: "AccountSnapshotOperations_getCurrentAccountSnapshot",
+    description: `Read the current version, defined as the highest saved version number for the account. Same-account readers require account:read; cross-account operations readers require account:category-change-request:manage on their own account. No current version returns 404.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotDetail,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountIdentifier/snapshots/:snapshotIdentifier",
+    alias: "AccountSnapshotOperations_getAccountSnapshot",
+    description: `Read a specific immutable version with the same owner/operations authorization as the current-version endpoint. Mismatched account/version returns 404. Old application references remain valid after the current version changes.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "snapshotIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotDetail,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountIdentifier/snapshots/:snapshotIdentifier/documents/:documentType",
+    alias: "AccountSnapshotOperations_getAccountSnapshotDocument",
+    description: `Stream the copied document belonging to the specified account/version after the same owner/operations authorization as snapshot reads. Missing document returns 404. Original-file edits/deletion do not change this file.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "snapshotIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "documentType",
+        type: "Path",
+        schema: z.string(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
