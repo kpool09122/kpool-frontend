@@ -11,6 +11,7 @@ export const blockTypes: WikiBlockType[] = [
   "quote",
   "list",
   "history",
+  "google_trends",
   "table",
   "profile_card_list",
 ];

@@ -65,6 +65,7 @@ export const sortWikiSectionContents = <T extends WikiSectionContent>(
 export const createWikiBlock = (
   blockType: WikiBlockType,
   displayOrder: number,
+  context?: { name: string; language: string },
 ): WikiBlock => {
   const blockKey = createWikiContentKey(`block-${blockType.replace("_", "-")}`);
 
@@ -127,6 +128,8 @@ export const createWikiBlock = (
         listType: "bullet",
         items: ["New item"],
       };
+    case "google_trends":
+      return { blockKey, blockType, displayOrder, searchTerm: context?.name ?? "", region: context?.language === "ja" ? "JP" : context?.language === "ko" ? "KR" : "", timeRange: "today 12-m" };
     case "history":
       return { blockKey, blockType, displayOrder, entries: [] };
     case "table":
@@ -220,6 +223,7 @@ export const addWikiBlock = (
   sections: WikiSection[],
   sectionKey: string,
   blockType: WikiBlockType,
+  context?: { name: string; language: string },
 ): [WikiSection[], WikiContentEditorId | null] => {
   let nextEditorId: WikiContentEditorId | null = null;
   const updated = mapSections(sections, (section) => {
@@ -227,8 +231,8 @@ export const addWikiBlock = (
       return section;
     }
 
-    const block = createWikiBlock(blockType, getNextDisplayOrder(section.contents));
-    nextEditorId = `block:${block.blockKey}`;
+    const block = createWikiBlock(blockType, getNextDisplayOrder(section.contents), context);
+    nextEditorId = blockType === "google_trends" ? null : `block:${block.blockKey}`;
 
     return {
       ...section,

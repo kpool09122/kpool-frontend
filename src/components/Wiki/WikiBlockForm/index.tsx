@@ -1423,6 +1423,8 @@ export function WikiBlockForm({
           <WikiFormActions onCancel={onCancel} />
         </LocalizedForm>
       );
+    case "google_trends":
+      return null;
     case "history":
       return <WikiHistoryBlockForm block={block} onCancel={onCancel} onSave={onSave} />;
     case "list":

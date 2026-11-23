@@ -72,6 +72,7 @@ describe("WikiBlockForm", () => {
     expect(onSave).toHaveBeenCalledWith({ provider: "x", embedId: "123456789", caption: block.caption });
   });
 
+
   it("edits, adds, and removes entries in a history block", () => {
     const onSave = vi.fn();
     renderWithI18n(

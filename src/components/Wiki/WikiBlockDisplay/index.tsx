@@ -5,6 +5,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { Fragment } from "react";
 import { type WikiBlock, type WikiTableCell } from "@kpool/wiki";
 
+import { WikiGoogleTrends } from "../WikiGoogleTrends";
 import { WikiEmbedFrame } from "../WikiEmbedFrame";
 import { WikiRelatedProfiles } from "../WikiRelatedProfiles";
 import { buildWikiPath } from "@kpool/wiki";
@@ -183,6 +184,8 @@ export function WikiBlockDisplay({
         </figure>
       );
     }
+    case "google_trends":
+      return <WikiGoogleTrends block={block} language={language} />;
     case "embed":
       return <WikiEmbedFrame block={block} />;
     case "quote":

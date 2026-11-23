@@ -94,6 +94,8 @@ const serializeWikiBlockToCode = (block: WikiBlock): string => {
           block.listType === "numbered" ? `${index + 1}. ${item}` : `* ${item}`,
         )
         .join("\n");
+    case "google_trends":
+      return serializeCodeMacro("google_trends", [`searchTerm:${encodeCodeUri(block.searchTerm)}`, `region:${block.region}`, `timeRange:${block.timeRange}`]);
     case "history":
       return serializeCodeMacro("history", block.entries.flatMap(({ year, title, detail }, index) => {
         const row = index + 1;

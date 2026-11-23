@@ -425,7 +425,13 @@ export const createMockWikiDetail = (
             officialColors: [{ colorCode: "#f6c453", label: "Solar Gold" }, { colorCode: "#1f3b73", label: "Midnight Blue" }],
             agencyName: "North Harbor Entertainment",
           },
-    sections: isTwiceGroupSlug
+    sections: normalizedSlug === "gr-google-trends"
+      ? [{ type: "section", sectionKey: "sec-trends", title: "Google Trends", depth: 1, displayOrder: 10, contents: [
+          { blockType: "text", blockKey: "trends-text", displayOrder: 10, content: "Other Wiki content remains available." },
+          { blockType: "google_trends", blockKey: "trends-one", displayOrder: 20, searchTerm: "TWICE", region: "JP", timeRange: "today 12-m" },
+          { blockType: "google_trends", blockKey: "trends-two", displayOrder: 30, searchTerm: "BTS", region: "", timeRange: "today 5-y" },
+        ] }]
+      : isTwiceGroupSlug
       ? createTwiceCompatibilitySections()
       : twiceMember
         ? createTwiceMemberSections(twiceMember.normalizedName, twiceMember.overview)

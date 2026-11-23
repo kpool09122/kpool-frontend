@@ -372,7 +372,7 @@ export const useWikiEditDraft = (
         ...currentDraft,
         sections: updateWikiBlock(currentDraft.sections, blockKey, changes),
       });
-      if (editingId === newContentEditorId) {
+      if (editingId === `block:${blockKey}` && editingId === newContentEditorId) {
         setNewContentEditorId(null);
       }
     },
@@ -401,6 +401,7 @@ export const useWikiEditDraft = (
         currentDraft.sections,
         sectionKey,
         blockType,
+        { name: currentDraft.basic.name, language: currentDraft.language },
       );
 
       commitDraft({

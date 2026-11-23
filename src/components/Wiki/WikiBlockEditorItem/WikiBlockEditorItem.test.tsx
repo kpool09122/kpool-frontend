@@ -1,12 +1,40 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createWikiBlock, googleTrendsTimeRangeOptions } from "@kpool/wiki";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 import { wikiStoryTextBlock, wikiStoryImageBlock } from "../storybook/fixtures";
 import { WikiBlockEditorItem } from "./index";
 
 describe("WikiBlockEditorItem", () => {
   afterEach(() => cleanup());
+
+  it.each(googleTrendsTimeRangeOptions)("shows Google Trends immediately and saves inline period $value", ({ value }) => {
+    const onSave = vi.fn();
+    const onDelete = vi.fn();
+    const block = createWikiBlock("google_trends", 10, { name: "TWICE", language: "ja" });
+    render(<I18nProvider initialLocale="en"><WikiBlockEditorItem block={block} isEditing={false} language="ja" onSave={onSave} onDelete={onDelete} onEdit={vi.fn()} onCancel={vi.fn()} /></I18nProvider>);
+    expect(screen.getByTitle("Google Trends: TWICE")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit block: Google Trends" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search term")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Time range")).toHaveValue("today 12-m");
+    fireEvent.change(screen.getByLabelText("Time range"), { target: { value } });
+    expect(onSave).toHaveBeenLastCalledWith({ searchTerm: "TWICE", region: "JP", timeRange: value });
+    fireEvent.change(screen.getByLabelText("Region"), { target: { value: "KR" } });
+    expect(onSave).toHaveBeenLastCalledWith({ searchTerm: "TWICE", region: "KR", timeRange: value });
+    fireEvent.click(screen.getByRole("button", { name: "Delete block: Google Trends" }));
+    expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("locks inline Google Trends settings while editing is disabled", () => {
+    const onSave = vi.fn();
+    const block = createWikiBlock("google_trends", 10, { name: "TWICE", language: "ja" });
+    render(<I18nProvider initialLocale="en"><WikiBlockEditorItem block={block} disabled isEditing={false} language="ja" onSave={onSave} onDelete={vi.fn()} onEdit={vi.fn()} onCancel={vi.fn()} /></I18nProvider>);
+    expect(screen.getByLabelText("Region")).toBeDisabled();
+    expect(screen.getByLabelText("Time range")).toBeDisabled();
+    expect(onSave).not.toHaveBeenCalled();
+  });
 
   it("does not open image selection while editing is locked", () => {
     const onRequestImage = vi.fn();

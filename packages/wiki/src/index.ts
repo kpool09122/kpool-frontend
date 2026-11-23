@@ -14,3 +14,4 @@ export * from "./wikiMasterSearchModel";
 export * from "./wikiRouting";
 export * from "./wikiVideoModel";
 export * from "./wikiHeight";
+export * from "./wikiGoogleTrends";
