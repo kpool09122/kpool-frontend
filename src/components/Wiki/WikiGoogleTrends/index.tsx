@@ -66,7 +66,7 @@ function GoogleTrendsFrame({
     <>
       <iframe
         ref={attach}
-        className="block w-full border-0"
+        className="block w-full rounded-xl border-0"
         style={{ height: 420 }}
         title={`Google Trends: ${settings.searchTerm}`}
         src={buildGoogleTrendsEmbedUrl(settings, language)}
@@ -80,9 +80,10 @@ function GoogleTrendsFrame({
         onError={() => setStatus("unconfirmed")}
       />
       {status !== "ready" ? (
-        <p role="status" className="text-sm text-text-muted">
-          {status === "loading" ? t.loading : t.failed}
-        </p>
+        <div role="status" className="space-y-1 text-sm text-text-muted">
+          <p>{status === "loading" ? t.loading : t.failed}</p>
+          {status === "unconfirmed" ? <p>{t.fallback}</p> : null}
+        </div>
       ) : null}
     </>
   );
@@ -172,12 +173,11 @@ function GoogleTrendsViewer({
         settings={settings}
         language={language}
       />
-      <figcaption className="space-y-2 break-words text-sm text-text-muted">
+      <figcaption className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 break-words text-xs text-text-muted">
         <p>{t.explanation}</p>
-        <p>{t.fallback}</p>
         <div className="flex flex-wrap gap-3">
           <a
-            className="text-text-strong underline"
+            className="underline underline-offset-2 transition hover:text-text-strong"
             href={buildGoogleTrendsExploreUrl(settings, language)}
             target="_blank"
             rel="noopener noreferrer"
@@ -185,7 +185,7 @@ function GoogleTrendsViewer({
             {t.open}
           </a>
           <button
-            className="text-text-strong underline"
+            className="underline underline-offset-2 transition hover:text-text-strong"
             type="button"
             onClick={() => setAttempt((value) => value + 1)}
           >

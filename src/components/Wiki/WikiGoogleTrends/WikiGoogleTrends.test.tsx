@@ -67,8 +67,8 @@ describe("Google Trends display", () => {
   it("keeps fallback links, offers retry after timeout and cleans up on unmount", () => {
     vi.useFakeTimers();
     const { unmount } = render(view());
-    expect(screen.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toBeVisible();
     act(() => vi.advanceTimersByTime(15000));
+    expect(screen.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent(
       "loading could not be confirmed",
     );

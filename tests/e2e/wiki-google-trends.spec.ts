@@ -75,6 +75,7 @@ for (const width of [1280, 390]) {
 test("blocked external loads preserve article, source link and retry", async ({
   page,
 }) => {
+  await page.clock.install();
   await page.route(widget, (route) => route.abort());
   await page.goto("/en/wiki/gr-google-trends");
   await expect(
@@ -83,6 +84,7 @@ test("blocked external loads preserve article, source link and retry", async ({
   await expect(
     page.getByRole("link", { name: /Open Google Trends/ }),
   ).toHaveCount(2);
+  await page.clock.fastForward(15000);
   await expect(page.getByText("If the chart is unavailable or there is insufficient data, open Google Trends.")).toHaveCount(
     2,
   );
