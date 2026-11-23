@@ -7,7 +7,6 @@ import {
   googleTrendsOrigin,
   googleTrendsTimeRangeOptions,
   wikiGoogleTrendsSettingsSchema,
-  type WikiGoogleTrendsBlock,
   type WikiGoogleTrendsSettings,
 } from "@kpool/wiki";
 import {
@@ -106,33 +105,27 @@ function GoogleTrendsFrame({
 }
 
 function GoogleTrendsViewer({
-  block,
+  searchTerm,
   language,
   disabled = false,
-  onSettingsChange,
 }: {
-  block: WikiGoogleTrendsBlock;
+  searchTerm: string;
   language: string;
   disabled?: boolean;
-  onSettingsChange?: (settings: WikiGoogleTrendsSettings) => void;
 }) {
   const { dictionary } = useI18n();
   const t = dictionary.wiki.googleTrends;
-  const [region, setRegion] = useState(block.region);
-  const [timeRange, setTimeRange] = useState(block.timeRange);
+  const [region, setRegion] = useState<WikiGoogleTrendsSettings["region"]>(language === "ja" ? "JP" : language === "ko" ? "KR" : "all");
+  const [timeRange, setTimeRange] = useState<WikiGoogleTrendsSettings["timeRange"]>("today 10-y");
   const [attempt, setAttempt] = useState(0);
-  const settings = { searchTerm: block.searchTerm, region, timeRange };
-  const regions = [
-    ...new Set<WikiGoogleTrendsSettings["region"]>(
-      language === "en" || onSettingsChange
-        ? ["all", "JP", "KR"]
-        : [language === "ko" ? "KR" : "JP", "all", block.region],
-    ),
-  ];
+  const settings = { searchTerm, region, timeRange };
+  const regions: WikiGoogleTrendsSettings["region"][] = language === "en"
+    ? ["all", "JP", "KR"]
+    : [language === "ko" ? "KR" : "JP", "all"];
   return (
     <figure
       className="min-w-0 space-y-3"
-      aria-label={`Google Trends: ${block.searchTerm}`}
+      aria-label={`Google Trends: ${searchTerm}`}
     >
       <div className="flex min-w-0 flex-wrap gap-3">
         <label className="grid min-w-0 gap-1 text-sm">
@@ -149,7 +142,6 @@ function GoogleTrendsViewer({
                 );
               if (parsed.success) {
                 setRegion(parsed.data);
-                onSettingsChange?.({ ...settings, region: parsed.data });
               }
             }}
           >
@@ -174,7 +166,6 @@ function GoogleTrendsViewer({
                 );
               if (parsed.success) {
                 setTimeRange(parsed.data);
-                onSettingsChange?.({ ...settings, timeRange: parsed.data });
               }
             }}
           >
@@ -215,32 +206,26 @@ function GoogleTrendsViewer({
 }
 
 export function WikiGoogleTrends({
-  block,
+  searchTerm,
   language,
   disabled,
-  onSettingsChange,
 }: {
-  block: WikiGoogleTrendsBlock;
+  searchTerm: string;
   language: string;
   disabled?: boolean;
-  onSettingsChange?: (settings: WikiGoogleTrendsSettings) => void;
 }) {
   const { dictionary } = useI18n();
-  if (!wikiGoogleTrendsSettingsSchema.safeParse(block).success)
+  if (!wikiGoogleTrendsSettingsSchema.shape.searchTerm.safeParse(searchTerm).success)
     return <p role="status">{dictionary.wiki.googleTrends.invalid}</p>;
   return (
     <GoogleTrendsViewer
       key={JSON.stringify([
-        block.blockKey,
-        block.searchTerm,
-        block.region,
-        block.timeRange,
+        searchTerm,
         language,
       ])}
-      block={block}
+      searchTerm={searchTerm}
       language={language}
       disabled={disabled}
-      onSettingsChange={onSettingsChange}
     />
   );
 }

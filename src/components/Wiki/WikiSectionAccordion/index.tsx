@@ -17,6 +17,7 @@ import { ChevronIcon, EditIcon } from "../icons";
 import { WikiBlockDisplay } from "../WikiBlockDisplay";
 
 type WikiSectionAccordionProps = {
+  googleTrendsSearchTerm?: string;
   editHref?: string;
   onEdit?: MouseEventHandler<HTMLAnchorElement>;
   language: string;
@@ -25,6 +26,7 @@ type WikiSectionAccordionProps = {
 };
 
 export function WikiSectionAccordion({
+  googleTrendsSearchTerm = "",
   editHref,
   onEdit,
   language,
@@ -76,6 +78,7 @@ export function WikiSectionAccordion({
           {contents.map((content) =>
             isWikiBlock(content) ? (
               <WikiBlockDisplay
+                googleTrendsSearchTerm={googleTrendsSearchTerm}
                 block={content}
                 key={content.blockKey}
                 language={language}
@@ -83,6 +86,7 @@ export function WikiSectionAccordion({
               />
             ) : isWikiSection(content) ? (
               <WikiSectionAccordion
+                googleTrendsSearchTerm={googleTrendsSearchTerm}
                 editHref={editHref}
                 onEdit={onEdit}
                 key={content.sectionKey}

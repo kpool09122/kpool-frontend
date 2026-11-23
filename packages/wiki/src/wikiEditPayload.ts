@@ -2,7 +2,6 @@ import type {
   WikiBlockType,
   WikiDraftDetail,
   WikiHistoryEntry,
-  WikiGoogleTrendsSettings,
   WikiProfileCardListBlock,
   WikiSection,
   WikiSectionContent,
@@ -38,9 +37,6 @@ export type WikiSectionContentPayload =
       listType?: string;
       items?: string[];
       entries?: WikiHistoryEntry[];
-      searchTerm?: string;
-      region?: WikiGoogleTrendsSettings["region"];
-      timeRange?: WikiGoogleTrendsSettings["timeRange"];
       rows?: string[][];
       headers?: string[] | null;
       rowCells?: Array<Array<{ content: string; colspan?: number }>>;
@@ -204,7 +200,7 @@ const toWikiContentPayload = (
         items: content.items,
       };
     case "google_trends":
-      return { type: content.blockType, blockKey: persistentKey(content.blockKey, keyNamespace), displayOrder: content.displayOrder, searchTerm: content.searchTerm, region: content.region, timeRange: content.timeRange };
+      return { type: content.blockType, blockKey: persistentKey(content.blockKey, keyNamespace), displayOrder: content.displayOrder };
     case "history":
       return {
         type: content.blockType,

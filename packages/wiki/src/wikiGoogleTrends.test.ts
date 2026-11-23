@@ -3,7 +3,6 @@ import {
   addWikiBlock,
   deleteWikiContent,
   reorderWikiContent,
-  createWikiBlock,
   toWikiSectionContentPayload,
   parseWikiSectionsFromCode,
   serializeWikiSectionsToCode,
@@ -14,7 +13,7 @@ import {
   adaptWikiApiResponse,
 } from "./wikiApiModel";
 import { wikiGoogleTrendsSettingsSchema } from "./types/wiki";
-import { buildGoogleTrendsWidgetOptions, buildGoogleTrendsExploreUrl, googleTrendsTimeRangeOptions } from "./wikiGoogleTrends";
+import { buildGoogleTrendsWidgetOptions, buildGoogleTrendsExploreUrl, buildWikiGoogleTrendsSearchTerm } from "./wikiGoogleTrends";
 import { wikiPrivateApiTypes } from "@kpool/types";
 import { createMockWikiDetail } from "./mockWikiDetail";
 
@@ -25,15 +24,10 @@ describe("Google Trends block", () => {
     { searchTerm: "TWICE", region: "", timeRange: "today 12-m" },
     { searchTerm: "TWICE", region: "US", timeRange: "today 12-m" },
     { searchTerm: "TWICE", region: "JP", timeRange: "all" },
-  ])("rejects invalid settings through schema and code: %j", (settings) => {
+  ])("rejects invalid settings through schema: %j", (settings) => {
     expect(wikiGoogleTrendsSettingsSchema.safeParse(settings).success).toBe(
       false,
     );
-    expect(
-      parseWikiSectionsFromCode(
-        `== Trends ==\n\n[[google_trends|searchTerm:${encodeURIComponent(settings.searchTerm)}|region:${settings.region}|timeRange:${settings.timeRange}]]`,
-      ),
-    ).toEqual({ ok: false, code: "invalidMacro" });
   });
 
   it("adds, reorders and deletes Trends blocks through the shared content model", () => {
@@ -45,15 +39,9 @@ describe("Google Trends block", () => {
       displayOrder: 10,
       contents: [],
     };
-    const [first, editingId] = addWikiBlock([section], "section", "google_trends", {
-      name: "TWICE",
-      language: "ko",
-    });
+    const [first, editingId] = addWikiBlock([section], "section", "google_trends");
     expect(editingId).toBeNull();
-    const [second] = addWikiBlock(first, "section", "google_trends", {
-      name: "BTS",
-      language: "ko",
-    });
+    const [second] = addWikiBlock(first, "section", "google_trends");
     const [a, b] = second[0].contents;
     if (!("blockKey" in a) || !("blockKey" in b))
       throw new Error("Expected blocks");
@@ -68,55 +56,28 @@ describe("Google Trends block", () => {
     expect(deleteWikiContent(reordered, b.blockKey)[0].contents).toEqual([
       expect.objectContaining({
         blockKey: a.blockKey,
-        searchTerm: "TWICE",
-        region: "KR",
+        blockType: "google_trends",
       }),
     ]);
   });
 
-  it.each(googleTrendsTimeRangeOptions)("accepts $value through the API input contract", ({ value }) => {
-    expect(
-      wikiPrivateApiTypes.schemas.WikiContentInput.safeParse({
-        type: "google_trends",
-        searchTerm: "TWICE",
-        region: "all",
-        timeRange: value,
-      }).success,
-    ).toBe(true);
+  it("accepts a marker-only block through the API input contract", () => {
+    expect(wikiPrivateApiTypes.schemas.WikiContentInput.safeParse({ type: "google_trends", blockKey: "trends", displayOrder: 10 }).success).toBe(true);
   });
 
-  it("qualifies a talent search with its group name", () => {
-    expect(createWikiBlock("google_trends", 20, { name: "Karina", language: "en", groupName: "aespa" })).toMatchObject({ searchTerm: "Karina aespa", region: "all" });
-    const block = createWikiBlock("google_trends", 20, { name: "あ".repeat(64), language: "ja", groupName: "い".repeat(64) });
-    if (block.blockType !== "google_trends") throw new Error("Expected Google Trends block");
-    expect([...block.searchTerm]).toHaveLength(100);
+  it("derives the current talent search from the wiki and limits Unicode characters", () => {
+    const wiki = { ...createMockWikiDetail("gr-twice"), resourceType: "talent" as const };
+    wiki.basic = { ...wiki.basic, name: "Karina", groups: [{ wikiIdentifier: "aespa", name: "aespa" }] };
+    expect(buildWikiGoogleTrendsSearchTerm(wiki)).toBe("Karina aespa");
+    wiki.basic.name = "あ".repeat(101);
+    expect([...buildWikiGoogleTrendsSearchTerm(wiki)]).toHaveLength(100);
   });
 
-  it("uses the displayed Wiki name and language when adding a block", () => {
-    for (const [language, region] of [
-      ["ja", "JP"],
-      ["ko", "KR"],
-      ["en", "all"],
-    ]) {
-      expect(
-        createWikiBlock("google_trends", 20, { name: "TWICE", language }),
-      ).toMatchObject({
-        blockType: "google_trends",
-        searchTerm: "TWICE",
-        region,
-        timeRange: "today 10-y",
-        displayOrder: 20,
-      });
-    }
-  });
-  it.each(googleTrendsTimeRangeOptions)("round trips $value through settings, API payload and code", ({ value }) => {
+  it("round trips marker-only blocks through API payload and code, dropping legacy settings", () => {
     const block = {
       blockType: "google_trends" as const,
       blockKey: "trends-key",
       displayOrder: 10,
-      searchTerm: "TWICE | 트와이스 \\ % & ]]",
-      region: "all" as const,
-      timeRange: value,
     };
     const wiki = createMockWikiDetail("gr-twice");
     const sections = [
@@ -134,12 +95,14 @@ describe("Google Trends block", () => {
         adapt({
           ...wiki,
           sections: [
-            { ...sections[0], contents: [{ type: "google_trends", ...block }] },
+            { ...sections[0], contents: [{ type: "google_trends", ...block, searchTerm: "Legacy", region: "JP", timeRange: "today 5-y" }] },
           ],
         }).sections,
       ).toEqual(sections);
     }
     const code = serializeWikiSectionsToCode(sections);
+    expect(code).toContain("[[google_trends]]");
+    expect(code).not.toContain("searchTerm");
     const parsed = parseWikiSectionsFromCode(code);
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
@@ -154,9 +117,6 @@ describe("Google Trends block", () => {
             type: "google_trends",
             blockKey: block.blockKey,
             displayOrder: 10,
-            searchTerm: block.searchTerm,
-            region: "all",
-            timeRange: value,
           },
         ],
       },

@@ -10,7 +10,6 @@ import {
   type WikiSectionContent,
   wikiDetailSchema,
   wikiHistoryEntrySchema,
-  wikiGoogleTrendsSettingsSchema,
   wikiProfileCardShapeSchema,
   type WikiResourceType,
   wikiDraftDetailSchema,
@@ -484,14 +483,8 @@ const adaptWikiBlock = (
         listType: toString(content.listType ?? content.list_type, "bullet") === "numbered" ? "numbered" : "bullet",
         items: toStringList(content.items),
       };
-    case "google_trends": {
-      const settings = wikiGoogleTrendsSettingsSchema.safeParse({
-        searchTerm: content.searchTerm ?? content.search_term,
-        region: content.region,
-        timeRange: content.timeRange ?? content.time_range,
-      });
-      return settings.success ? { blockKey, blockType, displayOrder, ...settings.data } : null;
-    }
+    case "google_trends":
+      return { blockKey, blockType, displayOrder };
     case "history":
       return {
         blockKey,

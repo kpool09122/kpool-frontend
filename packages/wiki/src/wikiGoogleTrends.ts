@@ -1,4 +1,4 @@
-import type { WikiGoogleTrendsSettings } from "./types/wiki";
+import type { WikiDetail, WikiGoogleTrendsSettings } from "./types/wiki";
 
 export const googleTrendsOrigin = "https://trends.google.com";
 const localeFor = (language: string) =>
@@ -65,3 +65,7 @@ export const buildGoogleTrendsWidgetOptions = (
     },
   };
 };
+
+export const buildWikiGoogleTrendsSearchTerm = (wiki: Pick<WikiDetail, "resourceType" | "basic">): string =>
+  [...[wiki.basic.name, wiki.resourceType === "talent" ? wiki.basic.groups?.[0]?.name : undefined]
+    .filter(Boolean).join(" ").trim()].slice(0, 100).join("");

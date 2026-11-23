@@ -14,6 +14,7 @@ import type { WikiImagePicker } from "../WikiImageLibrary/types";
 import { toBlockImage } from "../WikiImageLibrary/wikiBlockImage";
 
 type WikiBlockEditorItemProps = {
+  googleTrendsSearchTerm?: string;
   block: WikiBlock;
   disabled?: boolean;
   isEditing: boolean;
@@ -32,6 +33,7 @@ type WikiBlockEditorItemProps = {
 };
 
 export function WikiBlockEditorItem({
+  googleTrendsSearchTerm = "",
   block,
   disabled = false,
   isEditing,
@@ -82,8 +84,9 @@ export function WikiBlockEditorItem({
         {reorder?.handle}
       </div>
       {block.blockType === "google_trends" ? (
-        <WikiGoogleTrends block={block} language={language} disabled={disabled} onSettingsChange={onSave} />
+        <WikiGoogleTrends searchTerm={googleTrendsSearchTerm} language={language} disabled={disabled} />
       ) : <WikiBlockDisplay
+        googleTrendsSearchTerm={googleTrendsSearchTerm}
         block={block}
         language={language}
         showEditableImageOverlay

@@ -248,7 +248,7 @@ export const wikiGoogleTrendsSettingsSchema = z.object({
 });
 
 export type WikiGoogleTrendsSettings = z.infer<typeof wikiGoogleTrendsSettingsSchema>;
-export type WikiGoogleTrendsBlock = WikiGoogleTrendsSettings & {
+export type WikiGoogleTrendsBlock = {
   blockType: "google_trends";
   blockKey: string;
   displayOrder: number;
@@ -300,7 +300,7 @@ const wikiBlockBaseSchema = z.object({
 });
 
 const wikiBlockSchema = z.discriminatedUnion("blockType", [
-  wikiBlockBaseSchema.merge(wikiGoogleTrendsSettingsSchema).extend({ blockType: z.literal("google_trends") }),
+  wikiBlockBaseSchema.extend({ blockType: z.literal("google_trends") }),
   wikiBlockBaseSchema.extend({
     blockType: z.literal("text"),
     content: z.string(),

@@ -20,13 +20,13 @@ for (const width of [1280, 390]) {
     if (width === 390)
       await page.getByTestId("section-toggle-sec-trends").click();
     const first = page.getByRole("figure", {
-      name: "Google Trends: TWICE",
+      name: "Google Trends: Aurora Echo",
       exact: true,
-    });
+    }).nth(0);
     await first.scrollIntoViewIfNeeded();
     await first.getByLabel("Region", { exact: true }).selectOption("all");
     await expect(first.getByLabel("Region", { exact: true })).toHaveValue("all");
-    await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
+    await expect(first.getByLabel("Time range")).toHaveValue("today 10-y");
     for (const [value, date] of [
       ["today 3-m", "today 3-m"],
       ["today 6-m", "2026-05-23 2026-11-23"],
@@ -40,14 +40,14 @@ for (const width of [1280, 390]) {
       expect(new URL(href!).searchParams.get("date")).toBe(date);
       expect(new URL(href!).searchParams.get("geo")).toBe("");
     }
-    const second = page.getByRole("figure", { name: "Google Trends: BTS", exact: true });
+    const second = page.getByRole("figure", { name: "Google Trends: Aurora Echo", exact: true }).nth(1);
     await expect(second.getByLabel("Region", { exact: true })).toHaveValue("all");
-    await expect(second.getByLabel("Time range")).toHaveValue("today 5-y");
+    await expect(second.getByLabel("Time range")).toHaveValue("today 10-y");
     await page.reload();
     if (width === 390)
       await page.getByTestId("section-toggle-sec-trends").click();
-    await expect(first.getByLabel("Region", { exact: true })).toHaveValue("JP");
-    await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
+    await expect(first.getByLabel("Region", { exact: true })).toHaveValue("all");
+    await expect(first.getByLabel("Time range")).toHaveValue("today 10-y");
   });
 }
 
@@ -76,32 +76,21 @@ test("adds, edits, code round trips and saves a structured block in the actual e
   await controls
     .getByRole("button", { name: "Google Trends", exact: true })
     .click();
-  const inserted = page.getByRole("figure", { name: "Google Trends: Aurora Echo", exact: true });
+  const inserted = page.getByRole("figure", { name: "Google Trends: Aurora Echo", exact: true }).nth(2);
   await expect(inserted).toBeVisible();
   await expect(inserted.getByLabel("Time range")).toHaveValue("today 10-y");
   await expect(page.getByLabel("Search term")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Edit block: Google Trends", exact: true })).toHaveCount(0);
-  await inserted.getByLabel("Region", { exact: true }).selectOption("KR");
+  await inserted.getByLabel("Region", { exact: true }).selectOption("all");
   await inserted.getByLabel("Time range").selectOption("today 6-m");
   await page.getByRole("button", { name: "Expand editor sidebar" }).click();
   await page.getByRole("button", { name: "code", exact: true }).click();
   const code = page.getByLabel("Wiki code");
   await expect(code).toHaveValue(/google_trends/);
-  await code.fill(
-    (await code.inputValue()).replace(
-      "searchTerm:TWICE",
-      "searchTerm:TWICE%20updated",
-    ),
-  );
+  expect(await code.inputValue()).not.toMatch(/searchTerm|region|timeRange/);
+  await code.fill(`${await code.inputValue()}\n\n`);
   await page.getByRole("button", { name: "gui", exact: true }).click();
-  await expect(
-    page.getByRole("figure", {
-      name: "Google Trends: TWICE updated",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(inserted.getByLabel("Region", { exact: true })).toHaveValue("KR");
-  await expect(inserted.getByLabel("Time range")).toHaveValue("today 6-m");
+  await expect(page.getByRole("figure", { name: "Google Trends: Aurora Echo", exact: true })).toHaveCount(3);
   await page.getByRole("button", { name: "Save wiki changes" }).click();
   await expect(page.getByTestId("wiki-edit-save-state")).toHaveText("Saved");
   expect(payload?.sections).toEqual(
@@ -109,19 +98,8 @@ test("adds, edits, code round trips and saves a structured block in the actual e
       expect.objectContaining({
         sectionKey: "sec-trends",
         contents: expect.arrayContaining([
-          expect.objectContaining({
-            type: "google_trends",
-            blockKey: "trends-one",
-            searchTerm: "TWICE updated",
-            region: "JP",
-            timeRange: "today 12-m",
-          }),
-          expect.objectContaining({
-            type: "google_trends",
-            searchTerm: "Aurora Echo",
-            region: "KR",
-            timeRange: "today 6-m",
-          }),
+          { type: "google_trends", blockKey: "trends-one", displayOrder: expect.any(Number) },
+          { type: "google_trends", blockKey: expect.any(String), displayOrder: expect.any(Number) },
         ]),
       }),
     ]),

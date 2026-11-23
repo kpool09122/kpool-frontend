@@ -13,6 +13,7 @@ import { parseInlineMarkdown } from "../editing";
 import { WikiBlockImage } from "../WikiBlockImage";
 
 type WikiBlockDisplayProps = {
+  googleTrendsSearchTerm?: string;
   block: WikiBlock;
   language?: string;
   showEditableImageOverlay?: boolean;
@@ -27,6 +28,7 @@ const captionClassName = `${textWrapClassName} mt-2 text-base text-text-muted`;
 const tableCellClassName = `${textWrapClassName} border-b border-stroke-subtle px-3 py-2`;
 
 export function WikiBlockDisplay({
+  googleTrendsSearchTerm = "",
   block,
   language = "ja",
   showEditableImageOverlay = false,
@@ -185,7 +187,7 @@ export function WikiBlockDisplay({
       );
     }
     case "google_trends":
-      return <WikiGoogleTrends block={block} language={language} />;
+      return <WikiGoogleTrends searchTerm={googleTrendsSearchTerm} language={language} />;
     case "embed":
       return <WikiEmbedFrame block={block} />;
     case "quote":

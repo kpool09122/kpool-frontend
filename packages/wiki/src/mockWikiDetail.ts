@@ -428,8 +428,8 @@ export const createMockWikiDetail = (
     sections: normalizedSlug === "gr-google-trends"
       ? [{ type: "section", sectionKey: "sec-trends", title: "Google Trends", depth: 1, displayOrder: 10, contents: [
           { blockType: "text", blockKey: "trends-text", displayOrder: 10, content: "Other Wiki content remains available." },
-          { blockType: "google_trends", blockKey: "trends-one", displayOrder: 20, searchTerm: "TWICE", region: "JP", timeRange: "today 12-m" },
-          { blockType: "google_trends", blockKey: "trends-two", displayOrder: 30, searchTerm: "BTS", region: "all", timeRange: "today 5-y" },
+          { blockType: "google_trends", blockKey: "trends-one", displayOrder: 20 },
+          { blockType: "google_trends", blockKey: "trends-two", displayOrder: 30 },
         ] }]
       : isTwiceGroupSlug
       ? createTwiceCompatibilitySections()

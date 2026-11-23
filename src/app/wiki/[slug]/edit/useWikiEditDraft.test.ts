@@ -11,15 +11,7 @@ import { describe, expect, it, vi } from "vitest";
 import { useWikiEditDraft } from "./useWikiEditDraft";
 
 describe("useWikiEditDraft", () => {
-  it("uses the first group when adding Trends to a talent", () => {
-    const wiki = { ...createMockWikiDetail("gr-aurora-echo"), resourceType: "talent" as const };
-    wiki.basic = { ...wiki.basic, name: "Karina", groups: [{ wikiIdentifier: "aespa-id", name: "aespa" }, { wikiIdentifier: "other-id", name: "Other" }] };
-    const { result } = renderHook(() => useWikiEditDraft(wiki));
-    act(() => result.current.addBlock(result.current.draft.sections[0].sectionKey, "google_trends"));
-    expect(result.current.draft.sections[0].contents).toEqual(expect.arrayContaining([expect.objectContaining({ blockType: "google_trends", searchTerm: "Karina aespa" })]));
-  });
-
-  it("inserts Google Trends ready to display and persists inline settings without opening a form", async () => {
+  it("adds and saves a Google Trends marker without settings or a form", async () => {
     const wiki = createMockWikiDetail("gr-aurora-echo");
     const saveAdapter = vi.fn().mockResolvedValue({ ok: true });
     const { result } = renderHook(() => useWikiEditDraft(wiki, { saveAdapter }));
@@ -27,20 +19,10 @@ describe("useWikiEditDraft", () => {
     act(() => result.current.addBlock(sectionKey, "google_trends"));
     expect(result.current.editingId).toBeNull();
     const block = result.current.draft.sections[0].contents.find((content) => "blockType" in content && content.blockType === "google_trends");
-    if (!block || !("blockKey" in block)) throw new Error("Expected Google Trends block");
-    act(() => result.current.updateBlock(block.blockKey, { region: "KR", timeRange: "today 10-y" }));
-    expect(result.current.editingId).toBeNull();
+    expect(block).toEqual({ blockType: "google_trends", blockKey: expect.any(String), displayOrder: expect.any(Number) });
     await act(async () => { await result.current.saveDraft(); });
     expect(saveAdapter).toHaveBeenCalledWith(expect.objectContaining({
-      sections: expect.arrayContaining([expect.objectContaining({
-        sectionKey,
-        contents: expect.arrayContaining([expect.objectContaining({
-          blockKey: block.blockKey,
-          searchTerm: wiki.basic.name,
-          region: "KR",
-          timeRange: "today 10-y",
-        })]),
-      })]),
+      sections: expect.arrayContaining([expect.objectContaining({ sectionKey, contents: expect.arrayContaining([block]) })]),
     }));
   });
 

@@ -7,7 +7,7 @@ import type {
   WikiHistoryEntry,
   WikiSection,
 } from "./types/wiki";
-import { wikiGoogleTrendsSettingsSchema, wikiHistoryEntrySchema, wikiProfileCardShapeSchema } from "./types/wiki";
+import { wikiHistoryEntrySchema, wikiProfileCardShapeSchema } from "./types/wiki";
 import {
   decodeCodeUri,
   parseCodeMacro,
@@ -551,13 +551,7 @@ const parseCodeBlocks = (lines: string[]): WikiCodeBlocksParseResult => {
         }
 
         if (macro.name === "google_trends") {
-          const settings = wikiGoogleTrendsSettingsSchema.safeParse({
-            searchTerm: decodeCodeUri(macro.fields.searchTerm ?? ""),
-            region: macro.fields.region,
-            timeRange: macro.fields.timeRange,
-          });
-          if (!settings.success) return createBlockParseError("invalidMacro");
-          addBlock({ blockType: "google_trends", ...settings.data });
+          addBlock({ blockType: "google_trends" });
           cursor += 1;
           continue;
         }
