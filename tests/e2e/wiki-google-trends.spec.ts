@@ -34,7 +34,7 @@ for (const width of [1280, 390]) {
     await expect(first.getByRole("status")).toHaveCount(0);
     await expect(charts.first()).toHaveCSS("height", "350px");
     await first.getByLabel("Region", { exact: true }).selectOption("");
-    await expect(first.getByLabel("Time range")).toHaveValue("today 12-m");
+    await expect(first.getByLabel("Time range")).toHaveValue("today 10-y");
     for (const [value, date] of [
       ["today 3-m", "today 3-m"],
       ["today 6-m", "2026-05-23 2026-11-23"],

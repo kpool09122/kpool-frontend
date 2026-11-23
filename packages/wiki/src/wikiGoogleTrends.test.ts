@@ -104,7 +104,7 @@ describe("Google Trends block", () => {
         blockType: "google_trends",
         searchTerm: "TWICE",
         region,
-        timeRange: "today 12-m",
+        timeRange: "today 10-y",
         displayOrder: 20,
       });
     }

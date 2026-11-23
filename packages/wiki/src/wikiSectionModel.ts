@@ -129,7 +129,7 @@ export const createWikiBlock = (
         items: ["New item"],
       };
     case "google_trends":
-      return { blockKey, blockType, displayOrder, searchTerm: [...[context?.name ?? "", context?.groupName].filter(Boolean).join(" ").trim()].slice(0, 100).join(""), region: context?.language === "ja" ? "JP" : context?.language === "ko" ? "KR" : "all", timeRange: "today 12-m" };
+      return { blockKey, blockType, displayOrder, searchTerm: [...[context?.name ?? "", context?.groupName].filter(Boolean).join(" ").trim()].slice(0, 100).join(""), region: context?.language === "ja" ? "JP" : context?.language === "ko" ? "KR" : "all", timeRange: "today 10-y" };
     case "history":
       return { blockKey, blockType, displayOrder, entries: [] };
     case "table":

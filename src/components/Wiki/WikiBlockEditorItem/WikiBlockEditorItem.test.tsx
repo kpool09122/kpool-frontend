@@ -18,7 +18,7 @@ describe("WikiBlockEditorItem", () => {
     expect(screen.getByTitle("Google Trends: TWICE")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit block: Google Trends" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search term")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Time range")).toHaveValue("today 12-m");
+    expect(screen.getByLabelText("Time range")).toHaveValue("today 10-y");
     fireEvent.change(screen.getByLabelText("Time range"), { target: { value } });
     expect(onSave).toHaveBeenLastCalledWith({ searchTerm: "TWICE", region: "JP", timeRange: value });
     fireEvent.change(screen.getByLabelText("Region"), { target: { value: "KR" } });
