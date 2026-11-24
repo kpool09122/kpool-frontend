@@ -7,6 +7,7 @@ import { AccountCategoryChangeRequestDetailClient } from "./[requestId]/AccountC
 const data = vi.hoisted(() => ({
   request: {
     requestIdentifier: "request",
+    snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
     status: "withdrawn",
     currentAccountCategory: "general",
     requestedAccountCategory: "agency",

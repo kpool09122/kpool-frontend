@@ -361,10 +361,7 @@ test.describe("Analyze reports", () => {
       await page
         .getByRole("button", { name: "分析を取得", exact: true })
         .click();
-      const expectedPeriod = await page.evaluate(() => ({
-        from: new Date(2020, 0, 1).toISOString().slice(0, 10),
-        to: new Date(2020, 0, 4).toISOString().slice(0, 10),
-      }));
+      const expectedPeriod = { from: "2020-01-01", to: "2020-01-04" };
       await expect
         .poll(
           () =>

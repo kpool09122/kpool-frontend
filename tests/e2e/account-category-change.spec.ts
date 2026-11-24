@@ -18,6 +18,7 @@ const account = {
 };
 const pending: AccountCategoryChangeRequestSummary = {
   requestIdentifier: "44444444-4444-4444-8444-444444444444",
+  snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
   accountIdentifier,
   currentAccountCategory: "general",
   requestedAccountCategory: "agency",
@@ -102,6 +103,7 @@ async function setup(
       latest = {
         ...pending,
         requestIdentifier: "55555555-5555-4555-8555-555555555555",
+        snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
         requestedAccountCategory: route.request().postDataJSON()
           .requestedAccountCategory,
       };

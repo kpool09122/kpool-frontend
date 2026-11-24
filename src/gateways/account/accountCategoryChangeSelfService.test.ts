@@ -13,6 +13,7 @@ import {
 
 const summary = {
   requestIdentifier: "request",
+  snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
   accountIdentifier: "account",
   currentAccountCategory: "general",
   requestedAccountCategory: "agency",

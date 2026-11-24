@@ -5,6 +5,7 @@ import { POST } from "./[requestId]/withdraw/route";
 
 const summary = {
   requestIdentifier: "request-1",
+  snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
   accountIdentifier: "account-1",
   currentAccountCategory: "general",
   requestedAccountCategory: "agency",
