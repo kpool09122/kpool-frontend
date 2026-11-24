@@ -105,6 +105,66 @@ const RejectAccountCategoryChangeRequestBody = z
     rejectionReasonDetail: z.string().nullish(),
   })
   .passthrough();
+const AccountSnapshotChangeRequestSummary = z
+  .object({
+    requestIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    snapshotIdentifier: KPool_Common_Uuid.uuid(),
+    reviewedSnapshotIdentifier: KPool_Common_Uuid.nullable(),
+    changeReason: z.string().min(1).max(2000),
+    status: z.enum(["pending", "approved", "rejected"]),
+    requestedAt: z.string().datetime({ offset: true }),
+    reviewedBy: KPool_Common_Uuid.nullable(),
+    reviewedAt: z.string().datetime({ offset: true }).nullable(),
+    rejectionReason: z
+      .object({ code: z.string(), detail: z.string().nullable() })
+      .passthrough()
+      .nullable(),
+  })
+  .passthrough();
+const AccountSnapshotSummary = z
+  .object({
+    snapshotIdentifier: KPool_Common_Uuid.uuid(),
+    accountIdentifier: KPool_Common_Uuid.uuid(),
+    status: z.enum(["approved", "rejected"]),
+    savedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const AccountSnapshotDetail = AccountSnapshotSummary;
+const AccountSnapshotProfile = z
+  .object({
+    email: z.string(),
+    type: z.enum(["corporation", "individual"]),
+    name: z.string(),
+    status: z.string(),
+    phone: z.string(),
+    countryCode: z.string(),
+    administrativeAreaCode: z.string().nullable(),
+    postalCode: z.string(),
+    locality: z.string().nullable(),
+    addressLine1: z.string(),
+    addressLine2: z.string().nullable(),
+  })
+  .passthrough();
+const AccountSnapshotDocument = z
+  .object({
+    documentType: z.string(),
+    uploadedAt: z.string().datetime({ offset: true }),
+  })
+  .passthrough();
+const AccountSnapshotChangeProposal = z
+  .object({
+    account: AccountSnapshotProfile,
+    documents: z.array(AccountSnapshotDocument),
+  })
+  .passthrough();
+const AccountSnapshotChangeRequestDetail = z
+  .object({
+    request: AccountSnapshotChangeRequestSummary,
+    original: AccountSnapshotDetail,
+    proposal: AccountSnapshotChangeProposal,
+  })
+  .passthrough();
 const CompleteInitialSetupRequestBody = z
   .object({ accountType: z.enum(["corporation", "individual"]) })
   .passthrough();
@@ -123,15 +183,9 @@ const SwitchAccountResponseBody = z
 const RequestAccountCategoryChangeRequestBody = z
   .object({ requestedAccountCategory: z.enum(["agency", "talent", "general"]) })
   .passthrough();
-const AccountSnapshotSummary = z
-  .object({
-    snapshotIdentifier: KPool_Common_Uuid.uuid(),
-    accountIdentifier: KPool_Common_Uuid.uuid(),
-    version: z.number().int().gte(1),
-    savedAt: z.string().datetime({ offset: true }),
-  })
+const RequestAccountSnapshotChangeBody = z
+  .object({ changeReason: z.string().min(1).max(2000) })
   .passthrough();
-const AccountSnapshotDetail = AccountSnapshotSummary;
 const UpdateAccountRequestBody = z
   .object({
     accountName: z.string(),
@@ -355,27 +409,6 @@ const KPool_Common_PrincipalStatusConflictProblem = KPool_Common_ProblemDetails;
 const MutatePrincipalGroupMemberRequestBody = z
   .object({ principalIdentifier: KPool_Common_Uuid })
   .passthrough();
-const AccountSnapshotDocument = z
-  .object({
-    documentType: z.string(),
-    uploadedAt: z.string().datetime({ offset: true }),
-  })
-  .passthrough();
-const AccountSnapshotProfile = z
-  .object({
-    email: z.string(),
-    type: z.enum(["corporation", "individual"]),
-    name: z.string(),
-    status: z.string(),
-    phone: z.string(),
-    countryCode: z.string(),
-    administrativeAreaCode: z.string().nullable(),
-    postalCode: z.string(),
-    locality: z.string().nullable(),
-    addressLine1: z.string(),
-    addressLine2: z.string().nullable(),
-  })
-  .passthrough();
 
 export const schemas = {
   KPool_Common_Uuid,
@@ -390,12 +423,18 @@ export const schemas = {
   AccountDocumentSummary,
   AccountCategoryChangeRequestDetailResponseBody,
   RejectAccountCategoryChangeRequestBody,
+  AccountSnapshotChangeRequestSummary,
+  AccountSnapshotSummary,
+  AccountSnapshotDetail,
+  AccountSnapshotProfile,
+  AccountSnapshotDocument,
+  AccountSnapshotChangeProposal,
+  AccountSnapshotChangeRequestDetail,
   CompleteInitialSetupRequestBody,
   SwitchAccountRequestBody,
   SwitchAccountResponseBody,
   RequestAccountCategoryChangeRequestBody,
-  AccountSnapshotSummary,
-  AccountSnapshotDetail,
+  RequestAccountSnapshotChangeBody,
   UpdateAccountRequestBody,
   AccountDocumentUploadItem,
   UploadAccountDocumentsRequestBody,
@@ -432,8 +471,6 @@ export const schemas = {
   UpdatedPrincipalGroupSummary,
   KPool_Common_PrincipalStatusConflictProblem,
   MutatePrincipalGroupMemberRequestBody,
-  AccountSnapshotDocument,
-  AccountSnapshotProfile,
 };
 
 const endpoints = makeApi([
@@ -618,7 +655,7 @@ const endpoints = makeApi([
     path: "/account-category-change-requests/:requestId/documents/:documentType",
     alias:
       "AccountCategoryChangeRequestOperations_viewAccountCategoryChangeRequestDocument",
-    description: `View the document from the saved version pinned to the application. Requires category request management permission.`,
+    description: `View the document from the saved snapshot pinned to the application. Requires category request management permission.`,
     requestFormat: "json",
     parameters: [
       {
@@ -691,6 +728,318 @@ const endpoints = makeApi([
       },
     ],
     response: AccountCategoryChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/account-snapshot-change-requests",
+    alias:
+      "AccountSnapshotChangeRequestOperations_listAccountSnapshotChangeRequests",
+    description: `Operations-only list. Requires account:snapshot-change-request:manage on the operator Account. Ordered by requestedAt descending then identifier descending. Optional review status filter, bounded pagination (default 50, maximum 100).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "status",
+        type: "Query",
+        schema: z.enum(["pending", "approved", "rejected"]).nullish(),
+      },
+      {
+        name: "perPage",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+      {
+        name: "page",
+        type: "Query",
+        schema: z.number().int().nullish(),
+      },
+    ],
+    response: z
+      .object({
+        requests: z.array(AccountSnapshotChangeRequestSummary),
+        pagination: z
+          .object({
+            currentPage: z.number().int(),
+            lastPage: z.number().int(),
+            total: z.number().int(),
+            perPage: z.number().int(),
+          })
+          .passthrough(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/account-snapshot-change-requests/:requestId",
+    alias:
+      "AccountSnapshotChangeRequestOperations_getAccountSnapshotChangeRequest",
+    description: `Compare the pinned original with the current Account while pending, or the reviewed snapshot after approval or rejection. Same Account requires account:read; cross-Account access requires account:snapshot-change-request:manage on the operator Account. Returns no storage paths or hashes.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotChangeRequestDetail,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/account-snapshot-change-requests/:requestId/approve",
+    alias:
+      "AccountSnapshotChangeRequestOperations_approveAccountSnapshotChangeRequest",
+    description: `Requires account:snapshot-change-request:manage. Pending only; final requests return 422. Atomically save the current Account and copied documents as an approved snapshot and link reviewedSnapshotIdentifier to it. Historic references remain unchanged, and approved category history continues to prohibit changed-content normal saves (409 account_snapshot_change_requires_approval).`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/account-snapshot-change-requests/:requestId/documents/:documentType",
+    alias:
+      "AccountSnapshotChangeRequestOperations_getAccountSnapshotChangeRequestDocument",
+    description: `Stream a file from the original or proposal through the same owner/operations authorization as detail. source defaults to proposal. Arbitrary storage paths are not accepted. private,no-store response; missing file returns 404.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+      {
+        name: "documentType",
+        type: "Path",
+        schema: z.string(),
+      },
+      {
+        name: "source",
+        type: "Query",
+        schema: z.enum(["original", "proposal"]).nullish(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/account-snapshot-change-requests/:requestId/reject",
+    alias:
+      "AccountSnapshotChangeRequestOperations_rejectAccountSnapshotChangeRequest",
+    description: `Requires account:snapshot-change-request:manage. Pending only; terminal requests return 422. Records reviewer, time and reason, saves the current Account and copied documents as a rejected snapshot, and links reviewedSnapshotIdentifier to it. The current approved snapshot remains unchanged.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: RejectAccountCategoryChangeRequestBody,
+      },
+      {
+        name: "requestId",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotChangeRequestSummary,
     errors: [
       {
         status: 401,
@@ -1019,7 +1368,7 @@ const endpoints = makeApi([
     path: "/accounts/:accountIdentifier/category-change-requests",
     alias:
       "AccountCategoryChangeRequestOperations_requestAccountCategoryChange",
-    description: `Request account category change using the highest saved snapshot version. A missing saved snapshot returns 404 (account_snapshot_not_found). Live address and documents are not revalidated or copied. The pinned version does not change when a newer version is saved. Same-category and pending/approved-history constraints remain; rejected or withdrawn history permits a new request.`,
+    description: `Request account category change using the latest approved snapshot. A missing saved snapshot returns 404 (account_snapshot_not_found). Live address and documents are not revalidated or copied. The pinned snapshot does not change when a newer snapshot is saved. Same-category and pending/approved-history constraints remain; rejected or withdrawn history permits a new request.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1194,7 +1543,7 @@ const endpoints = makeApi([
     method: "put",
     path: "/accounts/:accountIdentifier/snapshot",
     alias: "AccountSnapshotOperations_saveAccountSnapshot",
-    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable version; previous versions and document files are retained. Identical-content saves succeed without writes even after approval. Changed contents are rejected with 409 (account_snapshot_change_requires_approval) if any category-change approval references a saved version for the account. Does not change category-change requests.`,
+    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable snapshot; previous snapshots and document files are retained. Profile updates, document uploads and snapshot saves are forbidden while a snapshot-change request is pending. Otherwise identical-content saves succeed without writes even after approval. Changed contents are rejected with 409 (account_snapshot_change_requires_approval) if any category-change approval references a saved snapshot for the account. Does not change category-change requests.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1256,7 +1605,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/accounts/:accountIdentifier/snapshot",
     alias: "AccountSnapshotOperations_getCurrentAccountSnapshot",
-    description: `Read the current version, defined as the highest saved version number for the account. Same-account readers require account:read; cross-account operations readers require account:category-change-request:manage on their own account. No current version returns 404.`,
+    description: `Read the current snapshot, defined as the latest approved snapshot ordered by savedAt descending then identifier descending for the account. Same-account readers require account:read; cross-account operations readers require account:category-change-request:manage on their own account. No current snapshot returns 404.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1305,10 +1654,138 @@ const endpoints = makeApi([
     ],
   },
   {
+    method: "post",
+    path: "/accounts/:accountIdentifier/snapshot-change-requests",
+    alias:
+      "AccountSnapshotChangeRequestOperations_requestAccountSnapshotChange",
+    description: `Submit a required reason and freeze the current editable Account profile and uploaded documents after the same complete-contact/type/required-document validation as normal snapshot save. Requires same Account and account:update. A saved original snapshot must exist (404 otherwise). While pending, profile updates, document uploads and normal snapshot saves return 403. Review reads the current Account and documents without a separate copy. No snapshot is created on submission; duplicate pending applications return 409. Rejected/approved history permits a new application, independently of category-change request states.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({ changeReason: z.string().min(1).max(2000) })
+          .passthrough(),
+      },
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: AccountSnapshotChangeRequestSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/accounts/:accountIdentifier/snapshot-change-requests/latest",
+    alias:
+      "AccountSnapshotChangeRequestOperations_getLatestAccountSnapshotChangeRequest",
+    description: `Same Account and account:read required. Latest request ordered by requestedAt descending, then identifier descending, or null. changeRequiresApproval is derived from approved category applications, not snapshot-local flags.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "accountIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z
+      .object({
+        request: AccountSnapshotChangeRequestSummary.nullable(),
+        changeRequiresApproval: z.boolean(),
+      })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
     method: "get",
     path: "/accounts/:accountIdentifier/snapshots/:snapshotIdentifier",
     alias: "AccountSnapshotOperations_getAccountSnapshot",
-    description: `Read a specific immutable version with the same owner/operations authorization as the current-version endpoint. Mismatched account/version returns 404. Old application references remain valid after the current version changes.`,
+    description: `Read a specific immutable snapshot with the same owner/operations authorization as the current-snapshot endpoint. Mismatched account/snapshot returns 404. Old application references remain valid after the current snapshot changes.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1365,7 +1842,7 @@ const endpoints = makeApi([
     method: "get",
     path: "/accounts/:accountIdentifier/snapshots/:snapshotIdentifier/documents/:documentType",
     alias: "AccountSnapshotOperations_getAccountSnapshotDocument",
-    description: `Stream the copied document belonging to the specified account/version after the same owner/operations authorization as snapshot reads. Missing document returns 404. Original-file edits/deletion do not change this file.`,
+    description: `Stream the copied document belonging to the specified account/snapshot after the same owner/operations authorization as snapshot reads. Missing document returns 404. Original-file edits/deletion do not change this file.`,
     requestFormat: "json",
     parameters: [
       {
