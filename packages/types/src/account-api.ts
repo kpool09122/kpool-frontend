@@ -31,6 +31,7 @@ const AccountSummary = z
   .passthrough();
 const AccountCategoryChangeRequestListItemSummary = z
   .object({
+    snapshotIdentifier: KPool_Common_Uuid,
     requestIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
     currentAccountCategory: z.string(),
@@ -65,6 +66,7 @@ const KPool_Common_ProblemDetails = z
   .passthrough();
 const AccountCategoryChangeRequestSummary = z
   .object({
+    snapshotIdentifier: KPool_Common_Uuid,
     requestIdentifier: KPool_Common_Uuid,
     accountIdentifier: KPool_Common_Uuid,
     currentAccountCategory: z.string(),
@@ -616,7 +618,7 @@ const endpoints = makeApi([
     path: "/account-category-change-requests/:requestId/documents/:documentType",
     alias:
       "AccountCategoryChangeRequestOperations_viewAccountCategoryChangeRequestDocument",
-    description: `View an independently stored application document snapshot. Requires category request management permission.`,
+    description: `View the document from the saved version pinned to the application. Requires category request management permission.`,
     requestFormat: "json",
     parameters: [
       {
@@ -847,58 +849,6 @@ const endpoints = makeApi([
     ],
   },
   {
-    method: "delete",
-    path: "/accounts/:accountId",
-    alias: "AccountOperations_deleteAccount",
-    description: `Delete an account.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "accountId",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-    ],
-    response: AccountSummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 404,
-        description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 419,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 429,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 503,
-        description: `Service unavailable.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
     method: "post",
     path: "/accounts/:accountId/documents",
     alias: "AccountOperations_uploadDocuments",
@@ -1069,7 +1019,7 @@ const endpoints = makeApi([
     path: "/accounts/:accountIdentifier/category-change-requests",
     alias:
       "AccountCategoryChangeRequestOperations_requestAccountCategoryChange",
-    description: `Request account category change. Requires saved phone, address country, postal code, and address line 1, plus administrative area code where applicable. Accounts with any approved request history cannot apply again; rejected or withdrawn history permits a new request when the remaining requirements are met.`,
+    description: `Request account category change using the highest saved snapshot version. A missing saved snapshot returns 404 (account_snapshot_not_found). Live address and documents are not revalidated or copied. The pinned version does not change when a newer version is saved. Same-category and pending/approved-history constraints remain; rejected or withdrawn history permits a new request.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1244,7 +1194,7 @@ const endpoints = makeApi([
     method: "put",
     path: "/accounts/:accountIdentifier/snapshot",
     alias: "AccountSnapshotOperations_saveAccountSnapshot",
-    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable version; previous versions and document files are retained. Identical-content saves succeed without writes. Does not change category-change requests.`,
+    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable version; previous versions and document files are retained. Identical-content saves succeed without writes even after approval. Changed contents are rejected with 409 (account_snapshot_change_requires_approval) if any category-change approval references a saved version for the account. Does not change category-change requests.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1268,6 +1218,11 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
