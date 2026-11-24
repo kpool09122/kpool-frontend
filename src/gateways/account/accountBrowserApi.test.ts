@@ -268,6 +268,7 @@ describe("account browser API", () => {
   it("calls account category change request browser routes", async () => {
     const requestSummary = {
       requestIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
       accountIdentifier: "22222222-2222-2222-2222-222222222222",
       currentAccountCategory: "general",
       requestedAccountCategory: "agency",

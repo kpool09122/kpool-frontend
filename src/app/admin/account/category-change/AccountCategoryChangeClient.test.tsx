@@ -24,6 +24,7 @@ const account = {
 };
 const pending = {
   requestIdentifier: "22222222-2222-4222-8222-222222222222",
+  snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
   accountIdentifier: accountId,
   currentAccountCategory: "general",
   requestedAccountCategory: "agency",
@@ -172,6 +173,7 @@ describe("AccountCategoryChangeClient", () => {
             ...latest,
             status: "pending",
             requestIdentifier: "new-request",
+            snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
           };
           return Promise.resolve(Response.json(latest, { status: 201 }));
         }

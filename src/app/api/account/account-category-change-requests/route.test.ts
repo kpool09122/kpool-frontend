@@ -5,6 +5,7 @@ import { GET } from "./route";
 
 const requestSummary = {
   requestIdentifier: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  snapshotIdentifier: "66666666-6666-4666-8666-666666666666",
   accountIdentifier: "44444444-4444-4444-8444-444444444444",
   currentAccountCategory: "general",
   requestedAccountCategory: "agency",
