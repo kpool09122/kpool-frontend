@@ -19,6 +19,7 @@ import { AccountDelegationsClient } from "../account/delegations/AccountDelegati
 import { AccountInvitationsClient } from "../account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountNotificationsClient } from "../account/notification-settings/AccountNotificationsClient";
+import { AccountSnapshotClient } from "../account/snapshot/AccountSnapshotClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
 import { SiteManagementContactsClient as OperatorContactsClient } from "../site-management/contacts/SiteManagementContactsClient";
@@ -65,6 +66,7 @@ type AdminClientPage = "monetization" | "analyze" | "accountAffiliations"
   | "siteManagementAnnouncements"
   | "siteManagementContactManagement"
   | "accountDelegations"
+  | "accountSnapshot"
   | "accountSnapshotChange"
   | "accountSnapshotChangeRequests"
   | "accountCategoryChange"
@@ -106,6 +108,7 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
       : "siteManagementContacts";
   }
   if (pathname?.startsWith("/admin/account")) {
+    if (pathname.endsWith("/snapshot")) return "accountSnapshot";
     if (pathname.includes("/snapshot-change-requests")) return "accountSnapshotChangeRequests";
     if (pathname.includes("/snapshot-change/")) return "accountSnapshotChange";
     if (pathname.endsWith("/notification-settings")) return "accountNotifications";
@@ -238,7 +241,8 @@ function AdminResolvedPage({
     );
   }
 
-  if (page === "accountSnapshotChange") return <AccountPageClient activeTab="accountProfile"><AccountSnapshotChangeClient /></AccountPageClient>;
+  if (page === "accountSnapshot") return <AccountPageClient activeTab="accountSnapshot"><AccountSnapshotClient /></AccountPageClient>;
+  if (page === "accountSnapshotChange") return <AccountPageClient activeTab="accountSnapshot"><AccountSnapshotChangeClient /></AccountPageClient>;
   if (page === "accountSnapshotChangeRequests") return <AccountPageClient activeTab="accountSnapshotChangeRequests"><AccountSnapshotChangeClient management /></AccountPageClient>;
 
   if (page === "accountCategoryChange") {

@@ -137,10 +137,11 @@ export const useAccountProfile = ({
       setFormError(null);
       setSuccess(null);
     },
-    onSuccess: (account) => {
+    onSuccess: async (account) => {
       queryClient.setQueryData(queryKey, account);
       setProfileDraft(accountToDraft(accountIdentifier, account));
       setSuccess(t.accountSettingsSaved);
+      await snapshot.refreshLatest();
     },
     onError: (error) => {
       if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) void snapshot.refreshRelated();

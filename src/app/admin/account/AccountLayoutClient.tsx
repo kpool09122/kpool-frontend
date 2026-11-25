@@ -70,9 +70,10 @@ export function AccountLayoutClient({
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
   const tabs = [
-    ...(canManageSnapshotChangeRequests ? [createAccountSettingsTab("accountSnapshotChangeRequests", accountSnapshotCopy[locale].review)] : []),
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
+    createAccountSettingsTab("accountSnapshot", accountSnapshotCopy[locale].tab),
+    ...(canManageSnapshotChangeRequests ? [createAccountSettingsTab("accountSnapshotChangeRequests", accountSnapshotCopy[locale].review)] : []),
     ...(canReadNotifications ? [createAccountSettingsTab("accountNotifications", t.accountNotifications.tab)] : []),
     ...(accountIdentifier ? [createAccountSettingsTab("accountCategoryChange", t.accountCategoryChange.tab)] : []),
     ...(canManageCategoryChangeRequests ? [createAccountSettingsTab("unapprovedAccountCategoryChangeRequests", t.accountCategoryChangeRequests.tab)] : []),

@@ -26,6 +26,7 @@ export const useAccountSnapshot = (accountIdentifier: string | null) => {
     previous.current = { id: accountIdentifier, status };
   }, [accountIdentifier, actor, status, client, locale]);
   const refresh = async () => { await Promise.all([current.refetch(), latest.refetch()]); };
+  const refreshLatest = async () => { await client.invalidateQueries({ queryKey: accountSnapshotKeys.latest(accountIdentifier, locale, actor) }); };
   const refreshRelated = async () => { await client.invalidateQueries({ queryKey: adminQueryKeys.account.all() }); };
-  return { current, latest, refresh, refreshRelated, pending: latest.data?.request?.status === "pending", editingLocked: !accountIdentifier || !latest.isSuccess || latest.data.request?.status === "pending" };
+  return { current, latest, refresh, refreshLatest, refreshRelated, pending: latest.data?.request?.status === "pending", editingLocked: !accountIdentifier || !latest.isSuccess || latest.data.request?.status === "pending" };
 };

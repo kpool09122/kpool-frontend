@@ -46,7 +46,7 @@ import type { AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 
 vi.mock("@/gateways/account/accountSnapshotApi", async load => ({
   ...await load<typeof import("@/gateways/account/accountSnapshotApi")>(),
-  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false }),
+  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false, hasChanges: true }),
   fetchCurrentAccountSnapshot: vi.fn().mockResolvedValue(null),
 }));
 

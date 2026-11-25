@@ -21,3 +21,13 @@ it("resets pagination when changing the status filter and fetches the authoritat
   fireEvent.change(screen.getByLabelText("審査状態"), { target: { value: "rejected" } });
   await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("status=rejected&page=1"), expect.anything()));
 });
+it("opens request details from a card without displaying internal account IDs", async () => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({
+    requests: [{ requestIdentifier: id, accountIdentifier: id, snapshotIdentifier: id, reviewedSnapshotIdentifier: null, changeReason: "Contact information changed", status: "pending", requestedAt: "2026-11-25T00:00:00Z", reviewedAt: null, reviewedBy: null, rejectionReason: null }],
+    pagination: { currentPage: 1, lastPage: 1, perPage: 50, total: 1 },
+  })));
+  show();
+  expect(await screen.findByRole("link", { name: /Contact information changed/ })).toHaveAttribute("href", `/admin/account/snapshot-change-requests/${id}`);
+  expect(screen.queryByText(id)).not.toBeInTheDocument();
+});

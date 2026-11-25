@@ -131,12 +131,13 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
       setFormError(null);
       setSuccess(null);
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       queryClient.setQueryData(documentsQueryKey, response);
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
       setSelectedDocuments([]);
       setDismissedUploadedDocumentTypes([]);
       setSuccess(t.accountDocuments.saveSucceeded);
+      await snapshot.refreshLatest();
     },
     onError: (error) => {
       if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) void snapshot.refreshRelated();

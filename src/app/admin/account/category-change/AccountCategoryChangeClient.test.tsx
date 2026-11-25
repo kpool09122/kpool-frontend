@@ -16,7 +16,7 @@ import { AccountCategoryChangeClient } from "./AccountCategoryChangeClient";
 
 vi.mock("@/gateways/account/accountSnapshotApi", async load => ({
   ...await load<typeof import("@/gateways/account/accountSnapshotApi")>(),
-  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false }),
+  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false, hasChanges: true }),
   fetchCurrentAccountSnapshot: vi.fn().mockResolvedValue({ snapshotIdentifier: "66666666-6666-4666-8666-666666666666", accountIdentifier: "11111111-1111-4111-8111-111111111111", status: "approved", savedAt: "2026-11-25T00:00:00Z", isCurrent: true, account: {}, documents: [] }),
 }));
 
@@ -73,11 +73,11 @@ const renderClient = (
 ) => render(clientElement(identifier, client));
 
 describe("AccountCategoryChangeClient", () => {
-  it("blocks unsaved accounts and links to the existing document/save screen", async () => {
+  it("blocks unsaved accounts and explains the preparation steps", async () => {
     vi.mocked(fetchCurrentAccountSnapshot).mockResolvedValueOnce(null);
     vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: null } : account)));
     renderClient();
-    expect(await screen.findByRole("link", { name: t.accountDocuments.title })).toHaveAttribute("href", "/admin/account/documents");
+    expect(await screen.findByText("プロフィールの入力・保存と必要書類のアップロードを済ませ、スナップショットを保存してから申請してください。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "申請する" })).toBeDisabled();
   });
   it("retries failed snapshot state along with the category request", async () => {

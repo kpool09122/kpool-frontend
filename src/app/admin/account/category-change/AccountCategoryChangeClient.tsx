@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useI18n } from "@/i18n/I18nProvider";
 import { accountSnapshotCopy } from "@/i18n/accountSnapshot";
 import { LocalizedDateTime } from "@/components/LocalizedDateTime";
@@ -60,7 +59,7 @@ function AccountCategoryChangePanel() {
       title={t.accountCategoryChange.title}
     >
       <div className="mt-5 grid gap-4">
-        {state.snapshotMissing ? <AccountStatusMessage variant="warning"><Link href="/admin/account/documents">{t.accountDocuments.title}</Link> — {accountSnapshotCopy[locale].preparation}</AccountStatusMessage> : null}
+        {state.snapshotMissing ? <AccountStatusMessage variant="warning">{accountSnapshotCopy[locale].applicationPreparation}</AccountStatusMessage> : null}
         {state.snapshotError ? <AccountStatusMessage variant="error">{t.accountSettingsLoadFailed}</AccountStatusMessage> : null}
         {state.isLoading || state.isSubmitting ? (
           <AccountStatusMessage variant="loading">

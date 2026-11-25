@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { AccountSnapshotPanel } from "../AccountSnapshotPanel";
 
 import { AccountSettingsPanel, AccountStatusMessage } from "@/components/Account";
 import { useI18n } from "../../../../i18n/I18nProvider";
@@ -44,8 +43,6 @@ export function AccountProfileClient() {
   );
 
   return (
-    <>
-    <AccountSnapshotPanel accountIdentifier={accountIdentifier} canEdit={canEdit} busy={isBusy} />
     <AccountSettingsPanel
       action={
         <button
@@ -199,6 +196,5 @@ export function AccountProfileClient() {
         </AccountStatusMessage>
       ) : null}
     </AccountSettingsPanel>
-    </>
   );
 }

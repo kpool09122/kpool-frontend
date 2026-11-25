@@ -7,7 +7,7 @@ import type { DraftWikiListState, AdminDraftWikiActionTab } from "./useAdminDraf
 import type { ImageDeletionRequestListState } from "./useAdminImageDeletionRequestReview";
 
 export type AdminSettingsTab = "profileSettings" | "languageSettings" | "securitySettings" | "externalConnectionsSettings" | "otherSettings";
-export type AdminAccountSettingsTab = "accountSnapshotChangeRequests" | "accountProfile" | "accountInvitations" | "accountDocuments" | "accountNotifications" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
+export type AdminAccountSettingsTab = "accountSnapshot" | "accountSnapshotChangeRequests" | "accountProfile" | "accountInvitations" | "accountDocuments" | "accountNotifications" | "accountCategoryChange" | "accountAffiliations" | "accountDelegations" | "principalGroupManagement" | "unapprovedAccountCategoryChangeRequests";
 export type AdminSection = "monetization" | "analyze" | "wiki" | "siteManagement" | "accountSettings" | "settings";
 export type AdminWikiTab = AdminDraftWikiActionTab | "watchRequests" | "playlists" | "draftImages" | "managedImages" | "imageDeletionRequests" | "officialCertificationRequest" | "officialCertificationReview" | "principalGroupManagement";
 
@@ -89,6 +89,7 @@ export const adminWikiTabRoutes: Record<AdminWikiTab, string> = {
 };
 
 export const adminAccountTabRoutes: Record<AdminAccountSettingsTab, string> = {
+  accountSnapshot: "/admin/account/snapshot",
   accountSnapshotChangeRequests: "/admin/account/snapshot-change-requests",
   accountDocuments: "/admin/account/documents",
   accountNotifications: "/admin/account/notification-settings",

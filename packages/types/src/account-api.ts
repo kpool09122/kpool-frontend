@@ -1658,7 +1658,7 @@ const endpoints = makeApi([
     path: "/accounts/:accountIdentifier/snapshot-change-requests",
     alias:
       "AccountSnapshotChangeRequestOperations_requestAccountSnapshotChange",
-    description: `Submit a required reason and freeze the current editable Account profile and uploaded documents after the same complete-contact/type/required-document validation as normal snapshot save. Requires same Account and account:update. A saved original snapshot must exist (404 otherwise). While pending, profile updates, document uploads and normal snapshot saves return 403. Review reads the current Account and documents without a separate copy. No snapshot is created on submission; duplicate pending applications return 409. Rejected/approved history permits a new application, independently of category-change request states.`,
+    description: `Submit a required reason and freeze the current editable Account profile and uploaded documents after the same complete-contact/type/required-document validation as normal snapshot save. Requires same Account and account:update. A saved original snapshot must exist (404 otherwise). While pending, profile updates, document uploads and normal snapshot saves return 403. Review reads the current Account and documents without a separate copy. No snapshot is created on submission; duplicate pending applications return 409. Identical profile and document bytes return 422 without creating a request. Rejected/approved history permits a new application, independently of category-change request states.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1741,6 +1741,7 @@ const endpoints = makeApi([
       .object({
         request: AccountSnapshotChangeRequestSummary.nullable(),
         changeRequiresApproval: z.boolean(),
+        hasChanges: z.boolean(),
       })
       .passthrough(),
     errors: [

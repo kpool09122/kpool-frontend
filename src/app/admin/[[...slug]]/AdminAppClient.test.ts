@@ -4,6 +4,7 @@ import { resolveAdminClientPage } from "./AdminAppClient";
 
 describe("resolveAdminClientPage", () => {
   it("resolves owner snapshot review separately from operations", () => {
+    expect(resolveAdminClientPage("/admin/account/snapshot")).toBe("accountSnapshot");
     expect(resolveAdminClientPage("/admin/account/snapshot-change/request-id")).toBe("accountSnapshotChange");
     expect(resolveAdminClientPage("/admin/account/snapshot-change-requests/request-id")).toBe("accountSnapshotChangeRequests");
   });

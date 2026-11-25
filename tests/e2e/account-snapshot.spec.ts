@@ -24,7 +24,7 @@ async function setup(page: Page, operations = true) {
   const change = () => ({ requestIdentifier: requestId, accountIdentifier, snapshotIdentifier: snapshotId, reviewedSnapshotIdentifier: changeStatus && changeStatus !== "pending" ? newSnapshotId : null, changeReason: "Changed contact information", status: changeStatus, requestedAt: savedAt, reviewedBy: null, reviewedAt: changeStatus !== "pending" ? savedAt : null, rejectionReason: changeStatus === "rejected" ? { code: "other", detail: "Check contact information" } : null });
   await page.route("**/api/account/**", async route => {
     const url = new URL(route.request().url()); const path = url.pathname; const method = route.request().method();
-    if (path.endsWith("/snapshot-change-requests/latest")) return route.fulfill({ json: { request: changeStatus ? change() : null, changeRequiresApproval: categoryStatus === "approved" } });
+    if (path.endsWith("/snapshot-change-requests/latest")) return route.fulfill({ json: { request: changeStatus ? change() : null, changeRequiresApproval: categoryStatus === "approved", hasChanges: saved && profileName !== snapshot().account.name } });
     if (path.endsWith("/category-change-requests/latest")) return route.fulfill({ json: { request: categoryStatus ? category() : null } });
     if (path.endsWith("/snapshot")) {
       if (method === "PUT") { expect(route.request().postData()).toBeNull(); saved = true; return route.fulfill({ json: { snapshotIdentifier: snapshotId, accountIdentifier, status: "approved", savedAt } }); }
@@ -51,30 +51,43 @@ for (const outcome of ["approve", "reject"] as const) test(`snapshot save → ca
   await setup(page);
   await page.goto("/admin/account/category-change");
   await expect(page.getByRole("button", { name: "申請する", exact: true })).toBeDisabled();
-  await page.getByRole("link", { name: "書類アップロード", exact: true }).click();
+  await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
   await page.getByRole("button", { name: "スナップショットを保存" }).click();
-  await expect(page.getByText(snapshotId, { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "現在有効な情報" }).getByText("Original account", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "カテゴリ変更", exact: true }).click();
   await page.getByRole("button", { name: "申請する", exact: true }).click();
   await expect(page.getByRole("button", { name: "申請を取り下げる" })).toBeEnabled();
   await page.goto(`/admin/account/category-change-requests/${requestId}`);
   await page.getByRole("button", { name: "承認", exact: true }).click();
   await expect(page.getByRole("button", { name: "承認", exact: true })).toHaveCount(0);
+  await page.goto("/admin/account/snapshot");
+  await expect(page.getByRole("button", { name: "スナップショットの変更を申請", exact: true })).toBeDisabled();
   await page.goto("/admin/account/profile");
   await page.getByLabel("アカウント名", { exact: true }).fill("Changed account");
   await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.getByText("アカウント設定を保存しました。", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "スナップショットを保存" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
+  await page.getByRole("button", { name: "スナップショットの変更を申請", exact: true }).click();
   await page.getByLabel("変更理由", { exact: true }).fill("Changed contact information");
   await page.getByRole("button", { name: "変更を申請", exact: true }).click();
+  await page.getByRole("tab", { name: "プロフィール", exact: true }).click();
   await expect(page.getByLabel("アカウント名", { exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "スナップショットを保存" })).toBeDisabled();
+  await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
+  await expect(page.getByRole("button", { name: "スナップショットの変更を申請" })).toBeDisabled();
   await page.getByRole("tab", { name: "スナップショット変更審査", exact: true }).click();
-  await page.getByRole("link", { name: "詳細を確認" }).click();
+  await page.getByRole("link", { name: /Changed contact information/ }).click();
   await expect(page.getByRole("region", { name: "変更前の情報" }).getByText("Original account", { exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "申請された情報" }).getByText("Changed account", { exact: true })).toBeVisible();
   const links = page.getByRole("region", { name: "変更前の情報" }).getByRole("link");
-  await expect(links.first()).toHaveAttribute("href", /source=original$/);
-  if (outcome === "reject") await page.getByLabel("拒否理由詳細").fill("Check contact information");
-  await page.getByRole("button", { name: outcome === "approve" ? "承認" : "拒否", exact: true }).click();
+  await expect(links.first()).toHaveAttribute("href", /source=original&download=1$/);
+  if (outcome === "reject") {
+    await page.getByRole("button", { name: "拒否", exact: true }).click();
+    await page.getByLabel("拒否理由詳細").fill("Check contact information");
+    await page.getByRole("button", { name: "拒否を送信", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "承認", exact: true }).click();
+  }
   await expect(page.getByRole("button", { name: "承認", exact: true })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "申請された情報" }).getByText("Changed account", { exact: true })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -82,5 +95,7 @@ for (const outcome of ["approve", "reject"] as const) test(`snapshot save → ca
   await page.screenshot({ path: `/private/tmp/issue-691-review-${outcome}.png`, fullPage: true });
   await page.goto("/admin/account/profile");
   await expect(page.getByLabel("アカウント名", { exact: true })).toBeEnabled();
+  await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
   await expect(page.getByRole("region", { name: "現在有効な情報" }).getByText(outcome === "approve" ? "Changed account" : "Original account", { exact: true })).toBeVisible();
+  if (outcome === "approve") await expect(page.getByRole("button", { name: "スナップショットの変更を申請", exact: true })).toBeDisabled();
 });

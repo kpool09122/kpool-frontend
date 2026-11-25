@@ -17,8 +17,9 @@ it("compares pinned original and proposal, and refetches rejected historic propo
   vi.stubGlobal("fetch", fetchMock); show();
   expect(await screen.findByText("Original name")).toBeInTheDocument(); expect(screen.getByText("Proposed name")).toBeInTheDocument();
   expect(screen.getAllByRole("link", { name: /パスポート/ }).map((link) => link.getAttribute("href"))).toEqual([expect.stringContaining("source=original"), expect.stringContaining("source=proposal")]);
-  fireEvent.change(screen.getByLabelText("拒否理由詳細"), { target: { value: "Please correct" } });
   fireEvent.click(screen.getByRole("button", { name: "拒否" }));
+  fireEvent.change(screen.getByLabelText("拒否理由詳細"), { target: { value: "Please correct" } });
+  fireEvent.click(screen.getByRole("button", { name: "拒否を送信" }));
   await waitFor(() => expect(screen.queryByRole("button", { name: "承認" })).not.toBeInTheDocument());
   expect(screen.getByText("Proposed name")).toBeInTheDocument();
 });
@@ -44,4 +45,16 @@ it.each([403, 422, 500])("shows review failure %i without a false success", asyn
   vi.stubGlobal("fetch", vi.fn(async (_url: string, options?: RequestInit) => options?.method === "POST" ? Response.json({ message: "Review failed" }, { status }) : Response.json({ request, original, proposal: { account: profile, documents: [] } })));
   show(); fireEvent.click(await screen.findByRole("button", { name: "承認" }));
   expect(await screen.findByText("Review failed")).toBeInTheDocument();
+});
+it("opens rejection reasons in a dialog and allows cancellation without reviewing", async () => {
+  const fetchMock = vi.fn(async () => Response.json({ request, original, proposal: { account: profile, documents: [] } }));
+  vi.stubGlobal("fetch", fetchMock); show();
+  const reject = await screen.findByRole("button", { name: "拒否" });
+  expect(screen.queryByLabelText("拒否理由詳細")).not.toBeInTheDocument();
+  fireEvent.click(reject);
+  expect(screen.getByRole("dialog", { name: "スナップショット変更申請を拒否" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "拒否を送信" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });
