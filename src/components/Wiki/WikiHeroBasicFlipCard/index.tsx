@@ -4,6 +4,7 @@ import { ReloadIcon } from "@radix-ui/react-icons";
 import { type Ref } from "react";
 import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
+import { WikiProfileExpandButton } from "../WikiProfileExpandButton";
 import { WikiProfileCardDetails } from "../WikiProfileCardDetails";
 import { WikiBasicPanel } from "../WikiBasicPanel";
 import { WikiImageSourceLink } from "../WikiImageSourceLink";
@@ -127,18 +128,21 @@ export function WikiHeroBasicFlipCard({
                   language={language}
                   title={resolvedProfileLabel}
                   action={
-                    <button
-                      aria-label={t.editBasic}
-                      className="rounded-full p-2 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
-                      disabled={disabled}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onEditBasic();
-                      }}
-                      type="button"
-                    >
-                      <EditIcon />
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <WikiProfileExpandButton basic={basic} language={language} title={resolvedProfileLabel} />
+                      <button
+                        aria-label={t.editBasic}
+                        className="rounded-full p-2 text-text-strong transition hover:bg-brand-highlight/30 disabled:cursor-not-allowed disabled:text-text-muted"
+                        disabled={disabled}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEditBasic();
+                        }}
+                        type="button"
+                      >
+                        <EditIcon />
+                      </button>
+                    </div>
                   }
                 />
               )}
