@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { AccountSnapshotPanel } from "./AccountSnapshotPanel";
 const id = "22222222-2222-4222-8222-222222222222";
@@ -18,7 +18,7 @@ it("shows an unsaved state then the saved profile without internal snapshot meta
   }));
   show();
   expect(await screen.findByText("未保存")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "スナップショットを保存" }));
+  fireEvent.click(screen.getByRole("button", { name: "保存" }));
   expect(await screen.findByText("Original")).toBeInTheDocument();
   expect(screen.getByText("a@example.com")).toBeInTheDocument();
   expect(screen.getByRole("img", { name: "パスポート" })).toHaveAttribute("src", `/api/account/accounts/${id}/snapshots/${id}/documents/passport`);
@@ -33,8 +33,8 @@ it("locks save and duplicate submission while pending", async () => {
   vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: pending, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot)));
   show();
   expect(await screen.findByText("変更申請を審査中です。プロフィール・書類の編集と保存はできません。")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "スナップショットの変更を申請" })).toBeDisabled();
-  expect(screen.queryByRole("button", { name: "変更を申請" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "変更申請" })).toBeDisabled();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 it("requires a reason and submits only that reason after persisted editing", async () => {
   const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
@@ -42,12 +42,12 @@ it("requires a reason and submits only that reason after persisted editing", asy
     return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot);
   });
   vi.stubGlobal("fetch", fetchMock); show();
-  const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
+  const trigger = await screen.findByRole("button", { name: "変更申請" });
   await waitFor(() => expect(trigger).toBeEnabled());
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "スナップショットを保存" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "保存" })).not.toBeInTheDocument();
   fireEvent.click(trigger);
-  const submit = screen.getByRole("button", { name: "変更を申請" });
+  const submit = within(screen.getByRole("dialog")).getByRole("button", { name: "変更申請" });
   expect(submit).toBeDisabled();
   fireEvent.change(screen.getByLabelText("変更理由"), { target: { value: "Moved" } });
   fireEvent.click(submit);
@@ -63,12 +63,12 @@ it("keeps validation failure visible, then guides a 409 response to a reasoned c
     return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: false, hasChanges: true, categoryChangePending: false } : snapshot);
   }));
   show();
-  const save = await screen.findByRole("button", { name: "スナップショットを保存" });
+  const save = await screen.findByRole("button", { name: "保存" });
   await waitFor(() => expect(save).toBeEnabled()); fireEvent.click(save);
   expect(await screen.findByText("Required documents missing")).toBeInTheDocument();
   invalid = false;
   await waitFor(() => expect(save).toBeEnabled()); fireEvent.click(save);
-  const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
+  const trigger = await screen.findByRole("button", { name: "変更申請" });
   await waitFor(() => expect(trigger).toBeEnabled());
   fireEvent.click(trigger);
   expect(screen.getByLabelText("変更理由")).toBeInTheDocument();
@@ -82,19 +82,19 @@ it("does not expose a late save result to a switched account", async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const element = (identifier: string) => <QueryClientProvider client={client}><AccountSnapshotPanel accountIdentifier={identifier} canEdit /></QueryClientProvider>;
   const view = render(element(id));
-  const save = await screen.findByRole("button", { name: "スナップショットを保存" });
+  const save = await screen.findByRole("button", { name: "保存" });
   await waitFor(() => expect(save).toBeEnabled());
   fireEvent.click(save);
   view.rerender(element("33333333-3333-4333-8333-333333333333"));
   finish(Response.json(saved));
-  await waitFor(() => expect(screen.getByRole("button", { name: "スナップショットを保存" })).toBeEnabled());
+  await waitFor(() => expect(screen.getByRole("button", { name: "保存" })).toBeEnabled());
   expect(screen.queryByText(id)).not.toBeInTheDocument(); expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
 it("closes the reason dialog on cancel without sending a request", async () => {
   const fetchMock = vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot));
   vi.stubGlobal("fetch", fetchMock); show();
-  const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
+  const trigger = await screen.findByRole("button", { name: "変更申請" });
   await waitFor(() => expect(trigger).toBeEnabled());
   fireEvent.click(trigger);
   fireEvent.change(screen.getByLabelText("変更理由"), { target: { value: "Moved" } });
@@ -109,11 +109,11 @@ it("keeps the reason dialog and draft available when submission fails", async ()
     return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot);
   }));
   show();
-  const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
+  const trigger = await screen.findByRole("button", { name: "変更申請" });
   await waitFor(() => expect(trigger).toBeEnabled());
   fireEvent.click(trigger);
   fireEvent.change(screen.getByLabelText("変更理由"), { target: { value: "Moved" } });
-  fireEvent.click(screen.getByRole("button", { name: "変更を申請" }));
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "変更申請" }));
   expect(await screen.findByText("Unable to apply")).toBeInTheDocument();
   expect(screen.getByRole("dialog")).toContainElement(screen.getByText("Unable to apply"));
   expect(screen.getByLabelText("変更理由")).toHaveValue("Moved");
@@ -127,7 +127,7 @@ it.each([null, "approved", "rejected"] as const)("disables unchanged application
   } : snapshot)));
   show();
   await screen.findByText("Original");
-  const trigger = screen.getByRole("button", { name: "スナップショットの変更を申請" });
+  const trigger = screen.getByRole("button", { name: "変更申請" });
   expect(trigger).toBeDisabled();
   fireEvent.click(trigger);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -140,7 +140,7 @@ it.each([false, true])("blocks snapshot actions during category review with appr
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<QueryClientProvider client={client}><AccountSnapshotPanel accountIdentifier={id} canEdit /></QueryClientProvider>);
   expect(await screen.findByText("カテゴリ変更申請を審査中のため、スナップショットの保存・変更申請はできません。")).toBeInTheDocument();
-  const button = screen.getByRole("button", { name: changeRequiresApproval ? "スナップショットの変更を申請" : "スナップショットを保存" });
+  const button = screen.getByRole("button", { name: changeRequiresApproval ? "変更申請" : "保存" });
   expect(button).toBeDisabled();
   categoryChangePending = false;
   await act(async () => { await client.invalidateQueries(); });
