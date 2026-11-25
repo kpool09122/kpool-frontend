@@ -155,6 +155,9 @@ try {
   assert.equal((await favicon.arrayBuffer()).byteLength, staticAsset.byteLength);
   console.log("PASS Workers smoke: SSR/proxy, 6 legal pages, static/optimized image, 4 runtime API URLs, Cookie/Set-Cookie, CSRF 419, OAuth return_to, passkey list, R2 cache hit.");
   console.log("NOT VERIFIED: production resources, external image CDN, cache expiry/revalidation, real OAuth callback, WebAuthn ceremony and browser cookies across domains.");
+} catch (error) {
+  console.error(`Worker output:\n${log}`);
+  throw error;
 } finally {
   process.kill(-preview.pid, "SIGTERM");
   upstream.close();
