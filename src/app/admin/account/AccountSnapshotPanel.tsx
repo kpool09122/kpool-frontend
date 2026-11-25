@@ -31,9 +31,9 @@ function SnapshotPanel({ accountIdentifier, canEdit, busy = false }: { accountId
   const request = state.latest.data?.request;
   const currentSnapshot = state.current.data;
   const requiresApproval = state.latest.data?.changeRequiresApproval || (isAccountBrowserApiError(mutation.error) && mutation.error.accountRouteCode === "account_snapshot_change_requires_approval");
-  const ready = canEdit && !busy && !state.editingLocked && state.current.isSuccess && !state.latest.isFetching && !state.current.isFetching && !mutation.isPending;
+  const ready = canEdit && !busy && !state.snapshotLocked && state.current.isSuccess && !state.latest.isFetching && !state.current.isFetching && !mutation.isPending;
   const canRequestChange = ready && Boolean(currentSnapshot) && state.latest.data?.hasChanges === true;
-  return <Dialog.Root open={dialogOpen && !state.pending} onOpenChange={(open) => { if (!mutation.isPending) setDialogOpen(open); }}>
+  return <Dialog.Root open={dialogOpen && !state.snapshotLocked} onOpenChange={(open) => { if (!mutation.isPending) setDialogOpen(open); }}>
   <AccountSettingsPanel
     action={
       <Dialog.Trigger asChild>
@@ -66,6 +66,7 @@ function SnapshotPanel({ accountIdentifier, canEdit, busy = false }: { accountId
         })} />
       </section> : null}
       {state.current.error || state.latest.error ? <AccountStatusMessage variant="error">{t.error}</AccountStatusMessage> : null}
+      {state.latest.data?.categoryChangePending ? <AccountStatusMessage variant="warning">{t.categoryChangePending}</AccountStatusMessage> : null}
       {state.pending ? <AccountStatusMessage variant="warning">{t.pending}</AccountStatusMessage> : request?.status === "rejected" ? <AccountStatusMessage variant="warning">{t.rejected} {request.rejectionReason ? rejectionLabels[request.rejectionReason.code] ?? request.rejectionReason.code : null} {request.rejectionReason?.detail}</AccountStatusMessage> : request?.status === "approved" ? <p>{t.approved}</p> : null}
       {mutation.isSuccess && (state.current.isError || state.latest.isError) ? <AccountStatusMessage variant="warning">{t.refreshFailed}</AccountStatusMessage> : null}
       {mutation.error && !dialogOpen ? <AccountStatusMessage variant="error">{mutation.error.message}</AccountStatusMessage> : null}

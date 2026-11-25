@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { AccountSnapshotPanel } from "./AccountSnapshotPanel";
 const id = "22222222-2222-4222-8222-222222222222";
@@ -12,7 +12,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("shows an unsaved state then the saved profile without internal snapshot metadata", async () => {
   let current = false;
   vi.stubGlobal("fetch", vi.fn(async (url: string, options?: RequestInit) => {
-    if (url.endsWith("/latest")) return Response.json({ request: null, changeRequiresApproval: false, hasChanges: true });
+    if (url.endsWith("/latest")) return Response.json({ request: null, changeRequiresApproval: false, hasChanges: true, categoryChangePending: false });
     if (options?.method === "PUT") { current = true; return Response.json(saved); }
     return current ? Response.json(snapshot) : Response.json({}, { status: 404 });
   }));
@@ -30,7 +30,7 @@ it("shows an unsaved state then the saved profile without internal snapshot meta
   expect(screen.getByRole("link", { name: /パスポート/ })).toBeInTheDocument();
 });
 it("locks save and duplicate submission while pending", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: pending, changeRequiresApproval: true, hasChanges: true } : snapshot)));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: pending, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot)));
   show();
   expect(await screen.findByText("変更申請を審査中です。プロフィール・書類の編集と保存はできません。")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "スナップショットの変更を申請" })).toBeDisabled();
@@ -39,7 +39,7 @@ it("locks save and duplicate submission while pending", async () => {
 it("requires a reason and submits only that reason after persisted editing", async () => {
   const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
     if (options?.method === "POST") return Response.json(pending);
-    return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true } : snapshot);
+    return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot);
   });
   vi.stubGlobal("fetch", fetchMock); show();
   const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
@@ -60,7 +60,7 @@ it("keeps validation failure visible, then guides a 409 response to a reasoned c
   let invalid = true;
   vi.stubGlobal("fetch", vi.fn(async (url: string, options?: RequestInit) => {
     if (options?.method === "PUT") return Response.json(invalid ? { message: "Required documents missing" } : { message: "Approval required", code: "account_snapshot_change_requires_approval" }, { status: invalid ? 422 : 409 });
-    return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: false, hasChanges: true } : snapshot);
+    return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: false, hasChanges: true, categoryChangePending: false } : snapshot);
   }));
   show();
   const save = await screen.findByRole("button", { name: "スナップショットを保存" });
@@ -77,7 +77,7 @@ it("does not expose a late save result to a switched account", async () => {
   let finish: (response: Response) => void = () => undefined;
   vi.stubGlobal("fetch", vi.fn(async (url: string, options?: RequestInit) => {
     if (options?.method === "PUT") return new Promise<Response>(resolve => { finish = resolve; });
-    return url.endsWith("/latest") ? Response.json({ request: null, changeRequiresApproval: false, hasChanges: true }) : Response.json({}, { status: 404 });
+    return url.endsWith("/latest") ? Response.json({ request: null, changeRequiresApproval: false, hasChanges: true, categoryChangePending: false }) : Response.json({}, { status: 404 });
   }));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const element = (identifier: string) => <QueryClientProvider client={client}><AccountSnapshotPanel accountIdentifier={identifier} canEdit /></QueryClientProvider>;
@@ -92,7 +92,7 @@ it("does not expose a late save result to a switched account", async () => {
 });
 
 it("closes the reason dialog on cancel without sending a request", async () => {
-  const fetchMock = vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true } : snapshot));
+  const fetchMock = vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot));
   vi.stubGlobal("fetch", fetchMock); show();
   const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
   await waitFor(() => expect(trigger).toBeEnabled());
@@ -106,7 +106,7 @@ it("closes the reason dialog on cancel without sending a request", async () => {
 it("keeps the reason dialog and draft available when submission fails", async () => {
   vi.stubGlobal("fetch", vi.fn(async (url: string, options?: RequestInit) => {
     if (options?.method === "POST") return Response.json({ message: "Unable to apply" }, { status: 422 });
-    return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true } : snapshot);
+    return Response.json(url.endsWith("/latest") ? { request: null, changeRequiresApproval: true, hasChanges: true, categoryChangePending: false } : snapshot);
   }));
   show();
   const trigger = await screen.findByRole("button", { name: "スナップショットの変更を申請" });
@@ -123,7 +123,7 @@ it.each([null, "approved", "rejected"] as const)("disables unchanged application
   vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? {
     request: status ? { ...pending, status } : null,
     changeRequiresApproval: true,
-    hasChanges: false,
+    hasChanges: false, categoryChangePending: false,
   } : snapshot)));
   show();
   await screen.findByText("Original");
@@ -131,4 +131,18 @@ it.each([null, "approved", "rejected"] as const)("disables unchanged application
   expect(trigger).toBeDisabled();
   fireEvent.click(trigger);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+it.each([false, true])("blocks snapshot actions during category review with approval requirement %s and unlocks after withdrawal", async changeRequiresApproval => {
+  let categoryChangePending = true;
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? {
+    request: null, changeRequiresApproval, hasChanges: true, categoryChangePending,
+  } : snapshot)));
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><AccountSnapshotPanel accountIdentifier={id} canEdit /></QueryClientProvider>);
+  expect(await screen.findByText("カテゴリ変更申請を審査中のため、スナップショットの保存・変更申請はできません。")).toBeInTheDocument();
+  const button = screen.getByRole("button", { name: changeRequiresApproval ? "スナップショットの変更を申請" : "スナップショットを保存" });
+  expect(button).toBeDisabled();
+  categoryChangePending = false;
+  await act(async () => { await client.invalidateQueries(); });
+  await waitFor(() => expect(button).toBeEnabled());
 });

@@ -24,7 +24,7 @@ async function setup(page: Page, operations = true) {
   const change = () => ({ requestIdentifier: requestId, accountIdentifier, snapshotIdentifier: snapshotId, reviewedSnapshotIdentifier: changeStatus && changeStatus !== "pending" ? newSnapshotId : null, changeReason: "Changed contact information", status: changeStatus, requestedAt: savedAt, reviewedBy: null, reviewedAt: changeStatus !== "pending" ? savedAt : null, rejectionReason: changeStatus === "rejected" ? { code: "other", detail: "Check contact information" } : null });
   await page.route("**/api/account/**", async route => {
     const url = new URL(route.request().url()); const path = url.pathname; const method = route.request().method();
-    if (path.endsWith("/snapshot-change-requests/latest")) return route.fulfill({ json: { request: changeStatus ? change() : null, changeRequiresApproval: categoryStatus === "approved", hasChanges: saved && profileName !== snapshot().account.name } });
+    if (path.endsWith("/snapshot-change-requests/latest")) return route.fulfill({ json: { request: changeStatus ? change() : null, changeRequiresApproval: categoryStatus === "approved", hasChanges: saved && profileName !== snapshot().account.name, categoryChangePending: categoryStatus === "pending" } });
     if (path.endsWith("/category-change-requests/latest")) return route.fulfill({ json: { request: categoryStatus ? category() : null } });
     if (path.endsWith("/snapshot")) {
       if (method === "PUT") { expect(route.request().postData()).toBeNull(); saved = true; return route.fulfill({ json: { snapshotIdentifier: snapshotId, accountIdentifier, status: "approved", savedAt } }); }
@@ -36,6 +36,7 @@ async function setup(page: Page, operations = true) {
     }
     if (path === `/api/account/accounts/${accountIdentifier}/documents`) return route.fulfill({ json: { documents: [] } });
     if (path === `/api/account/accounts/${accountIdentifier}/category-change-requests`) { categoryStatus = "pending"; return route.fulfill({ json: category() }); }
+    if (path.endsWith(`/category-change-requests/${requestId}/withdraw`)) { const withdrawn = { ...category(), status: "withdrawn" }; categoryStatus = null; return route.fulfill({ json: withdrawn }); }
     if (path.endsWith(`/account-category-change-requests/${requestId}/approve`)) { categoryStatus = "approved"; return route.fulfill({ json: category() }); }
     if (path.endsWith(`/account-category-change-requests/${requestId}`)) return route.fulfill({ json: { request: category(), account: { ...account(), name: originalProfile.name }, documents: [] } });
     if (path.endsWith("/account-category-change-requests")) return route.fulfill({ json: { requests: categoryStatus === "pending" ? [{ ...category(), accountName: originalProfile.name }] : [], pagination: { currentPage: 1, lastPage: 1, total: 1, perPage: 50 } } });
@@ -54,6 +55,15 @@ for (const outcome of ["approve", "reject"] as const) test(`snapshot save → ca
   await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
   await page.getByRole("button", { name: "スナップショットを保存" }).click();
   await expect(page.getByRole("region", { name: "現在有効な情報" }).getByText("Original account", { exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "カテゴリ変更", exact: true }).click();
+  await page.getByRole("button", { name: "申請する", exact: true }).click();
+  await expect(page.getByRole("button", { name: "申請を取り下げる" })).toBeEnabled();
+  await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
+  await expect(page.getByRole("button", { name: "スナップショットを保存", exact: true })).toBeDisabled();
+  await page.getByRole("tab", { name: "カテゴリ変更", exact: true }).click();
+  await page.getByRole("button", { name: "申請を取り下げる", exact: true }).click();
+  await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
+  await expect(page.getByRole("button", { name: "スナップショットを保存", exact: true })).toBeEnabled();
   await page.getByRole("tab", { name: "カテゴリ変更", exact: true }).click();
   await page.getByRole("button", { name: "申請する", exact: true }).click();
   await expect(page.getByRole("button", { name: "申請を取り下げる" })).toBeEnabled();

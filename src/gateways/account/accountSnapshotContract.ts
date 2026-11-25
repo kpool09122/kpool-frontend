@@ -12,7 +12,7 @@ const detail = summary.extend({ isCurrent: z.boolean(), account: profile, docume
 export const snapshotSchemas = {
   summary,
   detail,
-  latest: z.object({ request: change.nullable(), changeRequiresApproval: z.boolean(), hasChanges: z.boolean() }),
+  latest: z.object({ request: change.nullable(), changeRequiresApproval: z.boolean(), hasChanges: z.boolean(), categoryChangePending: z.boolean() }),
   change,
   changeBody: accountApiTypes.schemas.RequestAccountSnapshotChangeBody.strip(),
   reviewBody: accountApiTypes.schemas.RejectAccountCategoryChangeRequestBody.strip(),

@@ -5,9 +5,11 @@ import { fetchCurrentAccountSnapshot, fetchLatestSnapshotChange } from "@/gatewa
 import { useI18n } from "@/i18n/I18nProvider";
 import { useAccountSection } from "./AccountSectionContext";
 import { adminQueryKeys } from "../queryKeys";
+const latestForAccount = (id: string | null) => [...adminQueryKeys.account.all(), "snapshotChangeLatest", id] as const;
 export const accountSnapshotKeys = {
+  latestForAccount,
   current: (id: string | null, locale: string, actor?: string | null) => [...adminQueryKeys.account.all(), "snapshot", id, locale, actor] as const,
-  latest: (id: string | null, locale: string, actor?: string | null) => [...adminQueryKeys.account.all(), "snapshotChangeLatest", id, locale, actor] as const,
+  latest: (id: string | null, locale: string, actor?: string | null) => [...latestForAccount(id), locale, actor] as const,
 };
 export const useAccountSnapshot = (accountIdentifier: string | null) => {
   const { locale } = useI18n();
@@ -28,5 +30,6 @@ export const useAccountSnapshot = (accountIdentifier: string | null) => {
   const refresh = async () => { await Promise.all([current.refetch(), latest.refetch()]); };
   const refreshLatest = async () => { await client.invalidateQueries({ queryKey: accountSnapshotKeys.latest(accountIdentifier, locale, actor) }); };
   const refreshRelated = async () => { await client.invalidateQueries({ queryKey: adminQueryKeys.account.all() }); };
-  return { current, latest, refresh, refreshLatest, refreshRelated, pending: latest.data?.request?.status === "pending", editingLocked: !accountIdentifier || !latest.isSuccess || latest.data.request?.status === "pending" };
+  const editingLocked = !accountIdentifier || !latest.isSuccess || latest.data.request?.status === "pending";
+  return { current, latest, refresh, refreshLatest, refreshRelated, pending: latest.data?.request?.status === "pending", editingLocked, snapshotLocked: editingLocked || latest.data?.categoryChangePending === true };
 };

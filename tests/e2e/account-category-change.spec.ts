@@ -63,7 +63,7 @@ async function setup(
   initial: AccountCategoryChangeRequestSummary | null,
 ) {
   let latest = initial;
-  await page.route("**/snapshot-change-requests/latest", route => route.fulfill({ json: { request: null, changeRequiresApproval: false, hasChanges: true } }));
+  await page.route("**/snapshot-change-requests/latest", route => route.fulfill({ json: { request: null, changeRequiresApproval: false, hasChanges: true, categoryChangePending: false } }));
   await page.route("**/accounts/*/snapshot", route => route.fulfill({ json: {
     snapshotIdentifier: "66666666-6666-4666-8666-666666666666", accountIdentifier, status: "approved", savedAt: "2026-11-25T00:00:00Z", isCurrent: true,
     account: { name: account.name, email: account.email, type: "corporation", status: "active", phone: "123", countryCode: "JP", administrativeAreaCode: null, postalCode: "1000000", locality: null, addressLine1: "Tokyo", addressLine2: null }, documents: [],

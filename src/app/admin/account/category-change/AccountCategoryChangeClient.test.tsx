@@ -16,7 +16,7 @@ import { AccountCategoryChangeClient } from "./AccountCategoryChangeClient";
 
 vi.mock("@/gateways/account/accountSnapshotApi", async load => ({
   ...await load<typeof import("@/gateways/account/accountSnapshotApi")>(),
-  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false, hasChanges: true }),
+  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false, hasChanges: true, categoryChangePending: false }),
   fetchCurrentAccountSnapshot: vi.fn().mockResolvedValue({ snapshotIdentifier: "66666666-6666-4666-8666-666666666666", accountIdentifier: "11111111-1111-4111-8111-111111111111", status: "approved", savedAt: "2026-11-25T00:00:00Z", isCurrent: true, account: {}, documents: [] }),
 }));
 

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useAccountSnapshot } from "../useAccountSnapshot";
+import { accountSnapshotKeys, useAccountSnapshot } from "../useAccountSnapshot";
 
 import {
   fetchAccount,
@@ -57,6 +57,7 @@ export const useAccountCategoryChange = ({
   // Use mutation variables, never the currently selected account, for async cache updates.
   const refreshAccount = async (identifier: string | null) => {
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: accountSnapshotKeys.latestForAccount(identifier) }),
       queryClient.invalidateQueries({
         queryKey: adminQueryKeys.account.profile(identifier),
       }),
