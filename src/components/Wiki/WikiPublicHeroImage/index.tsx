@@ -9,6 +9,7 @@ import { type WikiBasic, type WikiDetail } from "@kpool/wiki";
 
 import { WikiImageSourceLink } from "../WikiImageSourceLink";
 import { WikiHeroPanel } from "../WikiHeroPanel";
+import { WikiProfileExpandButton } from "../WikiProfileExpandButton";
 import { WikiProfileCardDetails } from "../WikiProfileCardDetails";
 import {
   cardSurfaceStyle,
@@ -97,16 +98,21 @@ export function WikiPublicHeroImage({
                   basic={basic}
                   language={language}
                   title={resolvedProfileLabel}
-                  action={editHref ? (
-                    <Link
-                      aria-label={t.editBasic}
-                      className="rounded-full p-2 text-text-strong transition hover:bg-brand-highlight/30"
-                      href={editHref}
-                      onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
-                    >
-                      <EditIcon />
-                    </Link>
-                  ) : null}
+                  action={
+                    <div className="flex shrink-0 items-center gap-1">
+                      <WikiProfileExpandButton basic={basic} language={language} title={resolvedProfileLabel} />
+                      {editHref ? (
+                        <Link
+                          aria-label={t.editBasic}
+                          className="rounded-full p-2 text-text-strong transition hover:bg-brand-highlight/30"
+                          href={editHref}
+                          onClick={(event) => { event.stopPropagation(); onEdit?.(event); }}
+                        >
+                          <EditIcon />
+                        </Link>
+                      ) : null}
+                    </div>
+                  }
                 />
                 <div className="grid justify-items-start gap-2 pt-4 text-start" onClick={(event) => event.stopPropagation()}>
                   <WikiImageSourceLink className="text-start" image={heroImage} />

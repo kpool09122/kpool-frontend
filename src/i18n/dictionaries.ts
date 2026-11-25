@@ -1418,6 +1418,8 @@ const ja = {
     heroCard: {
       basic: "基本情報",
       basicProfile: "基本プロフィール",
+      expandProfile: "プロフィールを拡大",
+      closeProfile: "プロフィールを閉じる",
       flipEditCard: "Wiki編集カードを反転",
       flipEditCardToBasic: "Wiki編集カードを基本情報へ反転",
       flipPublicCard: "Wikiカードを反転",
@@ -3074,6 +3076,8 @@ const en: typeof ja = {
     heroCard: {
       basic: "Basic",
       basicProfile: "Basic profile",
+      expandProfile: "Expand profile",
+      closeProfile: "Close profile",
       flipEditCard: "Flip wiki edit card",
       flipEditCardToBasic: "Flip wiki edit card to basic details",
       flipPublicCard: "Flip wiki card",
@@ -4717,6 +4721,8 @@ const ko: typeof ja = {
     heroCard: {
       basic: "기본 정보",
       basicProfile: "기본 프로필",
+      expandProfile: "프로필 확대",
+      closeProfile: "프로필 닫기",
       flipEditCard: "Wiki 편집 카드 뒤집기",
       flipEditCardToBasic: "Wiki 편집 카드를 기본 정보로 뒤집기",
       flipPublicCard: "Wiki 카드 뒤집기",
