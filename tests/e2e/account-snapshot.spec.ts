@@ -47,7 +47,7 @@ async function setup(page: Page, operations = true) {
     return route.fulfill({ status: 404, json: {} });
   });
 }
-for (const outcome of ["approve", "reject"] as const) test(`snapshot save → category approval → reasoned change → ${outcome} (schema fixtures)`, async ({ page }) => {
+for (const outcome of ["approve", "reject"] as const) test(`snapshot save → category approval → reasoned change → ${outcome} (schema fixtures)`, async ({ page }, testInfo) => {
   if (outcome === "reject") await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
   await page.goto("/admin/account/category-change");
@@ -102,7 +102,7 @@ for (const outcome of ["approve", "reject"] as const) test(`snapshot save → ca
   await expect(page.getByRole("region", { name: "申請された情報" }).getByText("Changed account", { exact: true })).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
-  await page.screenshot({ path: `/private/tmp/issue-691-review-${outcome}.png`, fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath(`snapshot-review-${outcome}.png`), fullPage: true });
   await page.goto("/admin/account/profile");
   await expect(page.getByLabel("アカウント名", { exact: true })).toBeEnabled();
   await page.getByRole("tab", { name: "スナップショット", exact: true }).click();
