@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useAccountSnapshot } from "../useAccountSnapshot";
+import { isAccountBrowserApiError } from "@/gateways/account/accountBrowserApi";
 
 import { fetchAccount, updateAccount } from "@/gateways/account/accountBrowserApi";
 import type { AccountSummary, UpdateAccountRequest } from "@/gateways/account/accountApi";
@@ -98,6 +100,7 @@ export const useAccountProfile = ({
   t,
 }: UseAccountProfileParams) => {
   const queryClient = useQueryClient();
+  const snapshot = useAccountSnapshot(accountIdentifier);
   const queryKey = adminQueryKeys.account.profile(accountIdentifier);
   const [profileDraft, setProfileDraft] = useState<AccountProfileDraft>(createEmptyDraft);
   const [formError, setFormError] = useState<string | null>(null);
@@ -140,6 +143,7 @@ export const useAccountProfile = ({
       setSuccess(t.accountSettingsSaved);
     },
     onError: (error) => {
+      if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) void snapshot.refreshRelated();
       setFormError(getErrorMessage(error, t.accountSettingsSaveFailed));
     },
   });
@@ -206,7 +210,7 @@ export const useAccountProfile = ({
       return;
     }
 
-    if (!canEdit) {
+    if (!canEdit || snapshot.editingLocked) {
       setFormError(t.accountSettingsReadOnly);
       setSuccess(null);
       return;
@@ -239,6 +243,7 @@ export const useAccountProfile = ({
   };
 
   return {
+    editingLocked: snapshot.editingLocked,
     state,
     loadAccount,
     saveAccount,

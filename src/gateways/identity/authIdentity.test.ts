@@ -3,6 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchAuthenticatedIdentity } from "./authIdentity";
 
 describe("fetchAuthenticatedIdentity", () => {
+  it("enables operations review policy only in explicitly opted-in mock sessions", async () => {
+    vi.stubEnv("KPOOL_IDENTITY_API_BASE_URL", "");
+    vi.stubEnv("KPOOL_ENABLE_MOCK_WIKI_GATEWAY", "1");
+    const identity = await fetchAuthenticatedIdentity({ cookieHeader: "kpool-mock-account-policy=update; kpool-e2e-account-review=1" });
+    expect(identity?.accountPolicies).toEqual(expect.arrayContaining([expect.objectContaining({ statements: expect.arrayContaining([expect.objectContaining({ actions: ["account:category-change-request:manage", "account:snapshot-change-request:manage"] })]) })]));
+  });
   afterEach(() => {
     vi.unstubAllEnvs();
   });

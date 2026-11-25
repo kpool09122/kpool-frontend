@@ -1,11 +1,13 @@
 "use client";
 
+import { accountSnapshotCopy } from "@/i18n/accountSnapshot";
+import { useI18n as useSnapshotI18n } from "@/i18n/I18nProvider";
 import { AdminNavigationLink } from "../AdminNavigationLink";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { getAccountIdentifierFromIdentity, getAccountPrincipalIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
-import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
+import { canReadAccountNotificationSettings, canUpdateAccountNotificationSettings, canAccessAffiliations, canApproveAffiliations, canApproveDelegations, canInviteAccountMembers, canManageAccountCategoryChangeRequests, canManageAccountSnapshotChangeRequests, canReceiveAffiliationRequests, canRejectAffiliations, canRejectDelegations, canRequestAffiliation, canRequestDelegation, canUpdateAccount, hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import type { AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import type { useI18n } from "../../../i18n/I18nProvider";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
@@ -42,6 +44,8 @@ export function AccountLayoutClient({
   t,
   onAuthorizationRejected,
 }: AccountLayoutClientProps) {
+  const { locale } = useSnapshotI18n();
+  const canManageSnapshotChangeRequests = canManageAccountSnapshotChangeRequests(currentIdentity);
   const defaultAdminRoute = currentIdentity ? getAdminInitialRoute(currentIdentity, principalState) : "/admin";
   const accountIdentifier = getAccountIdentifierFromIdentity(currentIdentity);
   const accountPrincipalIdentifier = getAccountPrincipalIdentifierFromIdentity(currentIdentity);
@@ -66,6 +70,7 @@ export function AccountLayoutClient({
   const fallbackRoute = adminAccountTabRoutes[fallbackTab];
 
   const tabs = [
+    ...(canManageSnapshotChangeRequests ? [createAccountSettingsTab("accountSnapshotChangeRequests", accountSnapshotCopy[locale].review)] : []),
     createAccountSettingsTab("accountProfile", t.accountInformationTab),
     createAccountSettingsTab("accountDocuments", t.accountDocuments.tab),
     ...(canReadNotifications ? [createAccountSettingsTab("accountNotifications", t.accountNotifications.tab)] : []),
@@ -102,6 +107,7 @@ export function AccountLayoutClient({
         </div>
       </div>
       <AccountSectionProvider
+        key={`${accountIdentifier}:${accountPrincipalIdentifier}`}
         value={{
           accountIdentifier,
           accountPrincipalIdentifier,
@@ -111,6 +117,7 @@ export function AccountLayoutClient({
           canInvite,
           canManagePrincipalGroups: canManageAccountPrincipalGroups,
           canManageCategoryChangeRequests,
+          canManageSnapshotChangeRequests,
           canRequestAffiliation: canCreateAffiliationRequest,
           canRequestDelegation: canCreateDelegationRequest,
           canApproveDelegations: canApproveDelegationRequests,

@@ -12,6 +12,7 @@ import {
   type CorporationDocumentCountry,
   type IndividualDocumentCountry,
 } from "./accountDocumentRules";
+import { AccountSnapshotPanel } from "../AccountSnapshotPanel";
 import { useAccountSection } from "../AccountSectionContext";
 import { useAccountDocuments } from "./useAccountDocuments";
 
@@ -75,7 +76,7 @@ const getDocumentOptionGroups = (
 
 export function AccountDocumentsClient() {
   const { dictionary } = useI18n();
-  const { accountIdentifier, t } = useAccountSection();
+  const { accountIdentifier, canEdit, t } = useAccountSection();
   const state = useAccountDocuments({ accountIdentifier, t });
 
   if (state.isLoading) {
@@ -86,6 +87,9 @@ export function AccountDocumentsClient() {
   const documentOptionGroups = getDocumentOptionGroups(accountType, state.documentOptions, t.accountDocuments);
 
   return (
+    <>
+    <AccountSnapshotPanel accountIdentifier={accountIdentifier} canEdit={canEdit} busy={state.isSaving} />
+    <fieldset disabled={state.editingLocked || state.isSaving}>
     <AccountSettingsPanel
       action={accountType === "corporation" || accountType === "individual" ? (
         <button
@@ -257,5 +261,7 @@ export function AccountDocumentsClient() {
         ) : null}
       </div>
     </AccountSettingsPanel>
+    </fieldset>
+    </>
   );
 }

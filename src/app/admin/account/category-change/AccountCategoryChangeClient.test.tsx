@@ -8,10 +8,17 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { fetchCurrentAccountSnapshot } from "@/gateways/account/accountSnapshotApi";
 import * as dateTime from "@/utils/dateTime";
 import { dictionaries } from "../../../../i18n/dictionaries";
 import { AccountSectionProvider } from "../AccountSectionContext";
 import { AccountCategoryChangeClient } from "./AccountCategoryChangeClient";
+
+vi.mock("@/gateways/account/accountSnapshotApi", async load => ({
+  ...await load<typeof import("@/gateways/account/accountSnapshotApi")>(),
+  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false }),
+  fetchCurrentAccountSnapshot: vi.fn().mockResolvedValue({ snapshotIdentifier: "66666666-6666-4666-8666-666666666666", accountIdentifier: "11111111-1111-4111-8111-111111111111", status: "approved", savedAt: "2026-11-25T00:00:00Z", isCurrent: true, account: {}, documents: [] }),
+}));
 
 const accountId = "11111111-1111-4111-8111-111111111111";
 const account = {
@@ -66,6 +73,21 @@ const renderClient = (
 ) => render(clientElement(identifier, client));
 
 describe("AccountCategoryChangeClient", () => {
+  it("blocks unsaved accounts and links to the existing document/save screen", async () => {
+    vi.mocked(fetchCurrentAccountSnapshot).mockResolvedValueOnce(null);
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: null } : account)));
+    renderClient();
+    expect(await screen.findByRole("link", { name: t.accountDocuments.title })).toHaveAttribute("href", "/admin/account/documents");
+    expect(screen.getByRole("button", { name: "申請する" })).toBeDisabled();
+  });
+  it("retries failed snapshot state along with the category request", async () => {
+    vi.mocked(fetchCurrentAccountSnapshot).mockRejectedValueOnce(new Error("Snapshot unavailable"));
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => Response.json(url.endsWith("/latest") ? { request: null } : account)));
+    renderClient();
+    const retry = await screen.findByRole("button", { name: t.accountCategoryChange.retry });
+    fireEvent.click(retry);
+    await waitFor(() => expect(screen.getByRole("button", { name: "申請する" })).toBeEnabled());
+  });
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();

@@ -55,7 +55,7 @@ const createMockAuthenticatedIdentity = (cookieHeader: string): AuthenticatedIde
     }] : [],
     accountType,
     accountIdentityCount: accountStatus === "missing" ? 0 : principalManager ? 3 : 1,
-    accountPolicies: [ ...(principalManager ? [{ policyIdentifier: "99999999-9999-4999-8999-999999999996", name: "PRINCIPAL_MANAGER", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["account:principal-group:manage"], resourceTypes: ["ACCOUNT"], condition: null }] }] : []), ...(hasAccountUpdatePolicy
+    accountPolicies: [ ...(hasCookieValue(cookieHeader, "kpool-e2e-account-review", "1") ? [{ policyIdentifier: "99999999-9999-4999-8999-999999999995", name: "ACCOUNT_REVIEWER", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["account:category-change-request:manage", "account:snapshot-change-request:manage"], resourceTypes: ["ACCOUNT"], condition: null }] }] : []), ...(principalManager ? [{ policyIdentifier: "99999999-9999-4999-8999-999999999996", name: "PRINCIPAL_MANAGER", isSystemPolicy: true, statements: [{ effect: "allow", actions: ["account:principal-group:manage"], resourceTypes: ["ACCOUNT"], condition: null }] }] : []), ...(hasAccountUpdatePolicy
       ? [
           {
             policyIdentifier: "99999999-9999-9999-9999-999999999999",

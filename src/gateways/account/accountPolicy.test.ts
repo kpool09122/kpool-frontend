@@ -6,6 +6,7 @@ import {
   canApproveDelegations,
   canInviteAccountMembers,
   canManageAccountCategoryChangeRequests,
+  canManageAccountSnapshotChangeRequests,
   canManagePrincipalGroups,
   canReceiveAffiliationRequests,
   canRejectAffiliations,
@@ -26,6 +27,13 @@ const baseIdentity = { accountPrincipalStatus: "active" as const, siteManagement
 };
 
 describe("accountPolicy", () => {
+  it("separates snapshot management from category management and honors explicit deny", () => {
+    const policy = (actions: string[], deny = false) => ({ ...baseIdentity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions, resourceTypes: ["ACCOUNT"] }, ...(deny ? [{ effect: "deny", actions, resourceTypes: ["ACCOUNT"] }] : [])] }] });
+    expect(canManageAccountSnapshotChangeRequests(null)).toBe(false);
+    expect(canManageAccountSnapshotChangeRequests(policy(["account:category-change-request:manage"]))).toBe(false);
+    expect(canManageAccountSnapshotChangeRequests(policy(["account:snapshot-change-request:manage"]))).toBe(true);
+    expect(canManageAccountSnapshotChangeRequests(policy(["account:snapshot-change-request:manage"], true))).toBe(false);
+  });
   it("reads account type from direct and nested identity payloads", () => {
     expect(getAccountTypeFromIdentity({ ...baseIdentity, accountType: "corporation" })).toBe("corporation");
     expect(getAccountTypeFromIdentity({ ...baseIdentity, account: { type: "corporation" } })).toBe("corporation");

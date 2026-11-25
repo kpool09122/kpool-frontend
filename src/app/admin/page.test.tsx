@@ -44,6 +44,12 @@ import type {
 } from "./adminTypes";
 import type { AdminDraftWikiActionTab } from "./useAdminDraftWikis";
 
+vi.mock("@/gateways/account/accountSnapshotApi", async load => ({
+  ...await load<typeof import("@/gateways/account/accountSnapshotApi")>(),
+  fetchLatestSnapshotChange: vi.fn().mockResolvedValue({ request: null, changeRequiresApproval: false }),
+  fetchCurrentAccountSnapshot: vi.fn().mockResolvedValue(null),
+}));
+
 const identityMocks = vi.hoisted(() => ({
   fetchCurrentAuthenticatedIdentity: vi.fn(),
 }));

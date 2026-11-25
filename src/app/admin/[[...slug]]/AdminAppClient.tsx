@@ -10,6 +10,7 @@ import { SiteManagementPrincipalGroupsClient } from "../site-management/principa
 import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
 
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
+import { AccountSnapshotChangeClient } from "../account/snapshot-change-requests/AccountSnapshotChangeClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
 import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
 import { AccountCategoryChangeRequestsClient } from "../account/category-change-requests/AccountCategoryChangeRequestsClient";
@@ -64,6 +65,8 @@ type AdminClientPage = "monetization" | "analyze" | "accountAffiliations"
   | "siteManagementAnnouncements"
   | "siteManagementContactManagement"
   | "accountDelegations"
+  | "accountSnapshotChange"
+  | "accountSnapshotChangeRequests"
   | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
   | "accountCategoryChangeRequests"
@@ -103,6 +106,8 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
       : "siteManagementContacts";
   }
   if (pathname?.startsWith("/admin/account")) {
+    if (pathname.includes("/snapshot-change-requests")) return "accountSnapshotChangeRequests";
+    if (pathname.includes("/snapshot-change/")) return "accountSnapshotChange";
     if (pathname.endsWith("/notification-settings")) return "accountNotifications";
     if (pathname.endsWith("/documents")) {
       return "accountDocuments";
@@ -232,6 +237,9 @@ function AdminResolvedPage({
       </AccountPageClient>
     );
   }
+
+  if (page === "accountSnapshotChange") return <AccountPageClient activeTab="accountProfile"><AccountSnapshotChangeClient /></AccountPageClient>;
+  if (page === "accountSnapshotChangeRequests") return <AccountPageClient activeTab="accountSnapshotChangeRequests"><AccountSnapshotChangeClient management /></AccountPageClient>;
 
   if (page === "accountCategoryChange") {
     return (
