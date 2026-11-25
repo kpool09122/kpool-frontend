@@ -88,7 +88,7 @@ function SnapshotPanel({ accountIdentifier, canEdit, busy = false }: { accountId
         {mutation.error ? <AccountStatusMessage variant="error">{mutation.error.message}</AccountStatusMessage> : null}
         <div className="flex justify-end gap-3">
           <Dialog.Close type="button" className={snapshotButtonClass} disabled={mutation.isPending}>{dictionary.admin.accountCategoryChangeRequestDetail.cancel}</Dialog.Close>
-          <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canRequestChange || !reason.trim()} type="submit">{t.submit}</button>
+          <button className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60" disabled={!canRequestChange || !reason.trim()} type="submit">{t.requestChange}</button>
         </div>
       </form>
     </Dialog.Content>
