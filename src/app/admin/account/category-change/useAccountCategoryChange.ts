@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { accountSnapshotKeys, useAccountSnapshot } from "../useAccountSnapshot";
 
 import {
   fetchAccount,
@@ -29,6 +30,7 @@ export const useAccountCategoryChange = ({
   t: AdminDictionary;
 }) => {
   const queryClient = useQueryClient();
+  const snapshot = useAccountSnapshot(accountIdentifier);
   const { locale } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState<Category>("agency");
   const accountQuery = useQuery({
@@ -55,6 +57,7 @@ export const useAccountCategoryChange = ({
   // Use mutation variables, never the currently selected account, for async cache updates.
   const refreshAccount = async (identifier: string | null) => {
     await Promise.all([
+      queryClient.invalidateQueries({ queryKey: accountSnapshotKeys.latestForAccount(identifier) }),
       queryClient.invalidateQueries({
         queryKey: adminQueryKeys.account.profile(identifier),
       }),
@@ -85,8 +88,8 @@ export const useAccountCategoryChange = ({
   });
   const currentCategory = accountQuery.data?.accountCategory ?? null;
   const request = requestQuery.data?.request ?? null;
-  const queryError = accountQuery.error ?? requestQuery.error;
-  const isLoading = accountQuery.isFetching || requestQuery.isFetching;
+  const queryError = accountQuery.error ?? requestQuery.error ?? snapshot.current.error;
+  const isLoading = accountQuery.isFetching || requestQuery.isFetching || snapshot.current.isFetching;
   const isReady =
     Boolean(accountIdentifier) &&
     accountQuery.isSuccess &&
@@ -95,9 +98,11 @@ export const useAccountCategoryChange = ({
     !mutation.isPending;
   const showForm =
     isReady && (request === null || request.status === "rejected");
-  const canSubmit = showForm && selectedCategory !== currentCategory;
+  const canSubmit = showForm && snapshot.current.isSuccess && Boolean(snapshot.current.data) && selectedCategory !== currentCategory;
   const canWithdraw = isReady && request?.status === "pending";
   return {
+    snapshotMissing: snapshot.current.isSuccess && !snapshot.current.data,
+    snapshotError: snapshot.current.error,
     account: accountQuery.data ?? null,
     request,
     categoryOptions: selectableCategories.map((value) => ({
@@ -121,7 +126,7 @@ export const useAccountCategoryChange = ({
         ? t.accountCategoryChange.submitSucceeded
         : t.accountCategoryChange.withdrawSucceeded
       : null,
-    retry: () => refreshAccount(accountIdentifier),
+    retry: () => Promise.all([refreshAccount(accountIdentifier), snapshot.refresh()]),
     submit: () => {
       if (canSubmit && accountIdentifier)
         mutation.mutate({

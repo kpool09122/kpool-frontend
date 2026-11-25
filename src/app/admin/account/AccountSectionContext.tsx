@@ -13,6 +13,7 @@ export type AccountSectionContextValue = {
   canInvite: boolean;
   canManagePrincipalGroups: boolean;
   canManageCategoryChangeRequests: boolean;
+  canManageSnapshotChangeRequests?: boolean;
   canRequestAffiliation: boolean;
   canRequestDelegation: boolean;
   canApproveDelegations: boolean;

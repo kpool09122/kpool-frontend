@@ -20,17 +20,25 @@ const identity = {
   accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:delegation-request:create"], resourceTypes: ["ACCOUNT"] }] }],
 };
 
-const renderLayout = (activeTab: "accountProfile" | "accountDelegations" | "accountNotifications", currentIdentity = identity) => {
+const renderLayout = (activeTab: "accountSnapshot" | "accountProfile" | "accountDelegations" | "accountNotifications", currentIdentity = identity) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={queryClient}><AccountLayoutClient activeTab={activeTab} currentIdentity={currentIdentity} onAuthorizationRejected={vi.fn()} t={dictionaries.ja.admin}><div>delegation page</div></AccountLayoutClient></QueryClientProvider>);
 };
 
 describe("AccountLayoutClient delegation access", () => {
+  it("opens snapshot as a dedicated tab after documents", () => {
+    renderLayout("accountSnapshot");
+    const tab = screen.getByRole("tab", { name: "スナップショット" });
+    expect(tab).toHaveAttribute("href", "/admin/account/snapshot");
+    expect(tab).toHaveAttribute("aria-selected", "true");
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.indexOf(tab)).toBe(tabs.indexOf(screen.getByRole("tab", { name: "書類アップロード" })) + 1);
+  });
   it("places notifications between documents and category and uses dedicated read access", () => {
     const user = { ...identity, accountEffectivePolicies: [{ statements: [{ effect: "allow", actions: ["account:notification-settings:read"], resourceTypes: ["ACCOUNT"] }] }] };
     renderLayout("accountNotifications", user);
     const tabs = screen.getAllByRole("tab").map(tab => tab.textContent);
-    expect(tabs.indexOf("通知設定")).toBe(tabs.indexOf("書類アップロード") + 1);
+    expect(tabs.indexOf("通知設定")).toBe(tabs.indexOf("スナップショット") + 1);
     expect(tabs.indexOf("カテゴリ変更")).toBe(tabs.indexOf("通知設定") + 1);
     expect(screen.getByText("delegation page")).toBeInTheDocument();
   });

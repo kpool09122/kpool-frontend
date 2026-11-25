@@ -46,6 +46,13 @@ const useAccountUpdatePolicy = async (page: Page) => {
       path: "/",
     },
   ]);
+  await page.route("**/api/account/accounts/*/snapshot-change-requests/latest", route => route.fulfill({
+    json: { request: null, changeRequiresApproval: false, hasChanges: false, categoryChangePending: false },
+  }));
+  await page.route("**/api/account/accounts/*/snapshot", route => route.fulfill({
+    status: 404,
+    json: { code: "account_snapshot_not_found" },
+  }));
 };
 
 test("admin shows the Wiki collaborator activation path", async ({ page }) => {

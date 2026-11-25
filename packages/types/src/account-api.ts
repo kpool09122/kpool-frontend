@@ -1543,7 +1543,7 @@ const endpoints = makeApi([
     method: "put",
     path: "/accounts/:accountIdentifier/snapshot",
     alias: "AccountSnapshotOperations_saveAccountSnapshot",
-    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable snapshot; previous snapshots and document files are retained. Profile updates, document uploads and snapshot saves are forbidden while a snapshot-change request is pending. Otherwise identical-content saves succeed without writes even after approval. Changed contents are rejected with 409 (account_snapshot_change_requires_approval) if any category-change approval references a saved snapshot for the account. Does not change category-change requests.`,
+    description: `Save the current authenticated account profile and uploaded documents without review. Requires the same account and account:update. Complete contact/type and required documents are validated. Changed content creates a new immutable snapshot; previous snapshots and document files are retained. Profile updates, document uploads and snapshot saves are forbidden while a snapshot-change request is pending. Snapshot saves are also forbidden while a category-change request is pending; profile and document draft editing remains available. Otherwise identical-content saves succeed without writes even after approval. Changed contents are rejected with 409 (account_snapshot_change_requires_approval) if any category-change approval references a saved snapshot for the account. Does not change category-change requests.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1658,7 +1658,7 @@ const endpoints = makeApi([
     path: "/accounts/:accountIdentifier/snapshot-change-requests",
     alias:
       "AccountSnapshotChangeRequestOperations_requestAccountSnapshotChange",
-    description: `Submit a required reason and freeze the current editable Account profile and uploaded documents after the same complete-contact/type/required-document validation as normal snapshot save. Requires same Account and account:update. A saved original snapshot must exist (404 otherwise). While pending, profile updates, document uploads and normal snapshot saves return 403. Review reads the current Account and documents without a separate copy. No snapshot is created on submission; duplicate pending applications return 409. Rejected/approved history permits a new application, independently of category-change request states.`,
+    description: `Submit a required reason and freeze the current editable Account profile and uploaded documents after the same complete-contact/type/required-document validation as normal snapshot save. Requires same Account and account:update. A saved original snapshot must exist (404 otherwise). While pending, profile updates, document uploads and normal snapshot saves return 403. Review reads the current Account and documents without a separate copy. No snapshot is created on submission; duplicate pending applications return 409. Pending category-change requests forbid snapshot-change submissions (403). Identical profile and document bytes return 422 without creating a request. Rejected/approved snapshot-change history permits a new application when no category-change request is pending.`,
     requestFormat: "json",
     parameters: [
       {
@@ -1741,6 +1741,8 @@ const endpoints = makeApi([
       .object({
         request: AccountSnapshotChangeRequestSummary.nullable(),
         changeRequiresApproval: z.boolean(),
+        hasChanges: z.boolean(),
+        categoryChangePending: z.boolean(),
       })
       .passthrough(),
     errors: [

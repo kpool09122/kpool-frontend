@@ -3,6 +3,11 @@ import { describe, expect, it } from "vitest";
 import { resolveAdminClientPage } from "./AdminAppClient";
 
 describe("resolveAdminClientPage", () => {
+  it("resolves owner snapshot review separately from operations", () => {
+    expect(resolveAdminClientPage("/admin/account/snapshot")).toBe("accountSnapshot");
+    expect(resolveAdminClientPage("/admin/account/snapshot-change/request-id")).toBe("accountSnapshotChange");
+    expect(resolveAdminClientPage("/admin/account/snapshot-change-requests/request-id")).toBe("accountSnapshotChangeRequests");
+  });
   it("resolves owner watch-request links including exact Wiki destinations", () => {
     expect(resolveAdminClientPage("/admin/wiki/watch-requests")).toBe("wikiWatchRequests");
     expect(resolveAdminClientPage("/admin/wiki/watch-requests/00000000-0000-4000-8000-000000000001")).toBe("wikiWatchRequests");

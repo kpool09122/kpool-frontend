@@ -10,6 +10,7 @@ import { SiteManagementPrincipalGroupsClient } from "../site-management/principa
 import { SiteManagementPageClient } from "../site-management/SiteManagementPageClient";
 
 import { AccountAffiliationsClient } from "../account/affiliations/AccountAffiliationsClient";
+import { AccountSnapshotChangeClient } from "../account/snapshot-change-requests/AccountSnapshotChangeClient";
 import { AccountCategoryChangeClient } from "../account/category-change/AccountCategoryChangeClient";
 import { AccountCategoryChangeRequestDetailClient } from "../account/category-change-requests/[requestId]/AccountCategoryChangeRequestDetailClient";
 import { AccountCategoryChangeRequestsClient } from "../account/category-change-requests/AccountCategoryChangeRequestsClient";
@@ -18,6 +19,7 @@ import { AccountDelegationsClient } from "../account/delegations/AccountDelegati
 import { AccountInvitationsClient } from "../account/invitations/AccountInvitationsClient";
 import { AccountPrincipalGroupsClient } from "../account/principal-groups/AccountPrincipalGroupsClient";
 import { AccountNotificationsClient } from "../account/notification-settings/AccountNotificationsClient";
+import { AccountSnapshotClient } from "../account/snapshot/AccountSnapshotClient";
 import { AccountProfileClient } from "../account/profile/AccountProfileClient";
 import { AccountPageClient } from "../account/AccountPageClient";
 import { SiteManagementContactsClient as OperatorContactsClient } from "../site-management/contacts/SiteManagementContactsClient";
@@ -64,6 +66,9 @@ type AdminClientPage = "monetization" | "analyze" | "accountAffiliations"
   | "siteManagementAnnouncements"
   | "siteManagementContactManagement"
   | "accountDelegations"
+  | "accountSnapshot"
+  | "accountSnapshotChange"
+  | "accountSnapshotChangeRequests"
   | "accountCategoryChange"
   | "accountCategoryChangeRequestDetail"
   | "accountCategoryChangeRequests"
@@ -103,6 +108,9 @@ export const resolveAdminClientPage = (pathname: string | null): AdminClientPage
       : "siteManagementContacts";
   }
   if (pathname?.startsWith("/admin/account")) {
+    if (pathname.endsWith("/snapshot")) return "accountSnapshot";
+    if (pathname.includes("/snapshot-change-requests")) return "accountSnapshotChangeRequests";
+    if (pathname.includes("/snapshot-change/")) return "accountSnapshotChange";
     if (pathname.endsWith("/notification-settings")) return "accountNotifications";
     if (pathname.endsWith("/documents")) {
       return "accountDocuments";
@@ -232,6 +240,10 @@ function AdminResolvedPage({
       </AccountPageClient>
     );
   }
+
+  if (page === "accountSnapshot") return <AccountPageClient activeTab="accountSnapshot"><AccountSnapshotClient /></AccountPageClient>;
+  if (page === "accountSnapshotChange") return <AccountPageClient activeTab="accountSnapshot"><AccountSnapshotChangeClient /></AccountPageClient>;
+  if (page === "accountSnapshotChangeRequests") return <AccountPageClient activeTab="accountSnapshotChangeRequests"><AccountSnapshotChangeClient management /></AccountPageClient>;
 
   if (page === "accountCategoryChange") {
     return (

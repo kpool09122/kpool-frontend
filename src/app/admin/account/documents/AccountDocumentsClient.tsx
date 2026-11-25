@@ -86,6 +86,7 @@ export function AccountDocumentsClient() {
   const documentOptionGroups = getDocumentOptionGroups(accountType, state.documentOptions, t.accountDocuments);
 
   return (
+    <fieldset disabled={state.editingLocked || state.isSaving}>
     <AccountSettingsPanel
       action={accountType === "corporation" || accountType === "individual" ? (
         <button
@@ -257,5 +258,6 @@ export function AccountDocumentsClient() {
         ) : null}
       </div>
     </AccountSettingsPanel>
+    </fieldset>
   );
 }

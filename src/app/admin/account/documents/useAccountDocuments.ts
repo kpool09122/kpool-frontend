@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useAccountSnapshot } from "../useAccountSnapshot";
+import { isAccountBrowserApiError } from "@/gateways/account/accountBrowserApi";
 
 import {
   fetchAccount,
@@ -67,6 +69,7 @@ const createSaveRequest = async (
 
 export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocumentsParams) => {
   const queryClient = useQueryClient();
+  const snapshot = useAccountSnapshot(accountIdentifier);
   const [selectedDocuments, setSelectedDocuments] = useState<SelectedDocument[]>([]);
   const [dismissedUploadedDocumentTypes, setDismissedUploadedDocumentTypes] = useState<AccountDocumentType[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
@@ -128,14 +131,16 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
       setFormError(null);
       setSuccess(null);
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       queryClient.setQueryData(documentsQueryKey, response);
       void queryClient.invalidateQueries({ queryKey: documentsQueryKey });
       setSelectedDocuments([]);
       setDismissedUploadedDocumentTypes([]);
       setSuccess(t.accountDocuments.saveSucceeded);
+      await snapshot.refreshLatest();
     },
     onError: (error) => {
+      if (isAccountBrowserApiError(error) && error.accountRouteStatus === 403) void snapshot.refreshRelated();
       setFormError(getErrorMessage(error, t.accountDocuments.saveFailed));
     },
   });
@@ -202,7 +207,7 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
       current.filter((documentType) => allowedDocumentTypes.has(documentType)));
   };
 
-  const canSave = accountQuery.isSuccess && documentsQuery.isSuccess;
+  const canSave = accountQuery.isSuccess && documentsQuery.isSuccess && !snapshot.editingLocked;
   const submit = () => {
     if (canSave) {
       saveMutation.mutate();
@@ -210,6 +215,7 @@ export const useAccountDocuments = ({ accountIdentifier, t }: UseAccountDocument
   };
 
   return {
+    editingLocked: snapshot.editingLocked,
     account: accountQuery.data ?? null,
     canSave,
     corporationDocumentCountry,

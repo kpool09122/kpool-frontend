@@ -256,6 +256,10 @@ export const canManagePrincipalGroups = (identity: IdentitySummary | null): bool
   !hasMatchingStatement(identity, "deny", "account:principal-group:manage");
 
 
+export const canManageAccountSnapshotChangeRequests = (identity: IdentitySummary | null): boolean =>
+  hasMatchingStatement(identity, "allow", "account:snapshot-change-request:manage") &&
+  !hasMatchingStatement(identity, "deny", "account:snapshot-change-request:manage");
+
 export const canManageAccountCategoryChangeRequests = (identity: IdentitySummary | null): boolean =>
   hasMatchingStatement(identity, "allow", "account:category-change-request:manage") &&
   !hasMatchingStatement(identity, "deny", "account:category-change-request:manage");
