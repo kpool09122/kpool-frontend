@@ -53,21 +53,20 @@ const SellerOnboardingSummary = z
   .object({ onboardingUrl: z.string().nullable() })
   .partial()
   .passthrough();
-const AccountPaymentMethodType = z.literal("card");
+const PaymentMethodType = z.literal("card");
 const RegisterPaymentMethodRequestBody = z
-  .object({ paymentMethodId: z.string(), type: AccountPaymentMethodType })
+  .object({ externalPaymentMethodId: z.string(), type: PaymentMethodType })
   .passthrough();
-const RegisteredPaymentMethodSummary = z
+const PaymentMethodSummary = z
   .object({
-    registeredPaymentMethodIdentifier: KPool_Common_Uuid,
-    paymentMethodId: z.string(),
-    type: AccountPaymentMethodType,
+    paymentMethodIdentifier: KPool_Common_Uuid,
+    externalPaymentMethodId: z.string(),
+    type: PaymentMethodType,
     brand: z.string().nullish(),
     last4: z.string().nullish(),
     expMonth: z.number().int().nullish(),
     expYear: z.number().int().nullish(),
     isDefault: z.boolean(),
-    skipped: z.boolean(),
   })
   .passthrough();
 const InvoiceLineRequestItem = z
@@ -130,7 +129,6 @@ const PrincipalGroupMember = z
     status: z.enum(["active", "suspended", "forced_stop"]),
   })
   .passthrough();
-const PaymentMethodType = z.enum(["card", "bank_transfer", "wallet"]);
 const AuthorizePaymentRequestBody = z
   .object({
     orderId: KPool_Common_Uuid,
@@ -138,9 +136,6 @@ const AuthorizePaymentRequestBody = z
     amount: z.number().int(),
     currency: CurrencyCode,
     paymentMethodId: KPool_Common_Uuid,
-    paymentMethodType: PaymentMethodType,
-    paymentMethodLabel: z.string(),
-    paymentMethodRecurringEnabled: z.boolean(),
   })
   .passthrough();
 const PaymentStatus = z.enum([
@@ -159,9 +154,6 @@ const PaymentSummary = z
     amount: z.number().int(),
     currency: CurrencyCode,
     paymentMethodIdentifier: KPool_Common_Uuid,
-    paymentMethodType: PaymentMethodType,
-    paymentMethodLabel: z.string(),
-    paymentMethodRecurringEnabled: z.boolean(),
     status: PaymentStatus,
     createdAt: KPool_Common_Timestamp,
     authorizedAt: KPool_Common_Timestamp.nullish(),
@@ -174,6 +166,7 @@ const PaymentSummary = z
     lastRefundReason: z.string().nullish(),
   })
   .passthrough();
+const AuthorizedPaymentSummary = PaymentSummary;
 const RefundPaymentRequestBody = z
   .object({
     refundAmount: z.number().int(),
@@ -232,9 +225,13 @@ const PrincipalPolicyStatement = z
   .object({
     effect: z.enum(["allow", "deny"]),
     actions: z.array(
-      z.enum(["principal_group_read", "principal_group_manage"])
+      z.enum([
+        "principal_group_read",
+        "principal_group_manage",
+        "payment_method_register",
+      ])
     ),
-    resourceTypes: z.array(z.literal("principal_group")),
+    resourceTypes: z.array(z.enum(["principal_group", "payment_method"])),
     condition: z
       .object({ clauses: z.array(PrincipalConditionClause) })
       .passthrough()
@@ -309,9 +306,9 @@ export const schemas = {
   SellerOnboardingCountryCode,
   OnboardSellerRequestBody,
   SellerOnboardingSummary,
-  AccountPaymentMethodType,
+  PaymentMethodType,
   RegisterPaymentMethodRequestBody,
-  RegisteredPaymentMethodSummary,
+  PaymentMethodSummary,
   InvoiceLineRequestItem,
   CurrencyCode,
   InvoiceTaxLineRequestItem,
@@ -321,10 +318,10 @@ export const schemas = {
   InvoiceSummary,
   RecordPaymentRequestBody,
   PrincipalGroupMember,
-  PaymentMethodType,
   AuthorizePaymentRequestBody,
   PaymentStatus,
   PaymentSummary,
+  AuthorizedPaymentSummary,
   RefundPaymentRequestBody,
   PrincipalGroup,
   PrincipalGroupMembersUpdate,
@@ -481,11 +478,21 @@ const endpoints = makeApi([
         schema: z.string().uuid(),
       },
     ],
-    response: RegisteredPaymentMethodSummary,
+    response: PaymentMethodSummary,
     errors: [
       {
         status: 401,
         description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -850,7 +857,7 @@ const endpoints = makeApi([
         schema: AuthorizePaymentRequestBody,
       },
     ],
-    response: PaymentSummary,
+    response: AuthorizedPaymentSummary,
     errors: [
       {
         status: 401,
