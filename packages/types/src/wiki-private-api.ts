@@ -6699,7 +6699,7 @@ const endpoints = makeApi([
       {
         name: "keyword",
         type: "Query",
-        schema: z.string().optional(),
+        schema: z.string().nullish(),
       },
       {
         name: "sort",
