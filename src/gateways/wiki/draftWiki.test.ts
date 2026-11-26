@@ -639,7 +639,6 @@ describe("draftWiki", () => {
       basic: {
         agencyIdentifier: "11111111-1111-4111-8111-111111111111",
         name: "Aurora Echo",
-        normalizedName: "aurora-echo",
       },
       imageIdentifier: "66666666-6666-4666-8666-666666666666",
       language: "ja",
@@ -693,7 +692,6 @@ describe("draftWiki", () => {
     ).toEqual({
       basic: {
         name: "Cheer Up",
-        normalizedName: "cheer-up",
       },
       groupIdentifiers: ["44444444-4444-4444-8444-444444444444"],
       language: "ja",
@@ -737,7 +735,6 @@ describe("draftWiki", () => {
     ).toEqual({
       basic: {
         name: "Aurora Echo",
-        normalizedName: "aurora-echo",
       },
       language: "ja",
       publishedWikiIdentifier: "33333333-3333-4333-8333-333333333333",
@@ -755,6 +752,28 @@ describe("draftWiki", () => {
     });
   });
 
+  it.each(["agency", "group", "talent", "song"] as const)(
+    "excludes normalized values when creating a %s draft from a public response",
+    (resourceType) => {
+      const basic = {
+        name: "Display Name", realName: "Real Name", ceo: "CEO",
+        lyricist: "Lyricist", composer: "Composer", arranger: "Arranger",
+        normalizedName: "display", normalizedRealName: "real", normalizedCeo: "ceo",
+        normalizedLyricist: "lyricist", normalizedComposer: "composer", normalizedArranger: "arranger",
+      };
+      const body = createWikiDraftRequestBodyFromPublicWiki({
+        basic, language: "ja", resourceType, sections: [], heroImage: null,
+        slug: "gr-display-name", wikiIdentifier: "wiki-1", translationSetIdentifier: "set-1", version: 1,
+      });
+
+      expect(body.basic).toEqual({
+        name: "Display Name", realName: "Real Name", ceo: "CEO",
+        lyricist: "Lyricist", composer: "Composer", arranger: "Arranger",
+      });
+      expect(basic.normalizedName).toBe("display");
+    },
+  );
+
   it("builds create wiki request bodies from initial dialog fields", () => {
     expect(
       createWikiRequestBodyFromInitialFields({
@@ -769,7 +788,6 @@ describe("draftWiki", () => {
       slug: "gr-new-wiki",
       basic: {
         name: "New Wiki",
-        normalizedName: "",
         resourceType: "group",
       },
       sections: [],

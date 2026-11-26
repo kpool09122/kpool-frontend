@@ -11,6 +11,7 @@ import {
   reorderWikiContent,
   serializeWikiSectionsToCode,
   toWikiEditRequestPayload,
+  toWikiBasicInput,
   toWikiEditPayload,
   toWikiSectionContentPayload,
   updateWikiBlock,
@@ -238,7 +239,7 @@ describe("wikiEditModel", () => {
 
     expect(payload).toEqual({
       resourceType: "group",
-      basic: wiki.basic,
+      basic: toWikiBasicInput(wiki.basic),
       sections: toWikiSectionContentPayload(wiki.sections),
       themeColor: "#4c5cff",
       fontStyle: null,
