@@ -2294,7 +2294,6 @@ describe("admin page clients", () => {
             slug: "gr-new-wiki",
             basic: {
               name: "New Wiki",
-              normalizedName: "",
               resourceType: "group",
             },
             sections: [],

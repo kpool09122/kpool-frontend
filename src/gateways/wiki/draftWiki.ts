@@ -9,6 +9,7 @@ import { z } from "zod";
 import {
   getWikiResourceTypeFromSlug,
   toWikiSectionContentPayload,
+  toWikiBasicInput,
   type WikiResourceType,
 } from "@kpool/wiki";
 import {
@@ -413,7 +414,9 @@ export const createWikiDraftRequestBodyFromPublicWiki = (
   const source = getPublicWikiAssociationSource(publicWiki);
   const publicWikiDetail = adaptWikiApiResponse(publicWiki);
   const body: Record<string, unknown> = {
-    basic: publicWiki.basic,
+    basic: toWikiBasicInput(parseWithSchemaLog(
+      "wiki basic input", wikiPrivateApiTypes.schemas.WikiBasicInput, publicWiki.basic,
+    )),
     publishedWikiIdentifier: publicWiki.wikiIdentifier,
     sections: toWikiSectionContentPayload(publicWikiDetail.sections, publicWikiDetail.wikiIdentifier),
   };
@@ -452,7 +455,6 @@ export const createWikiRequestBodyFromInitialFields = ({
     slug,
     basic: {
       name,
-      normalizedName: "",
       resourceType,
     },
     sections: [],

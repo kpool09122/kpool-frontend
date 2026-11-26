@@ -4,6 +4,7 @@ export { serializeWikiSectionsToCode } from "./wikiCodeSerializer";
 export {
   normalizeSeoKeywords,
   normalizeSeoText,
+  toWikiBasicInput,
   toWikiEditPayload,
   toWikiEditRequestPayload,
   toWikiSectionContentPayload,

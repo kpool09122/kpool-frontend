@@ -1428,9 +1428,7 @@ const SearchMasterWikisResponseBody = z
 const AgencyWikiBasicInput = z
   .object({
     name: z.string(),
-    normalizedName: z.string().optional(),
     ceo: z.string().optional(),
-    normalizedCeo: z.string().optional(),
     foundedIn: z.string().nullish(),
     parentAgencyIdentifier: KPool_Common_Uuid.nullish(),
     status: z.string().nullish(),
@@ -1441,7 +1439,6 @@ const AgencyWikiBasicInput = z
 const GroupWikiBasicInput = z
   .object({
     name: z.string(),
-    normalizedName: z.string().optional(),
     agencyIdentifier: KPool_Common_Uuid.nullish(),
     groupType: z.enum(["boy_group", "girl_group", "co_ed"]).nullish(),
     status: z.string().nullish(),
@@ -1471,7 +1468,6 @@ const PlaylistItem = z
 const SongWikiBasicInput = z
   .object({
     name: z.string(),
-    normalizedName: z.string().optional(),
     songType: z
       .enum([
         "title_track",
@@ -1487,11 +1483,8 @@ const SongWikiBasicInput = z
     releaseDate: z.string().nullish(),
     albumName: z.string().nullish(),
     lyricist: z.string().optional(),
-    normalizedLyricist: z.string().optional(),
     composer: z.string().optional(),
-    normalizedComposer: z.string().optional(),
     arranger: z.string().optional(),
-    normalizedArranger: z.string().optional(),
     groupIdentifiers: z.array(KPool_Common_Uuid).optional(),
     talentIdentifiers: z.array(KPool_Common_Uuid).optional(),
   })
@@ -1499,9 +1492,7 @@ const SongWikiBasicInput = z
 const TalentWikiBasicInput = z
   .object({
     name: z.string(),
-    normalizedName: z.string().optional(),
     realName: z.string().optional(),
-    normalizedRealName: z.string().optional(),
     birthday: z.string().nullish(),
     agencyIdentifier: KPool_Common_Uuid.nullish(),
     emoji: z.string().optional(),

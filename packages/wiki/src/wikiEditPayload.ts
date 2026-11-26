@@ -66,9 +66,30 @@ export type WikiEditPayload = {
   contents: WikiSectionContentPayload[];
 };
 
+const normalizedWikiBasicKeys = [
+  "normalizedName",
+  "normalizedRealName",
+  "normalizedCeo",
+  "normalizedLyricist",
+  "normalizedComposer",
+  "normalizedArranger",
+] as const;
+
+type NormalizedWikiBasicKey = (typeof normalizedWikiBasicKeys)[number];
+
+export const toWikiBasicInput = <T extends Record<string, unknown>>(
+  basic: T,
+): Omit<T, NormalizedWikiBasicKey> => {
+  const input: Record<string, unknown> = { ...basic };
+  for (const key of normalizedWikiBasicKeys) {
+    delete input[key];
+  }
+  return input as Omit<T, NormalizedWikiBasicKey>;
+};
+
 export type WikiEditRequestPayload = {
   resourceType: WikiDraftDetail["resourceType"];
-  basic: WikiDraftDetail["basic"];
+  basic: Omit<WikiDraftDetail["basic"], NormalizedWikiBasicKey>;
   sections: WikiSectionContentPayload[];
   themeColor: string | null;
   fontStyle: string | null;
@@ -116,7 +137,7 @@ export const toWikiEditPayload = (wiki: WikiDraftDetail): WikiEditPayload => ({
 
 export const toWikiEditRequestPayload = (wiki: WikiDraftDetail): WikiEditRequestPayload => ({
   resourceType: wiki.resourceType,
-  basic: wiki.basic,
+  basic: toWikiBasicInput(wiki.basic),
   sections: toWikiSectionContentPayload(wiki.sections, wiki.wikiIdentifier),
   themeColor: wiki.themeColor ?? null,
   fontStyle: wiki.fontStyle ?? null,
