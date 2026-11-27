@@ -55,3 +55,13 @@ it("offers login when the browser session has expired", async () => {
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(mocks.perform).not.toHaveBeenCalled();
 });
+
+it("does not leave for SSO if the caller cannot preserve a safe return operation", async () => {
+ mocks.perform.mockResolvedValue({ status: "redirect", url: "https://accounts.example/reauth" });
+ const navigate = vi.fn();
+ render(<ExternalConnectionVerification returnTo="external-connections" onVerified={vi.fn()} beforeRedirect={() => false} navigate={navigate} verificationMessage="Verify card operation" />);
+ expect(screen.getByText("Verify card operation")).toBeInTheDocument();
+ fireEvent.click(screen.getByRole("button", { name: "本人確認を行う" }));
+ fireEvent.click(await screen.findByRole("button", { name: "Google" }));
+ await screen.findByRole("alert"); expect(navigate).not.toHaveBeenCalled();
+});

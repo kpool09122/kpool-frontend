@@ -13,10 +13,11 @@ import { oauthConnectionsDictionaries } from "@/i18n/oauthConnections";
 
 const defaultNavigate = (url: string) => window.location.assign(url);
 
-export function ExternalConnectionVerification({ returnTo, onVerified, beforeRedirect, navigate = defaultNavigate, panels }: {
+export function ExternalConnectionVerification({ returnTo, onVerified, beforeRedirect, navigate = defaultNavigate, panels, verificationMessage }: {
   returnTo: "external-connections" | "authorization";
   onVerified: () => unknown;
-  beforeRedirect?: () => void;
+  verificationMessage?: string;
+  beforeRedirect?: () => boolean | void;
   navigate?: (url: string) => void;
   panels?: { title: string; description?: string }[];
 }) {
@@ -44,7 +45,7 @@ export function ExternalConnectionVerification({ returnTo, onVerified, beforeRed
       if (!alive.current) return;
       if (result.status === "verified") await onVerified();
       else if (result.status === "redirect") {
-        beforeRedirect?.();
+        if (beforeRedirect?.() === false) { setError(t.failed); return; }
         navigate(result.url);
       } else setError(result.kind === "cancelled" ? t.verificationCancelled : result.kind === "unsupported" ? dictionary.admin.passkeyUnsupported : result.message ?? t.failed);
     }).catch(() => setError(t.failed)).finally(() => {
@@ -69,7 +70,7 @@ export function ExternalConnectionVerification({ returnTo, onVerified, beforeRed
 
   const content = <>
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stroke-subtle bg-surface-base p-4">
-      <p className="text-sm leading-6 text-text-muted">{t.verificationRequired}</p>
+      <p className="text-sm leading-6 text-text-muted">{verificationMessage ?? t.verificationRequired}</p>
       {sessionExpired ? (
         <Link className="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-on-primary" href={`/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`}>{t.login}</Link>
       ) : (

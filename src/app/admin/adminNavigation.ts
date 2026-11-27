@@ -3,6 +3,7 @@ import { hasAccountPolicy } from "@/gateways/account/accountPolicy";
 import { isAccountActive, type AuthenticatedIdentitySummary } from "@/gateways/identity/identityApi";
 import { canAccessSiteManagement } from "@/gateways/site-management/siteManagementPolicy";
 import type { WikiPrincipalState } from "@/gateways/wiki/wikiPrincipal";
+import { hasCardPermission } from "@/gateways/monetization/paymentCards";
 import { canManageMonetization, type MonetizationState } from "@/gateways/monetization/monetizationPrincipal";
 import { adminSectionRoutes, type AdminSection } from "./adminTypes";
 
@@ -22,7 +23,7 @@ export function getAdminNavigation(identity: AuthenticatedIdentitySummary, princ
   const monetizationAvailable = monetizationState === undefined
     || monetizationState?.status === "missing"
     || (monetizationState?.status === "available"
-      && canManageMonetization(monetizationState.principal, getAccountIdentifierFromIdentity(identity) ?? ""));
+      && (canManageMonetization(monetizationState.principal, getAccountIdentifierFromIdentity(identity) ?? "") || hasCardPermission(monetizationState.principal, getAccountIdentifierFromIdentity(identity) ?? "", "payment_method_read")));
   return [
     ...(accountAvailable && !wikiStopped ? [{ section: "wiki" as const, href: adminSectionRoutes.wiki, labelKey: "wikiMenu" as const }] : []),
     ...(accountAvailable ? [{ section: "analyze" as const, href: adminSectionRoutes.analyze, labelKey: "analyzeMenu" as const }] : []),

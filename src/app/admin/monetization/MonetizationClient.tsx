@@ -1,5 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
+import { paymentCardsDictionaries } from "@/i18n/paymentCards";
+import { paymentCardScope } from "@/gateways/monetization/cardRecovery";
+import { PaymentCardsPanel } from "./PaymentCardsPanel";
 import { useAuthStore } from "@/gateways/auth/authStore";
 import { getAccountIdentifierFromIdentity } from "@/gateways/account/accountIdentity";
 import { activateMonetization, canManageMonetization, fetchMonetizationGroups, saveMonetizationGroups } from "@/gateways/monetization/monetizationPrincipal";
@@ -25,6 +29,7 @@ export function MonetizationClient() {
 
 function MonetizationWorkspace({ scope }: { scope: string }) {
   const { currentIdentity, t: admin } = useAdmin();
+  const { locale } = useI18n();
   const t = admin.monetization;
   const access = usePrincipalAccess("monetization");
   const [activating, setActivating] = useState(false);
@@ -80,6 +85,7 @@ function MonetizationWorkspace({ scope }: { scope: string }) {
       activeTab="principalGroups"
     /> : null}
     {!canManage && editor.state.success ? <p role="status">{editor.state.success}</p> : null}
+    <PaymentCardsPanel scope={paymentCardScope(currentIdentity)} accountIdentifier={access.accountIdentifier ?? ""} principal={state.principal} t={paymentCardsDictionaries[locale]} refreshAccess={access.refreshAccess} />
     {canManage ? <MonetizationGroupPanel editor={editor} t={admin} /> : null}
   </section>;
 }
