@@ -5,7 +5,10 @@ import { principalGroupApiError, savePrincipalGroupRequest } from "@/gateways/su
 import { readApiErrorBody } from "@/gateways/support/apiError";
 
 // Use the synchronized backend contract; do not duplicate authorization schemas.
-export const principalSchema = monetizationApiTypes.schemas.PrincipalSnapshot;
+// #926 runtime Action enum has three card actions omitted by its TypeSpec union.
+// Keep the generated source untouched and normalize only this known contract gap.
+const statementSchema = monetizationApiTypes.schemas.PrincipalPolicyStatement.extend({ actions: z.array(z.enum(["principal_group_read", "principal_group_manage", "payment_method_register", "card_registration_prepare", "payment_method_read", "payment_method_delete"])) });
+export const principalSchema = monetizationApiTypes.schemas.PrincipalSnapshot.extend({ policies: z.array(monetizationApiTypes.schemas.PrincipalPolicySummary.extend({ statements: z.array(statementSchema) })) });
 export const createdPrincipalSchema = monetizationApiTypes.schemas.PrincipalSummary;
 export const groupsSchema = z.object({ principalGroups: z.array(monetizationApiTypes.schemas.PrincipalGroup) });
 export const membersSchema = z.object({ members: z.array(monetizationApiTypes.schemas.PrincipalGroupMember) });
