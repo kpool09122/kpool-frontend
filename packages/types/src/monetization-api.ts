@@ -53,22 +53,6 @@ const SellerOnboardingSummary = z
   .object({ onboardingUrl: z.string().nullable() })
   .partial()
   .passthrough();
-const PaymentMethodType = z.literal("card");
-const RegisterPaymentMethodRequestBody = z
-  .object({ externalPaymentMethodId: z.string(), type: PaymentMethodType })
-  .passthrough();
-const PaymentMethodSummary = z
-  .object({
-    paymentMethodIdentifier: KPool_Common_Uuid,
-    externalPaymentMethodId: z.string(),
-    type: PaymentMethodType,
-    brand: z.string().nullish(),
-    last4: z.string().nullish(),
-    expMonth: z.number().int().nullish(),
-    expYear: z.number().int().nullish(),
-    isDefault: z.boolean(),
-  })
-  .passthrough();
 const InvoiceLineRequestItem = z
   .object({
     description: z.string(),
@@ -127,6 +111,37 @@ const PrincipalGroupMember = z
     identityName: z.string(),
     email: z.string(),
     status: z.enum(["active", "suspended", "forced_stop"]),
+  })
+  .passthrough();
+const RegisterPaymentMethodRequestBody = z
+  .object({
+    setupIntentIdentifier: z
+      .string()
+      .max(255)
+      .regex(/^seti_[A-Za-z0-9]+$/),
+  })
+  .passthrough();
+const PaymentMethodType = z.literal("card");
+const PaymentMethodSummary = z
+  .object({
+    paymentMethodIdentifier: KPool_Common_Uuid,
+    type: PaymentMethodType,
+    brand: z.string().nullish(),
+    last4: z.string().nullish(),
+    expMonth: z.number().int().nullish(),
+    expYear: z.number().int().nullish(),
+    isDefault: z.boolean(),
+    status: z.enum(["active", "inactive"]),
+    archivedAt: z.string().datetime({ offset: true }).nullable(),
+  })
+  .passthrough();
+const ArchivedPaymentMethodSummary = z
+  .object({
+    paymentMethodIdentifier: KPool_Common_Uuid.uuid(),
+    type: PaymentMethodType,
+    brand: z.string().nullable(),
+    last4: z.string().nullable(),
+    archivedAt: z.string().datetime({ offset: true }),
   })
   .passthrough();
 const AuthorizePaymentRequestBody = z
@@ -306,9 +321,6 @@ export const schemas = {
   SellerOnboardingCountryCode,
   OnboardSellerRequestBody,
   SellerOnboardingSummary,
-  PaymentMethodType,
-  RegisterPaymentMethodRequestBody,
-  PaymentMethodSummary,
   InvoiceLineRequestItem,
   CurrencyCode,
   InvoiceTaxLineRequestItem,
@@ -318,6 +330,10 @@ export const schemas = {
   InvoiceSummary,
   RecordPaymentRequestBody,
   PrincipalGroupMember,
+  RegisterPaymentMethodRequestBody,
+  PaymentMethodType,
+  PaymentMethodSummary,
+  ArchivedPaymentMethodSummary,
   AuthorizePaymentRequestBody,
   PaymentStatus,
   PaymentSummary,
@@ -426,68 +442,6 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 409,
-        description: `The request conflicts with the current state of the server.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 419,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 422,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 429,
-        description: `Client error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 500,
-        description: `Server error`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 503,
-        description: `Service unavailable.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-    ],
-  },
-  {
-    method: "post",
-    path: "/accounts/:monetizationAccountId/register-payment-method",
-    alias: "MonetizationAccountOperations_registerPaymentMethod",
-    description: `Register a payment method on the specified monetization account.`,
-    requestFormat: "json",
-    parameters: [
-      {
-        name: "body",
-        type: "Body",
-        schema: RegisterPaymentMethodRequestBody,
-      },
-      {
-        name: "monetizationAccountId",
-        type: "Path",
-        schema: z.string().uuid(),
-      },
-    ],
-    response: PaymentMethodSummary,
-    errors: [
-      {
-        status: 401,
-        description: `Access is unauthorized.`,
-        schema: KPool_Common_ProblemDetails,
-      },
-      {
-        status: 403,
-        description: `Access is forbidden.`,
         schema: KPool_Common_ProblemDetails,
       },
       {
@@ -706,6 +660,263 @@ const endpoints = makeApi([
       {
         status: 404,
         description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/payment-methods",
+    alias: "PaymentMethodOperations_registerPaymentMethod",
+    description: `Complete a successful Stripe setup. Requires payment_method_register permission and recent authentication. Stripe success, off-session usage, Customer and attached card are rechecked server-side. Non-success/foreign/detached methods return 409 code card_registration_rejected. Repeating completion for the same active card returns the same internal ID (200). First card becomes default. On 503 retry this completion; never submit PAN/CVC or clientSecret. Refresh recent authentication and retry on 401 recent_authentication_required.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "body",
+        type: "Body",
+        schema: z
+          .object({
+            setupIntentIdentifier: z
+              .string()
+              .max(255)
+              .regex(/^seti_[A-Za-z0-9]+$/),
+          })
+          .passthrough(),
+      },
+    ],
+    response: PaymentMethodSummary,
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/payment-methods",
+    alias: "PaymentMethodOperations_listPaymentMethods",
+    description: `List only current cards for the effective Account, ordered by internal ID. Requires an active reachable Principal with payment_method_read permission. Empty registration is paymentMethods: []. Archive rows are excluded. No recent authentication is required to list.`,
+    requestFormat: "json",
+    response: z
+      .object({ paymentMethods: z.array(PaymentMethodSummary) })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "get",
+    path: "/payment-methods/:paymentMethodIdentifier",
+    alias: "PaymentMethodOperations_getPaymentMethod",
+    description: `Resolve a past payment&#x27;s unchanged internal payment-method ID from current data or deletion archive in the effective Account. Requires payment_method_read permission. Foreign/missing IDs return 404. archivedAt records when card information was archived, not when a payment occurred. Archive records cannot be used for new payments.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "paymentMethodIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.union([PaymentMethodSummary, ArchivedPaymentMethodSummary]),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "delete",
+    path: "/payment-methods/:paymentMethodIdentifier",
+    alias: "PaymentMethodOperations_deletePaymentMethod",
+    description: `Detach and archive one card, then delete current data atomically in an Action-owned DB transaction. Requires payment_method_delete permission and recent authentication. Last card may be deleted. Deleting the default promotes the lowest-ID remaining active card; no default remains when none is active. External detach is not atomic with DB: on 503/500 retry the same DELETE; already detached cards proceed to archive, and an already archived ID in this Account returns 204. Foreign/missing IDs return 404; a card attached to a different Customer returns 409. No primary-selection API is added.`,
+    requestFormat: "json",
+    parameters: [
+      {
+        name: "paymentMethodIdentifier",
+        type: "Path",
+        schema: z.string().uuid(),
+      },
+    ],
+    response: z.void(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 404,
+        description: `The server cannot find the requested resource.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 409,
+        description: `The request conflicts with the current state of the server.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 422,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 429,
+        description: `Client error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 500,
+        description: `Server error`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 503,
+        description: `Service unavailable.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+    ],
+  },
+  {
+    method: "post",
+    path: "/payment-methods/setup-intents",
+    alias: "PaymentMethodOperations_prepareCardRegistration",
+    description: `Prepare card registration in the effective Account using a card-only off-session Stripe SetupIntent. Requires an active reachable Principal with card_registration_prepare permission and session-bound recent authentication (401 code recent_authentication_required). Customer is resolved or created by the server; no account/customer/type/card details are accepted. Use clientSecret only with Stripe.js confirmSetup, never in logs. Raw card number/CVC goes directly to Stripe. On 503 retry; Customer creation uses a stable account idempotency key.`,
+    requestFormat: "json",
+    response: z
+      .object({ setupIntentIdentifier: z.string(), clientSecret: z.string() })
+      .passthrough(),
+    errors: [
+      {
+        status: 401,
+        description: `Access is unauthorized.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 403,
+        description: `Access is forbidden.`,
+        schema: KPool_Common_ProblemDetails,
+      },
+      {
+        status: 419,
+        description: `Client error`,
         schema: KPool_Common_ProblemDetails,
       },
       {
